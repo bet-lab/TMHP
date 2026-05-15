@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="violet" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>physics_hp.simulation_summary - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/simulation_summary.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/simulation_summary.html"/>
+  <meta property="og:title" content="physics_hp.simulation_summary"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">physics_hp.simulation_summary</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for physics_hp.simulation_summary</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="2"><span class="sd">Simulation summary output functions.</span>
+</span><span data-line="3"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="4">
+</span><span data-line="5"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="6">
+</span><span data-line="7">
+</span><span data-line="8"><span class="k">def</span><span class="w"> </span><span class="nf">_print_convergence_status</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="9"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print convergence statistics.&quot;&quot;&quot;</span>
+</span><span data-line="10">    <span class="c1"># 1. Convergence Status</span>
+</span><span data-line="11">    <span class="n">converged_all</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+</span><span data-line="12">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Convergence Status] All converged: </span><span class="si">{</span><span class="n">converged_all</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="13">    <span class="k">if</span> <span class="ow">not</span> <span class="n">converged_all</span><span class="p">:</span>
+</span><span data-line="14">        <span class="n">nonconverged_count</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span><span data-line="15">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Non-converged steps: </span><span class="si">{</span><span class="n">nonconverged_count</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="16">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="17">
+</span><span data-line="18">
+</span><span data-line="19"><span class="k">def</span><span class="w"> </span><span class="nf">_print_compressor_stats</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="20"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print compressor RPM statistics.&quot;&quot;&quot;</span>
+</span><span data-line="21">    <span class="c1"># 2. Compressor Statistics</span>
+</span><span data-line="22">    <span class="n">cmp_rpm_active</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">]</span>
+</span><span data-line="23">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Compressor Speed]&quot;</span><span class="p">)</span>
+</span><span data-line="24">    <span class="k">if</span> <span class="ow">not</span> <span class="n">cmp_rpm_active</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="25">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Min: </span><span class="si">{</span><span class="n">cmp_rpm_active</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> rpm | Max: </span><span class="si">{</span><span class="n">cmp_rpm_active</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> rpm&quot;</span><span class="p">)</span>
+</span><span data-line="26">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Avg (active): </span><span class="si">{</span><span class="n">cmp_rpm_active</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> rpm&quot;</span><span class="p">)</span>
+</span><span data-line="27">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="28">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="29">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="30">
+</span><span data-line="31">
+</span><span data-line="32"><span class="k">def</span><span class="w"> </span><span class="nf">_print_fan_stats</span><span class="p">(</span>
+</span><span data-line="33">    <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">dV_ou_a_design</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">:</span> <span class="nb">int</span>
+</span><span data-line="34"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="35"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print fan flow rate, velocity, pressure, power, and efficiency ratio.&quot;&quot;&quot;</span>
+</span><span data-line="36">    <span class="c1"># 3. Fan Flow Rate Statistics</span>
+</span><span data-line="37">    <span class="n">fan_active</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;dV_ou_a [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="38">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Fan Flow Rate]&quot;</span><span class="p">)</span>
+</span><span data-line="39">    <span class="k">if</span> <span class="ow">not</span> <span class="n">fan_active</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="40">        <span class="n">fan_avg</span> <span class="o">=</span> <span class="n">fan_active</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span data-line="41">        <span class="n">fan_avg_pct</span> <span class="o">=</span> <span class="p">(</span><span class="n">fan_avg</span> <span class="o">/</span> <span class="n">dV_ou_a_design</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+</span><span data-line="42">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Min: </span><span class="si">{</span><span class="n">fan_active</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> m³/s | Max: </span><span class="si">{</span><span class="n">fan_active</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> m³/s&quot;</span><span class="p">)</span>
+</span><span data-line="43">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Avg: </span><span class="si">{</span><span class="n">fan_avg</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> m³/s (</span><span class="si">{</span><span class="n">fan_avg_pct</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">% of design)&quot;</span><span class="p">)</span>
+</span><span data-line="44">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="45">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="46">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="47">
+</span><span data-line="48">    <span class="c1"># 3-1. Fan Velocity &amp; Pressure Statistics</span>
+</span><span data-line="49">    <span class="k">if</span> <span class="s2">&quot;v_ou_a [m/s]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="50">        <span class="n">v_fan_active</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;v_ou_a [m/s]&quot;</span><span class="p">]</span>
+</span><span data-line="51">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Fan Velocity]&quot;</span><span class="p">)</span>
+</span><span data-line="52">        <span class="k">if</span> <span class="ow">not</span> <span class="n">v_fan_active</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="53">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Min: </span><span class="si">{</span><span class="n">v_fan_active</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> m/s | Max: </span><span class="si">{</span><span class="n">v_fan_active</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> m/s&quot;</span><span class="p">)</span>
+</span><span data-line="54">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Avg: </span><span class="si">{</span><span class="n">v_fan_active</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> m/s&quot;</span><span class="p">)</span>
+</span><span data-line="55">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="56">            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="57">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="58">
+</span><span data-line="59">    <span class="k">if</span> <span class="s2">&quot;dP_ou_fan_static [Pa]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;dP_ou_fan_dynamic [Pa]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="60">        <span class="n">dP_static</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;dP_ou_fan_static [Pa]&quot;</span><span class="p">]</span>
+</span><span data-line="61">        <span class="n">dP_dynamic</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;dP_ou_fan_dynamic [Pa]&quot;</span><span class="p">]</span>
+</span><span data-line="62">
+</span><span data-line="63">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Fan Pressure (Static / Dynamic)]&quot;</span><span class="p">)</span>
+</span><span data-line="64">        <span class="k">if</span> <span class="ow">not</span> <span class="n">dP_static</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="65">            <span class="nb">print</span><span class="p">(</span>
+</span><span data-line="66">                <span class="sa">f</span><span class="s2">&quot;  - Static  : Avg </span><span class="si">{</span><span class="n">dP_static</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa | Min </span><span class="si">{</span><span class="n">dP_static</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa | Max </span><span class="si">{</span><span class="n">dP_static</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa&quot;</span>
+</span><span data-line="67">            <span class="p">)</span>
+</span><span data-line="68">            <span class="nb">print</span><span class="p">(</span>
+</span><span data-line="69">                <span class="sa">f</span><span class="s2">&quot;  - Dynamic : Avg </span><span class="si">{</span><span class="n">dP_dynamic</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa | Min </span><span class="si">{</span><span class="n">dP_dynamic</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa | Max </span><span class="si">{</span><span class="n">dP_dynamic</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> Pa&quot;</span>
+</span><span data-line="70">            <span class="p">)</span>
+</span><span data-line="71">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="72">            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="73">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="74">
+</span><span data-line="75">    <span class="c1"># 4. Fan Power Statistics</span>
+</span><span data-line="76">    <span class="n">fan_p_active</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;E_ou_fan [W]&quot;</span><span class="p">]</span>
+</span><span data-line="77">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Fan Power Use]&quot;</span><span class="p">)</span>
+</span><span data-line="78">    <span class="k">if</span> <span class="ow">not</span> <span class="n">fan_p_active</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="79">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Min: </span><span class="si">{</span><span class="n">fan_p_active</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> W | Max: </span><span class="si">{</span><span class="n">fan_p_active</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> W&quot;</span><span class="p">)</span>
+</span><span data-line="80">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Avg: </span><span class="si">{</span><span class="n">fan_p_active</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> W&quot;</span><span class="p">)</span>
+</span><span data-line="81">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="82">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="83">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="84">
+</span><span data-line="85">    <span class="c1"># 5. System Efficiency Metrics</span>
+</span><span data-line="86">    <span class="n">total_fan_energy</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_ou_fan [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">simulation_time_step</span>
+</span><span data-line="87">    <span class="n">total_energy</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">simulation_time_step</span>
+</span><span data-line="88">    <span class="n">fan_ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">total_fan_energy</span> <span class="o">/</span> <span class="n">total_energy</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span> <span class="k">if</span> <span class="n">total_energy</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+</span><span data-line="89">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Fan Power Ratio] </span><span class="si">{</span><span class="n">fan_ratio</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">% (Typical: 5-10%)&quot;</span><span class="p">)</span>
+</span><span data-line="90">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="91">
+</span><span data-line="92">
+</span><span data-line="93"><span class="k">def</span><span class="w"> </span><span class="nf">_print_heat_exchange_stats</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="94"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print heat exchanger temperature differences.&quot;&quot;&quot;</span>
+</span><span data-line="95">    <span class="c1"># 6. Heat Exchange Performance: Outdoor Air</span>
+</span><span data-line="96">    <span class="k">if</span> <span class="s2">&quot;T_ou_a_in [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;T_ou_a_out [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="97">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Outdoor Air Temperature Difference (In - Out)]&quot;</span><span class="p">)</span>
+</span><span data-line="98">        <span class="k">if</span> <span class="n">active_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+</span><span data-line="99">            <span class="n">delta_T</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ou_a_in [°C]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ou_a_out [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="100">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Avg Delta T: </span><span class="si">{</span><span class="n">delta_T</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K | Max Delta T: </span><span class="si">{</span><span class="n">delta_T</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K&quot;</span><span class="p">)</span>
+</span><span data-line="101">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="102">            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - No active data.&quot;</span><span class="p">)</span>
+</span><span data-line="103">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="104">
+</span><span data-line="105">    <span class="c1"># 7. Heat Exchange Performance: Temp Differences</span>
+</span><span data-line="106">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Heat Exchanger Temperature Differences]&quot;</span><span class="p">)</span>
+</span><span data-line="107">
+</span><span data-line="108">    <span class="c1"># Condenser (T_cond - T_tank_w)</span>
+</span><span data-line="109">    <span class="k">if</span> <span class="s2">&quot;T_ref_cond_sat_l [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="110">        <span class="n">T_cond</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ref_cond_sat_l [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="111">        <span class="n">T_tank_w</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="112">
+</span><span data-line="113">        <span class="k">if</span> <span class="ow">not</span> <span class="n">T_cond</span><span class="o">.</span><span class="n">empty</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">T_tank_w</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="114">            <span class="n">dT_cond</span> <span class="o">=</span> <span class="n">T_cond</span> <span class="o">-</span> <span class="n">T_tank_w</span>
+</span><span data-line="115">            <span class="nb">print</span><span class="p">(</span>
+</span><span data-line="116">                <span class="sa">f</span><span class="s2">&quot;  - Condenser (T_cond - T_tank) Avg: </span><span class="si">{</span><span class="n">dT_cond</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K | Min: </span><span class="si">{</span><span class="n">dT_cond</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K | Max: </span><span class="si">{</span><span class="n">dT_cond</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K&quot;</span>
+</span><span data-line="117">            <span class="p">)</span>
+</span><span data-line="118">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="119">            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - Condenser: No data&quot;</span><span class="p">)</span>
+</span><span data-line="120">
+</span><span data-line="121">    <span class="c1"># Evaporator (T_air_in - T_evap) &amp; (T_air_in - T_air_out)</span>
+</span><span data-line="122">    <span class="k">if</span> <span class="s2">&quot;T_ou_a_in [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;T_ou_a_out [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="123">        <span class="n">T_air_in</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ou_a_in [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="124">        <span class="n">T_evap_sat</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="125">        <span class="n">T_air_out</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">active_mask</span><span class="p">,</span> <span class="s2">&quot;T_ou_a_out [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="126">
+</span><span data-line="127">        <span class="k">if</span> <span class="ow">not</span> <span class="n">T_air_in</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="128">            <span class="n">dT_evap_drive</span> <span class="o">=</span> <span class="n">T_air_in</span> <span class="o">-</span> <span class="n">T_evap_sat</span>
+</span><span data-line="129">            <span class="n">dT_air_drop</span> <span class="o">=</span> <span class="n">T_air_in</span> <span class="o">-</span> <span class="n">T_air_out</span>
+</span><span data-line="130">
+</span><span data-line="131">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Evap Drive (T_air_in - T_evap) Avg: </span><span class="si">{</span><span class="n">dT_evap_drive</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K&quot;</span><span class="p">)</span>
+</span><span data-line="132">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Air Drop (T_air_in - T_air_out) Avg: </span><span class="si">{</span><span class="n">dT_air_drop</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> K&quot;</span><span class="p">)</span>
+</span><span data-line="133">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="134">            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  - Evaporator: No data&quot;</span><span class="p">)</span>
+</span><span data-line="135">
+</span><span data-line="136">
+<div class="viewcode-block" id="print_simulation_summary">
+<a class="viewcode-back" href="../../api/support.html#physics_hp.simulation_summary.print_simulation_summary">[docs]</a>
+</span><span data-line="137"><span class="k">def</span><span class="w"> </span><span class="nf">print_simulation_summary</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dV_ou_a_design</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="138"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Print a comprehensive summary of simulation results.</span>
+</span><span data-line="139">
+</span><span data-line="140"><span class="sd">    Parameters</span>
+</span><span data-line="141"><span class="sd">    ----------</span>
+</span><span data-line="142"><span class="sd">    df : pd.DataFrame</span>
+</span><span data-line="143"><span class="sd">        Simulation result DataFrame.</span>
+</span><span data-line="144"><span class="sd">    simulation_time_step : int</span>
+</span><span data-line="145"><span class="sd">        Time step [s].</span>
+</span><span data-line="146"><span class="sd">    dV_ou_a_design : float</span>
+</span><span data-line="147"><span class="sd">        Design airflow rate of outdoor unit [m3/s].</span>
+</span><span data-line="148"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="149">    <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="150">        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Empty DataFrame provided.&quot;</span><span class="p">)</span>
+</span><span data-line="151">        <span class="k">return</span>
+</span><span data-line="152">
+</span><span data-line="153">    <span class="n">required_columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">,</span> <span class="s2">&quot;E_ou_fan [W]&quot;</span><span class="p">,</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span> <span class="s2">&quot;dV_ou_a [m3/s]&quot;</span><span class="p">,</span> <span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">]</span>
+</span><span data-line="154">    <span class="n">missing_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">required_columns</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+</span><span data-line="155">    <span class="k">if</span> <span class="n">missing_columns</span><span class="p">:</span>
+</span><span data-line="156">        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Required columns not found in DataFrame: </span><span class="si">{</span><span class="n">missing_columns</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="157">
+</span><span data-line="158">    <span class="n">active_mask</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span data-line="159">
+</span><span data-line="160">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+</span><span data-line="161">    <span class="n">_print_convergence_status</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span data-line="162">    <span class="n">_print_compressor_stats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">)</span>
+</span><span data-line="163">    <span class="n">_print_fan_stats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">,</span> <span class="n">dV_ou_a_design</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">)</span>
+</span><span data-line="164">    <span class="n">_print_heat_exchange_stats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">active_mask</span><span class="p">)</span>
+</span><span data-line="165">    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

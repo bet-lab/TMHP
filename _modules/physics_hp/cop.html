@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="violet" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>physics_hp.cop - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/cop.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/cop.html"/>
+  <meta property="og:title" content="physics_hp.cop"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="0"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">physics_hp.cop</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for physics_hp.cop</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Heat pump Coefficient of Performance (COP) models.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">Provides empirical COP correlations for:</span>
+</span><span data-line="4"><span class="sd">- Air source heat pumps (cooling and heating modes)</span>
+</span><span data-line="5"><span class="sd">- Ground source heat pumps (modified Carnot model)</span>
+</span><span data-line="6"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="9">
+</span><span data-line="10">
+<div class="viewcode-block" id="calc_ASHP_cooling_COP">
+<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_ASHP_cooling_COP">[docs]</a>
+</span><span data-line="11"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ASHP_cooling_COP</span><span class="p">(</span><span class="n">T_a_int_out</span><span class="p">,</span> <span class="n">T_a_ext_in</span><span class="p">,</span> <span class="n">Q_r_int</span><span class="p">,</span> <span class="n">Q_r_max</span><span class="p">,</span> <span class="n">COP_ref</span><span class="p">):</span>
+</span><span data-line="12"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="13"><span class="sd">    Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in cooling mode.</span>
+</span><span data-line="14">
+</span><span data-line="15"><span class="sd">    Reference: https://publications.ibpsa.org/proceedings/bs/2023/papers/bs2023_1118.pdf</span>
+</span><span data-line="16">
+</span><span data-line="17"><span class="sd">    Parameters</span>
+</span><span data-line="18"><span class="sd">    ----------</span>
+</span><span data-line="19"><span class="sd">    T_a_int_out : float</span>
+</span><span data-line="20"><span class="sd">        Indoor air temperature [K]</span>
+</span><span data-line="21"><span class="sd">    T_a_ext_in : float</span>
+</span><span data-line="22"><span class="sd">        Outdoor air temperature [K]</span>
+</span><span data-line="23"><span class="sd">    Q_r_int : float</span>
+</span><span data-line="24"><span class="sd">        Indoor heat load [W]</span>
+</span><span data-line="25"><span class="sd">    Q_r_max : float</span>
+</span><span data-line="26"><span class="sd">        Maximum cooling capacity [W]</span>
+</span><span data-line="27"><span class="sd">    COP_ref : float</span>
+</span><span data-line="28"><span class="sd">        Reference COP at standard conditions</span>
+</span><span data-line="29">
+</span><span data-line="30"><span class="sd">    Returns</span>
+</span><span data-line="31"><span class="sd">    -------</span>
+</span><span data-line="32"><span class="sd">    float</span>
+</span><span data-line="33"><span class="sd">        COP value</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="sd">    Note</span>
+</span><span data-line="36"><span class="sd">    ----</span>
+</span><span data-line="37"><span class="sd">    COP is calculated based on:</span>
+</span><span data-line="38"><span class="sd">    - PLR: Part Load Ratio</span>
+</span><span data-line="39"><span class="sd">    - EIR: Energy input to cooling output ratio</span>
+</span><span data-line="40"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="41">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">Q_r_int</span> <span class="o">/</span> <span class="n">Q_r_max</span>
+</span><span data-line="42">    <span class="k">if</span> <span class="n">PLR</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">:</span>
+</span><span data-line="43">        <span class="n">PLR</span> <span class="o">=</span> <span class="mf">0.2</span>
+</span><span data-line="44">    <span class="k">if</span> <span class="n">PLR</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="45">        <span class="n">PLR</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="46">    <span class="n">EIR_by_T</span> <span class="o">=</span> <span class="mf">0.38</span> <span class="o">+</span> <span class="mf">0.02</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_int_out</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_ext_in</span><span class="p">)</span>
+</span><span data-line="47">    <span class="n">EIR_by_PLR</span> <span class="o">=</span> <span class="mf">0.22</span> <span class="o">+</span> <span class="mf">0.50</span> <span class="o">*</span> <span class="n">PLR</span> <span class="o">+</span> <span class="mf">0.26</span> <span class="o">*</span> <span class="n">PLR</span><span class="o">**</span><span class="mi">2</span>
+</span><span data-line="48">    <span class="n">COP</span> <span class="o">=</span> <span class="n">PLR</span> <span class="o">*</span> <span class="n">COP_ref</span> <span class="o">/</span> <span class="p">(</span><span class="n">EIR_by_T</span> <span class="o">*</span> <span class="n">EIR_by_PLR</span><span class="p">)</span>
+</span><span data-line="49">    <span class="k">return</span> <span class="n">COP</span></div>
+
+</span><span data-line="50">
+</span><span data-line="51">
+<div class="viewcode-block" id="calc_ASHP_heating_COP">
+<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_ASHP_heating_COP">[docs]</a>
+</span><span data-line="52"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ASHP_heating_COP</span><span class="p">(</span><span class="n">T0</span><span class="p">,</span> <span class="n">Q_r_int</span><span class="p">,</span> <span class="n">Q_r_max</span><span class="p">):</span>
+</span><span data-line="53"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="54"><span class="sd">    Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in heating mode.</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="sd">    Reference: https://www.mdpi.com/2071-1050/15/3/1880</span>
+</span><span data-line="57">
+</span><span data-line="58"><span class="sd">    Parameters</span>
+</span><span data-line="59"><span class="sd">    ----------</span>
+</span><span data-line="60"><span class="sd">    T0 : float</span>
+</span><span data-line="61"><span class="sd">        Environmental temperature [K]</span>
+</span><span data-line="62"><span class="sd">    Q_r_int : float</span>
+</span><span data-line="63"><span class="sd">        Indoor heat load [W]</span>
+</span><span data-line="64"><span class="sd">    Q_r_max : float</span>
+</span><span data-line="65"><span class="sd">        Maximum heating capacity [W]</span>
+</span><span data-line="66">
+</span><span data-line="67"><span class="sd">    Returns</span>
+</span><span data-line="68"><span class="sd">    -------</span>
+</span><span data-line="69"><span class="sd">    float</span>
+</span><span data-line="70"><span class="sd">        COP value</span>
+</span><span data-line="71">
+</span><span data-line="72"><span class="sd">    Note</span>
+</span><span data-line="73"><span class="sd">    ----</span>
+</span><span data-line="74"><span class="sd">    COP is calculated based on PLR (Part Load Ratio).</span>
+</span><span data-line="75"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="76">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">Q_r_int</span> <span class="o">/</span> <span class="n">Q_r_max</span>
+</span><span data-line="77">    <span class="k">if</span> <span class="n">PLR</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">:</span>
+</span><span data-line="78">        <span class="n">PLR</span> <span class="o">=</span> <span class="mf">0.2</span>
+</span><span data-line="79">    <span class="k">if</span> <span class="n">PLR</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="80">        <span class="n">PLR</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span data-line="81">    <span class="n">COP</span> <span class="o">=</span> <span class="o">-</span><span class="mf">7.46</span> <span class="o">*</span> <span class="p">(</span><span class="n">PLR</span> <span class="o">-</span> <span class="mf">0.0047</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.477</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.0941</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">4.34</span>
+</span><span data-line="82">    <span class="k">return</span> <span class="n">COP</span></div>
+
+</span><span data-line="83">
+</span><span data-line="84">
+<div class="viewcode-block" id="calc_GSHP_COP">
+<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_GSHP_COP">[docs]</a>
+</span><span data-line="85"><span class="k">def</span><span class="w"> </span><span class="nf">calc_GSHP_COP</span><span class="p">(</span><span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="n">T_f_out_K</span><span class="p">,</span> <span class="n">dV_a_ratio</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+</span><span data-line="86"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="87"><span class="sd">    Calculate COP for a Ground Source Heat Pump using the EnergyPlus</span>
+</span><span data-line="88"><span class="sd">    Coil:*:WaterToAir:EquationFit model (Equation-Fit Method).</span>
+</span><span data-line="89">
+</span><span data-line="90"><span class="sd">    Reference:</span>
+</span><span data-line="91"><span class="sd">        EnergyPlus Engineering Reference, Ch.16.5.10.2</span>
+</span><span data-line="92"><span class="sd">        (Eq. 16.412-16.418, Tang 2005)</span>
+</span><span data-line="93"><span class="sd">        Dataset: TCH072_GLHP (ClimateMaster 6-ton, **Ground Loop** HP)</span>
+</span><span data-line="94"><span class="sd">        Source: EnergyPlus/datasets/WaterToAirHeatPumps.idf</span>
+</span><span data-line="95">
+</span><span data-line="96"><span class="sd">    Rated conditions (from IDF comment, 15% methanol antifreeze):</span>
+</span><span data-line="97"><span class="sd">        Cooling: 70.29 kBtu/h @ 77°F (25°C) entering water, EER=14.35</span>
+</span><span data-line="98"><span class="sd">        Heating: 56.14 kBtu/h @ 32°F (0°C) entering water, COP=3.42</span>
+</span><span data-line="99">
+</span><span data-line="100"><span class="sd">    Parameters</span>
+</span><span data-line="101"><span class="sd">    ----------</span>
+</span><span data-line="102"><span class="sd">    T_a_iu_in_K : float</span>
+</span><span data-line="103"><span class="sd">        Indoor air inlet dry-bulb temperature [K]  (= T_a_room).</span>
+</span><span data-line="104"><span class="sd">        For cooling, internally converted to wet-bulb (T_wb) via CoolProp</span>
+</span><span data-line="105"><span class="sd">        assuming RH = 50%.</span>
+</span><span data-line="106"><span class="sd">    T_f_out_K : float</span>
+</span><span data-line="107"><span class="sd">        Source-side inlet water temperature [K]</span>
+</span><span data-line="108"><span class="sd">        = T_f_out (water returning from borehole TO the heat pump,</span>
+</span><span data-line="109"><span class="sd">          i.e., T_w,in in EnergyPlus notation).</span>
+</span><span data-line="110"><span class="sd">    dV_a_ratio : float</span>
+</span><span data-line="111"><span class="sd">        Load-side air volumetric flow ratio: V_a / V_a_ref  [-]</span>
+</span><span data-line="112"><span class="sd">        V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</span>
+</span><span data-line="113"><span class="sd">    mode : str</span>
+</span><span data-line="114"><span class="sd">        &quot;cooling&quot; or &quot;heating&quot;</span>
+</span><span data-line="115">
+</span><span data-line="116"><span class="sd">    Units</span>
+</span><span data-line="117"><span class="sd">    -----</span>
+</span><span data-line="118"><span class="sd">    Temperatures : K</span>
+</span><span data-line="119"><span class="sd">    Flow rates   : m³/s</span>
+</span><span data-line="120"><span class="sd">    Heat/Power   : W</span>
+</span><span data-line="121">
+</span><span data-line="122"><span class="sd">    Returns</span>
+</span><span data-line="123"><span class="sd">    -------</span>
+</span><span data-line="124"><span class="sd">    float</span>
+</span><span data-line="125"><span class="sd">        COP (dimensionless). Polynomial model is unconditionally stable—</span>
+</span><span data-line="126"><span class="sd">        no ValueError on temperature inversion.</span>
+</span><span data-line="127"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="128">    <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
+</span><span data-line="129">
+</span><span data-line="130">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="131">    <span class="c1"># TCH072_GLHP coefficients  (EnergyPlus WaterToAirHeatPumps.idf)</span>
+</span><span data-line="132">    <span class="c1"># Curve:QuadLinear — [C1, C2(w), C3(x), C4(y), C5(z)]</span>
+</span><span data-line="133">    <span class="c1"># w = T_wb(clg) / T_a_iu_in(htg) / T_ref</span>
+</span><span data-line="134">    <span class="c1"># x = T_f_out (= T_w,in) / T_ref</span>
+</span><span data-line="135">    <span class="c1"># y = V_a / V_a_ref</span>
+</span><span data-line="136">    <span class="c1"># z = V_w / V_w_ref</span>
+</span><span data-line="137">    <span class="c1"># T_ref = 283 K  (EnergyPlus Eng. Ref.)</span>
+</span><span data-line="138">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="139">    <span class="n">_COEFFS</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="140">        <span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.34283983721389</span><span class="p">,</span> <span class="mf">7.95908762160623</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.81781371834254</span><span class="p">,</span> <span class="mf">0.107825995086305</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.96686960975482e-3</span><span class="p">],</span>
+</span><span data-line="141">        <span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">6.07162009581271</span><span class="p">,</span> <span class="mf">0.751024641964602</span><span class="p">,</span> <span class="mf">5.74078006772573</span><span class="p">,</span> <span class="mf">0.248287540581677</span><span class="p">,</span> <span class="mf">3.53588794377984e-3</span><span class="p">],</span>
+</span><span data-line="142">        <span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.71139387014587</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.80505473458221</span><span class="p">,</span> <span class="mf">7.61053388144077</span><span class="p">,</span> <span class="mf">0.260726814057021</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.22820319308267e-2</span><span class="p">],</span>
+</span><span data-line="143">        <span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">5.12615627602834</span><span class="p">,</span> <span class="mf">4.59939579763495</span><span class="p">,</span> <span class="mf">1.45764440263458</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.61795048261089e-2</span><span class="p">,</span> <span class="mf">4.3384414360512e-3</span><span class="p">],</span>
+</span><span data-line="144">    <span class="p">}</span>
+</span><span data-line="145">    <span class="n">_T_REF</span> <span class="o">=</span> <span class="mi">283</span>  <span class="c1"># [K] EnergyPlus fixed reference temperature</span>
+</span><span data-line="146">    <span class="n">_COP_REF_CLG</span> <span class="o">=</span> <span class="mf">14.35</span> <span class="o">/</span> <span class="mf">3.412</span>  <span class="c1"># EER 14.35 → COP ≈ 4.207</span>
+</span><span data-line="147">    <span class="n">_COP_REF_HTG</span> <span class="o">=</span> <span class="mf">3.42</span>  <span class="c1"># Rated heating COP from IDF</span>
+</span><span data-line="148">    <span class="n">_V_W_RATIO</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Ground-loop water flow ratio (constant-speed pump)</span>
+</span><span data-line="149">
+</span><span data-line="150">    <span class="k">def</span><span class="w"> </span><span class="nf">_quad_linear</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span><span data-line="151">        <span class="n">c</span> <span class="o">=</span> <span class="n">coeffs</span>
+</span><span data-line="152">        <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x3</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">x4</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">x5</span>
+</span><span data-line="153">
+</span><span data-line="154">    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span>
+</span><span data-line="155">        <span class="c1"># T_a_iu_in_K (dry-bulb) → convert to wet-bulb for cooling curve (RH=50%)</span>
+</span><span data-line="156">        <span class="n">T_wb_K</span> <span class="o">=</span> <span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;Twb&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="s2">&quot;RH&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="mi">101325</span><span class="p">)</span>
+</span><span data-line="157">
+</span><span data-line="158">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="159">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">],</span>
+</span><span data-line="160">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_wb / T_ref</span>
+</span><span data-line="161">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
+</span><span data-line="162">            <span class="n">dV_a_ratio</span><span class="p">,</span>  <span class="c1"># y = V_a / V_a_ref</span>
+</span><span data-line="163">            <span class="n">_V_W_RATIO</span><span class="p">,</span>  <span class="c1"># z = V_w / V_w_ref</span>
+</span><span data-line="164">        <span class="p">)</span>
+</span><span data-line="165">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="166">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">],</span>
+</span><span data-line="167">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="168">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="169">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="170">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="171">        <span class="p">)</span>
+</span><span data-line="172">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_CLG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
+</span><span data-line="173">
+</span><span data-line="174">    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
+</span><span data-line="175">        <span class="c1"># T_a_iu_in_K (dry-bulb) used directly for heating curve</span>
+</span><span data-line="176">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="177">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">],</span>
+</span><span data-line="178">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_a_iu_in / T_ref</span>
+</span><span data-line="179">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
+</span><span data-line="180">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="181">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="182">        <span class="p">)</span>
+</span><span data-line="183">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="184">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">],</span>
+</span><span data-line="185">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="186">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="187">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="188">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="189">        <span class="p">)</span>
+</span><span data-line="190">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_HTG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
+</span><span data-line="191">
+</span><span data-line="192">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="193">        <span class="n">COP</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="194">
+</span><span data-line="195">    <span class="k">return</span> <span class="n">COP</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

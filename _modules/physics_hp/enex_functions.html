@@ -206,677 +206,684 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="80"><span class="kn">from</span><span class="w"> </span><span class="nn">.hx_fan</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 </span><span data-line="81">    <span class="n">calc_UA_from_dV_fan</span> <span class="k">as</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">,</span>
 </span><span data-line="82"><span class="p">)</span>
-</span><span data-line="83">
-</span><span data-line="84"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="85">    <span class="n">calc_energy_flow</span><span class="p">,</span>
-</span><span data-line="86">    <span class="n">calc_exergy_flow</span><span class="p">,</span>
-</span><span data-line="87">    <span class="n">calc_refrigerant_exergy</span><span class="p">,</span>
-</span><span data-line="88">    <span class="n">convert_electricity_to_exergy</span><span class="p">,</span>
-</span><span data-line="89">    <span class="n">generate_entropy_exergy_term</span><span class="p">,</span>
-</span><span data-line="90"><span class="p">)</span>
-</span><span data-line="91"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="92">    <span class="n">calc_uv_exposure_time</span> <span class="k">as</span> <span class="n">calc_uv_exposure_time</span><span class="p">,</span>
-</span><span data-line="93"><span class="p">)</span>
-</span><span data-line="94"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="95">    <span class="n">calc_uv_lamp_power</span> <span class="k">as</span> <span class="n">calc_uv_lamp_power</span><span class="p">,</span>
-</span><span data-line="96"><span class="p">)</span>
-</span><span data-line="97"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="98">    <span class="n">get_uv_params_from_turbidity</span> <span class="k">as</span> <span class="n">get_uv_params_from_turbidity</span><span class="p">,</span>
-</span><span data-line="99"><span class="p">)</span>
-</span><span data-line="100">
-</span><span data-line="101"><span class="k">try</span><span class="p">:</span>
-</span><span data-line="102">    <span class="kn">import</span><span class="w"> </span><span class="nn">dartwork_mpl</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dm</span>
-</span><span data-line="103"><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-</span><span data-line="104">    <span class="c1"># dartwork_mpl이 없는 경우를 대비한 fallback</span>
-</span><span data-line="105">    <span class="n">dm</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="106">
+</span><span data-line="83"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="84">    <span class="n">calc_energy_flow</span> <span class="k">as</span> <span class="n">calc_energy_flow</span><span class="p">,</span>
+</span><span data-line="85"><span class="p">)</span>
+</span><span data-line="86"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="87">    <span class="n">calc_exergy_flow</span> <span class="k">as</span> <span class="n">calc_exergy_flow</span><span class="p">,</span>
+</span><span data-line="88"><span class="p">)</span>
+</span><span data-line="89"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="90">    <span class="n">calc_refrigerant_exergy</span> <span class="k">as</span> <span class="n">calc_refrigerant_exergy</span><span class="p">,</span>
+</span><span data-line="91"><span class="p">)</span>
+</span><span data-line="92"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="93">    <span class="n">convert_electricity_to_exergy</span> <span class="k">as</span> <span class="n">convert_electricity_to_exergy</span><span class="p">,</span>
+</span><span data-line="94"><span class="p">)</span>
+</span><span data-line="95"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="96">    <span class="n">generate_entropy_exergy_term</span> <span class="k">as</span> <span class="n">generate_entropy_exergy_term</span><span class="p">,</span>
+</span><span data-line="97"><span class="p">)</span>
+</span><span data-line="98"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="99">    <span class="n">calc_uv_exposure_time</span> <span class="k">as</span> <span class="n">calc_uv_exposure_time</span><span class="p">,</span>
+</span><span data-line="100"><span class="p">)</span>
+</span><span data-line="101"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="102">    <span class="n">calc_uv_lamp_power</span> <span class="k">as</span> <span class="n">calc_uv_lamp_power</span><span class="p">,</span>
+</span><span data-line="103"><span class="p">)</span>
+</span><span data-line="104"><span class="kn">from</span><span class="w"> </span><span class="nn">.uv_treatment</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="105">    <span class="n">get_uv_params_from_turbidity</span> <span class="k">as</span> <span class="n">get_uv_params_from_turbidity</span><span class="p">,</span>
+</span><span data-line="106"><span class="p">)</span>
 </span><span data-line="107">
+</span><span data-line="108"><span class="k">try</span><span class="p">:</span>
+</span><span data-line="109">    <span class="kn">import</span><span class="w"> </span><span class="nn">dartwork_mpl</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dm</span>
+</span><span data-line="110"><span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+</span><span data-line="111">    <span class="c1"># dartwork_mpl이 없는 경우를 대비한 fallback</span>
+</span><span data-line="112">    <span class="n">dm</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="113">
+</span><span data-line="114">
 <div class="viewcode-block" id="linear_function">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.linear_function">[docs]</a>
-</span><span data-line="108"><span class="k">def</span><span class="w"> </span><span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-</span><span data-line="109"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Linear function: y = a*x + b&quot;&quot;&quot;</span>
-</span><span data-line="110">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span></div>
+</span><span data-line="115"><span class="k">def</span><span class="w"> </span><span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+</span><span data-line="116"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Linear function: y = a*x + b&quot;&quot;&quot;</span>
+</span><span data-line="117">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span></div>
 
-</span><span data-line="111">
-</span><span data-line="112">
+</span><span data-line="118">
+</span><span data-line="119">
 <div class="viewcode-block" id="quadratic_function">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.quadratic_function">[docs]</a>
-</span><span data-line="113"><span class="k">def</span><span class="w"> </span><span class="nf">quadratic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
-</span><span data-line="114"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quadratic function: y = a*x² + b*x + c&quot;&quot;&quot;</span>
-</span><span data-line="115">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c</span></div>
+</span><span data-line="120"><span class="k">def</span><span class="w"> </span><span class="nf">quadratic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+</span><span data-line="121"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quadratic function: y = a*x² + b*x + c&quot;&quot;&quot;</span>
+</span><span data-line="122">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c</span></div>
 
-</span><span data-line="116">
-</span><span data-line="117">
+</span><span data-line="123">
+</span><span data-line="124">
 <div class="viewcode-block" id="cubic_function">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.cubic_function">[docs]</a>
-</span><span data-line="118"><span class="k">def</span><span class="w"> </span><span class="nf">cubic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
-</span><span data-line="119"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Cubic function: y = a*x³ + b*x² + c*x + d&quot;&quot;&quot;</span>
-</span><span data-line="120">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">d</span></div>
+</span><span data-line="125"><span class="k">def</span><span class="w"> </span><span class="nf">cubic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+</span><span data-line="126"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Cubic function: y = a*x³ + b*x² + c*x + d&quot;&quot;&quot;</span>
+</span><span data-line="127">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">d</span></div>
 
-</span><span data-line="121">
-</span><span data-line="122">
+</span><span data-line="128">
+</span><span data-line="129">
 <div class="viewcode-block" id="quartic_function">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.quartic_function">[docs]</a>
-</span><span data-line="123"><span class="k">def</span><span class="w"> </span><span class="nf">quartic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-</span><span data-line="124"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quartic function: y = a*x⁴ + b*x³ + c*x² + d*x + e&quot;&quot;&quot;</span>
-</span><span data-line="125">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">e</span></div>
+</span><span data-line="130"><span class="k">def</span><span class="w"> </span><span class="nf">quartic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
+</span><span data-line="131"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quartic function: y = a*x⁴ + b*x³ + c*x² + d*x + e&quot;&quot;&quot;</span>
+</span><span data-line="132">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">e</span></div>
 
-</span><span data-line="126">
-</span><span data-line="127">
+</span><span data-line="133">
+</span><span data-line="134">
 <div class="viewcode-block" id="print_balance">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.print_balance">[docs]</a>
-</span><span data-line="128"><span class="k">def</span><span class="w"> </span><span class="nf">print_balance</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
-</span><span data-line="129"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="130"><span class="sd">    Print energy, entropy, or exergy balance dictionary in a formatted way.</span>
-</span><span data-line="131">
-</span><span data-line="132"><span class="sd">    This function prints balance information for subsystems, categorizing entries</span>
-</span><span data-line="133"><span class="sd">    into in, out, consumed, and generated categories.</span>
-</span><span data-line="134">
-</span><span data-line="135"><span class="sd">    Parameters</span>
-</span><span data-line="136"><span class="sd">    ----------</span>
-</span><span data-line="137"><span class="sd">    balance : dict</span>
-</span><span data-line="138"><span class="sd">        Dictionary containing balance information for subsystems.</span>
-</span><span data-line="139"><span class="sd">        Structure: {subsystem_name: {category: {symbol: value}}}</span>
-</span><span data-line="140"><span class="sd">        Categories: &#39;in&#39;, &#39;out&#39;, &#39;con&#39; (consumed), &#39;gen&#39; (generated)</span>
-</span><span data-line="141"><span class="sd">    decimal : int, optional</span>
-</span><span data-line="142"><span class="sd">        Number of decimal places for output (default: 2)</span>
-</span><span data-line="143">
-</span><span data-line="144"><span class="sd">    Returns</span>
-</span><span data-line="145"><span class="sd">    -------</span>
-</span><span data-line="146"><span class="sd">    None</span>
-</span><span data-line="147"><span class="sd">        Only prints output</span>
-</span><span data-line="148">
-</span><span data-line="149"><span class="sd">    Example</span>
-</span><span data-line="150"><span class="sd">    -------</span>
-</span><span data-line="151"><span class="sd">    &gt;&gt;&gt; balance = {</span>
-</span><span data-line="152"><span class="sd">    ...     &quot;hot water tank&quot;: {</span>
-</span><span data-line="153"><span class="sd">    ...         &quot;in&quot;: {&quot;E_heater&quot;: 5000.0},</span>
-</span><span data-line="154"><span class="sd">    ...         &quot;out&quot;: {&quot;Q_w_tank&quot;: 4500.0, &quot;Q_l_tank&quot;: 400.0},</span>
-</span><span data-line="155"><span class="sd">    ...         &quot;con&quot;: {&quot;X_c_tank&quot;: 100.0}</span>
-</span><span data-line="156"><span class="sd">    ...     }</span>
-</span><span data-line="157"><span class="sd">    ... }</span>
-</span><span data-line="158"><span class="sd">    &gt;&gt;&gt; print_balance(balance)</span>
-</span><span data-line="159"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="160">    <span class="n">total_length</span> <span class="o">=</span> <span class="mi">50</span>
-</span><span data-line="161">
-</span><span data-line="162">    <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;energy&quot;</span>
-</span><span data-line="163">    <span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;[W]&quot;</span>
-</span><span data-line="164">
-</span><span data-line="165">    <span class="c1"># Determine balance type and unit from dictionary structure</span>
-</span><span data-line="166">    <span class="k">for</span> <span class="n">_subsystem</span><span class="p">,</span> <span class="n">category_dict</span> <span class="ow">in</span> <span class="n">balance</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="167">        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">_terms</span> <span class="ow">in</span> <span class="n">category_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="168">            <span class="k">if</span> <span class="s2">&quot;gen&quot;</span> <span class="ow">in</span> <span class="n">category</span><span class="p">:</span>
-</span><span data-line="169">                <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;entropy&quot;</span>
-</span><span data-line="170">                <span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;[W/K]&quot;</span>
-</span><span data-line="171">            <span class="k">elif</span> <span class="s2">&quot;con&quot;</span> <span class="ow">in</span> <span class="n">category</span><span class="p">:</span>
-</span><span data-line="172">                <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;exergy&quot;</span>
-</span><span data-line="173">
-</span><span data-line="174">    <span class="c1"># Print balance for each subsystem</span>
-</span><span data-line="175">    <span class="k">for</span> <span class="n">subsystem</span><span class="p">,</span> <span class="n">category_dict</span> <span class="ow">in</span> <span class="n">balance</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="176">        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">subsystem</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">balance_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> BALANCE:&quot;</span>
-</span><span data-line="177">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">total_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
-</span><span data-line="178">
-</span><span data-line="179">        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="n">category_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="180">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">category</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> ENTRIES:&quot;</span><span class="p">)</span>
-</span><span data-line="181">
-</span><span data-line="182">            <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="183">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">decimal</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
-
-</span><span data-line="184">
+</span><span data-line="135"><span class="k">def</span><span class="w"> </span><span class="nf">print_balance</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+</span><span data-line="136"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="137"><span class="sd">    Print energy, entropy, or exergy balance dictionary in a formatted way.</span>
+</span><span data-line="138">
+</span><span data-line="139"><span class="sd">    This function prints balance information for subsystems, categorizing entries</span>
+</span><span data-line="140"><span class="sd">    into in, out, consumed, and generated categories.</span>
+</span><span data-line="141">
+</span><span data-line="142"><span class="sd">    Parameters</span>
+</span><span data-line="143"><span class="sd">    ----------</span>
+</span><span data-line="144"><span class="sd">    balance : dict</span>
+</span><span data-line="145"><span class="sd">        Dictionary containing balance information for subsystems.</span>
+</span><span data-line="146"><span class="sd">        Structure: {subsystem_name: {category: {symbol: value}}}</span>
+</span><span data-line="147"><span class="sd">        Categories: &#39;in&#39;, &#39;out&#39;, &#39;con&#39; (consumed), &#39;gen&#39; (generated)</span>
+</span><span data-line="148"><span class="sd">    decimal : int, optional</span>
+</span><span data-line="149"><span class="sd">        Number of decimal places for output (default: 2)</span>
+</span><span data-line="150">
+</span><span data-line="151"><span class="sd">    Returns</span>
+</span><span data-line="152"><span class="sd">    -------</span>
+</span><span data-line="153"><span class="sd">    None</span>
+</span><span data-line="154"><span class="sd">        Only prints output</span>
+</span><span data-line="155">
+</span><span data-line="156"><span class="sd">    Example</span>
+</span><span data-line="157"><span class="sd">    -------</span>
+</span><span data-line="158"><span class="sd">    &gt;&gt;&gt; balance = {</span>
+</span><span data-line="159"><span class="sd">    ...     &quot;hot water tank&quot;: {</span>
+</span><span data-line="160"><span class="sd">    ...         &quot;in&quot;: {&quot;E_heater&quot;: 5000.0},</span>
+</span><span data-line="161"><span class="sd">    ...         &quot;out&quot;: {&quot;Q_w_tank&quot;: 4500.0, &quot;Q_l_tank&quot;: 400.0},</span>
+</span><span data-line="162"><span class="sd">    ...         &quot;con&quot;: {&quot;X_c_tank&quot;: 100.0}</span>
+</span><span data-line="163"><span class="sd">    ...     }</span>
+</span><span data-line="164"><span class="sd">    ... }</span>
+</span><span data-line="165"><span class="sd">    &gt;&gt;&gt; print_balance(balance)</span>
+</span><span data-line="166"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="167">    <span class="n">total_length</span> <span class="o">=</span> <span class="mi">50</span>
+</span><span data-line="168">
+</span><span data-line="169">    <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;energy&quot;</span>
+</span><span data-line="170">    <span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;[W]&quot;</span>
+</span><span data-line="171">
+</span><span data-line="172">    <span class="c1"># Determine balance type and unit from dictionary structure</span>
+</span><span data-line="173">    <span class="k">for</span> <span class="n">_subsystem</span><span class="p">,</span> <span class="n">category_dict</span> <span class="ow">in</span> <span class="n">balance</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="174">        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">_terms</span> <span class="ow">in</span> <span class="n">category_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="175">            <span class="k">if</span> <span class="s2">&quot;gen&quot;</span> <span class="ow">in</span> <span class="n">category</span><span class="p">:</span>
+</span><span data-line="176">                <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;entropy&quot;</span>
+</span><span data-line="177">                <span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;[W/K]&quot;</span>
+</span><span data-line="178">            <span class="k">elif</span> <span class="s2">&quot;con&quot;</span> <span class="ow">in</span> <span class="n">category</span><span class="p">:</span>
+</span><span data-line="179">                <span class="n">balance_type</span> <span class="o">=</span> <span class="s2">&quot;exergy&quot;</span>
+</span><span data-line="180">
+</span><span data-line="181">    <span class="c1"># Print balance for each subsystem</span>
+</span><span data-line="182">    <span class="k">for</span> <span class="n">subsystem</span><span class="p">,</span> <span class="n">category_dict</span> <span class="ow">in</span> <span class="n">balance</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="183">        <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">subsystem</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">balance_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> BALANCE:&quot;</span>
+</span><span data-line="184">        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">total_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
 </span><span data-line="185">
-</span><span data-line="186"><span class="c1"># COP, G-function, Air property, and TDMA functions are now in dedicated</span>
-</span><span data-line="187"><span class="c1"># modules.  Re-exported here for backward compatibility.</span>
-</span><span data-line="188"><span class="c1"># See: cop.py, g_function.py, tdma.py</span>
-</span><span data-line="189">
-</span><span data-line="190">
-</span><span data-line="191"><span class="c1"># ============================================================================</span>
-</span><span data-line="192"><span class="c1"># Exergy and Entropy Functions</span>
-</span><span data-line="193"><span class="c1"># ============================================================================</span>
-</span><span data-line="194">
-</span><span data-line="195">
-</span><span data-line="196"><span class="c1"># ============================================================================</span>
-</span><span data-line="197"><span class="c1"># Flow and Mixing Functions</span>
+</span><span data-line="186">        <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">terms</span> <span class="ow">in</span> <span class="n">category_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="187">            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">category</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> ENTRIES:&quot;</span><span class="p">)</span>
+</span><span data-line="188">
+</span><span data-line="189">            <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">terms</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="190">                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">decimal</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</span><span data-line="191">
+</span><span data-line="192">
+</span><span data-line="193"><span class="c1"># COP, G-function, Air property, and TDMA functions are now in dedicated</span>
+</span><span data-line="194"><span class="c1"># modules.  Re-exported here for backward compatibility.</span>
+</span><span data-line="195"><span class="c1"># See: cop.py, g_function.py, tdma.py</span>
+</span><span data-line="196">
+</span><span data-line="197">
 </span><span data-line="198"><span class="c1"># ============================================================================</span>
-</span><span data-line="199">
-</span><span data-line="200">
+</span><span data-line="199"><span class="c1"># Exergy and Entropy Functions</span>
+</span><span data-line="200"><span class="c1"># ============================================================================</span>
+</span><span data-line="201">
+</span><span data-line="202">
+</span><span data-line="203"><span class="c1"># ============================================================================</span>
+</span><span data-line="204"><span class="c1"># Flow and Mixing Functions</span>
+</span><span data-line="205"><span class="c1"># ============================================================================</span>
+</span><span data-line="206">
+</span><span data-line="207">
 <div class="viewcode-block" id="calc_mixing_valve_temp">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_mixing_valve_temp">[docs]</a>
-</span><span data-line="201"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_temp</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">T_tank_w_in_K</span><span class="p">,</span> <span class="n">T_mix_w_out_K</span><span class="p">):</span>
-</span><span data-line="202"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate 3-way mixing valve output temperature and mixing ratio.</span>
-</span><span data-line="203">
-</span><span data-line="204"><span class="sd">    Mixes hot tank water with cold mains water to achieve the target</span>
-</span><span data-line="205"><span class="sd">    service temperature ``T_mix_w_out_K``.</span>
-</span><span data-line="206">
-</span><span data-line="207"><span class="sd">    Parameters</span>
-</span><span data-line="208"><span class="sd">    ----------</span>
-</span><span data-line="209"><span class="sd">    T_tank_w_K : float</span>
-</span><span data-line="210"><span class="sd">        Current tank water temperature [K].</span>
-</span><span data-line="211"><span class="sd">    T_tank_w_in_K : float</span>
-</span><span data-line="212"><span class="sd">        Mains (cold) water supply temperature [K].</span>
-</span><span data-line="213"><span class="sd">    T_mix_w_out_K : float</span>
-</span><span data-line="214"><span class="sd">        Target delivery temperature [K].</span>
-</span><span data-line="215">
-</span><span data-line="216"><span class="sd">    Returns</span>
-</span><span data-line="217"><span class="sd">    -------</span>
-</span><span data-line="218"><span class="sd">    dict</span>
-</span><span data-line="219"><span class="sd">        ``{&#39;alp&#39;: float, &#39;T_mix_w_out&#39;: float, &#39;T_mix_w_out_K&#39;: float}``</span>
-</span><span data-line="220"><span class="sd">        - ``alp``: hot-water fraction [0–1]</span>
-</span><span data-line="221"><span class="sd">        - ``T_mix_w_out``: actual service temperature [°C]</span>
-</span><span data-line="222"><span class="sd">        - ``T_mix_w_out_K``: actual service temperature [K]</span>
-</span><span data-line="223"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="224">    <span class="n">den</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_tank_w_K</span> <span class="o">-</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span>
-</span><span data-line="225">    <span class="n">alp</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
-</span><span data-line="226">
-</span><span data-line="227">    <span class="n">T_mix_w_out_val_K</span> <span class="o">=</span> <span class="n">T_tank_w_K</span> <span class="k">if</span> <span class="n">alp</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alp</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_in_K</span>
-</span><span data-line="228">
-</span><span data-line="229">    <span class="n">T_mix_w_out_val</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_mix_w_out_val_K</span><span class="p">)</span>
-</span><span data-line="230">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="231">        <span class="s2">&quot;alp&quot;</span><span class="p">:</span> <span class="n">alp</span><span class="p">,</span>
-</span><span data-line="232">        <span class="s2">&quot;T_mix_w_out&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val</span><span class="p">,</span>
-</span><span data-line="233">        <span class="s2">&quot;T_mix_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val_K</span><span class="p">,</span>
-</span><span data-line="234">    <span class="p">}</span></div>
-
+</span><span data-line="208"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_temp</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">T_tank_w_in_K</span><span class="p">,</span> <span class="n">T_mix_w_out_K</span><span class="p">):</span>
+</span><span data-line="209"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate 3-way mixing valve output temperature and mixing ratio.</span>
+</span><span data-line="210">
+</span><span data-line="211"><span class="sd">    Mixes hot tank water with cold mains water to achieve the target</span>
+</span><span data-line="212"><span class="sd">    service temperature ``T_mix_w_out_K``.</span>
+</span><span data-line="213">
+</span><span data-line="214"><span class="sd">    Parameters</span>
+</span><span data-line="215"><span class="sd">    ----------</span>
+</span><span data-line="216"><span class="sd">    T_tank_w_K : float</span>
+</span><span data-line="217"><span class="sd">        Current tank water temperature [K].</span>
+</span><span data-line="218"><span class="sd">    T_tank_w_in_K : float</span>
+</span><span data-line="219"><span class="sd">        Mains (cold) water supply temperature [K].</span>
+</span><span data-line="220"><span class="sd">    T_mix_w_out_K : float</span>
+</span><span data-line="221"><span class="sd">        Target delivery temperature [K].</span>
+</span><span data-line="222">
+</span><span data-line="223"><span class="sd">    Returns</span>
+</span><span data-line="224"><span class="sd">    -------</span>
+</span><span data-line="225"><span class="sd">    dict</span>
+</span><span data-line="226"><span class="sd">        ``{&#39;alp&#39;: float, &#39;T_mix_w_out&#39;: float, &#39;T_mix_w_out_K&#39;: float}``</span>
+</span><span data-line="227"><span class="sd">        - ``alp``: hot-water fraction [0–1]</span>
+</span><span data-line="228"><span class="sd">        - ``T_mix_w_out``: actual service temperature [°C]</span>
+</span><span data-line="229"><span class="sd">        - ``T_mix_w_out_K``: actual service temperature [K]</span>
+</span><span data-line="230"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="231">    <span class="n">den</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_tank_w_K</span> <span class="o">-</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span>
+</span><span data-line="232">    <span class="n">alp</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
+</span><span data-line="233">
+</span><span data-line="234">    <span class="n">T_mix_w_out_val_K</span> <span class="o">=</span> <span class="n">T_tank_w_K</span> <span class="k">if</span> <span class="n">alp</span> <span class="o">&gt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alp</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_in_K</span>
 </span><span data-line="235">
-</span><span data-line="236">
+</span><span data-line="236">    <span class="n">T_mix_w_out_val</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_mix_w_out_val_K</span><span class="p">)</span>
+</span><span data-line="237">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="238">        <span class="s2">&quot;alp&quot;</span><span class="p">:</span> <span class="n">alp</span><span class="p">,</span>
+</span><span data-line="239">        <span class="s2">&quot;T_mix_w_out&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val</span><span class="p">,</span>
+</span><span data-line="240">        <span class="s2">&quot;T_mix_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val_K</span><span class="p">,</span>
+</span><span data-line="241">    <span class="p">}</span></div>
+
+</span><span data-line="242">
+</span><span data-line="243">
 <div class="viewcode-block" id="calc_mixing_valve_flows">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_mixing_valve_flows">[docs]</a>
-</span><span data-line="237"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_flows</span><span class="p">(</span>
-</span><span data-line="238">    <span class="n">dV_mix_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="239">    <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="240"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="241"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="242"><span class="sd">    Calculate volumetric flow rates at a 3-way mixing valve given a mixing ratio.</span>
-</span><span data-line="243">
-</span><span data-line="244"><span class="sd">    Parameters</span>
-</span><span data-line="245"><span class="sd">    ----------</span>
-</span><span data-line="246"><span class="sd">    dV_mix_out : float</span>
-</span><span data-line="247"><span class="sd">        Total requested service/mixed flow rate [m³/s].</span>
-</span><span data-line="248"><span class="sd">    alp : float</span>
-</span><span data-line="249"><span class="sd">        Hot water mixing ratio [0-1].</span>
+</span><span data-line="244"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_flows</span><span class="p">(</span>
+</span><span data-line="245">    <span class="n">dV_mix_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="246">    <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="247"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="248"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="249"><span class="sd">    Calculate volumetric flow rates at a 3-way mixing valve given a mixing ratio.</span>
 </span><span data-line="250">
-</span><span data-line="251"><span class="sd">    Returns</span>
-</span><span data-line="252"><span class="sd">    -------</span>
-</span><span data-line="253"><span class="sd">    dict</span>
-</span><span data-line="254"><span class="sd">        Dictionary containing generic mixing valve mass balances:</span>
-</span><span data-line="255"><span class="sd">        - `dV_hot_in`: Flow rate drawn from the hot source [m³/s]</span>
-</span><span data-line="256"><span class="sd">        - `dV_cold_in`: Flow rate drawn from the cold source [m³/s]</span>
-</span><span data-line="257"><span class="sd">        - `dV_mix_out`: Total mixed flow rate [m³/s]</span>
-</span><span data-line="258"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="259">    <span class="n">dV_hot_in</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">dV_mix_out</span>
-</span><span data-line="260">    <span class="n">dV_cold_in</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alp</span><span class="p">)</span> <span class="o">*</span> <span class="n">dV_mix_out</span>
-</span><span data-line="261">
-</span><span data-line="262">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="263">        <span class="s2">&quot;dV_hot_in&quot;</span><span class="p">:</span> <span class="n">dV_hot_in</span><span class="p">,</span>
-</span><span data-line="264">        <span class="s2">&quot;dV_cold_in&quot;</span><span class="p">:</span> <span class="n">dV_cold_in</span><span class="p">,</span>
-</span><span data-line="265">        <span class="s2">&quot;dV_mix_out&quot;</span><span class="p">:</span> <span class="n">dV_mix_out</span><span class="p">,</span>
-</span><span data-line="266">    <span class="p">}</span></div>
-
-</span><span data-line="267">
+</span><span data-line="251"><span class="sd">    Parameters</span>
+</span><span data-line="252"><span class="sd">    ----------</span>
+</span><span data-line="253"><span class="sd">    dV_mix_out : float</span>
+</span><span data-line="254"><span class="sd">        Total requested service/mixed flow rate [m³/s].</span>
+</span><span data-line="255"><span class="sd">    alp : float</span>
+</span><span data-line="256"><span class="sd">        Hot water mixing ratio [0-1].</span>
+</span><span data-line="257">
+</span><span data-line="258"><span class="sd">    Returns</span>
+</span><span data-line="259"><span class="sd">    -------</span>
+</span><span data-line="260"><span class="sd">    dict</span>
+</span><span data-line="261"><span class="sd">        Dictionary containing generic mixing valve mass balances:</span>
+</span><span data-line="262"><span class="sd">        - `dV_hot_in`: Flow rate drawn from the hot source [m³/s]</span>
+</span><span data-line="263"><span class="sd">        - `dV_cold_in`: Flow rate drawn from the cold source [m³/s]</span>
+</span><span data-line="264"><span class="sd">        - `dV_mix_out`: Total mixed flow rate [m³/s]</span>
+</span><span data-line="265"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="266">    <span class="n">dV_hot_in</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">dV_mix_out</span>
+</span><span data-line="267">    <span class="n">dV_cold_in</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alp</span><span class="p">)</span> <span class="o">*</span> <span class="n">dV_mix_out</span>
 </span><span data-line="268">
-</span><span data-line="269"><span class="c1"># UV functions have been moved to uv_treatment.py.</span>
-</span><span data-line="270"><span class="c1"># Re-exported above via ``from .uv_treatment import …``</span>
-</span><span data-line="271">
-</span><span data-line="272">
+</span><span data-line="269">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="270">        <span class="s2">&quot;dV_hot_in&quot;</span><span class="p">:</span> <span class="n">dV_hot_in</span><span class="p">,</span>
+</span><span data-line="271">        <span class="s2">&quot;dV_cold_in&quot;</span><span class="p">:</span> <span class="n">dV_cold_in</span><span class="p">,</span>
+</span><span data-line="272">        <span class="s2">&quot;dV_mix_out&quot;</span><span class="p">:</span> <span class="n">dV_mix_out</span><span class="p">,</span>
+</span><span data-line="273">    <span class="p">}</span></div>
+
+</span><span data-line="274">
+</span><span data-line="275">
+</span><span data-line="276"><span class="c1"># UV functions have been moved to uv_treatment.py.</span>
+</span><span data-line="277"><span class="c1"># Re-exported above via ``from .uv_treatment import …``</span>
+</span><span data-line="278">
+</span><span data-line="279">
 <div class="viewcode-block" id="calc_Orifice_flow_coefficient">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_Orifice_flow_coefficient">[docs]</a>
-</span><span data-line="273"><span class="k">def</span><span class="w"> </span><span class="nf">calc_Orifice_flow_coefficient</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">D1</span><span class="p">):</span>
-</span><span data-line="274"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="275"><span class="sd">    Calculate the orifice flow coefficient based on diameters.</span>
-</span><span data-line="276">
-</span><span data-line="277"><span class="sd">    Flow configuration:</span>
-</span><span data-line="278"><span class="sd">    ---------------</span>
-</span><span data-line="279"><span class="sd">     -&gt;      |</span>
-</span><span data-line="280"><span class="sd">     D0     D1 -&gt;</span>
-</span><span data-line="281"><span class="sd">     -&gt;      |</span>
-</span><span data-line="282"><span class="sd">    ---------------</span>
+</span><span data-line="280"><span class="k">def</span><span class="w"> </span><span class="nf">calc_Orifice_flow_coefficient</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">D1</span><span class="p">):</span>
+</span><span data-line="281"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="282"><span class="sd">    Calculate the orifice flow coefficient based on diameters.</span>
 </span><span data-line="283">
-</span><span data-line="284"><span class="sd">    Parameters</span>
-</span><span data-line="285"><span class="sd">    ----------</span>
-</span><span data-line="286"><span class="sd">    D0 : float</span>
-</span><span data-line="287"><span class="sd">        Pipe diameter [m]</span>
-</span><span data-line="288"><span class="sd">    D1 : float</span>
-</span><span data-line="289"><span class="sd">        Hole diameter [m]</span>
+</span><span data-line="284"><span class="sd">    Flow configuration:</span>
+</span><span data-line="285"><span class="sd">    ---------------</span>
+</span><span data-line="286"><span class="sd">     -&gt;      |</span>
+</span><span data-line="287"><span class="sd">     D0     D1 -&gt;</span>
+</span><span data-line="288"><span class="sd">     -&gt;      |</span>
+</span><span data-line="289"><span class="sd">    ---------------</span>
 </span><span data-line="290">
-</span><span data-line="291"><span class="sd">    Returns</span>
-</span><span data-line="292"><span class="sd">    -------</span>
-</span><span data-line="293"><span class="sd">    C_d : float</span>
-</span><span data-line="294"><span class="sd">        Orifice flow coefficient (dimensionless)</span>
-</span><span data-line="295">
-</span><span data-line="296"><span class="sd">    Notes</span>
-</span><span data-line="297"><span class="sd">    -----</span>
-</span><span data-line="298"><span class="sd">    This is a simplified calculation. A more complete implementation</span>
-</span><span data-line="299"><span class="sd">    should be based on physical equations.</span>
-</span><span data-line="300"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="301">    <span class="n">m</span> <span class="o">=</span> <span class="n">D1</span> <span class="o">/</span> <span class="n">D0</span>  <span class="c1"># Opening ratio</span>
-</span><span data-line="302">    <span class="k">return</span> <span class="n">m</span><span class="o">**</span><span class="mi">2</span></div>
+</span><span data-line="291"><span class="sd">    Parameters</span>
+</span><span data-line="292"><span class="sd">    ----------</span>
+</span><span data-line="293"><span class="sd">    D0 : float</span>
+</span><span data-line="294"><span class="sd">        Pipe diameter [m]</span>
+</span><span data-line="295"><span class="sd">    D1 : float</span>
+</span><span data-line="296"><span class="sd">        Hole diameter [m]</span>
+</span><span data-line="297">
+</span><span data-line="298"><span class="sd">    Returns</span>
+</span><span data-line="299"><span class="sd">    -------</span>
+</span><span data-line="300"><span class="sd">    C_d : float</span>
+</span><span data-line="301"><span class="sd">        Orifice flow coefficient (dimensionless)</span>
+</span><span data-line="302">
+</span><span data-line="303"><span class="sd">    Notes</span>
+</span><span data-line="304"><span class="sd">    -----</span>
+</span><span data-line="305"><span class="sd">    This is a simplified calculation. A more complete implementation</span>
+</span><span data-line="306"><span class="sd">    should be based on physical equations.</span>
+</span><span data-line="307"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="308">    <span class="n">m</span> <span class="o">=</span> <span class="n">D1</span> <span class="o">/</span> <span class="n">D0</span>  <span class="c1"># Opening ratio</span>
+</span><span data-line="309">    <span class="k">return</span> <span class="n">m</span><span class="o">**</span><span class="mi">2</span></div>
 
-</span><span data-line="303">
-</span><span data-line="304">
+</span><span data-line="310">
+</span><span data-line="311">
 <div class="viewcode-block" id="calc_boussinessq_mixing_flow">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_boussinessq_mixing_flow">[docs]</a>
-</span><span data-line="305"><span class="k">def</span><span class="w"> </span><span class="nf">calc_boussinessq_mixing_flow</span><span class="p">(</span><span class="n">T_upper</span><span class="p">,</span> <span class="n">T_lower</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">C_d</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-</span><span data-line="306"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="307"><span class="sd">    Calculate mixing flow rate between two adjacent nodes based on Boussinesq approximation.</span>
-</span><span data-line="308">
-</span><span data-line="309"><span class="sd">    Mixing occurs only when the lower node temperature is higher than the upper node,</span>
-</span><span data-line="310"><span class="sd">    creating a gravitationally unstable condition.</span>
-</span><span data-line="311">
-</span><span data-line="312"><span class="sd">    Parameters</span>
-</span><span data-line="313"><span class="sd">    ----------</span>
-</span><span data-line="314"><span class="sd">    T_upper : float</span>
-</span><span data-line="315"><span class="sd">        Upper node temperature [K]</span>
-</span><span data-line="316"><span class="sd">    T_lower : float</span>
-</span><span data-line="317"><span class="sd">        Lower node temperature [K]</span>
-</span><span data-line="318"><span class="sd">    A : float</span>
-</span><span data-line="319"><span class="sd">        Tank cross-sectional area [m²]</span>
-</span><span data-line="320"><span class="sd">    dz : float</span>
-</span><span data-line="321"><span class="sd">        Node height [m]</span>
-</span><span data-line="322"><span class="sd">    C_d : float, optional</span>
-</span><span data-line="323"><span class="sd">        Flow coefficient (empirical constant), default 0.1</span>
-</span><span data-line="324">
-</span><span data-line="325"><span class="sd">    Returns</span>
-</span><span data-line="326"><span class="sd">    -------</span>
-</span><span data-line="327"><span class="sd">    dV_mix : float</span>
-</span><span data-line="328"><span class="sd">        Volumetric flow rate exchanged between nodes [m3/s]</span>
-</span><span data-line="329">
-</span><span data-line="330"><span class="sd">    Notes</span>
-</span><span data-line="331"><span class="sd">    -----</span>
-</span><span data-line="332"><span class="sd">    TODO: C_d value should be calculated based on physical equations.</span>
-</span><span data-line="333"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="334">    <span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta</span><span class="p">,</span> <span class="n">g</span>
-</span><span data-line="335">
-</span><span data-line="336">    <span class="k">if</span> <span class="n">T_upper</span> <span class="o">&lt;</span> <span class="n">T_lower</span><span class="p">:</span>
-</span><span data-line="337">        <span class="c1"># Upper is colder (higher density) -&gt; unstable -&gt; mixing occurs</span>
-</span><span data-line="338">        <span class="n">delta_T</span> <span class="o">=</span> <span class="n">T_lower</span> <span class="o">-</span> <span class="n">T_upper</span>
-</span><span data-line="339">        <span class="n">dV_mix</span> <span class="o">=</span> <span class="n">C_d</span> <span class="o">*</span> <span class="n">A</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">g</span> <span class="o">*</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">delta_T</span> <span class="o">*</span> <span class="n">dz</span><span class="p">)</span>
-</span><span data-line="340">        <span class="k">return</span> <span class="n">dV_mix</span>  <span class="c1"># From top to bottom</span>
-</span><span data-line="341">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="342">        <span class="c1"># Stable condition -&gt; no mixing</span>
-</span><span data-line="343">        <span class="k">return</span> <span class="mf">0.0</span></div>
+</span><span data-line="312"><span class="k">def</span><span class="w"> </span><span class="nf">calc_boussinessq_mixing_flow</span><span class="p">(</span><span class="n">T_upper</span><span class="p">,</span> <span class="n">T_lower</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">C_d</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span><span data-line="313"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="314"><span class="sd">    Calculate mixing flow rate between two adjacent nodes based on Boussinesq approximation.</span>
+</span><span data-line="315">
+</span><span data-line="316"><span class="sd">    Mixing occurs only when the lower node temperature is higher than the upper node,</span>
+</span><span data-line="317"><span class="sd">    creating a gravitationally unstable condition.</span>
+</span><span data-line="318">
+</span><span data-line="319"><span class="sd">    Parameters</span>
+</span><span data-line="320"><span class="sd">    ----------</span>
+</span><span data-line="321"><span class="sd">    T_upper : float</span>
+</span><span data-line="322"><span class="sd">        Upper node temperature [K]</span>
+</span><span data-line="323"><span class="sd">    T_lower : float</span>
+</span><span data-line="324"><span class="sd">        Lower node temperature [K]</span>
+</span><span data-line="325"><span class="sd">    A : float</span>
+</span><span data-line="326"><span class="sd">        Tank cross-sectional area [m²]</span>
+</span><span data-line="327"><span class="sd">    dz : float</span>
+</span><span data-line="328"><span class="sd">        Node height [m]</span>
+</span><span data-line="329"><span class="sd">    C_d : float, optional</span>
+</span><span data-line="330"><span class="sd">        Flow coefficient (empirical constant), default 0.1</span>
+</span><span data-line="331">
+</span><span data-line="332"><span class="sd">    Returns</span>
+</span><span data-line="333"><span class="sd">    -------</span>
+</span><span data-line="334"><span class="sd">    dV_mix : float</span>
+</span><span data-line="335"><span class="sd">        Volumetric flow rate exchanged between nodes [m3/s]</span>
+</span><span data-line="336">
+</span><span data-line="337"><span class="sd">    Notes</span>
+</span><span data-line="338"><span class="sd">    -----</span>
+</span><span data-line="339"><span class="sd">    TODO: C_d value should be calculated based on physical equations.</span>
+</span><span data-line="340"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="341">    <span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">beta</span><span class="p">,</span> <span class="n">g</span>
+</span><span data-line="342">
+</span><span data-line="343">    <span class="k">if</span> <span class="n">T_upper</span> <span class="o">&lt;</span> <span class="n">T_lower</span><span class="p">:</span>
+</span><span data-line="344">        <span class="c1"># Upper is colder (higher density) -&gt; unstable -&gt; mixing occurs</span>
+</span><span data-line="345">        <span class="n">delta_T</span> <span class="o">=</span> <span class="n">T_lower</span> <span class="o">-</span> <span class="n">T_upper</span>
+</span><span data-line="346">        <span class="n">dV_mix</span> <span class="o">=</span> <span class="n">C_d</span> <span class="o">*</span> <span class="n">A</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">g</span> <span class="o">*</span> <span class="n">beta</span> <span class="o">*</span> <span class="n">delta_T</span> <span class="o">*</span> <span class="n">dz</span><span class="p">)</span>
+</span><span data-line="347">        <span class="k">return</span> <span class="n">dV_mix</span>  <span class="c1"># From top to bottom</span>
+</span><span data-line="348">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="349">        <span class="c1"># Stable condition -&gt; no mixing</span>
+</span><span data-line="350">        <span class="k">return</span> <span class="mf">0.0</span></div>
 
-</span><span data-line="344">
-</span><span data-line="345">
-</span><span data-line="346"><span class="c1"># ============================================================================</span>
-</span><span data-line="347"><span class="c1"># Tank Heat Transfer Functions</span>
-</span><span data-line="348"><span class="c1"># ============================================================================</span>
-</span><span data-line="349">
-</span><span data-line="350">
-</span><span data-line="351"><span class="c1"># ============================================================================</span>
-</span><span data-line="352"><span class="c1"># TDMA Solver Functions</span>
+</span><span data-line="351">
+</span><span data-line="352">
 </span><span data-line="353"><span class="c1"># ============================================================================</span>
-</span><span data-line="354">
-</span><span data-line="355">
-</span><span data-line="356"><span class="c1"># TDMA and advection-term functions have been moved to tdma.py.</span>
-</span><span data-line="357"><span class="c1"># Re-exported above via ``from .tdma import …`` for backward compatibility.</span>
-</span><span data-line="358">
-</span><span data-line="359">
-</span><span data-line="360"><span class="c1"># calc_UA_from_dV_fan has been moved to hx_fan.py.</span>
-</span><span data-line="361"><span class="c1"># Re-exported above via ``from .hx_fan import …``</span>
+</span><span data-line="354"><span class="c1"># Tank Heat Transfer Functions</span>
+</span><span data-line="355"><span class="c1"># ============================================================================</span>
+</span><span data-line="356">
+</span><span data-line="357">
+</span><span data-line="358"><span class="c1"># ============================================================================</span>
+</span><span data-line="359"><span class="c1"># TDMA Solver Functions</span>
+</span><span data-line="360"><span class="c1"># ============================================================================</span>
+</span><span data-line="361">
 </span><span data-line="362">
-</span><span data-line="363">
+</span><span data-line="363"><span class="c1"># TDMA and advection-term functions have been moved to tdma.py.</span>
+</span><span data-line="364"><span class="c1"># Re-exported above via ``from .tdma import …`` for backward compatibility.</span>
+</span><span data-line="365">
+</span><span data-line="366">
+</span><span data-line="367"><span class="c1"># calc_UA_from_dV_fan has been moved to hx_fan.py.</span>
+</span><span data-line="368"><span class="c1"># Re-exported above via ``from .hx_fan import …``</span>
+</span><span data-line="369">
+</span><span data-line="370">
 <div class="viewcode-block" id="calc_HX_perf_for_target_heat">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_HX_perf_for_target_heat">[docs]</a>
-</span><span data-line="364"><span class="k">def</span><span class="w"> </span><span class="nf">calc_HX_perf_for_target_heat</span><span class="p">(</span>
-</span><span data-line="365">    <span class="n">Q_ref_target</span><span class="p">,</span>
-</span><span data-line="366">    <span class="n">T_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="367">    <span class="n">T_ref_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="368">    <span class="n">A_cross</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="369">    <span class="n">UA_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="370">    <span class="n">dV_fan_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="371">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="372">    <span class="n">exponent</span><span class="o">=</span><span class="mf">0.71</span><span class="p">,</span>
-</span><span data-line="373">    <span class="c1"># Legacy parameters for backward compatibility</span>
-</span><span data-line="374">    <span class="n">T_ou_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="375">    <span class="n">T_ref_evap_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="376">    <span class="n">T_ref_cond_sat_l_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="377"><span class="p">):</span>
-</span><span data-line="378"><span class="w">    </span><span class="sd">&quot;&quot;&quot;ε-NTU 기반 공기측 열교환기 풍량 수치 해석.</span>
-</span><span data-line="379">
-</span><span data-line="380"><span class="sd">    This function determines the airflow that is needed to meet a specified heat transfer demand, accounting for dynamic changes in the overall heat transfer coefficient (UA) as a function of flow velocity based on the correlation for fin-and-tube heat exchangers by Wang et al. (2000) where UA ∝ velocity^0.71.</span>
-</span><span data-line="381">
-</span><span data-line="382"><span class="sd">    Parameters</span>
-</span><span data-line="383"><span class="sd">    ----------</span>
-</span><span data-line="384"><span class="sd">    Q_ref_target : float</span>
-</span><span data-line="385"><span class="sd">        목표 열전달량 [W] (항상 양수).</span>
-</span><span data-line="386"><span class="sd">    T_a_in_C : float, optional</span>
-</span><span data-line="387"><span class="sd">        공기 입구 온도 [°C].</span>
-</span><span data-line="388"><span class="sd">    T_ref_sat_K : float, optional</span>
-</span><span data-line="389"><span class="sd">        냉매 포화 온도 [K] (일정 온도측).</span>
-</span><span data-line="390"><span class="sd">    A_cross : float</span>
-</span><span data-line="391"><span class="sd">        HX 단면적 [m²].</span>
-</span><span data-line="392"><span class="sd">    UA_design : float</span>
-</span><span data-line="393"><span class="sd">        설계 UA [W/K].</span>
-</span><span data-line="394"><span class="sd">    dV_fan_design : float</span>
-</span><span data-line="395"><span class="sd">        설계 팬 풍량 [m³/s].</span>
-</span><span data-line="396">
-</span><span data-line="397"><span class="sd">    is_active : bool</span>
-</span><span data-line="398"><span class="sd">        활성화 여부.</span>
-</span><span data-line="399"><span class="sd">    exponent : float</span>
-</span><span data-line="400"><span class="sd">        UA scaling exponent (default: 0.71).</span>
-</span><span data-line="401">
-</span><span data-line="402"><span class="sd">    # Legacy Aliases (optional)</span>
-</span><span data-line="403"><span class="sd">    T_ou_a_in_C : float, optional</span>
-</span><span data-line="404"><span class="sd">        (하위 호환성) 과거 버전의 ``T_a_in_C`` 역할을 수행합니다.</span>
-</span><span data-line="405"><span class="sd">    T_ref_evap_sat_K : float, optional</span>
-</span><span data-line="406"><span class="sd">        (하위 호환성) 과거 버전의 ``T_ref_sat_K`` 역할을 수행합니다.</span>
-</span><span data-line="407"><span class="sd">    T_ref_cond_sat_l_K : float, optional</span>
-</span><span data-line="408"><span class="sd">        (하위 호환성) 과거 함수 시그니처 유지를 위한 미사용 파라미터입니다.</span>
-</span><span data-line="409">
-</span><span data-line="410"><span class="sd">    Returns</span>
-</span><span data-line="411"><span class="sd">    -------</span>
-</span><span data-line="412"><span class="sd">    dict</span>
-</span><span data-line="413"><span class="sd">        Dictionary containing:</span>
-</span><span data-line="414"><span class="sd">            - dV_fan : Required air-side flow rate [m3/s]</span>
-</span><span data-line="415"><span class="sd">            - UA : Actual heat exchanger overall heat transfer coefficient at solution point [W/K]</span>
-</span><span data-line="416"><span class="sd">            - T_a_mid_C : air temperature between heat exchanger and fan [°C]</span>
-</span><span data-line="417"><span class="sd">            - Q_air : Heat transfer rate at operating point [W]</span>
-</span><span data-line="418"><span class="sd">            - epsilon : Effectiveness at operating point [–]</span>
-</span><span data-line="419"><span class="sd">            - converged : Whether the solver converged</span>
-</span><span data-line="420"><span class="sd">        Returns dict with all values as np.nan if is_active=False</span>
-</span><span data-line="421"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="422">    <span class="c1"># ── Legacy alias 하위호환 ──</span>
-</span><span data-line="423">    <span class="k">if</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="424">        <span class="n">T_a_in_C</span> <span class="o">=</span> <span class="n">T_ou_a_in_C</span>
-</span><span data-line="425">    <span class="k">if</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="426">        <span class="n">T_ref_sat_K</span> <span class="o">=</span> <span class="n">T_ref_evap_sat_K</span>
-</span><span data-line="427">
-</span><span data-line="428">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span> <span class="ow">or</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="429">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="430">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="431">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="432">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="433">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="434">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="435">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="436">            <span class="c1"># Legacy keys</span>
-</span><span data-line="437">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="438">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="439">        <span class="p">}</span>
-</span><span data-line="440">
-</span><span data-line="441">    <span class="n">T_a_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_in_C</span><span class="p">)</span>
-</span><span data-line="442">
-</span><span data-line="443">    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_ref_target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
-</span><span data-line="444">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="445">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="446">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="447">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="448">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
-</span><span data-line="449">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="450">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="451">            <span class="c1"># Legacy keys</span>
-</span><span data-line="452">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
-</span><span data-line="453">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="454">        <span class="p">}</span>
-</span><span data-line="455">
-</span><span data-line="456">    <span class="k">def</span><span class="w"> </span><span class="nf">_error_function</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
-</span><span data-line="457">        <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="458">            <span class="k">return</span> <span class="o">-</span><span class="n">Q_ref_target</span>
-</span><span data-line="459">        <span class="n">UA</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">dV_fan_design</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_design</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
-</span><span data-line="460">        <span class="n">C_air</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_fan</span>
-</span><span data-line="461">        <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA</span> <span class="o">/</span> <span class="n">C_air</span><span class="p">)</span>
-</span><span data-line="462">        <span class="c1"># Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)</span>
-</span><span data-line="463">        <span class="n">Q_air</span> <span class="o">=</span> <span class="n">C_air</span> <span class="o">*</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span>
-</span><span data-line="464">        <span class="k">return</span> <span class="n">Q_air</span> <span class="o">-</span> <span class="n">Q_ref_target</span>
-</span><span data-line="465">
-</span><span data-line="466">    <span class="c1"># Search range: 1% to 100% of design flow</span>
-</span><span data-line="467">    <span class="n">dV_min</span> <span class="o">=</span> <span class="n">dV_fan_design</span> <span class="o">*</span> <span class="mf">0.05</span>
-</span><span data-line="468">    <span class="n">dV_max</span> <span class="o">=</span> <span class="n">dV_fan_design</span>
-</span><span data-line="469">
-</span><span data-line="470">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="471">        <span class="n">sol</span> <span class="o">=</span> <span class="n">root_scalar</span><span class="p">(</span><span class="n">_error_function</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="p">[</span><span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bisect&quot;</span><span class="p">)</span>
-</span><span data-line="472">        <span class="n">dV_sol</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">root</span>
-</span><span data-line="473">        <span class="n">converged</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span>
-</span><span data-line="474">    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-</span><span data-line="475">        <span class="c1"># Optimization loop penalty handling: return failure flag</span>
-</span><span data-line="476">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="477">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="478">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="479">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="480">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="481">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="482">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="483">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="484">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="485">        <span class="p">}</span>
-</span><span data-line="486">
-</span><span data-line="487">    <span class="c1"># Final calculations at solved point</span>
-</span><span data-line="488">    <span class="n">UA_sol</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_sol</span><span class="p">,</span> <span class="n">dV_fan_design</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_design</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
-</span><span data-line="489">    <span class="n">C_air_sol</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_sol</span>
-</span><span data-line="490">    <span class="n">eps_sol</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA_sol</span> <span class="o">/</span> <span class="n">C_air_sol</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV_sol</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="491">
-</span><span data-line="492">    <span class="c1"># Exit air temperature (before fan heat if any)</span>
-</span><span data-line="493">    <span class="n">T_a_mid_K</span> <span class="o">=</span> <span class="n">T_a_in_K</span> <span class="o">-</span> <span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">eps_sol</span>
-</span><span data-line="494">    <span class="n">T_a_mid_C</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_mid_K</span><span class="p">)</span>
-</span><span data-line="495">    <span class="n">Q_air_sol</span> <span class="o">=</span> <span class="n">C_air_sol</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_a_mid_K</span><span class="p">)</span>
-</span><span data-line="496">
-</span><span data-line="497">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="498">        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">converged</span><span class="p">,</span>
-</span><span data-line="499">        <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">dV_sol</span><span class="p">,</span>
-</span><span data-line="500">        <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">UA_sol</span><span class="p">,</span>
-</span><span data-line="501">        <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
-</span><span data-line="502">        <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
-</span><span data-line="503">        <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">eps_sol</span><span class="p">,</span>
-</span><span data-line="504">        <span class="c1"># Legacy keys</span>
-</span><span data-line="505">        <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
-</span><span data-line="506">        <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
-</span><span data-line="507">    <span class="p">}</span></div>
+</span><span data-line="371"><span class="k">def</span><span class="w"> </span><span class="nf">calc_HX_perf_for_target_heat</span><span class="p">(</span>
+</span><span data-line="372">    <span class="n">Q_ref_target</span><span class="p">,</span>
+</span><span data-line="373">    <span class="n">T_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="374">    <span class="n">T_ref_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="375">    <span class="n">A_cross</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="376">    <span class="n">UA_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="377">    <span class="n">dV_fan_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="378">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="379">    <span class="n">exponent</span><span class="o">=</span><span class="mf">0.71</span><span class="p">,</span>
+</span><span data-line="380">    <span class="c1"># Legacy parameters for backward compatibility</span>
+</span><span data-line="381">    <span class="n">T_ou_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="382">    <span class="n">T_ref_evap_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="383">    <span class="n">T_ref_cond_sat_l_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="384"><span class="p">):</span>
+</span><span data-line="385"><span class="w">    </span><span class="sd">&quot;&quot;&quot;ε-NTU 기반 공기측 열교환기 풍량 수치 해석.</span>
+</span><span data-line="386">
+</span><span data-line="387"><span class="sd">    This function determines the airflow that is needed to meet a specified heat transfer demand, accounting for dynamic changes in the overall heat transfer coefficient (UA) as a function of flow velocity based on the correlation for fin-and-tube heat exchangers by Wang et al. (2000) where UA ∝ velocity^0.71.</span>
+</span><span data-line="388">
+</span><span data-line="389"><span class="sd">    Parameters</span>
+</span><span data-line="390"><span class="sd">    ----------</span>
+</span><span data-line="391"><span class="sd">    Q_ref_target : float</span>
+</span><span data-line="392"><span class="sd">        목표 열전달량 [W] (항상 양수).</span>
+</span><span data-line="393"><span class="sd">    T_a_in_C : float, optional</span>
+</span><span data-line="394"><span class="sd">        공기 입구 온도 [°C].</span>
+</span><span data-line="395"><span class="sd">    T_ref_sat_K : float, optional</span>
+</span><span data-line="396"><span class="sd">        냉매 포화 온도 [K] (일정 온도측).</span>
+</span><span data-line="397"><span class="sd">    A_cross : float</span>
+</span><span data-line="398"><span class="sd">        HX 단면적 [m²].</span>
+</span><span data-line="399"><span class="sd">    UA_design : float</span>
+</span><span data-line="400"><span class="sd">        설계 UA [W/K].</span>
+</span><span data-line="401"><span class="sd">    dV_fan_design : float</span>
+</span><span data-line="402"><span class="sd">        설계 팬 풍량 [m³/s].</span>
+</span><span data-line="403">
+</span><span data-line="404"><span class="sd">    is_active : bool</span>
+</span><span data-line="405"><span class="sd">        활성화 여부.</span>
+</span><span data-line="406"><span class="sd">    exponent : float</span>
+</span><span data-line="407"><span class="sd">        UA scaling exponent (default: 0.71).</span>
+</span><span data-line="408">
+</span><span data-line="409"><span class="sd">    # Legacy Aliases (optional)</span>
+</span><span data-line="410"><span class="sd">    T_ou_a_in_C : float, optional</span>
+</span><span data-line="411"><span class="sd">        (하위 호환성) 과거 버전의 ``T_a_in_C`` 역할을 수행합니다.</span>
+</span><span data-line="412"><span class="sd">    T_ref_evap_sat_K : float, optional</span>
+</span><span data-line="413"><span class="sd">        (하위 호환성) 과거 버전의 ``T_ref_sat_K`` 역할을 수행합니다.</span>
+</span><span data-line="414"><span class="sd">    T_ref_cond_sat_l_K : float, optional</span>
+</span><span data-line="415"><span class="sd">        (하위 호환성) 과거 함수 시그니처 유지를 위한 미사용 파라미터입니다.</span>
+</span><span data-line="416">
+</span><span data-line="417"><span class="sd">    Returns</span>
+</span><span data-line="418"><span class="sd">    -------</span>
+</span><span data-line="419"><span class="sd">    dict</span>
+</span><span data-line="420"><span class="sd">        Dictionary containing:</span>
+</span><span data-line="421"><span class="sd">            - dV_fan : Required air-side flow rate [m3/s]</span>
+</span><span data-line="422"><span class="sd">            - UA : Actual heat exchanger overall heat transfer coefficient at solution point [W/K]</span>
+</span><span data-line="423"><span class="sd">            - T_a_mid_C : air temperature between heat exchanger and fan [°C]</span>
+</span><span data-line="424"><span class="sd">            - Q_air : Heat transfer rate at operating point [W]</span>
+</span><span data-line="425"><span class="sd">            - epsilon : Effectiveness at operating point [–]</span>
+</span><span data-line="426"><span class="sd">            - converged : Whether the solver converged</span>
+</span><span data-line="427"><span class="sd">        Returns dict with all values as np.nan if is_active=False</span>
+</span><span data-line="428"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="429">    <span class="c1"># ── Legacy alias 하위호환 ──</span>
+</span><span data-line="430">    <span class="k">if</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="431">        <span class="n">T_a_in_C</span> <span class="o">=</span> <span class="n">T_ou_a_in_C</span>
+</span><span data-line="432">    <span class="k">if</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="433">        <span class="n">T_ref_sat_K</span> <span class="o">=</span> <span class="n">T_ref_evap_sat_K</span>
+</span><span data-line="434">
+</span><span data-line="435">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span> <span class="ow">or</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="436">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="437">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="438">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="439">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="440">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="441">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="442">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="443">            <span class="c1"># Legacy keys</span>
+</span><span data-line="444">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="445">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="446">        <span class="p">}</span>
+</span><span data-line="447">
+</span><span data-line="448">    <span class="n">T_a_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_in_C</span><span class="p">)</span>
+</span><span data-line="449">
+</span><span data-line="450">    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_ref_target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+</span><span data-line="451">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="452">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="453">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="454">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="455">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
+</span><span data-line="456">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="457">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="458">            <span class="c1"># Legacy keys</span>
+</span><span data-line="459">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
+</span><span data-line="460">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="461">        <span class="p">}</span>
+</span><span data-line="462">
+</span><span data-line="463">    <span class="k">def</span><span class="w"> </span><span class="nf">_error_function</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
+</span><span data-line="464">        <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="465">            <span class="k">return</span> <span class="o">-</span><span class="n">Q_ref_target</span>
+</span><span data-line="466">        <span class="n">UA</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">dV_fan_design</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_design</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
+</span><span data-line="467">        <span class="n">C_air</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_fan</span>
+</span><span data-line="468">        <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA</span> <span class="o">/</span> <span class="n">C_air</span><span class="p">)</span>
+</span><span data-line="469">        <span class="c1"># Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)</span>
+</span><span data-line="470">        <span class="n">Q_air</span> <span class="o">=</span> <span class="n">C_air</span> <span class="o">*</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span>
+</span><span data-line="471">        <span class="k">return</span> <span class="n">Q_air</span> <span class="o">-</span> <span class="n">Q_ref_target</span>
+</span><span data-line="472">
+</span><span data-line="473">    <span class="c1"># Search range: 1% to 100% of design flow</span>
+</span><span data-line="474">    <span class="n">dV_min</span> <span class="o">=</span> <span class="n">dV_fan_design</span> <span class="o">*</span> <span class="mf">0.05</span>
+</span><span data-line="475">    <span class="n">dV_max</span> <span class="o">=</span> <span class="n">dV_fan_design</span>
+</span><span data-line="476">
+</span><span data-line="477">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="478">        <span class="n">sol</span> <span class="o">=</span> <span class="n">root_scalar</span><span class="p">(</span><span class="n">_error_function</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="p">[</span><span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bisect&quot;</span><span class="p">)</span>
+</span><span data-line="479">        <span class="n">dV_sol</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">root</span>
+</span><span data-line="480">        <span class="n">converged</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span>
+</span><span data-line="481">    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+</span><span data-line="482">        <span class="c1"># Optimization loop penalty handling: return failure flag</span>
+</span><span data-line="483">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="484">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="485">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="486">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="487">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="488">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="489">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="490">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="491">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="492">        <span class="p">}</span>
+</span><span data-line="493">
+</span><span data-line="494">    <span class="c1"># Final calculations at solved point</span>
+</span><span data-line="495">    <span class="n">UA_sol</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_sol</span><span class="p">,</span> <span class="n">dV_fan_design</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_design</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
+</span><span data-line="496">    <span class="n">C_air_sol</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_sol</span>
+</span><span data-line="497">    <span class="n">eps_sol</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA_sol</span> <span class="o">/</span> <span class="n">C_air_sol</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV_sol</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="498">
+</span><span data-line="499">    <span class="c1"># Exit air temperature (before fan heat if any)</span>
+</span><span data-line="500">    <span class="n">T_a_mid_K</span> <span class="o">=</span> <span class="n">T_a_in_K</span> <span class="o">-</span> <span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">eps_sol</span>
+</span><span data-line="501">    <span class="n">T_a_mid_C</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_mid_K</span><span class="p">)</span>
+</span><span data-line="502">    <span class="n">Q_air_sol</span> <span class="o">=</span> <span class="n">C_air_sol</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_a_mid_K</span><span class="p">)</span>
+</span><span data-line="503">
+</span><span data-line="504">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="505">        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">converged</span><span class="p">,</span>
+</span><span data-line="506">        <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">dV_sol</span><span class="p">,</span>
+</span><span data-line="507">        <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">UA_sol</span><span class="p">,</span>
+</span><span data-line="508">        <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
+</span><span data-line="509">        <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
+</span><span data-line="510">        <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">eps_sol</span><span class="p">,</span>
+</span><span data-line="511">        <span class="c1"># Legacy keys</span>
+</span><span data-line="512">        <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
+</span><span data-line="513">        <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
+</span><span data-line="514">    <span class="p">}</span></div>
 
-</span><span data-line="508">
-</span><span data-line="509">
-</span><span data-line="510">
-</span><span data-line="511">
-</span><span data-line="512"><span class="c1"># calc_fan_power_from_dV_fan and check_hp_schedule_active have been moved</span>
-</span><span data-line="513"><span class="c1"># to hx_fan.py.  Re-exported above via ``from .hx_fan import …``</span>
-</span><span data-line="514">
 </span><span data-line="515">
-</span><span data-line="516"><span class="c1"># get_uv_params_from_turbidity and calc_uv_exposure_time have been moved</span>
-</span><span data-line="517"><span class="c1"># to uv_treatment.py.  Re-exported above via ``from .uv_treatment import …``</span>
+</span><span data-line="516">
+</span><span data-line="517">
 </span><span data-line="518">
-</span><span data-line="519">
+</span><span data-line="519"><span class="c1"># calc_fan_power_from_dV_fan and check_hp_schedule_active have been moved</span>
+</span><span data-line="520"><span class="c1"># to hx_fan.py.  Re-exported above via ``from .hx_fan import …``</span>
+</span><span data-line="521">
+</span><span data-line="522">
+</span><span data-line="523"><span class="c1"># get_uv_params_from_turbidity and calc_uv_exposure_time have been moved</span>
+</span><span data-line="524"><span class="c1"># to uv_treatment.py.  Re-exported above via ``from .uv_treatment import …``</span>
+</span><span data-line="525">
+</span><span data-line="526">
 <div class="viewcode-block" id="update_tank_temperature">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.update_tank_temperature">[docs]</a>
-</span><span data-line="520"><span class="k">def</span><span class="w"> </span><span class="nf">update_tank_temperature</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">Q_gain</span><span class="p">,</span> <span class="n">UA_tank</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">C_tank</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-</span><span data-line="521"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Update tank temperature using the Crank-Nicolson implicit scheme.</span>
-</span><span data-line="522">
-</span><span data-line="523"><span class="sd">    The governing ODE for a lumped-capacitance tank is:</span>
-</span><span data-line="524">
-</span><span data-line="525"><span class="sd">        C dT/dt = Q_gain - UA (T - T0)</span>
-</span><span data-line="526">
-</span><span data-line="527"><span class="sd">    Crank-Nicolson averages the loss term across both time levels:</span>
-</span><span data-line="528">
-</span><span data-line="529"><span class="sd">        T^{n+1} = [(C/dt - UA/2) T^n + Q_gain + UA T0] / (C/dt + UA/2)</span>
-</span><span data-line="530">
-</span><span data-line="531"><span class="sd">    This scheme is second-order accurate in time and unconditionally</span>
-</span><span data-line="532"><span class="sd">    stable, eliminating the overshoot that Forward Euler can exhibit</span>
-</span><span data-line="533"><span class="sd">    when dt is large relative to the thermal time constant C/UA.</span>
-</span><span data-line="534">
-</span><span data-line="535"><span class="sd">    Parameters</span>
-</span><span data-line="536"><span class="sd">    ----------</span>
-</span><span data-line="537"><span class="sd">    T_tank_w_K : float</span>
-</span><span data-line="538"><span class="sd">        Current tank temperature [K].</span>
-</span><span data-line="539"><span class="sd">    Q_gain : float</span>
-</span><span data-line="540"><span class="sd">        Total heat gain rate [W] (condenser, UV, STC, refill, etc.).</span>
-</span><span data-line="541"><span class="sd">    UA_tank : float</span>
-</span><span data-line="542"><span class="sd">        Overall tank heat-loss coefficient [W/K].</span>
-</span><span data-line="543"><span class="sd">    T0_K : float</span>
-</span><span data-line="544"><span class="sd">        Dead-state / ambient temperature [K].</span>
-</span><span data-line="545"><span class="sd">    C_tank : float</span>
-</span><span data-line="546"><span class="sd">        Tank thermal capacitance [J/K] (= c_w * rho_w * V_tank * level).</span>
-</span><span data-line="547"><span class="sd">    dt : float</span>
-</span><span data-line="548"><span class="sd">        Time step [s].</span>
-</span><span data-line="549">
-</span><span data-line="550"><span class="sd">    Returns</span>
-</span><span data-line="551"><span class="sd">    -------</span>
-</span><span data-line="552"><span class="sd">    float</span>
-</span><span data-line="553"><span class="sd">        Updated tank temperature [K].</span>
-</span><span data-line="554"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="555">    <span class="n">a</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">/</span> <span class="n">dt</span>
-</span><span data-line="556">    <span class="n">T_tank_w_K_new</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span> <span class="o">-</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">Q_gain</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">*</span> <span class="n">T0_K</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
-</span><span data-line="557">    <span class="k">return</span> <span class="n">T_tank_w_K_new</span></div>
+</span><span data-line="527"><span class="k">def</span><span class="w"> </span><span class="nf">update_tank_temperature</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">Q_gain</span><span class="p">,</span> <span class="n">UA_tank</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">C_tank</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+</span><span data-line="528"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Update tank temperature using the Crank-Nicolson implicit scheme.</span>
+</span><span data-line="529">
+</span><span data-line="530"><span class="sd">    The governing ODE for a lumped-capacitance tank is:</span>
+</span><span data-line="531">
+</span><span data-line="532"><span class="sd">        C dT/dt = Q_gain - UA (T - T0)</span>
+</span><span data-line="533">
+</span><span data-line="534"><span class="sd">    Crank-Nicolson averages the loss term across both time levels:</span>
+</span><span data-line="535">
+</span><span data-line="536"><span class="sd">        T^{n+1} = [(C/dt - UA/2) T^n + Q_gain + UA T0] / (C/dt + UA/2)</span>
+</span><span data-line="537">
+</span><span data-line="538"><span class="sd">    This scheme is second-order accurate in time and unconditionally</span>
+</span><span data-line="539"><span class="sd">    stable, eliminating the overshoot that Forward Euler can exhibit</span>
+</span><span data-line="540"><span class="sd">    when dt is large relative to the thermal time constant C/UA.</span>
+</span><span data-line="541">
+</span><span data-line="542"><span class="sd">    Parameters</span>
+</span><span data-line="543"><span class="sd">    ----------</span>
+</span><span data-line="544"><span class="sd">    T_tank_w_K : float</span>
+</span><span data-line="545"><span class="sd">        Current tank temperature [K].</span>
+</span><span data-line="546"><span class="sd">    Q_gain : float</span>
+</span><span data-line="547"><span class="sd">        Total heat gain rate [W] (condenser, UV, STC, refill, etc.).</span>
+</span><span data-line="548"><span class="sd">    UA_tank : float</span>
+</span><span data-line="549"><span class="sd">        Overall tank heat-loss coefficient [W/K].</span>
+</span><span data-line="550"><span class="sd">    T0_K : float</span>
+</span><span data-line="551"><span class="sd">        Dead-state / ambient temperature [K].</span>
+</span><span data-line="552"><span class="sd">    C_tank : float</span>
+</span><span data-line="553"><span class="sd">        Tank thermal capacitance [J/K] (= c_w * rho_w * V_tank * level).</span>
+</span><span data-line="554"><span class="sd">    dt : float</span>
+</span><span data-line="555"><span class="sd">        Time step [s].</span>
+</span><span data-line="556">
+</span><span data-line="557"><span class="sd">    Returns</span>
+</span><span data-line="558"><span class="sd">    -------</span>
+</span><span data-line="559"><span class="sd">    float</span>
+</span><span data-line="560"><span class="sd">        Updated tank temperature [K].</span>
+</span><span data-line="561"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="562">    <span class="n">a</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">/</span> <span class="n">dt</span>
+</span><span data-line="563">    <span class="n">T_tank_w_K_new</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span> <span class="o">-</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">Q_gain</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">*</span> <span class="n">T0_K</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+</span><span data-line="564">    <span class="k">return</span> <span class="n">T_tank_w_K_new</span></div>
 
-</span><span data-line="558">
-</span><span data-line="559">
+</span><span data-line="565">
+</span><span data-line="566">
 <div class="viewcode-block" id="calc_stc_performance">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_stc_performance">[docs]</a>
-</span><span data-line="560"><span class="k">def</span><span class="w"> </span><span class="nf">calc_stc_performance</span><span class="p">(</span>
-</span><span data-line="561">    <span class="n">I_DN_stc</span><span class="p">,</span>  <span class="c1"># 직달일사 [W/m²]</span>
-</span><span data-line="562">    <span class="n">I_dH_stc</span><span class="p">,</span>  <span class="c1"># 확산일사 [W/m²]</span>
-</span><span data-line="563">    <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># STC 입수 온도 (저탕조 온도) [K]</span>
-</span><span data-line="564">    <span class="n">T0_K</span><span class="p">,</span>  <span class="c1"># 기준 온도 [K]</span>
-</span><span data-line="565">    <span class="n">A_stc_pipe</span><span class="p">,</span>  <span class="c1"># STC 파이프 면적 [m²]</span>
-</span><span data-line="566">    <span class="n">alpha_stc</span><span class="p">,</span>  <span class="c1"># 흡수율 [-]</span>
-</span><span data-line="567">    <span class="n">h_o_stc</span><span class="p">,</span>  <span class="c1"># 외부 대류 열전달계수 [W/m²K]</span>
-</span><span data-line="568">    <span class="n">h_r_stc</span><span class="p">,</span>  <span class="c1"># 공기층 복사 열전달계수 [W/m²K]</span>
-</span><span data-line="569">    <span class="n">k_ins_stc</span><span class="p">,</span>  <span class="c1"># 단열재 열전도도 [W/mK]</span>
-</span><span data-line="570">    <span class="n">x_air_stc</span><span class="p">,</span>  <span class="c1"># 공기층 두께 [m]</span>
-</span><span data-line="571">    <span class="n">x_ins_stc</span><span class="p">,</span>  <span class="c1"># 단열재 두께 [m]</span>
-</span><span data-line="572">    <span class="n">dV_stc</span><span class="p">,</span>  <span class="c1"># STC 유량 [m3/s]</span>
-</span><span data-line="573">    <span class="n">E_pump</span><span class="p">,</span>  <span class="c1"># 펌프 소모 전력 [W]</span>
-</span><span data-line="574">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># 활성화 여부 (기본값: True)</span>
-</span><span data-line="575"><span class="p">):</span>
-</span><span data-line="576"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="577"><span class="sd">    Solar Thermal Collector (STC) 성능을 계산합니다.</span>
-</span><span data-line="578">
-</span><span data-line="579"><span class="sd">    이 함수는 태양열 집열판의 열전달 분석을 수행합니다.</span>
-</span><span data-line="580"><span class="sd">    enex_engine.py의 SolarAssistedGasBoiler.system_update() 로직을 참조하여 구현되었습니다.</span>
-</span><span data-line="581">
-</span><span data-line="582"><span class="sd">    Parameters</span>
-</span><span data-line="583"><span class="sd">    ----------</span>
-</span><span data-line="584"><span class="sd">    I_DN_stc : float</span>
-</span><span data-line="585"><span class="sd">        직달일사 [W/m²]</span>
-</span><span data-line="586"><span class="sd">    I_dH_stc : float</span>
-</span><span data-line="587"><span class="sd">        확산일사 [W/m²]</span>
-</span><span data-line="588"><span class="sd">    T_stc_w_in_K : float</span>
-</span><span data-line="589"><span class="sd">        STC 입수 온도 (저탕조 온도) [K]</span>
-</span><span data-line="590"><span class="sd">    T0_K : float</span>
-</span><span data-line="591"><span class="sd">        기준 온도 (환경 온도) [K]</span>
-</span><span data-line="592"><span class="sd">    A_stc_pipe : float</span>
-</span><span data-line="593"><span class="sd">        STC 파이프 면적 [m²]</span>
-</span><span data-line="594"><span class="sd">    alpha_stc : float</span>
-</span><span data-line="595"><span class="sd">        흡수율 [-]</span>
-</span><span data-line="596"><span class="sd">    h_o_stc : float</span>
-</span><span data-line="597"><span class="sd">        외부 대류 열전달계수 [W/m²K]</span>
-</span><span data-line="598"><span class="sd">    h_r_stc : float</span>
-</span><span data-line="599"><span class="sd">        공기층 복사 열전달계수 [W/m²K]</span>
-</span><span data-line="600"><span class="sd">    k_ins_stc : float</span>
-</span><span data-line="601"><span class="sd">        단열재 열전도도 [W/mK]</span>
-</span><span data-line="602"><span class="sd">    x_air_stc : float</span>
-</span><span data-line="603"><span class="sd">        공기층 두께 [m]</span>
-</span><span data-line="604"><span class="sd">    x_ins_stc : float</span>
-</span><span data-line="605"><span class="sd">        단열재 두께 [m]</span>
-</span><span data-line="606"><span class="sd">    dV_stc : float</span>
-</span><span data-line="607"><span class="sd">        STC 유량 [m3/s]</span>
-</span><span data-line="608"><span class="sd">    E_pump : float</span>
-</span><span data-line="609"><span class="sd">        펌프 소모 전력 [W]</span>
-</span><span data-line="610"><span class="sd">    is_active : bool, optional</span>
-</span><span data-line="611"><span class="sd">        활성화 여부 (기본값: True)</span>
-</span><span data-line="612"><span class="sd">        is_active=False일 때 nan 값으로 채워진 딕셔너리 반환</span>
-</span><span data-line="613">
-</span><span data-line="614"><span class="sd">    Returns</span>
-</span><span data-line="615"><span class="sd">    -------</span>
-</span><span data-line="616"><span class="sd">    dict</span>
-</span><span data-line="617"><span class="sd">        계산 결과 딕셔너리:</span>
-</span><span data-line="618"><span class="sd">        - I_sol_stc: 총 일사량 [W/m²]</span>
-</span><span data-line="619"><span class="sd">        - Q_sol_stc: 태양열 흡수 열량 [W]</span>
-</span><span data-line="620"><span class="sd">        - Q_stc_w_in: STC 입수 열량 [W]</span>
-</span><span data-line="621"><span class="sd">        - Q_stc_w_out: STC 출수 열량 [W]</span>
-</span><span data-line="622"><span class="sd">        - ksi_stc: 무차원 수 [-]</span>
-</span><span data-line="623"><span class="sd">        - T_stc_w_out_K: STC 출수 온도 [K]</span>
-</span><span data-line="624"><span class="sd">        - T_stc_w_final_K: 펌프 열 포함 최종 출수 온도 [K]</span>
-</span><span data-line="625"><span class="sd">        - T_stc_w_in_K: STC 입수 온도 [K]</span>
-</span><span data-line="626"><span class="sd">        - T_stc_K: 집열판 평균 온도 [K]</span>
-</span><span data-line="627"><span class="sd">        - Q_l_stc: 집열판 열 손실 [W]</span>
-</span><span data-line="628"><span class="sd">        Returns dict with all values as np.nan (except T_stc_w_out_K, T_stc_w_in_K = T_stc_w_in_K) if is_active=False</span>
-</span><span data-line="629">
-</span><span data-line="630"><span class="sd">    Notes</span>
-</span><span data-line="631"><span class="sd">    -----</span>
-</span><span data-line="632"><span class="sd">    - 모든 변수명에 _stc 접미사를 사용하여 STC 관련 변수임을 명확히 구분합니다.</span>
-</span><span data-line="633"><span class="sd">    - 열 손실은 Q_l_stc로 명명됩니다.</span>
-</span><span data-line="634"><span class="sd">    - 엔트로피 및 엑서지 계산은 제거되었으며, CSV 파일 후처리를 통해 계산해야 합니다.</span>
-</span><span data-line="635"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="636">    <span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">k_a</span>
-</span><span data-line="637">
-</span><span data-line="638">    <span class="c1"># U_stc 계산 (내부에서 계산)</span>
-</span><span data-line="639">    <span class="c1"># Resistance [m²K/W]</span>
-</span><span data-line="640">    <span class="n">R_air_stc</span> <span class="o">=</span> <span class="n">x_air_stc</span> <span class="o">/</span> <span class="n">k_a</span>
-</span><span data-line="641">    <span class="n">R_ins_stc</span> <span class="o">=</span> <span class="n">x_ins_stc</span> <span class="o">/</span> <span class="n">k_ins_stc</span>
-</span><span data-line="642">    <span class="n">R_o_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">h_o_stc</span>
-</span><span data-line="643">    <span class="n">R_r_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">h_r_stc</span>
+</span><span data-line="567"><span class="k">def</span><span class="w"> </span><span class="nf">calc_stc_performance</span><span class="p">(</span>
+</span><span data-line="568">    <span class="n">I_DN_stc</span><span class="p">,</span>  <span class="c1"># 직달일사 [W/m²]</span>
+</span><span data-line="569">    <span class="n">I_dH_stc</span><span class="p">,</span>  <span class="c1"># 확산일사 [W/m²]</span>
+</span><span data-line="570">    <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># STC 입수 온도 (저탕조 온도) [K]</span>
+</span><span data-line="571">    <span class="n">T0_K</span><span class="p">,</span>  <span class="c1"># 기준 온도 [K]</span>
+</span><span data-line="572">    <span class="n">A_stc_pipe</span><span class="p">,</span>  <span class="c1"># STC 파이프 면적 [m²]</span>
+</span><span data-line="573">    <span class="n">alpha_stc</span><span class="p">,</span>  <span class="c1"># 흡수율 [-]</span>
+</span><span data-line="574">    <span class="n">h_o_stc</span><span class="p">,</span>  <span class="c1"># 외부 대류 열전달계수 [W/m²K]</span>
+</span><span data-line="575">    <span class="n">h_r_stc</span><span class="p">,</span>  <span class="c1"># 공기층 복사 열전달계수 [W/m²K]</span>
+</span><span data-line="576">    <span class="n">k_ins_stc</span><span class="p">,</span>  <span class="c1"># 단열재 열전도도 [W/mK]</span>
+</span><span data-line="577">    <span class="n">x_air_stc</span><span class="p">,</span>  <span class="c1"># 공기층 두께 [m]</span>
+</span><span data-line="578">    <span class="n">x_ins_stc</span><span class="p">,</span>  <span class="c1"># 단열재 두께 [m]</span>
+</span><span data-line="579">    <span class="n">dV_stc</span><span class="p">,</span>  <span class="c1"># STC 유량 [m3/s]</span>
+</span><span data-line="580">    <span class="n">E_pump</span><span class="p">,</span>  <span class="c1"># 펌프 소모 전력 [W]</span>
+</span><span data-line="581">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># 활성화 여부 (기본값: True)</span>
+</span><span data-line="582"><span class="p">):</span>
+</span><span data-line="583"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="584"><span class="sd">    Solar Thermal Collector (STC) 성능을 계산합니다.</span>
+</span><span data-line="585">
+</span><span data-line="586"><span class="sd">    이 함수는 태양열 집열판의 열전달 분석을 수행합니다.</span>
+</span><span data-line="587"><span class="sd">    enex_engine.py의 SolarAssistedGasBoiler.system_update() 로직을 참조하여 구현되었습니다.</span>
+</span><span data-line="588">
+</span><span data-line="589"><span class="sd">    Parameters</span>
+</span><span data-line="590"><span class="sd">    ----------</span>
+</span><span data-line="591"><span class="sd">    I_DN_stc : float</span>
+</span><span data-line="592"><span class="sd">        직달일사 [W/m²]</span>
+</span><span data-line="593"><span class="sd">    I_dH_stc : float</span>
+</span><span data-line="594"><span class="sd">        확산일사 [W/m²]</span>
+</span><span data-line="595"><span class="sd">    T_stc_w_in_K : float</span>
+</span><span data-line="596"><span class="sd">        STC 입수 온도 (저탕조 온도) [K]</span>
+</span><span data-line="597"><span class="sd">    T0_K : float</span>
+</span><span data-line="598"><span class="sd">        기준 온도 (환경 온도) [K]</span>
+</span><span data-line="599"><span class="sd">    A_stc_pipe : float</span>
+</span><span data-line="600"><span class="sd">        STC 파이프 면적 [m²]</span>
+</span><span data-line="601"><span class="sd">    alpha_stc : float</span>
+</span><span data-line="602"><span class="sd">        흡수율 [-]</span>
+</span><span data-line="603"><span class="sd">    h_o_stc : float</span>
+</span><span data-line="604"><span class="sd">        외부 대류 열전달계수 [W/m²K]</span>
+</span><span data-line="605"><span class="sd">    h_r_stc : float</span>
+</span><span data-line="606"><span class="sd">        공기층 복사 열전달계수 [W/m²K]</span>
+</span><span data-line="607"><span class="sd">    k_ins_stc : float</span>
+</span><span data-line="608"><span class="sd">        단열재 열전도도 [W/mK]</span>
+</span><span data-line="609"><span class="sd">    x_air_stc : float</span>
+</span><span data-line="610"><span class="sd">        공기층 두께 [m]</span>
+</span><span data-line="611"><span class="sd">    x_ins_stc : float</span>
+</span><span data-line="612"><span class="sd">        단열재 두께 [m]</span>
+</span><span data-line="613"><span class="sd">    dV_stc : float</span>
+</span><span data-line="614"><span class="sd">        STC 유량 [m3/s]</span>
+</span><span data-line="615"><span class="sd">    E_pump : float</span>
+</span><span data-line="616"><span class="sd">        펌프 소모 전력 [W]</span>
+</span><span data-line="617"><span class="sd">    is_active : bool, optional</span>
+</span><span data-line="618"><span class="sd">        활성화 여부 (기본값: True)</span>
+</span><span data-line="619"><span class="sd">        is_active=False일 때 nan 값으로 채워진 딕셔너리 반환</span>
+</span><span data-line="620">
+</span><span data-line="621"><span class="sd">    Returns</span>
+</span><span data-line="622"><span class="sd">    -------</span>
+</span><span data-line="623"><span class="sd">    dict</span>
+</span><span data-line="624"><span class="sd">        계산 결과 딕셔너리:</span>
+</span><span data-line="625"><span class="sd">        - I_sol_stc: 총 일사량 [W/m²]</span>
+</span><span data-line="626"><span class="sd">        - Q_sol_stc: 태양열 흡수 열량 [W]</span>
+</span><span data-line="627"><span class="sd">        - Q_stc_w_in: STC 입수 열량 [W]</span>
+</span><span data-line="628"><span class="sd">        - Q_stc_w_out: STC 출수 열량 [W]</span>
+</span><span data-line="629"><span class="sd">        - ksi_stc: 무차원 수 [-]</span>
+</span><span data-line="630"><span class="sd">        - T_stc_w_out_K: STC 출수 온도 [K]</span>
+</span><span data-line="631"><span class="sd">        - T_stc_w_final_K: 펌프 열 포함 최종 출수 온도 [K]</span>
+</span><span data-line="632"><span class="sd">        - T_stc_w_in_K: STC 입수 온도 [K]</span>
+</span><span data-line="633"><span class="sd">        - T_stc_K: 집열판 평균 온도 [K]</span>
+</span><span data-line="634"><span class="sd">        - Q_l_stc: 집열판 열 손실 [W]</span>
+</span><span data-line="635"><span class="sd">        Returns dict with all values as np.nan (except T_stc_w_out_K, T_stc_w_in_K = T_stc_w_in_K) if is_active=False</span>
+</span><span data-line="636">
+</span><span data-line="637"><span class="sd">    Notes</span>
+</span><span data-line="638"><span class="sd">    -----</span>
+</span><span data-line="639"><span class="sd">    - 모든 변수명에 _stc 접미사를 사용하여 STC 관련 변수임을 명확히 구분합니다.</span>
+</span><span data-line="640"><span class="sd">    - 열 손실은 Q_l_stc로 명명됩니다.</span>
+</span><span data-line="641"><span class="sd">    - 엔트로피 및 엑서지 계산은 제거되었으며, CSV 파일 후처리를 통해 계산해야 합니다.</span>
+</span><span data-line="642"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="643">    <span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">k_a</span>
 </span><span data-line="644">
-</span><span data-line="645">    <span class="n">R1_stc</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_r_stc</span> <span class="o">*</span> <span class="n">R_air_stc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">R_r_stc</span> <span class="o">+</span> <span class="n">R_air_stc</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_o_stc</span>
-</span><span data-line="646">    <span class="n">R2_stc</span> <span class="o">=</span> <span class="n">R_ins_stc</span> <span class="o">+</span> <span class="n">R_o_stc</span>
-</span><span data-line="647">
-</span><span data-line="648">    <span class="c1"># U-value [W/m²K] (병렬)</span>
-</span><span data-line="649">    <span class="n">U1_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">R1_stc</span>
-</span><span data-line="650">    <span class="n">U2_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">R2_stc</span>
-</span><span data-line="651">    <span class="n">U_stc</span> <span class="o">=</span> <span class="n">U1_stc</span> <span class="o">+</span> <span class="n">U2_stc</span>
-</span><span data-line="652">
-</span><span data-line="653">    <span class="c1"># is_active=False일 때 nan 값으로 채워진 딕셔너리 반환</span>
-</span><span data-line="654">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
-</span><span data-line="655">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="656">            <span class="s2">&quot;I_sol_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="657">            <span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="658">            <span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="659">            <span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="660">            <span class="s2">&quot;ksi_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="661">            <span class="s2">&quot;T_stc_w_final_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># 입수 온도와 동일</span>
-</span><span data-line="662">            <span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># 입수 온도와 동일</span>
-</span><span data-line="663">            <span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>
-</span><span data-line="664">            <span class="s2">&quot;T_stc_K&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="665">            <span class="s2">&quot;Q_l_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="666">        <span class="p">}</span>
-</span><span data-line="667">
-</span><span data-line="668">    <span class="c1"># 총 일사량 계산</span>
-</span><span data-line="669">    <span class="n">I_sol_stc</span> <span class="o">=</span> <span class="n">I_DN_stc</span> <span class="o">+</span> <span class="n">I_dH_stc</span>
-</span><span data-line="670">
-</span><span data-line="671">    <span class="c1"># 태양열 흡수 열량</span>
-</span><span data-line="672">    <span class="n">Q_sol_stc</span> <span class="o">=</span> <span class="n">I_sol_stc</span> <span class="o">*</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">alpha_stc</span>
-</span><span data-line="673">
-</span><span data-line="674">    <span class="c1"># Heat capacity flow rate</span>
-</span><span data-line="675">    <span class="n">G_stc</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_stc</span>
-</span><span data-line="676">
-</span><span data-line="677">    <span class="c1"># 입수 열량 (기준 온도 기준) - calc_energy_flow 사용</span>
-</span><span data-line="678">    <span class="n">Q_stc_w_in</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="679">
-</span><span data-line="680">    <span class="c1"># 무차원 수 (효율 계수)</span>
-</span><span data-line="681">    <span class="n">ksi_stc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">/</span> <span class="n">G_stc</span><span class="p">)</span>
-</span><span data-line="682">
-</span><span data-line="683">    <span class="c1"># STC 출수 온도 계산</span>
-</span><span data-line="684">    <span class="n">T_stc_w_out_numerator</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="685">        <span class="n">T0_K</span>
-</span><span data-line="686">        <span class="o">+</span> <span class="p">(</span>
-</span><span data-line="687">            <span class="n">Q_sol_stc</span>
-</span><span data-line="688">            <span class="o">+</span> <span class="n">Q_stc_w_in</span>
-</span><span data-line="689">            <span class="o">+</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="p">(</span><span class="n">ksi_stc</span> <span class="o">*</span> <span class="n">T_stc_w_in_K</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">))</span>
-</span><span data-line="690">            <span class="o">+</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="n">T0_K</span>
-</span><span data-line="691">        <span class="p">)</span>
-</span><span data-line="692">        <span class="o">/</span> <span class="n">G_stc</span>
-</span><span data-line="693">    <span class="p">)</span>
-</span><span data-line="694">
-</span><span data-line="695">    <span class="n">T_stc_w_out_denominator</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">G_stc</span><span class="p">)</span>
-</span><span data-line="696">
-</span><span data-line="697">    <span class="n">T_stc_w_out_K</span> <span class="o">=</span> <span class="n">T_stc_w_out_numerator</span> <span class="o">/</span> <span class="n">T_stc_w_out_denominator</span>
-</span><span data-line="698">    <span class="n">T_stc_w_final_K</span> <span class="o">=</span> <span class="n">T_stc_w_out_K</span> <span class="o">+</span> <span class="n">E_pump</span> <span class="o">/</span> <span class="n">G_stc</span>
-</span><span data-line="699">    <span class="n">T_stc_K</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_stc_w_out_K</span> <span class="o">-</span> <span class="n">ksi_stc</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_stc_w_in_K</span>
-</span><span data-line="700">
-</span><span data-line="701">    <span class="c1"># STC 출수 열량 - calc_energy_flow 사용</span>
-</span><span data-line="702">    <span class="n">Q_stc_w_out</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="645">    <span class="c1"># U_stc 계산 (내부에서 계산)</span>
+</span><span data-line="646">    <span class="c1"># Resistance [m²K/W]</span>
+</span><span data-line="647">    <span class="n">R_air_stc</span> <span class="o">=</span> <span class="n">x_air_stc</span> <span class="o">/</span> <span class="n">k_a</span>
+</span><span data-line="648">    <span class="n">R_ins_stc</span> <span class="o">=</span> <span class="n">x_ins_stc</span> <span class="o">/</span> <span class="n">k_ins_stc</span>
+</span><span data-line="649">    <span class="n">R_o_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">h_o_stc</span>
+</span><span data-line="650">    <span class="n">R_r_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">h_r_stc</span>
+</span><span data-line="651">
+</span><span data-line="652">    <span class="n">R1_stc</span> <span class="o">=</span> <span class="p">(</span><span class="n">R_r_stc</span> <span class="o">*</span> <span class="n">R_air_stc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">R_r_stc</span> <span class="o">+</span> <span class="n">R_air_stc</span><span class="p">)</span> <span class="o">+</span> <span class="n">R_o_stc</span>
+</span><span data-line="653">    <span class="n">R2_stc</span> <span class="o">=</span> <span class="n">R_ins_stc</span> <span class="o">+</span> <span class="n">R_o_stc</span>
+</span><span data-line="654">
+</span><span data-line="655">    <span class="c1"># U-value [W/m²K] (병렬)</span>
+</span><span data-line="656">    <span class="n">U1_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">R1_stc</span>
+</span><span data-line="657">    <span class="n">U2_stc</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">R2_stc</span>
+</span><span data-line="658">    <span class="n">U_stc</span> <span class="o">=</span> <span class="n">U1_stc</span> <span class="o">+</span> <span class="n">U2_stc</span>
+</span><span data-line="659">
+</span><span data-line="660">    <span class="c1"># is_active=False일 때 nan 값으로 채워진 딕셔너리 반환</span>
+</span><span data-line="661">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
+</span><span data-line="662">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="663">            <span class="s2">&quot;I_sol_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="664">            <span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="665">            <span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="666">            <span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="667">            <span class="s2">&quot;ksi_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="668">            <span class="s2">&quot;T_stc_w_final_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># 입수 온도와 동일</span>
+</span><span data-line="669">            <span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>  <span class="c1"># 입수 온도와 동일</span>
+</span><span data-line="670">            <span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>
+</span><span data-line="671">            <span class="s2">&quot;T_stc_K&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="672">            <span class="s2">&quot;Q_l_stc&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="673">        <span class="p">}</span>
+</span><span data-line="674">
+</span><span data-line="675">    <span class="c1"># 총 일사량 계산</span>
+</span><span data-line="676">    <span class="n">I_sol_stc</span> <span class="o">=</span> <span class="n">I_DN_stc</span> <span class="o">+</span> <span class="n">I_dH_stc</span>
+</span><span data-line="677">
+</span><span data-line="678">    <span class="c1"># 태양열 흡수 열량</span>
+</span><span data-line="679">    <span class="n">Q_sol_stc</span> <span class="o">=</span> <span class="n">I_sol_stc</span> <span class="o">*</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">alpha_stc</span>
+</span><span data-line="680">
+</span><span data-line="681">    <span class="c1"># Heat capacity flow rate</span>
+</span><span data-line="682">    <span class="n">G_stc</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_stc</span>
+</span><span data-line="683">
+</span><span data-line="684">    <span class="c1"># 입수 열량 (기준 온도 기준) - calc_energy_flow 사용</span>
+</span><span data-line="685">    <span class="n">Q_stc_w_in</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="686">
+</span><span data-line="687">    <span class="c1"># 무차원 수 (효율 계수)</span>
+</span><span data-line="688">    <span class="n">ksi_stc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">/</span> <span class="n">G_stc</span><span class="p">)</span>
+</span><span data-line="689">
+</span><span data-line="690">    <span class="c1"># STC 출수 온도 계산</span>
+</span><span data-line="691">    <span class="n">T_stc_w_out_numerator</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="692">        <span class="n">T0_K</span>
+</span><span data-line="693">        <span class="o">+</span> <span class="p">(</span>
+</span><span data-line="694">            <span class="n">Q_sol_stc</span>
+</span><span data-line="695">            <span class="o">+</span> <span class="n">Q_stc_w_in</span>
+</span><span data-line="696">            <span class="o">+</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="p">(</span><span class="n">ksi_stc</span> <span class="o">*</span> <span class="n">T_stc_w_in_K</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">))</span>
+</span><span data-line="697">            <span class="o">+</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="n">T0_K</span>
+</span><span data-line="698">        <span class="p">)</span>
+</span><span data-line="699">        <span class="o">/</span> <span class="n">G_stc</span>
+</span><span data-line="700">    <span class="p">)</span>
+</span><span data-line="701">
+</span><span data-line="702">    <span class="n">T_stc_w_out_denominator</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">G_stc</span><span class="p">)</span>
 </span><span data-line="703">
-</span><span data-line="704">    <span class="c1"># 집열판 열 손실</span>
-</span><span data-line="705">    <span class="n">Q_l_stc</span> <span class="o">=</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_stc_K</span> <span class="o">-</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="706">
-</span><span data-line="707">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="708">        <span class="s2">&quot;I_sol_stc&quot;</span><span class="p">:</span> <span class="n">I_sol_stc</span><span class="p">,</span>
-</span><span data-line="709">        <span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">:</span> <span class="n">Q_sol_stc</span><span class="p">,</span>
-</span><span data-line="710">        <span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">:</span> <span class="n">Q_stc_w_in</span><span class="p">,</span>
-</span><span data-line="711">        <span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">:</span> <span class="n">Q_stc_w_out</span><span class="p">,</span>
-</span><span data-line="712">        <span class="s2">&quot;ksi_stc&quot;</span><span class="p">:</span> <span class="n">ksi_stc</span><span class="p">,</span>
-</span><span data-line="713">        <span class="s2">&quot;T_stc_w_final_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_final_K</span><span class="p">,</span>
-</span><span data-line="714">        <span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span>
-</span><span data-line="715">        <span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>
-</span><span data-line="716">        <span class="s2">&quot;T_stc_K&quot;</span><span class="p">:</span> <span class="n">T_stc_K</span><span class="p">,</span>
-</span><span data-line="717">        <span class="s2">&quot;Q_l_stc&quot;</span><span class="p">:</span> <span class="n">Q_l_stc</span><span class="p">,</span>
-</span><span data-line="718">    <span class="p">}</span></div>
+</span><span data-line="704">    <span class="n">T_stc_w_out_K</span> <span class="o">=</span> <span class="n">T_stc_w_out_numerator</span> <span class="o">/</span> <span class="n">T_stc_w_out_denominator</span>
+</span><span data-line="705">    <span class="n">T_stc_w_final_K</span> <span class="o">=</span> <span class="n">T_stc_w_out_K</span> <span class="o">+</span> <span class="n">E_pump</span> <span class="o">/</span> <span class="n">G_stc</span>
+</span><span data-line="706">    <span class="n">T_stc_K</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_stc_w_out_K</span> <span class="o">-</span> <span class="n">ksi_stc</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ksi_stc</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_stc_w_in_K</span>
+</span><span data-line="707">
+</span><span data-line="708">    <span class="c1"># STC 출수 열량 - calc_energy_flow 사용</span>
+</span><span data-line="709">    <span class="n">Q_stc_w_out</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="710">
+</span><span data-line="711">    <span class="c1"># 집열판 열 손실</span>
+</span><span data-line="712">    <span class="n">Q_l_stc</span> <span class="o">=</span> <span class="n">A_stc_pipe</span> <span class="o">*</span> <span class="n">U_stc</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_stc_K</span> <span class="o">-</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="713">
+</span><span data-line="714">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="715">        <span class="s2">&quot;I_sol_stc&quot;</span><span class="p">:</span> <span class="n">I_sol_stc</span><span class="p">,</span>
+</span><span data-line="716">        <span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">:</span> <span class="n">Q_sol_stc</span><span class="p">,</span>
+</span><span data-line="717">        <span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">:</span> <span class="n">Q_stc_w_in</span><span class="p">,</span>
+</span><span data-line="718">        <span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">:</span> <span class="n">Q_stc_w_out</span><span class="p">,</span>
+</span><span data-line="719">        <span class="s2">&quot;ksi_stc&quot;</span><span class="p">:</span> <span class="n">ksi_stc</span><span class="p">,</span>
+</span><span data-line="720">        <span class="s2">&quot;T_stc_w_final_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_final_K</span><span class="p">,</span>
+</span><span data-line="721">        <span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span>
+</span><span data-line="722">        <span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">:</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span>
+</span><span data-line="723">        <span class="s2">&quot;T_stc_K&quot;</span><span class="p">:</span> <span class="n">T_stc_K</span><span class="p">,</span>
+</span><span data-line="724">        <span class="s2">&quot;Q_l_stc&quot;</span><span class="p">:</span> <span class="n">Q_l_stc</span><span class="p">,</span>
+</span><span data-line="725">    <span class="p">}</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

@@ -192,8 +192,8 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="66"><span class="kn">from</span><span class="w"> </span><span class="nn">.heat_transfer</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_simple_tank_UA</span>
 </span><span data-line="67"><span class="kn">from</span><span class="w"> </span><span class="nn">.hx_fan</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_fan_power_from_dV_fan</span>
 </span><span data-line="68"><span class="kn">from</span><span class="w"> </span><span class="nn">.refrigerant</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_ref_state</span>
-</span><span data-line="69"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_energy_flow</span>
-</span><span data-line="70"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">PhotovoltaicSystem</span><span class="p">,</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="69"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">PhotovoltaicSystem</span><span class="p">,</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="70"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_energy_flow</span>
 </span><span data-line="71">
 </span><span data-line="72">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler">
@@ -477,7 +477,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="346">                <span class="n">dT_subcool</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
 </span><span data-line="347">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 </span><span data-line="348">            <span class="p">)</span>
-</span><span data-line="349">            
+</span><span data-line="349">
 </span><span data-line="350">            <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 </span><span data-line="351">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
 </span><span data-line="352">                <span class="p">{</span>
@@ -551,21 +551,21 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="420">        <span class="n">s_cmp_in</span> <span class="o">=</span> <span class="n">cs</span><span class="p">[</span><span class="s2">&quot;s_ref_cmp_in [J/(kg·K)]&quot;</span><span class="p">]</span>
 </span><span data-line="421">        <span class="n">h_cmp_in</span> <span class="o">=</span> <span class="n">cs</span><span class="p">[</span><span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">]</span>
 </span><span data-line="422">        <span class="n">h_exp_in</span> <span class="o">=</span> <span class="n">cs</span><span class="p">[</span><span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">]</span>
-</span><span data-line="423">        
+</span><span data-line="423">
 </span><span data-line="424">        <span class="c1"># Compute isentropic enthalpy once before loop</span>
 </span><span data-line="425">        <span class="k">try</span><span class="p">:</span>
 </span><span data-line="426">            <span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
 </span><span data-line="427">            <span class="n">h2_isen</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P_cond</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="n">s_cmp_in</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">)</span>
 </span><span data-line="428">        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
 </span><span data-line="429">            <span class="n">h2_isen</span> <span class="o">=</span> <span class="n">h_cmp_in</span>
-</span><span data-line="430">        
+</span><span data-line="430">
 </span><span data-line="431">        <span class="k">def</span><span class="w"> </span><span class="nf">_residual_rps</span><span class="p">(</span><span class="n">rps</span><span class="p">):</span>
 </span><span data-line="432">            <span class="n">val_eta_vol</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eta_cmp_vol</span><span class="p">,</span> <span class="n">ratio_P_cmp</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
 </span><span data-line="433">            <span class="n">val_eta_isen</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eta_cmp_isen</span><span class="p">,</span> <span class="n">ratio_P_cmp</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
-</span><span data-line="434">            
+</span><span data-line="434">
 </span><span data-line="435">            <span class="n">h_cmp_out</span> <span class="o">=</span> <span class="n">h_cmp_in</span> <span class="o">+</span> <span class="p">(</span><span class="n">h2_isen</span> <span class="o">-</span> <span class="n">h_cmp_in</span><span class="p">)</span> <span class="o">/</span> <span class="n">val_eta_isen</span>
 </span><span data-line="436">            <span class="n">dh_cond_local</span> <span class="o">=</span> <span class="n">h_cmp_out</span> <span class="o">-</span> <span class="n">h_exp_in</span>
-</span><span data-line="437">            
+</span><span data-line="437">
 </span><span data-line="438">            <span class="n">m_dot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_disp_cmp</span> <span class="o">*</span> <span class="n">cs</span><span class="p">[</span><span class="s2">&quot;rho_ref_cmp_in [kg/m3]&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">val_eta_vol</span> <span class="o">*</span> <span class="n">rps</span>
 </span><span data-line="439">            <span class="k">return</span> <span class="p">(</span><span class="n">m_dot</span> <span class="o">*</span> <span class="n">dh_cond_local</span><span class="p">)</span> <span class="o">-</span> <span class="n">Q_ref_cond</span>
 </span><span data-line="440">

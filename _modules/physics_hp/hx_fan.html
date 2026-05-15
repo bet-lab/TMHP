@@ -175,7 +175,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="47"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="48">    <span class="n">v</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">A_cross</span> <span class="k">if</span> <span class="n">A_cross</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
 </span><span data-line="49">    <span class="n">v_design</span> <span class="o">=</span> <span class="n">dV_fan_design</span> <span class="o">/</span> <span class="n">A_cross</span> <span class="k">if</span> <span class="n">A_cross</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="50">    <span class="k">return</span> <span class="n">UA</span> <span class="o">*</span> <span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="n">v_design</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span></div>
+</span><span data-line="50">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA</span> <span class="o">*</span> <span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="n">v_design</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span></div>
 
 </span><span data-line="51">
 </span><span data-line="52">
@@ -227,7 +227,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="96">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
 </span><span data-line="97">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
 </span><span data-line="98">
-</span><span data-line="99">    <span class="k">return</span> <span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span></div>
+</span><span data-line="99">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

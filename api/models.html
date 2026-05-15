@@ -270,8 +270,8 @@ Modeled with lumped-capacitance and DHW mixing logic.</p></li>
 the evaporator approach temperature difference.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>이 통합 시스템의 작동 원리와 개별 서브 컴포넌트 모델링에 대한 상세 이론적 배경은
-<span class="xref std std-doc">/theory/systems/ashp_boiler</span> 및 <span class="xref std std-doc">/theory/components/index</span> 를 참조하세요.</p>
+<p>See the project paper (KJACR 2025) for the underlying refrigerant-cycle
+theory and component-level modelling assumptions of this system.</p>
 </div>
 <p>Optional sub-components (injected via constructor):
 - <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> — tank-circuit or mains-preheat placement
@@ -472,8 +472,8 @@ with no dependency on <code class="docutils literal notranslate"><span class="pr
 <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Theoretical overview, system boundaries, and orchestration logic for
-hybrid systems are detailed in <span class="xref std std-doc">/theory/systems/hybrid_systems</span>.</p>
+<p>See the project paper for the orchestration logic and energy/exergy
+boundaries used by hybrid (STC + HP) systems.</p>
 </div>
 <section id="usage">
 <h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
@@ -558,8 +558,8 @@ with no dependency on <code class="docutils literal notranslate"><span class="pr
 <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Theoretical overview, system boundaries, and orchestration logic for
-hybrid systems are detailed in <span class="xref std std-doc">/theory/systems/hybrid_systems</span>.</p>
+<p>See the project paper for the orchestration logic and energy/exergy
+boundaries used by hybrid (STC + HP, stratified tank) systems.</p>
 </div>
 <section id="id1">
 <h3>Usage<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
@@ -645,8 +645,8 @@ correction (<code class="docutils literal notranslate"><span class="pre">X_tot</
 </ol>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Theoretical overview, system boundaries, and orchestration logic for
-hybrid systems are detailed in <span class="xref std std-doc">/theory/systems/hybrid_systems</span>.</p>
+<p>See the project paper for the orchestration logic and energy/exergy
+boundaries used by hybrid (PV + ESS + HP) systems.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="physics_hp.ashpb_pv_ess.ASHPB_PV_ESS">
@@ -722,8 +722,8 @@ optimization over the evaporator approach temperature difference, while the
 condenser temperature is solved analytically.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>이 통합 시스템의 작동 원리와 개별 서브 컴포넌트 모델링에 대한 상세 이론적 배경은
-<span class="xref std std-doc">/theory/systems/gshp_boiler</span> 및 <span class="xref std std-doc">/theory/components/index</span> 를 참조하세요.</p>
+<p>See the project paper for the underlying refrigerant-cycle theory and the
+pygfunction-based borehole heat-exchanger model used here.</p>
 </div>
 <dl class="py class">
 <dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler">

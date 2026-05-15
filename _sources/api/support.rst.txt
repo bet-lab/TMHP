@@ -52,9 +52,20 @@ Demand, Weather & Subsystems
    :undoc-members:
    :show-inheritance:
 
-.. automodule:: physics_hp.subsystems
+.. autoclass:: physics_hp.subsystems.SolarThermalCollector
    :members:
-   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: physics_hp.subsystems.PhotovoltaicSystem
+   :members:
+   :show-inheritance:
+
+.. autoclass:: physics_hp.subsystems.EnergyStorageSystem
+   :members:
+   :show-inheritance:
+
+.. autoclass:: physics_hp.subsystems.UVLamp
+   :members:
    :show-inheritance:
 
 .. automodule:: physics_hp.uv_treatment
@@ -69,6 +80,7 @@ Simulation Helpers
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 .. automodule:: physics_hp.enex_functions
    :members:

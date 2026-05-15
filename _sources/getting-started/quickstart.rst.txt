@@ -8,10 +8,7 @@ The example below runs a single steady-state evaluation of the ``AirSourceHeatPu
 
 .. code-block:: python
 
-   import sys
-   sys.path.insert(0, ".")  # Add repo root (for standalone use)
-
-   from air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
+   from physics_hp import AirSourceHeatPumpBoiler
 
    # --- Initialize model ---
    ashpb = AirSourceHeatPumpBoiler(refrigerant="R32")

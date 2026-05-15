@@ -174,15 +174,6 @@ data-aria-dark="Switch to auto color mode">
 </section>
 <section id="clone-install">
 <h2>Clone &amp; Install<a class="headerlink" href="#clone-install" title="Link to this heading">¶</a></h2>
-<p><strong>Option A — As part of</strong> <code class="docutils literal notranslate"><span class="pre">enex_analysis_engine</span></code> <strong>(recommended)</strong></p>
-<p>This library is used as a git submodule of <code class="docutils literal notranslate"><span class="pre">enex_analysis_engine</span></code>. When you clone <code class="docutils literal notranslate"><span class="pre">enex_analysis_engine</span></code>, initialize the submodule:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/bet-lab/enex_analysis_engine.git
-</span><span data-line="2"><span class="nb">cd</span><span class="w"> </span>enex_analysis_engine
-</span><span data-line="3">git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive
-</span><span data-line="4">uv<span class="w"> </span>sync
-</span></pre></div>
-</div>
-<p><strong>Option B — Standalone clone</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">git<span class="w"> </span>clone<span class="w"> </span>https://github.com/bet-lab/physics-heatpump-models.git
 </span><span data-line="2"><span class="nb">cd</span><span class="w"> </span>physics-heatpump-models
 </span><span data-line="3">uv<span class="w"> </span>sync

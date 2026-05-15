@@ -187,13 +187,6 @@ brackets (e.g. <code class="docutils literal notranslate"><span class="pre">&quo
 <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> with the same columns instead.</p>
 <p>For time-stepping simulations use <code class="xref py py-meth docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler.analyze_dynamic()</span></code>,
 which consumes a weather/load DataFrame and returns a per-step DataFrame.</p>
-<p>When used as a submodule of <code class="docutils literal notranslate"><span class="pre">enex_analysis_engine</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
-</span><span data-line="2">
-</span><span data-line="3"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
-</span><span data-line="4"><span class="n">result</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">)</span>
-</span></pre></div>
-</div>
 </section>
 </section>
 

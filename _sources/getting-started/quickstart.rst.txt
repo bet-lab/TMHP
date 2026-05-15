@@ -29,12 +29,3 @@ brackets (e.g. ``"E_cmp [W]"``). Pass ``return_dict=False`` to get a single-row
 
 For time-stepping simulations use :py:meth:`AirSourceHeatPumpBoiler.analyze_dynamic`,
 which consumes a weather/load DataFrame and returns a per-step DataFrame.
-
-When used as a submodule of ``enex_analysis_engine``:
-
-.. code-block:: python
-
-   from enex_analysis import AirSourceHeatPumpBoiler
-
-   ashpb = AirSourceHeatPumpBoiler(ref="R32")
-   result = ashpb.analyze_steady(T_tank_w=55.0, T0=5.0, Q_ref_cond=8_000.0)

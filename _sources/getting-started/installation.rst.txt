@@ -25,8 +25,8 @@ This library is used as a git submodule of ``enex_analysis_engine``. When you cl
 
 .. code-block:: bash
 
-   git clone https://github.com/bet-lab/physics_hp_models.git
-   cd physics_hp_models
+   git clone https://github.com/bet-lab/physics-heatpump-models.git
+   cd physics-heatpump-models
    uv sync
 
 Dependencies

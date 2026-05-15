@@ -92,7 +92,7 @@ The ASHPB model has been validated against commercial catalogue data (Samsung EH
    :caption: Project Links
    :hidden:
 
-   GitHub Repository <https://github.com/bet-lab/physics_hp_models>
+   GitHub Repository <https://github.com/bet-lab/physics-heatpump-models>
    enex_analysis_engine <https://github.com/bet-lab/enex_analysis_engine>
 
 Indices and tables

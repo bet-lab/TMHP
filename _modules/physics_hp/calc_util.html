@@ -124,223 +124,226 @@ data-aria-dark="Switch to auto color mode">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
           <h1>Source code for physics_hp.calc_util</h1><div class="highlight"><pre>
-<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="2"><span class="sd">Unit conversion utilities and conversion constants.</span>
-</span><span data-line="3">
-</span><span data-line="4"><span class="sd">This module provides temperature conversion functions and a comprehensive</span>
-</span><span data-line="5"><span class="sd">set of unit conversion multipliers organized by physical dimension.</span>
-</span><span data-line="6">
-</span><span data-line="7"><span class="sd">Categories:</span>
-</span><span data-line="8"><span class="sd">    1. Temperature Conversion Functions — K2C, C2K, F2C, C2F</span>
-</span><span data-line="9"><span class="sd">    2. Time Conversion Constants</span>
-</span><span data-line="10"><span class="sd">    3. Length Conversion Constants</span>
-</span><span data-line="11"><span class="sd">    4. Area Conversion Constants</span>
-</span><span data-line="12"><span class="sd">    5. Volume Conversion Constants</span>
-</span><span data-line="13"><span class="sd">    6. Mass Conversion Constants</span>
-</span><span data-line="14"><span class="sd">    7. Energy Conversion Constants</span>
-</span><span data-line="15"><span class="sd">    8. Power Conversion Constants</span>
-</span><span data-line="16"><span class="sd">    9. Pressure Conversion Constants</span>
-</span><span data-line="17"><span class="sd">   10. Angle Conversion Constants</span>
-</span><span data-line="18">
-</span><span data-line="19"><span class="sd">Usage:</span>
-</span><span data-line="20"><span class="sd">    All constants follow the naming pattern ``&lt;from_unit&gt;2&lt;to_unit&gt;``,</span>
-</span><span data-line="21"><span class="sd">    e.g. ``h2s = 3600`` converts hours to seconds.</span>
-</span><span data-line="22"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="23">
-</span><span data-line="24"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="25">
-</span><span data-line="26"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="27">    <span class="c1"># Temperature conversion functions</span>
-</span><span data-line="28">    <span class="s2">&quot;K2C&quot;</span><span class="p">,</span> <span class="s2">&quot;C2K&quot;</span><span class="p">,</span> <span class="s2">&quot;F2C&quot;</span><span class="p">,</span> <span class="s2">&quot;C2F&quot;</span><span class="p">,</span>
-</span><span data-line="29">    <span class="c1"># Time</span>
-</span><span data-line="30">    <span class="s2">&quot;h2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2h&quot;</span><span class="p">,</span> <span class="s2">&quot;h2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2h&quot;</span><span class="p">,</span> <span class="s2">&quot;d2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2d&quot;</span><span class="p">,</span> <span class="s2">&quot;d2h&quot;</span><span class="p">,</span> <span class="s2">&quot;h2d&quot;</span><span class="p">,</span> <span class="s2">&quot;d2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2d&quot;</span><span class="p">,</span>
-</span><span data-line="31">    <span class="s2">&quot;d2y&quot;</span><span class="p">,</span> <span class="s2">&quot;y2d&quot;</span><span class="p">,</span>
-</span><span data-line="32">    <span class="c1"># Length</span>
-</span><span data-line="33">    <span class="s2">&quot;cm2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;mm2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2mm&quot;</span><span class="p">,</span> <span class="s2">&quot;cm2mm&quot;</span><span class="p">,</span> <span class="s2">&quot;mm2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;km2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2km&quot;</span><span class="p">,</span>
-</span><span data-line="34">    <span class="s2">&quot;in2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;cm2in&quot;</span><span class="p">,</span> <span class="s2">&quot;ft2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2ft&quot;</span><span class="p">,</span>
-</span><span data-line="35">    <span class="c1"># Area</span>
-</span><span data-line="36">    <span class="s2">&quot;cm22m2&quot;</span><span class="p">,</span> <span class="s2">&quot;m22cm2&quot;</span><span class="p">,</span> <span class="s2">&quot;mm22m2&quot;</span><span class="p">,</span> <span class="s2">&quot;m22mm2&quot;</span><span class="p">,</span>
-</span><span data-line="37">    <span class="c1"># Volume</span>
-</span><span data-line="38">    <span class="s2">&quot;L2m3&quot;</span><span class="p">,</span> <span class="s2">&quot;m32L&quot;</span><span class="p">,</span> <span class="s2">&quot;cm32m3&quot;</span><span class="p">,</span> <span class="s2">&quot;m32cm3&quot;</span><span class="p">,</span>
-</span><span data-line="39">    <span class="c1"># Mass</span>
-</span><span data-line="40">    <span class="s2">&quot;kg2g&quot;</span><span class="p">,</span> <span class="s2">&quot;g2kg&quot;</span><span class="p">,</span> <span class="s2">&quot;mg2kg&quot;</span><span class="p">,</span> <span class="s2">&quot;kg2mg&quot;</span><span class="p">,</span> <span class="s2">&quot;kg2t&quot;</span><span class="p">,</span> <span class="s2">&quot;t2kg&quot;</span><span class="p">,</span>
-</span><span data-line="41">    <span class="c1"># Energy</span>
-</span><span data-line="42">    <span class="s2">&quot;J2kJ&quot;</span><span class="p">,</span> <span class="s2">&quot;kJ2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2MJ&quot;</span><span class="p">,</span> <span class="s2">&quot;MJ2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2GJ&quot;</span><span class="p">,</span> <span class="s2">&quot;GJ2J&quot;</span><span class="p">,</span>
-</span><span data-line="43">    <span class="s2">&quot;J2kWh&quot;</span><span class="p">,</span> <span class="s2">&quot;kWh2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2Btu&quot;</span><span class="p">,</span> <span class="s2">&quot;Btu2J&quot;</span><span class="p">,</span>
-</span><span data-line="44">    <span class="c1"># Power</span>
-</span><span data-line="45">    <span class="s2">&quot;W2kW&quot;</span><span class="p">,</span> <span class="s2">&quot;kW2W&quot;</span><span class="p">,</span> <span class="s2">&quot;W2MW&quot;</span><span class="p">,</span> <span class="s2">&quot;MW2W&quot;</span><span class="p">,</span> <span class="s2">&quot;W2GW&quot;</span><span class="p">,</span> <span class="s2">&quot;W2mW&quot;</span><span class="p">,</span> <span class="s2">&quot;mW2W&quot;</span><span class="p">,</span>
-</span><span data-line="46">    <span class="c1"># Pressure</span>
-</span><span data-line="47">    <span class="s2">&quot;Pa2kPa&quot;</span><span class="p">,</span> <span class="s2">&quot;kPa2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2MPa&quot;</span><span class="p">,</span> <span class="s2">&quot;MPa2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2bar&quot;</span><span class="p">,</span> <span class="s2">&quot;bar2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2atm&quot;</span><span class="p">,</span> <span class="s2">&quot;atm2Pa&quot;</span><span class="p">,</span>
-</span><span data-line="48">    <span class="c1"># Angle</span>
-</span><span data-line="49">    <span class="s2">&quot;d2r&quot;</span><span class="p">,</span> <span class="s2">&quot;r2d&quot;</span><span class="p">,</span>
-</span><span data-line="50">    <span class="c1"># Time aggregates</span>
-</span><span data-line="51">    <span class="s2">&quot;m2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2m&quot;</span><span class="p">,</span>
-</span><span data-line="52"><span class="p">]</span>
-</span><span data-line="53">
-</span><span data-line="54"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="55"><span class="c1"># 1. Temperature Conversion Functions</span>
-</span><span data-line="56"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="57">
-</span><span data-line="58">
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Unit conversion utilities and conversion constants.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">This module provides temperature conversion functions and a comprehensive</span>
+</span><span data-line="4"><span class="sd">set of unit conversion multipliers organized by physical dimension.</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="sd">Categories</span>
+</span><span data-line="7"><span class="sd">----------</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="sd">- Temperature conversion functions — ``K2C``, ``C2K``, ``F2C``, ``C2F``</span>
+</span><span data-line="10"><span class="sd">- Time conversion constants</span>
+</span><span data-line="11"><span class="sd">- Length conversion constants</span>
+</span><span data-line="12"><span class="sd">- Area conversion constants</span>
+</span><span data-line="13"><span class="sd">- Volume conversion constants</span>
+</span><span data-line="14"><span class="sd">- Mass conversion constants</span>
+</span><span data-line="15"><span class="sd">- Energy conversion constants</span>
+</span><span data-line="16"><span class="sd">- Power conversion constants</span>
+</span><span data-line="17"><span class="sd">- Pressure conversion constants</span>
+</span><span data-line="18"><span class="sd">- Angle conversion constants</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="sd">Usage</span>
+</span><span data-line="21"><span class="sd">-----</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="sd">All constants follow the naming pattern ``&lt;from_unit&gt;2&lt;to_unit&gt;``,</span>
+</span><span data-line="24"><span class="sd">e.g. ``h2s = 3600`` converts hours to seconds.</span>
+</span><span data-line="25"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="26">
+</span><span data-line="27"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="28">
+</span><span data-line="29"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="30">    <span class="c1"># Temperature conversion functions</span>
+</span><span data-line="31">    <span class="s2">&quot;K2C&quot;</span><span class="p">,</span> <span class="s2">&quot;C2K&quot;</span><span class="p">,</span> <span class="s2">&quot;F2C&quot;</span><span class="p">,</span> <span class="s2">&quot;C2F&quot;</span><span class="p">,</span>
+</span><span data-line="32">    <span class="c1"># Time</span>
+</span><span data-line="33">    <span class="s2">&quot;h2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2h&quot;</span><span class="p">,</span> <span class="s2">&quot;h2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2h&quot;</span><span class="p">,</span> <span class="s2">&quot;d2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2d&quot;</span><span class="p">,</span> <span class="s2">&quot;d2h&quot;</span><span class="p">,</span> <span class="s2">&quot;h2d&quot;</span><span class="p">,</span> <span class="s2">&quot;d2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2d&quot;</span><span class="p">,</span>
+</span><span data-line="34">    <span class="s2">&quot;d2y&quot;</span><span class="p">,</span> <span class="s2">&quot;y2d&quot;</span><span class="p">,</span>
+</span><span data-line="35">    <span class="c1"># Length</span>
+</span><span data-line="36">    <span class="s2">&quot;cm2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;mm2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2mm&quot;</span><span class="p">,</span> <span class="s2">&quot;cm2mm&quot;</span><span class="p">,</span> <span class="s2">&quot;mm2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;km2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2km&quot;</span><span class="p">,</span>
+</span><span data-line="37">    <span class="s2">&quot;in2cm&quot;</span><span class="p">,</span> <span class="s2">&quot;cm2in&quot;</span><span class="p">,</span> <span class="s2">&quot;ft2m&quot;</span><span class="p">,</span> <span class="s2">&quot;m2ft&quot;</span><span class="p">,</span>
+</span><span data-line="38">    <span class="c1"># Area</span>
+</span><span data-line="39">    <span class="s2">&quot;cm22m2&quot;</span><span class="p">,</span> <span class="s2">&quot;m22cm2&quot;</span><span class="p">,</span> <span class="s2">&quot;mm22m2&quot;</span><span class="p">,</span> <span class="s2">&quot;m22mm2&quot;</span><span class="p">,</span>
+</span><span data-line="40">    <span class="c1"># Volume</span>
+</span><span data-line="41">    <span class="s2">&quot;L2m3&quot;</span><span class="p">,</span> <span class="s2">&quot;m32L&quot;</span><span class="p">,</span> <span class="s2">&quot;cm32m3&quot;</span><span class="p">,</span> <span class="s2">&quot;m32cm3&quot;</span><span class="p">,</span>
+</span><span data-line="42">    <span class="c1"># Mass</span>
+</span><span data-line="43">    <span class="s2">&quot;kg2g&quot;</span><span class="p">,</span> <span class="s2">&quot;g2kg&quot;</span><span class="p">,</span> <span class="s2">&quot;mg2kg&quot;</span><span class="p">,</span> <span class="s2">&quot;kg2mg&quot;</span><span class="p">,</span> <span class="s2">&quot;kg2t&quot;</span><span class="p">,</span> <span class="s2">&quot;t2kg&quot;</span><span class="p">,</span>
+</span><span data-line="44">    <span class="c1"># Energy</span>
+</span><span data-line="45">    <span class="s2">&quot;J2kJ&quot;</span><span class="p">,</span> <span class="s2">&quot;kJ2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2MJ&quot;</span><span class="p">,</span> <span class="s2">&quot;MJ2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2GJ&quot;</span><span class="p">,</span> <span class="s2">&quot;GJ2J&quot;</span><span class="p">,</span>
+</span><span data-line="46">    <span class="s2">&quot;J2kWh&quot;</span><span class="p">,</span> <span class="s2">&quot;kWh2J&quot;</span><span class="p">,</span> <span class="s2">&quot;J2Btu&quot;</span><span class="p">,</span> <span class="s2">&quot;Btu2J&quot;</span><span class="p">,</span>
+</span><span data-line="47">    <span class="c1"># Power</span>
+</span><span data-line="48">    <span class="s2">&quot;W2kW&quot;</span><span class="p">,</span> <span class="s2">&quot;kW2W&quot;</span><span class="p">,</span> <span class="s2">&quot;W2MW&quot;</span><span class="p">,</span> <span class="s2">&quot;MW2W&quot;</span><span class="p">,</span> <span class="s2">&quot;W2GW&quot;</span><span class="p">,</span> <span class="s2">&quot;W2mW&quot;</span><span class="p">,</span> <span class="s2">&quot;mW2W&quot;</span><span class="p">,</span>
+</span><span data-line="49">    <span class="c1"># Pressure</span>
+</span><span data-line="50">    <span class="s2">&quot;Pa2kPa&quot;</span><span class="p">,</span> <span class="s2">&quot;kPa2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2MPa&quot;</span><span class="p">,</span> <span class="s2">&quot;MPa2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2bar&quot;</span><span class="p">,</span> <span class="s2">&quot;bar2Pa&quot;</span><span class="p">,</span> <span class="s2">&quot;Pa2atm&quot;</span><span class="p">,</span> <span class="s2">&quot;atm2Pa&quot;</span><span class="p">,</span>
+</span><span data-line="51">    <span class="c1"># Angle</span>
+</span><span data-line="52">    <span class="s2">&quot;d2r&quot;</span><span class="p">,</span> <span class="s2">&quot;r2d&quot;</span><span class="p">,</span>
+</span><span data-line="53">    <span class="c1"># Time aggregates</span>
+</span><span data-line="54">    <span class="s2">&quot;m2s&quot;</span><span class="p">,</span> <span class="s2">&quot;s2m&quot;</span><span class="p">,</span>
+</span><span data-line="55"><span class="p">]</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="58"><span class="c1"># 1. Temperature Conversion Functions</span>
+</span><span data-line="59"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="60">
+</span><span data-line="61">
 <div class="viewcode-block" id="K2C">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.calc_util.K2C">[docs]</a>
-</span><span data-line="59"><span class="k">def</span><span class="w"> </span><span class="nf">K2C</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
-</span><span data-line="60"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Kelvin to Celsius.&quot;&quot;&quot;</span>
-</span><span data-line="61">    <span class="k">return</span> <span class="n">K</span> <span class="o">-</span> <span class="mf">273.15</span></div>
+</span><span data-line="62"><span class="k">def</span><span class="w"> </span><span class="nf">K2C</span><span class="p">(</span><span class="n">K</span><span class="p">):</span>
+</span><span data-line="63"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Kelvin to Celsius.&quot;&quot;&quot;</span>
+</span><span data-line="64">    <span class="k">return</span> <span class="n">K</span> <span class="o">-</span> <span class="mf">273.15</span></div>
 
-</span><span data-line="62">
-</span><span data-line="63">
+</span><span data-line="65">
+</span><span data-line="66">
 <div class="viewcode-block" id="C2K">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.calc_util.C2K">[docs]</a>
-</span><span data-line="64"><span class="k">def</span><span class="w"> </span><span class="nf">C2K</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
-</span><span data-line="65"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Celsius to Kelvin.&quot;&quot;&quot;</span>
-</span><span data-line="66">    <span class="k">return</span> <span class="n">C</span> <span class="o">+</span> <span class="mf">273.15</span></div>
+</span><span data-line="67"><span class="k">def</span><span class="w"> </span><span class="nf">C2K</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
+</span><span data-line="68"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Celsius to Kelvin.&quot;&quot;&quot;</span>
+</span><span data-line="69">    <span class="k">return</span> <span class="n">C</span> <span class="o">+</span> <span class="mf">273.15</span></div>
 
-</span><span data-line="67">
-</span><span data-line="68">
+</span><span data-line="70">
+</span><span data-line="71">
 <div class="viewcode-block" id="F2C">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.calc_util.F2C">[docs]</a>
-</span><span data-line="69"><span class="k">def</span><span class="w"> </span><span class="nf">F2C</span><span class="p">(</span><span class="n">F</span><span class="p">):</span>
-</span><span data-line="70"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Fahrenheit to Celsius.&quot;&quot;&quot;</span>
-</span><span data-line="71">    <span class="k">return</span> <span class="p">(</span><span class="n">F</span> <span class="o">-</span> <span class="mi">32</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">/</span> <span class="mi">9</span></div>
+</span><span data-line="72"><span class="k">def</span><span class="w"> </span><span class="nf">F2C</span><span class="p">(</span><span class="n">F</span><span class="p">):</span>
+</span><span data-line="73"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Fahrenheit to Celsius.&quot;&quot;&quot;</span>
+</span><span data-line="74">    <span class="k">return</span> <span class="p">(</span><span class="n">F</span> <span class="o">-</span> <span class="mi">32</span><span class="p">)</span> <span class="o">*</span> <span class="mi">5</span> <span class="o">/</span> <span class="mi">9</span></div>
 
-</span><span data-line="72">
-</span><span data-line="73">
+</span><span data-line="75">
+</span><span data-line="76">
 <div class="viewcode-block" id="C2F">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.calc_util.C2F">[docs]</a>
-</span><span data-line="74"><span class="k">def</span><span class="w"> </span><span class="nf">C2F</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
-</span><span data-line="75"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Celsius to Fahrenheit.&quot;&quot;&quot;</span>
-</span><span data-line="76">    <span class="k">return</span> <span class="n">C</span> <span class="o">*</span> <span class="mi">9</span> <span class="o">/</span> <span class="mi">5</span> <span class="o">+</span> <span class="mi">32</span></div>
+</span><span data-line="77"><span class="k">def</span><span class="w"> </span><span class="nf">C2F</span><span class="p">(</span><span class="n">C</span><span class="p">):</span>
+</span><span data-line="78"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert Celsius to Fahrenheit.&quot;&quot;&quot;</span>
+</span><span data-line="79">    <span class="k">return</span> <span class="n">C</span> <span class="o">*</span> <span class="mi">9</span> <span class="o">/</span> <span class="mi">5</span> <span class="o">+</span> <span class="mi">32</span></div>
 
-</span><span data-line="77">
-</span><span data-line="78">
-</span><span data-line="79"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="80"><span class="c1"># 2. Time Conversion Constants</span>
-</span><span data-line="81"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="82">
-</span><span data-line="83"><span class="c1"># Day</span>
-</span><span data-line="84"><span class="n">d2h</span> <span class="o">=</span> <span class="mi">24</span>
-</span><span data-line="85"><span class="n">d2m</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span>
-</span><span data-line="86"><span class="n">d2s</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
-</span><span data-line="87"><span class="n">h2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">24</span>
-</span><span data-line="88"><span class="n">m2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="89"><span class="n">s2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-</span><span data-line="90">
-</span><span data-line="91"><span class="c1"># Hour</span>
-</span><span data-line="92"><span class="n">h2m</span> <span class="o">=</span> <span class="mi">60</span>
-</span><span data-line="93"><span class="n">h2s</span> <span class="o">=</span> <span class="mi">3600</span>
-</span><span data-line="94"><span class="n">m2h</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">60</span>
-</span><span data-line="95"><span class="n">s2h</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3600</span>
-</span><span data-line="96">
-</span><span data-line="97"><span class="c1"># Minute</span>
-</span><span data-line="98"><span class="n">m2s</span> <span class="o">=</span> <span class="mi">60</span>
-</span><span data-line="99"><span class="n">s2m</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">60</span>
-</span><span data-line="100">
-</span><span data-line="101"><span class="c1"># Year</span>
-</span><span data-line="102"><span class="n">y2d</span> <span class="o">=</span> <span class="mi">365</span>
-</span><span data-line="103"><span class="n">d2y</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">365</span>
-</span><span data-line="104">
-</span><span data-line="105">
-</span><span data-line="106"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="107"><span class="c1"># 3. Length Conversion Constants</span>
-</span><span data-line="108"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="109">
-</span><span data-line="110"><span class="n">m2cm</span> <span class="o">=</span> <span class="mi">100</span>
-</span><span data-line="111"><span class="n">cm2m</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">100</span>
-</span><span data-line="112"><span class="n">m2mm</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="113"><span class="n">mm2m</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="114"><span class="n">m2km</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="115"><span class="n">km2m</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="116"><span class="n">cm2mm</span> <span class="o">=</span> <span class="mi">10</span>
-</span><span data-line="117"><span class="n">mm2cm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">10</span>
-</span><span data-line="118"><span class="n">in2cm</span> <span class="o">=</span> <span class="mf">2.54</span>
-</span><span data-line="119"><span class="n">cm2in</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">2.54</span>
-</span><span data-line="120"><span class="n">ft2m</span> <span class="o">=</span> <span class="mf">0.3048</span>
-</span><span data-line="121"><span class="n">m2ft</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.3048</span>
-</span><span data-line="122">
-</span><span data-line="123">
-</span><span data-line="124"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="125"><span class="c1"># 4. Area Conversion Constants</span>
-</span><span data-line="126"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="127">
-</span><span data-line="128"><span class="n">m22cm2</span> <span class="o">=</span> <span class="mf">1e4</span>
-</span><span data-line="129"><span class="n">cm22m2</span> <span class="o">=</span> <span class="mf">1e-4</span>
-</span><span data-line="130"><span class="n">m22mm2</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="131"><span class="n">mm22m2</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="132">
-</span><span data-line="133">
-</span><span data-line="134"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="135"><span class="c1"># 5. Volume Conversion Constants</span>
-</span><span data-line="136"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="137">
-</span><span data-line="138"><span class="n">m32cm3</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="139"><span class="n">cm32m3</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="140"><span class="n">m32L</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="141"><span class="n">L2m3</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="142">
-</span><span data-line="143">
-</span><span data-line="144"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="145"><span class="c1"># 6. Mass Conversion Constants</span>
-</span><span data-line="146"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="147">
-</span><span data-line="148"><span class="n">kg2g</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="149"><span class="n">g2kg</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="150"><span class="n">kg2mg</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="151"><span class="n">mg2kg</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="152"><span class="n">kg2t</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="153"><span class="n">t2kg</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="154">
-</span><span data-line="155">
-</span><span data-line="156"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="157"><span class="c1"># 7. Energy Conversion Constants</span>
-</span><span data-line="158"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="159">
-</span><span data-line="160"><span class="n">J2kJ</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="161"><span class="n">kJ2J</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="162"><span class="n">J2MJ</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="163"><span class="n">MJ2J</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="164"><span class="n">J2GJ</span> <span class="o">=</span> <span class="mf">1e-9</span>
-</span><span data-line="165"><span class="n">GJ2J</span> <span class="o">=</span> <span class="mf">1e9</span>
-</span><span data-line="166"><span class="n">kWh2J</span> <span class="o">=</span> <span class="mf">3.6e6</span>
-</span><span data-line="167"><span class="n">J2kWh</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">3.6e6</span>
-</span><span data-line="168"><span class="n">Btu2J</span> <span class="o">=</span> <span class="mf">1055.06</span>
-</span><span data-line="169"><span class="n">J2Btu</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">1055.06</span>
-</span><span data-line="170">
-</span><span data-line="171">
-</span><span data-line="172"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="173"><span class="c1"># 8. Power Conversion Constants</span>
-</span><span data-line="174"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="175">
-</span><span data-line="176"><span class="n">W2kW</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="177"><span class="n">W2MW</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="178"><span class="n">W2GW</span> <span class="o">=</span> <span class="mf">1e-9</span>
-</span><span data-line="179">
-</span><span data-line="180"><span class="n">kW2W</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="181"><span class="n">MW2W</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="182"><span class="n">W2mW</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="183"><span class="n">mW2W</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="184">
-</span><span data-line="185">
-</span><span data-line="186"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="187"><span class="c1"># 9. Pressure Conversion Constants</span>
-</span><span data-line="188"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="189">
-</span><span data-line="190"><span class="n">Pa2kPa</span> <span class="o">=</span> <span class="mf">1e-3</span>
-</span><span data-line="191"><span class="n">kPa2Pa</span> <span class="o">=</span> <span class="mf">1e3</span>
-</span><span data-line="192"><span class="n">Pa2MPa</span> <span class="o">=</span> <span class="mf">1e-6</span>
-</span><span data-line="193"><span class="n">MPa2Pa</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="194"><span class="n">Pa2bar</span> <span class="o">=</span> <span class="mf">1e-5</span>
-</span><span data-line="195"><span class="n">bar2Pa</span> <span class="o">=</span> <span class="mf">1e5</span>
-</span><span data-line="196"><span class="n">atm2Pa</span> <span class="o">=</span> <span class="mi">101325</span>
-</span><span data-line="197"><span class="n">Pa2atm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">101325</span>
-</span><span data-line="198">
-</span><span data-line="199">
-</span><span data-line="200"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="201"><span class="c1"># 10. Angle Conversion Constants</span>
-</span><span data-line="202"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
-</span><span data-line="203">
-</span><span data-line="204"><span class="n">d2r</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
-</span><span data-line="205"><span class="n">r2d</span> <span class="o">=</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span>
+</span><span data-line="80">
+</span><span data-line="81">
+</span><span data-line="82"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="83"><span class="c1"># 2. Time Conversion Constants</span>
+</span><span data-line="84"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="85">
+</span><span data-line="86"><span class="c1"># Day</span>
+</span><span data-line="87"><span class="n">d2h</span> <span class="o">=</span> <span class="mi">24</span>
+</span><span data-line="88"><span class="n">d2m</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span>
+</span><span data-line="89"><span class="n">d2s</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+</span><span data-line="90"><span class="n">h2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">24</span>
+</span><span data-line="91"><span class="n">m2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+</span><span data-line="92"><span class="n">s2d</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+</span><span data-line="93">
+</span><span data-line="94"><span class="c1"># Hour</span>
+</span><span data-line="95"><span class="n">h2m</span> <span class="o">=</span> <span class="mi">60</span>
+</span><span data-line="96"><span class="n">h2s</span> <span class="o">=</span> <span class="mi">3600</span>
+</span><span data-line="97"><span class="n">m2h</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">60</span>
+</span><span data-line="98"><span class="n">s2h</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3600</span>
+</span><span data-line="99">
+</span><span data-line="100"><span class="c1"># Minute</span>
+</span><span data-line="101"><span class="n">m2s</span> <span class="o">=</span> <span class="mi">60</span>
+</span><span data-line="102"><span class="n">s2m</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">60</span>
+</span><span data-line="103">
+</span><span data-line="104"><span class="c1"># Year</span>
+</span><span data-line="105"><span class="n">y2d</span> <span class="o">=</span> <span class="mi">365</span>
+</span><span data-line="106"><span class="n">d2y</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">365</span>
+</span><span data-line="107">
+</span><span data-line="108">
+</span><span data-line="109"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="110"><span class="c1"># 3. Length Conversion Constants</span>
+</span><span data-line="111"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="112">
+</span><span data-line="113"><span class="n">m2cm</span> <span class="o">=</span> <span class="mi">100</span>
+</span><span data-line="114"><span class="n">cm2m</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">100</span>
+</span><span data-line="115"><span class="n">m2mm</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="116"><span class="n">mm2m</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="117"><span class="n">m2km</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="118"><span class="n">km2m</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="119"><span class="n">cm2mm</span> <span class="o">=</span> <span class="mi">10</span>
+</span><span data-line="120"><span class="n">mm2cm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">10</span>
+</span><span data-line="121"><span class="n">in2cm</span> <span class="o">=</span> <span class="mf">2.54</span>
+</span><span data-line="122"><span class="n">cm2in</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">2.54</span>
+</span><span data-line="123"><span class="n">ft2m</span> <span class="o">=</span> <span class="mf">0.3048</span>
+</span><span data-line="124"><span class="n">m2ft</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">0.3048</span>
+</span><span data-line="125">
+</span><span data-line="126">
+</span><span data-line="127"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="128"><span class="c1"># 4. Area Conversion Constants</span>
+</span><span data-line="129"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="130">
+</span><span data-line="131"><span class="n">m22cm2</span> <span class="o">=</span> <span class="mf">1e4</span>
+</span><span data-line="132"><span class="n">cm22m2</span> <span class="o">=</span> <span class="mf">1e-4</span>
+</span><span data-line="133"><span class="n">m22mm2</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="134"><span class="n">mm22m2</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="135">
+</span><span data-line="136">
+</span><span data-line="137"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="138"><span class="c1"># 5. Volume Conversion Constants</span>
+</span><span data-line="139"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="140">
+</span><span data-line="141"><span class="n">m32cm3</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="142"><span class="n">cm32m3</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="143"><span class="n">m32L</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="144"><span class="n">L2m3</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="145">
+</span><span data-line="146">
+</span><span data-line="147"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="148"><span class="c1"># 6. Mass Conversion Constants</span>
+</span><span data-line="149"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="150">
+</span><span data-line="151"><span class="n">kg2g</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="152"><span class="n">g2kg</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="153"><span class="n">kg2mg</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="154"><span class="n">mg2kg</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="155"><span class="n">kg2t</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="156"><span class="n">t2kg</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="157">
+</span><span data-line="158">
+</span><span data-line="159"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="160"><span class="c1"># 7. Energy Conversion Constants</span>
+</span><span data-line="161"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="162">
+</span><span data-line="163"><span class="n">J2kJ</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="164"><span class="n">kJ2J</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="165"><span class="n">J2MJ</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="166"><span class="n">MJ2J</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="167"><span class="n">J2GJ</span> <span class="o">=</span> <span class="mf">1e-9</span>
+</span><span data-line="168"><span class="n">GJ2J</span> <span class="o">=</span> <span class="mf">1e9</span>
+</span><span data-line="169"><span class="n">kWh2J</span> <span class="o">=</span> <span class="mf">3.6e6</span>
+</span><span data-line="170"><span class="n">J2kWh</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">3.6e6</span>
+</span><span data-line="171"><span class="n">Btu2J</span> <span class="o">=</span> <span class="mf">1055.06</span>
+</span><span data-line="172"><span class="n">J2Btu</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mf">1055.06</span>
+</span><span data-line="173">
+</span><span data-line="174">
+</span><span data-line="175"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="176"><span class="c1"># 8. Power Conversion Constants</span>
+</span><span data-line="177"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="178">
+</span><span data-line="179"><span class="n">W2kW</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="180"><span class="n">W2MW</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="181"><span class="n">W2GW</span> <span class="o">=</span> <span class="mf">1e-9</span>
+</span><span data-line="182">
+</span><span data-line="183"><span class="n">kW2W</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="184"><span class="n">MW2W</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="185"><span class="n">W2mW</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="186"><span class="n">mW2W</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="187">
+</span><span data-line="188">
+</span><span data-line="189"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="190"><span class="c1"># 9. Pressure Conversion Constants</span>
+</span><span data-line="191"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="192">
+</span><span data-line="193"><span class="n">Pa2kPa</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="194"><span class="n">kPa2Pa</span> <span class="o">=</span> <span class="mf">1e3</span>
+</span><span data-line="195"><span class="n">Pa2MPa</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="196"><span class="n">MPa2Pa</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="197"><span class="n">Pa2bar</span> <span class="o">=</span> <span class="mf">1e-5</span>
+</span><span data-line="198"><span class="n">bar2Pa</span> <span class="o">=</span> <span class="mf">1e5</span>
+</span><span data-line="199"><span class="n">atm2Pa</span> <span class="o">=</span> <span class="mi">101325</span>
+</span><span data-line="200"><span class="n">Pa2atm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">101325</span>
+</span><span data-line="201">
+</span><span data-line="202">
+</span><span data-line="203"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="204"><span class="c1"># 10. Angle Conversion Constants</span>
+</span><span data-line="205"><span class="c1"># ═══════════════════════════════════════════════════════════════════════════════</span>
+</span><span data-line="206">
+</span><span data-line="207"><span class="n">d2r</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">180</span>
+</span><span data-line="208"><span class="n">r2d</span> <span class="o">=</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

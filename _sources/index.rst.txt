@@ -1,8 +1,8 @@
 .. Physics-Based Heat Pump Models documentation master file
 
-=============================
+==============================
 Physics-Based Heat Pump Models
-=============================
+==============================
 
 .. rst-class:: lead
 

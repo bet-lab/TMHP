@@ -217,116 +217,117 @@ data-aria-dark="Switch to auto color mode">
 <div class="viewcode-block" id="calc_GSHP_COP">
 <a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_GSHP_COP">[docs]</a>
 </span><span data-line="85"><span class="k">def</span><span class="w"> </span><span class="nf">calc_GSHP_COP</span><span class="p">(</span><span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="n">T_f_out_K</span><span class="p">,</span> <span class="n">dV_a_ratio</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
-</span><span data-line="86"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="87"><span class="sd">    Calculate COP for a Ground Source Heat Pump using the EnergyPlus</span>
-</span><span data-line="88"><span class="sd">    Coil:*:WaterToAir:EquationFit model (Equation-Fit Method).</span>
-</span><span data-line="89">
-</span><span data-line="90"><span class="sd">    Reference:</span>
-</span><span data-line="91"><span class="sd">        EnergyPlus Engineering Reference, Ch.16.5.10.2</span>
-</span><span data-line="92"><span class="sd">        (Eq. 16.412-16.418, Tang 2005)</span>
-</span><span data-line="93"><span class="sd">        Dataset: TCH072_GLHP (ClimateMaster 6-ton, **Ground Loop** HP)</span>
-</span><span data-line="94"><span class="sd">        Source: EnergyPlus/datasets/WaterToAirHeatPumps.idf</span>
-</span><span data-line="95">
-</span><span data-line="96"><span class="sd">    Rated conditions (from IDF comment, 15% methanol antifreeze):</span>
-</span><span data-line="97"><span class="sd">        Cooling: 70.29 kBtu/h @ 77°F (25°C) entering water, EER=14.35</span>
-</span><span data-line="98"><span class="sd">        Heating: 56.14 kBtu/h @ 32°F (0°C) entering water, COP=3.42</span>
-</span><span data-line="99">
-</span><span data-line="100"><span class="sd">    Parameters</span>
-</span><span data-line="101"><span class="sd">    ----------</span>
-</span><span data-line="102"><span class="sd">    T_a_iu_in_K : float</span>
-</span><span data-line="103"><span class="sd">        Indoor air inlet dry-bulb temperature [K]  (= T_a_room).</span>
-</span><span data-line="104"><span class="sd">        For cooling, internally converted to wet-bulb (T_wb) via CoolProp</span>
-</span><span data-line="105"><span class="sd">        assuming RH = 50%.</span>
-</span><span data-line="106"><span class="sd">    T_f_out_K : float</span>
-</span><span data-line="107"><span class="sd">        Source-side inlet water temperature [K]</span>
-</span><span data-line="108"><span class="sd">        = T_f_out (water returning from borehole TO the heat pump,</span>
-</span><span data-line="109"><span class="sd">          i.e., T_w,in in EnergyPlus notation).</span>
-</span><span data-line="110"><span class="sd">    dV_a_ratio : float</span>
-</span><span data-line="111"><span class="sd">        Load-side air volumetric flow ratio: V_a / V_a_ref  [-]</span>
-</span><span data-line="112"><span class="sd">        V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</span>
-</span><span data-line="113"><span class="sd">    mode : str</span>
-</span><span data-line="114"><span class="sd">        &quot;cooling&quot; or &quot;heating&quot;</span>
-</span><span data-line="115">
-</span><span data-line="116"><span class="sd">    Units</span>
-</span><span data-line="117"><span class="sd">    -----</span>
-</span><span data-line="118"><span class="sd">    Temperatures : K</span>
-</span><span data-line="119"><span class="sd">    Flow rates   : m³/s</span>
-</span><span data-line="120"><span class="sd">    Heat/Power   : W</span>
-</span><span data-line="121">
-</span><span data-line="122"><span class="sd">    Returns</span>
-</span><span data-line="123"><span class="sd">    -------</span>
-</span><span data-line="124"><span class="sd">    float</span>
-</span><span data-line="125"><span class="sd">        COP (dimensionless). Polynomial model is unconditionally stable—</span>
-</span><span data-line="126"><span class="sd">        no ValueError on temperature inversion.</span>
-</span><span data-line="127"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="128">    <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
-</span><span data-line="129">
-</span><span data-line="130">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="131">    <span class="c1"># TCH072_GLHP coefficients  (EnergyPlus WaterToAirHeatPumps.idf)</span>
-</span><span data-line="132">    <span class="c1"># Curve:QuadLinear — [C1, C2(w), C3(x), C4(y), C5(z)]</span>
-</span><span data-line="133">    <span class="c1"># w = T_wb(clg) / T_a_iu_in(htg) / T_ref</span>
-</span><span data-line="134">    <span class="c1"># x = T_f_out (= T_w,in) / T_ref</span>
-</span><span data-line="135">    <span class="c1"># y = V_a / V_a_ref</span>
-</span><span data-line="136">    <span class="c1"># z = V_w / V_w_ref</span>
-</span><span data-line="137">    <span class="c1"># T_ref = 283 K  (EnergyPlus Eng. Ref.)</span>
-</span><span data-line="138">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="139">    <span class="n">_COEFFS</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="140">        <span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.34283983721389</span><span class="p">,</span> <span class="mf">7.95908762160623</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.81781371834254</span><span class="p">,</span> <span class="mf">0.107825995086305</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.96686960975482e-3</span><span class="p">],</span>
-</span><span data-line="141">        <span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">6.07162009581271</span><span class="p">,</span> <span class="mf">0.751024641964602</span><span class="p">,</span> <span class="mf">5.74078006772573</span><span class="p">,</span> <span class="mf">0.248287540581677</span><span class="p">,</span> <span class="mf">3.53588794377984e-3</span><span class="p">],</span>
-</span><span data-line="142">        <span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.71139387014587</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.80505473458221</span><span class="p">,</span> <span class="mf">7.61053388144077</span><span class="p">,</span> <span class="mf">0.260726814057021</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.22820319308267e-2</span><span class="p">],</span>
-</span><span data-line="143">        <span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">5.12615627602834</span><span class="p">,</span> <span class="mf">4.59939579763495</span><span class="p">,</span> <span class="mf">1.45764440263458</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.61795048261089e-2</span><span class="p">,</span> <span class="mf">4.3384414360512e-3</span><span class="p">],</span>
-</span><span data-line="144">    <span class="p">}</span>
-</span><span data-line="145">    <span class="n">_T_REF</span> <span class="o">=</span> <span class="mi">283</span>  <span class="c1"># [K] EnergyPlus fixed reference temperature</span>
-</span><span data-line="146">    <span class="n">_COP_REF_CLG</span> <span class="o">=</span> <span class="mf">14.35</span> <span class="o">/</span> <span class="mf">3.412</span>  <span class="c1"># EER 14.35 → COP ≈ 4.207</span>
-</span><span data-line="147">    <span class="n">_COP_REF_HTG</span> <span class="o">=</span> <span class="mf">3.42</span>  <span class="c1"># Rated heating COP from IDF</span>
-</span><span data-line="148">    <span class="n">_V_W_RATIO</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Ground-loop water flow ratio (constant-speed pump)</span>
-</span><span data-line="149">
-</span><span data-line="150">    <span class="k">def</span><span class="w"> </span><span class="nf">_quad_linear</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-</span><span data-line="151">        <span class="n">c</span> <span class="o">=</span> <span class="n">coeffs</span>
-</span><span data-line="152">        <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x3</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">x4</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">x5</span>
-</span><span data-line="153">
-</span><span data-line="154">    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span>
-</span><span data-line="155">        <span class="c1"># T_a_iu_in_K (dry-bulb) → convert to wet-bulb for cooling curve (RH=50%)</span>
-</span><span data-line="156">        <span class="n">T_wb_K</span> <span class="o">=</span> <span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;Twb&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="s2">&quot;RH&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="mi">101325</span><span class="p">)</span>
-</span><span data-line="157">
-</span><span data-line="158">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
-</span><span data-line="159">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">],</span>
-</span><span data-line="160">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_wb / T_ref</span>
-</span><span data-line="161">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
-</span><span data-line="162">            <span class="n">dV_a_ratio</span><span class="p">,</span>  <span class="c1"># y = V_a / V_a_ref</span>
-</span><span data-line="163">            <span class="n">_V_W_RATIO</span><span class="p">,</span>  <span class="c1"># z = V_w / V_w_ref</span>
-</span><span data-line="164">        <span class="p">)</span>
-</span><span data-line="165">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
-</span><span data-line="166">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">],</span>
-</span><span data-line="167">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
-</span><span data-line="168">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
-</span><span data-line="169">            <span class="n">dV_a_ratio</span><span class="p">,</span>
-</span><span data-line="170">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
-</span><span data-line="171">        <span class="p">)</span>
-</span><span data-line="172">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_CLG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
-</span><span data-line="173">
-</span><span data-line="174">    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
-</span><span data-line="175">        <span class="c1"># T_a_iu_in_K (dry-bulb) used directly for heating curve</span>
-</span><span data-line="176">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
-</span><span data-line="177">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">],</span>
-</span><span data-line="178">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_a_iu_in / T_ref</span>
-</span><span data-line="179">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
-</span><span data-line="180">            <span class="n">dV_a_ratio</span><span class="p">,</span>
-</span><span data-line="181">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
-</span><span data-line="182">        <span class="p">)</span>
-</span><span data-line="183">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
-</span><span data-line="184">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">],</span>
-</span><span data-line="185">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
-</span><span data-line="186">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
-</span><span data-line="187">            <span class="n">dV_a_ratio</span><span class="p">,</span>
-</span><span data-line="188">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
-</span><span data-line="189">        <span class="p">)</span>
-</span><span data-line="190">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_HTG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
-</span><span data-line="191">
-</span><span data-line="192">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="193">        <span class="n">COP</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="194">
-</span><span data-line="195">    <span class="k">return</span> <span class="n">COP</span></div>
+</span><span data-line="86"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate COP for a Ground Source Heat Pump.</span>
+</span><span data-line="87">
+</span><span data-line="88"><span class="sd">    Uses the EnergyPlus ``Coil:*:WaterToAir:EquationFit`` model</span>
+</span><span data-line="89"><span class="sd">    (Equation-Fit Method).</span>
+</span><span data-line="90">
+</span><span data-line="91"><span class="sd">    References</span>
+</span><span data-line="92"><span class="sd">    ----------</span>
+</span><span data-line="93"><span class="sd">    EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,</span>
+</span><span data-line="94"><span class="sd">    Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop</span>
+</span><span data-line="95"><span class="sd">    HP), source: ``EnergyPlus/datasets/WaterToAirHeatPumps.idf``.</span>
+</span><span data-line="96">
+</span><span data-line="97"><span class="sd">    Rated conditions (from IDF comment, 15% methanol antifreeze):</span>
+</span><span data-line="98">
+</span><span data-line="99"><span class="sd">    - Cooling: 70.29 kBtu/h @ 77 °F (25 °C) entering water, EER = 14.35</span>
+</span><span data-line="100"><span class="sd">    - Heating: 56.14 kBtu/h @ 32 °F (0 °C) entering water, COP = 3.42</span>
+</span><span data-line="101">
+</span><span data-line="102"><span class="sd">    Parameters</span>
+</span><span data-line="103"><span class="sd">    ----------</span>
+</span><span data-line="104"><span class="sd">    T_a_iu_in_K : float</span>
+</span><span data-line="105"><span class="sd">        Indoor air inlet dry-bulb temperature [K]  (= T_a_room).</span>
+</span><span data-line="106"><span class="sd">        For cooling, internally converted to wet-bulb (T_wb) via CoolProp</span>
+</span><span data-line="107"><span class="sd">        assuming RH = 50%.</span>
+</span><span data-line="108"><span class="sd">    T_f_out_K : float</span>
+</span><span data-line="109"><span class="sd">        Source-side inlet water temperature [K] — water returning from the</span>
+</span><span data-line="110"><span class="sd">        borehole *to* the heat pump (``T_w,in`` in EnergyPlus notation).</span>
+</span><span data-line="111"><span class="sd">    dV_a_ratio : float</span>
+</span><span data-line="112"><span class="sd">        Load-side air volumetric flow ratio: V_a / V_a_ref  [-]</span>
+</span><span data-line="113"><span class="sd">        V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</span>
+</span><span data-line="114"><span class="sd">    mode : str</span>
+</span><span data-line="115"><span class="sd">        &quot;cooling&quot; or &quot;heating&quot;</span>
+</span><span data-line="116">
+</span><span data-line="117"><span class="sd">    Units</span>
+</span><span data-line="118"><span class="sd">    -----</span>
+</span><span data-line="119"><span class="sd">    Temperatures : K</span>
+</span><span data-line="120"><span class="sd">    Flow rates   : m³/s</span>
+</span><span data-line="121"><span class="sd">    Heat/Power   : W</span>
+</span><span data-line="122">
+</span><span data-line="123"><span class="sd">    Returns</span>
+</span><span data-line="124"><span class="sd">    -------</span>
+</span><span data-line="125"><span class="sd">    float</span>
+</span><span data-line="126"><span class="sd">        COP (dimensionless). Polynomial model is unconditionally stable—</span>
+</span><span data-line="127"><span class="sd">        no ValueError on temperature inversion.</span>
+</span><span data-line="128"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="129">    <span class="kn">from</span><span class="w"> </span><span class="nn">CoolProp.HumidAirProp</span><span class="w"> </span><span class="kn">import</span> <span class="n">HAPropsSI</span>
+</span><span data-line="130">
+</span><span data-line="131">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="132">    <span class="c1"># TCH072_GLHP coefficients  (EnergyPlus WaterToAirHeatPumps.idf)</span>
+</span><span data-line="133">    <span class="c1"># Curve:QuadLinear — [C1, C2(w), C3(x), C4(y), C5(z)]</span>
+</span><span data-line="134">    <span class="c1"># w = T_wb(clg) / T_a_iu_in(htg) / T_ref</span>
+</span><span data-line="135">    <span class="c1"># x = T_f_out (= T_w,in) / T_ref</span>
+</span><span data-line="136">    <span class="c1"># y = V_a / V_a_ref</span>
+</span><span data-line="137">    <span class="c1"># z = V_w / V_w_ref</span>
+</span><span data-line="138">    <span class="c1"># T_ref = 283 K  (EnergyPlus Eng. Ref.)</span>
+</span><span data-line="139">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="140">    <span class="n">_COEFFS</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="141">        <span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.34283983721389</span><span class="p">,</span> <span class="mf">7.95908762160623</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.81781371834254</span><span class="p">,</span> <span class="mf">0.107825995086305</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.96686960975482e-3</span><span class="p">],</span>
+</span><span data-line="142">        <span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">6.07162009581271</span><span class="p">,</span> <span class="mf">0.751024641964602</span><span class="p">,</span> <span class="mf">5.74078006772573</span><span class="p">,</span> <span class="mf">0.248287540581677</span><span class="p">,</span> <span class="mf">3.53588794377984e-3</span><span class="p">],</span>
+</span><span data-line="143">        <span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">4.71139387014587</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.80505473458221</span><span class="p">,</span> <span class="mf">7.61053388144077</span><span class="p">,</span> <span class="mf">0.260726814057021</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.22820319308267e-2</span><span class="p">],</span>
+</span><span data-line="144">        <span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">5.12615627602834</span><span class="p">,</span> <span class="mf">4.59939579763495</span><span class="p">,</span> <span class="mf">1.45764440263458</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.61795048261089e-2</span><span class="p">,</span> <span class="mf">4.3384414360512e-3</span><span class="p">],</span>
+</span><span data-line="145">    <span class="p">}</span>
+</span><span data-line="146">    <span class="n">_T_REF</span> <span class="o">=</span> <span class="mi">283</span>  <span class="c1"># [K] EnergyPlus fixed reference temperature</span>
+</span><span data-line="147">    <span class="n">_COP_REF_CLG</span> <span class="o">=</span> <span class="mf">14.35</span> <span class="o">/</span> <span class="mf">3.412</span>  <span class="c1"># EER 14.35 → COP ≈ 4.207</span>
+</span><span data-line="148">    <span class="n">_COP_REF_HTG</span> <span class="o">=</span> <span class="mf">3.42</span>  <span class="c1"># Rated heating COP from IDF</span>
+</span><span data-line="149">    <span class="n">_V_W_RATIO</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Ground-loop water flow ratio (constant-speed pump)</span>
+</span><span data-line="150">
+</span><span data-line="151">    <span class="k">def</span><span class="w"> </span><span class="nf">_quad_linear</span><span class="p">(</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">x4</span><span class="p">,</span> <span class="n">x5</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+</span><span data-line="152">        <span class="n">c</span> <span class="o">=</span> <span class="n">coeffs</span>
+</span><span data-line="153">        <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">x3</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">x4</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="n">x5</span>
+</span><span data-line="154">
+</span><span data-line="155">    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cooling&quot;</span><span class="p">:</span>
+</span><span data-line="156">        <span class="c1"># T_a_iu_in_K (dry-bulb) → convert to wet-bulb for cooling curve (RH=50%)</span>
+</span><span data-line="157">        <span class="n">T_wb_K</span> <span class="o">=</span> <span class="n">HAPropsSI</span><span class="p">(</span><span class="s2">&quot;Twb&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="s2">&quot;RH&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="mi">101325</span><span class="p">)</span>
+</span><span data-line="158">
+</span><span data-line="159">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="160">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_CAPFT&quot;</span><span class="p">],</span>
+</span><span data-line="161">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_wb / T_ref</span>
+</span><span data-line="162">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
+</span><span data-line="163">            <span class="n">dV_a_ratio</span><span class="p">,</span>  <span class="c1"># y = V_a / V_a_ref</span>
+</span><span data-line="164">            <span class="n">_V_W_RATIO</span><span class="p">,</span>  <span class="c1"># z = V_w / V_w_ref</span>
+</span><span data-line="165">        <span class="p">)</span>
+</span><span data-line="166">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="167">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;CLG_PWRFT&quot;</span><span class="p">],</span>
+</span><span data-line="168">            <span class="n">T_wb_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="169">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="170">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="171">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="172">        <span class="p">)</span>
+</span><span data-line="173">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_CLG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
+</span><span data-line="174">
+</span><span data-line="175">    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span><span class="p">:</span>
+</span><span data-line="176">        <span class="c1"># T_a_iu_in_K (dry-bulb) used directly for heating curve</span>
+</span><span data-line="177">        <span class="n">cap_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="178">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_CAPFT&quot;</span><span class="p">],</span>
+</span><span data-line="179">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># w = T_a_iu_in / T_ref</span>
+</span><span data-line="180">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>  <span class="c1"># x = T_f_out (T_w,in) / T_ref</span>
+</span><span data-line="181">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="182">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="183">        <span class="p">)</span>
+</span><span data-line="184">        <span class="n">pwr_ratio</span> <span class="o">=</span> <span class="n">_quad_linear</span><span class="p">(</span>
+</span><span data-line="185">            <span class="n">_COEFFS</span><span class="p">[</span><span class="s2">&quot;HTG_PWRFT&quot;</span><span class="p">],</span>
+</span><span data-line="186">            <span class="n">T_a_iu_in_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="187">            <span class="n">T_f_out_K</span> <span class="o">/</span> <span class="n">_T_REF</span><span class="p">,</span>
+</span><span data-line="188">            <span class="n">dV_a_ratio</span><span class="p">,</span>
+</span><span data-line="189">            <span class="n">_V_W_RATIO</span><span class="p">,</span>
+</span><span data-line="190">        <span class="p">)</span>
+</span><span data-line="191">        <span class="n">COP</span> <span class="o">=</span> <span class="n">_COP_REF_HTG</span> <span class="o">*</span> <span class="n">cap_ratio</span> <span class="o">/</span> <span class="n">pwr_ratio</span>
+</span><span data-line="192">
+</span><span data-line="193">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="194">        <span class="n">COP</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="195">
+</span><span data-line="196">    <span class="k">return</span> <span class="n">COP</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

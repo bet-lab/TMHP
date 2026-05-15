@@ -248,6 +248,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-physics_hp.calc_util">Utilities</a><ul>
+<li><a class="reference internal" href="#categories">Categories</a></li>
+<li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#physics_hp.calc_util.K2C"><code class="docutils literal notranslate"><span class="pre">K2C()</span></code></a></li>
 <li><a class="reference internal" href="#physics_hp.calc_util.C2K"><code class="docutils literal notranslate"><span class="pre">C2K()</span></code></a></li>
 <li><a class="reference internal" href="#physics_hp.calc_util.F2C"><code class="docutils literal notranslate"><span class="pre">F2C()</span></code></a></li>
@@ -596,30 +598,26 @@ electricity-consumption columns.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.cop.calc_GSHP_COP">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/physics_hp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.cop.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate COP for a Ground Source Heat Pump using the EnergyPlus
-Coil:<a href="#id1"><span class="problematic" id="id2">*</span></a>:WaterToAir:EquationFit model (Equation-Fit Method).</p>
-<dl class="simple">
-<dt>Reference:</dt><dd><p>EnergyPlus Engineering Reference, Ch.16.5.10.2
-(Eq. 16.412-16.418, Tang 2005)
-Dataset: TCH072_GLHP (ClimateMaster 6-ton, <strong>Ground Loop</strong> HP)
-Source: EnergyPlus/datasets/WaterToAirHeatPumps.idf</p>
-</dd>
-<dt>Rated conditions (from IDF comment, 15% methanol antifreeze):</dt><dd><p>Cooling: 70.29 kBtu/h &#64; 77°F (25°C) entering water, EER=14.35
-Heating: 56.14 kBtu/h &#64; 32°F (0°C) entering water, COP=3.42</p>
-</dd>
-</dl>
+<dd><p>Calculate COP for a Ground Source Heat Pump.</p>
+<p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
+(Equation-Fit Method).</p>
+<p class="rubric">References</p>
+<p>EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,
+Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop
+HP), source: <code class="docutils literal notranslate"><span class="pre">EnergyPlus/datasets/WaterToAirHeatPumps.idf</span></code>.</p>
+<p>Rated conditions (from IDF comment, 15% methanol antifreeze):</p>
+<ul class="simple">
+<li><p>Cooling: 70.29 kBtu/h &#64; 77 °F (25 °C) entering water, EER = 14.35</p></li>
+<li><p>Heating: 56.14 kBtu/h &#64; 32 °F (0 °C) entering water, COP = 3.42</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T_a_iu_in_K</strong> (<em>float</em>) – Indoor air inlet dry-bulb temperature [K]  (= T_a_room).
 For cooling, internally converted to wet-bulb (T_wb) via CoolProp
 assuming RH = 50%.</p></li>
-<li><p><strong>T_f_out_K</strong> (<em>float</em>) – <p>Source-side inlet water temperature [K]
-= T_f_out (water returning from borehole TO the heat pump,</p>
-<blockquote>
-<div><p>i.e., T_w,in in EnergyPlus notation).</p>
-</div></blockquote>
-</p></li>
+<li><p><strong>T_f_out_K</strong> (<em>float</em>) – Source-side inlet water temperature [K] — water returning from the
+borehole <em>to</em> the heat pump (<code class="docutils literal notranslate"><span class="pre">T_w,in</span></code> in EnergyPlus notation).</p></li>
 <li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
 V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</p></li>
 <li><p><strong>mode</strong> (<em>str</em>) – “cooling” or “heating”</p></li>
@@ -2357,25 +2355,14 @@ this protocol and register with the boiler model.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>Must include at least:
-- <code class="docutils literal notranslate"><span class="pre">'Q_contribution'</span></code> (float):</p>
-<blockquote>
-<div><p>Net energy contribution to tank [W].</p>
-</div></blockquote>
+<dd class="field-even"><p><p>Must include at least the following keys:</p>
 <ul class="simple">
-<li><dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">'E_subsystem'</span></code> (float):</dt><dd><p>Electrical power consumed [W].</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">'T_tank_w_in_override_K'</span></code> (float | None):</dt><dd><p>If the subsystem modifies the tank inlet
-temperature (e.g. mains preheat), provide
-the heated temperature [K].
-<code class="docutils literal notranslate"><span class="pre">None</span></code> means no modification.</p>
-</dd>
-</dl>
-</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'Q_contribution'</span></code> (float) — net energy contribution to the
+tank [W].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'E_subsystem'</span></code> (float) — electrical power consumed [W].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'T_tank_w_in_override_K'</span></code> (float | None) — heated tank-inlet
+temperature [K] if the subsystem modifies the inlet (e.g. mains
+preheat); <code class="docutils literal notranslate"><span class="pre">None</span></code> if there is no modification.</p></li>
 </ul>
 </p>
 </dd>
@@ -2709,18 +2696,16 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Dictionary containing:</dt><dd><ul class="simple">
-<li><p>dV_fan : Required air-side flow rate [m3/s]</p></li>
-<li><p>UA : Actual heat exchanger overall heat transfer coefficient at solution point [W/K]</p></li>
-<li><p>T_a_mid_C : air temperature between heat exchanger and fan [°C]</p></li>
-<li><p>Q_air : Heat transfer rate at operating point [W]</p></li>
-<li><p>epsilon : Effectiveness at operating point [–]</p></li>
-<li><p>converged : Whether the solver converged</p></li>
+<dd class="field-even"><p><p>Dictionary with the following keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dV_fan</span></code> — required air-side flow rate [m³/s]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UA</span></code> — overall heat-transfer coefficient at the solution point [W/K]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_a_mid_C</span></code> — air temperature between the heat exchanger and the fan [°C]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_air</span></code> — heat-transfer rate at the operating point [W]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">epsilon</span></code> — effectiveness at the operating point [–]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">converged</span></code> — whether the solver converged</p></li>
 </ul>
-</dd>
-</dl>
-<p>Returns dict with all values as np.nan if is_active=False</p>
+<p>All numeric values are <code class="docutils literal notranslate"><span class="pre">np.nan</span></code> when <code class="docutils literal notranslate"><span class="pre">is_active=False</span></code>.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -2733,42 +2718,31 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 <dt class="sig sig-object py" id="physics_hp.enex_functions.calc_Orifice_flow_coefficient">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_Orifice_flow_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/physics_hp/enex_functions.html#calc_Orifice_flow_coefficient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_Orifice_flow_coefficient" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the orifice flow coefficient based on diameters.</p>
-<section id="flow-configuration">
-<h3>Flow configuration:<a class="headerlink" href="#flow-configuration" title="Link to this heading">¶</a></h3>
-<blockquote>
-<div><p>-&gt;      |
-D0     D1 -&gt;
--&gt;      |</p>
-</div></blockquote>
-<hr class="docutils" />
+<p>Flow configuration:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="o">---------------</span>
+</span><span data-line="2"> <span class="o">-&gt;</span>      <span class="o">|</span>
+</span><span data-line="3"> <span class="n">D0</span>     <span class="n">D1</span> <span class="o">-&gt;</span>
+</span><span data-line="4"> <span class="o">-&gt;</span>      <span class="o">|</span>
+</span><span data-line="5"><span class="o">---------------</span>
+</span></pre></div>
+</div>
 <dl class="field-list simple">
-<dt class="field-odd">type D0<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">param D0<span class="colon">:</span></dt>
-<dd class="field-even"><p>Pipe diameter [m]</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>D0</strong> (<em>float</em>) – Pipe diameter [m]</p></li>
+<li><p><strong>D1</strong> (<em>float</em>) – Hole diameter [m]</p></li>
+</ul>
 </dd>
-<dt class="field-odd">type D0<span class="colon">:</span></dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>C_d</strong> – Orifice flow coefficient (dimensionless)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
-</dd>
-<dt class="field-even">type D1<span class="colon">:</span></dt>
-<dd class="field-even"><p></p></dd>
-<dt class="field-odd">param D1<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Hole diameter [m]</p>
-</dd>
-<dt class="field-even">type D1<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
-</dd>
-<dt class="field-odd">returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>C_d</strong> – Orifice flow coefficient (dimensionless)</p>
-</dd>
-<dt class="field-even">rtype<span class="colon">:</span></dt>
-<dd class="field-even"><p>float</p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
 <p>This is a simplified calculation. A more complete implementation
 should be based on physical equations.</p>
-</section>
 </dd></dl>
 
 <dl class="py function">
@@ -3181,30 +3155,26 @@ array for multiple time values.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.enex_functions.calc_GSHP_COP">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/physics_hp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate COP for a Ground Source Heat Pump using the EnergyPlus
-Coil:<a href="#id3"><span class="problematic" id="id4">*</span></a>:WaterToAir:EquationFit model (Equation-Fit Method).</p>
-<dl class="simple">
-<dt>Reference:</dt><dd><p>EnergyPlus Engineering Reference, Ch.16.5.10.2
-(Eq. 16.412-16.418, Tang 2005)
-Dataset: TCH072_GLHP (ClimateMaster 6-ton, <strong>Ground Loop</strong> HP)
-Source: EnergyPlus/datasets/WaterToAirHeatPumps.idf</p>
-</dd>
-<dt>Rated conditions (from IDF comment, 15% methanol antifreeze):</dt><dd><p>Cooling: 70.29 kBtu/h &#64; 77°F (25°C) entering water, EER=14.35
-Heating: 56.14 kBtu/h &#64; 32°F (0°C) entering water, COP=3.42</p>
-</dd>
-</dl>
+<dd><p>Calculate COP for a Ground Source Heat Pump.</p>
+<p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
+(Equation-Fit Method).</p>
+<p class="rubric">References</p>
+<p>EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,
+Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop
+HP), source: <code class="docutils literal notranslate"><span class="pre">EnergyPlus/datasets/WaterToAirHeatPumps.idf</span></code>.</p>
+<p>Rated conditions (from IDF comment, 15% methanol antifreeze):</p>
+<ul class="simple">
+<li><p>Cooling: 70.29 kBtu/h &#64; 77 °F (25 °C) entering water, EER = 14.35</p></li>
+<li><p>Heating: 56.14 kBtu/h &#64; 32 °F (0 °C) entering water, COP = 3.42</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T_a_iu_in_K</strong> (<em>float</em>) – Indoor air inlet dry-bulb temperature [K]  (= T_a_room).
 For cooling, internally converted to wet-bulb (T_wb) via CoolProp
 assuming RH = 50%.</p></li>
-<li><p><strong>T_f_out_K</strong> (<em>float</em>) – <p>Source-side inlet water temperature [K]
-= T_f_out (water returning from borehole TO the heat pump,</p>
-<blockquote>
-<div><p>i.e., T_w,in in EnergyPlus notation).</p>
-</div></blockquote>
-</p></li>
+<li><p><strong>T_f_out_K</strong> (<em>float</em>) – Source-side inlet water temperature [K] — water returning from the
+borehole <em>to</em> the heat pump (<code class="docutils literal notranslate"><span class="pre">T_w,in</span></code> in EnergyPlus notation).</p></li>
 <li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
 V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</p></li>
 <li><p><strong>mode</strong> (<em>str</em>) – “cooling” or “heating”</p></li>
@@ -3617,28 +3587,26 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 <p>Unit conversion utilities and conversion constants.</p>
 <p>This module provides temperature conversion functions and a comprehensive
 set of unit conversion multipliers organized by physical dimension.</p>
-<dl>
-<dt>Categories:</dt><dd><blockquote>
-<div><ol class="arabic simple">
-<li><p>Temperature Conversion Functions — K2C, C2K, F2C, C2F</p></li>
-<li><p>Time Conversion Constants</p></li>
-<li><p>Length Conversion Constants</p></li>
-<li><p>Area Conversion Constants</p></li>
-<li><p>Volume Conversion Constants</p></li>
-<li><p>Mass Conversion Constants</p></li>
-<li><p>Energy Conversion Constants</p></li>
-<li><p>Power Conversion Constants</p></li>
-<li><p>Pressure Conversion Constants</p></li>
-</ol>
-</div></blockquote>
-<ol class="arabic simple" start="10">
-<li><p>Angle Conversion Constants</p></li>
-</ol>
-</dd>
-<dt>Usage:</dt><dd><p>All constants follow the naming pattern <code class="docutils literal notranslate"><span class="pre">&lt;from_unit&gt;2&lt;to_unit&gt;</span></code>,
+<section id="categories">
+<h3>Categories<a class="headerlink" href="#categories" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Temperature conversion functions — <code class="docutils literal notranslate"><span class="pre">K2C</span></code>, <code class="docutils literal notranslate"><span class="pre">C2K</span></code>, <code class="docutils literal notranslate"><span class="pre">F2C</span></code>, <code class="docutils literal notranslate"><span class="pre">C2F</span></code></p></li>
+<li><p>Time conversion constants</p></li>
+<li><p>Length conversion constants</p></li>
+<li><p>Area conversion constants</p></li>
+<li><p>Volume conversion constants</p></li>
+<li><p>Mass conversion constants</p></li>
+<li><p>Energy conversion constants</p></li>
+<li><p>Power conversion constants</p></li>
+<li><p>Pressure conversion constants</p></li>
+<li><p>Angle conversion constants</p></li>
+</ul>
+</section>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
+<p>All constants follow the naming pattern <code class="docutils literal notranslate"><span class="pre">&lt;from_unit&gt;2&lt;to_unit&gt;</span></code>,
 e.g. <code class="docutils literal notranslate"><span class="pre">h2s</span> <span class="pre">=</span> <span class="pre">3600</span></code> converts hours to seconds.</p>
-</dd>
-</dl>
+</section>
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.calc_util.K2C">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.calc_util.</span></span><span class="sig-name descname"><span class="pre">K2C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/physics_hp/calc_util.html#K2C"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.calc_util.K2C" title="Link to this definition">¶</a></dt>

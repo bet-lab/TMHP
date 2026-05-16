@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=1e11888d" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=24735304" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. physics_hp solves the thermodynamic refrigerant cycle at every time step using CoolProp, so the sa..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T10:29:42+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -170,7 +170,6 @@ needing manufacturer-specific curve fits.</p>
 <img alt="Development status — Alpha" src="https://img.shields.io/badge/status-alpha-orange" />
 <a class="reference external image-reference" href="http://www.coolprop.org"><img alt="Powered by CoolProp" src="https://img.shields.io/badge/refrigerant-CoolProp-6366f1" />
 </a>
-<img alt="Validated against Samsung EHS Mono HT Quiet R32" src="https://img.shields.io/badge/validated-Samsung%20EHS%20R32-iris" />
 </div>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 hero-cta docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
@@ -268,47 +267,6 @@ CoolProp and Matplotlib.</p>
 <p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">P–h</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">Mollier</span></p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="tutorials/visualize-the-cycle.html"><span class="doc">Visualize the cycle (P–h)</span></a></div>
-</div>
-</div>
-</div>
-<p class="rubric">At a glance</p>
-<div class="sd-container-fluid sd-sphinx-override sd-mb-4 stat-grid docutils">
-<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-flame" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.533.753V.752c.217 2.385 1.463 3.626 2.653 4.81C13.37 6.74 14.498 7.863 14.498 10c0 3.5-3 6-6.5 6S1.5 13.512 1.5 10c0-1.298.536-2.56 1.425-3.286.376-.308.862 0 1.035.454C4.46 8.487 5.581 8.419 6 8c.282-.282.341-.811-.003-1.5C4.34 3.187 7.035.75 8.77.146c.39-.137.726.194.763.607ZM7.998 14.5c2.832 0 5-1.98 5-4.5 0-1.463-.68-2.19-1.879-3.383l-.036-.037c-1.013-1.008-2.3-2.29-2.834-4.434-.322.256-.63.579-.864.953-.432.696-.621 1.58-.046 2.73.473.947.67 2.284-.278 3.232-.61.61-1.545.84-2.403.633a2.79 2.79 0 0 1-1.436-.874A3.198 3.198 0 0 0 3 10c0 2.53 2.164 4.5 4.998 4.5Z"></path></svg> 5 system families</div>
-<p class="sd-card-text">ASHPB · GSHPB · WSHPB · ASHP · GSHP</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-stack" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.122.392a1.75 1.75 0 0 1 1.756 0l5.003 2.902c.83.481.83 1.68 0 2.162L8.878 8.358a1.75 1.75 0 0 1-1.756 0L2.119 5.456a1.251 1.251 0 0 1 0-2.162ZM8.125 1.69a.248.248 0 0 0-.25 0l-4.63 2.685 4.63 2.685a.248.248 0 0 0 .25 0l4.63-2.685ZM1.601 7.789a.75.75 0 0 1 1.025-.273l5.249 3.044a.248.248 0 0 0 .25 0l5.249-3.044a.75.75 0 0 1 .752 1.298l-5.248 3.044a1.75 1.75 0 0 1-1.756 0L1.874 8.814A.75.75 0 0 1 1.6 7.789Zm0 3.5a.75.75 0 0 1 1.025-.273l5.249 3.044a.248.248 0 0 0 .25 0l5.249-3.044a.75.75 0 0 1 .752 1.298l-5.248 3.044a1.75 1.75 0 0 1-1.756 0l-5.248-3.044a.75.75 0 0 1-.273-1.025Z"></path></svg> 6 subsystem variants</div>
-<p class="sd-card-text">STC preheat, stratified tank, PV + ESS</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-zap" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-7.34 7.142a1.249 1.249 0 0 1-.871.354h-.302a1.25 1.25 0 0 1-1.157-1.723L5.633 10.5H3.462c-1.57 0-2.346-1.909-1.22-3.004L9.503.429Zm1.047 1.074L3.286 8.571A.25.25 0 0 0 3.462 9H6.75a.75.75 0 0 1 .694 1.034l-1.713 4.188 6.982-6.793A.25.25 0 0 0 12.538 7H9.25a.75.75 0 0 1-.683-1.06l2.008-4.418.003-.006a.036.036 0 0 0-.004-.009l-.006-.006-.008-.001c-.003 0-.006.002-.009.004Z"></path></svg> Any CoolProp refrigerant</div>
-<p class="sd-card-text">R32, R290, R410A, R134a, R744 …</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-pulse" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"></path></svg> Minute-resolution dynamic</div>
-<p class="sd-card-text">Implicit <code class="docutils literal notranslate"><span class="pre">fsolve</span></code> per step, robust to large <code class="docutils literal notranslate"><span class="pre">dt</span></code></p>
-</div>
-</div>
 </div>
 </div>
 </div>

@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -276,7 +291,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="149">
 </span><span data-line="150">
 <div class="viewcode-block" id="linear_function">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.linear_function">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.linear_function">[docs]</a>
 </span><span data-line="151"><span class="k">def</span><span class="w"> </span><span class="nf">linear_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
 </span><span data-line="152"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Linear function: y = a*x + b&quot;&quot;&quot;</span>
 </span><span data-line="153">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">b</span></div>
@@ -284,7 +299,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="154">
 </span><span data-line="155">
 <div class="viewcode-block" id="quadratic_function">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.quadratic_function">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.quadratic_function">[docs]</a>
 </span><span data-line="156"><span class="k">def</span><span class="w"> </span><span class="nf">quadratic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
 </span><span data-line="157"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quadratic function: y = a*x² + b*x + c&quot;&quot;&quot;</span>
 </span><span data-line="158">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c</span></div>
@@ -292,7 +307,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="159">
 </span><span data-line="160">
 <div class="viewcode-block" id="cubic_function">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.cubic_function">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.cubic_function">[docs]</a>
 </span><span data-line="161"><span class="k">def</span><span class="w"> </span><span class="nf">cubic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
 </span><span data-line="162"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Cubic function: y = a*x³ + b*x² + c*x + d&quot;&quot;&quot;</span>
 </span><span data-line="163">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">d</span></div>
@@ -300,7 +315,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="164">
 </span><span data-line="165">
 <div class="viewcode-block" id="quartic_function">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.quartic_function">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.quartic_function">[docs]</a>
 </span><span data-line="166"><span class="k">def</span><span class="w"> </span><span class="nf">quartic_function</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
 </span><span data-line="167"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Quartic function: y = a*x⁴ + b*x³ + c*x² + d*x + e&quot;&quot;&quot;</span>
 </span><span data-line="168">    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">d</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">e</span></div>
@@ -308,7 +323,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="169">
 </span><span data-line="170">
 <div class="viewcode-block" id="print_balance">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.print_balance">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.print_balance">[docs]</a>
 </span><span data-line="171"><span class="k">def</span><span class="w"> </span><span class="nf">print_balance</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">decimal</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
 </span><span data-line="172"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="173"><span class="sd">    Print energy, entropy, or exergy balance dictionary in a formatted way.</span>
@@ -384,7 +399,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="242">
 </span><span data-line="243">
 <div class="viewcode-block" id="calc_mixing_valve_temp">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_mixing_valve_temp">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_mixing_valve_temp">[docs]</a>
 </span><span data-line="244"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_temp</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">T_tank_w_in_K</span><span class="p">,</span> <span class="n">T_mix_w_out_K</span><span class="p">):</span>
 </span><span data-line="245"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate 3-way mixing valve output temperature and mixing ratio.</span>
 </span><span data-line="246">
@@ -423,7 +438,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="278">
 </span><span data-line="279">
 <div class="viewcode-block" id="calc_mixing_valve_flows">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_mixing_valve_flows">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_mixing_valve_flows">[docs]</a>
 </span><span data-line="280"><span class="k">def</span><span class="w"> </span><span class="nf">calc_mixing_valve_flows</span><span class="p">(</span>
 </span><span data-line="281">    <span class="n">dV_mix_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="282">    <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span>
@@ -462,7 +477,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="314">
 </span><span data-line="315">
 <div class="viewcode-block" id="calc_Orifice_flow_coefficient">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_Orifice_flow_coefficient">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_Orifice_flow_coefficient">[docs]</a>
 </span><span data-line="316"><span class="k">def</span><span class="w"> </span><span class="nf">calc_Orifice_flow_coefficient</span><span class="p">(</span><span class="n">D0</span><span class="p">,</span> <span class="n">D1</span><span class="p">):</span>
 </span><span data-line="317"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="318"><span class="sd">    Calculate the orifice flow coefficient based on diameters.</span>
@@ -498,7 +513,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="347">
 </span><span data-line="348">
 <div class="viewcode-block" id="calc_boussinessq_mixing_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_boussinessq_mixing_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_boussinessq_mixing_flow">[docs]</a>
 </span><span data-line="349"><span class="k">def</span><span class="w"> </span><span class="nf">calc_boussinessq_mixing_flow</span><span class="p">(</span><span class="n">T_upper</span><span class="p">,</span> <span class="n">T_lower</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">dz</span><span class="p">,</span> <span class="n">C_d</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
 </span><span data-line="350"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="351"><span class="sd">    Calculate mixing flow rate between two adjacent nodes based on Boussinesq approximation.</span>
@@ -560,7 +575,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="406">
 </span><span data-line="407">
 <div class="viewcode-block" id="calc_HX_perf_for_target_heat">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_HX_perf_for_target_heat">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_HX_perf_for_target_heat">[docs]</a>
 </span><span data-line="408"><span class="k">def</span><span class="w"> </span><span class="nf">calc_HX_perf_for_target_heat</span><span class="p">(</span>
 </span><span data-line="409">    <span class="n">Q_ref_target</span><span class="p">,</span>
 </span><span data-line="410">    <span class="n">T_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -721,7 +736,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="564">
 </span><span data-line="565">
 <div class="viewcode-block" id="update_tank_temperature">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.update_tank_temperature">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.update_tank_temperature">[docs]</a>
 </span><span data-line="566"><span class="k">def</span><span class="w"> </span><span class="nf">update_tank_temperature</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">Q_gain</span><span class="p">,</span> <span class="n">UA_tank</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">C_tank</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
 </span><span data-line="567"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Update tank temperature using the Crank-Nicolson implicit scheme.</span>
 </span><span data-line="568">
@@ -764,7 +779,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="604">
 </span><span data-line="605">
 <div class="viewcode-block" id="calc_stc_performance">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.enex_functions.calc_stc_performance">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.enex_functions.calc_stc_performance">[docs]</a>
 </span><span data-line="606"><span class="k">def</span><span class="w"> </span><span class="nf">calc_stc_performance</span><span class="p">(</span>
 </span><span data-line="607">    <span class="n">I_DN_stc</span><span class="p">,</span>  <span class="c1"># 직달일사 [W/m²]</span>
 </span><span data-line="608">    <span class="n">I_dH_stc</span><span class="p">,</span>  <span class="c1"># 확산일사 [W/m²]</span>

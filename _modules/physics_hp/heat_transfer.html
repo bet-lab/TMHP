@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -145,7 +160,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="18">
 </span><span data-line="19">
 <div class="viewcode-block" id="darcy_friction_factor">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.darcy_friction_factor">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.darcy_friction_factor">[docs]</a>
 </span><span data-line="20"><span class="k">def</span><span class="w"> </span><span class="nf">darcy_friction_factor</span><span class="p">(</span><span class="n">Re</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="21"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the Darcy friction factor.</span>
 </span><span data-line="22">
@@ -178,7 +193,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="48">
 </span><span data-line="49">
 <div class="viewcode-block" id="calc_h_vertical_plate">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.calc_h_vertical_plate">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.calc_h_vertical_plate">[docs]</a>
 </span><span data-line="50"><span class="k">def</span><span class="w"> </span><span class="nf">calc_h_vertical_plate</span><span class="p">(</span>
 </span><span data-line="51">    <span class="n">T_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="52">    <span class="n">T_inf</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -236,7 +251,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="103">
 </span><span data-line="104">
 <div class="viewcode-block" id="calc_UA_tank_arr">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.calc_UA_tank_arr">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.calc_UA_tank_arr">[docs]</a>
 </span><span data-line="105"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_tank_arr</span><span class="p">(</span>
 </span><span data-line="106">    <span class="n">arr_D_in</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
 </span><span data-line="107">    <span class="n">arr_D_out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -279,7 +294,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="143">
 </span><span data-line="144">
 <div class="viewcode-block" id="calc_simple_tank_UA">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.calc_simple_tank_UA">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.calc_simple_tank_UA">[docs]</a>
 </span><span data-line="145"><span class="k">def</span><span class="w"> </span><span class="nf">calc_simple_tank_UA</span><span class="p">(</span>
 </span><span data-line="146">    <span class="n">r0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
 </span><span data-line="147">    <span class="n">H</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
@@ -344,7 +359,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="205">
 </span><span data-line="206">
 <div class="viewcode-block" id="calc_LMTD_counter_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.calc_LMTD_counter_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.calc_LMTD_counter_flow">[docs]</a>
 </span><span data-line="207"><span class="k">def</span><span class="w"> </span><span class="nf">calc_LMTD_counter_flow</span><span class="p">(</span><span class="n">Th_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="208"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate Log-Mean Temperature Difference for counter-flow heat exchanger.</span>
 </span><span data-line="209">
@@ -378,7 +393,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="236">
 </span><span data-line="237">
 <div class="viewcode-block" id="calc_LMTD_parallel_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.calc_LMTD_parallel_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.calc_LMTD_parallel_flow">[docs]</a>
 </span><span data-line="238"><span class="k">def</span><span class="w"> </span><span class="nf">calc_LMTD_parallel_flow</span><span class="p">(</span><span class="n">Th_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="239"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate Log-Mean Temperature Difference for parallel-flow heat exchanger.</span>
 </span><span data-line="240">
@@ -412,7 +427,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="267">
 </span><span data-line="268">
 <div class="viewcode-block" id="TRIDIAG_MATRIX_ALGORITHM">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#physics_hp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">[docs]</a>
 </span><span data-line="269"><span class="k">def</span><span class="w"> </span><span class="nf">TRIDIAG_MATRIX_ALGORITHM</span><span class="p">(</span>
 </span><span data-line="270">    <span class="n">a_M</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
 </span><span data-line="271">    <span class="n">a_P</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>

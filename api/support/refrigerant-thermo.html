@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerant &amp; thermodynamics - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Heat transfer &amp; exchangers" href="heat-transfer.html" /><link rel="prev" title="Support modules" href="index.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/support/refrigerant-thermo.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ed00dc55" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/api/support/refrigerant-thermo.html"/>
+  <meta property="og:title" content="Refrigerant &amp; thermodynamics"/>
+  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Support modules</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#module-physics_hp.refrigerant">Refrigerant state points</a><ul>
+<li><a class="reference internal" href="#physics_hp.refrigerant.calc_ref_state"><code class="docutils literal notranslate"><span class="pre">calc_ref_state()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.refrigerant.create_lmtd_constraints"><code class="docutils literal notranslate"><span class="pre">create_lmtd_constraints()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.refrigerant.find_ref_loop_optimal_operation"><code class="docutils literal notranslate"><span class="pre">find_ref_loop_optimal_operation()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.thermodynamics">Cycle analysis</a><ul>
+<li><a class="reference internal" href="#physics_hp.thermodynamics.calc_energy_flow"><code class="docutils literal notranslate"><span class="pre">calc_energy_flow()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.thermodynamics.calc_exergy_flow"><code class="docutils literal notranslate"><span class="pre">calc_exergy_flow()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.thermodynamics.calc_refrigerant_exergy"><code class="docutils literal notranslate"><span class="pre">calc_refrigerant_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.thermodynamics.convert_electricity_to_exergy"><code class="docutils literal notranslate"><span class="pre">convert_electricity_to_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.thermodynamics.generate_entropy_exergy_term"><code class="docutils literal notranslate"><span class="pre">generate_entropy_exergy_term()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.cop">COP correlations</a><ul>
+<li><a class="reference internal" href="#physics_hp.cop.calc_ASHP_cooling_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_cooling_COP()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.cop.calc_ASHP_heating_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_heating_COP()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.cop.calc_GSHP_COP"><code class="docutils literal notranslate"><span class="pre">calc_GSHP_COP()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">API Reference</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Support modules</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="3" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Refrigerant &amp; thermodynamics</strong>
+        <meta itemprop="position" content="4" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="refrigerant-thermodynamics">
+<h1>Refrigerant &amp; thermodynamics<a class="headerlink" href="#refrigerant-thermodynamics" title="Link to this heading">¶</a></h1>
+<p>CoolProp-backed state-point helpers, cycle-level analysis (compression
+ratio, isentropic efficiency, COP), and COP correlations.</p>
+<section id="module-physics_hp.refrigerant">
+<span id="refrigerant-state-points"></span><h2>Refrigerant state points<a class="headerlink" href="#module-physics_hp.refrigerant" title="Link to this heading">¶</a></h2>
+<p>Refrigerant cycle calculations and optimization.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.refrigerant.calc_ref_state">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">calc_ref_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_evap_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/refrigerant.html#calc_ref_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.refrigerant.calc_ref_state" title="Link to this definition">¶</a></dt>
+<dd><p>냉매 사이클의 State 1-4 열역학 물성치를 계산하는 공통 함수.</p>
+<p>증기압축 사이클의 4개 주요 상태점을 계산합니다:</p>
+<ul class="simple">
+<li><p>State 1 (cmp_in):  압축기 입구 (증발기 출구, 저압 과열 증기)</p></li>
+<li><p>State 2 (cmp_out): 압축기 출구 (응축기 입구, 고압 과열 증기)</p></li>
+<li><p>State 3 (exp_in):  팽창밸브 입구 (응축기 출구, 고압 과냉 액체)</p></li>
+<li><p>State 4 (exp_out): 팽창밸브 출구 (증발기 입구, 저압 2상 혼합물)</p></li>
+</ul>
+<p>키 배정은 항상 물리적 압축기 입출구 기준이며, mode 값은
+결과 dict의 <code class="docutils literal notranslate"><span class="pre">&quot;mode&quot;</span></code> 키에만 기록됩니다.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>냉방/난방 모드에서 어느 HX가 증발기/응축기인지는 호출측
+(<code class="docutils literal notranslate"><span class="pre">_calc_state</span></code>)에서 T_evap_K, T_cond_K를 결정하여 전달합니다.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_evap_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_cond_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>eta_cmp_isen</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></span>)</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>dT_superheat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dT_subcool</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.refrigerant.create_lmtd_constraints">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">create_lmtd_constraints</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/refrigerant.html#create_lmtd_constraints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.refrigerant.create_lmtd_constraints" title="Link to this definition">¶</a></dt>
+<dd><p>Create LMTD-based constraint functions for cycle optimization.</p>
+<p>Optimization requires that the heat transfer calculated by LMTD matches
+the heat transferred by the refrigerant cycle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple of constraint functions (constraint_tank, constraint_hx).</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[Any, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.refrigerant.find_ref_loop_optimal_operation">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">find_ref_loop_optimal_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulator_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_guess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint_funcs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/refrigerant.html#find_ref_loop_optimal_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.refrigerant.find_ref_loop_optimal_operation" title="Link to this definition">¶</a></dt>
+<dd><p>Find the optimal operation point for the refrigerant loop.</p>
+<p>Minimizes compressor power while satisfying target load and LMTD constraints.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>simulator_func</strong> (<em>callable</em>) – Function that takes <cite>[dT_ref_HX, dT_ref_tank]</cite> and returns a perf dict.</p></li>
+<li><p><strong>refrigerant</strong> (<em>str</em>) – Refrigerant name.</p></li>
+<li><p><strong>load_W</strong> (<em>float</em>) – Target heat load [W].</p></li>
+<li><p><strong>initial_guess</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Initial guess for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>bounds</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Bounds for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>constraint_funcs</strong> (<em>list</em><em>[</em><em>callable</em><em>]</em><em>, </em><em>optional</em>) – List of constraint functions. Each takes <cite>perf</cite> and returns a value
+that should be 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optimal performance dictionary, or None if optimization fails.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, Any] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.thermodynamics">
+<span id="cycle-analysis"></span><h2>Cycle analysis<a class="headerlink" href="#module-physics_hp.thermodynamics" title="Link to this heading">¶</a></h2>
+<p>Thermodynamic property and exergy calculations.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.thermodynamics.calc_energy_flow">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.thermodynamics.</span></span><span class="sig-name descname"><span class="pre">calc_energy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_energy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.thermodynamics.calc_energy_flow" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate energy flow rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Heat capacity flow rate (mass_flow * Cp) [W/K].</p></li>
+<li><p><strong>T</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Current temperature [K].</p></li>
+<li><p><strong>T0</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Reference/dead state temperature [K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Energy flow rate [W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float or pd.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.thermodynamics.calc_exergy_flow">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.thermodynamics.</span></span><span class="sig-name descname"><span class="pre">calc_exergy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_exergy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.thermodynamics.calc_exergy_flow" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate exergy flow rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>G</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Heat capacity flow rate (mass_flow * Cp) [W/K].</p></li>
+<li><p><strong>T</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Current temperature [K].</p></li>
+<li><p><strong>T0</strong> (<em>float</em><em> or </em><em>pd.Series</em>) – Reference/dead state temperature [K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exergy flow rate [W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float or pd.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.thermodynamics.calc_refrigerant_exergy">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.thermodynamics.</span></span><span class="sig-name descname"><span class="pre">calc_refrigerant_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_refrigerant_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.thermodynamics.calc_refrigerant_exergy" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate refrigerant state-point exergy using pre-computed properties.</p>
+<p>Uses the entropy (<code class="docutils literal notranslate"><span class="pre">s_ref_*</span></code>) and enthalpy (<code class="docutils literal notranslate"><span class="pre">h_ref_*</span></code>) columns
+already present in <code class="docutils literal notranslate"><span class="pre">df</span></code> (produced by <code class="docutils literal notranslate"><span class="pre">calc_ref_state</span></code>) to compute
+specific exergy and exergy flow rate for each refrigerant state point.</p>
+<p>Dead-state properties (h0, s0) are evaluated at (T0, P0) for the
+given refrigerant using CoolProp (vectorized via unique T0 values).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
+entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</span> <span class="pre">[J/(kg·K)]</span></code>, and mass-flow
+<code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code> columns.</p></li>
+<li><p><strong>ref</strong> (<em>str</em>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
+<li><p><strong>T0_K</strong> (<em>pd.Series</em>) – Dead-state (environment) temperature per row [K].</p></li>
+<li><p><strong>P0</strong> (<em>float</em>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">df</span></code> with columns added per state point:
+<code class="docutils literal notranslate"><span class="pre">x_ref_{name}</span> <span class="pre">[J/kg]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_ref_{name}</span> <span class="pre">[W]</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Exergy equation: x = (h − h0) − T0·(s − s0)  [J/kg]</p></li>
+<li><p>Exergy flow: X = ṁ · x  [W]</p></li>
+<li><p>Rows with NaN enthalpy/entropy propagate NaN naturally.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.thermodynamics.convert_electricity_to_exergy">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.thermodynamics.</span></span><span class="sig-name descname"><span class="pre">convert_electricity_to_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#convert_electricity_to_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.thermodynamics.convert_electricity_to_exergy" title="Link to this definition">¶</a></dt>
+<dd><p>Copy all electricity columns (<code class="docutils literal notranslate"><span class="pre">E_*</span></code>) to exergy columns (<code class="docutils literal notranslate"><span class="pre">X_*</span></code>).</p>
+<p>Electrical energy is 100 %% pure exergy, so <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">=</span> <span class="pre">E</span></code> for all
+electricity-consumption columns.</p>
+<p>The function searches for columns matching the pattern
+<code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> and creates corresponding <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">df</span></code> with <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.thermodynamics.generate_entropy_exergy_term">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.thermodynamics.</span></span><span class="sig-name descname"><span class="pre">generate_entropy_exergy_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gas'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#generate_entropy_exergy_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.thermodynamics.generate_entropy_exergy_term" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate entropy, enthalpy, and exergy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fluid</strong> (<em>str</em>) – Fluid name.</p></li>
+<li><p><strong>T</strong> (<em>float</em>) – Temperature [K].</p></li>
+<li><p><strong>P</strong> (<em>float</em>) – Pressure [Pa].</p></li>
+<li><p><strong>Q</strong> (<em>float</em>) – Quality (0 to 1).</p></li>
+<li><p><strong>T0</strong> (<em>float</em>) – Dead state temperature [K].</p></li>
+<li><p><strong>P0</strong> (<em>float</em>) – Dead state pressure [Pa].</p></li>
+<li><p><strong>phase</strong> (<em>Literal</em><em>[</em><em>'gas'</em><em>, </em><em>'liquid'</em><em>, </em><em>'twophase'</em><em>]</em><em>, </em><em>optional</em>) – Fluid phase. Default is ‘gas’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Entropy [J/kg-K], Enthalpy [J/kg], Exergy [J/kg].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[float, float, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.cop">
+<span id="cop-correlations"></span><h2>COP correlations<a class="headerlink" href="#module-physics_hp.cop" title="Link to this heading">¶</a></h2>
+<p>Heat pump Coefficient of Performance (COP) models.</p>
+<p>Provides empirical COP correlations for:
+- Air source heat pumps (cooling and heating modes)
+- Ground source heat pumps (modified Carnot model)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.cop.calc_ASHP_cooling_COP">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_cooling_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_int_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_ext_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COP_ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_ASHP_cooling_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.cop.calc_ASHP_cooling_COP" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in cooling mode.</p>
+<p>Reference: <a class="reference external" href="https://publications.ibpsa.org/proceedings/bs/2023/papers/bs2023_1118.pdf">https://publications.ibpsa.org/proceedings/bs/2023/papers/bs2023_1118.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_a_int_out</strong> (<em>float</em>) – Indoor air temperature [K]</p></li>
+<li><p><strong>T_a_ext_in</strong> (<em>float</em>) – Outdoor air temperature [K]</p></li>
+<li><p><strong>Q_r_int</strong> (<em>float</em>) – Indoor heat load [W]</p></li>
+<li><p><strong>Q_r_max</strong> (<em>float</em>) – Maximum cooling capacity [W]</p></li>
+<li><p><strong>COP_ref</strong> (<em>float</em>) – Reference COP at standard conditions</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>COP value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>COP is calculated based on:
+- PLR: Part Load Ratio
+- EIR: Energy input to cooling output ratio</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.cop.calc_ASHP_heating_COP">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_heating_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_ASHP_heating_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.cop.calc_ASHP_heating_COP" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in heating mode.</p>
+<p>Reference: <a class="reference external" href="https://www.mdpi.com/2071-1050/15/3/1880">https://www.mdpi.com/2071-1050/15/3/1880</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T0</strong> (<em>float</em>) – Environmental temperature [K]</p></li>
+<li><p><strong>Q_r_int</strong> (<em>float</em>) – Indoor heat load [W]</p></li>
+<li><p><strong>Q_r_max</strong> (<em>float</em>) – Maximum heating capacity [W]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>COP value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>COP is calculated based on PLR (Part Load Ratio).</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.cop.calc_GSHP_COP">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.cop.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate COP for a Ground Source Heat Pump.</p>
+<p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
+(Equation-Fit Method).</p>
+<p class="rubric">References</p>
+<p>EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,
+Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop
+HP), source: <code class="docutils literal notranslate"><span class="pre">EnergyPlus/datasets/WaterToAirHeatPumps.idf</span></code>.</p>
+<p>Rated conditions (from IDF comment, 15% methanol antifreeze):</p>
+<ul class="simple">
+<li><p>Cooling: 70.29 kBtu/h &#64; 77 °F (25 °C) entering water, EER = 14.35</p></li>
+<li><p>Heating: 56.14 kBtu/h &#64; 32 °F (0 °C) entering water, COP = 3.42</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_a_iu_in_K</strong> (<em>float</em>) – Indoor air inlet dry-bulb temperature [K]  (= T_a_room).
+For cooling, internally converted to wet-bulb (T_wb) via CoolProp
+assuming RH = 50%.</p></li>
+<li><p><strong>T_f_out_K</strong> (<em>float</em>) – Source-side inlet water temperature [K] — water returning from the
+borehole <em>to</em> the heat pump (<code class="docutils literal notranslate"><span class="pre">T_w,in</span></code> in EnergyPlus notation).</p></li>
+<li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
+V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – “cooling” or “heating”</p></li>
+<li><p><strong>Units</strong></p></li>
+<li><p><strong>-----</strong></p></li>
+<li><p><strong>Temperatures</strong> (<em>K</em>)</p></li>
+<li><p><strong>rates</strong> (<em>Flow</em>)</p></li>
+<li><p><strong>Heat/Power</strong> (<em>W</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>COP (dimensionless). Polynomial model is unconditionally stable—
+no ValueError on temperature inversion.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="index.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Support modules</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="heat-transfer.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Heat transfer &amp; exchangers</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

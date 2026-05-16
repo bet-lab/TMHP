@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -139,7 +154,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="12">
 </span><span data-line="13">
 <div class="viewcode-block" id="calc_uv_lamp_power">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.uv_treatment.calc_uv_lamp_power">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#physics_hp.enex_functions.calc_uv_lamp_power">[docs]</a>
 </span><span data-line="14"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_lamp_power</span><span class="p">(</span>
 </span><span data-line="15">    <span class="n">current_time_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="16">    <span class="n">period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -184,7 +199,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="54">
 </span><span data-line="55">
 <div class="viewcode-block" id="get_uv_params_from_turbidity">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.uv_treatment.get_uv_params_from_turbidity">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#physics_hp.enex_functions.get_uv_params_from_turbidity">[docs]</a>
 </span><span data-line="56"><span class="k">def</span><span class="w"> </span><span class="nf">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span data-line="57"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return UV parameters from a turbidity lookup table.</span>
 </span><span data-line="58">
@@ -248,7 +263,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="115">
 </span><span data-line="116">
 <div class="viewcode-block" id="calc_uv_exposure_time">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.uv_treatment.calc_uv_exposure_time">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#physics_hp.enex_functions.calc_uv_exposure_time">[docs]</a>
 </span><span data-line="117"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_exposure_time</span><span class="p">(</span>
 </span><span data-line="118">    <span class="n">radius_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="119">    <span class="n">uvc_output_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>

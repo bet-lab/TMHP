@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" data-accent-color="iris" data-content_root="../">
+<html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Getting Started - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Installation" href="installation.html" /><link rel="prev" title="Physics-Based Heat Pump Models" href="../index.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/getting-started/" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Support modules - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Refrigerant &amp; thermodynamics" href="refrigerant-thermo.html" /><link rel="prev" title="Space-conditioning heat pumps" href="../models/space-conditioning.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/support/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
-  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
-    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
-    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
-    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ed00dc55" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -22,22 +22,22 @@
 }
 </style>
     <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/getting-started/"/>
-  <meta property="og:title" content="Getting Started"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/api/support/"/>
+  <meta property="og:title" content="Support modules"/>
   <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
     <meta name="twitter:card" content="summary"/>
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
-    <a class="sy-head-brand" href="../index.html">
+    <a class="sy-head-brand" href="../../index.html">
       
       
       <strong>Physics-Based Heat Pump Models</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="#">Getting Started</a></li><li class="link"><a href="../api/index.html">API Reference</a></li></ul></nav>
-      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
@@ -66,27 +66,27 @@ data-aria-dark="Switch to auto color mode">
       <div class="sy-scrollbar p-6">
         <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
 </ul>
 </li>
-<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/space-conditioning.html">Space-conditioning heat pumps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
 </ul>
 </li>
 </ul>
@@ -118,12 +118,16 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">Getting Started</strong>
+        <a itemprop="item" href="../index.html"><span itemprop="name">API Reference</span></a>
+        <span>/</span>
         <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Support modules</strong>
+        <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
       <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
@@ -135,12 +139,20 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <section id="getting-started">
-<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+          <section id="support-modules">
+<h1>Support modules<a class="headerlink" href="#support-modules" title="Link to this heading">¶</a></h1>
+<p>Lower-level building blocks used by the system models. Each subsection
+groups modules that share a single concern — refrigerant state and cycle
+analysis, heat-transfer components, demand and weather inputs, and so on.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
+<li class="toctree-l1"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
 </ul>
 </div>
 </section>
@@ -151,16 +163,16 @@ data-aria-dark="Switch to auto color mode">
   </svg>
   <span>Back to top</span>
 </button><div class="navigation flex print:hidden"><div class="navigation-prev">
-    <a href="../index.html">
+    <a href="../models/space-conditioning.html">
       <i class="i-lucide chevron-left"></i>
       <div class="page-info">
-        <span>Previous</span><div class="title">Home</div></div>
+        <span>Previous</span><div class="title">Space-conditioning heat pumps</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="installation.html">
+    <a href="refrigerant-thermo.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">Installation</div>
+        <div class="title">Refrigerant &amp; thermodynamics</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>
@@ -188,11 +200,11 @@ data-aria-dark="Switch to auto color mode">
     </div>
   </div>
 </footer>
-      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
-      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-      <script src="../_static/copybutton.js?v=f281be69"></script>
-      <script src="../_static/design-tabs.js?v=f930bc37"></script>
-      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
 </html>

@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -136,7 +151,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="9">
 </span><span data-line="10">
 <div class="viewcode-block" id="calc_ASHP_cooling_COP">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_ASHP_cooling_COP">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.cop.calc_ASHP_cooling_COP">[docs]</a>
 </span><span data-line="11"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ASHP_cooling_COP</span><span class="p">(</span><span class="n">T_a_int_out</span><span class="p">,</span> <span class="n">T_a_ext_in</span><span class="p">,</span> <span class="n">Q_r_int</span><span class="p">,</span> <span class="n">Q_r_max</span><span class="p">,</span> <span class="n">COP_ref</span><span class="p">):</span>
 </span><span data-line="12"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="13"><span class="sd">    Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in cooling mode.</span>
@@ -180,7 +195,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="50">
 </span><span data-line="51">
 <div class="viewcode-block" id="calc_ASHP_heating_COP">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_ASHP_heating_COP">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.cop.calc_ASHP_heating_COP">[docs]</a>
 </span><span data-line="52"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ASHP_heating_COP</span><span class="p">(</span><span class="n">T0</span><span class="p">,</span> <span class="n">Q_r_int</span><span class="p">,</span> <span class="n">Q_r_max</span><span class="p">):</span>
 </span><span data-line="53"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="54"><span class="sd">    Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in heating mode.</span>
@@ -216,7 +231,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="83">
 </span><span data-line="84">
 <div class="viewcode-block" id="calc_GSHP_COP">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.cop.calc_GSHP_COP">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.cop.calc_GSHP_COP">[docs]</a>
 </span><span data-line="85"><span class="k">def</span><span class="w"> </span><span class="nf">calc_GSHP_COP</span><span class="p">(</span><span class="n">T_a_iu_in_K</span><span class="p">,</span> <span class="n">T_f_out_K</span><span class="p">,</span> <span class="n">dV_a_ratio</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
 </span><span data-line="86"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate COP for a Ground Source Heat Pump.</span>
 </span><span data-line="87">

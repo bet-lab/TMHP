@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Heat transfer &amp; exchangers - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Demand &amp; weather" href="demand-weather.html" /><link rel="prev" title="Refrigerant &amp; thermodynamics" href="refrigerant-thermo.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/support/heat-transfer.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ed00dc55" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/api/support/heat-transfer.html"/>
+  <meta property="og:title" content="Heat transfer &amp; exchangers"/>
+  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Support modules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#module-physics_hp.heat_transfer">&#949;-NTU heat exchanger</a><ul>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM"><code class="docutils literal notranslate"><span class="pre">TRIDIAG_MATRIX_ALGORITHM()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.calc_LMTD_counter_flow"><code class="docutils literal notranslate"><span class="pre">calc_LMTD_counter_flow()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.calc_LMTD_parallel_flow"><code class="docutils literal notranslate"><span class="pre">calc_LMTD_parallel_flow()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.calc_UA_tank_arr"><code class="docutils literal notranslate"><span class="pre">calc_UA_tank_arr()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.calc_h_vertical_plate"><code class="docutils literal notranslate"><span class="pre">calc_h_vertical_plate()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.calc_simple_tank_UA"><code class="docutils literal notranslate"><span class="pre">calc_simple_tank_UA()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.heat_transfer.darcy_friction_factor"><code class="docutils literal notranslate"><span class="pre">darcy_friction_factor()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.hx_fan">Air-side fan &amp; heat exchanger</a><ul>
+<li><a class="reference internal" href="#physics_hp.hx_fan.calc_UA_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.hx_fan.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.g_function">Borehole g-function</a><ul>
+<li><a class="reference internal" href="#physics_hp.g_function.f"><code class="docutils literal notranslate"><span class="pre">f()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.chi"><code class="docutils literal notranslate"><span class="pre">chi()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.G_FLS"><code class="docutils literal notranslate"><span class="pre">G_FLS()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.precompute_gfunction"><code class="docutils literal notranslate"><span class="pre">precompute_gfunction()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.chi_mfls"><code class="docutils literal notranslate"><span class="pre">chi_mfls()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.G_MFLS_Field"><code class="docutils literal notranslate"><span class="pre">G_MFLS_Field()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.precompute_gfunction_mls"><code class="docutils literal notranslate"><span class="pre">precompute_gfunction_mls()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.air_dynamic_viscosity"><code class="docutils literal notranslate"><span class="pre">air_dynamic_viscosity()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.air_prandtl_number"><code class="docutils literal notranslate"><span class="pre">air_prandtl_number()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.calc_local_borehole_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_local_borehole_thermal_resistance()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.calc_effective_borehole_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_effective_borehole_thermal_resistance()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.g_function.calc_submerged_coil_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_submerged_coil_thermal_resistance()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">API Reference</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Support modules</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="3" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Heat transfer &amp; exchangers</strong>
+        <meta itemprop="position" content="4" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="heat-transfer-exchangers">
+<h1>Heat transfer &amp; exchangers<a class="headerlink" href="#heat-transfer-exchangers" title="Link to this heading">¶</a></h1>
+<p>ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger
+model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB.</p>
+<section id="module-physics_hp.heat_transfer">
+<span id="ntu-heat-exchanger"></span><h2>ε-NTU heat exchanger<a class="headerlink" href="#module-physics_hp.heat_transfer" title="Link to this heading">¶</a></h2>
+<p>Heat transfer and fluid dynamics calculations.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">TRIDIAG_MATRIX_ALGORITHM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a_M</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_E</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_P</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#TRIDIAG_MATRIX_ALGORITHM"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM" title="Link to this definition">¶</a></dt>
+<dd><p>Solve tridiagonal matrix system using Thomas algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a_M</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Main diagonal (a_P in standard notation).</p></li>
+<li><p><strong>a_P</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Not used directly, maintained for signature compatibility.</p></li>
+<li><p><strong>a_E</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Upper diagonal.</p></li>
+<li><p><strong>a_W</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Lower diagonal.</p></li>
+<li><p><strong>b_P</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – RHS vector.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Solution vector.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.calc_LMTD_counter_flow">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">calc_LMTD_counter_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Th_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Th_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tc_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tc_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#calc_LMTD_counter_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.calc_LMTD_counter_flow" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate Log-Mean Temperature Difference for counter-flow heat exchanger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Th_in</strong> (<em>float</em>) – Hot stream inlet temp [K].</p></li>
+<li><p><strong>Th_out</strong> (<em>float</em>) – Hot stream outlet temp [K].</p></li>
+<li><p><strong>Tc_in</strong> (<em>float</em>) – Cold stream inlet temp [K].</p></li>
+<li><p><strong>Tc_out</strong> (<em>float</em>) – Cold stream outlet temp [K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>LMTD [K].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.calc_LMTD_parallel_flow">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">calc_LMTD_parallel_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Th_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Th_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tc_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tc_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#calc_LMTD_parallel_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.calc_LMTD_parallel_flow" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate Log-Mean Temperature Difference for parallel-flow heat exchanger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Th_in</strong> (<em>float</em>) – Hot stream inlet temp [K].</p></li>
+<li><p><strong>Th_out</strong> (<em>float</em>) – Hot stream outlet temp [K].</p></li>
+<li><p><strong>Tc_in</strong> (<em>float</em>) – Cold stream inlet temp [K].</p></li>
+<li><p><strong>Tc_out</strong> (<em>float</em>) – Cold stream outlet temp [K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>LMTD [K].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.calc_UA_tank_arr">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">calc_UA_tank_arr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr_D_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr_D_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr_L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arr_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#calc_UA_tank_arr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.calc_UA_tank_arr" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate thermal conductance (UA) of a multi-layer cylindrical tank.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arr_D_in</strong> (<em>array_like</em><em> or </em><em>list</em>) – Inner diameters of layers [m].</p></li>
+<li><p><strong>arr_D_out</strong> (<em>array_like</em><em> or </em><em>list</em>) – Outer diameters of layers [m].</p></li>
+<li><p><strong>arr_L</strong> (<em>array_like</em><em> or </em><em>list</em>) – Lengths of layers [m].</p></li>
+<li><p><strong>arr_k</strong> (<em>array_like</em><em> or </em><em>list</em>) – Thermal conductivities of layers [W/mK].</p></li>
+<li><p><strong>h_in</strong> (<em>float</em>) – Inner convection coefficient [W/m2K].</p></li>
+<li><p><strong>h_out</strong> (<em>float</em>) – Outer convection coefficient [W/m2K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Thermal conductance [W/K].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.calc_h_vertical_plate">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">calc_h_vertical_plate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Air'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#calc_h_vertical_plate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.calc_h_vertical_plate" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate natural convection heat transfer coefficient for a vertical plate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_s</strong> (<em>float</em>) – Surface temperature [K].</p></li>
+<li><p><strong>T_inf</strong> (<em>float</em>) – Fluid temperature [K].</p></li>
+<li><p><strong>L</strong> (<em>float</em>) – Characteristic length [m].</p></li>
+<li><p><strong>fluid</strong> (<em>str</em><em>, </em><em>optional</em>) – Fluid name. Default is ‘Air’.</p></li>
+<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, returns np.nan.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Heat transfer coefficient [W/m2K].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.calc_simple_tank_UA">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">calc_simple_tank_UA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#calc_simple_tank_UA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.calc_simple_tank_UA" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate simple tank UA value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r0</strong> (<em>float</em>) – Tank radius [m]</p></li>
+<li><p><strong>H</strong> (<em>float</em>) – Tank height [m]</p></li>
+<li><p><strong>x_shell</strong> (<em>float</em>) – Shell thickness [m]</p></li>
+<li><p><strong>x_ins</strong> (<em>float</em>) – Insulation thickness [m]</p></li>
+<li><p><strong>k_shell</strong> (<em>float</em>) – Shell thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_ins</strong> (<em>float</em>) – Insulation thermal conductivity [W/mK]</p></li>
+<li><p><strong>h_o</strong> (<em>float</em>) – External convective heat transfer coefficient [W/m²K]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tank UA value [W/K]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.heat_transfer.darcy_friction_factor">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">darcy_friction_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/heat_transfer.html#darcy_friction_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.heat_transfer.darcy_friction_factor" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the Darcy friction factor.</p>
+<p>Uses Haaland equation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Re</strong> (<em>float</em>) – Reynolds number.</p></li>
+<li><p><strong>e</strong> (<em>float</em>) – Surface roughness [m].</p></li>
+<li><p><strong>d</strong> (<em>float</em>) – Diameter [m].</p></li>
+<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, returns np.nan.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Friction factor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.hx_fan">
+<span id="air-side-fan-heat-exchanger"></span><h2>Air-side fan &amp; heat exchanger<a class="headerlink" href="#module-physics_hp.hx_fan" title="Link to this heading">¶</a></h2>
+<p>Heat exchanger and fan utility functions.</p>
+<p>Functions for velocity-dependent UA calculation, HX performance
+solving, fan power curves, and HP schedule checking.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.hx_fan.calc_UA_from_dV_fan">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.hx_fan.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dV_fan</strong> (<em>float</em>) – Current fan flow rate [m³/s].</p></li>
+<li><p><strong>dV_fan_design</strong> (<em>float</em>) – Design fan flow rate [m³/s].</p></li>
+<li><p><strong>A_cross</strong> (<em>float</em>) – Heat exchanger cross-sectional area [m²].</p></li>
+<li><p><strong>UA</strong> (<em>float</em>) – Design UA value [W/K].</p></li>
+<li><p><strong>exponent</strong> (<em>float</em>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Scaled UA value [W/K].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Instead of the Dittus-Boelter tube-side exponent (0.8), this uses
+a simplified lumped exponent (default 0.71). This derivation assumes a 1-row
+plain fin-and-tube configuration (N=1) where the Colburn j-factor
+is proportional to Re^-0.29, leading to h ∝ V^0.71. Multi-row coils may
+use exponents between 0.5 and 0.8 depending on configuration.
+Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.hx_fan.calc_fan_power_from_dV_fan">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.hx_fan.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate fan power using ASHRAE 90.1 VSD Curve.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dV_fan</strong> (<em>float</em>) – Current flow rate [m³/s].</p></li>
+<li><p><strong>fan_params</strong> (<em>dict</em>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
+<li><p><strong>vsd_coeffs</strong> (<em>dict</em>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
+<li><p><strong>is_active</strong> (<em>bool</em>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Fan power [W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.g_function">
+<span id="borehole-g-function"></span><h2>Borehole g-function<a class="headerlink" href="#module-physics_hp.g_function" title="Link to this heading">¶</a></h2>
+<p>Borehole g-function and air property helpers.</p>
+<p>Provides:
+- Finite Line Source (FLS) g-function for borehole heat exchangers
+- Air dynamic viscosity (Sutherland’s formula) and Prandtl number</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.f">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">f</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#f"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.f" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function for G-function calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>float</em>) – Input value</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>f(x) = x*erf(x) - (1-exp(-x²))/√π</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.chi">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">chi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#chi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.chi" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function for G-function calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s</strong> (<em>float</em>) – Integration variable</p></li>
+<li><p><strong>rb</strong> (<em>float</em>) – Borehole radius [m]</p></li>
+<li><p><strong>H</strong> (<em>float</em>) – Borehole height [m]</p></li>
+<li><p><strong>z0</strong> (<em>float</em><em>, </em><em>optional</em>) – Reference depth [m] (default: 0)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>chi function value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.G_FLS">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">G_FLS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#G_FLS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.G_FLS" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the g-function for finite line source (FLS) model.</p>
+<p>This function calculates the g-function used in ground source heat pump
+analysis. Results are cached for performance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> (<em>float</em>) – Time [s]</p></li>
+<li><p><strong>ks</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>as</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
+<li><p><strong>rb</strong> (<em>float</em>) – Borehole radius [m]</p></li>
+<li><p><strong>H</strong> (<em>float</em>) – Borehole height [m]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>g-function value [mK/W]. Returns scalar for single time value,
+array for multiple time values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float or array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.precompute_gfunction">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">precompute_gfunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#precompute_gfunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.precompute_gfunction" title="Link to this definition">¶</a></dt>
+<dd><p>Precompute g-function using pygfunction and return an interpolator.</p>
+<p>Creates a rectangular borehole field and computes the g-function
+for log-spaced time steps up to t_max_s (plus an extra margin).
+Returns a callable <cite>interp1d</cite> object predicting the g-function [mK/W].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N_1</strong> (<em>int</em>) – Number of boreholes in x-direction.</p></li>
+<li><p><strong>N_2</strong> (<em>int</em>) – Number of boreholes in y-direction.</p></li>
+<li><p><strong>B</strong> (<em>float</em>) – Borehole spacing [m].</p></li>
+<li><p><strong>H_b</strong> (<em>float</em>) – Borehole depth/length [m].</p></li>
+<li><p><strong>D_b</strong> (<em>float</em>) – Buried depth [m].</p></li>
+<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m].</p></li>
+<li><p><strong>alpha_s</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s].</p></li>
+<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK].</p></li>
+<li><p><strong>t_max_s</strong> (<em>float</em>) – Maximum simulation time [s].</p></li>
+<li><p><strong>dt_s</strong> (<em>float</em>) – Simulation timestep [s].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Interpolator function mapping <cite>time [s]</cite> to <cite>g-function [mK/W]</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>scipy.interpolate.interp1d</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.chi_mfls">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">chi_mfls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_prime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#chi_mfls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.chi_mfls" title="Link to this definition">¶</a></dt>
+<dd><p>Helper function for MFLS (Moving Finite Line Source) G-function calculation.</p>
+<p>Ref: Molina-Giraldo et al. (2011), “A moving finite line source model
+to simulate borehole heat exchangers with groundwater advection”</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.G_MFLS_Field">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">G_MFLS_Field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boreholes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#G_MFLS_Field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.G_MFLS_Field" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the spatial superposition of the MFLS response for a bore field.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>times</strong> (<em>np.ndarray</em>) – Array of time values [s]</p></li>
+<li><p><strong>boreholes</strong> (<em>list</em>) – List of pygfunction Borehole objects</p></li>
+<li><p><strong>v_gw</strong> (<em>float</em>) – Darcy velocity of groundwater [m/s]</p></li>
+<li><p><strong>theta_gw</strong> (<em>float</em>) – Direction of groundwater flow [rad]</p></li>
+<li><p><strong>rho_w</strong> (<em>float</em>) – Density of groundwater [kg/m³]</p></li>
+<li><p><strong>c_w</strong> (<em>float</em>) – Specific heat capacity of groundwater [J/kgK]</p></li>
+<li><p><strong>alpha_s</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
+<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>rho_s</strong> (<em>float</em>) – Density of ground [kg/m³]</p></li>
+<li><p><strong>c_s</strong> (<em>float</em>) – Specific heat capacity of ground [J/kgK]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dimensional g-values for the entire field over time [mK/W]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.precompute_gfunction_mls">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">precompute_gfunction_mls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#precompute_gfunction_mls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.precompute_gfunction_mls" title="Link to this definition">¶</a></dt>
+<dd><p>Precompute the MFLS g-function and return an interpolator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>v_gw</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>theta_gw</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho_w</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>c_w</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">interp1d</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.air_dynamic_viscosity">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">air_dynamic_viscosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#air_dynamic_viscosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.air_dynamic_viscosity" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate air dynamic viscosity using Sutherland’s formula.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T_K</strong> (<em>float</em>) – Temperature [K]</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – Dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>Reference</strong> (<em>Sutherland’s formula for air</em>)</p></li>
+<li><p><em>mu = mu0 * (T/T0)^1.5 * (T0 + S) / (T + S)</em></p></li>
+<li><p><em>where mu0 = 1.716e-5 Pa·s at T0 = 273.15 K, S = 110.4 K</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.air_prandtl_number">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">air_prandtl_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#air_prandtl_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.air_prandtl_number" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate air Prandtl number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T_K</strong> (<em>float</em>) – Temperature [K]</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>float</em> – Prandtl number [-]</p></li>
+<li><p><strong>Note</strong> (<em>Pr ≈ 0.71 for air at typical temperatures (20-50°C)</em>)</p></li>
+<li><p><em>Temperature dependence is weak, so using constant value.</em></p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.calc_local_borehole_thermal_resistance">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_local_borehole_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#calc_local_borehole_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.calc_local_borehole_thermal_resistance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the local borehole thermal resistance and internal thermal resistance [mK/W] using pygfunction multipole method.</p>
+<p>Assumes a Single U-tube configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_g</strong> (<em>float</em>) – Grout thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_p</strong> (<em>float</em>) – Pipe thermal conductivity [W/mK]</p></li>
+<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m]</p></li>
+<li><p><strong>r_out</strong> (<em>float</em>) – Pipe outer radius [m]</p></li>
+<li><p><strong>r_in</strong> (<em>float</em>) – Pipe inner radius [m]</p></li>
+<li><p><strong>D_s</strong> (<em>float</em>) – Shank spacing (half distance between pipes) [m]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>rho_f</strong> (<em>float</em>) – Fluid density [kg/m³]</p></li>
+<li><p><strong>mu_f</strong> (<em>float</em>) – Fluid dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>cp_f</strong> (<em>float</em>) – Fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>k_f</strong> (<em>float</em>) – Fluid thermal conductivity [W/mK]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(R_b, R_a)
+R_b: Local borehole thermal resistance [mK/W].
+R_a: Internal thermal resistance between the two pipes [mK/W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[float, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.calc_effective_borehole_thermal_resistance">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_effective_borehole_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform_temperature'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#calc_effective_borehole_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.calc_effective_borehole_thermal_resistance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the effective borehole thermal resistance [mK/W].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>R_b</strong> (<em>float</em>) – Local borehole thermal resistance [mK/W]</p></li>
+<li><p><strong>R_a</strong> (<em>float</em>) – Internal thermal resistance between the two pipes [mK/W]</p></li>
+<li><p><strong>H</strong> (<em>float</em>) – Borehole depth [m]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>cp_f</strong> (<em>float</em>) – Fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>boundary_condition</strong> (<em>str</em>) – Boundary condition for the calculation.
+Options: ‘uniform_temperature’ or ‘uniform_heat_flux’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Effective borehole thermal resistance [mK/W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<ol class="arabic simple">
+<li><p>Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems
+(Ph.D. thesis). University of Lund, Sweden.</p></li>
+<li><p>Lamarche, L., Kajl, S., &amp; Beauchamp, B. (2010). A review of methods to evaluate
+borehole thermal resistances in geothermal heat-pump systems. Geothermics, 39(2), 187-200.
+DOI: 10.1016/j.geothermics.2010.03.003</p></li>
+<li><p>Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance
+calculation methods for grouted single U-tube ground heat exchangers.
+Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="physics_hp.g_function.calc_submerged_coil_thermal_resistance">
+<span class="sig-prename descclassname"><span class="pre">physics_hp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_submerged_coil_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_river</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#calc_submerged_coil_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.g_function.calc_submerged_coil_thermal_resistance" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</p>
+<p>Uses the Churchill-Bernstein correlation for cross-flow forced convection over a cylinder
+to estimate the external (river water) convective heat transfer coefficient.
+It tricks pygfunction’s SingleUTube model into capturing this pure pipe resistance
+without any ground thermal mass by assigning exceptionally high thermal conductivities
+to the grout and ground.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>r_out</strong> (<em>float</em>) – Pipe outer radius [m]</p></li>
+<li><p><strong>r_in</strong> (<em>float</em>) – Pipe inner radius [m]</p></li>
+<li><p><strong>D_s</strong> (<em>float</em>) – Shank spacing (half distance between pipes) [m]</p></li>
+<li><p><strong>k_p</strong> (<em>float</em>) – Pipe thermal conductivity [W/mK]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>rho_f</strong> (<em>float</em>) – Internal fluid density [kg/m³]</p></li>
+<li><p><strong>mu_f</strong> (<em>float</em>) – Internal fluid dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>cp_f</strong> (<em>float</em>) – Internal fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>k_f</strong> (<em>float</em>) – Internal fluid thermal conductivity [W/mK]</p></li>
+<li><p><strong>v_river</strong> (<em>float</em>) – Velocity of the river water cross-flow [m/s]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Thermal resistance of the submerged coil [mK/W].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="refrigerant-thermo.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Refrigerant &amp; thermodynamics</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="demand-weather.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Demand &amp; weather</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

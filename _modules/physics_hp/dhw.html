@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -143,7 +158,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="16">
 </span><span data-line="17">
 <div class="viewcode-block" id="make_dhw_schedule_from_Annex_42_profile">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dhw.make_dhw_schedule_from_Annex_42_profile">[docs]</a>
+<a class="viewcode-back" href="../../api/support/demand-weather.html#physics_hp.dhw.make_dhw_schedule_from_Annex_42_profile">[docs]</a>
 </span><span data-line="18"><span class="k">def</span><span class="w"> </span><span class="nf">make_dhw_schedule_from_Annex_42_profile</span><span class="p">(</span>
 </span><span data-line="19">    <span class="n">flow_rate_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">df_time_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">simulation_time_step</span><span class="p">:</span> <span class="nb">int</span>
 </span><span data-line="20"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
@@ -206,7 +221,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="76">
 </span><span data-line="77">
 <div class="viewcode-block" id="calc_total_water_use_from_schedule">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dhw.calc_total_water_use_from_schedule">[docs]</a>
+<a class="viewcode-back" href="../../api/support/demand-weather.html#physics_hp.dhw.calc_total_water_use_from_schedule">[docs]</a>
 </span><span data-line="78"><span class="k">def</span><span class="w"> </span><span class="nf">calc_total_water_use_from_schedule</span><span class="p">(</span>
 </span><span data-line="79">    <span class="n">schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
 </span><span data-line="80">    <span class="n">peak_load_m3s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -254,7 +269,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="121">
 </span><span data-line="122">
 <div class="viewcode-block" id="calc_cold_water_temp">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dhw.calc_cold_water_temp">[docs]</a>
+<a class="viewcode-back" href="../../api/support/demand-weather.html#physics_hp.dhw.calc_cold_water_temp">[docs]</a>
 </span><span data-line="123"><span class="k">def</span><span class="w"> </span><span class="nf">calc_cold_water_temp</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">target_date_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="124"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate mains water temperature using EnergyPlus algorithm.</span>
 </span><span data-line="125">
@@ -311,7 +326,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="175">
 </span><span data-line="176">
 <div class="viewcode-block" id="build_dhw_usage_ratio">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dhw.build_dhw_usage_ratio">[docs]</a>
+<a class="viewcode-back" href="../../api/support/demand-weather.html#physics_hp.dhw.build_dhw_usage_ratio">[docs]</a>
 </span><span data-line="177"><span class="k">def</span><span class="w"> </span><span class="nf">build_dhw_usage_ratio</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">t_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 </span><span data-line="178"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build schedule ratio array from schedule entries for each timestep.</span>
 </span><span data-line="179">

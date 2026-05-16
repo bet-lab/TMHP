@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -199,7 +214,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="72">
 </span><span data-line="73">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler">[docs]</a>
+<a class="viewcode-back" href="../../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler">[docs]</a>
 </span><span data-line="74"><span class="nd">@dataclass</span>
 </span><span data-line="75"><span class="k">class</span><span class="w"> </span><span class="nc">AirSourceHeatPumpBoiler</span><span class="p">:</span>
 </span><span data-line="76"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Air source heat pump boiler with outdoor-air evaporator.</span>
@@ -213,7 +228,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="84"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="85">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler.__init__">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.__init__">[docs]</a>
+<a class="viewcode-back" href="../../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.__init__">[docs]</a>
 </span><span data-line="86">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span data-line="87">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="88">        <span class="c1"># 1. Refrigerant / cycle / compressor -----------</span>
@@ -762,7 +777,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="630">    <span class="c1"># =============================================================</span>
 </span><span data-line="631">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler.analyze_steady">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady">[docs]</a>
+<a class="viewcode-back" href="../../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady">[docs]</a>
 </span><span data-line="632">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_steady</span><span class="p">(</span>
 </span><span data-line="633">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="634">        <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1235,7 +1250,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="1100">    <span class="c1"># =============================================================</span>
 </span><span data-line="1101">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler.analyze_dynamic">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
+<a class="viewcode-back" href="../../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
 </span><span data-line="1102">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_dynamic</span><span class="p">(</span>
 </span><span data-line="1103">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="1104">        <span class="n">simulation_period_sec</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1483,7 +1498,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="1345">    <span class="c1"># =============================================================</span>
 </span><span data-line="1346">
 <div class="viewcode-block" id="AirSourceHeatPumpBoiler.postprocess_exergy">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
 </span><span data-line="1347">    <span class="k">def</span><span class="w"> </span><span class="nf">postprocess_exergy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 </span><span data-line="1348"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute ASHP-specific exergy variables.</span>
 </span><span data-line="1349">

@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -137,7 +152,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="10">
 </span><span data-line="11">
 <div class="viewcode-block" id="calc_UA_from_dV_fan">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.hx_fan.calc_UA_from_dV_fan">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.hx_fan.calc_UA_from_dV_fan">[docs]</a>
 </span><span data-line="12"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_from_dV_fan</span><span class="p">(</span>
 </span><span data-line="13">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="14">    <span class="n">dV_fan_design</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -181,7 +196,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="51">
 </span><span data-line="52">
 <div class="viewcode-block" id="calc_fan_power_from_dV_fan">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.hx_fan.calc_fan_power_from_dV_fan">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.hx_fan.calc_fan_power_from_dV_fan">[docs]</a>
 </span><span data-line="53"><span class="k">def</span><span class="w"> </span><span class="nf">calc_fan_power_from_dV_fan</span><span class="p">(</span>
 </span><span data-line="54">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="55">    <span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>

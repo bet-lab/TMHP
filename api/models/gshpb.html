@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Ground-source heat pump boilers (GSHPB) - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Water-source heat pump boiler (WSHPB)" href="wshpb.html" /><link rel="prev" title="Air-source heat pump boilers (ASHPB)" href="ashpb.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/models/gshpb.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ed00dc55" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/api/models/gshpb.html"/>
+  <meta property="og:title" content="Ground-source heat pump boilers (GSHPB)"/>
+  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick Start</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Models</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#module-physics_hp.ground_source_heat_pump_boiler">Core model</a><ul>
+<li><a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a><ul>
+<li><a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
+<li><a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.gshpb_stc_preheat">STC preheat</a><ul>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat"><code class="docutils literal notranslate"><span class="pre">GSHPB_STC_preheat</span></code></a><ul>
+<li><a class="reference internal" href="#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.gshpb_stc_tank">STC with stratified tank</a><ul>
+<li><a class="reference internal" href="#id1">Usage</a></li>
+<li><a class="reference internal" href="#physics_hp.gshpb_stc_tank.GSHPB_STC_tank"><code class="docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a><ul>
+<li><a class="reference internal" href="#physics_hp.gshpb_stc_tank.GSHPB_STC_tank.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-physics_hp.gshpb_pv_ess">PV + ESS</a><ul>
+<li><a class="reference internal" href="#physics_hp.gshpb_pv_ess.GSHPB_PV_ESS"><code class="docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code></a><ul>
+<li><a class="reference internal" href="#physics_hp.gshpb_pv_ess.GSHPB_PV_ESS.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">API Reference</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="3" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Ground-source heat pump boilers (GSHPB)</strong>
+        <meta itemprop="position" content="4" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="ground-source-heat-pump-boilers-gshpb">
+<h1>Ground-source heat pump boilers (GSHPB)<a class="headerlink" href="#ground-source-heat-pump-boilers-gshpb" title="Link to this heading">¶</a></h1>
+<p>Core GSHPB model — which adds a g-function borehole heat exchanger to the
+same cycle structure as ASHPB — plus the three composed variants that
+layer subsystems on top.</p>
+<section id="module-physics_hp.ground_source_heat_pump_boiler">
+<span id="core-model"></span><h2>Core model<a class="headerlink" href="#module-physics_hp.ground_source_heat_pump_boiler" title="Link to this heading">¶</a></h2>
+<p>Integrated System Model: Ground Source Heat Pump Boiler (GSHPB).</p>
+<p>This system class orchestrates the dynamic interaction between distinct thermodynamic
+sub-components to simulate the overall heating performance. While implemented as an
+integrated model, its physical calculations represent the behavior of:</p>
+<ol class="arabic simple">
+<li><p><strong>Refrigerant Cycle (Vapor-Compression):</strong>
+Evaluates thermodynamic states using CoolProp, enforcing superheat/subcool margins.</p></li>
+<li><p><strong>Heat Pump Compressor:</strong>
+Models the compression process using isentropic and volumetric efficiencies to compute
+the actual discharge enthalpy and mass flow rate. The compressor power is determined
+from the enthalpy difference and the mass flow rate.</p></li>
+<li><p><strong>Expansion Valve:</strong>
+Modeled as an isenthalpic expansion device (constant enthalpy) that throttles the
+refrigerant from the condensing pressure down to the evaporating pressure.</p></li>
+<li><p><strong>Heat Exchangers (Condenser &amp; Evaporator):</strong></p>
+<ul class="simple">
+<li><p><strong>Condenser:</strong> Placed inside the hot-water tank (hydronic), utilizing a static
+overall heat transfer coefficient (UA_cond_design).</p></li>
+<li><p><strong>Evaporator:</strong> Coupled to a borehole heat exchanger (BHE) fluid loop, acting as
+a secondary heat exchanger to absorb heat from the circulating ground fluid.</p></li>
+</ul>
+</li>
+<li><p><strong>Thermal Storage Tank:</strong>
+Modeled with lumped-capacitance and DHW mixing logic.</p></li>
+<li><p><strong>Ground Source Heat Exchanger (Borefield):</strong>
+A dynamic multi-borehole simulation using pygfunction-based g-functions. It tracks
+the transient thermal response of the ground, enabling robust modeling of long-term
+ground temperature drift due to continuous heat extraction.</p></li>
+</ol>
+<p>At each time step the model finds the minimum-power operating point via 1D Brent
+optimization over the evaporator approach temperature difference, while the
+condenser temperature is solved analytically.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the project paper for the underlying refrigerant-cycle theory and the
+pygfunction-based borehole heat-exchanger model used here.</p>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">GroundSourceHeatPumpBoiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'R410A'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_disp_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_mech</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.855</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">65.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">55.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.016</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.013</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_b_f_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">31536000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform_temperature'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Ground source heat pump boiler with BHE and lumped-tank model.</p>
+<p>The refrigerant cycle is resolved via CoolProp with user-specified
+superheat / subcool margins. An optimizer minimises total cycle
+electrical input subject to NTU-based evaporator constraints and
+analytical condenser temperature relations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>V_disp_cmp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>eta_cmp_isen</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>eta_cmp_vol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>eta_cmp_mech</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></span>)</p></li>
+<li><p><strong>UA_cond_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>UA_evap_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Ts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_upper_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_lower_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_mix_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_capacity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>x_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>x_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>h_o</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>R_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_b_f_lpm</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>E_pmp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dT_superheat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dT_subcool</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_always_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>prevent_simultaneous_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>tank_level_lower_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_upper_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_in_refill</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_on_schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]]</span>)</p></li>
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a>]</span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'R410A'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_disp_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_mech</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.855</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">65.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">55.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.016</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.013</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_b_f_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">31536000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform_temperature'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>V_disp_cmp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>eta_cmp_isen</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>eta_cmp_vol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
+<li><p><strong>eta_cmp_mech</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code></span>)</p></li>
+<li><p><strong>UA_cond_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>UA_evap_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Ts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_upper_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_lower_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_mix_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_capacity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_mix_w_out_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>x_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>x_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>h_o</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>R_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_b_f_lpm</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>E_pmp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dT_superheat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dT_subcool</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_always_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>prevent_simultaneous_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>tank_level_lower_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_upper_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dV_tank_w_in_refill</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_on_schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]]</span>)</p></li>
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a>]</span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic">
+<span class="sig-name descname"><span class="pre">analyze_dynamic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">simulation_period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhw_usage_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_save_csv_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.analyze_dynamic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>simulation_period_sec</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_w_init_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_init</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady">
+<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_ref_cond</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady" title="Link to this definition">¶</a></dt>
+<dd><p>Run a steady-state performance snapshot.</p>
+<p>Evaluates the refrigerant cycle at a given operating point
+(<code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>, <code class="docutils literal notranslate"><span class="pre">T_source</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span></code>) <strong>without</strong> solving the tank energy
+balance or tracking dynamic flows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_tank_w</strong> (<em>float</em>) – Tank water temperature [°C] — treated as a given input.</p></li>
+<li><p><strong>T_source</strong> (<em>float</em>) – Source fluid temperature entering the heat pump [°C].</p></li>
+<li><p><strong>Q_ref_cond</strong> (<em>float</em>) – Target condenser heat rate [W].</p></li>
+<li><p><strong>T0</strong> (<em>float</em>) – Dead-state / outdoor-air temperature [°C] (for exergy calculations).</p></li>
+<li><p><strong>return_dict</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code> return dict; else single-row DataFrame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>Cycle state plus diagnostic flags. Notable keys:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;converged&quot;</span></code> (bool) — True only when the HX optimisation and
+the SciPy optimiser both succeeded.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
+</ul>
+<p>Important: GSHPB frequently reports
+<code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;hx_not_converged&quot;</span></code> on realistic operating
+points because its inner NTU/HX residual tolerance is strict.
+The returned <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span> <span class="pre">[W]</span></code> / <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>
+<strong>are still usable</strong> in that case — only <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>
+forces an off-mode fallback (E_cmp=0, COP=NaN). Branch on
+<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> rather than <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code> if
+you only want to discard truly broken results.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict | pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy">
+<span class="sig-name descname"><span class="pre">postprocess_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.postprocess_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy" title="Link to this definition">¶</a></dt>
+<dd><p>Compute GSHPB-specific exergy variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.gshpb_stc_preheat">
+<span id="stc-preheat"></span><h2>STC preheat<a class="headerlink" href="#module-physics_hp.gshpb_stc_preheat" title="Link to this heading">¶</a></h2>
+<p>GSHPB with SolarThermalCollector — mains_preheat placement.</p>
+<p>Phase 3 restructuring: all simulation orchestration logic
+(activation probe, result assembly, exergy calculation) is
+implemented directly in this class.  <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code>
+is used purely as a <strong>physics engine</strong> (<code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>),
+with no dependency on <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">assemble_results()</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis.gshpb_stc_preheat</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_preheat</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_preheat</span><span class="p">(</span>
+</span><span data-line="6">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
+</span><span data-line="12"><span class="p">)</span>
+</span><span data-line="13"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.gshpb_stc_preheat.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_preheat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_stc_preheat.html#GSHPB_STC_preheat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector in <em>mains_preheat</em> placement.</p>
+<section id="physical-configuration">
+<h3>Physical configuration<a class="headerlink" href="#physical-configuration" title="Link to this heading">¶</a></h3>
+<p>The STC preheats mains cold water before it enters the storage
+tank.  The raised inlet temperature (<code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code>)
+reduces the thermal load on the heat pump compressor.</p>
+</section>
+<section id="orchestration-responsibility">
+<h3>Orchestration responsibility<a class="headerlink" href="#orchestration-responsibility" title="Link to this heading">¶</a></h3>
+<p>This class owns all simulation logic for the STC:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>
+→ sets <code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code> when active</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (uses pump outlet
+temperature directly; no re-evaluation at solved tank temp)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation.  Tank boundary
+corrections are <strong>not applied</strong> because the preheated inlet
+temperature is already reflected in the core
+<code class="docutils literal notranslate"><span class="pre">X_tank_w_in</span> <span class="pre">[W]</span></code> column (<code class="docutils literal notranslate"><span class="pre">X_in_tank_add</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">type stc<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
+</dd>
+<dt class="field-even">param stc<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
+</dd>
+<dt class="field-odd">type stc<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SolarThermalCollector</p>
+</dd>
+<dt class="field-even">type **kwargs<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">param **kwargs<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code>.</p>
+</dd>
+<dt class="field-even">raises TypeError<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_stc_preheat.html#GSHPB_STC_preheat.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.gshpb_stc_tank">
+<span id="stc-with-stratified-tank"></span><h2>STC with stratified tank<a class="headerlink" href="#module-physics_hp.gshpb_stc_tank" title="Link to this heading">¶</a></h2>
+<p>GSHPB with SolarThermalCollector — tank_circuit placement.</p>
+<p>Phase 3 restructuring: all simulation orchestration logic
+(activation probe, result assembly, exergy calculation) is
+implemented directly in this class.  <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code>
+is used purely as a <strong>physics engine</strong> (<code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>),
+with no dependency on <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">assemble_results()</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
+<section id="id1">
+<h3>Usage<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis.gshpb_stc_tank</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_tank</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_tank</span><span class="p">(</span>
+</span><span data-line="6">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
+</span><span data-line="12"><span class="p">)</span>
+</span><span data-line="13"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="physics_hp.gshpb_stc_tank.GSHPB_STC_tank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.gshpb_stc_tank.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_tank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_stc_tank.html#GSHPB_STC_tank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_stc_tank.GSHPB_STC_tank" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector in <em>tank_circuit</em> placement.</p>
+<section id="id2">
+<h3>Physical configuration<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p>The STC collector loop is connected directly to the storage tank.
+The STC draws water from the tank, heats it via solar energy, and
+returns it through the pump. The STC is activated only when the
+collector outlet temperature exceeds the current tank temperature.</p>
+</section>
+<section id="id3">
+<h3>Orchestration responsibility<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<p>This class owns all simulation logic for the STC:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_build_residual_fn</span></code>: fully implicit coupling to tank solver</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (re-evaluates at
+solved tank temperature for accuracy)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation and tank boundary
+correction (<code class="docutils literal notranslate"><span class="pre">X_tot</span></code>, <code class="docutils literal notranslate"><span class="pre">Xc_tank</span></code>)</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">type stc<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
+</dd>
+<dt class="field-even">param stc<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
+</dd>
+<dt class="field-odd">type stc<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SolarThermalCollector</p>
+</dd>
+<dt class="field-even">type **kwargs<span class="colon">:</span></dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">param **kwargs<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code>.</p>
+</dd>
+<dt class="field-even">raises TypeError<span class="colon">:</span></dt>
+<dd class="field-even"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.gshpb_stc_tank.GSHPB_STC_tank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_stc_tank.html#GSHPB_STC_tank.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_stc_tank.GSHPB_STC_tank.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-physics_hp.gshpb_pv_ess">
+<span id="pv-ess"></span><h2>PV + ESS<a class="headerlink" href="#module-physics_hp.gshpb_pv_ess" title="Link to this heading">¶</a></h2>
+<p>GSHPB Scenario: Heat Pump driven by PV + ESS with Grid/Dump integration.</p>
+<p>Energy routing (all logic lives here, subsystems are pure physics):</p>
+<ol class="arabic simple">
+<li><p>PV generation  → <code class="docutils literal notranslate"><span class="pre">pv.calc_performance()</span></code></p></li>
+<li><p>DC routing:
+- PV surplus   → <code class="docutils literal notranslate"><span class="pre">ess.charge()</span></code>; leftover → dump
+- PV deficit   → <code class="docutils literal notranslate"><span class="pre">ess.discharge()</span></code>; leftover →  grid import</p></li>
+<li><p>Inverter conversion loss applied to DC supply</p></li>
+<li><p>Grid import covers any remaining AC shortfall</p></li>
+</ol>
+<dl class="py class">
+<dt class="sig sig-object py" id="physics_hp.gshpb_pv_ess.GSHPB_PV_ESS">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.gshpb_pv_ess.</span></span><span class="sig-name descname"><span class="pre">GSHPB_PV_ESS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_inv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_inv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_pv_ess.html#GSHPB_PV_ESS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_pv_ess.GSHPB_PV_ESS" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="physics_hp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB scenario where the heat pump is supplied by PV + ESS + Grid.</p>
+<p>The PV/ESS routing is resolved <strong>synchronously</strong> inside
+<code class="docutils literal notranslate"><span class="pre">_augment_results</span></code> after the HP electrical load is known.
+No 1-step lag: the PV energy is allocated to the exact
+HP load produced in the same timestep.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pv</strong> (<a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.PhotovoltaicSystem" title="physics_hp.subsystems.PhotovoltaicSystem"><em>PhotovoltaicSystem</em></a>) – Pure-physics PV + charge-controller model.</p></li>
+<li><p><strong>ess</strong> (<a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.EnergyStorageSystem" title="physics_hp.subsystems.EnergyStorageSystem"><em>EnergyStorageSystem</em></a>) – Pure-physics battery model with <code class="docutils literal notranslate"><span class="pre">charge()</span></code> / <code class="docutils literal notranslate"><span class="pre">discharge()</span></code>.</p></li>
+<li><p><strong>eta_inv</strong> (<em>float</em>) – Inverter DC→AC efficiency [–].</p></li>
+<li><p><strong>T_inv_K</strong> (<em>float</em>) – Inverter temperature for entropy calculation [K].</p></li>
+<li><p><strong>**kwargs</strong> – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="physics_hp.gshpb_pv_ess.GSHPB_PV_ESS.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_inv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_inv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/gshpb_pv_ess.html#GSHPB_PV_ESS.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.gshpb_pv_ess.GSHPB_PV_ESS.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pv</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.PhotovoltaicSystem" title="physics_hp.subsystems.PhotovoltaicSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhotovoltaicSystem</span></code></a></span>)</p></li>
+<li><p><strong>ess</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="../support/subsystems.html#physics_hp.subsystems.EnergyStorageSystem" title="physics_hp.subsystems.EnergyStorageSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a>]</span>)</p></li>
+<li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_inv_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="ashpb.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Air-source heat pump boilers (ASHPB)</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="wshpb.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Water-source heat pump boiler (WSHPB)</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

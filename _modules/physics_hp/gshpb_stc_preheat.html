@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -170,7 +185,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="43">
 </span><span data-line="44">
 <div class="viewcode-block" id="GSHPB_STC_preheat">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat">[docs]</a>
+<a class="viewcode-back" href="../../api/models/gshpb.html#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat">[docs]</a>
 </span><span data-line="45"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_STC_preheat</span><span class="p">(</span><span class="n">GroundSourceHeatPumpBoiler</span><span class="p">):</span>
 </span><span data-line="46"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB + SolarThermalCollector in *mains_preheat* placement.</span>
 </span><span data-line="47">
@@ -207,7 +222,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="78"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="79">
 <div class="viewcode-block" id="GSHPB_STC_preheat.__init__">
-<a class="viewcode-back" href="../../api/models.html#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat.__init__">[docs]</a>
+<a class="viewcode-back" href="../../api/models/gshpb.html#physics_hp.gshpb_stc_preheat.GSHPB_STC_preheat.__init__">[docs]</a>
 </span><span data-line="80">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span data-line="81">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="82">        <span class="o">*</span><span class="p">,</span>

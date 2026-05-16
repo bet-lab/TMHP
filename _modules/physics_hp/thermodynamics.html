@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -146,7 +161,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="19">
 </span><span data-line="20">
 <div class="viewcode-block" id="generate_entropy_exergy_term">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.thermodynamics.generate_entropy_exergy_term">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.generate_entropy_exergy_term">[docs]</a>
 </span><span data-line="21"><span class="k">def</span><span class="w"> </span><span class="nf">generate_entropy_exergy_term</span><span class="p">(</span>
 </span><span data-line="22">    <span class="n">fluid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span data-line="23">    <span class="n">T</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -196,7 +211,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="66">
 </span><span data-line="67">
 <div class="viewcode-block" id="calc_energy_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.thermodynamics.calc_energy_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.calc_energy_flow">[docs]</a>
 </span><span data-line="68"><span class="k">def</span><span class="w"> </span><span class="nf">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">T0</span><span class="p">):</span>
 </span><span data-line="69"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate energy flow rate.</span>
 </span><span data-line="70">
@@ -219,7 +234,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="86">
 </span><span data-line="87">
 <div class="viewcode-block" id="calc_exergy_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.thermodynamics.calc_exergy_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.calc_exergy_flow">[docs]</a>
 </span><span data-line="88"><span class="k">def</span><span class="w"> </span><span class="nf">calc_exergy_flow</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">T0</span><span class="p">):</span>
 </span><span data-line="89"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate exergy flow rate.</span>
 </span><span data-line="90">
@@ -259,7 +274,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="123">
 </span><span data-line="124">
 <div class="viewcode-block" id="calc_refrigerant_exergy">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.thermodynamics.calc_refrigerant_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.calc_refrigerant_exergy">[docs]</a>
 </span><span data-line="125"><span class="k">def</span><span class="w"> </span><span class="nf">calc_refrigerant_exergy</span><span class="p">(</span>
 </span><span data-line="126">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
 </span><span data-line="127">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -345,7 +360,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="206">
 </span><span data-line="207">
 <div class="viewcode-block" id="convert_electricity_to_exergy">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.thermodynamics.convert_electricity_to_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.convert_electricity_to_exergy">[docs]</a>
 </span><span data-line="208"><span class="k">def</span><span class="w"> </span><span class="nf">convert_electricity_to_exergy</span><span class="p">(</span>
 </span><span data-line="209">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
 </span><span data-line="210"><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>

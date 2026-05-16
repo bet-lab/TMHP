@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -161,7 +176,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="34">
 </span><span data-line="35">
 <div class="viewcode-block" id="StepContext">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.StepContext">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.StepContext">[docs]</a>
 </span><span data-line="36"><span class="nd">@dataclass</span>
 </span><span data-line="37"><span class="k">class</span><span class="w"> </span><span class="nc">StepContext</span><span class="p">:</span>
 </span><span data-line="38"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-timestep immutable context (time, environment, demand).</span>
@@ -220,7 +235,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="90">
 </span><span data-line="91">
 <div class="viewcode-block" id="ControlState">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.ControlState">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.ControlState">[docs]</a>
 </span><span data-line="92"><span class="nd">@dataclass</span>
 </span><span data-line="93"><span class="k">class</span><span class="w"> </span><span class="nc">ControlState</span><span class="p">:</span>
 </span><span data-line="94"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Heat-source control decisions for one timestep.</span>
@@ -257,7 +272,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="124">
 </span><span data-line="125">
 <div class="viewcode-block" id="SubsystemExergy">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.SubsystemExergy">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.SubsystemExergy">[docs]</a>
 </span><span data-line="126"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span data-line="127"><span class="k">class</span><span class="w"> </span><span class="nc">SubsystemExergy</span><span class="p">:</span>
 </span><span data-line="128"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Subsystem-specific exergy calculation results.</span>
@@ -294,7 +309,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="158">
 </span><span data-line="159">
 <div class="viewcode-block" id="Subsystem">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.Subsystem">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.Subsystem">[docs]</a>
 </span><span data-line="160"><span class="k">class</span><span class="w"> </span><span class="nc">Subsystem</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 </span><span data-line="161"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pluggable subsystem interface.</span>
 </span><span data-line="162">
@@ -305,7 +320,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="167"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="168">
 <div class="viewcode-block" id="Subsystem.step">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.Subsystem.step">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.Subsystem.step">[docs]</a>
 </span><span data-line="169">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span>
 </span><span data-line="170">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="171">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
@@ -342,7 +357,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="202">
 <div class="viewcode-block" id="Subsystem.assemble_results">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.Subsystem.assemble_results">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.Subsystem.assemble_results">[docs]</a>
 </span><span data-line="203">    <span class="k">def</span><span class="w"> </span><span class="nf">assemble_results</span><span class="p">(</span>
 </span><span data-line="204">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="205">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
@@ -372,7 +387,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="229">
 <div class="viewcode-block" id="Subsystem.calc_exergy">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.Subsystem.calc_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.Subsystem.calc_exergy">[docs]</a>
 </span><span data-line="230">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_exergy</span><span class="p">(</span>
 </span><span data-line="231">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="232">        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
@@ -383,7 +398,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="237">
 <div class="viewcode-block" id="Subsystem.calc_performance">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.Subsystem.calc_performance">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.Subsystem.calc_performance">[docs]</a>
 </span><span data-line="238">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_performance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span data-line="239"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate performance at a specific condition.&quot;&quot;&quot;</span>
 </span><span data-line="240">        <span class="o">...</span></div>
@@ -397,7 +412,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="246">
 </span><span data-line="247">
 <div class="viewcode-block" id="check_hp_schedule_active">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.check_hp_schedule_active">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.check_hp_schedule_active">[docs]</a>
 </span><span data-line="248"><span class="k">def</span><span class="w"> </span><span class="nf">check_hp_schedule_active</span><span class="p">(</span>
 </span><span data-line="249">    <span class="n">hour</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="250">    <span class="n">hp_on_schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
@@ -420,7 +435,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="266">
 </span><span data-line="267">
 <div class="viewcode-block" id="determine_heat_source_on_off">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.determine_heat_source_on_off">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.determine_heat_source_on_off">[docs]</a>
 </span><span data-line="268"><span class="k">def</span><span class="w"> </span><span class="nf">determine_heat_source_on_off</span><span class="p">(</span>
 </span><span data-line="269">    <span class="n">T_tank_w_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="270">    <span class="n">T_lower</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -466,7 +481,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="309">
 </span><span data-line="310">
 <div class="viewcode-block" id="determine_tank_refill_flow">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.determine_tank_refill_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.determine_tank_refill_flow">[docs]</a>
 </span><span data-line="311"><span class="k">def</span><span class="w"> </span><span class="nf">determine_tank_refill_flow</span><span class="p">(</span>
 </span><span data-line="312">    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="313">    <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -551,7 +566,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="391">
 </span><span data-line="392">
 <div class="viewcode-block" id="tank_mass_energy_residual">
-<a class="viewcode-back" href="../../api/support.html#physics_hp.dynamic_context.tank_mass_energy_residual">[docs]</a>
+<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.dynamic_context.tank_mass_energy_residual">[docs]</a>
 </span><span data-line="393"><span class="k">def</span><span class="w"> </span><span class="nf">tank_mass_energy_residual</span><span class="p">(</span>
 </span><span data-line="394">    <span class="n">x</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
 </span><span data-line="395">    <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>

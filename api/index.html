@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>API Reference - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Models" href="models.html" /><link rel="prev" title="Quick Start" href="../getting-started/quickstart.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>API Reference - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Models" href="models/index.html" /><link rel="prev" title="Quick Start" href="../getting-started/quickstart.html" />
       <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -72,8 +72,23 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="models.html">Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="support.html">Support Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -91,7 +106,11 @@ data-aria-dark="Switch to auto color mode">
     <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
       <i class="i-lucide close"></i>
     </button>
-    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#models">Models</a></li>
+<li><a class="reference internal" href="#support-modules">Support modules</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
   <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
   <main class="sy-main w-full max-sm:max-w-full print:pt-6">
@@ -122,13 +141,137 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
-<p>Complete API documentation for <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code>.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="support.html">Support Modules</a></li>
-</ul>
+<p>Complete API documentation for the <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> package, organized by
+module group. Each card below links to a sub-section that documents the
+classes and functions in that group.</p>
+<section id="models">
+<h2>Models<a class="headerlink" href="#models" title="Link to this heading">¶</a></h2>
+<p>System-level heat pump models. Each model couples a refrigerant cycle to a
+source side (air, ground, water) and a sink side (DHW tank, building load,
+hybrid PV / STC / ESS configurations).</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Air-source heat pump boilers</div>
+<p class="sd-card-text">ASHPB core model plus three composed variants:
+STC preheat, STC stratified tank, PV + ESS.</p>
 </div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="models/ashpb.html"><span class="doc">Air-source heat pump boilers (ASHPB)</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Ground-source heat pump boilers</div>
+<p class="sd-card-text">GSHPB core model with g-function borehole, plus
+STC preheat, STC stratified tank, PV + ESS variants.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="models/gshpb.html"><span class="doc">Ground-source heat pump boilers (GSHPB)</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Water-source heat pump boiler</div>
+<p class="sd-card-text">Dynamic WSHPB model.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Space-conditioning heat pumps</div>
+<p class="sd-card-text">Air-source and ground-source heat pumps for
+building heating and cooling loads.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="models/space-conditioning.html"><span class="doc">Space-conditioning heat pumps</span></a></div>
+</div>
+</div>
+</div>
+</section>
+<section id="support-modules">
+<h2>Support modules<a class="headerlink" href="#support-modules" title="Link to this heading">¶</a></h2>
+<p>Lower-level building blocks used by the system models above.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Refrigerant &amp; thermodynamics</div>
+<p class="sd-card-text">CoolProp state-point helpers, cycle analysis, and
+COP correlations.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/refrigerant-thermo.html"><span class="doc">Refrigerant &amp; thermodynamics</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Heat transfer &amp; exchangers</div>
+<p class="sd-card-text">ε-NTU heat exchanger model, air-side fan and
+heat-exchanger calculations, and borehole g-function.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/heat-transfer.html"><span class="doc">Heat transfer &amp; exchangers</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Demand &amp; weather</div>
+<p class="sd-card-text">Outdoor air temperature utilities and domestic hot
+water demand profiles.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/demand-weather.html"><span class="doc">Demand &amp; weather</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Subsystems</div>
+<p class="sd-card-text">Solar thermal collector, photovoltaic system,
+energy storage system, and UV treatment.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/subsystems.html"><span class="doc">Subsystems</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Simulation helpers</div>
+<p class="sd-card-text">Per-step dynamic context, energy / exergy helpers,
+and stdout summary tables.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/simulation.html"><span class="doc">Simulation helpers</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Visualization</div>
+<p class="sd-card-text">Plotting facade and Mollier (T-h / P-h / T-s)
+diagrams.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/visualization.html"><span class="doc">Visualization</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Utilities &amp; constants</div>
+<p class="sd-card-text">Unit-conversion helpers and physical constants.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="support/utilities.html"><span class="doc">Utilities &amp; constants</span></a></div>
+</div>
+</div>
+</div>
+<div class="toctree-wrapper compound">
+</div>
+</section>
 </section>
 
         </article><button class="back-to-top" type="button">
@@ -143,7 +286,7 @@ data-aria-dark="Switch to auto color mode">
         <span>Previous</span><div class="title">Quick Start</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="models.html">
+    <a href="models/index.html">
       <div class="page-info">
         <span>Next</span>
         <div class="title">Models</div>

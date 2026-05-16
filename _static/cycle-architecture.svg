@@ -12,10 +12,16 @@ solver picks the evaporating-side approach temperature and the
 compressor speed that minimize compressor power.</desc>
 
   <style><![CDATA[
+    /* Three-hue scheme aligned with the site iris accent:
+     *   - source  -> warm amber (heat source = warm, kept for intuition)
+     *   - cycle   -> iris       (the main refrigerant loop, primary)
+     *   - sink    -> iris-light (consumer of Q_cond, iris-family for cohesion)
+     *   - solver  -> violet     (control loop, distinguished from the cycle)
+     */
     :root {
-      --src-fill:    #fef3c7;   --src-stroke:    #d97706;   --src-text:    #78350f;
+      --src-fill:    #fef3c7;   --src-stroke:    #b45309;   --src-text:    #78350f;
       --cycle-fill:  #eef2ff;   --cycle-stroke:  #6366f1;   --cycle-text:  #1e1b4b;
-      --sink-fill:   #dbeafe;   --sink-stroke:   #2563eb;   --sink-text:   #1e3a8a;
+      --sink-fill:   #e0e7ff;   --sink-stroke:   #4f46e5;   --sink-text:   #312e81;
       --solver-fill: #f5f3ff;   --solver-stroke: #8b5cf6;   --solver-text: #4c1d95;
       --edge:        #475569;
       --edge-dashed: #8b5cf6;
@@ -28,7 +34,7 @@ compressor speed that minimize compressor power.</desc>
       :root {
         --src-fill:    #3a2a06;   --src-stroke:    #fbbf24;   --src-text:    #fde68a;
         --cycle-fill:  #1a1f3a;   --cycle-stroke:  #818cf8;   --cycle-text:  #e0e7ff;
-        --sink-fill:   #0e2a4f;   --sink-stroke:   #60a5fa;   --sink-text:   #dbeafe;
+        --sink-fill:   #1e1b4b;   --sink-stroke:   #a5b4fc;   --sink-text:   #e0e7ff;
         --solver-fill: #2a1d4a;   --solver-stroke: #c4b5fd;   --solver-text: #ede9fe;
         --edge:        #94a3b8;
         --edge-dashed: #c4b5fd;

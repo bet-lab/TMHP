@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The refrigerant is a constructor argument on every model in physics_hp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves ..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T16:20:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -132,10 +132,10 @@ data-aria-dark="Switch to auto color mode">
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#sweep">Sweep</a></li>
 <li><a class="reference internal" href="#reading-the-result">Reading the result</a></li>
-<li><a class="reference internal" href="#picking-a-refrigerant">Picking a refrigerant</a><ul>
-<li><a class="reference internal" href="#screening-criteria">Screening criteria</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#reference-table">Reference table</a></li>
+<li><a class="reference internal" href="#refrigerant-catalogue">Refrigerant catalogue</a></li>
+<li><a class="reference internal" href="#picking-by-application">Picking by application</a></li>
+<li><a class="reference internal" href="#screening-criteria-summary">Screening criteria summary</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -176,8 +176,19 @@ data-aria-dark="Switch to auto color mode">
 <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code>. Changing it requires no recalibration and no
 manufacturer data — pick any name CoolProp recognises and the
 library re-solves the cycle from first principles.</p>
-<p>This tutorial sweeps four common refrigerants at a single fixed
-operating point and tabulates the resulting COP.</p>
+<p>This page is both a copy-runnable tutorial — sweep four
+refrigerants at one operating point and inspect the COP — and an
+engineering reference covering the ten working fluids that
+actually show up in modern heat-pump design.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Property values quoted below are nominal engineering references
+from <a class="reference external" href="https://www.ashrae.org/technical-resources/standards-and-guidelines">ASHRAE Standard 34</a>
+and CoolProp’s REFPROP-grade equations of state. Always
+reconfirm against the EOS at your specific operating point
+before sizing — these tables are screening tools, not design
+data.</p>
+</div>
 <section id="sweep">
 <h2>Sweep<a class="headerlink" href="#sweep" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -235,69 +246,414 @@ saturation curves end up at different <code class="docutils literal notranslate"
 the heat exchangers are identical.</p></li>
 </ul>
 </section>
-<section id="picking-a-refrigerant">
-<h2>Picking a refrigerant<a class="headerlink" href="#picking-a-refrigerant" title="Link to this heading">¶</a></h2>
-<p>The library doesn’t decide for you. Each refrigerant trades off
-COP, safety class, and environmental impact differently. Tabs
-below summarise the four common picks at a glance.</p>
+<section id="reference-table">
+<h2>Reference table<a class="headerlink" href="#reference-table" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-given refrigerant-table docutils container">
+<table class="refrigerant-table docutils align-default">
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 16.0%" />
+<col style="width: 8.0%" />
+<col style="width: 8.0%" />
+<col style="width: 8.0%" />
+<col style="width: 8.0%" />
+<col style="width: 8.0%" />
+<col style="width: 34.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Refrigerant</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>ASHRAE</p></th>
+<th class="head"><p>GWP<sub>100</sub></p></th>
+<th class="head"><p>T<sub>crit</sub> [°C]</p></th>
+<th class="head"><p>NBP [°C]</p></th>
+<th class="head"><p>Glide [K]</p></th>
+<th class="head"><p>Primary applications</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>R32</strong></p></td>
+<td><p>HFC, single</p></td>
+<td><p>A2L</p></td>
+<td><p>675</p></td>
+<td><p>78</p></td>
+<td><p>−52</p></td>
+<td><p>0</p></td>
+<td><p>Residential AC and DHW heat pumps; the current R410A successor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>R290</strong></p></td>
+<td><p>HC (propane)</p></td>
+<td><p>A3</p></td>
+<td><p>3</p></td>
+<td><p>97</p></td>
+<td><p>−42</p></td>
+<td><p>0</p></td>
+<td><p>Monoblock outdoor heat pumps; commercial and EU-residential.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>R600a</strong></p></td>
+<td><p>HC (isobutane)</p></td>
+<td><p>A3</p></td>
+<td><p>3</p></td>
+<td><p>135</p></td>
+<td><p>−12</p></td>
+<td><p>0</p></td>
+<td><p>Domestic refrigeration and small (&lt;300 W) heat pumps.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>R454B</strong></p></td>
+<td><p>HFC/HFO blend
+(R32 / R1234yf, 68.9 / 31.1)</p></td>
+<td><p>A2L</p></td>
+<td><p>466</p></td>
+<td><p>78</p></td>
+<td><p>−51</p></td>
+<td><p>~1.5</p></td>
+<td><p>Newer residential AC/HP; a near drop-in R410A replacement.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>R134a</strong></p></td>
+<td><p>HFC, single</p></td>
+<td><p>A1</p></td>
+<td><p>1430</p></td>
+<td><p>101</p></td>
+<td><p>−26</p></td>
+<td><p>0</p></td>
+<td><p>Industrial heat pumps, chillers, transport refrigeration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>R513A</strong></p></td>
+<td><p>HFC/HFO blend
+(R1234yf / R134a, 56 / 44)</p></td>
+<td><p>A1</p></td>
+<td><p>631</p></td>
+<td><p>94</p></td>
+<td><p>−29</p></td>
+<td><p>&lt;0.2</p></td>
+<td><p>Industrial chillers; lower-GWP R134a replacement.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>R410A</strong></p></td>
+<td><p>HFC blend
+(R32 / R125, 50 / 50)</p></td>
+<td><p>A1</p></td>
+<td><p>2088</p></td>
+<td><p>72</p></td>
+<td><p>−51</p></td>
+<td><p>&lt;0.2</p></td>
+<td><p>Legacy residential AC/HP; being phased down under F-gas regulation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>R1234ze(E)</strong></p></td>
+<td><p>HFO, single</p></td>
+<td><p>A2L</p></td>
+<td><p>&lt;1</p></td>
+<td><p>109</p></td>
+<td><p>−19</p></td>
+<td><p>0</p></td>
+<td><p>High-temperature heat pumps and centrifugal chillers.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>R744</strong></p></td>
+<td><p>CO<sub>2</sub></p></td>
+<td><p>A1</p></td>
+<td><p>1</p></td>
+<td><p>31</p></td>
+<td><p>−78 (subl.)</p></td>
+<td><p>n/a</p></td>
+<td><p>Transcritical sanitary hot water (60–90 °C), supermarket refrigeration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>R717</strong></p></td>
+<td><p>NH<sub>3</sub> (ammonia)</p></td>
+<td><p>B2L</p></td>
+<td><p>0</p></td>
+<td><p>132</p></td>
+<td><p>−33</p></td>
+<td><p>0</p></td>
+<td><p>Large industrial heat pumps and process refrigeration.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The glide column shows the temperature difference between bubble
+and dew points at constant pressure inside the two-phase region.
+Single-component fluids and near-azeotropes (R410A, R513A) glide
+by &lt; 0.5 K; zeotropic blends (R454B) glide by ~1.5 K, which
+matters for evaporator design and for fractionation behaviour on
+a leak-and-recharge cycle.</p>
+</section>
+<section id="refrigerant-catalogue">
+<h2>Refrigerant catalogue<a class="headerlink" href="#refrigerant-catalogue" title="Link to this heading">¶</a></h2>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r32" for="sd-tab-item-0">
+<label class="sd-tab-label" for="sd-tab-item-0">
 R32</label><div class="sd-tab-content docutils">
 <p><strong>Difluoromethane</strong> · single-component HFC</p>
-<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A2L low-flammability</span> <span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">GWP ≈ 675</span>
-<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 78 °C</span></p>
-<p>Default in this library — solid COP across the DHW
-envelope and the refrigerant Samsung used for the
-validation unit. Subcritical condensation up to about
-70 °C LWT.</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">A2L low-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP 675</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 78 °C</span></p>
+<p>Default in this library and the refrigerant Samsung used
+for the validation unit. The de-facto successor to R410A
+in residential heat pumps.</p>
+<p><em>Strengths</em>: high volumetric capacity (smaller
+displacement compressor for the same duty), single-
+component (no glide, no fractionation on a leak), and
+about one-third the GWP of R410A.</p>
+<p><em>Watch outs</em>: A2L flammability triggers charge-limit
+rules in residential applications. Discharge temperatures
+run hotter than R410A — at high condensing temperatures
+an oil cooler or liquid injection may be needed.</p>
+<p><em>Typical use</em>: residential AC and DHW heat pumps up to
+~70 °C LWT; the current standard for new installations
+in most markets.</p>
 </div>
 <input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r290" for="sd-tab-item-1">
+<label class="sd-tab-label" for="sd-tab-item-1">
 R290</label><div class="sd-tab-content docutils">
-<p><strong>Propane</strong> · natural refrigerant</p>
-<p><span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">A3 flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP ≈ 3</span>
-<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 97 °C</span></p>
-<p>Highest COP and lowest GWP of the four. Safety-charge
-limits constrain residential applications, but propane
-is the EU-friendly long-term pick.</p>
+<p><strong>Propane</strong> · natural hydrocarbon refrigerant</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">A3 flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP 3</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 97 °C</span></p>
+<p>Highest COP and lowest GWP of the mainstream picks. The
+long-term EU choice for residential and small-commercial
+heat pumps.</p>
+<p><em>Strengths</em>: excellent thermodynamic match for the
+heat-pump envelope, near-zero GWP, low cost, miscible
+with mineral and POE oils, drop-in compatible with most
+copper / brass / steel plumbing.</p>
+<p><em>Watch outs</em>: A3 high flammability brings charge limits
+(~150 g for residential indoor units under IEC 60335-2-40
+Amendment 1; higher for outdoor monoblock), which caps
+DX system size — most R290 heat pumps are sealed monoblock
+outdoor units with a hydronic loop into the building.</p>
+<p><em>Typical use</em>: monoblock air-to-water heat pumps, small
+commercial DHW heat pumps, EU residential.</p>
 </div>
 <input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r410a" for="sd-tab-item-2">
-R410A</label><div class="sd-tab-content docutils">
-<p><strong>R32 / R125 zeotropic blend</strong> · legacy HFC</p>
-<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP ≈ 2088</span>
-<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 72 °C</span></p>
-<p>The blend most existing residential heat pumps were
-designed for. Strong precedent and tooling, but being
-phased out under F-gas regulation.</p>
+<label class="sd-tab-label" for="sd-tab-item-2">
+R600a</label><div class="sd-tab-content docutils">
+<p><strong>Isobutane</strong> · natural hydrocarbon refrigerant</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">A3 flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP 3</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 135 °C</span></p>
+<p>The dominant refrigerant in domestic refrigeration; rare
+but viable for very small heat pumps.</p>
+<p><em>Strengths</em>: highest critical temperature of any HC,
+which gives headroom for high condenser temperatures.
+Negligible GWP. Very low operating pressures.</p>
+<p><em>Watch outs</em>: low volumetric capacity (about a third of
+R290), so the same duty needs a substantially larger
+displacement compressor — economically unattractive above
+a few hundred watts. A3 flammability charge limits apply.</p>
+<p><em>Typical use</em>: domestic refrigerators and freezers; some
+very-small (&lt;300 W) heat-pump products.</p>
 </div>
 <input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r134a" for="sd-tab-item-3">
+<label class="sd-tab-label" for="sd-tab-item-3">
+R454B</label><div class="sd-tab-content docutils">
+<p><strong>R32 / R1234yf zeotropic blend</strong> (68.9 / 31.1) · HFC/HFO</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">A2L low-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">GWP 466</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 78 °C</span></p>
+<p>Designed as a low-GWP, drop-in-ish replacement for R410A
+in residential AC and heat pumps, with materially similar
+operating pressures.</p>
+<p><em>Strengths</em>: about 78 % lower GWP than R410A while
+keeping similar capacity and pressure levels; compatible
+with R410A-class compressors and brazed-plate heat
+exchangers; lower discharge temperature than pure R32.</p>
+<p><em>Watch outs</em>: A2L flammability constraints. ~1.5 K glide
+means the evaporator must be designed for a temperature
+spread, and fractionation on a partial leak shifts the
+composition — top off only with new refrigerant from
+liquid phase.</p>
+<p><em>Typical use</em>: new residential and light-commercial AC
+and heat pumps in markets where R410A is being retired
+(US, EU).</p>
+</div>
+<input id="sd-tab-item-4" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-4">
 R134a</label><div class="sd-tab-content docutils">
 <p><strong>1,1,1,2-Tetrafluoroethane</strong> · single-component HFC</p>
-<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP ≈ 1430</span>
-<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 101 °C</span></p>
-<p>High critical temperature makes it well-suited to
-high-LWT industrial heat-pump applications, but GWP and
-regulatory pressure limit residential use.</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP 1430</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 101 °C</span></p>
+<p>The classical industrial-chiller and medium-temperature
+refrigerant. High critical temperature makes it
+well-suited to high-LWT applications.</p>
+<p><em>Strengths</em>: A1 safety, high T<sub>crit</sub> good for hot
+DHW or process heating up to ~80 °C, mature compressor
+and oil ecosystem, very well characterised EOS.</p>
+<p><em>Watch outs</em>: GWP 1430 puts it on F-gas phase-down
+schedules. Lower volumetric capacity than R32 / R410A
+means physically larger compressors for the same duty.</p>
+<p><em>Typical use</em>: industrial heat pumps and chillers, large
+centrifugal chillers, transport refrigeration. Newer
+designs increasingly use R513A or R1234ze(E) instead.</p>
+</div>
+<input id="sd-tab-item-5" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-5">
+R513A</label><div class="sd-tab-content docutils">
+<p><strong>R1234yf / R134a azeotropic blend</strong> (56 / 44) · HFC/HFO</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">GWP 631</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 94 °C</span></p>
+<p>Direct R134a replacement that preserves the A1
+non-flammable rating while halving the GWP.</p>
+<p><em>Strengths</em>: A1 safety retained (no flammability
+re-engineering); near-azeotropic (glide &lt; 0.2 K), so
+drop-in into existing R134a chillers is usually feasible
+with only minor performance differences.</p>
+<p><em>Watch outs</em>: still F-gas-listed (GWP 631), so
+long-horizon designs may prefer R1234ze(E) or R515B.
+Slightly lower volumetric capacity than R134a.</p>
+<p><em>Typical use</em>: retrofit and new industrial chillers and
+heat pumps where the A1 rating is required.</p>
+</div>
+<input id="sd-tab-item-6" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-6">
+R410A</label><div class="sd-tab-content docutils">
+<p><strong>R32 / R125 zeotropic blend</strong> (50 / 50) · legacy HFC</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP 2088</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 72 °C</span></p>
+<p>The blend a generation of residential and light-
+commercial heat pumps were designed for. Strong precedent
+and tooling, but being phased out.</p>
+<p><em>Strengths</em>: A1 non-flammable, high capacity, mature
+compressor and component ecosystem.</p>
+<p><em>Watch outs</em>: GWP 2088 puts it on aggressive F-gas
+phase-down quotas — new equipment is increasingly
+prohibited (EU F-gas 2024 revision bans most R410A
+single-split AC ≤ 12 kW from 2027, all by 2032).
+Comparatively low T<sub>crit</sub> (~72 °C) limits high-LWT
+applications.</p>
+<p><em>Typical use</em>: existing residential AC/HP installed base;
+legacy service. Not recommended for new system design.</p>
+</div>
+<input id="sd-tab-item-7" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-7">
+R1234ze(E)</label><div class="sd-tab-content docutils">
+<p><strong>trans-1,3,3,3-Tetrafluoropropene</strong> · single-component HFO</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">A2L low-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP &lt;1</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 109 °C</span></p>
+<p>Modern HFO with very low GWP and a high critical
+temperature. Increasingly common in high-temperature heat
+pumps and centrifugal chillers.</p>
+<p><em>Strengths</em>: GWP under 1, high T<sub>crit</sub> supports
+condenser temperatures up to ~95 °C, A2L only at elevated
+temperature (above ~30 °C), single component.</p>
+<p><em>Watch outs</em>: relatively low volumetric capacity — needs
+a physically larger compressor than R134a for the same
+duty. Higher cost than legacy HFCs. Material compatibility
+with elastomers should be verified.</p>
+<p><em>Typical use</em>: large centrifugal water chillers, district
+heating / industrial water-to-water heat pumps producing
+80–95 °C LWT.</p>
+</div>
+<input id="sd-tab-item-8" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-8">
+R744</label><div class="sd-tab-content docutils">
+<p><strong>Carbon dioxide</strong> · natural inorganic refrigerant</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP 1</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 31 °C — transcritical</span></p>
+<p>Operates as a transcritical cycle in heating applications:
+the high side is a supercritical gas cooler, not a
+condenser. Excellent match for very-high-temperature DHW
+(65–90 °C) thanks to the temperature glide of supercritical
+CO<sub>2</sub> along the gas cooler.</p>
+<p><em>Strengths</em>: zero ODP, GWP 1, regulatory-future-proof,
+outstanding performance for hot-DHW heat pumps with cold
+return water (e.g. Japanese EcoCute), supports
+condensing-side temperatures other refrigerants can’t
+reach without compromising COP.</p>
+<p><em>Watch outs</em>: very high operating pressures (~100 bar on
+the gas-cooler side) — requires purpose-built compressors,
+heat exchangers, and instrumentation. Sub-cooler /
+expander details dominate COP; can’t be analysed with a
+subcritical-condenser model — see
+<a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a> for how
+<code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> currently treats this case.</p>
+<p><em>Typical use</em>: sanitary-water heat pumps (Japan, Europe),
+commercial / supermarket refrigeration, transport
+refrigeration.</p>
+</div>
+<input id="sd-tab-item-9" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-9">
+R717</label><div class="sd-tab-content docutils">
+<p><strong>Ammonia (NH:sub:`3`)</strong> · natural inorganic refrigerant</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">B2L toxic, low-flam</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP 0</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit 132 °C</span></p>
+<p>The classical industrial refrigerant. Exceptional
+thermodynamic performance and zero environmental impact
+from emissions, but operates under strict safety codes.</p>
+<p><em>Strengths</em>: highest cycle efficiency of any common
+refrigerant for typical industrial duties; zero GWP and
+zero ODP; very high T<sub>crit</sub> enables high-LWT
+operation; pungent self-alarming odour aids leak
+detection.</p>
+<p><em>Watch outs</em>: toxic (Class B), incompatible with copper
+and brass alloys (steel and aluminium plumbing only),
+requires trained operators and ammonia-specific safety
+systems (ventilation, gas detection, evacuation
+procedures). Capital costs and footprint reflect the
+safety engineering.</p>
+<p><em>Typical use</em>: large industrial heat pumps, food-process
+refrigeration, cold storage, district heating with
+recovered industrial heat.</p>
 </div>
 </div>
-<section id="screening-criteria">
-<h3>Screening criteria<a class="headerlink" href="#screening-criteria" title="Link to this heading">¶</a></h3>
+</section>
+<section id="picking-by-application">
+<h2>Picking by application<a class="headerlink" href="#picking-by-application" title="Link to this heading">¶</a></h2>
 <p>Use the sweep above as a screening step against the constraints
-that actually matter for your application:</p>
-<ul class="simple">
-<li><p><strong>Operating-point COP</strong> — what this tutorial reports.</p></li>
-<li><p><strong>Flammability class</strong> — A1 (R134a, R410A) → A2L (R32) → A3 (R290).</p></li>
-<li><p><strong>GWP</strong> — R134a &gt; R410A &gt; R32 &gt; R290 ≈ R744.</p></li>
-<li><p><strong>Critical temperature</strong> — for transcritical CO₂ (R744), see
-<a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p></li>
-</ul>
-<p>Once a candidate refrigerant is chosen, re-run a full annual
-simulation with realistic schedules — see
+that actually matter for your application. A rough decision
+guide:</p>
+<dl class="simple">
+<dt><em>Residential AC / heat pump (split or monoblock, ≤ 12 kW, LWT ≤ 65 °C)</em></dt><dd><p>R454B (new) or R32 (still allowed in most markets) for split
+systems; R290 for sealed monoblock outdoor units. R410A only
+for service of existing installs.</p>
+</dd>
+<dt><em>Domestic DHW heat pump (LWT 55–65 °C)</em></dt><dd><p>R32 or R290 for subcritical designs; R744 for the
+very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
+pattern.</p>
+</dd>
+<dt><em>High-temperature industrial heat pump (LWT 80–95 °C)</em></dt><dd><p>R1234ze(E), R134a, or R717 (ammonia). R600a is occasionally
+used for niche small units. <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> solves these
+subcritically as long as T<sub>crit</sub> clears the condenser
+by ~10 K; check <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> for <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>.</p>
+</dd>
+<dt><em>Very-high-LWT (≥ 90 °C) industrial heat pump</em></dt><dd><p>R717 (ammonia) or R718 (water) — the latter requires a
+radically different compressor class and is not modelled here.
+Pure R134a / R1234ze(E) can reach 90 °C but with diminishing
+COP.</p>
+</dd>
+<dt><em>Transcritical sanitary hot water (≥ 65 °C, cold return)</em></dt><dd><p>R744 — the only mainstream refrigerant whose cycle is
+optimised for this duty. Not subcritical, so the
+<code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> result is a sanity check rather than a design;
+see <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
+</dd>
+<dt><em>Industrial refrigeration and process cooling</em></dt><dd><p>R717 (ammonia) is the workhorse. R744 (CO<sub>2</sub>) is the
+growing alternative, often in CO<sub>2</sub>/NH<sub>3</sub>
+cascade systems for supermarkets and cold storage.</p>
+</dd>
+</dl>
+<p>The screening table above narrows the candidate list. Once one
+or two refrigerants survive, re-run a full annual simulation
+with realistic schedules — see
 <a class="reference internal" href="realistic-dynamic-simulation.html"><span class="doc">Realistic dynamic simulation</span></a>.</p>
 </section>
+<section id="screening-criteria-summary">
+<h2>Screening criteria summary<a class="headerlink" href="#screening-criteria-summary" title="Link to this heading">¶</a></h2>
+<p>To recap the levers when picking from the table:</p>
+<ul class="simple">
+<li><p><strong>Operating-point COP</strong> — what the sweep above reports. The
+refrigerant with the best COP at one operating point is rarely
+the best across an annual envelope; always confirm against
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> with a realistic schedule.</p></li>
+<li><p><strong>Flammability class</strong> — A1 (R410A, R134a, R513A, R744) →
+A2L (R32, R454B, R1234ze(E)) → A3 (R290, R600a). B-class
+(R717) is toxic and brings its own code regime.</p></li>
+<li><p><strong>GWP</strong> — for new systems aim for GWP &lt; 700 to align with the
+EU F-gas 2024 phase-down. R744 / R717 / R290 / R600a /
+R1234ze(E) are GWP-future-proof.</p></li>
+<li><p><strong>Critical temperature</strong> — sets the practical condenser
+ceiling for a subcritical cycle. Check the
+<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_v</span></code> column from the sweep against the
+refrigerant’s T<sub>crit</sub> in the table.</p></li>
+<li><p><strong>Glide</strong> — &gt; 1 K (R454B) means the evaporator should be
+counter-flow and the refrigerant must be charged from the
+liquid phase.</p></li>
+</ul>
+<p>Refer to <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a> for how
+CoolProp handles each refrigerant and the cycle-architecture
+implications.</p>
 </section>
 </section>
 

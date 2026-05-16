@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
@@ -926,23 +926,25 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.enex_functions.calc_HX_perf_for_target_heat">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_HX_perf_for_target_heat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_ref_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ou_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_evap_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_cond_sat_l_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_HX_perf_for_target_heat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_HX_perf_for_target_heat" title="Link to this definition">¶</a></dt>
-<dd><p>ε-NTU 기반 공기측 열교환기 풍량 수치 해석.</p>
-<p>This function determines the airflow that is needed to meet a specified heat transfer demand, accounting for dynamic changes in the overall heat transfer coefficient (UA) as a function of flow velocity based on the correlation for fin-and-tube heat exchangers by Wang et al. (2000) where UA ∝ velocity^0.71.</p>
+<dd><p>Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.</p>
+<p>Given a target heat transfer duty, find the airflow that delivers it,
+accounting for the velocity dependence of UA via the Wang et al. (2000)
+fin-and-tube correlation (UA ∝ velocity^0.71).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Q_ref_target</strong> (<em>float</em>) – 목표 열전달량 [W] (항상 양수).</p></li>
-<li><p><strong>T_a_in_C</strong> (<em>float</em><em>, </em><em>optional</em>) – 공기 입구 온도 [°C].</p></li>
-<li><p><strong>T_ref_sat_K</strong> (<em>float</em><em>, </em><em>optional</em>) – 냉매 포화 온도 [K] (일정 온도측).</p></li>
-<li><p><strong>A_cross</strong> (<em>float</em>) – HX 단면적 [m²].</p></li>
-<li><p><strong>UA_design</strong> (<em>float</em>) – 설계 UA [W/K].</p></li>
-<li><p><strong>dV_fan_design</strong> (<em>float</em>) – 설계 팬 풍량 [m³/s].</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em>) – 활성화 여부.</p></li>
+<li><p><strong>Q_ref_target</strong> (<em>float</em>) – Target heat transfer rate [W] (always positive).</p></li>
+<li><p><strong>T_a_in_C</strong> (<em>float</em><em>, </em><em>optional</em>) – Air-side inlet temperature [°C].</p></li>
+<li><p><strong>T_ref_sat_K</strong> (<em>float</em><em>, </em><em>optional</em>) – Refrigerant saturation temperature [K] on the constant-temperature side.</p></li>
+<li><p><strong>A_cross</strong> (<em>float</em>) – Heat-exchanger cross-sectional area [m²].</p></li>
+<li><p><strong>UA_design</strong> (<em>float</em>) – Design UA [W/K].</p></li>
+<li><p><strong>dV_fan_design</strong> (<em>float</em>) – Design fan volumetric flow rate [m³/s].</p></li>
+<li><p><strong>is_active</strong> (<em>bool</em>) – Active flag.</p></li>
 <li><p><strong>exponent</strong> (<em>float</em>) – UA scaling exponent (default: 0.71).</p></li>
-<li><p><strong>(</strong><strong>optional</strong><strong>)</strong> (<em># Legacy Aliases</em>)</p></li>
-<li><p><strong>T_ou_a_in_C</strong> (<em>float</em><em>, </em><em>optional</em>) – (하위 호환성) 과거 버전의 <code class="docutils literal notranslate"><span class="pre">T_a_in_C</span></code> 역할을 수행합니다.</p></li>
-<li><p><strong>T_ref_evap_sat_K</strong> (<em>float</em><em>, </em><em>optional</em>) – (하위 호환성) 과거 버전의 <code class="docutils literal notranslate"><span class="pre">T_ref_sat_K</span></code> 역할을 수행합니다.</p></li>
-<li><p><strong>T_ref_cond_sat_l_K</strong> (<em>float</em><em>, </em><em>optional</em>) – (하위 호환성) 과거 함수 시그니처 유지를 위한 미사용 파라미터입니다.</p></li>
+<li><p><strong>(</strong><strong>optional</strong><strong>)</strong> (<em># Legacy aliases</em>)</p></li>
+<li><p><strong>T_ou_a_in_C</strong> (<em>float</em><em>, </em><em>optional</em>) – Backward-compat alias for <code class="docutils literal notranslate"><span class="pre">T_a_in_C</span></code>.</p></li>
+<li><p><strong>T_ref_evap_sat_K</strong> (<em>float</em><em>, </em><em>optional</em>) – Backward-compat alias for <code class="docutils literal notranslate"><span class="pre">T_ref_sat_K</span></code>.</p></li>
+<li><p><strong>T_ref_cond_sat_l_K</strong> (<em>float</em><em>, </em><em>optional</em>) – Unused; kept only to preserve the older function signature.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1074,42 +1076,44 @@ service temperature <code class="docutils literal notranslate"><span class="pre"
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.enex_functions.calc_stc_performance">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_stc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_stc_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pump</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_stc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_stc_performance" title="Link to this definition">¶</a></dt>
-<dd><p>Solar Thermal Collector (STC) 성능을 계산합니다.</p>
-<p>이 함수는 태양열 집열판의 열전달 분석을 수행합니다.
-enex_engine.py의 SolarAssistedGasBoiler.system_update() 로직을 참조하여 구현되었습니다.</p>
+<dd><p>Compute the performance of a solar thermal collector (STC).</p>
+<p>Adapted from the <code class="docutils literal notranslate"><span class="pre">SolarAssistedGasBoiler.system_update</span></code> logic in the
+legacy <code class="docutils literal notranslate"><span class="pre">enex_engine.py</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>I_DN_stc</strong> (<em>float</em>) – 직달일사 [W/m²]</p></li>
-<li><p><strong>I_dH_stc</strong> (<em>float</em>) – 확산일사 [W/m²]</p></li>
-<li><p><strong>T_stc_w_in_K</strong> (<em>float</em>) – STC 입수 온도 (저탕조 온도) [K]</p></li>
-<li><p><strong>T0_K</strong> (<em>float</em>) – 기준 온도 (환경 온도) [K]</p></li>
-<li><p><strong>A_stc_pipe</strong> (<em>float</em>) – STC 파이프 면적 [m²]</p></li>
-<li><p><strong>alpha_stc</strong> (<em>float</em>) – 흡수율 [-]</p></li>
-<li><p><strong>h_o_stc</strong> (<em>float</em>) – 외부 대류 열전달계수 [W/m²K]</p></li>
-<li><p><strong>h_r_stc</strong> (<em>float</em>) – 공기층 복사 열전달계수 [W/m²K]</p></li>
-<li><p><strong>k_ins_stc</strong> (<em>float</em>) – 단열재 열전도도 [W/mK]</p></li>
-<li><p><strong>x_air_stc</strong> (<em>float</em>) – 공기층 두께 [m]</p></li>
-<li><p><strong>x_ins_stc</strong> (<em>float</em>) – 단열재 두께 [m]</p></li>
-<li><p><strong>dV_stc</strong> (<em>float</em>) – STC 유량 [m3/s]</p></li>
-<li><p><strong>E_pump</strong> (<em>float</em>) – 펌프 소모 전력 [W]</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – 활성화 여부 (기본값: True)
-is_active=False일 때 nan 값으로 채워진 딕셔너리 반환</p></li>
+<li><p><strong>I_DN_stc</strong> (<em>float</em>) – Direct normal irradiance [W/m²].</p></li>
+<li><p><strong>I_dH_stc</strong> (<em>float</em>) – Diffuse horizontal irradiance [W/m²].</p></li>
+<li><p><strong>T_stc_w_in_K</strong> (<em>float</em>) – Inlet water temperature to the STC (equal to the tank temperature) [K].</p></li>
+<li><p><strong>T0_K</strong> (<em>float</em>) – Reference / ambient temperature [K].</p></li>
+<li><p><strong>A_stc_pipe</strong> (<em>float</em>) – STC pipe area [m²].</p></li>
+<li><p><strong>alpha_stc</strong> (<em>float</em>) – Absorptance [-].</p></li>
+<li><p><strong>h_o_stc</strong> (<em>float</em>) – Outer convective heat-transfer coefficient [W/m²K].</p></li>
+<li><p><strong>h_r_stc</strong> (<em>float</em>) – Air-gap radiative heat-transfer coefficient [W/m²K].</p></li>
+<li><p><strong>k_ins_stc</strong> (<em>float</em>) – Insulation thermal conductivity [W/mK].</p></li>
+<li><p><strong>x_air_stc</strong> (<em>float</em>) – Air-gap thickness [m].</p></li>
+<li><p><strong>x_ins_stc</strong> (<em>float</em>) – Insulation thickness [m].</p></li>
+<li><p><strong>dV_stc</strong> (<em>float</em>) – STC volumetric flow rate [m³/s].</p></li>
+<li><p><strong>E_pump</strong> (<em>float</em>) – Pump electrical input [W].</p></li>
+<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – Active flag (default: True). When <code class="docutils literal notranslate"><span class="pre">False</span></code>, returns a dict filled
+with <code class="docutils literal notranslate"><span class="pre">np.nan</span></code> (except <code class="docutils literal notranslate"><span class="pre">T_stc_w_out_K</span></code> and <code class="docutils literal notranslate"><span class="pre">T_stc_w_in_K</span></code>, which
+are set to the inlet temperature).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>계산 결과 딕셔너리:
-- I_sol_stc: 총 일사량 [W/m²]
-- Q_sol_stc: 태양열 흡수 열량 [W]
-- Q_stc_w_in: STC 입수 열량 [W]
-- Q_stc_w_out: STC 출수 열량 [W]
-- ksi_stc: 무차원 수 [-]
-- T_stc_w_out_K: STC 출수 온도 [K]
-- T_stc_w_final_K: 펌프 열 포함 최종 출수 온도 [K]
-- T_stc_w_in_K: STC 입수 온도 [K]
-- T_stc_K: 집열판 평균 온도 [K]
-- Q_l_stc: 집열판 열 손실 [W]
-Returns dict with all values as np.nan (except T_stc_w_out_K, T_stc_w_in_K = T_stc_w_in_K) if is_active=False</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">I_sol_stc</span></code>      — total incident irradiance [W/m²]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span></code>      — absorbed solar heat [W]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_stc_w_in</span></code>     — inlet enthalpy flow relative to <code class="docutils literal notranslate"><span class="pre">T0_K</span></code> [W]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span></code>    — outlet enthalpy flow relative to <code class="docutils literal notranslate"><span class="pre">T0_K</span></code> [W]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ksi_stc</span></code>        — dimensionless efficiency parameter [-]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_stc_w_out_K</span></code>  — outlet water temperature [K]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_stc_w_final_K</span></code>— outlet temperature including pump heat gain [K]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_stc_w_in_K</span></code>   — inlet water temperature (echoed back) [K]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_stc_K</span></code>        — mean absorber-plate temperature [K]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_l_stc</span></code>        — absorber-plate heat loss [W]</p></li>
+</ul>
+</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
@@ -1117,9 +1121,11 @@ Returns dict with all values as np.nan (except T_stc_w_out_K, T_stc_w_in_K = T_s
 </dl>
 <p class="rubric">Notes</p>
 <ul class="simple">
-<li><p>모든 변수명에 _stc 접미사를 사용하여 STC 관련 변수임을 명확히 구분합니다.</p></li>
-<li><p>열 손실은 Q_l_stc로 명명됩니다.</p></li>
-<li><p>엔트로피 및 엑서지 계산은 제거되었으며, CSV 파일 후처리를 통해 계산해야 합니다.</p></li>
+<li><p>All variable names are suffixed with <code class="docutils literal notranslate"><span class="pre">_stc</span></code> to mark them as
+STC-specific.</p></li>
+<li><p>Heat losses are reported as <code class="docutils literal notranslate"><span class="pre">Q_l_stc</span></code>.</p></li>
+<li><p>Entropy and exergy quantities are intentionally not computed here; do
+them as a post-processing step on the result CSV if needed.</p></li>
 </ul>
 </dd></dl>
 

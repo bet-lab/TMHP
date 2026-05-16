@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/getting-started/installation.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked makes uv honor the committed uv.lock and fail rather than silently re-resolving versions, which is the same contract..." />
+<meta property="og:description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked tells uv to respect the committed uv.lock and fail rather than silently re-resolving versions. This is the same cont..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked makes uv honor the committed uv.lock and fail rather than silently re-resolving versions, which is the same contract..." />
+<meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked tells uv to respect the committed uv.lock and fail rather than silently re-resolving versions. This is the same cont..." />
 
-    <meta property="article:modified_time" content="2026-05-16T10:16:02+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -187,8 +187,9 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="3">uv<span class="w"> </span>sync<span class="w"> </span>--locked
 </span></pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">--locked</span></code> makes <code class="docutils literal notranslate"><span class="pre">uv</span></code> honor the committed <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> and fail rather
-than silently re-resolving versions, which is the same contract CI uses.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--locked</span></code> tells <code class="docutils literal notranslate"><span class="pre">uv</span></code> to respect the committed <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> and
+fail rather than silently re-resolving versions. This is the same
+contract CI uses, so your local install matches what we test.</p>
 </section>
 <section id="optional-dependency-groups">
 <h2>Optional dependency groups<a class="headerlink" href="#optional-dependency-groups" title="Link to this heading">¶</a></h2>

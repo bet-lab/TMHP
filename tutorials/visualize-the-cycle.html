@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Visualize the cycle (P–h) - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="Compose subsystems" href="compose-subsystems.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Visualize the thermodynamic cycle - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="Compose subsystems" href="compose-subsystems.html" />
       <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/tutorials/visualize-the-cycle.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -23,7 +23,7 @@
 }
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta property="og:title" content="Visualize the cycle (P–h)" />
+<meta property="og:title" content="Visualize the thermodynamic cycle" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/tutorials/visualize-the-cycle.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condenser saturation). Plotting those points on a pressure–en..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -155,7 +155,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">Visualize the cycle (P–h)</strong>
+        <strong itemprop="name">Visualize the thermodynamic cycle</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -168,15 +168,16 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <section id="visualize-the-cycle-ph">
-<h1>Visualize the cycle (P–h)<a class="headerlink" href="#visualize-the-cycle-ph" title="Link to this heading">¶</a></h1>
-<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call returns the full thermodynamic state at
-each cycle node (compressor in / out, expander in / out, evaporator /
-condenser saturation). Plotting those points on a pressure–enthalpy
-(P–h) chart — and, side-by-side, on a temperature–enthalpy (T–h) chart
-— is the fastest way to sanity-check a solved cycle.</p>
-<p>This tutorial draws both panels with no extra dependencies — just
-CoolProp and Matplotlib, which the library already pulls in.</p>
+          <section id="visualize-the-thermodynamic-cycle">
+<h1>Visualize the thermodynamic cycle<a class="headerlink" href="#visualize-the-thermodynamic-cycle" title="Link to this heading">¶</a></h1>
+<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call returns the full thermodynamic state
+at each cycle node (compressor in / out, expander in / out,
+evaporator / condenser saturation). Plotting those points on a
+pressure–enthalpy (P–h) chart — and, side by side, on a
+temperature–enthalpy (T–h) chart — is the fastest way to
+sanity-check a solved cycle.</p>
+<p>This tutorial draws both panels with no extra dependencies; just
+CoolProp and Matplotlib, both already pulled in by the library.</p>
 <section id="the-output">
 <h2>The output<a class="headerlink" href="#the-output" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">

@@ -80,7 +80,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
@@ -270,137 +270,138 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="107">
 </span><span data-line="108">    <span class="n">is_series</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T0</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span>
 </span><span data-line="109">    <span class="k">if</span> <span class="n">is_series</span><span class="p">:</span>
-</span><span data-line="110">        <span class="c1"># 벡터화 처리: T &lt;= 0 또는 T0 &lt;= 0인 경우 0으로 마스킹</span>
-</span><span data-line="111">        <span class="n">invalid</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
-</span><span data-line="112">        <span class="n">T_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
-</span><span data-line="113">        <span class="n">T0_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T0</span><span class="p">)</span>
-</span><span data-line="114">        <span class="n">result</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_safe</span> <span class="o">-</span> <span class="n">T0_safe</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0_safe</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T_safe</span> <span class="o">/</span> <span class="n">T0_safe</span><span class="p">))</span>
-</span><span data-line="115">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
-</span><span data-line="116">            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="117">        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
-</span><span data-line="118">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="119">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="120">        <span class="k">if</span> <span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="121">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="122">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="p">((</span><span class="n">T</span> <span class="o">-</span> <span class="n">T0</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="n">T0</span><span class="p">)))</span></div>
+</span><span data-line="110">        <span class="c1"># Vectorised path: mask rows where T &lt;= 0 or T0 &lt;= 0 to zero so the</span>
+</span><span data-line="111">        <span class="c1"># log doesn&#39;t blow up on invalid inputs.</span>
+</span><span data-line="112">        <span class="n">invalid</span> <span class="o">=</span> <span class="p">(</span><span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+</span><span data-line="113">        <span class="n">T_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+</span><span data-line="114">        <span class="n">T0_safe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">T0</span><span class="p">)</span>
+</span><span data-line="115">        <span class="n">result</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_safe</span> <span class="o">-</span> <span class="n">T0_safe</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0_safe</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T_safe</span> <span class="o">/</span> <span class="n">T0_safe</span><span class="p">))</span>
+</span><span data-line="116">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+</span><span data-line="117">            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="118">        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+</span><span data-line="119">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">T</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="120">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="121">        <span class="k">if</span> <span class="n">T</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">T0</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="122">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="123">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">G</span> <span class="o">*</span> <span class="p">((</span><span class="n">T</span> <span class="o">-</span> <span class="n">T0</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="n">T0</span><span class="p">)))</span></div>
 
-</span><span data-line="123">
 </span><span data-line="124">
+</span><span data-line="125">
 <div class="viewcode-block" id="calc_refrigerant_exergy">
 <a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.calc_refrigerant_exergy">[docs]</a>
-</span><span data-line="125"><span class="k">def</span><span class="w"> </span><span class="nf">calc_refrigerant_exergy</span><span class="p">(</span>
-</span><span data-line="126">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
-</span><span data-line="127">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="128">    <span class="n">T0_K</span><span class="p">:</span> <span class="s2">&quot;pd.Series&quot;</span><span class="p">,</span>
-</span><span data-line="129">    <span class="n">P0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">101325</span><span class="p">,</span>
-</span><span data-line="130"><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
-</span><span data-line="131"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate refrigerant state-point exergy using pre-computed properties.</span>
-</span><span data-line="132">
-</span><span data-line="133"><span class="sd">    Uses the entropy (``s_ref_*``) and enthalpy (``h_ref_*``) columns</span>
-</span><span data-line="134"><span class="sd">    already present in ``df`` (produced by ``calc_ref_state``) to compute</span>
-</span><span data-line="135"><span class="sd">    specific exergy and exergy flow rate for each refrigerant state point.</span>
-</span><span data-line="136">
-</span><span data-line="137"><span class="sd">    Dead-state properties (h0, s0) are evaluated at (T0, P0) for the</span>
-</span><span data-line="138"><span class="sd">    given refrigerant using CoolProp (vectorized via unique T0 values).</span>
-</span><span data-line="139">
-</span><span data-line="140"><span class="sd">    Parameters</span>
-</span><span data-line="141"><span class="sd">    ----------</span>
-</span><span data-line="142"><span class="sd">    df : pd.DataFrame</span>
-</span><span data-line="143"><span class="sd">        DataFrame containing pre-computed enthalpy ``h_ref_* [J/kg]``,</span>
-</span><span data-line="144"><span class="sd">        entropy ``s_ref_* [J/(kg·K)]``, and mass-flow</span>
-</span><span data-line="145"><span class="sd">        ``m_dot_ref [kg/s]`` columns.</span>
-</span><span data-line="146"><span class="sd">    ref : str</span>
-</span><span data-line="147"><span class="sd">        CoolProp refrigerant identifier (e.g. ``&#39;R410A&#39;``).</span>
-</span><span data-line="148"><span class="sd">    T0_K : pd.Series</span>
-</span><span data-line="149"><span class="sd">        Dead-state (environment) temperature per row [K].</span>
-</span><span data-line="150"><span class="sd">    P0 : float</span>
-</span><span data-line="151"><span class="sd">        Dead-state pressure [Pa] (default ``101325``).</span>
-</span><span data-line="152">
-</span><span data-line="153"><span class="sd">    Returns</span>
-</span><span data-line="154"><span class="sd">    -------</span>
-</span><span data-line="155"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="156"><span class="sd">        ``df`` with columns added per state point:</span>
-</span><span data-line="157"><span class="sd">        ``x_ref_{name} [J/kg]``, ``X_ref_{name} [W]``.</span>
-</span><span data-line="158">
-</span><span data-line="159"><span class="sd">    Notes</span>
-</span><span data-line="160"><span class="sd">    -----</span>
-</span><span data-line="161"><span class="sd">    - Exergy equation: x = (h − h0) − T0·(s − s0)  [J/kg]</span>
-</span><span data-line="162"><span class="sd">    - Exergy flow: X = ṁ · x  [W]</span>
-</span><span data-line="163"><span class="sd">    - Rows with NaN enthalpy/entropy propagate NaN naturally.</span>
-</span><span data-line="164"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="165">    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span data-line="166">    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span data-line="167">
-</span><span data-line="168">    <span class="c1"># State points: (name, enthalpy_col, entropy_col)</span>
-</span><span data-line="169">    <span class="n">_STATES</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="170">        <span class="p">(</span><span class="s2">&quot;cmp_in&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_cmp_in [J/(kg·K)]&quot;</span><span class="p">),</span>
-</span><span data-line="171">        <span class="p">(</span><span class="s2">&quot;cmp_out&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_cmp_out [J/(kg·K)]&quot;</span><span class="p">),</span>
-</span><span data-line="172">        <span class="p">(</span><span class="s2">&quot;exp_in&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_exp_in [J/(kg·K)]&quot;</span><span class="p">),</span>
-</span><span data-line="173">        <span class="p">(</span><span class="s2">&quot;exp_out&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_exp_out [J/(kg·K)]&quot;</span><span class="p">),</span>
-</span><span data-line="174">    <span class="p">]</span>
-</span><span data-line="175">
-</span><span data-line="176">    <span class="c1"># Dead-state properties — vectorized via unique T0 values</span>
-</span><span data-line="177">    <span class="n">t0_unique</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
-</span><span data-line="178">    <span class="n">h0_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="179">    <span class="n">s0_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="180">    <span class="k">for</span> <span class="n">t0</span> <span class="ow">in</span> <span class="n">t0_unique</span><span class="p">:</span>
-</span><span data-line="181">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="182">            <span class="n">h0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="p">),</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
-</span><span data-line="183">            <span class="n">s0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="p">),</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
-</span><span data-line="184">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="185">            <span class="n">h0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="186">            <span class="n">s0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="187">
-</span><span data-line="188">    <span class="n">h0</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">h0_map</span><span class="p">)</span>
-</span><span data-line="189">    <span class="n">s0</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">s0_map</span><span class="p">)</span>
-</span><span data-line="190">
-</span><span data-line="191">    <span class="n">m_dot</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;m_dot_ref [kg/s]&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;m_dot_ref [kg/s]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
-</span><span data-line="192">
-</span><span data-line="193">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">h_col</span><span class="p">,</span> <span class="n">s_col</span> <span class="ow">in</span> <span class="n">_STATES</span><span class="p">:</span>
-</span><span data-line="194">        <span class="k">if</span> <span class="n">h_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">s_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span data-line="195">            <span class="k">continue</span>
-</span><span data-line="196">        <span class="n">h</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">h_col</span><span class="p">]</span>
-</span><span data-line="197">        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">s_col</span><span class="p">]</span>
-</span><span data-line="198">        <span class="c1"># Specific exergy [J/kg]: x = (h - h0) - T0 * (s - s0)</span>
-</span><span data-line="199">        <span class="n">x_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">h0</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span>
-</span><span data-line="200">        <span class="c1"># Exergy flow [W]: X = m_dot * x</span>
-</span><span data-line="201">        <span class="n">X_val</span> <span class="o">=</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="n">x_val</span>
-</span><span data-line="202">        <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;x_ref_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> [J/kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_val</span>
-</span><span data-line="203">        <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;X_ref_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_val</span>
-</span><span data-line="204">
-</span><span data-line="205">    <span class="k">return</span> <span class="n">df</span></div>
+</span><span data-line="126"><span class="k">def</span><span class="w"> </span><span class="nf">calc_refrigerant_exergy</span><span class="p">(</span>
+</span><span data-line="127">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
+</span><span data-line="128">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="129">    <span class="n">T0_K</span><span class="p">:</span> <span class="s2">&quot;pd.Series&quot;</span><span class="p">,</span>
+</span><span data-line="130">    <span class="n">P0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">101325</span><span class="p">,</span>
+</span><span data-line="131"><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+</span><span data-line="132"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate refrigerant state-point exergy using pre-computed properties.</span>
+</span><span data-line="133">
+</span><span data-line="134"><span class="sd">    Uses the entropy (``s_ref_*``) and enthalpy (``h_ref_*``) columns</span>
+</span><span data-line="135"><span class="sd">    already present in ``df`` (produced by ``calc_ref_state``) to compute</span>
+</span><span data-line="136"><span class="sd">    specific exergy and exergy flow rate for each refrigerant state point.</span>
+</span><span data-line="137">
+</span><span data-line="138"><span class="sd">    Dead-state properties (h0, s0) are evaluated at (T0, P0) for the</span>
+</span><span data-line="139"><span class="sd">    given refrigerant using CoolProp (vectorized via unique T0 values).</span>
+</span><span data-line="140">
+</span><span data-line="141"><span class="sd">    Parameters</span>
+</span><span data-line="142"><span class="sd">    ----------</span>
+</span><span data-line="143"><span class="sd">    df : pd.DataFrame</span>
+</span><span data-line="144"><span class="sd">        DataFrame containing pre-computed enthalpy ``h_ref_* [J/kg]``,</span>
+</span><span data-line="145"><span class="sd">        entropy ``s_ref_* [J/(kg·K)]``, and mass-flow</span>
+</span><span data-line="146"><span class="sd">        ``m_dot_ref [kg/s]`` columns.</span>
+</span><span data-line="147"><span class="sd">    ref : str</span>
+</span><span data-line="148"><span class="sd">        CoolProp refrigerant identifier (e.g. ``&#39;R410A&#39;``).</span>
+</span><span data-line="149"><span class="sd">    T0_K : pd.Series</span>
+</span><span data-line="150"><span class="sd">        Dead-state (environment) temperature per row [K].</span>
+</span><span data-line="151"><span class="sd">    P0 : float</span>
+</span><span data-line="152"><span class="sd">        Dead-state pressure [Pa] (default ``101325``).</span>
+</span><span data-line="153">
+</span><span data-line="154"><span class="sd">    Returns</span>
+</span><span data-line="155"><span class="sd">    -------</span>
+</span><span data-line="156"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="157"><span class="sd">        ``df`` with columns added per state point:</span>
+</span><span data-line="158"><span class="sd">        ``x_ref_{name} [J/kg]``, ``X_ref_{name} [W]``.</span>
+</span><span data-line="159">
+</span><span data-line="160"><span class="sd">    Notes</span>
+</span><span data-line="161"><span class="sd">    -----</span>
+</span><span data-line="162"><span class="sd">    - Exergy equation: x = (h − h0) − T0·(s − s0)  [J/kg]</span>
+</span><span data-line="163"><span class="sd">    - Exergy flow: X = ṁ · x  [W]</span>
+</span><span data-line="164"><span class="sd">    - Rows with NaN enthalpy/entropy propagate NaN naturally.</span>
+</span><span data-line="165"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="166">    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="167">    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="168">
+</span><span data-line="169">    <span class="c1"># State points: (name, enthalpy_col, entropy_col)</span>
+</span><span data-line="170">    <span class="n">_STATES</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="171">        <span class="p">(</span><span class="s2">&quot;cmp_in&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_cmp_in [J/(kg·K)]&quot;</span><span class="p">),</span>
+</span><span data-line="172">        <span class="p">(</span><span class="s2">&quot;cmp_out&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_cmp_out [J/(kg·K)]&quot;</span><span class="p">),</span>
+</span><span data-line="173">        <span class="p">(</span><span class="s2">&quot;exp_in&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_exp_in [J/(kg·K)]&quot;</span><span class="p">),</span>
+</span><span data-line="174">        <span class="p">(</span><span class="s2">&quot;exp_out&quot;</span><span class="p">,</span> <span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;s_ref_exp_out [J/(kg·K)]&quot;</span><span class="p">),</span>
+</span><span data-line="175">    <span class="p">]</span>
+</span><span data-line="176">
+</span><span data-line="177">    <span class="c1"># Dead-state properties — vectorized via unique T0 values</span>
+</span><span data-line="178">    <span class="n">t0_unique</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+</span><span data-line="179">    <span class="n">h0_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="180">    <span class="n">s0_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="181">    <span class="k">for</span> <span class="n">t0</span> <span class="ow">in</span> <span class="n">t0_unique</span><span class="p">:</span>
+</span><span data-line="182">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="183">            <span class="n">h0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="p">),</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
+</span><span data-line="184">            <span class="n">s0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;S&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="p">),</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">P0</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
+</span><span data-line="185">        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="186">            <span class="n">h0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="187">            <span class="n">s0_map</span><span class="p">[</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="188">
+</span><span data-line="189">    <span class="n">h0</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">h0_map</span><span class="p">)</span>
+</span><span data-line="190">    <span class="n">s0</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">T0_K</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">s0_map</span><span class="p">)</span>
+</span><span data-line="191">
+</span><span data-line="192">    <span class="n">m_dot</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;m_dot_ref [kg/s]&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;m_dot_ref [kg/s]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</span><span data-line="193">
+</span><span data-line="194">    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">h_col</span><span class="p">,</span> <span class="n">s_col</span> <span class="ow">in</span> <span class="n">_STATES</span><span class="p">:</span>
+</span><span data-line="195">        <span class="k">if</span> <span class="n">h_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">s_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="196">            <span class="k">continue</span>
+</span><span data-line="197">        <span class="n">h</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">h_col</span><span class="p">]</span>
+</span><span data-line="198">        <span class="n">s</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">s_col</span><span class="p">]</span>
+</span><span data-line="199">        <span class="c1"># Specific exergy [J/kg]: x = (h - h0) - T0 * (s - s0)</span>
+</span><span data-line="200">        <span class="n">x_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">h0</span><span class="p">)</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">s0</span><span class="p">)</span>
+</span><span data-line="201">        <span class="c1"># Exergy flow [W]: X = m_dot * x</span>
+</span><span data-line="202">        <span class="n">X_val</span> <span class="o">=</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="n">x_val</span>
+</span><span data-line="203">        <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;x_ref_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> [J/kg]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_val</span>
+</span><span data-line="204">        <span class="n">df</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;X_ref_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_val</span>
+</span><span data-line="205">
+</span><span data-line="206">    <span class="k">return</span> <span class="n">df</span></div>
 
-</span><span data-line="206">
 </span><span data-line="207">
+</span><span data-line="208">
 <div class="viewcode-block" id="convert_electricity_to_exergy">
 <a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.thermodynamics.convert_electricity_to_exergy">[docs]</a>
-</span><span data-line="208"><span class="k">def</span><span class="w"> </span><span class="nf">convert_electricity_to_exergy</span><span class="p">(</span>
-</span><span data-line="209">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
-</span><span data-line="210"><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
-</span><span data-line="211"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy all electricity columns (``E_*``) to exergy columns (``X_*``).</span>
-</span><span data-line="212">
-</span><span data-line="213"><span class="sd">    Electrical energy is 100 %% pure exergy, so ``X = E`` for all</span>
-</span><span data-line="214"><span class="sd">    electricity-consumption columns.</span>
-</span><span data-line="215">
-</span><span data-line="216"><span class="sd">    The function searches for columns matching the pattern</span>
-</span><span data-line="217"><span class="sd">    ``E_xxx [W]`` and creates corresponding ``X_xxx [W]`` columns.</span>
-</span><span data-line="218">
-</span><span data-line="219"><span class="sd">    Parameters</span>
-</span><span data-line="220"><span class="sd">    ----------</span>
-</span><span data-line="221"><span class="sd">    df : pd.DataFrame</span>
-</span><span data-line="222"><span class="sd">        DataFrame with ``E_xxx [W]`` columns.</span>
-</span><span data-line="223">
-</span><span data-line="224"><span class="sd">    Returns</span>
-</span><span data-line="225"><span class="sd">    -------</span>
-</span><span data-line="226"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="227"><span class="sd">        ``df`` with ``X_xxx [W]`` columns added.</span>
-</span><span data-line="228"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="229">    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span data-line="230">        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;E_&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot; [W]&quot;</span><span class="p">):</span>
-</span><span data-line="231">            <span class="c1"># E_cmp [W] → X_cmp [W]</span>
-</span><span data-line="232">            <span class="n">x_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;X_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
-</span><span data-line="233">            <span class="n">df</span><span class="p">[</span><span class="n">x_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
-</span><span data-line="234">    <span class="k">return</span> <span class="n">df</span></div>
+</span><span data-line="209"><span class="k">def</span><span class="w"> </span><span class="nf">convert_electricity_to_exergy</span><span class="p">(</span>
+</span><span data-line="210">    <span class="n">df</span><span class="p">:</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">,</span>
+</span><span data-line="211"><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pd.DataFrame&quot;</span><span class="p">:</span>
+</span><span data-line="212"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy all electricity columns (``E_*``) to exergy columns (``X_*``).</span>
+</span><span data-line="213">
+</span><span data-line="214"><span class="sd">    Electrical energy is 100 %% pure exergy, so ``X = E`` for all</span>
+</span><span data-line="215"><span class="sd">    electricity-consumption columns.</span>
+</span><span data-line="216">
+</span><span data-line="217"><span class="sd">    The function searches for columns matching the pattern</span>
+</span><span data-line="218"><span class="sd">    ``E_xxx [W]`` and creates corresponding ``X_xxx [W]`` columns.</span>
+</span><span data-line="219">
+</span><span data-line="220"><span class="sd">    Parameters</span>
+</span><span data-line="221"><span class="sd">    ----------</span>
+</span><span data-line="222"><span class="sd">    df : pd.DataFrame</span>
+</span><span data-line="223"><span class="sd">        DataFrame with ``E_xxx [W]`` columns.</span>
+</span><span data-line="224">
+</span><span data-line="225"><span class="sd">    Returns</span>
+</span><span data-line="226"><span class="sd">    -------</span>
+</span><span data-line="227"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="228"><span class="sd">        ``df`` with ``X_xxx [W]`` columns added.</span>
+</span><span data-line="229"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="230">    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="231">        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;E_&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot; [W]&quot;</span><span class="p">):</span>
+</span><span data-line="232">            <span class="c1"># E_cmp [W] → X_cmp [W]</span>
+</span><span data-line="233">            <span class="n">x_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;X_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">col</span><span class="p">)[</span><span class="mi">2</span><span class="p">:]</span>
+</span><span data-line="234">            <span class="n">df</span><span class="p">[</span><span class="n">x_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+</span><span data-line="235">    <span class="k">return</span> <span class="n">df</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

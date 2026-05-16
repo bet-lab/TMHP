@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/why-physics-based.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Most building-energy simulators model a heat pump as an empirical curve fit: a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test points. That..." />
+<meta property="og:description" content="Most building-energy simulators model a heat pump as an empirical curve fit — typically a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test p..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Most building-energy simulators model a heat pump as an empirical curve fit: a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test points. That..." />
+<meta name="description" content="Most building-energy simulators model a heat pump as an empirical curve fit — typically a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test p..." />
 
-    <meta property="article:modified_time" content="2026-05-16T07:13:36+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -170,11 +170,11 @@ data-aria-dark="Switch to auto color mode">
           <section id="why-physics-based">
 <h1>Why physics-based?<a class="headerlink" href="#why-physics-based" title="Link to this heading">¶</a></h1>
 <p>Most building-energy simulators model a heat pump as an empirical
-curve fit: a polynomial in (outdoor temperature, leaving-water
-temperature) calibrated against the manufacturer’s test points. That
-approach is cheap and accurate <em>inside the calibration envelope</em>, but
-it carries three structural limitations that this library is built
-to remove.</p>
+curve fit — typically a polynomial in (outdoor temperature,
+leaving-water temperature) calibrated against the manufacturer’s test
+points. That approach is cheap and accurate <em>inside the calibration
+envelope</em>, but it carries three structural limitations that this
+library was built to remove.</p>
 <section id="the-three-structural-limits-of-curve-fits">
 <h2>The three structural limits of curve fits<a class="headerlink" href="#the-three-structural-limits-of-curve-fits" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-given docutils container">
@@ -216,11 +216,11 @@ at every step.</p></td>
 </section>
 <section id="what-gets-solved-at-every-time-step">
 <h2>What gets solved at every time step<a class="headerlink" href="#what-gets-solved-at-every-time-step" title="Link to this heading">¶</a></h2>
-<p>Each call to <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> or each step of <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>
-solves a closed refrigerant cycle coupled to the surrounding
-system. The condenser duty is the target; the evaporating
-temperature is found by internally minimising compressor power, so
-the cycle closes physically rather than via fitted coefficients.</p>
+<p>Each call to <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> (and each step of <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>)
+solves a closed refrigerant cycle coupled to the surrounding system.
+The condenser duty is the target; the evaporating temperature is
+found by internally minimising compressor power, so the cycle closes
+on a physical optimum rather than on fitted coefficients.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -266,14 +266,13 @@ side (DHW tank, building load, or hybrid PV / STC / ESS).</p>
 <section id="the-compute-trade-off">
 <h2>The compute trade-off<a class="headerlink" href="#the-compute-trade-off" title="Link to this heading">¶</a></h2>
 <p>Solving an EOS state at every cycle node is more expensive than
-evaluating a polynomial. In practice this lands around a few
-hundred steps per second on a single core for a vanilla ASHPB —
-fast enough that a year-long minute-resolution run is hours, not
-minutes. If that’s too slow for your use case, a fitted surrogate
-is the right escape hatch; this library is calibrated against
-commercial catalogue data well enough that the surrogate can be
-trained against <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> itself rather than against new
-bench data.</p>
+evaluating a polynomial. In practice it lands around a few hundred
+steps per second on a single core for a vanilla ASHPB — fast enough
+that a year-long minute-resolution run takes hours, not minutes.</p>
+<p>If that is still too slow for your use case, a fitted surrogate is
+the right escape hatch. <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> is calibrated against
+commercial catalogue data well enough that you can train the
+surrogate against this library itself, with no fresh bench data.</p>
 </section>
 </section>
 

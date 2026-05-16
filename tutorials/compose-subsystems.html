@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Compose subsystems - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Visualize the cycle (P–h)" href="visualize-the-cycle.html" /><link rel="prev" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Compose subsystems - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Visualize the thermodynamic cycle" href="visualize-the-cycle.html" /><link rel="prev" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" />
       <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/tutorials/compose-subsystems.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/tutorials/compose-subsystems.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug onto an existing heat-pump model. This tutorial walks through the simpl..." />
+<meta property="og:description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug onto an existing heat-pump model. This tutorial walks through the simpl..." />
+<meta name="description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
 
-    <meta property="article:modified_time" content="2026-05-16T07:18:16+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -173,10 +173,10 @@ data-aria-dark="Switch to auto color mode">
 <h1>Compose subsystems<a class="headerlink" href="#compose-subsystems" title="Link to this heading">¶</a></h1>
 <p>Solar thermal collectors, photovoltaic systems, and energy
 storage are not modelled as separate top-level classes — they
-plug onto an existing heat-pump model. This tutorial walks
-through the simplest composition: <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>, where a
-<code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> heats the mains-cold water entering the
-DHW tank.</p>
+plug into an existing heat-pump model. This tutorial walks
+through the simplest such composition: <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>,
+where a <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> heats the cold mains water
+before it reaches the DHW tank.</p>
 <section id="the-two-pieces">
 <h2>The two pieces<a class="headerlink" href="#the-two-pieces" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../api/support/subsystems.html#physics_hp.subsystems.SolarThermalCollector" title="physics_hp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> is a
@@ -315,7 +315,7 @@ appropriate schedules to <code class="docutils literal notranslate"><span class=
     <a href="visualize-the-cycle.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">Visualize the cycle (P–h)</div>
+        <div class="title">Visualize the thermodynamic cycle</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>

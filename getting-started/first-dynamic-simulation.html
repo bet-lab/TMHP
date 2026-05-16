@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/getting-started/first-dynamic-simulation.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="analyze_dynamic runs the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page steps through the simplest possible call:..." />
+<meta property="og:description" content="analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest possible cal..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="analyze_dynamic runs the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page steps through the simplest possible call:..." />
+<meta name="description" content="analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest possible cal..." />
 
-    <meta property="article:modified_time" content="2026-05-16T07:08:23+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -169,10 +169,11 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="your-first-dynamic-simulation">
 <h1>Your first dynamic simulation<a class="headerlink" href="#your-first-dynamic-simulation" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> runs the same refrigerant cycle as <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
-at every time step, coupled to a tank-energy balance and any active
-subsystems. This page steps through the simplest possible call: 24 hours
-of operation against a constant outdoor temperature and zero DHW draw.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> solves the same refrigerant cycle as
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> at every time step, coupled to a tank-energy
+balance and any active subsystems. This page walks through the
+simplest possible call: 24 hours of operation against a constant
+outdoor temperature and zero DHW draw.</p>
 <section id="minimum-viable-example">
 <h2>Minimum viable example<a class="headerlink" href="#minimum-viable-example" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -236,10 +237,10 @@ documented under <a class="reference internal" href="../api/models/ashpb.html"><
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> uses a fully implicit scheme — <code class="docutils literal notranslate"><span class="pre">fsolve</span></code> solves
-for <code class="docutils literal notranslate"><span class="pre">[T_next,</span> <span class="pre">level_next]</span></code> at every step. This makes the integrator
-robust to large <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> values, but a 1-minute step is a sensible
-default for first runs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> uses a fully implicit time-stepping scheme —
+<code class="docutils literal notranslate"><span class="pre">fsolve</span></code> solves for <code class="docutils literal notranslate"><span class="pre">[T_next,</span> <span class="pre">level_next]</span></code> at every step. This
+makes the integrator robust to large <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> values, but a
+1-minute step is a safe default for first runs.</p>
 </div>
 </section>
 </section>

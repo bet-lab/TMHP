@@ -27,14 +27,14 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/cycle-architecture.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs in. The..." />
+<meta property="og:description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_images/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB system schematic — refrigerant cycle, condenser HX,
 evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
-<meta name="description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs in. The..." />
+<meta name="description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -92,7 +92,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -175,7 +175,8 @@ data-aria-dark="Switch to auto color mode">
 <h1>Cycle architecture<a class="headerlink" href="#cycle-architecture" title="Link to this heading">¶</a></h1>
 <p>Every model in <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> is the same closed refrigerant cycle
 wrapped in a different source / sink pairing. This page sketches
-the shared structure and shows where each system family plugs in.</p>
+the shared structure and shows where each system family plugs into
+it.</p>
 <section id="the-shared-core">
 <h2>The shared core<a class="headerlink" href="#the-shared-core" title="Link to this heading">¶</a></h2>
 <p>Every system reuses the same closed cycle — only the blocks marked
@@ -219,12 +220,12 @@ cycle-closure block in the centre reappears identically in the
 GSHPB, WSHPB, ASHP, and GSHP models.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<p>The cycle solves four refrigerant state points (compressor in,
-compressor out, expander in, expander out) plus the evaporator and
-condenser saturation states. Heat transfer at each HX is solved
-with an ε-NTU model. The evaporating temperature is treated as a
+<p>The cycle solves four refrigerant state points (compressor in /
+out, expander in / out) plus the evaporator and condenser
+saturation states. Heat transfer at each heat exchanger is solved
+with an ε-NTU model. The evaporating temperature is left as a
 free parameter and chosen by minimising compressor power, so the
-cycle closure is a physical optimum rather than a fitted
+cycle closes on a physical optimum rather than on a fitted
 coefficient.</p>
 </section>
 <section id="source-side-where-heat-comes-from">

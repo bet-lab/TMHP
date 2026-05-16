@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/getting-started/quickstart.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="This page walks through one steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library. For the time-stepping flow, see Your first dynamic sim..." />
+<meta property="og:description" content="This page walks through a single steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library. Once this works, move on to the time-stepping flo..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="This page walks through one steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library. For the time-stepping flow, see Your first dynamic sim..." />
+<meta name="description" content="This page walks through a single steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library. Once this works, move on to the time-stepping flo..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -169,15 +169,15 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="quick-start">
 <h1>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
-<p>This page walks through one steady-state evaluation of the
+<p>This page walks through a single steady-state evaluation of the
 <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> model — the cheapest call you can make
-against the library. For the time-stepping flow, see
-<a class="reference internal" href="first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a>.</p>
+against the library. Once this works, move on to the time-stepping
+flow in <a class="reference internal" href="first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a>.</p>
 <section id="a-single-steady-state-operating-point">
 <h2>A single steady-state operating point<a class="headerlink" href="#a-single-steady-state-operating-point" title="Link to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> evaluates the refrigerant cycle at a fixed operating
-point — tank water at 55 °C, outdoor air at 5 °C, target condenser heat
-8 kW — without solving the tank energy balance.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> evaluates the refrigerant cycle at one fixed
+operating point — tank water at 55 °C, outdoor air at 5 °C, target
+condenser duty 8 kW — without solving the tank energy balance.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">physics_hp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
@@ -195,14 +195,15 @@ point — tank water at 55 °C, outdoor air at 5 °C, target condenser heat
 </span><span data-line="15"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cond. sat. temp.  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;T_ref_cond_sat_v [°C]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C&quot;</span><span class="p">)</span>
 </span></pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns a flat <code class="docutils literal notranslate"><span class="pre">dict</span></code> whose keys carry the unit in
-brackets (for example <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>). Pass <code class="docutils literal notranslate"><span class="pre">return_dict=False</span></code> to
-get a single-row <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> with the same columns instead.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns a flat <code class="docutils literal notranslate"><span class="pre">dict</span></code> whose keys carry their
+units in brackets (for example <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>). Pass
+<code class="docutils literal notranslate"><span class="pre">return_dict=False</span></code> to get a single-row <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> with
+the same columns instead.</p>
 </section>
 <section id="swapping-the-refrigerant">
 <h2>Swapping the refrigerant<a class="headerlink" href="#swapping-the-refrigerant" title="Link to this heading">¶</a></h2>
-<p>The refrigerant is just a constructor argument — no recalibration is
-required. Anything CoolProp supports works:</p>
+<p>The refrigerant is just a constructor argument; no recalibration is
+required. Any fluid CoolProp recognises works:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>     <span class="c1"># propane</span>
 </span><span data-line="2"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">)</span>     <span class="c1"># CO₂ (transcritical)</span>
 </span><span data-line="3"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>

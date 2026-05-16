@@ -80,7 +80,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
@@ -307,72 +307,75 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="144"><span class="sd">    float</span>
 </span><span data-line="145"><span class="sd">        Calculated cold water temperature [degC].</span>
 </span><span data-line="146"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="147">    <span class="c1"># 온도 컬럼 동적 탐색 (T_avg, 기온, temp, T0 등 다양한 이름 대응)</span>
-</span><span data-line="148">    <span class="n">_TEMP_PATTERNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;t_avg&quot;</span><span class="p">,</span> <span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°c&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">]</span>
-</span><span data-line="149">    <span class="n">temp_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="150">    <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">_TEMP_PATTERNS</span><span class="p">:</span>
-</span><span data-line="151">        <span class="n">matched</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
-</span><span data-line="152">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="153">            <span class="n">temp_col</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">matched</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="154">            <span class="k">break</span>
-</span><span data-line="155">    <span class="k">if</span> <span class="n">temp_col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="156">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="157">            <span class="sa">f</span><span class="s2">&quot;calc_cold_water_temp: 온도 컬럼을 찾을 수 없습니다. &quot;</span>
-</span><span data-line="158">            <span class="sa">f</span><span class="s2">&quot;현재 컬럼: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">. &quot;</span>
-</span><span data-line="159">            <span class="sa">f</span><span class="s2">&quot;&#39;T_avg&#39;, &#39;기온&#39;, &#39;temp&#39;, &#39;T0&#39; 등의 키워드가 포함된 컬럼이 필요합니다.&quot;</span>
-</span><span data-line="160">        <span class="p">)</span>
-</span><span data-line="161">
-</span><span data-line="162">    <span class="n">T_out_avg</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-</span><span data-line="163">    <span class="n">T_maxdiff</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span>
+</span><span data-line="147">    <span class="c1"># Dynamic temperature-column lookup. The Korean keywords (&#39;기온&#39;) are kept</span>
+</span><span data-line="148">    <span class="c1"># so KMA (Korea Meteorological Administration) CSVs match out of the box</span>
+</span><span data-line="149">    <span class="c1"># alongside English column names (T_avg, temp, T0, °C, ℃).</span>
+</span><span data-line="150">    <span class="n">_TEMP_PATTERNS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;t_avg&quot;</span><span class="p">,</span> <span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°c&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">]</span>
+</span><span data-line="151">    <span class="n">temp_col</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="152">    <span class="k">for</span> <span class="n">pat</span> <span class="ow">in</span> <span class="n">_TEMP_PATTERNS</span><span class="p">:</span>
+</span><span data-line="153">        <span class="n">matched</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
+</span><span data-line="154">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="155">            <span class="n">temp_col</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">matched</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="156">            <span class="k">break</span>
+</span><span data-line="157">    <span class="k">if</span> <span class="n">temp_col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="158">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="159">            <span class="sa">f</span><span class="s2">&quot;calc_cold_water_temp: could not find a temperature column. &quot;</span>
+</span><span data-line="160">            <span class="sa">f</span><span class="s2">&quot;Columns present: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">. &quot;</span>
+</span><span data-line="161">            <span class="sa">f</span><span class="s2">&quot;A column whose name contains one of &quot;</span>
+</span><span data-line="162">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_TEMP_PATTERNS</span><span class="si">}</span><span class="s2"> is required.&quot;</span>
+</span><span data-line="163">        <span class="p">)</span>
 </span><span data-line="164">
-</span><span data-line="165">    <span class="n">target_date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">target_date_str</span><span class="p">)</span>
-</span><span data-line="166">    <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">target_date</span><span class="o">.</span><span class="n">dayofyear</span>
+</span><span data-line="165">    <span class="n">T_out_avg</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</span><span data-line="166">    <span class="n">T_maxdiff</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">/</span> <span class="mi">2</span>
 </span><span data-line="167">
-</span><span data-line="168">    <span class="c1"># EnergyPlus mains water temperature correlation</span>
-</span><span data-line="169">    <span class="n">ratio</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_out_avg</span> <span class="o">-</span> <span class="mf">4.4</span><span class="p">)</span>
-</span><span data-line="170">    <span class="n">lag</span> <span class="o">=</span> <span class="mi">35</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_out_avg</span> <span class="o">-</span> <span class="mf">4.4</span><span class="p">)</span>
-</span><span data-line="171">
-</span><span data-line="172">    <span class="n">T_mains</span> <span class="o">=</span> <span class="n">T_out_avg</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">T_maxdiff</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">day_of_year</span> <span class="o">/</span> <span class="mi">365</span> <span class="o">-</span> <span class="n">lag</span> <span class="o">/</span> <span class="mi">365</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">))</span>
-</span><span data-line="173">
-</span><span data-line="174">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_mains</span><span class="p">)</span></div>
-
-</span><span data-line="175">
+</span><span data-line="168">    <span class="n">target_date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">target_date_str</span><span class="p">)</span>
+</span><span data-line="169">    <span class="n">day_of_year</span> <span class="o">=</span> <span class="n">target_date</span><span class="o">.</span><span class="n">dayofyear</span>
+</span><span data-line="170">
+</span><span data-line="171">    <span class="c1"># EnergyPlus mains water temperature correlation</span>
+</span><span data-line="172">    <span class="n">ratio</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_out_avg</span> <span class="o">-</span> <span class="mf">4.4</span><span class="p">)</span>
+</span><span data-line="173">    <span class="n">lag</span> <span class="o">=</span> <span class="mi">35</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_out_avg</span> <span class="o">-</span> <span class="mf">4.4</span><span class="p">)</span>
+</span><span data-line="174">
+</span><span data-line="175">    <span class="n">T_mains</span> <span class="o">=</span> <span class="n">T_out_avg</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">T_maxdiff</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">day_of_year</span> <span class="o">/</span> <span class="mi">365</span> <span class="o">-</span> <span class="n">lag</span> <span class="o">/</span> <span class="mi">365</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">))</span>
 </span><span data-line="176">
+</span><span data-line="177">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_mains</span><span class="p">)</span></div>
+
+</span><span data-line="178">
+</span><span data-line="179">
 <div class="viewcode-block" id="build_dhw_usage_ratio">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#physics_hp.dhw.build_dhw_usage_ratio">[docs]</a>
-</span><span data-line="177"><span class="k">def</span><span class="w"> </span><span class="nf">build_dhw_usage_ratio</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">t_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span data-line="178"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build schedule ratio array from schedule entries for each timestep.</span>
-</span><span data-line="179">
-</span><span data-line="180"><span class="sd">    Parameters</span>
-</span><span data-line="181"><span class="sd">    ----------</span>
-</span><span data-line="182"><span class="sd">    entries : list[tuple[str, str, float]]</span>
-</span><span data-line="183"><span class="sd">        Schedule entry list. Each item is (start_str, end_str, frac) format.</span>
-</span><span data-line="184"><span class="sd">    t_array : np.ndarray</span>
-</span><span data-line="185"><span class="sd">        Array of time seconds from start of day.</span>
-</span><span data-line="186">
-</span><span data-line="187"><span class="sd">    Returns</span>
-</span><span data-line="188"><span class="sd">    -------</span>
-</span><span data-line="189"><span class="sd">    np.ndarray</span>
-</span><span data-line="190"><span class="sd">        Array of fractions corresponding to ``t_array``.</span>
-</span><span data-line="191"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="192">
-</span><span data-line="193">    <span class="k">def</span><span class="w"> </span><span class="nf">_to_sec</span><span class="p">(</span><span class="n">t_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-</span><span data-line="194">        <span class="n">parts</span> <span class="o">=</span> <span class="n">t_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
-</span><span data-line="195">        <span class="n">h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="196">        <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="197">        <span class="n">s</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="198">        <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span> <span class="o">+</span> <span class="n">m</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span> <span class="o">+</span> <span class="n">s</span>
-</span><span data-line="199">
-</span><span data-line="200">    <span class="n">ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span><span data-line="201">
-</span><span data-line="202">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
-</span><span data-line="203">        <span class="n">s_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
-</span><span data-line="204">        <span class="n">e_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
-</span><span data-line="205">
-</span><span data-line="206">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&gt;=</span> <span class="n">s_sec</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&lt;</span> <span class="n">e_sec</span><span class="p">)</span>
-</span><span data-line="207">        <span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">frac</span><span class="p">)</span>
+</span><span data-line="180"><span class="k">def</span><span class="w"> </span><span class="nf">build_dhw_usage_ratio</span><span class="p">(</span><span class="n">entries</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">t_array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="181"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Build schedule ratio array from schedule entries for each timestep.</span>
+</span><span data-line="182">
+</span><span data-line="183"><span class="sd">    Parameters</span>
+</span><span data-line="184"><span class="sd">    ----------</span>
+</span><span data-line="185"><span class="sd">    entries : list[tuple[str, str, float]]</span>
+</span><span data-line="186"><span class="sd">        Schedule entry list. Each item is (start_str, end_str, frac) format.</span>
+</span><span data-line="187"><span class="sd">    t_array : np.ndarray</span>
+</span><span data-line="188"><span class="sd">        Array of time seconds from start of day.</span>
+</span><span data-line="189">
+</span><span data-line="190"><span class="sd">    Returns</span>
+</span><span data-line="191"><span class="sd">    -------</span>
+</span><span data-line="192"><span class="sd">    np.ndarray</span>
+</span><span data-line="193"><span class="sd">        Array of fractions corresponding to ``t_array``.</span>
+</span><span data-line="194"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="195">
+</span><span data-line="196">    <span class="k">def</span><span class="w"> </span><span class="nf">_to_sec</span><span class="p">(</span><span class="n">t_str</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span data-line="197">        <span class="n">parts</span> <span class="o">=</span> <span class="n">t_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+</span><span data-line="198">        <span class="n">h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="199">        <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
+</span><span data-line="200">        <span class="n">s</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">0</span>
+</span><span data-line="201">        <span class="k">return</span> <span class="n">h</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span> <span class="o">+</span> <span class="n">m</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">m2s</span> <span class="o">+</span> <span class="n">s</span>
+</span><span data-line="202">
+</span><span data-line="203">    <span class="n">ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t_array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="204">
+</span><span data-line="205">    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+</span><span data-line="206">        <span class="n">s_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+</span><span data-line="207">        <span class="n">e_sec</span> <span class="o">=</span> <span class="n">_to_sec</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
 </span><span data-line="208">
-</span><span data-line="209">    <span class="k">return</span> <span class="n">ratio</span></div>
+</span><span data-line="209">        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&gt;=</span> <span class="n">s_sec</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t_array</span> <span class="o">&lt;</span> <span class="n">e_sec</span><span class="p">)</span>
+</span><span data-line="210">        <span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">ratio</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">frac</span><span class="p">)</span>
+</span><span data-line="211">
+</span><span data-line="212">    <span class="k">return</span> <span class="n">ratio</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), and COP correlations. Refrigerant state points: Refrigerant cycle calculations and optimiz..." />
 
-    <meta property="article:modified_time" content="2026-05-16T07:03:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
@@ -198,20 +198,27 @@ ratio, isentropic efficiency, COP), and COP correlations.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="physics_hp.refrigerant.calc_ref_state">
 <span class="sig-prename descclassname"><span class="pre">physics_hp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">calc_ref_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_evap_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/refrigerant.html#calc_ref_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.refrigerant.calc_ref_state" title="Link to this definition">¶</a></dt>
-<dd><p>냉매 사이클의 State 1-4 열역학 물성치를 계산하는 공통 함수.</p>
-<p>증기압축 사이클의 4개 주요 상태점을 계산합니다:</p>
+<dd><p>Compute the four thermodynamic state points of the refrigerant cycle.</p>
+<p>The vapour-compression cycle has four canonical state points:</p>
 <ul class="simple">
-<li><p>State 1 (cmp_in):  압축기 입구 (증발기 출구, 저압 과열 증기)</p></li>
-<li><p>State 2 (cmp_out): 압축기 출구 (응축기 입구, 고압 과열 증기)</p></li>
-<li><p>State 3 (exp_in):  팽창밸브 입구 (응축기 출구, 고압 과냉 액체)</p></li>
-<li><p>State 4 (exp_out): 팽창밸브 출구 (증발기 입구, 저압 2상 혼합물)</p></li>
+<li><p>State 1 (<code class="docutils literal notranslate"><span class="pre">cmp_in</span></code>):  compressor inlet  — low-pressure superheated vapour
+at the evaporator outlet.</p></li>
+<li><p>State 2 (<code class="docutils literal notranslate"><span class="pre">cmp_out</span></code>): compressor outlet — high-pressure superheated vapour
+at the condenser inlet.</p></li>
+<li><p>State 3 (<code class="docutils literal notranslate"><span class="pre">exp_in</span></code>):  expansion-valve inlet  — high-pressure subcooled
+liquid at the condenser outlet.</p></li>
+<li><p>State 4 (<code class="docutils literal notranslate"><span class="pre">exp_out</span></code>): expansion-valve outlet — low-pressure two-phase
+mixture at the evaporator inlet.</p></li>
 </ul>
-<p>키 배정은 항상 물리적 압축기 입출구 기준이며, mode 값은
-결과 dict의 <code class="docutils literal notranslate"><span class="pre">&quot;mode&quot;</span></code> 키에만 기록됩니다.</p>
+<p>Keys in the returned dict are always assigned by the physical compressor /
+expander ports; the <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument is preserved verbatim under the
+<code class="docutils literal notranslate"><span class="pre">&quot;mode&quot;</span></code> key but does not change the key naming.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>냉방/난방 모드에서 어느 HX가 증발기/응축기인지는 호출측
-(<code class="docutils literal notranslate"><span class="pre">_calc_state</span></code>)에서 T_evap_K, T_cond_K를 결정하여 전달합니다.</p>
+<p>Whether a given heat exchanger acts as the evaporator or the condenser in
+heating versus cooling mode is decided by the caller (<code class="docutils literal notranslate"><span class="pre">_calc_state</span></code>),
+which chooses <code class="docutils literal notranslate"><span class="pre">T_evap_K</span></code> and <code class="docutils literal notranslate"><span class="pre">T_cond_K</span></code> accordingly before calling
+this function.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

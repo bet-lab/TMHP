@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Your first dynamic simulation runs analyze_dynamic with flat schedules. Real runs almost never look like that. This tutorial assembles a more representative 24-hour scenario: a domestic-hot-water d..." />
 
-    <meta property="article:modified_time" content="2026-05-16T09:19:58+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -170,12 +170,14 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="realistic-dynamic-simulation">
 <h1>Realistic dynamic simulation<a class="headerlink" href="#realistic-dynamic-simulation" title="Link to this heading">¶</a></h1>
-<p><a class="reference internal" href="../getting-started/first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a> runs <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>
-with flat schedules. Real runs almost never look like that.</p>
+<p><a class="reference internal" href="../getting-started/first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a> runs
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> with flat schedules. Real runs almost never
+look like that.</p>
 <p>This tutorial assembles a more representative 24-hour scenario:</p>
 <ul class="simple">
-<li><p>a domestic-hot-water draw profile with morning and evening peaks,</p></li>
-<li><p>a sinusoidal outdoor-temperature schedule (overnight low → mid-afternoon high),</p></li>
+<li><p>a domestic-hot-water draw profile with morning and evening peaks;</p></li>
+<li><p>a sinusoidal outdoor-temperature schedule (overnight low,
+mid-afternoon high);</p></li>
 <li><p>and CSV output for downstream analysis.</p></li>
 </ul>
 <section id="the-schedule-arrays">

@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/validation/index.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="AirSourceHeatPumpBoiler has been validated against commercial catalogue data — the Samsung EHS Mono HT Quiet R32 14 kW unit — across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\}..." />
+<meta property="og:description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="AirSourceHeatPumpBoiler has been validated against commercial catalogue data — the Samsung EHS Mono HT Quiet R32 14 kW unit — across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\}..." />
+<meta name="description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
 
-    <meta property="article:modified_time" content="2026-05-16T10:40:55+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -169,15 +169,13 @@ data-aria-dark="Switch to auto color mode">
           <section id="validation">
 <h1>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h1>
 <p class="lead"><a class="reference internal" href="../api/models/ashpb.html#physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="physics_hp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a>
-has been validated against commercial catalogue data — the
-<strong>Samsung EHS Mono HT Quiet R32 14 kW</strong> unit — across 15
-operating points spanning <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in
-\{40, 50, 65\}\)</span> °C and outdoor air temperatures from −10 to
-30 °C.</p>
-<p>Across those 15 points the model tracks the catalogue COP to a
-mean absolute error of <strong>0.44</strong> (mean absolute percentage error
-<strong>11.8 %</strong>), without any unit-specific calibration — the same
-code path applies to any CoolProp refrigerant.</p>
+has been validated against the <strong>Samsung EHS Mono HT Quiet R32
+14 kW</strong> catalogue across 15 operating points spanning
+<span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in \{40, 50, 65\}\)</span> °C and outdoor air
+temperatures from −10 to 30 °C, tracking the catalogue COP to a
+mean absolute error of 0.44 (MAPE 11.8 %) without any
+unit-specific calibration — the same code path applies to any
+CoolProp refrigerant.</p>
 <section id="parity-plot">
 <h2>Parity plot<a class="headerlink" href="#parity-plot" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">

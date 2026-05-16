@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/refrigerant-and-coolprop.html" />
 <meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Refrigerant choice is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes state queries to CoolProp. This page covers what that means in prac..." />
+<meta property="og:description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
 <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Refrigerant choice is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes state queries to CoolProp. This page covers what that means in prac..." />
+<meta name="description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
 
-    <meta property="article:modified_time" content="2026-05-16T07:13:36+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the cycle (P&#8211;h)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -171,12 +171,12 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="refrigerants-and-coolprop">
 <h1>Refrigerants and CoolProp<a class="headerlink" href="#refrigerants-and-coolprop" title="Link to this heading">¶</a></h1>
-<p>Refrigerant choice is a constructor argument across the whole
-library — every model takes <code class="docutils literal notranslate"><span class="pre">ref=&quot;&lt;name&gt;&quot;</span></code> and routes state
-queries to <a class="reference external" href="http://www.coolprop.org">CoolProp</a>. This page
-covers what that means in practice: which refrigerants work,
-where the cycle assumptions break, and how to interpret
-CoolProp-related failures.</p>
+<p>The refrigerant is a constructor argument across the whole
+library — every model takes <code class="docutils literal notranslate"><span class="pre">ref=&quot;&lt;name&gt;&quot;</span></code> and routes its state
+queries to <a class="reference external" href="http://www.coolprop.org">CoolProp</a>. This page covers
+what that means in practice: which refrigerants work out of the
+box, where the cycle assumptions break, and how to read CoolProp-
+related failures.</p>
 <section id="the-contract">
 <h2>The contract<a class="headerlink" href="#the-contract" title="Link to this heading">¶</a></h2>
 <p>Any refrigerant CoolProp supports as a pure fluid or a mixture

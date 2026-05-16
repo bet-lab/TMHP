@@ -273,6 +273,45 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Sidebar active pill — Radix Themes pattern
+ *
+ * Replaces Shibuya's "active link recoloured" pattern with the
+ * radix-ui.com docs pattern: subtle accent-tint pill background that
+ * sits on the page background, so the currently-open page becomes a
+ * landmark instead of disappearing into the list.
+ * ------------------------------------------------------------------------- */
+
+.sy-side a.current {
+    background: var(--rx-accent-3);
+    color: var(--rx-accent-11);
+    font-weight: var(--rx-fw-medium);
+    border-radius: var(--rx-radius-full);
+    padding: 0.2rem 0.7rem;
+    margin: 0 -0.7rem;
+}
+.sy-side a.current:hover {
+    background: var(--rx-accent-3);  /* hold the pill on hover */
+    color: var(--rx-accent-11);
+}
+
+/* ---------------------------------------------------------------------------
+ * Inline code — Radix accent-3 / accent-11 tint
+ *
+ * Shibuya already paints a faint blue-tinted pill on `<code>` inside
+ * paragraphs; aligning the exact hue with the page accent makes the
+ * inline code blend with link / kicker tokens used elsewhere.
+ * ------------------------------------------------------------------------- */
+
+.yue :not(pre) > code,
+.yue :not(pre) > code.literal,
+.yue p > code,
+.yue li > code {
+    background: var(--rx-accent-3);
+    color: var(--rx-accent-11);
+    border-radius: var(--rx-radius-1);
+}
+
+/* ---------------------------------------------------------------------------
  * Font stacks — route every surface through the self-hosted webfonts.
  * Shibuya bundles a generic Inter fallback chain; replacing it here means
  * cross-platform rendering stays consistent even on systems that don't

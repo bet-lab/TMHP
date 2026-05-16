@@ -6,6 +6,203 @@
  * future Shibuya upgrades don't fight with these rules.
  */
 
+/* ===========================================================================
+ * Radix-DNA design tokens (foundation, no visual changes by themselves).
+ *
+ * Mirrors the public Radix Themes scale documented at
+ *   https://www.radix-ui.com/themes/docs/theme/typography
+ *   https://www.radix-ui.com/themes/docs/theme/spacing
+ *   https://www.radix-ui.com/colors
+ *
+ * Naming: every token is namespaced `--rx-*` so it cannot collide with
+ * Shibuya theme variables (`--sy-c-*`). Subsequent rules in this file
+ * reference these tokens; the theme itself remains untouched, which means
+ * a Shibuya upgrade will not fight our customisation.
+ *
+ * What lives here:
+ *   1. Typography scale (font-size, line-height, letter-spacing × 9 steps)
+ *   2. Font weights (Inter-compatible)
+ *   3. Space scale (1–9)
+ *   4. Radius scale (1–6 + full)
+ *   5. Gray + accent (indigo) + semantic (green/amber/red/blue/violet)
+ *      colour scales at the four pour-points we actually need:
+ *        step  3   subtle background
+ *        step  6   border / hairline accent
+ *        step  9   solid (badge / stripe / accent dot)
+ *        step 11   accessible foreground text on light background
+ *   6. Gray alpha tokens (key for muted text against any background).
+ *
+ * Light values are defined on :root. Dark-mode overrides ride
+ * @media (prefers-color-scheme: dark) so they auto-track the OS
+ * preference; Shibuya's manual toggle (data-color-mode) cooperates
+ * because Shibuya re-evaluates the same media query inside its theme.
+ * ------------------------------------------------------------------------- */
+
+:root {
+    /* ---------- 1. Typography scale (9 steps) ---------- */
+    --rx-fs-1: 12px;
+    --rx-fs-2: 14px;
+    --rx-fs-3: 16px;   /* default body */
+    --rx-fs-4: 18px;
+    --rx-fs-5: 20px;
+    --rx-fs-6: 24px;
+    --rx-fs-7: 28px;
+    --rx-fs-8: 35px;
+    --rx-fs-9: 60px;
+
+    --rx-lh-1: 16px;
+    --rx-lh-2: 20px;
+    --rx-lh-3: 24px;   /* default body */
+    --rx-lh-4: 26px;
+    --rx-lh-5: 28px;
+    --rx-lh-6: 30px;
+    --rx-lh-7: 36px;
+    --rx-lh-8: 40px;
+    --rx-lh-9: 60px;
+
+    --rx-ls-1:  0.005em;
+    --rx-ls-2:  0em;
+    --rx-ls-3:  0em;
+    --rx-ls-4: -0.005em;
+    --rx-ls-5: -0.01em;
+    --rx-ls-6: -0.0125em;
+    --rx-ls-7: -0.015em;
+    --rx-ls-8: -0.02em;
+    --rx-ls-9: -0.05em;
+
+    /* ---------- 2. Font weights (Inter-compatible) ---------- */
+    --rx-fw-light:    300;
+    --rx-fw-regular:  400;
+    --rx-fw-medium:   500;
+    --rx-fw-bold:     700;
+
+    /* ---------- 3. Space scale (9 steps) ---------- */
+    --rx-space-1:  4px;
+    --rx-space-2:  8px;
+    --rx-space-3: 12px;
+    --rx-space-4: 16px;
+    --rx-space-5: 24px;
+    --rx-space-6: 32px;
+    --rx-space-7: 40px;
+    --rx-space-8: 48px;
+    --rx-space-9: 64px;
+
+    /* ---------- 4. Radius scale ---------- */
+    --rx-radius-1:  3px;
+    --rx-radius-2:  4px;
+    --rx-radius-3:  6px;
+    --rx-radius-4:  8px;
+    --rx-radius-5: 12px;
+    --rx-radius-6: 16px;
+    --rx-radius-full: 9999px;
+
+    /* ---------- 5. Colour scales — Radix light (step 3 / 6 / 9 / 11) ---------- */
+    /* Indigo — page accent, replaces the previous "iris" sketch.
+       Step values lifted verbatim from radix-ui.com/colors. */
+    --rx-accent-3:  #edf2fe;
+    --rx-accent-6:  #c1d0ff;
+    --rx-accent-9:  #3e63dd;
+    --rx-accent-11: #3a5bc7;
+
+    /* Gray (Radix neutral) */
+    --rx-gray-1:    #fcfcfc;
+    --rx-gray-3:    #f0f0f0;
+    --rx-gray-6:    #d9d9d9;
+    --rx-gray-9:    #8d8d8d;
+    --rx-gray-11:   #646464;
+    --rx-gray-12:   #202020;
+
+    /* Semantic — green / amber / red / blue / violet */
+    --rx-green-3:   #e9f9ee;
+    --rx-green-6:   #b4dfc4;
+    --rx-green-9:   #30a46c;
+    --rx-green-11:  #218358;
+
+    --rx-amber-3:   #fff4d5;
+    --rx-amber-6:   #ffd386;
+    --rx-amber-9:   #ffb224;
+    --rx-amber-11:  #ad5700;
+
+    --rx-red-3:     #ffefef;
+    --rx-red-6:     #f9c6c6;
+    --rx-red-9:     #e5484d;
+    --rx-red-11:    #cd2b31;
+
+    --rx-blue-3:    #edf6ff;
+    --rx-blue-6:    #b7d9f8;
+    --rx-blue-9:    #0091ff;
+    --rx-blue-11:   #006adc;
+
+    --rx-violet-3:  #f5f2ff;
+    --rx-violet-6:  #d7cff9;
+    --rx-violet-9:  #6e56cf;
+    --rx-violet-11: #5746af;
+
+    /* ---------- 6. Gray alpha (light) — the muted-text trick ---------- */
+    --rx-gray-a3:   rgba(0, 0, 0, 0.058);
+    --rx-gray-a6:   rgba(0, 0, 0, 0.149);
+    --rx-gray-a9:   rgba(0, 0, 0, 0.447);
+    --rx-gray-a11: rgba(0, 0, 0, 0.608);  /* primary muted text */
+    --rx-gray-a12: rgba(0, 0, 0, 0.875);  /* primary body text */
+
+    /* ---------- Semantic aliases (used by downstream rules) ---------- */
+    --rx-ink:        var(--rx-gray-12);
+    --rx-ink-muted:  var(--rx-gray-a11);
+    --rx-hairline:   var(--rx-gray-a6);
+    --rx-hairline-soft: var(--rx-gray-a3);
+}
+
+/* Dark-mode overrides. Radix publishes a separate 12-step dark scale; we
+ * map the same four pour-points to their dark counterparts so any rule
+ * that consumes `--rx-accent-3` (etc.) keeps working under data-color-mode
+ * = "dark". Values lifted from radix-ui.com/colors dark scales. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --rx-accent-3:  #182449;
+        --rx-accent-6:  #253974;
+        --rx-accent-9:  #3e63dd;
+        --rx-accent-11: #9eb1ff;
+
+        --rx-gray-1:   #111;
+        --rx-gray-3:   #222;
+        --rx-gray-6:   #363636;
+        --rx-gray-9:   #707070;
+        --rx-gray-11:  #b4b4b4;
+        --rx-gray-12:  #eeeeee;
+
+        --rx-green-3:  #132d21;
+        --rx-green-6:  #1b543a;
+        --rx-green-9:  #30a46c;
+        --rx-green-11: #4cc38a;
+
+        --rx-amber-3:  #361a00;
+        --rx-amber-6:  #714811;
+        --rx-amber-9:  #ffb224;
+        --rx-amber-11: #ffb224;
+
+        --rx-red-3:    #2a1314;
+        --rx-red-6:    #67191c;
+        --rx-red-9:    #e5484d;
+        --rx-red-11:   #ff6369;
+
+        --rx-blue-3:   #0d2847;
+        --rx-blue-6:   #195591;
+        --rx-blue-9:   #0091ff;
+        --rx-blue-11:  #52a9ff;
+
+        --rx-violet-3: #221039;
+        --rx-violet-6: #432d7e;
+        --rx-violet-9: #6e56cf;
+        --rx-violet-11:#9b8cf4;
+
+        --rx-gray-a3:   rgba(255, 255, 255, 0.072);
+        --rx-gray-a6:   rgba(255, 255, 255, 0.181);
+        --rx-gray-a9:   rgba(255, 255, 255, 0.435);
+        --rx-gray-a11:  rgba(255, 255, 255, 0.706);
+        --rx-gray-a12:  rgba(255, 255, 255, 0.929);
+    }
+}
+
 /* ---------------------------------------------------------------------------
  * Code blocks
  * ------------------------------------------------------------------------- */

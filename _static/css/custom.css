@@ -204,6 +204,58 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * Article typography — Radix Themes scale
+ *
+ * Shibuya already routes body / heading text through Inter (its default
+ * font stack), so this block only adjusts size, weight, letter-spacing,
+ * and section margins to the canonical 9-step scale from
+ * radix-ui.com/themes/docs/theme/typography.
+ *
+ * Selectors are scoped to `.yue` (Shibuya's article reset class) so we
+ * don't accidentally retype the sidebar / right toc / breadcrumbs.
+ * ------------------------------------------------------------------------- */
+
+.yue h1 {
+    font-size: var(--rx-fs-8);          /* 35px */
+    line-height: var(--rx-lh-8);        /* 40px */
+    letter-spacing: var(--rx-ls-8);     /* -0.02em */
+    font-weight: var(--rx-fw-bold);     /* 700, not 800 */
+    margin: 0 0 var(--rx-space-2);      /* 0 bottom, 8px before subtitle */
+}
+.yue h2 {
+    font-size: var(--rx-fs-6);          /* 24px */
+    line-height: var(--rx-lh-6);        /* 30px */
+    letter-spacing: var(--rx-ls-6);     /* -0.0125em */
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-8) 0 var(--rx-space-3);  /* 48 top, 12 bottom */
+}
+.yue h3 {
+    font-size: var(--rx-fs-4);          /* 18px */
+    line-height: var(--rx-lh-3);        /* 24px (denser than lh-4 for the smaller heading) */
+    letter-spacing: var(--rx-ls-4);     /* -0.005em */
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-7) 0 var(--rx-space-2);  /* 40 top, 8 bottom */
+}
+.yue h4 {
+    font-size: var(--rx-fs-2);          /* 14px */
+    line-height: var(--rx-lh-2);        /* 20px */
+    letter-spacing: var(--rx-ls-2);     /* 0 */
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-5) 0 var(--rx-space-2);
+}
+
+/* Landing-style lead paragraph (rendered from `.. rst-class:: lead`).
+ * Subtitle role on a docs page — bigger, slightly muted. */
+.yue .lead,
+.yue p.lead {
+    font-size: var(--rx-fs-4);
+    line-height: var(--rx-lh-4);
+    letter-spacing: var(--rx-ls-4);
+    color: var(--rx-ink-muted);
+    margin: 0 0 var(--rx-space-7);
+}
+
+/* ---------------------------------------------------------------------------
  * sphinx-design badges — Radix step-3 / step-11 pastel
  *
  * Default sphinx-design uses Bootstrap-era saturated tones for

@@ -1,0 +1,59 @@
+/* Custom styling layered on top of the Shibuya theme.
+ *
+ * Scope: small readability tweaks only — fonts, spacing, and admonition
+ * accents. Page layout and color tokens are left to the theme so future
+ * Shibuya upgrades don't fight with these rules.
+ */
+
+/* ---------------------------------------------------------------------------
+ * Code blocks
+ * ------------------------------------------------------------------------- */
+
+/* Slightly tighter line height + a touch more padding makes long physics
+ * expressions (multi-line cycle equations, dict-keyed results) easier to
+ * scan than the default Shibuya code block. */
+div.highlight pre,
+pre.literal-block {
+    line-height: 1.5;
+    padding: 0.9em 1.1em;
+}
+
+/* Inline code in prose: a hair more breathing room and a subtle background so
+ * `analyze_steady` / `Q_ref_cond [W]` style identifiers don't blend into the
+ * surrounding sentence. */
+:not(pre) > code.literal {
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Admonitions
+ * ------------------------------------------------------------------------- */
+
+/* Tighten the title bar so notes/warnings don't dominate the page visually. */
+.admonition .admonition-title {
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tables
+ * ------------------------------------------------------------------------- */
+
+/* Validation tables and parameter tables read better with a touch more cell
+ * padding than the Shibuya default. */
+table.docutils td,
+table.docutils th {
+    padding: 0.45em 0.75em;
+}
+
+/* ---------------------------------------------------------------------------
+ * Figures
+ * ------------------------------------------------------------------------- */
+
+/* SVG figures (parity plots, schematics) are exported at high resolution;
+ * cap their displayed width so they don't blow past the content column. */
+figure img,
+.figure img {
+    max-width: 100%;
+    height: auto;
+}

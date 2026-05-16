@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerants and CoolProp - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="failure_reason semantics" href="failure-reason-semantics.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/concepts/refrigerant-and-coolprop.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/refrigerant-and-coolprop.html"/>
+  <meta property="og:title" content="Refrigerants and CoolProp"/>
+  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../api/index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Concepts</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cycle-architecture.html">Cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#the-contract">The contract</a></li>
+<li><a class="reference internal" href="#subcritical-operation-r32-r290-r410a-r134a">Subcritical operation (R32, R290, R410A, R134a, &#8230;)</a></li>
+<li><a class="reference internal" href="#supercritical-transcritical-operation-r744">Supercritical / transcritical operation (R744)</a></li>
+<li><a class="reference internal" href="#mapping-coolprop-errors-to-failure-reason">Mapping CoolProp errors to <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code></a></li>
+<li><a class="reference internal" href="#why-coolprop-specifically">Why CoolProp specifically?</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Concepts</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Refrigerants and CoolProp</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="refrigerants-and-coolprop">
+<h1>Refrigerants and CoolProp<a class="headerlink" href="#refrigerants-and-coolprop" title="Link to this heading">¶</a></h1>
+<p>Refrigerant choice is a constructor argument across the whole
+library — every model takes <code class="docutils literal notranslate"><span class="pre">ref=&quot;&lt;name&gt;&quot;</span></code> and routes state
+queries to <a class="reference external" href="http://www.coolprop.org">CoolProp</a>. This page
+covers what that means in practice: which refrigerants work,
+where the cycle assumptions break, and how to interpret
+CoolProp-related failures.</p>
+<section id="the-contract">
+<h2>The contract<a class="headerlink" href="#the-contract" title="Link to this heading">¶</a></h2>
+<p>Any refrigerant CoolProp supports as a pure fluid or a mixture
+that CoolProp can resolve via its built-in alias table is usable
+out of the box:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>        <span class="c1"># difluoromethane</span>
+</span><span data-line="2"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>       <span class="c1"># propane</span>
+</span><span data-line="3"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>      <span class="c1"># mixture</span>
+</span><span data-line="4"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">)</span>       <span class="c1"># CO₂ (see below)</span>
+</span><span data-line="6"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R600a&quot;</span><span class="p">)</span>      <span class="c1"># isobutane</span>
+</span></pre></div>
+</div>
+<p>CoolProp returns REFPROP-grade equation-of-state values, so the
+result is competitive with a calibrated catalogue model
+<em>regardless</em> of which refrigerant you pick — no per-refrigerant
+re-tuning required.</p>
+</section>
+<section id="subcritical-operation-r32-r290-r410a-r134a">
+<h2>Subcritical operation (R32, R290, R410A, R134a, …)<a class="headerlink" href="#subcritical-operation-r32-r290-r410a-r134a" title="Link to this heading">¶</a></h2>
+<p>The cycle assumes a subcritical condensation pressure: condenser
+inlet is superheated vapour, condenser outlet is subcooled
+liquid, and the saturation dome is the relevant region for
+state-point calculations.</p>
+<p>For refrigerants whose critical temperature is comfortably above
+typical condenser water temperatures (R32: ~78 °C critical, R290:
+~97 °C, R134a: ~101 °C), this assumption holds across the entire
+DHW operating envelope.</p>
+</section>
+<section id="supercritical-transcritical-operation-r744">
+<h2>Supercritical / transcritical operation (R744)<a class="headerlink" href="#supercritical-transcritical-operation-r744" title="Link to this heading">¶</a></h2>
+<p>R744 (CO₂) has a critical temperature near 31 °C. For DHW heating
+(condenser water at 50–65 °C) the high side runs <em>above</em> the
+critical point — a transcritical cycle. The current model is
+written against a subcritical-condenser assumption, so R744 will
+still solve but the results are best interpreted as a
+sanity-check, not a fully transcritical model.</p>
+<p>If you need a faithful transcritical model, a future cycle path
+that treats the gas-cooler explicitly is the right place to add
+it. The cycle-closure interface (<code class="docutils literal notranslate"><span class="pre">_optimize_operation</span></code>) is
+designed so that swapping the high-side block in is a localised
+change.</p>
+</section>
+<section id="mapping-coolprop-errors-to-failure-reason">
+<h2>Mapping CoolProp errors to <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code><a class="headerlink" href="#mapping-coolprop-errors-to-failure-reason" title="Link to this heading">¶</a></h2>
+<p>CoolProp raises when state queries fall outside the EOS
+envelope — for example, asking for a saturation pressure above
+the critical point, or asking for a property at a state that
+crossed into two-phase by accident. These show up inside
+<code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;cycle_invalid&quot;</span></code> when the cycle couldn’t
+produce a coherent state at all (often the EOS itself rejected
+a query).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code> when the cycle
+produced a state but the HX iteration drifted because a
+property lookup was unstable near a phase boundary.</p></li>
+</ul>
+<p>In both cases the relevant lever is the <em>operating point</em>:
+either move <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> / <code class="docutils literal notranslate"><span class="pre">T0</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span></code> away from
+the EOS edge, or oversize the heat exchanger so the iteration
+doesn’t push so hard. See <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a> for
+the branching pattern.</p>
+</section>
+<section id="why-coolprop-specifically">
+<h2>Why CoolProp specifically?<a class="headerlink" href="#why-coolprop-specifically" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>Coverage</strong> — every common refrigerant plus most blends, with
+the same call shape.</p></li>
+<li><p><strong>Quality</strong> — REFPROP-grade EOS for the major fluids, validated
+against the same reference data that commercial property
+packages use.</p></li>
+<li><p><strong>License</strong> — MIT, redistributable.</p></li>
+<li><p><strong>Cost</strong> — pure-Python wrapper over a C++ core, fast enough
+that 100 k state queries per simulation second are not the
+bottleneck.</p></li>
+</ul>
+<p>For state-point helpers and the small wrapper layer this library
+adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.html"><span class="doc">Refrigerant &amp; thermodynamics</span></a>.</p>
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="failure-reason-semantics.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="../api/index.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">API Reference</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

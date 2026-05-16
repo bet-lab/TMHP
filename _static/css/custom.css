@@ -126,6 +126,37 @@ figure img,
     transform: translateX(2px);
 }
 
+/* "Next steps" pointer block — left iris stripe + inline-link with
+ * trailing arrow, so the section reads as a quiet hand-off instead of
+ * two marketing cards.  Used at the bottom of pages that have an
+ * obvious follow-up (e.g. Quick start → First dynamic simulation). */
+.next-steps {
+    margin: 1rem 0 0;
+    padding: 0.15rem 0 0.15rem 1rem;
+    border-left: 3px solid var(--sy-c-link, #6366f1);
+}
+.next-steps p {
+    margin: 0.45rem 0;
+}
+.next-steps a.reference {
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color 120ms ease;
+}
+.next-steps a.reference::after {
+    content: " →";
+    display: inline-block;
+    transition: transform 120ms ease;
+}
+.next-steps a.reference:hover {
+    border-bottom-color: currentColor;
+}
+.next-steps a.reference:hover::after {
+    transform: translateX(2px);
+}
+
 /* Navigation cards. Light border, no shadow, no hover lift — only the
  * border colour responds to hover. */
 .landing-cards .sd-card {

@@ -264,6 +264,20 @@ details.sd-dropdown[open] .sd-summary-content {
 }
 
 /* ---------------------------------------------------------------------------
+ * Right-hand "On this page" toc
+ *
+ * Cap the rendered toc at section + class. The 3rd level (every method
+ * signature: __init__, analyze_steady, analyze_dynamic, ...) blows the
+ * panel past two screens on the larger model pages and adds noise without
+ * adding navigation value — readers already see methods inline on the
+ * page itself.
+ * ------------------------------------------------------------------------- */
+
+.localtoc ul ul ul {
+    display: none;
+}
+
+/* ---------------------------------------------------------------------------
  * API signatures
  * ------------------------------------------------------------------------- */
 

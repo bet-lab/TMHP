@@ -9,9 +9,10 @@
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1e11888d" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,11 +22,16 @@
   --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
 }
 </style>
-    <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/validation/"/>
-  <meta property="og:title" content="Validation"/>
-  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
-    <meta name="twitter:card" content="summary"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Validation" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/validation/index.html" />
+<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:description" content="AirSourceHeatPumpBoiler has been validated against commercial catalogue data — the Samsung EHS Mono HT Quiet R32 14 kW unit — across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\}..." />
+<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta name="description" content="AirSourceHeatPumpBoiler has been validated against commercial catalogue data — the Samsung EHS Mono HT Quiet R32 14 kW unit — across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\}..." />
+
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -123,6 +129,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#headline-numbers">Headline numbers</a></li>
 <li><a class="reference internal" href="#parity-plot">Parity plot</a></li>
 <li><a class="reference internal" href="#per-point-comparison">Per-point comparison</a></li>
 <li><a class="reference internal" href="#notation">Notation</a></li>
@@ -167,6 +174,65 @@ has been validated against commercial catalogue data — the
 operating points spanning <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in
 \{40, 50, 65\}\)</span> °C and outdoor air temperatures from −10 to
 30 °C.</p>
+<section id="headline-numbers">
+<h2>Headline numbers<a class="headerlink" href="#headline-numbers" title="Link to this heading">¶</a></h2>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 stat-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-graph" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg> MAPE</div>
+<p class="sd-card-text"><strong>11.8 %</strong></p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text">mean absolute % error
+across all 15 points</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-pulse" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"></path></svg> MAE</div>
+<p class="sd-card-text"><strong>0.44</strong></p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text">mean absolute COP error
+(COP units)</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-hash" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.368 1.01a.75.75 0 0 1 .623.859L6.57 4.5h3.98l.46-2.868a.75.75 0 0 1 1.48.237L12.07 4.5h2.18a.75.75 0 0 1 0 1.5h-2.42l-.64 4h2.56a.75.75 0 0 1 0 1.5h-2.8l-.46 2.869a.75.75 0 0 1-1.48-.237l.42-2.632H5.45l-.46 2.869a.75.75 0 0 1-1.48-.237l.42-2.632H1.75a.75.75 0 0 1 0-1.5h2.42l.64-4H2.25a.75.75 0 0 1 0-1.5h2.8l.46-2.868a.75.75 0 0 1 .858-.622ZM9.67 10l.64-4H6.33l-.64 4Z"></path></svg> Operating points</div>
+<p class="sd-card-text"><strong>15</strong></p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in \{40, 50, 65\}\)</span> °C
+× <span class="math notranslate nohighlight">\(T_0\)</span> from −10 to 30 °C</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-zap" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-7.34 7.142a1.249 1.249 0 0 1-.871.354h-.302a1.25 1.25 0 0 1-1.157-1.723L5.633 10.5H3.462c-1.57 0-2.346-1.909-1.22-3.004L9.503.429Zm1.047 1.074L3.286 8.571A.25.25 0 0 0 3.462 9H6.75a.75.75 0 0 1 .694 1.034l-1.713 4.188 6.982-6.793A.25.25 0 0 0 12.538 7H9.25a.75.75 0 0 1-.683-1.06l2.008-4.418.003-.006a.036.036 0 0 0-.004-.009l-.006-.006-.008-.001c-.003 0-.006.002-.009.004Z"></path></svg> Calibration</div>
+<p class="sd-card-text"><strong>None</strong></p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text">no unit-specific tuning;
+same code path for any refrigerant</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
 <section id="parity-plot">
 <h2>Parity plot<a class="headerlink" href="#parity-plot" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">
@@ -185,8 +251,11 @@ tracks the catalogue without unit-specific calibration.</span><a class="headerli
 KJACR 2026 paper (see citations below). Predicted values come
 from re-running the released code via
 <code class="docutils literal notranslate"><span class="pre">scripts/validation/samsung_ehs_parity.py</span></code>.</p>
-<div class="table-wrapper colwidths-given docutils container">
-<table class="docutils align-default">
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3 sd-fade-in-slide-down">
+<summary class="sd-summary-title sd-card-header sd-bg-primary sd-bg-text-primary">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-table" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25ZM6.5 6.5v8h7.75a.25.25 0 0 0 .25-.25V6.5Zm8-1.5V1.75a.25.25 0 0 0-.25-.25H6.5V5Zm-13 1.5v7.75c0 .138.112.25.25.25H5v-8ZM5 5V1.5H1.75a.25.25 0 0 0-.25.25V5Z"></path></svg></span><span class="sd-summary-text">Show all 15 operating points</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<div class="table-wrapper colwidths-given validation-table docutils container">
+<table class="validation-table docutils align-default">
 <colgroup>
 <col style="width: 5.7%" />
 <col style="width: 13.8%" />
@@ -198,165 +267,166 @@ from re-running the released code via
 <col style="width: 11.5%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p>ID</p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\ [\mathrm{°C}]\)</span></p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(T_0\ [\mathrm{°C}]\)</span></p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}}\ [\mathrm{kW}]\)</span></p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{target}}\)</span></p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{pred}}\)</span></p></th>
-<th class="head"><p>AE</p></th>
-<th class="head"><p>APE</p></th>
+<tr class="row-odd"><th class="head"><p class="sd-card-text">ID</p></th>
+<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\ [\mathrm{°C}]\)</span></p></th>
+<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(T_0\ [\mathrm{°C}]\)</span></p></th>
+<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}}\ [\mathrm{kW}]\)</span></p></th>
+<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{target}}\)</span></p></th>
+<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{pred}}\)</span></p></th>
+<th class="head"><p class="sd-card-text">AE</p></th>
+<th class="head"><p class="sd-card-text">APE</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>1</p></td>
-<td><p>40</p></td>
-<td><p>−10</p></td>
-<td><p>13.45</p></td>
-<td><p>2.30</p></td>
-<td><p>2.37</p></td>
-<td><p>0.07</p></td>
-<td><p>3.0 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">1</p></td>
+<td><p class="sd-card-text">40</p></td>
+<td><p class="sd-card-text">−10</p></td>
+<td><p class="sd-card-text">13.45</p></td>
+<td><p class="sd-card-text">2.30</p></td>
+<td><p class="sd-card-text">2.37</p></td>
+<td><p class="sd-card-text">0.07</p></td>
+<td><p class="sd-card-text">3.0 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>2</p></td>
-<td><p>40</p></td>
-<td><p>2</p></td>
-<td><p>12.42</p></td>
-<td><p>3.04</p></td>
-<td><p>3.83</p></td>
-<td><p>0.79</p></td>
-<td><p>25.8 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">2</p></td>
+<td><p class="sd-card-text">40</p></td>
+<td><p class="sd-card-text">2</p></td>
+<td><p class="sd-card-text">12.42</p></td>
+<td><p class="sd-card-text">3.04</p></td>
+<td><p class="sd-card-text">3.83</p></td>
+<td><p class="sd-card-text">0.79</p></td>
+<td><p class="sd-card-text">25.8 %</p></td>
 </tr>
-<tr class="row-even"><td><p>3</p></td>
-<td><p>40</p></td>
-<td><p>12</p></td>
-<td><p>14.65</p></td>
-<td><p>5.07</p></td>
-<td><p>4.67</p></td>
-<td><p>0.40</p></td>
-<td><p>7.9 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">3</p></td>
+<td><p class="sd-card-text">40</p></td>
+<td><p class="sd-card-text">12</p></td>
+<td><p class="sd-card-text">14.65</p></td>
+<td><p class="sd-card-text">5.07</p></td>
+<td><p class="sd-card-text">4.67</p></td>
+<td><p class="sd-card-text">0.40</p></td>
+<td><p class="sd-card-text">7.9 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>4</p></td>
-<td><p>40</p></td>
-<td><p>20</p></td>
-<td><p>15.69</p></td>
-<td><p>6.48</p></td>
-<td><p>5.65</p></td>
-<td><p>0.83</p></td>
-<td><p>12.8 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">4</p></td>
+<td><p class="sd-card-text">40</p></td>
+<td><p class="sd-card-text">20</p></td>
+<td><p class="sd-card-text">15.69</p></td>
+<td><p class="sd-card-text">6.48</p></td>
+<td><p class="sd-card-text">5.65</p></td>
+<td><p class="sd-card-text">0.83</p></td>
+<td><p class="sd-card-text">12.8 %</p></td>
 </tr>
-<tr class="row-even"><td><p>5</p></td>
-<td><p>40</p></td>
-<td><p>30</p></td>
-<td><p>16.98</p></td>
-<td><p>7.68</p></td>
-<td><p>7.43</p></td>
-<td><p>0.25</p></td>
-<td><p>3.2 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">5</p></td>
+<td><p class="sd-card-text">40</p></td>
+<td><p class="sd-card-text">30</p></td>
+<td><p class="sd-card-text">16.98</p></td>
+<td><p class="sd-card-text">7.68</p></td>
+<td><p class="sd-card-text">7.43</p></td>
+<td><p class="sd-card-text">0.25</p></td>
+<td><p class="sd-card-text">3.2 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>6</p></td>
-<td><p>50</p></td>
-<td><p>−10</p></td>
-<td><p>13.89</p></td>
-<td><p>2.00</p></td>
-<td><p>1.84</p></td>
-<td><p>0.16</p></td>
-<td><p>7.8 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">6</p></td>
+<td><p class="sd-card-text">50</p></td>
+<td><p class="sd-card-text">−10</p></td>
+<td><p class="sd-card-text">13.89</p></td>
+<td><p class="sd-card-text">2.00</p></td>
+<td><p class="sd-card-text">1.84</p></td>
+<td><p class="sd-card-text">0.16</p></td>
+<td><p class="sd-card-text">7.8 %</p></td>
 </tr>
-<tr class="row-even"><td><p>7</p></td>
-<td><p>50</p></td>
-<td><p>2</p></td>
-<td><p>13.27</p></td>
-<td><p>2.56</p></td>
-<td><p>3.04</p></td>
-<td><p>0.48</p></td>
-<td><p>18.9 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">7</p></td>
+<td><p class="sd-card-text">50</p></td>
+<td><p class="sd-card-text">2</p></td>
+<td><p class="sd-card-text">13.27</p></td>
+<td><p class="sd-card-text">2.56</p></td>
+<td><p class="sd-card-text">3.04</p></td>
+<td><p class="sd-card-text">0.48</p></td>
+<td><p class="sd-card-text">18.9 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>8</p></td>
-<td><p>50</p></td>
-<td><p>12</p></td>
-<td><p>14.76</p></td>
-<td><p>3.86</p></td>
-<td><p>3.71</p></td>
-<td><p>0.15</p></td>
-<td><p>3.9 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">8</p></td>
+<td><p class="sd-card-text">50</p></td>
+<td><p class="sd-card-text">12</p></td>
+<td><p class="sd-card-text">14.76</p></td>
+<td><p class="sd-card-text">3.86</p></td>
+<td><p class="sd-card-text">3.71</p></td>
+<td><p class="sd-card-text">0.15</p></td>
+<td><p class="sd-card-text">3.9 %</p></td>
 </tr>
-<tr class="row-even"><td><p>9</p></td>
-<td><p>50</p></td>
-<td><p>20</p></td>
-<td><p>15.97</p></td>
-<td><p>4.78</p></td>
-<td><p>4.34</p></td>
-<td><p>0.44</p></td>
-<td><p>9.2 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">9</p></td>
+<td><p class="sd-card-text">50</p></td>
+<td><p class="sd-card-text">20</p></td>
+<td><p class="sd-card-text">15.97</p></td>
+<td><p class="sd-card-text">4.78</p></td>
+<td><p class="sd-card-text">4.34</p></td>
+<td><p class="sd-card-text">0.44</p></td>
+<td><p class="sd-card-text">9.2 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>10</p></td>
-<td><p>50</p></td>
-<td><p>30</p></td>
-<td><p>17.48</p></td>
-<td><p>5.95</p></td>
-<td><p>5.37</p></td>
-<td><p>0.58</p></td>
-<td><p>9.8 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">10</p></td>
+<td><p class="sd-card-text">50</p></td>
+<td><p class="sd-card-text">30</p></td>
+<td><p class="sd-card-text">17.48</p></td>
+<td><p class="sd-card-text">5.95</p></td>
+<td><p class="sd-card-text">5.37</p></td>
+<td><p class="sd-card-text">0.58</p></td>
+<td><p class="sd-card-text">9.8 %</p></td>
 </tr>
-<tr class="row-even"><td><p>11</p></td>
-<td><p>65</p></td>
-<td><p>−10</p></td>
-<td><p>13.96</p></td>
-<td><p>1.83</p></td>
-<td><p>1.43</p></td>
-<td><p>0.40</p></td>
-<td><p>22.1 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">11</p></td>
+<td><p class="sd-card-text">65</p></td>
+<td><p class="sd-card-text">−10</p></td>
+<td><p class="sd-card-text">13.96</p></td>
+<td><p class="sd-card-text">1.83</p></td>
+<td><p class="sd-card-text">1.43</p></td>
+<td><p class="sd-card-text">0.40</p></td>
+<td><p class="sd-card-text">22.1 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>12</p></td>
-<td><p>65</p></td>
-<td><p>2</p></td>
-<td><p>13.59</p></td>
-<td><p>2.27</p></td>
-<td><p>2.38</p></td>
-<td><p>0.11</p></td>
-<td><p>4.9 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">12</p></td>
+<td><p class="sd-card-text">65</p></td>
+<td><p class="sd-card-text">2</p></td>
+<td><p class="sd-card-text">13.59</p></td>
+<td><p class="sd-card-text">2.27</p></td>
+<td><p class="sd-card-text">2.38</p></td>
+<td><p class="sd-card-text">0.11</p></td>
+<td><p class="sd-card-text">4.9 %</p></td>
 </tr>
-<tr class="row-even"><td><p>13</p></td>
-<td><p>65</p></td>
-<td><p>12</p></td>
-<td><p>15.55</p></td>
-<td><p>3.22</p></td>
-<td><p>2.81</p></td>
-<td><p>0.41</p></td>
-<td><p>12.7 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">13</p></td>
+<td><p class="sd-card-text">65</p></td>
+<td><p class="sd-card-text">12</p></td>
+<td><p class="sd-card-text">15.55</p></td>
+<td><p class="sd-card-text">3.22</p></td>
+<td><p class="sd-card-text">2.81</p></td>
+<td><p class="sd-card-text">0.41</p></td>
+<td><p class="sd-card-text">12.7 %</p></td>
 </tr>
-<tr class="row-odd"><td><p>14</p></td>
-<td><p>65</p></td>
-<td><p>20</p></td>
-<td><p>16.76</p></td>
-<td><p>3.83</p></td>
-<td><p>3.23</p></td>
-<td><p>0.60</p></td>
-<td><p>15.7 %</p></td>
+<tr class="row-odd"><td><p class="sd-card-text">14</p></td>
+<td><p class="sd-card-text">65</p></td>
+<td><p class="sd-card-text">20</p></td>
+<td><p class="sd-card-text">16.76</p></td>
+<td><p class="sd-card-text">3.83</p></td>
+<td><p class="sd-card-text">3.23</p></td>
+<td><p class="sd-card-text">0.60</p></td>
+<td><p class="sd-card-text">15.7 %</p></td>
 </tr>
-<tr class="row-even"><td><p>15</p></td>
-<td><p>65</p></td>
-<td><p>30</p></td>
-<td><p>18.27</p></td>
-<td><p>4.72</p></td>
-<td><p>3.84</p></td>
-<td><p>0.88</p></td>
-<td><p>18.6 %</p></td>
+<tr class="row-even"><td><p class="sd-card-text">15</p></td>
+<td><p class="sd-card-text">65</p></td>
+<td><p class="sd-card-text">30</p></td>
+<td><p class="sd-card-text">18.27</p></td>
+<td><p class="sd-card-text">4.72</p></td>
+<td><p class="sd-card-text">3.84</p></td>
+<td><p class="sd-card-text">0.88</p></td>
+<td><p class="sd-card-text">18.6 %</p></td>
 </tr>
 <tr class="row-odd"><td></td>
 <td></td>
 <td></td>
 <td></td>
-<td><p><strong>Mean</strong></p></td>
+<td><p class="sd-card-text"><strong>Mean</strong></p></td>
 <td></td>
-<td><p><strong>0.44</strong></p></td>
-<td><p><strong>11.8 %</strong></p></td>
+<td><p class="sd-card-text"><strong>0.44</strong></p></td>
+<td><p class="sd-card-text"><strong>11.8 %</strong></p></td>
 </tr>
 </tbody>
 </table>
 </div>
-</section>
+</div>
+</details></section>
 <section id="notation">
 <h2>Notation<a class="headerlink" href="#notation" title="Link to this heading">¶</a></h2>
 <ul class="simple">
@@ -469,8 +539,14 @@ Book</em> (2024) —
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></body>
 </html>

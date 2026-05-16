@@ -9,9 +9,10 @@
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1e11888d" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,11 +22,16 @@
   --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
 }
 </style>
-    <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/failure-reason-semantics.html"/>
-  <meta property="og:title" content="failure_reason semantics"/>
-  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
-    <meta name="twitter:card" content="summary"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="failure_reason semantics" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/failure-reason-semantics.html" />
+<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:description" content="Every analyze_steady result carries a failure_reason key. It’s a diagnostic report — independent from whether the result dict contains usable cycle numbers — and lets callers branch on why a step l..." />
+<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta name="description" content="Every analyze_steady result carries a failure_reason key. It’s a diagnostic report — independent from whether the result dict contains usable cycle numbers — and lets callers branch on why a step l..." />
+
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -164,7 +170,7 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="failure-reason-semantics">
 <h1><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics<a class="headerlink" href="#failure-reason-semantics" title="Link to this heading">¶</a></h1>
-<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result carries a <code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> key.
+<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result carries a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> key.
 It’s a diagnostic <em>report</em> — independent from whether the result
 dict contains usable cycle numbers — and lets callers branch on
 <em>why</em> a step looks the way it does without having to inspect cycle
@@ -185,23 +191,23 @@ internals.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">none</span></code></p></td>
 <td><p>Cycle closed and the SciPy optimiser converged.</p></td>
 <td><p>Yes — trust <code class="docutils literal notranslate"><span class="pre">E_cmp</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_*</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_*</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
 <td><p>HX residual exceeded tolerance, but the cycle itself
 produced a state.</p></td>
 <td><p>Yes — numbers are usable but should be treated as
 approximate. <code class="docutils literal notranslate"><span class="pre">converged</span> <span class="pre">==</span> <span class="pre">False</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code></p></td>
 <td><p>SciPy couldn’t satisfy its own success criteria, even
 though the cycle returned a state.</p></td>
 <td><p>Yes — numbers exist, but the evaporating-temperature
 choice is not provably optimal.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
 <td><p>The cycle itself was infeasible at the requested
 operating point. The model falls back to off-mode
 (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
@@ -240,22 +246,55 @@ the converged flag with the failure reason:</p>
 <h2>What triggers each value<a class="headerlink" href="#what-triggers-each-value" title="Link to this heading">¶</a></h2>
 <p>These are implementation details and may shift between releases —
 treat the four values themselves as the stable contract, not the
-mechanism.</p>
-<ul class="simple">
-<li><p><strong>``”cycle_invalid”``</strong> — <code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> raised, or returned a
-non-dict, at the requested <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> / <code class="docutils literal notranslate"><span class="pre">T0</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span></code>.
-Usually a sign the requested duty is unreachable for the given
-geometry; consider increasing the design ε-NTU or fan flow.</p></li>
-<li><p><strong>``”hx_not_converged”``</strong> — HX residual didn’t drop below
-tolerance inside the inner iteration. Result is still usable;
-treat <code class="docutils literal notranslate"><span class="pre">converged</span></code> as the truth on this.</p></li>
-<li><p><strong>``”optimizer_failed”``</strong> — the outer SciPy optimiser exited
-with <code class="docutils literal notranslate"><span class="pre">success</span> <span class="pre">==</span> <span class="pre">False</span></code>. The cycle still has a state at the
-optimiser’s best <code class="docutils literal notranslate"><span class="pre">dT_ref_evap</span></code>, just not a provably optimal
-one.</p></li>
-<li><p><strong>``”none”``</strong> — everything converged.</p></li>
-</ul>
-</section>
+mechanism. Expand the cards below for the trigger conditions and
+the recommended lever to pull when you hit each one.</p>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-success sd-bg-text-success">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-check-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">none</span></code> — everything converged</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Both the inner HX loop and the outer SciPy optimiser hit
+their success criteria. The result dict is fully populated
+and <code class="docutils literal notranslate"><span class="pre">converged</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+<p class="sd-card-text"><strong>No action needed.</strong> This is the common path on a well-sized
+system at moderate ambient.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-warning sd-bg-text-warning">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-alert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> — HX residual exceeded tolerance</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The HX residual didn’t drop below tolerance inside the inner
+iteration, but the cycle still produced a state. The result
+is usable as an approximation — <code class="docutils literal notranslate"><span class="pre">converged</span></code> is set to
+<code class="docutils literal notranslate"><span class="pre">False</span></code> so you can filter rows downstream.</p>
+<p class="sd-card-text"><strong>What to do.</strong> Treat <code class="docutils literal notranslate"><span class="pre">converged</span></code> as the source of truth
+for “trust this row?” decisions. If the rate of
+<code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> is uncomfortably high, oversize the
+affected HX (design ε-NTU or area) so the iteration has
+more headroom near phase boundaries.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-warning sd-bg-text-warning">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-alert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code> — SciPy didn’t satisfy its own criteria</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The outer SciPy optimiser exited with <code class="docutils literal notranslate"><span class="pre">success</span> <span class="pre">==</span> <span class="pre">False</span></code>.
+The cycle still has a state at the optimiser’s best
+<code class="docutils literal notranslate"><span class="pre">dT_ref_evap</span></code>, just not a provably optimal one.</p>
+<p class="sd-card-text"><strong>What to do.</strong> The numbers are reasonable but not
+optimisation-grade — fine for most aggregations, suspect for
+point-comparison work. Wider initial bounds on
+<code class="docutils literal notranslate"><span class="pre">dT_ref_evap</span></code> usually clears this.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-danger sd-bg-text-danger">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-x-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> — cycle was infeasible at this point</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> raised, or returned a non-dict, at the
+requested <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> / <code class="docutils literal notranslate"><span class="pre">T0</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span></code>. The model
+falls back to off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p>
+<p class="sd-card-text"><strong>What to do.</strong> Usually the requested duty is unreachable
+for the given geometry. Consider increasing the design
+ε-NTU, fan flow, or condenser area; or accept that the
+operating point is genuinely off-limits and let the
+off-mode row stand.</p>
+</div>
+</details></section>
 <section id="off-mode-fallback">
 <h2>Off-mode fallback<a class="headerlink" href="#off-mode-fallback" title="Link to this heading">¶</a></h2>
 <p>When <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;cycle_invalid&quot;</span></code>, the steady-state path
@@ -325,6 +364,12 @@ core models. See the docstrings under:</p>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
-      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script></body>
 </html>

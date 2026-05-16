@@ -1,26 +1,21 @@
 /* Custom styling layered on top of the Shibuya theme.
  *
- * Scope: small readability tweaks only — fonts, spacing, and admonition
- * accents. Page layout and color tokens are left to the theme so future
- * Shibuya upgrades don't fight with these rules.
+ * Scope: small readability tweaks + landing/UX components added on top
+ * of sphinx-design and the new mermaid / togglebutton / last-updated
+ * extensions. Page layout and color tokens are left to the theme so
+ * future Shibuya upgrades don't fight with these rules.
  */
 
 /* ---------------------------------------------------------------------------
  * Code blocks
  * ------------------------------------------------------------------------- */
 
-/* Slightly tighter line height + a touch more padding makes long physics
- * expressions (multi-line cycle equations, dict-keyed results) easier to
- * scan than the default Shibuya code block. */
 div.highlight pre,
 pre.literal-block {
     line-height: 1.5;
     padding: 0.9em 1.1em;
 }
 
-/* Inline code in prose: a hair more breathing room and a subtle background so
- * `analyze_steady` / `Q_ref_cond [W]` style identifiers don't blend into the
- * surrounding sentence. */
 :not(pre) > code.literal {
     padding: 0.1em 0.35em;
     border-radius: 3px;
@@ -30,7 +25,6 @@ pre.literal-block {
  * Admonitions
  * ------------------------------------------------------------------------- */
 
-/* Tighten the title bar so notes/warnings don't dominate the page visually. */
 .admonition .admonition-title {
     font-weight: 600;
 }
@@ -39,21 +33,175 @@ pre.literal-block {
  * Tables
  * ------------------------------------------------------------------------- */
 
-/* Validation tables and parameter tables read better with a touch more cell
- * padding than the Shibuya default. */
 table.docutils td,
 table.docutils th {
     padding: 0.45em 0.75em;
+}
+
+/* Validation table: tighten numeric columns and right-align numbers so the
+ * per-point grid is scannable instead of zig-zagging. */
+table.validation-table td,
+table.validation-table th {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+table.validation-table td:first-child,
+table.validation-table th:first-child {
+    text-align: center;
 }
 
 /* ---------------------------------------------------------------------------
  * Figures
  * ------------------------------------------------------------------------- */
 
-/* SVG figures (parity plots, schematics) are exported at high resolution;
- * cap their displayed width so they don't blow past the content column. */
 figure img,
 .figure img {
     max-width: 100%;
     height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Landing — badges, CTAs, and stat cards
+ * ------------------------------------------------------------------------- */
+
+/* Pillbox row directly under the lead paragraph. */
+.hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    margin: 0.5rem 0 1.25rem;
+    align-items: center;
+}
+.hero-badges img {
+    height: 22px;
+    display: block;
+}
+
+/* Primary CTA row — slightly tighter than the surrounding cards. */
+.hero-cta {
+    margin-bottom: 1.5rem;
+}
+.hero-cta .sd-btn {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* Landing cards: soften the corners and lift on hover. */
+.landing-cards .sd-card {
+    transition: transform 120ms ease, box-shadow 120ms ease,
+        border-color 120ms ease;
+    border-radius: 10px;
+}
+.landing-cards .sd-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -12px rgba(99, 102, 241, 0.35);
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+/* "At a glance" / validation stat cards — large headline number on top,
+ * small descriptor underneath, no shadow. */
+.stat-grid .stat-card {
+    border-radius: 10px;
+    border: 1px solid var(--color-border, rgba(120, 120, 120, 0.2));
+    background: var(--color-card-bg, transparent);
+}
+.stat-grid .stat-card .sd-card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    opacity: 0.85;
+}
+.stat-grid .stat-card .sd-card-body p:first-of-type {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0.15rem 0 0.25rem;
+}
+.stat-grid .stat-card .sd-card-footer {
+    font-size: 0.82rem;
+    opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dropdowns (sphinx-design)
+ * ------------------------------------------------------------------------- */
+
+/* The validation per-point table sits inside a dropdown — give it room. */
+details.sd-dropdown[open] .sd-summary-content {
+    padding: 0.5rem 0.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Mermaid
+ * ------------------------------------------------------------------------- */
+
+/* Center the rendered SVG and stop it from blowing past the column. */
+.mermaid {
+    text-align: center;
+    margin: 1rem auto 1.25rem;
+}
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab sets (sphinx-design)
+ * ------------------------------------------------------------------------- */
+
+/* Tighter tab labels and a hint of bottom space below the content. */
+.sd-tab-set > label.sd-tab-label {
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Last-updated-by-git footer
+ * ------------------------------------------------------------------------- */
+
+/* The extension drops a small "Last updated" line at the bottom of each
+ * page; align it with the existing footer typography. */
+.git-last-updated {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    margin-top: 2rem;
+    font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+ * API signatures
+ * ------------------------------------------------------------------------- */
+
+/* Shibuya forces `.yue dt { font-weight: 600 }` which bleeds into Python
+ * signatures: parens, commas, default values, type annotations all render
+ * bold and the reader can't tell the function name apart from its 30+
+ * parameters. Keep the name (and prename / class qualifier) emphasised,
+ * normalise everything else inside the signature. */
+.yue dl.py > dt.sig,
+.yue dl.py > dt.sig .sig-paren,
+.yue dl.py > dt.sig .default_value,
+.yue dl.py > dt.sig .o,
+.yue dl.py > dt.sig .n,
+.yue dl.py > dt.sig .sig-param,
+.yue dl.py > dt.sig .sig-param .pre {
+    font-weight: 400;
+}
+.yue dl.py > dt.sig .sig-name {
+    font-weight: 600;
+}
+.yue dl.py > dt.sig .sig-prename {
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------------------
+ * Copybutton
+ * ------------------------------------------------------------------------- */
+
+/* Nudge the copy icon out of the corner a touch so it stops overlapping
+ * long single-line code samples. */
+button.copybtn {
+    opacity: 0.55;
+}
+button.copybtn:hover {
+    opacity: 1;
 }

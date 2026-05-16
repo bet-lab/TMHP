@@ -9,9 +9,10 @@
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
     <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1e11888d" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,11 +22,16 @@
   --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
 }
 </style>
-    <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/tutorials/swap-refrigerant.html"/>
-  <meta property="og:title" content="Swap refrigerants"/>
-  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
-    <meta name="twitter:card" content="summary"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Swap refrigerants" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/tutorials/swap-refrigerant.html" />
+<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:description" content="The refrigerant is a constructor argument across every model in physics_hp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-sol..." />
+<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta name="description" content="The refrigerant is a constructor argument across every model in physics_hp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-sol..." />
+
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -125,7 +131,10 @@ data-aria-dark="Switch to auto color mode">
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#sweep">Sweep</a></li>
 <li><a class="reference internal" href="#reading-the-result">Reading the result</a></li>
-<li><a class="reference internal" href="#picking-a-refrigerant">Picking a refrigerant</a></li>
+<li><a class="reference internal" href="#picking-a-refrigerant">Picking a refrigerant</a><ul>
+<li><a class="reference internal" href="#screening-criteria">Screening criteria</a></li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -211,9 +220,9 @@ EOS.</p>
 <h2>Reading the result<a class="headerlink" href="#reading-the-result" title="Link to this heading">¶</a></h2>
 <p>A few things to look for:</p>
 <ul class="simple">
-<li><p><strong>``failure_reason``</strong> — should be <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> for all four at
+<li><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> — should be <code class="docutils literal notranslate"><span class="pre">none</span></code> for all four at
 this operating point. If a refrigerant trips
-<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, see
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> or <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code>, see
 <a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>.</p></li>
 <li><p><strong>``cop_ref`` vs ``cop_sys``</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span></code> is the cycle COP
 (condenser duty divided by compressor work). <code class="docutils literal notranslate"><span class="pre">cop_sys</span></code> also
@@ -227,12 +236,59 @@ the heat exchangers are identical.</p></li>
 </section>
 <section id="picking-a-refrigerant">
 <h2>Picking a refrigerant<a class="headerlink" href="#picking-a-refrigerant" title="Link to this heading">¶</a></h2>
-<p>The library doesn’t decide for you. Use the sweep above as a
-screening step against the constraints that actually matter for
-your application:</p>
+<p>The library doesn’t decide for you. Each refrigerant trades off
+COP, safety class, and environmental impact differently. Tabs
+below summarise the four common picks at a glance.</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r32" for="sd-tab-item-0">
+R32</label><div class="sd-tab-content docutils">
+<p><strong>Difluoromethane</strong> · single-component HFC</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A2L low-flammability</span> <span class="sd-sphinx-override sd-badge sd-bg-warning sd-bg-text-warning">GWP ≈ 675</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 78 °C</span></p>
+<p>Default in this library — solid COP across the DHW
+envelope and the refrigerant Samsung used for the
+validation unit. Subcritical condensation up to about
+70 °C LWT.</p>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r290" for="sd-tab-item-1">
+R290</label><div class="sd-tab-content docutils">
+<p><strong>Propane</strong> · natural refrigerant</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">A3 flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">GWP ≈ 3</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 97 °C</span></p>
+<p>Highest COP and lowest GWP of the four. Safety-charge
+limits constrain residential applications, but propane
+is the EU-friendly long-term pick.</p>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r410a" for="sd-tab-item-2">
+R410A</label><div class="sd-tab-content docutils">
+<p><strong>R32 / R125 zeotropic blend</strong> · legacy HFC</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP ≈ 2088</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 72 °C</span></p>
+<p>The blend most existing residential heat pumps were
+designed for. Strong precedent and tooling, but being
+phased out under F-gas regulation.</p>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="r134a" for="sd-tab-item-3">
+R134a</label><div class="sd-tab-content docutils">
+<p><strong>1,1,1,2-Tetrafluoroethane</strong> · single-component HFC</p>
+<p><span class="sd-sphinx-override sd-badge sd-bg-success sd-bg-text-success">A1 non-flammable</span> <span class="sd-sphinx-override sd-badge sd-bg-danger sd-bg-text-danger">GWP ≈ 1430</span>
+<span class="sd-sphinx-override sd-badge sd-bg-info sd-bg-text-info">T_crit ≈ 101 °C</span></p>
+<p>High critical temperature makes it well-suited to
+high-LWT industrial heat-pump applications, but GWP and
+regulatory pressure limit residential use.</p>
+</div>
+</div>
+<section id="screening-criteria">
+<h3>Screening criteria<a class="headerlink" href="#screening-criteria" title="Link to this heading">¶</a></h3>
+<p>Use the sweep above as a screening step against the constraints
+that actually matter for your application:</p>
 <ul class="simple">
 <li><p><strong>Operating-point COP</strong> — what this tutorial reports.</p></li>
-<li><p><strong>Flammability class</strong> — A1 (R32, R410A, R134a, …) vs A3 (R290).</p></li>
+<li><p><strong>Flammability class</strong> — A1 (R134a, R410A) → A2L (R32) → A3 (R290).</p></li>
 <li><p><strong>GWP</strong> — R134a &gt; R410A &gt; R32 &gt; R290 ≈ R744.</p></li>
 <li><p><strong>Critical temperature</strong> — for transcritical CO₂ (R744), see
 <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p></li>
@@ -240,6 +296,7 @@ your application:</p>
 <p>Once a candidate refrigerant is chosen, re-run a full annual
 simulation with realistic schedules — see
 <a class="reference internal" href="realistic-dynamic-simulation.html"><span class="doc">Realistic dynamic simulation</span></a>.</p>
+</section>
 </section>
 </section>
 
@@ -291,6 +348,12 @@ simulation with realistic schedules — see
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
-      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script></body>
 </html>

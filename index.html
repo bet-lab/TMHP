@@ -9,9 +9,10 @@
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
     <link rel="stylesheet" type="text/css" href="_static/shibuya.css?v=44020203" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ed00dc55" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=1e11888d" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,11 +22,16 @@
   --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
 }
 </style>
-    <meta property="og:type" content="website"/>
-  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/"/>
-  <meta property="og:title" content="Physics-Based Heat Pump Models"/>
-  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
-    <meta name="twitter:card" content="summary"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Physics-Based Heat Pump Models" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/index.html" />
+<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:description" content="First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. physics_hp solves the thermodynamic refrigerant cycle at every time step using CoolProp, so the sa..." />
+<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta name="description" content="First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. physics_hp solves the thermodynamic refrigerant cycle at every time step using CoolProp, so the sa..." />
+
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -155,14 +161,44 @@ water-source heat pump systems.</strong></p>
 step using <a class="reference external" href="http://www.coolprop.org">CoolProp</a>, so the same model
 code applies across refrigerants and operating envelopes without
 needing manufacturer-specific curve fits.</p>
-<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
-<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
+<div class="hero-badges docutils container">
+<a class="reference external image-reference" href="https://www.python.org/downloads/"><img alt="Python 3.10 – 3.13" src="https://img.shields.io/badge/python-3.10--3.13-3776ab?logo=python&amp;logoColor=white" />
+</a>
+<a class="reference external image-reference" href="https://github.com/bet-lab/physics-heatpump-models/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-success" />
+</a>
+<img alt="Development status — Alpha" src="https://img.shields.io/badge/status-alpha-orange" />
+<a class="reference external image-reference" href="http://www.coolprop.org"><img alt="Powered by CoolProp" src="https://img.shields.io/badge/refrigerant-CoolProp-6366f1" />
+</a>
+<img alt="Validated against Samsung EHS Mono HT Quiet R32" src="https://img.shields.io/badge/validated-Samsung%20EHS%20R32-iris" />
+</div>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 hero-cta docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-column docutils">
+<p><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-outline-primary reference internal" href="getting-started/installation.html"><span class="doc">Install ⤓</span></a></span></p>
+</div>
+<div class="sd-col sd-d-flex-column docutils">
+<p><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-primary reference internal" href="getting-started/quickstart.html"><span class="doc">Quick start →</span></a></span></p>
+</div>
+<div class="sd-col sd-d-flex-column docutils">
+<p><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-outline-primary reference internal" href="validation/index.html"><span class="doc">Validation ✓</span></a></span></p>
+</div>
+<div class="sd-col sd-d-flex-column docutils">
+<p><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-outline-primary reference external" href="https://github.com/bet-lab/physics-heatpump-models"><span>GitHub ↗</span></a></span></p>
+</div>
+</div>
+</div>
+<p class="rubric">Explore the docs</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 landing-cards docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-3 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
 <div class="sd-col sd-d-flex-row docutils">
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-🚀 Getting Started</div>
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-rocket sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="M14.064 0h.186C15.216 0 16 .784 16 1.75v.186a8.752 8.752 0 0 1-2.564 6.186l-.458.459c-.314.314-.641.616-.979.904v3.207c0 .608-.315 1.172-.833 1.49l-2.774 1.707a.749.749 0 0 1-1.11-.418l-.954-3.102a1.214 1.214 0 0 1-.145-.125L3.754 9.816a1.218 1.218 0 0 1-.124-.145L.528 8.717a.749.749 0 0 1-.418-1.11l1.71-2.774A1.748 1.748 0 0 1 3.31 4h3.204c.288-.338.59-.665.904-.979l.459-.458A8.749 8.749 0 0 1 14.064 0ZM8.938 3.623h-.002l-.458.458c-.76.76-1.437 1.598-2.02 2.5l-1.5 2.317 2.143 2.143 2.317-1.5c.902-.583 1.74-1.26 2.499-2.02l.459-.458a7.25 7.25 0 0 0 2.123-5.127V1.75a.25.25 0 0 0-.25-.25h-.186a7.249 7.249 0 0 0-5.125 2.123ZM3.56 14.56c-.732.732-2.334 1.045-3.005 1.148a.234.234 0 0 1-.201-.064.234.234 0 0 1-.064-.201c.103-.671.416-2.273 1.15-3.003a1.502 1.502 0 1 1 2.12 2.12Zm6.94-3.935c-.088.06-.177.118-.266.175l-2.35 1.521.548 1.783 1.949-1.2a.25.25 0 0 0 .119-.213ZM3.678 8.116 5.2 5.766c.058-.09.117-.178.176-.266H3.309a.25.25 0 0 0-.213.119l-1.2 1.95ZM12 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg> Getting Started</div>
 <p class="sd-card-text">Installation guide and your first simulation in minutes.</p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">install</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">quickstart</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">first run</span></p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="getting-started/index.html"><span class="doc">Getting Started</span></a></div>
 </div>
@@ -170,9 +206,12 @@ needing manufacturer-specific curve fits.</p>
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-📚 Concepts</div>
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-book sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path></svg> Concepts</div>
 <p class="sd-card-text">Why physics-based, how the cycle is assembled, and how to
 read the diagnostic flags every call returns.</p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">theory</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">architecture</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">diagnostics</span></p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="concepts/index.html"><span class="doc">Concepts</span></a></div>
 </div>
@@ -180,9 +219,12 @@ read the diagnostic flags every call returns.</p>
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-🧪 Tutorials</div>
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-beaker sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.782V2.5h-.25a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 0 1.5H11v3.282l3.666 5.76C15.619 13.04 14.543 15 12.767 15H3.233c-1.776 0-2.852-1.96-1.899-3.458Zm-2.4 6.565a.75.75 0 0 0 .633 1.153h9.534a.75.75 0 0 0 .633-1.153L12.225 10.5h-8.45ZM9.5 2.5h-3V6c0 .143-.04.283-.117.403L4.73 9h6.54L9.617 6.403A.746.746 0 0 1 9.5 6Z"></path></svg> Tutorials</div>
 <p class="sd-card-text">Focused walkthroughs: swap refrigerants, drive realistic
 schedules, compose subsystems.</p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">R32</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">R290</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">PV+ESS</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">STC</span></p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="tutorials/index.html"><span class="doc">Tutorials</span></a></div>
 </div>
@@ -190,9 +232,12 @@ schedules, compose subsystems.</p>
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-🔧 API Reference</div>
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-code sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"></path></svg> API Reference</div>
 <p class="sd-card-text">Complete API documentation for every model class and
 helper module.</p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">ASHPB</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">GSHPB</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">WSHPB</span></p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="api/index.html"><span class="doc">API Reference</span></a></div>
 </div>
@@ -200,12 +245,69 @@ helper module.</p>
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-🎯 Validation</div>
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-check-circle sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg> Validation</div>
 <p class="sd-card-text">ASHPB benchmarked against 15 Samsung EHS catalogue
 operating points — parity plot, per-point table, and
 the reproducibility script.</p>
 </div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-success sd-text-success">MAPE 11.8%</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">15 points</span></p>
+</div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="validation/index.html"><span class="doc">Validation</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.4em" height="1.4em" class="sd-octicon sd-octicon-graph sd-mr-1" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path></svg> Visualize</div>
+<p class="sd-card-text">Plot a solved refrigerant cycle on a P–h chart with only
+CoolProp and Matplotlib.</p>
+</div>
+<div class="sd-card-footer docutils">
+<p class="sd-card-text"><span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">P–h</span> <span class="sd-sphinx-override sd-badge sd-outline-primary sd-text-primary">Mollier</span></p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="tutorials/visualize-the-cycle.html"><span class="doc">Visualize the cycle (P–h)</span></a></div>
+</div>
+</div>
+</div>
+<p class="rubric">At a glance</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 stat-grid docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-flame" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.533.753V.752c.217 2.385 1.463 3.626 2.653 4.81C13.37 6.74 14.498 7.863 14.498 10c0 3.5-3 6-6.5 6S1.5 13.512 1.5 10c0-1.298.536-2.56 1.425-3.286.376-.308.862 0 1.035.454C4.46 8.487 5.581 8.419 6 8c.282-.282.341-.811-.003-1.5C4.34 3.187 7.035.75 8.77.146c.39-.137.726.194.763.607ZM7.998 14.5c2.832 0 5-1.98 5-4.5 0-1.463-.68-2.19-1.879-3.383l-.036-.037c-1.013-1.008-2.3-2.29-2.834-4.434-.322.256-.63.579-.864.953-.432.696-.621 1.58-.046 2.73.473.947.67 2.284-.278 3.232-.61.61-1.545.84-2.403.633a2.79 2.79 0 0 1-1.436-.874A3.198 3.198 0 0 0 3 10c0 2.53 2.164 4.5 4.998 4.5Z"></path></svg> 5 system families</div>
+<p class="sd-card-text">ASHPB · GSHPB · WSHPB · ASHP · GSHP</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-stack" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.122.392a1.75 1.75 0 0 1 1.756 0l5.003 2.902c.83.481.83 1.68 0 2.162L8.878 8.358a1.75 1.75 0 0 1-1.756 0L2.119 5.456a1.251 1.251 0 0 1 0-2.162ZM8.125 1.69a.248.248 0 0 0-.25 0l-4.63 2.685 4.63 2.685a.248.248 0 0 0 .25 0l4.63-2.685ZM1.601 7.789a.75.75 0 0 1 1.025-.273l5.249 3.044a.248.248 0 0 0 .25 0l5.249-3.044a.75.75 0 0 1 .752 1.298l-5.248 3.044a1.75 1.75 0 0 1-1.756 0L1.874 8.814A.75.75 0 0 1 1.6 7.789Zm0 3.5a.75.75 0 0 1 1.025-.273l5.249 3.044a.248.248 0 0 0 .25 0l5.249-3.044a.75.75 0 0 1 .752 1.298l-5.248 3.044a1.75 1.75 0 0 1-1.756 0l-5.248-3.044a.75.75 0 0 1-.273-1.025Z"></path></svg> 6 subsystem variants</div>
+<p class="sd-card-text">STC preheat, stratified tank, PV + ESS</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-zap" viewBox="0 0 16 16" aria-hidden="true"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-7.34 7.142a1.249 1.249 0 0 1-.871.354h-.302a1.25 1.25 0 0 1-1.157-1.723L5.633 10.5H3.462c-1.57 0-2.346-1.909-1.22-3.004L9.503.429Zm1.047 1.074L3.286 8.571A.25.25 0 0 0 3.462 9H6.75a.75.75 0 0 1 .694 1.034l-1.713 4.188 6.982-6.793A.25.25 0 0 0 12.538 7H9.25a.75.75 0 0 1-.683-1.06l2.008-4.418.003-.006a.036.036 0 0 0-.004-.009l-.006-.006-.008-.001c-.003 0-.006.002-.009.004Z"></path></svg> Any CoolProp refrigerant</div>
+<p class="sd-card-text">R32, R290, R410A, R134a, R744 …</p>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.2em" height="1.2em" class="sd-octicon sd-octicon-pulse" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"></path></svg> Minute-resolution dynamic</div>
+<p class="sd-card-text">Implicit <code class="docutils literal notranslate"><span class="pre">fsolve</span></code> per step, robust to large <code class="docutils literal notranslate"><span class="pre">dt</span></code></p>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -257,8 +359,14 @@ the reproducibility script.</p>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="_static/togglebutton.js?v=b8b12719"></script>
       <script src="_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
       <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></body>
 </html>

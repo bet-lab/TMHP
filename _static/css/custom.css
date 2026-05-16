@@ -113,11 +113,89 @@ figure img,
 
 /* ---------------------------------------------------------------------------
  * Dropdowns (sphinx-design)
+ *
+ * Quiet the heavy success / warning / danger card colours so dropdowns
+ * read like documentation, not like a runtime alert console.  Severity
+ * still carries — left-edge stripe + an accented icon — but the body is
+ * a faint tint of the same hue against the page background, not a solid
+ * fill that drowns out the prose.
  * ------------------------------------------------------------------------- */
 
 /* The validation per-point table sits inside a dropdown — give it room. */
 details.sd-dropdown[open] .sd-summary-content {
     padding: 0.5rem 0.25rem;
+}
+
+/* Restrained card chrome — no shadow, tight radius, modest spacing. */
+.sd-dropdown.sd-card {
+    border-radius: 6px;
+    box-shadow: none;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--dropdown-border, var(--sy-c-border, rgba(120,120,120,0.18)));
+    overflow: hidden;
+}
+
+/* Summary (the always-visible header bar). */
+.sd-dropdown > summary.sd-card-header {
+    padding: 0.55rem 0.85rem !important;
+    border-bottom: 0 !important;
+    border-left: 3px solid var(--dropdown-accent, var(--sy-c-border)) !important;
+    background: var(--dropdown-bg, transparent) !important;
+    color: var(--sy-c-text, inherit) !important;
+    font-weight: 500;
+}
+.sd-dropdown > summary.sd-card-header code {
+    background: rgba(0, 0, 0, 0.05);
+    color: inherit;
+    font-weight: 600;
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-icon {
+    color: var(--dropdown-accent, var(--sy-c-text-secondary));
+    margin-right: 0.45em;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-icon svg {
+    fill: currentColor;
+    stroke: currentColor;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-down,
+.sd-dropdown > summary.sd-card-header .sd-summary-up {
+    color: var(--sy-c-text-secondary, #6b7280);
+    opacity: 0.6;
+}
+
+/* Expanded body inherits the left stripe and the same tint, so the card
+ * reads as one block. */
+.sd-dropdown[open] > .sd-card-body {
+    border-left: 3px solid var(--dropdown-accent, transparent) !important;
+    background: var(--dropdown-bg, transparent) !important;
+    padding: 0.85rem 0.95rem;
+}
+
+/* Per-severity tokens.  color-mix(... transparent) gives a faint tint
+ * that picks up the page background, so the same colours work in both
+ * light and dark themes. */
+.sd-dropdown.sd-card-success {
+    --dropdown-accent: #16a34a;
+    --dropdown-bg:     color-mix(in srgb, #16a34a 7%, transparent);
+    --dropdown-border: color-mix(in srgb, #16a34a 25%, transparent);
+}
+.sd-dropdown.sd-card-warning {
+    --dropdown-accent: #d97706;
+    --dropdown-bg:     color-mix(in srgb, #d97706 7%, transparent);
+    --dropdown-border: color-mix(in srgb, #d97706 25%, transparent);
+}
+.sd-dropdown.sd-card-danger {
+    --dropdown-accent: #dc2626;
+    --dropdown-bg:     color-mix(in srgb, #dc2626 7%, transparent);
+    --dropdown-border: color-mix(in srgb, #dc2626 25%, transparent);
+}
+.sd-dropdown.sd-card-info {
+    --dropdown-accent: #2563eb;
+    --dropdown-bg:     color-mix(in srgb, #2563eb 7%, transparent);
+    --dropdown-border: color-mix(in srgb, #2563eb 25%, transparent);
 }
 
 /* ---------------------------------------------------------------------------

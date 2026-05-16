@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=f7107c76" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=45338495" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T15:11:42+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -81,7 +81,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/why-physics-based.html">Why physics-based?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
@@ -90,7 +90,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize the thermodynamic cycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -173,7 +173,7 @@ has been validated against the <strong>Samsung EHS Mono HT Quiet R32
 14 kW</strong> catalogue across 15 operating points spanning
 <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in \{40, 50, 65\}\)</span> °C and outdoor air
 temperatures from −10 to 30 °C, tracking the catalogue COP to a
-mean absolute error of 0.44 (MAPE 11.8 %) without any
+mean absolute error of 0.35 (MAPE 10.1 %) without any
 unit-specific calibration — the same code path applies to any
 CoolProp refrigerant.</p>
 <section id="parity-plot">
@@ -314,47 +314,47 @@ from re-running the released code via
 <tr class="row-even"><td><p class="sd-card-text">11</p></td>
 <td><p class="sd-card-text">65</p></td>
 <td><p class="sd-card-text">−10</p></td>
-<td><p class="sd-card-text">13.96</p></td>
-<td><p class="sd-card-text">1.83</p></td>
-<td><p class="sd-card-text">1.43</p></td>
-<td><p class="sd-card-text">0.40</p></td>
-<td><p class="sd-card-text">22.1 %</p></td>
+<td><p class="sd-card-text">13.97</p></td>
+<td><p class="sd-card-text">1.73</p></td>
+<td><p class="sd-card-text">1.42</p></td>
+<td><p class="sd-card-text">0.31</p></td>
+<td><p class="sd-card-text">17.7 %</p></td>
 </tr>
 <tr class="row-odd"><td><p class="sd-card-text">12</p></td>
 <td><p class="sd-card-text">65</p></td>
 <td><p class="sd-card-text">2</p></td>
-<td><p class="sd-card-text">13.59</p></td>
-<td><p class="sd-card-text">2.27</p></td>
-<td><p class="sd-card-text">2.38</p></td>
-<td><p class="sd-card-text">0.11</p></td>
-<td><p class="sd-card-text">4.9 %</p></td>
+<td><p class="sd-card-text">13.71</p></td>
+<td><p class="sd-card-text">2.04</p></td>
+<td><p class="sd-card-text">2.37</p></td>
+<td><p class="sd-card-text">0.33</p></td>
+<td><p class="sd-card-text">16.1 %</p></td>
 </tr>
 <tr class="row-even"><td><p class="sd-card-text">13</p></td>
 <td><p class="sd-card-text">65</p></td>
 <td><p class="sd-card-text">12</p></td>
-<td><p class="sd-card-text">15.55</p></td>
-<td><p class="sd-card-text">3.22</p></td>
-<td><p class="sd-card-text">2.81</p></td>
-<td><p class="sd-card-text">0.41</p></td>
-<td><p class="sd-card-text">12.7 %</p></td>
+<td><p class="sd-card-text">16.38</p></td>
+<td><p class="sd-card-text">2.84</p></td>
+<td><p class="sd-card-text">2.73</p></td>
+<td><p class="sd-card-text">0.11</p></td>
+<td><p class="sd-card-text">3.7 %</p></td>
 </tr>
 <tr class="row-odd"><td><p class="sd-card-text">14</p></td>
 <td><p class="sd-card-text">65</p></td>
 <td><p class="sd-card-text">20</p></td>
-<td><p class="sd-card-text">16.76</p></td>
-<td><p class="sd-card-text">3.83</p></td>
-<td><p class="sd-card-text">3.23</p></td>
-<td><p class="sd-card-text">0.60</p></td>
-<td><p class="sd-card-text">15.7 %</p></td>
+<td><p class="sd-card-text">17.48</p></td>
+<td><p class="sd-card-text">3.34</p></td>
+<td><p class="sd-card-text">3.17</p></td>
+<td><p class="sd-card-text">0.17</p></td>
+<td><p class="sd-card-text">5.1 %</p></td>
 </tr>
 <tr class="row-even"><td><p class="sd-card-text">15</p></td>
 <td><p class="sd-card-text">65</p></td>
 <td><p class="sd-card-text">30</p></td>
-<td><p class="sd-card-text">18.27</p></td>
-<td><p class="sd-card-text">4.72</p></td>
-<td><p class="sd-card-text">3.84</p></td>
-<td><p class="sd-card-text">0.88</p></td>
-<td><p class="sd-card-text">18.6 %</p></td>
+<td><p class="sd-card-text">18.84</p></td>
+<td><p class="sd-card-text">4.04</p></td>
+<td><p class="sd-card-text">3.79</p></td>
+<td><p class="sd-card-text">0.25</p></td>
+<td><p class="sd-card-text">6.1 %</p></td>
 </tr>
 <tr class="row-odd"><td></td>
 <td></td>
@@ -362,8 +362,8 @@ from re-running the released code via
 <td></td>
 <td><p class="sd-card-text"><strong>Mean</strong></p></td>
 <td></td>
-<td><p class="sd-card-text"><strong>0.44</strong></p></td>
-<td><p class="sd-card-text"><strong>11.8 %</strong></p></td>
+<td><p class="sd-card-text"><strong>0.35</strong></p></td>
+<td><p class="sd-card-text"><strong>10.1 %</strong></p></td>
 </tr>
 </tbody>
 </table>

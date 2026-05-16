@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=24735304" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=f7107c76" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="AirSourceHeatPumpBoiler has been validated against commercial catalogue data — the Samsung EHS Mono HT Quiet R32 14 kW unit — across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\}..." />
 
-    <meta property="article:modified_time" content="2026-05-16T10:29:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T10:40:55+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -130,7 +130,6 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#headline-numbers">Headline numbers</a></li>
 <li><a class="reference internal" href="#parity-plot">Parity plot</a></li>
 <li><a class="reference internal" href="#per-point-comparison">Per-point comparison</a></li>
 <li><a class="reference internal" href="#notation">Notation</a></li>
@@ -175,63 +174,10 @@ has been validated against commercial catalogue data — the
 operating points spanning <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in
 \{40, 50, 65\}\)</span> °C and outdoor air temperatures from −10 to
 30 °C.</p>
-<section id="headline-numbers">
-<h2>Headline numbers<a class="headerlink" href="#headline-numbers" title="Link to this heading">¶</a></h2>
-<div class="sd-container-fluid sd-sphinx-override sd-mb-4 stat-grid docutils">
-<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-4 sd-row-cols-lg-4 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-MAPE</div>
-<p class="sd-card-text"><strong>11.8 %</strong></p>
-</div>
-<div class="sd-card-footer docutils">
-<p class="sd-card-text">mean absolute % error
-across 15 points</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-MAE</div>
-<p class="sd-card-text"><strong>0.44</strong></p>
-</div>
-<div class="sd-card-footer docutils">
-<p class="sd-card-text">mean absolute COP error</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-Operating points</div>
-<p class="sd-card-text"><strong>15</strong></p>
-</div>
-<div class="sd-card-footer docutils">
-<p class="sd-card-text">LWT 40 / 50 / 65 °C ×
-T₀ −10 to 30 °C</p>
-</div>
-</div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-text-center sd-shadow-none stat-card docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
-Calibration</div>
-<p class="sd-card-text"><strong>None</strong></p>
-</div>
-<div class="sd-card-footer docutils">
-<p class="sd-card-text">no unit-specific tuning</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</section>
+<p>Across those 15 points the model tracks the catalogue COP to a
+mean absolute error of <strong>0.44</strong> (mean absolute percentage error
+<strong>11.8 %</strong>), without any unit-specific calibration — the same
+code path applies to any CoolProp refrigerant.</p>
 <section id="parity-plot">
 <h2>Parity plot<a class="headerlink" href="#parity-plot" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">

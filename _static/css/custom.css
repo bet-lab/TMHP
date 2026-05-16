@@ -7,6 +7,66 @@
  */
 
 /* ===========================================================================
+ * Self-hosted web fonts
+ *
+ * Inter Variable for the prose / UI surface, JetBrains Mono for code.
+ * Both are SIL OFL 1.1; files are committed under `_static/fonts/`.
+ *
+ * Inter Variable carries every weight 100–900 in a single woff2, so the
+ * heading/body/medium contrast costs us exactly two network requests
+ * (one upright + one italic). JetBrains Mono ships per-weight, so we
+ * pull only the four weights actually used by code blocks.
+ *
+ * `font-display: swap` means the system fallback paints first; the
+ * webfont swaps in once decoded, so a slow connection still shows the
+ * page immediately.
+ * ------------------------------------------------------------------------- */
+
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/InterVariable.woff2") format("woff2-variations");
+}
+@font-face {
+    font-family: "Inter Variable";
+    font-style: italic;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/InterVariable-Italic.woff2") format("woff2-variations");
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Italic.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Medium.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Bold.woff2") format("woff2");
+}
+
+/* ===========================================================================
  * Radix-DNA design tokens (foundation, no visual changes by themselves).
  *
  * Mirrors the public Radix Themes scale documented at
@@ -39,6 +99,15 @@
  * ------------------------------------------------------------------------- */
 
 :root {
+    /* ---------- 0. Font stacks (self-hosted + safe fallbacks) ---------- */
+    --rx-font-sans:
+        "Inter Variable", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji";
+    --rx-font-mono:
+        "JetBrains Mono", ui-monospace, SFMono-Regular,
+        "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
     /* ---------- 1. Typography scale (9 steps) ---------- */
     --rx-fs-1: 12px;
     --rx-fs-2: 14px;
@@ -201,6 +270,35 @@
         --rx-gray-a11:  rgba(255, 255, 255, 0.706);
         --rx-gray-a12:  rgba(255, 255, 255, 0.929);
     }
+}
+
+/* ---------------------------------------------------------------------------
+ * Font stacks — route every surface through the self-hosted webfonts.
+ * Shibuya bundles a generic Inter fallback chain; replacing it here means
+ * cross-platform rendering stays consistent even on systems that don't
+ * already have Inter installed.
+ * ------------------------------------------------------------------------- */
+
+body,
+.yue,
+.yue h1, .yue h2, .yue h3, .yue h4, .yue h5, .yue h6,
+.yue p, .yue li,
+.sy-side,
+.sy-rside,
+.sy-foot,
+.sy-topbar,
+.sy-breadcrumbs {
+    font-family: var(--rx-font-sans);
+    font-feature-settings: "cv01", "cv02", "cv11", "ss01";
+}
+
+code, kbd, samp, pre,
+.yue code, .yue pre, .yue kbd,
+:not(pre) > code.literal,
+div.highlight pre,
+pre.literal-block {
+    font-family: var(--rx-font-mono);
+    font-feature-settings: "calt" 1;  /* Inter-like contextual alts on JBM */
 }
 
 /* ---------------------------------------------------------------------------

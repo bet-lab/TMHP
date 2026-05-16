@@ -341,6 +341,18 @@ details.sd-dropdown[open] .sd-summary-content {
 }
 
 /* ---------------------------------------------------------------------------
+ * Site footer
+ * ------------------------------------------------------------------------- */
+
+/* Shibuya's default footer divider is heavier than the hairline rules
+ * used across landing cards, admonitions, and the last-updated line.
+ * Re-align it with the same hairline token so the bottom of every page
+ * reads as a unified set of borders, not a separate ruled-off block. */
+footer.sy-foot {
+    border-top-color: var(--color-border, rgba(120, 120, 120, 0.2));
+}
+
+/* ---------------------------------------------------------------------------
  * Copybutton
  * ------------------------------------------------------------------------- */
 

@@ -82,13 +82,42 @@ figure img,
     opacity: 0.9;
 }
 
-/* CTA row — outline buttons, medium weight, no decorative styling. */
-.hero-cta {
-    margin-bottom: 2rem;
+/* Hero CTA row — underline + arrow, no box.
+ *
+ * Reads as a row of links in the prose stream rather than as marketing
+ * buttons. Internal docs get a "→", the external GitHub link gets "↗".
+ * Hover paints the underline and nudges the arrow.
+ */
+.hero-cta > p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.6rem;
+    margin: 0.5rem 0 2rem;
+    font-size: 0.95rem;
 }
-.hero-cta .sd-btn {
+.hero-cta a.reference {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    text-decoration: none;
     font-weight: 500;
-    letter-spacing: 0;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color 120ms ease;
+}
+.hero-cta a.reference::after {
+    content: "→";
+    display: inline-block;
+    transition: transform 120ms ease;
+}
+.hero-cta a.reference.external::after {
+    content: "↗";
+}
+.hero-cta a.reference:hover {
+    border-bottom-color: currentColor;
+}
+.hero-cta a.reference:hover::after {
+    transform: translateX(2px);
 }
 
 /* Navigation cards. Light border, no shadow, no hover lift — only the

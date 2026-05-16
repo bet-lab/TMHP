@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your first dynamic simulation - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="Quick start" href="quickstart.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/getting-started/first-dynamic-simulation.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ed00dc55" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/getting-started/first-dynamic-simulation.html"/>
+  <meta property="og:title" content="Your first dynamic simulation"/>
+  <meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png"/>
+    <meta name="twitter:card" content="summary"/>
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>Physics-Based Heat Pump Models</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="index.html">Getting Started</a></li><li class="link"><a href="../api/index.html">API Reference</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Getting Started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#minimum-viable-example">Minimum viable example</a></li>
+<li><a class="reference internal" href="#what-the-result-contains">What the result contains</a></li>
+<li><a class="reference internal" href="#common-next-moves">Common next moves</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Getting Started</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Your first dynamic simulation</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="your-first-dynamic-simulation">
+<h1>Your first dynamic simulation<a class="headerlink" href="#your-first-dynamic-simulation" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> runs the same refrigerant cycle as <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
+at every time step, coupled to a tank-energy balance and any active
+subsystems. This page steps through the simplest possible call: 24 hours
+of operation against a constant outdoor temperature and zero DHW draw.</p>
+<section id="minimum-viable-example">
+<h2>Minimum viable example<a class="headerlink" href="#minimum-viable-example" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">physics_hp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="4">
+</span><span data-line="5"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="6">
+</span><span data-line="7"><span class="n">simulation_period_sec</span> <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span>       <span class="c1"># 24 hours</span>
+</span><span data-line="8"><span class="n">dt_s</span>                  <span class="o">=</span> <span class="mi">60</span>              <span class="c1"># 1-minute time step</span>
+</span><span data-line="9"><span class="n">n_steps</span>               <span class="o">=</span> <span class="n">simulation_period_sec</span> <span class="o">//</span> <span class="n">dt_s</span>
+</span><span data-line="10">
+</span><span data-line="11"><span class="n">dhw_usage_schedule</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>  <span class="c1"># m³/s per step (no draw)</span>
+</span><span data-line="12"><span class="n">T0_schedule</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_steps</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>  <span class="c1"># outdoor 5 °C, flat</span>
+</span><span data-line="13">
+</span><span data-line="14"><span class="n">df</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span>
+</span><span data-line="15">    <span class="n">simulation_period_sec</span> <span class="o">=</span> <span class="n">simulation_period_sec</span><span class="p">,</span>
+</span><span data-line="16">    <span class="n">dt_s</span>                  <span class="o">=</span> <span class="n">dt_s</span><span class="p">,</span>
+</span><span data-line="17">    <span class="n">T_tank_w_init_C</span>       <span class="o">=</span> <span class="mf">50.0</span><span class="p">,</span>
+</span><span data-line="18">    <span class="n">dhw_usage_schedule</span>    <span class="o">=</span> <span class="n">dhw_usage_schedule</span><span class="p">,</span>
+</span><span data-line="19">    <span class="n">T0_schedule</span>           <span class="o">=</span> <span class="n">T0_schedule</span><span class="p">,</span>
+</span><span data-line="20"><span class="p">)</span>
+</span></pre></div>
+</div>
+</section>
+<section id="what-the-result-contains">
+<h2>What the result contains<a class="headerlink" href="#what-the-result-contains" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> returns a <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> with one row per
+time step. The columns are the same units-bracketed keys you get from
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, grouped roughly into:</p>
+<ul class="simple">
+<li><p><strong>Cycle state points</strong> — <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code> pressures, <code class="docutils literal notranslate"><span class="pre">T_ref_*</span></code> temperatures
+at compressor / expander / evaporator / condenser nodes.</p></li>
+<li><p><strong>Energy flows</strong> — <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_evap</span> <span class="pre">[W]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>, fan / pump auxiliary power.</p></li>
+<li><p><strong>Tank state</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span> <span class="pre">[-]</span></code>.</p></li>
+<li><p><strong>Figures of merit</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>.</p></li>
+</ul>
+<p>You can pull any of these out by name once the run finishes:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="c1"># Daily-average system COP, skipping the first hour of warm-up</span>
+</span><span data-line="2"><span class="n">df_steady</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">60</span><span class="p">:]</span>
+</span><span data-line="3"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Daily COP_sys: </span><span class="si">{</span><span class="n">df_steady</span><span class="p">[</span><span class="s1">&#39;cop_sys [-]&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>For the full column list, <code class="docutils literal notranslate"><span class="pre">df.columns.tolist()</span></code> after a short run is
+the fastest reference.</p>
+</section>
+<section id="common-next-moves">
+<h2>Common next moves<a class="headerlink" href="#common-next-moves" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Pass real weather to <code class="docutils literal notranslate"><span class="pre">T0_schedule</span></code> (hourly data resampled to <code class="docutils literal notranslate"><span class="pre">dt_s</span></code>)
+and a realistic DHW profile to <code class="docutils literal notranslate"><span class="pre">dhw_usage_schedule</span></code>.</p></li>
+<li><p>Save the run to disk by passing
+<code class="docutils literal notranslate"><span class="pre">result_save_csv_path=&quot;run.csv&quot;</span></code>.</p></li>
+<li><p>For solar-coupled or PV/ESS variants, instantiate the corresponding
+subclass (<code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>, <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code>, <code class="docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code>,
+or the GSHPB counterparts) and pass the additional schedules
+(<code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">T_sup_w_schedule</span></code>) as
+documented under <a class="reference internal" href="../api/models/ashpb.html"><span class="doc">Air-source heat pump boilers (ASHPB)</span></a> and
+<a class="reference internal" href="../api/models/gshpb.html"><span class="doc">Ground-source heat pump boilers (GSHPB)</span></a>.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> uses a fully implicit scheme — <code class="docutils literal notranslate"><span class="pre">fsolve</span></code> solves
+for <code class="docutils literal notranslate"><span class="pre">[T_next,</span> <span class="pre">level_next]</span></code> at every step. This makes the integrator
+robust to large <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> values, but a 1-minute step is a sensible
+default for first runs.</p>
+</div>
+</section>
+</section>
+
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="quickstart.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Quick start</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="../api/index.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">API Reference</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+</html>

@@ -204,6 +204,51 @@
 }
 
 /* ---------------------------------------------------------------------------
+ * sphinx-design badges — Radix step-3 / step-11 pastel
+ *
+ * Default sphinx-design uses Bootstrap-era saturated tones for
+ * `:bdg-success:`, `:bdg-warning:`, etc. Re-map them to the Radix
+ * step-3 (subtle bg) + step-11 (accessible text) pattern so badges
+ * read as metadata on a paper-margin docs page, not as runtime
+ * alerts.
+ *
+ * `!important` is necessary because sphinx-design's own rules use
+ * !important on these classes; we match its specificity.
+ * ------------------------------------------------------------------------- */
+
+.sd-badge {
+    border-radius: var(--rx-radius-full) !important;
+    font-weight: var(--rx-fw-medium) !important;
+    letter-spacing: 0 !important;
+}
+
+.sd-badge.sd-bg-success      { background-color: var(--rx-green-3) !important; }
+.sd-badge.sd-bg-text-success { color:            var(--rx-green-11) !important; }
+
+.sd-badge.sd-bg-warning      { background-color: var(--rx-amber-3) !important; }
+.sd-badge.sd-bg-text-warning { color:            var(--rx-amber-11) !important; }
+
+.sd-badge.sd-bg-danger       { background-color: var(--rx-red-3)   !important; }
+.sd-badge.sd-bg-text-danger  { color:            var(--rx-red-11)  !important; }
+
+.sd-badge.sd-bg-info         { background-color: var(--rx-blue-3)  !important; }
+.sd-badge.sd-bg-text-info    { color:            var(--rx-blue-11) !important; }
+
+.sd-badge.sd-bg-primary,
+.sd-badge.sd-bg-secondary,
+.sd-badge.sd-bg-light,
+.sd-badge.sd-bg-dark {
+    /* Neutral / brand variants fall back to the gray scale + accent. */
+    background-color: var(--rx-gray-3) !important;
+}
+.sd-badge.sd-bg-text-primary,
+.sd-badge.sd-bg-text-secondary,
+.sd-badge.sd-bg-text-light,
+.sd-badge.sd-bg-text-dark {
+    color: var(--rx-gray-12) !important;
+}
+
+/* ---------------------------------------------------------------------------
  * Code blocks
  * ------------------------------------------------------------------------- */
 

@@ -375,7 +375,7 @@ figure img,
 .next-steps {
     margin: 1rem 0 0;
     padding: 0.15rem 0 0.15rem 1rem;
-    border-left: 3px solid var(--sy-c-link, #6366f1);
+    border-left: 3px solid var(--rx-accent-9);
 }
 .next-steps p {
     margin: 0.45rem 0;
@@ -402,13 +402,13 @@ figure img,
 /* Navigation cards. Light border, no shadow, no hover lift — only the
  * border colour responds to hover. */
 .landing-cards .sd-card {
-    border-radius: 6px;
-    border: 1px solid var(--color-border, rgba(120, 120, 120, 0.2));
+    border-radius: var(--rx-radius-3);
+    border: 1px solid var(--rx-hairline);
     box-shadow: none;
     transition: border-color 150ms ease;
 }
 .landing-cards .sd-card:hover {
-    border-color: var(--color-link, rgba(99, 102, 241, 0.5));
+    border-color: var(--rx-accent-9);
 }
 .landing-cards .sd-card .sd-card-title {
     font-weight: 600;
@@ -436,10 +436,10 @@ details.sd-dropdown[open] .sd-summary-content {
 
 /* Restrained card chrome — no shadow, tight radius, modest spacing. */
 .sd-dropdown.sd-card {
-    border-radius: 6px;
+    border-radius: var(--rx-radius-3);
     box-shadow: none;
     margin-bottom: 0.65rem;
-    border: 1px solid var(--dropdown-border, var(--sy-c-border, rgba(120,120,120,0.18)));
+    border: 1px solid var(--dropdown-border, var(--rx-hairline));
     overflow: hidden;
 }
 
@@ -453,11 +453,11 @@ details.sd-dropdown[open] .sd-summary-content {
     font-weight: 500;
 }
 .sd-dropdown > summary.sd-card-header code {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--rx-gray-a3);
     color: inherit;
     font-weight: 600;
     padding: 0.05em 0.35em;
-    border-radius: 3px;
+    border-radius: var(--rx-radius-1);
     font-size: 0.88em;
 }
 .sd-dropdown > summary.sd-card-header .sd-summary-icon {
@@ -482,28 +482,28 @@ details.sd-dropdown[open] .sd-summary-content {
     padding: 0.85rem 0.95rem;
 }
 
-/* Per-severity tokens.  color-mix(... transparent) gives a faint tint
- * that picks up the page background, so the same colours work in both
- * light and dark themes. */
+/* Per-severity tokens — Radix step-3 (subtle bg) + step-6 (border) +
+ * step-9 (solid stripe / icon). The same scale powers dark mode
+ * automatically via the @media block in the foundation. */
 .sd-dropdown.sd-card-success {
-    --dropdown-accent: #16a34a;
-    --dropdown-bg:     color-mix(in srgb, #16a34a 7%, transparent);
-    --dropdown-border: color-mix(in srgb, #16a34a 25%, transparent);
+    --dropdown-accent: var(--rx-green-9);
+    --dropdown-bg:     var(--rx-green-3);
+    --dropdown-border: var(--rx-green-6);
 }
 .sd-dropdown.sd-card-warning {
-    --dropdown-accent: #d97706;
-    --dropdown-bg:     color-mix(in srgb, #d97706 7%, transparent);
-    --dropdown-border: color-mix(in srgb, #d97706 25%, transparent);
+    --dropdown-accent: var(--rx-amber-9);
+    --dropdown-bg:     var(--rx-amber-3);
+    --dropdown-border: var(--rx-amber-6);
 }
 .sd-dropdown.sd-card-danger {
-    --dropdown-accent: #dc2626;
-    --dropdown-bg:     color-mix(in srgb, #dc2626 7%, transparent);
-    --dropdown-border: color-mix(in srgb, #dc2626 25%, transparent);
+    --dropdown-accent: var(--rx-red-9);
+    --dropdown-bg:     var(--rx-red-3);
+    --dropdown-border: var(--rx-red-6);
 }
 .sd-dropdown.sd-card-info {
-    --dropdown-accent: #2563eb;
-    --dropdown-bg:     color-mix(in srgb, #2563eb 7%, transparent);
-    --dropdown-border: color-mix(in srgb, #2563eb 25%, transparent);
+    --dropdown-accent: var(--rx-blue-9);
+    --dropdown-bg:     var(--rx-blue-3);
+    --dropdown-border: var(--rx-blue-6);
 }
 
 /* ---------------------------------------------------------------------------

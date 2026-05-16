@@ -123,9 +123,16 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#the-output">The output</a></li>
+<li><a class="reference internal" href="#ph-diagram">P&#8211;h diagram</a><ul>
 <li><a class="reference internal" href="#how-to-read-it">How to read it</a></li>
 <li><a class="reference internal" href="#the-script">The script</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pt-diagram">P&#8211;T diagram</a><ul>
+<li><a class="reference internal" href="#id1">How to read it</a></li>
+<li><a class="reference internal" href="#id2">The script</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#going-further">Going further</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -166,100 +173,109 @@ data-aria-dark="Switch to auto color mode">
 <p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call returns the full thermodynamic state at
 each cycle node (compressor in / out, expander in / out, evaporator /
 condenser saturation). Plotting those points on a pressure–enthalpy
-chart is the fastest way to sanity-check a solved cycle.</p>
-<p>This tutorial draws a P–h diagram with no extra dependencies — just
-CoolProp and Matplotlib, which the library already pulls in.</p>
-<section id="the-output">
-<h2>The output<a class="headerlink" href="#the-output" title="Link to this heading">¶</a></h2>
-<figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/mollier_ph_R32.svg"><img alt="P-h diagram for an R32 ASHPB cycle at T_tank = 55 °C, T_0 = 5 °C, Q_cond = 8 kW. Seven cycle nodes labelled 1*, 1, 2, 2*, 3*, 3, 4." src="../_images/mollier_ph_R32.svg" style="width: 80%;" />
+chart is the fastest way to sanity-check a solved cycle. The
+companion P–T view below shows the same cycle in a different plane.</p>
+<p>Both figures are rendered with Matplotlib’s built-in <code class="docutils literal notranslate"><span class="pre">mathtext</span></code> so
+all labels — titles, axis names, and node identifiers — are typeset
+in math mode without needing a system TeX installation.</p>
+<section id="ph-diagram">
+<h2>P–h diagram<a class="headerlink" href="#ph-diagram" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/mollier_ph_R32.svg"><img alt="P-h diagram for an R32 ASHPB cycle at T_tank = 55 °C, T_0 = 5 °C, Q_cond = 8 kW. Seven cycle nodes labelled 1, 1*, 2, 2*, 3, 3*, 4." src="../_images/mollier_ph_R32.svg" style="width: 80%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">P–h diagram for an R32 ASHPB cycle at the quickstart
-operating point. The seven labelled nodes follow the
-library’s internal naming.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+<p><span class="caption-text">P–h diagram for an R32 ASHPB cycle at the quickstart operating
+point. The seven labelled nodes follow the library’s internal
+naming.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-</section>
 <section id="how-to-read-it">
-<h2>How to read it<a class="headerlink" href="#how-to-read-it" title="Link to this heading">¶</a></h2>
+<h3>How to read it<a class="headerlink" href="#how-to-read-it" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>Saturation envelope</strong> — blue curve is saturated liquid,
-red curve is saturated vapour. The dome interior is two-phase;
-outside is single-phase liquid (left) or vapour (right).</p></li>
-<li><p><strong>Cycle traversal</strong> — follow the labelled points in order:</p>
+<li><p><strong>Saturation envelope</strong> — blue is saturated liquid, red is
+saturated vapour. The two curves close at the critical point at
+the top of the dome. The interior is two-phase; outside is
+single-phase liquid (left) or vapour (right).</p></li>
+<li><p><strong>Cycle traversal</strong> — follow the labelled nodes in order:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">1*</span> <span class="pre">→</span> <span class="pre">1</span></code> — slight superheat at the evaporator outlet.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">→</span> <span class="pre">2</span></code> — compression. Pressure climbs sharply; enthalpy
-increases by the specific work of the compressor.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">→</span> <span class="pre">2*</span></code> — de-superheat in the condenser, at constant
-pressure, down to the vapour saturation line.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">2*</span> <span class="pre">→</span> <span class="pre">3*</span></code> — condensation. Horizontal segment at the
-condensing pressure; enthalpy drops as the refrigerant gives
-up its latent heat to the water side.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">3*</span> <span class="pre">→</span> <span class="pre">3</span></code> — slight subcool.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">3</span> <span class="pre">→</span> <span class="pre">4</span></code> — throttling expansion. Enthalpy is preserved
-(h₄ = h₃) while pressure drops to the evaporating pressure.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">→</span> <span class="pre">1*</span></code> — evaporation. Horizontal segment at the
-evaporating pressure; enthalpy climbs as the refrigerant
+<li><p><span class="math notranslate nohighlight">\(1^{\star} \to 1\)</span> — slight superheat at the evaporator
+outlet.</p></li>
+<li><p><span class="math notranslate nohighlight">\(1 \to 2\)</span> — compression. Pressure climbs sharply;
+enthalpy increases by the specific work of the compressor.</p></li>
+<li><p><span class="math notranslate nohighlight">\(2 \to 2^{\star}\)</span> — de-superheat in the condenser, at
+constant pressure, down to the vapour saturation line.</p></li>
+<li><p><span class="math notranslate nohighlight">\(2^{\star} \to 3^{\star}\)</span> — condensation. Horizontal
+segment at the condensing pressure; enthalpy drops as the
+refrigerant releases its latent heat to the water side.</p></li>
+<li><p><span class="math notranslate nohighlight">\(3^{\star} \to 3\)</span> — slight subcool.</p></li>
+<li><p><span class="math notranslate nohighlight">\(3 \to 4\)</span> — throttling expansion. Enthalpy is preserved
+(<span class="math notranslate nohighlight">\(h_4 = h_3\)</span>) while pressure drops to the evaporating
+pressure.</p></li>
+<li><p><span class="math notranslate nohighlight">\(4 \to 1^{\star}\)</span> — evaporation. Horizontal segment at
+the evaporating pressure; enthalpy climbs as the refrigerant
 absorbs heat from the source side.</p></li>
 </ul>
 </li>
 </ul>
 </section>
 <section id="the-script">
-<h2>The script<a class="headerlink" href="#the-script" title="Link to this heading">¶</a></h2>
+<h3>The script<a class="headerlink" href="#the-script" title="Link to this heading">¶</a></h3>
 <p>The complete script lives at
 <a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models/blob/main/scripts/visualization/mollier_ph_R32.py">scripts/visualization/mollier_ph_R32.py</a>.
-The core is just a saturation-envelope sweep via CoolProp plus a
-straight <code class="docutils literal notranslate"><span class="pre">ax.plot</span></code> of the seven cycle points returned by
-<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>:</p>
+The core is a saturation-envelope sweep via CoolProp plus a straight
+<code class="docutils literal notranslate"><span class="pre">ax.plot</span></code> of the seven cycle points returned by <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
-</span><span data-line="2"><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-</span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span data-line="4">
-</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">physics_hp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
-</span><span data-line="6">
-</span><span data-line="7"><span class="n">REF</span> <span class="o">=</span> <span class="s2">&quot;R32&quot;</span>
-</span><span data-line="8"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="n">REF</span><span class="p">)</span>
-</span><span data-line="9"><span class="n">r</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">)</span>
-</span><span data-line="10">
-</span><span data-line="11"><span class="c1"># Saturation envelope (kJ/kg, kPa)</span>
-</span><span data-line="12"><span class="n">T_crit</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Tcrit&quot;</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span>
-</span><span data-line="13"><span class="n">T_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">220.0</span><span class="p">,</span> <span class="n">T_crit</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
-</span><span data-line="14"><span class="n">h_liq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
-</span><span data-line="15"><span class="n">h_vap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
-</span><span data-line="16"><span class="n">p_sat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
-</span><span data-line="17">
-</span><span data-line="18"><span class="k">def</span><span class="w"> </span><span class="nf">hp</span><span class="p">(</span><span class="n">h_key</span><span class="p">,</span> <span class="n">p_key</span><span class="p">):</span>
-</span><span data-line="19">    <span class="k">return</span> <span class="n">r</span><span class="p">[</span><span class="n">h_key</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1_000</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="n">p_key</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1_000</span>
-</span><span data-line="20">
-</span><span data-line="21"><span class="n">pts</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="22">    <span class="s2">&quot;1*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_evap_sat [J/kg]&quot;</span><span class="p">,</span>   <span class="s2">&quot;P_ref_evap_sat [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="23">    <span class="s2">&quot;1&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">,</span>     <span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="24">    <span class="s2">&quot;2&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">,</span>    <span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="25">    <span class="s2">&quot;2*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cond_sat_v [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;P_ref_cond_sat_v [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="26">    <span class="s2">&quot;3*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cond_sat_l [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;P_ref_cond_sat_l [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="27">    <span class="s2">&quot;3&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">,</span>     <span class="s2">&quot;P_ref_exp_in [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="28">    <span class="s2">&quot;4&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">,</span>    <span class="s2">&quot;P_ref_exp_out [Pa]&quot;</span><span class="p">),</span>
-</span><span data-line="29"><span class="p">}</span>
-</span><span data-line="30">
-</span><span data-line="31"><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.2</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">))</span>
-</span><span data-line="32"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_liq</span><span class="p">,</span> <span class="n">p_sat</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Saturated liquid&quot;</span><span class="p">)</span>
-</span><span data-line="33"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_vap</span><span class="p">,</span> <span class="n">p_sat</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Saturated vapor&quot;</span><span class="p">)</span>
-</span><span data-line="34">
-</span><span data-line="35"><span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1*&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;2*&quot;</span><span class="p">,</span> <span class="s2">&quot;3*&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;1*&quot;</span><span class="p">]</span>
-</span><span data-line="36"><span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">pts</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-</span><span data-line="37"><span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">pts</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-</span><span data-line="38"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Refrigerant cycle&quot;</span><span class="p">)</span>
+</span><span data-line="2"><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mpl</span>
+</span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+</span><span data-line="4"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="5">
+</span><span data-line="6"><span class="kn">from</span><span class="w"> </span><span class="nn">physics_hp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="c1"># Match-the-docs math rendering — no system TeX needed.</span>
+</span><span data-line="9"><span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;mathtext.fontset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;stix&quot;</span>
+</span><span data-line="10"><span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;STIXGeneral&quot;</span>
+</span><span data-line="11">
+</span><span data-line="12"><span class="n">REF</span> <span class="o">=</span> <span class="s2">&quot;R32&quot;</span>
+</span><span data-line="13"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="n">REF</span><span class="p">)</span>
+</span><span data-line="14"><span class="n">r</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">)</span>
+</span><span data-line="15">
+</span><span data-line="16"><span class="c1"># Saturation envelope (kJ/kg, kPa) — closed at the critical point</span>
+</span><span data-line="17"><span class="n">T_crit</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Tcrit&quot;</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span>
+</span><span data-line="18"><span class="n">P_crit</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Pcrit&quot;</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="o">/</span> <span class="mi">1_000</span>
+</span><span data-line="19"><span class="n">T_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">220.0</span><span class="p">,</span> <span class="n">T_crit</span> <span class="o">-</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+</span><span data-line="20"><span class="n">h_liq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
+</span><span data-line="21"><span class="n">h_vap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
+</span><span data-line="22"><span class="n">p_sat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span> <span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_grid</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1_000</span>
+</span><span data-line="23"><span class="n">h_crit</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">h_liq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">h_vap</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="24"><span class="n">h_liq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h_liq</span><span class="p">,</span> <span class="n">h_crit</span><span class="p">);</span> <span class="n">h_vap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h_vap</span><span class="p">,</span> <span class="n">h_crit</span><span class="p">)</span>
+</span><span data-line="25"><span class="n">p_sat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_sat</span><span class="p">,</span> <span class="n">P_crit</span><span class="p">)</span>
+</span><span data-line="26">
+</span><span data-line="27"><span class="k">def</span><span class="w"> </span><span class="nf">hp</span><span class="p">(</span><span class="n">h_key</span><span class="p">,</span> <span class="n">p_key</span><span class="p">):</span>
+</span><span data-line="28">    <span class="k">return</span> <span class="n">r</span><span class="p">[</span><span class="n">h_key</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1_000</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="n">p_key</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1_000</span>
+</span><span data-line="29">
+</span><span data-line="30"><span class="n">pts</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="31">    <span class="s2">&quot;1*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_evap_sat [J/kg]&quot;</span><span class="p">,</span>   <span class="s2">&quot;P_ref_evap_sat [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="32">    <span class="s2">&quot;1&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">,</span>     <span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="33">    <span class="s2">&quot;2&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">,</span>    <span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="34">    <span class="s2">&quot;2*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cond_sat_v [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;P_ref_cond_sat_v [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="35">    <span class="s2">&quot;3*&quot;</span><span class="p">:</span> <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_cond_sat_l [J/kg]&quot;</span><span class="p">,</span> <span class="s2">&quot;P_ref_cond_sat_l [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="36">    <span class="s2">&quot;3&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">,</span>     <span class="s2">&quot;P_ref_exp_in [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="37">    <span class="s2">&quot;4&quot;</span><span class="p">:</span>  <span class="n">hp</span><span class="p">(</span><span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">,</span>    <span class="s2">&quot;P_ref_exp_out [Pa]&quot;</span><span class="p">),</span>
+</span><span data-line="38"><span class="p">}</span>
 </span><span data-line="39">
-</span><span data-line="40"><span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="n">pts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span data-line="41">    <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">textcoords</span><span class="o">=</span><span class="s2">&quot;offset points&quot;</span><span class="p">)</span>
-</span><span data-line="42">
-</span><span data-line="43"><span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
-</span><span data-line="44"><span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Enthalpy [kJ/kg]&quot;</span><span class="p">)</span>
-</span><span data-line="45"><span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Pressure [kPa]&quot;</span><span class="p">)</span>
-</span><span data-line="46"><span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</span><span data-line="40"><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">7.2</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">))</span>
+</span><span data-line="41"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_liq</span><span class="p">,</span> <span class="n">p_sat</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Saturated liquid&quot;</span><span class="p">)</span>
+</span><span data-line="42"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_vap</span><span class="p">,</span> <span class="n">p_sat</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Saturated vapor&quot;</span><span class="p">)</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;1*&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;2*&quot;</span><span class="p">,</span> <span class="s2">&quot;3*&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">,</span> <span class="s2">&quot;4&quot;</span><span class="p">,</span> <span class="s2">&quot;1*&quot;</span><span class="p">]</span>
+</span><span data-line="45"><span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">pts</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+</span><span data-line="46"><span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">pts</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+</span><span data-line="47"><span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Refrigerant cycle&quot;</span><span class="p">)</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+</span><span data-line="50"><span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Enthalpy $h$ [kJ/kg]&quot;</span><span class="p">)</span>
+</span><span data-line="51"><span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Pressure $P$ [kPa]&quot;</span><span class="p">)</span>
+</span><span data-line="52"><span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 </span></pre></div>
 </div>
 <p>To regenerate the figure shipped with the docs:</p>
@@ -270,6 +286,51 @@ straight <code class="docutils literal notranslate"><span class="pre">ax.plot</s
 <p>The script pins <code class="docutils literal notranslate"><span class="pre">mpl.rcParams[&quot;svg.hashsalt&quot;]</span></code> so the resulting SVG
 is byte-identical across runs — the same convention used by
 <code class="docutils literal notranslate"><span class="pre">scripts/validation/samsung_ehs_parity.py</span></code>.</p>
+</section>
+</section>
+<section id="pt-diagram">
+<h2>P–T diagram<a class="headerlink" href="#pt-diagram" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id4">
+<a class="reference internal image-reference" href="../_images/mollier_pt_R32.svg"><img alt="P-T diagram for the same R32 ASHPB cycle. The seven nodes sit on top of the saturation curve, with isobaric segments collapsed onto two horizontal levels (evaporation and condensation)." src="../_images/mollier_pt_R32.svg" style="width: 80%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">P–T diagram for the same R32 cycle. Each node carries its
+state-point pressure and temperature directly from
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<section id="id1">
+<h3>How to read it<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<ul>
+<li><p><strong>Saturation curve</strong> — single curve in (T, P) space, terminating
+at the critical point. Everything below the curve is single-phase
+vapour or supercritical; everything above is single-phase liquid.</p></li>
+<li><p><strong>Cycle shape</strong> — in this projection, the two isobaric segments
+collapse onto a single horizontal level each:</p>
+<ul class="simple">
+<li><p>The <span class="math notranslate nohighlight">\(4 \to 1^{\star}\)</span> evaporator branch sits on the low
+pressure <span class="math notranslate nohighlight">\(P_{\mathrm{evap}}\)</span>.</p></li>
+<li><p>The <span class="math notranslate nohighlight">\(2^{\star} \to 3^{\star}\)</span> condenser branch sits on
+the high pressure <span class="math notranslate nohighlight">\(P_{\mathrm{cond}}\)</span>.</p></li>
+</ul>
+<p>Compression (<span class="math notranslate nohighlight">\(1 \to 2\)</span>) climbs and warms the refrigerant;
+throttling (<span class="math notranslate nohighlight">\(3 \to 4\)</span>) drops the pressure adiabatically at
+roughly constant enthalpy.</p>
+</li>
+</ul>
+</section>
+<section id="id2">
+<h3>The script<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models/blob/main/scripts/visualization/mollier_pt_R32.py">scripts/visualization/mollier_pt_R32.py</a>
+mirrors the P–h script:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/visualization/mollier_pt_R32.py
+</span></pre></div>
+</div>
+<p>The structural difference is the saturation curve — a single
+<code class="docutils literal notranslate"><span class="pre">(T,</span> <span class="pre">P_sat(T))</span></code> sweep instead of two enthalpy branches — and the
+cycle points are pulled from <code class="docutils literal notranslate"><span class="pre">T_ref_*</span></code> and <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code> keys
+instead of <code class="docutils literal notranslate"><span class="pre">h_ref_*</span></code> and <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code>.</p>
+</section>
 </section>
 <section id="going-further">
 <h2>Going further<a class="headerlink" href="#going-further" title="Link to this heading">¶</a></h2>
@@ -339,5 +400,7 @@ outdoor temperatures or different LWT set-points.</p></li>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=f281be69"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
-      <script src="../_static/shibuya.js?v=cac61aee"></script></body>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script></body>
 </html>

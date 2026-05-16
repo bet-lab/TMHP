@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked tells uv to respect the committed uv.lock and fail rather than silently re-resolving versions. This is the same cont..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-16T16:10:58+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -133,9 +133,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#requirements">Requirements</a></li>
 <li><a class="reference internal" href="#clone-and-install">Clone and install</a></li>
 <li><a class="reference internal" href="#optional-dependency-groups">Optional dependency groups</a></li>
-<li><a class="reference internal" href="#runtime-dependencies">Runtime dependencies</a></li>
-<li><a class="reference internal" href="#development-dependencies-group-dev">Development dependencies (<code class="docutils literal notranslate"><span class="pre">--group</span> <span class="pre">dev</span></code>)</a></li>
-<li><a class="reference internal" href="#documentation-dependencies-group-docs">Documentation dependencies (<code class="docutils literal notranslate"><span class="pre">--group</span> <span class="pre">docs</span></code>)</a></li>
+<li><a class="reference internal" href="#what-s-installed">What&#8217;s installed</a></li>
+<li><a class="reference internal" href="#running-the-dev-checks">Running the dev checks</a></li>
 <li><a class="reference internal" href="#building-the-docs-locally">Building the docs locally</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -209,65 +208,24 @@ pollute the runtime install.</p>
 </span></pre></div>
 </div>
 </section>
-<section id="runtime-dependencies">
-<h2>Runtime dependencies<a class="headerlink" href="#runtime-dependencies" title="Link to this heading">¶</a></h2>
-<p>The runtime install pulls in:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="http://www.coolprop.org">CoolProp</a> — refrigerant thermodynamic
-properties (REFPROP-grade EOS).</p></li>
-<li><p><a class="reference external" href="https://numpy.org">NumPy</a> + <a class="reference external" href="https://scipy.org">SciPy</a> —
-numerical computation and <code class="docutils literal notranslate"><span class="pre">fsolve</span></code> for cycle closure.</p></li>
-<li><p><a class="reference external" href="https://pandas.pydata.org">pandas</a> — per-timestep result frames.</p></li>
-<li><p><a class="reference external" href="https://matplotlib.org">Matplotlib</a> — plotting primitives.</p></li>
-<li><p><a class="reference external" href="https://pvlib-python.readthedocs.io">pvlib</a> — solar irradiance
-and PV power for the STC / PV subsystems.</p></li>
-<li><p><a class="reference external" href="https://github.com/MassimoCimmino/pygfunction">pygfunction</a> —
-g-function borehole heat exchanger model.</p></li>
-<li><p><a class="reference external" href="https://tqdm.github.io">tqdm</a> — progress bars on long
-<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> runs.</p></li>
-<li><p><a class="reference external" href="https://github.com/dartworklabs/dartwork-mpl">dartwork-mpl</a> —
-thin matplotlib styling layer used by
-<a class="reference internal" href="../api/support/visualization.html"><span class="doc">Visualization</span></a>. Pulled from the upstream Git
-repo via <code class="docutils literal notranslate"><span class="pre">[tool.uv.sources]</span></code> since there is no PyPI release; you
-do not need to install it separately.</p></li>
-</ul>
+<section id="what-s-installed">
+<h2>What’s installed<a class="headerlink" href="#what-s-installed" title="Link to this heading">¶</a></h2>
+<p>The runtime install pulls in <a class="reference external" href="http://www.coolprop.org">CoolProp</a>
+for refrigerant thermodynamics, NumPy / SciPy for numerical work,
+pandas for per-timestep result frames, and Matplotlib for plotting,
+plus a few smaller libraries for the PV and ground-loop subsystems.
+The full, version-pinned list lives in <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> and
+<code class="docutils literal notranslate"><span class="pre">uv.lock</span></code>.</p>
 </section>
-<section id="development-dependencies-group-dev">
-<h2>Development dependencies (<code class="docutils literal notranslate"><span class="pre">--group</span> <span class="pre">dev</span></code>)<a class="headerlink" href="#development-dependencies-group-dev" title="Link to this heading">¶</a></h2>
-<p>Run the same checks CI runs on every PR:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://docs.astral.sh/ruff">ruff</a> — lint
-(<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">ruff</span> <span class="pre">check</span> <span class="pre">src/physics_hp</span> <span class="pre">tests</span></code>).</p></li>
-<li><p><a class="reference external" href="https://mypy.readthedocs.io">mypy</a> — static type checking
-(<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">mypy</span> <span class="pre">src/physics_hp</span></code>).</p></li>
-<li><p><a class="reference external" href="https://docs.pytest.org">pytest</a> +
-<a class="reference external" href="https://pytest-cov.readthedocs.io">pytest-cov</a> — unit tests and
-coverage (<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">pytest</span> <span class="pre">--cov=physics_hp</span></code>).</p></li>
-</ul>
-</section>
-<section id="documentation-dependencies-group-docs">
-<h2>Documentation dependencies (<code class="docutils literal notranslate"><span class="pre">--group</span> <span class="pre">docs</span></code>)<a class="headerlink" href="#documentation-dependencies-group-docs" title="Link to this heading">¶</a></h2>
-<p>The Sphinx build pulls in:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://www.sphinx-doc.org">Sphinx</a> +
-<a class="reference external" href="https://shibuya.lepture.com">Shibuya theme</a> — base toolchain.</p></li>
-<li><p><a class="reference external" href="https://github.com/tox-dev/sphinx-autodoc-typehints">sphinx-autodoc-typehints</a>,
-<a class="reference external" href="https://sphinx-design.readthedocs.io">sphinx-design</a>,
-<a class="reference external" href="https://sphinx-copybutton.readthedocs.io">sphinx-copybutton</a>,
-<a class="reference external" href="https://myst-parser.readthedocs.io">MyST-Parser</a>,
-<a class="reference external" href="https://sphinx-click.readthedocs.io">sphinx-click</a>,
-<a class="reference external" href="https://github.com/tsutsu3/linkify-it-py">linkify-it-py</a> —
-authoring helpers (typehints, grids/cards/tabs, copy button,
-Markdown, CLI docs, link autodetection).</p></li>
-<li><p><a class="reference external" href="https://github.com/mgaitan/sphinxcontrib-mermaid">sphinxcontrib-mermaid</a>,
-<a class="reference external" href="https://sphinx-togglebutton.readthedocs.io">sphinx-togglebutton</a>,
-<a class="reference external" href="https://github.com/sphinx-doc/sphinxext-opengraph">sphinxext-opengraph</a>,
-<a class="reference external" href="https://sphinx-notfound-page.readthedocs.io">sphinx-notfound-page</a>,
-<a class="reference external" href="https://sphinx-sitemap.readthedocs.io">sphinx-sitemap</a>,
-<a class="reference external" href="https://github.com/mgeier/sphinx-last-updated-by-git">sphinx-last-updated-by-git</a> —
-UX/UI layer (Mermaid diagrams, collapsibles, social cards, 404,
-sitemap, per-page Last-updated footer).</p></li>
-</ul>
+<section id="running-the-dev-checks">
+<h2>Running the dev checks<a class="headerlink" href="#running-the-dev-checks" title="Link to this heading">¶</a></h2>
+<p>After <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--group</span> <span class="pre">dev</span> <span class="pre">--locked</span></code>, the three commands CI runs
+on every PR are:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>src/physics_hp<span class="w"> </span>tests
+</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>mypy<span class="w"> </span>src/physics_hp
+</span><span data-line="3">uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>physics_hp
+</span></pre></div>
+</div>
 </section>
 <section id="building-the-docs-locally">
 <h2>Building the docs locally<a class="headerlink" href="#building-the-docs-locally" title="Link to this heading">¶</a></h2>
@@ -276,9 +234,9 @@ sitemap, per-page Last-updated footer).</p></li>
 </span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>make<span class="w"> </span>html
 </span></pre></div>
 </div>
-<p>The rendered HTML lands in <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code>. CI builds the same target
-with <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-W</span> <span class="pre">--keep-going</span></code>, so any new warning fails the
-documentation job.</p>
+<p>The rendered HTML lands in <code class="docutils literal notranslate"><span class="pre">docs/build/html</span></code>. CI builds the same
+target with <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-W</span> <span class="pre">--keep-going</span></code>, so any new warning
+fails the documentation job.</p>
 </section>
 </section>
 

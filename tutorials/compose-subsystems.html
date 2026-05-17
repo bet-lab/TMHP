@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Compose subsystems - pbhp</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Visualize thermodynamic cycle" href="visualize-the-cycle.html" /><link rel="prev" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/tutorials/compose-subsystems.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Compose subsystems - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Visualize thermodynamic cycle" href="visualize-the-cycle.html" /><link rel="prev" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/tutorials/compose-subsystems.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Compose subsystems" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/tutorials/compose-subsystems.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/compose-subsystems.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -148,7 +148,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -179,11 +179,11 @@ where a <code class="docutils literal notranslate"><span class="pre">SolarTherma
 before it reaches the DHW tank.</p>
 <section id="the-two-pieces">
 <h2>The two pieces<a class="headerlink" href="#the-two-pieces" title="Link to this heading">¶</a></h2>
-<p>The <a class="reference internal" href="../api/support/subsystems.html#pbhp.subsystems.SolarThermalCollector" title="pbhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> is a
+<p>The <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> is a
 pure physics engine — given irradiance, ambient temperature, and
 flow, it returns collector outlet temperature and absorbed heat.
 It carries no simulation state.</p>
-<p><a class="reference internal" href="../api/models/ashpb.html#pbhp.ashpb_stc_preheat.ASHPB_STC_preheat" title="pbhp.ashpb_stc_preheat.ASHPB_STC_preheat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code></a> extends
+<p><a class="reference internal" href="../api/models/ashpb.html#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat" title="tmhp.ashpb_stc_preheat.ASHPB_STC_preheat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code></a> extends
 <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> and owns the orchestration: when the
 collector is warmer than the mains supply, it overrides the
 tank-inlet temperature so the heat pump sees pre-heated water.</p>
@@ -192,8 +192,8 @@ tank-inlet temperature so the heat pump sees pre-heated water.</p>
 <h2>Putting them together<a class="headerlink" href="#putting-them-together" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">pbhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_preheat</span>
-</span><span data-line="4"><span class="kn">from</span><span class="w"> </span><span class="nn">pbhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_preheat</span>
+</span><span data-line="4"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
 </span><span data-line="5">
 </span><span data-line="6"><span class="c1"># Collector geometry. SolarThermalCollector is a dataclass — all</span>
 </span><span data-line="7"><span class="c1"># parameters have sensible defaults; override only what differs.</span>
@@ -253,7 +253,7 @@ boost.</p>
 </span><span data-line="2"><span class="c1"># but no solar — drive `AirSourceHeatPumpBoiler` with the same</span>
 </span><span data-line="3"><span class="c1"># schedules and difference the compressor energy.</span>
 </span><span data-line="4">
-</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">pbhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="6">
 </span><span data-line="7"><span class="n">base</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span>
 </span><span data-line="8">    <span class="n">simulation_period_sec</span> <span class="o">=</span> <span class="n">n_steps</span> <span class="o">*</span> <span class="n">dt_s</span><span class="p">,</span>
@@ -280,15 +280,15 @@ in its own columns.</p>
 <p>Three other subsystems compose against ASHPB / GSHPB the same
 way:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="../api/models/ashpb.html#pbhp.ashpb_stc_tank.ASHPB_STC_tank" title="pbhp.ashpb_stc_tank.ASHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code></a> — STC charges
+<li><p><a class="reference internal" href="../api/models/ashpb.html#tmhp.ashpb_stc_tank.ASHPB_STC_tank" title="tmhp.ashpb_stc_tank.ASHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code></a> — STC charges
 the top node of a stratified storage tank instead of the
 mains feed.</p></li>
-<li><p><a class="reference internal" href="../api/models/ashpb.html#pbhp.ashpb_pv_ess.ASHPB_PV_ESS" title="pbhp.ashpb_pv_ess.ASHPB_PV_ESS"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code></a> — photovoltaic
+<li><p><a class="reference internal" href="../api/models/ashpb.html#tmhp.ashpb_pv_ess.ASHPB_PV_ESS" title="tmhp.ashpb_pv_ess.ASHPB_PV_ESS"><code class="xref py py-class docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code></a> — photovoltaic
 generation + ESS supplies compressor and auxiliary loads
 before drawing grid power.</p></li>
-<li><p>The <a class="reference internal" href="../api/models/gshpb.html#pbhp.gshpb_stc_preheat.GSHPB_STC_preheat" title="pbhp.gshpb_stc_preheat.GSHPB_STC_preheat"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_preheat</span></code></a>,
-<a class="reference internal" href="../api/models/gshpb.html#pbhp.gshpb_stc_tank.GSHPB_STC_tank" title="pbhp.gshpb_stc_tank.GSHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a>, and
-<a class="reference internal" href="../api/models/gshpb.html#pbhp.gshpb_pv_ess.GSHPB_PV_ESS" title="pbhp.gshpb_pv_ess.GSHPB_PV_ESS"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code></a> mirrors on the
+<li><p>The <a class="reference internal" href="../api/models/gshpb.html#tmhp.gshpb_stc_preheat.GSHPB_STC_preheat" title="tmhp.gshpb_stc_preheat.GSHPB_STC_preheat"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_preheat</span></code></a>,
+<a class="reference internal" href="../api/models/gshpb.html#tmhp.gshpb_stc_tank.GSHPB_STC_tank" title="tmhp.gshpb_stc_tank.GSHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a>, and
+<a class="reference internal" href="../api/models/gshpb.html#tmhp.gshpb_pv_ess.GSHPB_PV_ESS" title="tmhp.gshpb_pv_ess.GSHPB_PV_ESS"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code></a> mirrors on the
 ground-source side.</p></li>
 </ul>
 <p>The constructor pattern is the same in every case: instantiate
@@ -337,7 +337,7 @@ appropriate schedules to <code class="docutils literal notranslate"><span class=
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

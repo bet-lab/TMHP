@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Subsystems - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Simulation helpers" href="simulation.html" /><link rel="prev" title="Demand &amp; weather" href="demand-weather.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/api/support/subsystems.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Subsystems - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Simulation helpers" href="simulation.html" /><link rel="prev" title="Demand &amp; weather" href="demand-weather.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/api/support/subsystems.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Subsystems" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/api/support/subsystems.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/subsystems.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy storage system: UV l..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy storage system: UV l..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -131,82 +131,82 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#solar-thermal-collector">Solar thermal collector</a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector"><code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.A_stc"><code class="docutils literal notranslate">A_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.stc_tilt"><code class="docutils literal notranslate">stc_tilt</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.stc_azimuth"><code class="docutils literal notranslate">stc_azimuth</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.A_stc_pipe"><code class="docutils literal notranslate">A_stc_pipe</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.alpha_stc"><code class="docutils literal notranslate">alpha_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.h_o_stc"><code class="docutils literal notranslate">h_o_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.h_r_stc"><code class="docutils literal notranslate">h_r_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.k_ins_stc"><code class="docutils literal notranslate">k_ins_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.x_air_stc"><code class="docutils literal notranslate">x_air_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.x_ins_stc"><code class="docutils literal notranslate">x_ins_stc</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.preheat_start_hour"><code class="docutils literal notranslate">preheat_start_hour</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.preheat_end_hour"><code class="docutils literal notranslate">preheat_end_hour</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.dV_stc_w"><code class="docutils literal notranslate">dV_stc_w</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.E_stc_pump"><code class="docutils literal notranslate">E_stc_pump</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff"><code class="docutils literal notranslate">calc_overall_heat_transfer_coeff()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.calc_performance"><code class="docutils literal notranslate">calc_performance()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.is_preheat_on"><code class="docutils literal notranslate">is_preheat_on()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector"><code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.A_stc"><code class="docutils literal notranslate">A_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.stc_tilt"><code class="docutils literal notranslate">stc_tilt</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.stc_azimuth"><code class="docutils literal notranslate">stc_azimuth</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.A_stc_pipe"><code class="docutils literal notranslate">A_stc_pipe</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.alpha_stc"><code class="docutils literal notranslate">alpha_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.h_o_stc"><code class="docutils literal notranslate">h_o_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.h_r_stc"><code class="docutils literal notranslate">h_r_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.k_ins_stc"><code class="docutils literal notranslate">k_ins_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.x_air_stc"><code class="docutils literal notranslate">x_air_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.x_ins_stc"><code class="docutils literal notranslate">x_ins_stc</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.preheat_start_hour"><code class="docutils literal notranslate">preheat_start_hour</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.preheat_end_hour"><code class="docutils literal notranslate">preheat_end_hour</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.dV_stc_w"><code class="docutils literal notranslate">dV_stc_w</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.E_stc_pump"><code class="docutils literal notranslate">E_stc_pump</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff"><code class="docutils literal notranslate">calc_overall_heat_transfer_coeff()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.calc_performance"><code class="docutils literal notranslate">calc_performance()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.is_preheat_on"><code class="docutils literal notranslate">is_preheat_on()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li><a class="reference internal" href="#photovoltaic-system">Photovoltaic system</a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem"><code class="docutils literal notranslate"><span class="pre">PhotovoltaicSystem</span></code></a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.A_pv"><code class="docutils literal notranslate">A_pv</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.alp_pv"><code class="docutils literal notranslate">alp_pv</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.pv_tilt"><code class="docutils literal notranslate">pv_tilt</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.pv_azimuth"><code class="docutils literal notranslate">pv_azimuth</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.h_o"><code class="docutils literal notranslate">h_o</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.eta_pv"><code class="docutils literal notranslate">eta_pv</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.beta_pv"><code class="docutils literal notranslate">beta_pv</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.T_ref_pv_K"><code class="docutils literal notranslate">T_ref_pv_K</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.eta_ctrl"><code class="docutils literal notranslate">eta_ctrl</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.T_ctrl_K"><code class="docutils literal notranslate">T_ctrl_K</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.calc_performance"><code class="docutils literal notranslate">calc_performance()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem"><code class="docutils literal notranslate"><span class="pre">PhotovoltaicSystem</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.A_pv"><code class="docutils literal notranslate">A_pv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.alp_pv"><code class="docutils literal notranslate">alp_pv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.pv_tilt"><code class="docutils literal notranslate">pv_tilt</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.pv_azimuth"><code class="docutils literal notranslate">pv_azimuth</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.h_o"><code class="docutils literal notranslate">h_o</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.eta_pv"><code class="docutils literal notranslate">eta_pv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.beta_pv"><code class="docutils literal notranslate">beta_pv</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.T_ref_pv_K"><code class="docutils literal notranslate">T_ref_pv_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.eta_ctrl"><code class="docutils literal notranslate">eta_ctrl</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.T_ctrl_K"><code class="docutils literal notranslate">T_ctrl_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.calc_performance"><code class="docutils literal notranslate">calc_performance()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li><a class="reference internal" href="#energy-storage-system">Energy storage system</a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem"><code class="docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.C_ess_max"><code class="docutils literal notranslate">C_ess_max</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.SOC_init"><code class="docutils literal notranslate">SOC_init</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.SOC_min"><code class="docutils literal notranslate">SOC_min</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.SOC_max"><code class="docutils literal notranslate">SOC_max</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.eta_ess_chg"><code class="docutils literal notranslate">eta_ess_chg</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.eta_ess_dis"><code class="docutils literal notranslate">eta_ess_dis</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.T_ess_K"><code class="docutils literal notranslate">T_ess_K</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.SOC_ess"><code class="docutils literal notranslate">SOC_ess</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.charge"><code class="docutils literal notranslate">charge()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.discharge"><code class="docutils literal notranslate">discharge()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem"><code class="docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.C_ess_max"><code class="docutils literal notranslate">C_ess_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.SOC_init"><code class="docutils literal notranslate">SOC_init</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.SOC_min"><code class="docutils literal notranslate">SOC_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.SOC_max"><code class="docutils literal notranslate">SOC_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.eta_ess_chg"><code class="docutils literal notranslate">eta_ess_chg</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.eta_ess_dis"><code class="docutils literal notranslate">eta_ess_dis</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.T_ess_K"><code class="docutils literal notranslate">T_ess_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.SOC_ess"><code class="docutils literal notranslate">SOC_ess</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.charge"><code class="docutils literal notranslate">charge()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.discharge"><code class="docutils literal notranslate">discharge()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li><a class="reference internal" href="#uv-lamp">UV lamp</a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp"><code class="docutils literal notranslate"><span class="pre">UVLamp</span></code></a><ul>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.lamp_watts"><code class="docutils literal notranslate">lamp_watts</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.exposure_sec"><code class="docutils literal notranslate">exposure_sec</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.num_switching"><code class="docutils literal notranslate">num_switching</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.period_sec"><code class="docutils literal notranslate">period_sec</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.step"><code class="docutils literal notranslate">step()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.assemble_results"><code class="docutils literal notranslate">assemble_results()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.calc_exergy"><code class="docutils literal notranslate">calc_exergy()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.subsystems.UVLamp.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp"><code class="docutils literal notranslate"><span class="pre">UVLamp</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.lamp_watts"><code class="docutils literal notranslate">lamp_watts</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.exposure_sec"><code class="docutils literal notranslate">exposure_sec</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.num_switching"><code class="docutils literal notranslate">num_switching</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.period_sec"><code class="docutils literal notranslate">period_sec</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.step"><code class="docutils literal notranslate">step()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.assemble_results"><code class="docutils literal notranslate">assemble_results()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.calc_exergy"><code class="docutils literal notranslate">calc_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.UVLamp.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-pbhp.uv_treatment">UV treatment</a><ul>
-<li><a class="reference internal" href="#pbhp.uv_treatment.calc_uv_lamp_power"><code class="docutils literal notranslate"><span class="pre">calc_uv_lamp_power()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.uv_treatment.get_uv_params_from_turbidity"><code class="docutils literal notranslate"><span class="pre">get_uv_params_from_turbidity()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.uv_treatment.calc_uv_exposure_time"><code class="docutils literal notranslate"><span class="pre">calc_uv_exposure_time()</span></code></a></li>
+<li><a class="reference internal" href="#module-tmhp.uv_treatment">UV treatment</a><ul>
+<li><a class="reference internal" href="#tmhp.uv_treatment.calc_uv_lamp_power"><code class="docutils literal notranslate"><span class="pre">calc_uv_lamp_power()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.uv_treatment.get_uv_params_from_turbidity"><code class="docutils literal notranslate"><span class="pre">get_uv_params_from_turbidity()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.uv_treatment.calc_uv_exposure_time"><code class="docutils literal notranslate"><span class="pre">calc_uv_exposure_time()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -222,7 +222,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -254,8 +254,8 @@ variants plug onto the core cycle, plus the UV-treatment subsystem.</p>
 <section id="solar-thermal-collector">
 <h2>Solar thermal collector<a class="headerlink" href="#solar-thermal-collector" title="Link to this heading">¶</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">SolarThermalCollector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_start_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_end_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">18.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_stc_pump</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#SolarThermalCollector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">SolarThermalCollector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_start_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_end_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">18.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_stc_pump</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#SolarThermalCollector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Solar Thermal Collector (STC) — pure physics engine.</p>
 <p>Bundles collector geometry, optical and thermal properties,
@@ -266,8 +266,8 @@ result assembly, exergy calculation) is the responsibility
 of the scenario class that uses this engine.</p>
 <p>The public API consists of:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.calc_performance" title="pbhp.subsystems.SolarThermalCollector.calc_performance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_performance()</span></code></a> — single-timestep thermal performance</p></li>
-<li><p><a class="reference internal" href="#pbhp.subsystems.SolarThermalCollector.is_preheat_on" title="pbhp.subsystems.SolarThermalCollector.is_preheat_on"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_preheat_on()</span></code></a> — schedule check</p></li>
+<li><p><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.calc_performance" title="tmhp.subsystems.SolarThermalCollector.calc_performance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_performance()</span></code></a> — single-timestep thermal performance</p></li>
+<li><p><a class="reference internal" href="#tmhp.subsystems.SolarThermalCollector.is_preheat_on" title="tmhp.subsystems.SolarThermalCollector.is_preheat_on"><code class="xref py py-meth docutils literal notranslate"><span class="pre">is_preheat_on()</span></code></a> — schedule check</p></li>
 </ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -290,78 +290,78 @@ of the scenario class that uses this engine.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.A_stc">
-<span class="sig-name descname"><span class="pre">A_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.A_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.A_stc">
+<span class="sig-name descname"><span class="pre">A_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.A_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.stc_tilt">
-<span class="sig-name descname"><span class="pre">stc_tilt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">35.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.stc_tilt" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.stc_tilt">
+<span class="sig-name descname"><span class="pre">stc_tilt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">35.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.stc_tilt" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.stc_azimuth">
-<span class="sig-name descname"><span class="pre">stc_azimuth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">180.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.stc_azimuth" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.stc_azimuth">
+<span class="sig-name descname"><span class="pre">stc_azimuth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">180.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.stc_azimuth" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.A_stc_pipe">
-<span class="sig-name descname"><span class="pre">A_stc_pipe</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.A_stc_pipe" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.A_stc_pipe">
+<span class="sig-name descname"><span class="pre">A_stc_pipe</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.A_stc_pipe" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.alpha_stc">
-<span class="sig-name descname"><span class="pre">alpha_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.95</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.alpha_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.alpha_stc">
+<span class="sig-name descname"><span class="pre">alpha_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.95</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.alpha_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.h_o_stc">
-<span class="sig-name descname"><span class="pre">h_o_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.h_o_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.h_o_stc">
+<span class="sig-name descname"><span class="pre">h_o_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.h_o_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.h_r_stc">
-<span class="sig-name descname"><span class="pre">h_r_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.h_r_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.h_r_stc">
+<span class="sig-name descname"><span class="pre">h_r_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.h_r_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.k_ins_stc">
-<span class="sig-name descname"><span class="pre">k_ins_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.03</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.k_ins_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.k_ins_stc">
+<span class="sig-name descname"><span class="pre">k_ins_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.03</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.k_ins_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.x_air_stc">
-<span class="sig-name descname"><span class="pre">x_air_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.x_air_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.x_air_stc">
+<span class="sig-name descname"><span class="pre">x_air_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.x_air_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.x_ins_stc">
-<span class="sig-name descname"><span class="pre">x_ins_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.05</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.x_ins_stc" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.x_ins_stc">
+<span class="sig-name descname"><span class="pre">x_ins_stc</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.05</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.x_ins_stc" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.preheat_start_hour">
-<span class="sig-name descname"><span class="pre">preheat_start_hour</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.preheat_start_hour" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.preheat_start_hour">
+<span class="sig-name descname"><span class="pre">preheat_start_hour</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.preheat_start_hour" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.preheat_end_hour">
-<span class="sig-name descname"><span class="pre">preheat_end_hour</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.preheat_end_hour" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.preheat_end_hour">
+<span class="sig-name descname"><span class="pre">preheat_end_hour</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">18.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.preheat_end_hour" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.dV_stc_w">
-<span class="sig-name descname"><span class="pre">dV_stc_w</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.dV_stc_w" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.dV_stc_w">
+<span class="sig-name descname"><span class="pre">dV_stc_w</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.dV_stc_w" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.E_stc_pump">
-<span class="sig-name descname"><span class="pre">E_stc_pump</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50.0</span></em><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.E_stc_pump" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.E_stc_pump">
+<span class="sig-name descname"><span class="pre">E_stc_pump</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50.0</span></em><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.E_stc_pump" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff">
-<span class="sig-name descname"><span class="pre">calc_overall_heat_transfer_coeff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#SolarThermalCollector.calc_overall_heat_transfer_coeff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff">
+<span class="sig-name descname"><span class="pre">calc_overall_heat_transfer_coeff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#SolarThermalCollector.calc_overall_heat_transfer_coeff"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff" title="Link to this definition">¶</a></dt>
 <dd><p>Compute overall U-value from parallel resistances.</p>
 <p>The collector has two heat-loss paths in parallel:</p>
 <ul class="simple">
@@ -379,8 +379,8 @@ of the scenario class that uses this engine.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.calc_performance">
-<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_stc_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#SolarThermalCollector.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.calc_performance" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.calc_performance">
+<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_stc_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#SolarThermalCollector.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.calc_performance" title="Link to this definition">¶</a></dt>
 <dd><p>Compute STC thermal performance for one timestep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -409,8 +409,8 @@ of the scenario class that uses this engine.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.is_preheat_on">
-<span class="sig-name descname"><span class="pre">is_preheat_on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#SolarThermalCollector.is_preheat_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.is_preheat_on" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.is_preheat_on">
+<span class="sig-name descname"><span class="pre">is_preheat_on</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#SolarThermalCollector.is_preheat_on"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.is_preheat_on" title="Link to this definition">¶</a></dt>
 <dd><p>Check whether <em>hour_of_day</em> falls in the window.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -423,8 +423,8 @@ of the scenario class that uses this engine.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.SolarThermalCollector.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_start_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_end_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">18.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_stc_pump</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pbhp.subsystems.SolarThermalCollector.__init__" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.SolarThermalCollector.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_start_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preheat_end_hour</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">18.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_stc_pump</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.subsystems.SolarThermalCollector.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -453,8 +453,8 @@ of the scenario class that uses this engine.</p>
 <section id="photovoltaic-system">
 <h2>Photovoltaic system<a class="headerlink" href="#photovoltaic-system" title="Link to this heading">¶</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">PhotovoltaicSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_pv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ctrl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ctrl_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">308.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#PhotovoltaicSystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">PhotovoltaicSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_pv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ctrl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ctrl_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">308.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#PhotovoltaicSystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Photovoltaic System (PV + Charge Controller) — pure physics engine.</p>
 <p>Computes PV energy generation from irradiance inputs.  This class
@@ -463,7 +463,7 @@ returns a performance dict.  All routing logic (ESS charge/discharge,
 Grid import, dump) is the responsibility of the scenario class.</p>
 <p>The public API:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="#pbhp.subsystems.PhotovoltaicSystem.calc_performance" title="pbhp.subsystems.PhotovoltaicSystem.calc_performance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_performance()</span></code></a> — single-timestep PV generation</p></li>
+<li><p><a class="reference internal" href="#tmhp.subsystems.PhotovoltaicSystem.calc_performance" title="tmhp.subsystems.PhotovoltaicSystem.calc_performance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">calc_performance()</span></code></a> — single-timestep PV generation</p></li>
 </ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -482,58 +482,58 @@ Grid import, dump) is the responsibility of the scenario class.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.A_pv">
-<span class="sig-name descname"><span class="pre">A_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.0</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.A_pv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.A_pv">
+<span class="sig-name descname"><span class="pre">A_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5.0</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.A_pv" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.alp_pv">
-<span class="sig-name descname"><span class="pre">alp_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.alp_pv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.alp_pv">
+<span class="sig-name descname"><span class="pre">alp_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.alp_pv" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.pv_tilt">
-<span class="sig-name descname"><span class="pre">pv_tilt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">35.0</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.pv_tilt" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.pv_tilt">
+<span class="sig-name descname"><span class="pre">pv_tilt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">35.0</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.pv_tilt" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.pv_azimuth">
-<span class="sig-name descname"><span class="pre">pv_azimuth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">180.0</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.pv_azimuth" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.pv_azimuth">
+<span class="sig-name descname"><span class="pre">pv_azimuth</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">180.0</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.pv_azimuth" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.h_o">
-<span class="sig-name descname"><span class="pre">h_o</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.h_o" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.h_o">
+<span class="sig-name descname"><span class="pre">h_o</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">15.0</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.h_o" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.eta_pv">
-<span class="sig-name descname"><span class="pre">eta_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.15</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.eta_pv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.eta_pv">
+<span class="sig-name descname"><span class="pre">eta_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.15</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.eta_pv" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.beta_pv">
-<span class="sig-name descname"><span class="pre">beta_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0045</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.beta_pv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.beta_pv">
+<span class="sig-name descname"><span class="pre">beta_pv</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0045</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.beta_pv" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.T_ref_pv_K">
-<span class="sig-name descname"><span class="pre">T_ref_pv_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">298.15</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.T_ref_pv_K" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.T_ref_pv_K">
+<span class="sig-name descname"><span class="pre">T_ref_pv_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">298.15</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.T_ref_pv_K" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.eta_ctrl">
-<span class="sig-name descname"><span class="pre">eta_ctrl</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.95</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.eta_ctrl" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.eta_ctrl">
+<span class="sig-name descname"><span class="pre">eta_ctrl</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.95</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.eta_ctrl" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.T_ctrl_K">
-<span class="sig-name descname"><span class="pre">T_ctrl_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">308.15</span></em><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.T_ctrl_K" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.T_ctrl_K">
+<span class="sig-name descname"><span class="pre">T_ctrl_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">308.15</span></em><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.T_ctrl_K" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.calc_performance">
-<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#PhotovoltaicSystem.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.calc_performance" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.calc_performance">
+<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#PhotovoltaicSystem.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.calc_performance" title="Link to this definition">¶</a></dt>
 <dd><p>Compute PV generation for one timestep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -556,8 +556,8 @@ Grid import, dump) is the responsibility of the scenario class.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.PhotovoltaicSystem.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_pv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ctrl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ctrl_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">308.15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pbhp.subsystems.PhotovoltaicSystem.__init__" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.PhotovoltaicSystem.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_tilt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">35.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv_azimuth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">180.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0045</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_pv_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">298.15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ctrl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ctrl_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">308.15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.subsystems.PhotovoltaicSystem.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -582,15 +582,15 @@ Grid import, dump) is the responsibility of the scenario class.</p>
 <section id="energy-storage-system">
 <h2>Energy storage system<a class="headerlink" href="#energy-storage-system" title="Link to this heading">¶</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">EnergyStorageSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C_ess_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_chg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_dis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ess_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#EnergyStorageSystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">EnergyStorageSystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C_ess_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_chg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_dis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ess_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Energy Storage System (Battery) — pure physics engine.</p>
 <p>Accepts charging / discharging <em>requests</em> (DC power, [W]) and
 enforces capacity and SOC limits.  Internal losses and exergy
 destruction are computed from round-trip efficiencies.</p>
 <p>State (<code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code>) is updated in-place at each call to
-<a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.charge" title="pbhp.subsystems.EnergyStorageSystem.charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">charge()</span></code></a> or <a class="reference internal" href="#pbhp.subsystems.EnergyStorageSystem.discharge" title="pbhp.subsystems.EnergyStorageSystem.discharge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">discharge()</span></code></a>.  Routing decisions (which
+<a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.charge" title="tmhp.subsystems.EnergyStorageSystem.charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">charge()</span></code></a> or <a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.discharge" title="tmhp.subsystems.EnergyStorageSystem.discharge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">discharge()</span></code></a>.  Routing decisions (which
 request to fulfil and in what order) are entirely the
 responsibility of the scenario class.</p>
 <dl class="field-list simple">
@@ -607,48 +607,48 @@ responsibility of the scenario class.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.C_ess_max">
-<span class="sig-name descname"><span class="pre">C_ess_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3600000.0</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.C_ess_max" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.C_ess_max">
+<span class="sig-name descname"><span class="pre">C_ess_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3600000.0</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.C_ess_max" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.SOC_init">
-<span class="sig-name descname"><span class="pre">SOC_init</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.SOC_init" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.SOC_init">
+<span class="sig-name descname"><span class="pre">SOC_init</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.SOC_init" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.SOC_min">
-<span class="sig-name descname"><span class="pre">SOC_min</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.SOC_min" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.SOC_min">
+<span class="sig-name descname"><span class="pre">SOC_min</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.1</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.SOC_min" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.SOC_max">
-<span class="sig-name descname"><span class="pre">SOC_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.SOC_max" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.SOC_max">
+<span class="sig-name descname"><span class="pre">SOC_max</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.0</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.SOC_max" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.eta_ess_chg">
-<span class="sig-name descname"><span class="pre">eta_ess_chg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.eta_ess_chg" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.eta_ess_chg">
+<span class="sig-name descname"><span class="pre">eta_ess_chg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.eta_ess_chg" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.eta_ess_dis">
-<span class="sig-name descname"><span class="pre">eta_ess_dis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.eta_ess_dis" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.eta_ess_dis">
+<span class="sig-name descname"><span class="pre">eta_ess_dis</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.9</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.eta_ess_dis" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.T_ess_K">
-<span class="sig-name descname"><span class="pre">T_ess_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">313.15</span></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.T_ess_K" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.T_ess_K">
+<span class="sig-name descname"><span class="pre">T_ess_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">313.15</span></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.T_ess_K" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.SOC_ess">
-<span class="sig-name descname"><span class="pre">SOC_ess</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.SOC_ess" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.SOC_ess">
+<span class="sig-name descname"><span class="pre">SOC_ess</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.SOC_ess" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.charge">
-<span class="sig-name descname"><span class="pre">charge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_chg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#EnergyStorageSystem.charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.charge" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.charge">
+<span class="sig-name descname"><span class="pre">charge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_chg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem.charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.charge" title="Link to this definition">¶</a></dt>
 <dd><p>Request to charge the ESS with <em>E_req_chg</em> [W] for <em>dt</em> [s].</p>
 <p>Returns a dict with keys <code class="docutils literal notranslate"><span class="pre">E_ess_chg</span></code>, <code class="docutils literal notranslate"><span class="pre">E_ess_dis</span></code>, <code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code>
 plus exergy keys.</p>
@@ -667,8 +667,8 @@ plus exergy keys.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.discharge">
-<span class="sig-name descname"><span class="pre">discharge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_dis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#EnergyStorageSystem.discharge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.discharge" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.discharge">
+<span class="sig-name descname"><span class="pre">discharge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_dis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem.discharge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.discharge" title="Link to this definition">¶</a></dt>
 <dd><p>Request to discharge <em>E_req_dis</em> [W] from the ESS for <em>dt</em> [s].</p>
 <p>Returns a dict with keys <code class="docutils literal notranslate"><span class="pre">E_ess_dis</span></code> (actual), <code class="docutils literal notranslate"><span class="pre">E_ess_chg</span></code>,
 <code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code> plus exergy keys.</p>
@@ -687,8 +687,8 @@ plus exergy keys.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.EnergyStorageSystem.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C_ess_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_chg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_dis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ess_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pbhp.subsystems.EnergyStorageSystem.__init__" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C_ess_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">SOC_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_chg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_ess_dis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ess_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">313.15</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -710,8 +710,8 @@ plus exergy keys.</p>
 <section id="uv-lamp">
 <h2>UV lamp<a class="headerlink" href="#uv-lamp" title="Link to this heading">¶</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">UVLamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10800</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#UVLamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.UVLamp" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.subsystems.</span></span><span class="sig-name descname"><span class="pre">UVLamp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10800</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#UVLamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.UVLamp" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>UV disinfection lamp subsystem.</p>
 <p>The lamp switches on periodically (<code class="docutils literal notranslate"><span class="pre">num_switching</span></code>
@@ -729,28 +729,28 @@ tank (<code class="docutils literal notranslate"><span class="pre">Q_contributio
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.lamp_watts">
-<span class="sig-name descname"><span class="pre">lamp_watts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#pbhp.subsystems.UVLamp.lamp_watts" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.lamp_watts">
+<span class="sig-name descname"><span class="pre">lamp_watts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#tmhp.subsystems.UVLamp.lamp_watts" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.exposure_sec">
-<span class="sig-name descname"><span class="pre">exposure_sec</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#pbhp.subsystems.UVLamp.exposure_sec" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.exposure_sec">
+<span class="sig-name descname"><span class="pre">exposure_sec</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#tmhp.subsystems.UVLamp.exposure_sec" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.num_switching">
-<span class="sig-name descname"><span class="pre">num_switching</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#pbhp.subsystems.UVLamp.num_switching" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.num_switching">
+<span class="sig-name descname"><span class="pre">num_switching</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#tmhp.subsystems.UVLamp.num_switching" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.period_sec">
-<span class="sig-name descname"><span class="pre">period_sec</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10800</span></em><a class="headerlink" href="#pbhp.subsystems.UVLamp.period_sec" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.period_sec">
+<span class="sig-name descname"><span class="pre">period_sec</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">10800</span></em><a class="headerlink" href="#tmhp.subsystems.UVLamp.period_sec" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.step">
-<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#UVLamp.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.UVLamp.step" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#UVLamp.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.UVLamp.step" title="Link to this definition">¶</a></dt>
 <dd><p>Compute UV lamp state for one timestep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -768,8 +768,8 @@ tank (<code class="docutils literal notranslate"><span class="pre">Q_contributio
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.assemble_results">
-<span class="sig-name descname"><span class="pre">assemble_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_solved_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#UVLamp.assemble_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.UVLamp.assemble_results" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.assemble_results">
+<span class="sig-name descname"><span class="pre">assemble_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_solved_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#UVLamp.assemble_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.UVLamp.assemble_results" title="Link to this definition">¶</a></dt>
 <dd><p>Report UV power for DataFrame output.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -787,8 +787,8 @@ tank (<code class="docutils literal notranslate"><span class="pre">Q_contributio
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.calc_exergy">
-<span class="sig-name descname"><span class="pre">calc_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/subsystems.html#UVLamp.calc_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.subsystems.UVLamp.calc_exergy" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.calc_exergy">
+<span class="sig-name descname"><span class="pre">calc_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#UVLamp.calc_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.UVLamp.calc_exergy" title="Link to this definition">¶</a></dt>
 <dd><p>UV exergy = electricity (handled by E→X conversion).</p>
 <p>No additional post-processing needed.
 Returns <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
@@ -806,8 +806,8 @@ Returns <code class="docutils literal notranslate"><span class="pre">None</span>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="pbhp.subsystems.UVLamp.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10800</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pbhp.subsystems.UVLamp.__init__" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.subsystems.UVLamp.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10800</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.subsystems.UVLamp.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -823,14 +823,14 @@ Returns <code class="docutils literal notranslate"><span class="pre">None</span>
 </dd></dl>
 
 </section>
-<section id="module-pbhp.uv_treatment">
-<span id="uv-treatment"></span><h2>UV treatment<a class="headerlink" href="#module-pbhp.uv_treatment" title="Link to this heading">¶</a></h2>
+<section id="module-tmhp.uv_treatment">
+<span id="uv-treatment"></span><h2>UV treatment<a class="headerlink" href="#module-tmhp.uv_treatment" title="Link to this heading">¶</a></h2>
 <p>UV water treatment utility functions.</p>
 <p>Functions for UV lamp power scheduling, turbidity-based parameter
 lookup, and required exposure time calculation (Radial Model).</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.uv_treatment.calc_uv_lamp_power">
-<span class="sig-prename descclassname"><span class="pre">pbhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">calc_uv_lamp_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#calc_uv_lamp_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.uv_treatment.calc_uv_lamp_power" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.uv_treatment.calc_uv_lamp_power">
+<span class="sig-prename descclassname"><span class="pre">tmhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">calc_uv_lamp_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/uv_treatment.html#calc_uv_lamp_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.uv_treatment.calc_uv_lamp_power" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate UV lamp power at a given time instant.</p>
 <p>The lamp switches on <code class="docutils literal notranslate"><span class="pre">num_switching</span></code> times per <code class="docutils literal notranslate"><span class="pre">period_sec</span></code>,
 each activation lasting <code class="docutils literal notranslate"><span class="pre">exposure_sec</span></code>.</p>
@@ -854,8 +854,8 @@ each activation lasting <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.uv_treatment.get_uv_params_from_turbidity">
-<span class="sig-prename descclassname"><span class="pre">pbhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">get_uv_params_from_turbidity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#get_uv_params_from_turbidity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.uv_treatment.get_uv_params_from_turbidity" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.uv_treatment.get_uv_params_from_turbidity">
+<span class="sig-prename descclassname"><span class="pre">tmhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">get_uv_params_from_turbidity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/uv_treatment.html#get_uv_params_from_turbidity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.uv_treatment.get_uv_params_from_turbidity" title="Link to this definition">¶</a></dt>
 <dd><p>Return UV parameters from a turbidity lookup table.</p>
 <p>Table data based on <em>Table 1. Effect of Turbidity on UVT, UV
 Absorbance, UV Intensity, and Exposure Time</em>.</p>
@@ -874,8 +874,8 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.uv_treatment.calc_uv_exposure_time">
-<span class="sig-prename descclassname"><span class="pre">pbhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">calc_uv_exposure_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvc_output_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_arc_length_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_dose_mj_cm2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">186</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#calc_uv_exposure_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.uv_treatment.calc_uv_exposure_time" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.uv_treatment.calc_uv_exposure_time">
+<span class="sig-prename descclassname"><span class="pre">tmhp.uv_treatment.</span></span><span class="sig-name descname"><span class="pre">calc_uv_exposure_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvc_output_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_arc_length_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_dose_mj_cm2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">186</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/uv_treatment.html#calc_uv_exposure_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.uv_treatment.calc_uv_exposure_time" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate required UV lamp exposure time via Radial Model.</p>
 <p>Reference: ADA453967.pdf — Radial Model for UV disinfection.</p>
 <dl class="field-list simple">
@@ -940,7 +940,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

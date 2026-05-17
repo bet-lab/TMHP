@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Swap refrigerants - pbhp</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" /><link rel="prev" title="Tutorials" href="index.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/tutorials/swap-refrigerant.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Swap refrigerants - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Realistic dynamic simulation" href="realistic-dynamic-simulation.html" /><link rel="prev" title="Tutorials" href="index.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/tutorials/swap-refrigerant.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Swap refrigerants" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/tutorials/swap-refrigerant.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
-<meta property="og:description" content="The refrigerant is a constructor argument on every model in pbhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/swap-refrigerant.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="The refrigerant is a constructor argument on every model in pbhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
+<meta name="description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -149,7 +149,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -173,7 +173,7 @@ data-aria-dark="Switch to auto color mode">
           <section id="swap-refrigerants">
 <h1>Swap refrigerants<a class="headerlink" href="#swap-refrigerants" title="Link to this heading">¶</a></h1>
 <p>The refrigerant is a constructor argument on every model in
-<code class="docutils literal notranslate"><span class="pre">pbhp</span></code>. Changing it requires no recalibration and no
+<code class="docutils literal notranslate"><span class="pre">tmhp</span></code>. Changing it requires no recalibration and no
 manufacturer data — pick any name CoolProp recognises and the
 library re-solves the cycle from first principles.</p>
 <p>This page is both a copy-runnable tutorial — sweep four
@@ -193,7 +193,7 @@ data.</p>
 <h2>Sweep<a class="headerlink" href="#sweep" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">pbhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="4">
 </span><span data-line="5"><span class="n">T_tank_w</span>   <span class="o">=</span> <span class="mf">55.0</span>   <span class="c1"># °C</span>
 </span><span data-line="6"><span class="n">T0</span>         <span class="o">=</span> <span class="mf">5.0</span>    <span class="c1"># °C</span>
@@ -559,7 +559,7 @@ heat exchangers, and instrumentation. Sub-cooler /
 expander details dominate COP; can’t be analysed with a
 subcritical-condenser model — see
 <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a> for how
-<code class="docutils literal notranslate"><span class="pre">pbhp</span></code> currently treats this case.</p>
+<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> currently treats this case.</p>
 <p><em>Typical use</em>: sanitary-water heat pumps (Japan, Europe),
 commercial / supermarket refrigeration, transport
 refrigeration.</p>
@@ -605,7 +605,7 @@ very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
 pattern.</p>
 </dd>
 <dt><em>High-temperature industrial heat pump (LWT 80–95 °C)</em></dt><dd><p>R1234ze(E), R134a, or R717 (ammonia). R600a is occasionally
-used for niche small units. <code class="docutils literal notranslate"><span class="pre">pbhp</span></code> solves these
+used for niche small units. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> solves these
 subcritically as long as T<sub>crit</sub> clears the condenser
 by ~10 K; check <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> for <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>.</p>
 </dd>
@@ -616,7 +616,7 @@ COP.</p>
 </dd>
 <dt><em>Transcritical sanitary hot water (≥ 65 °C, cold return)</em></dt><dd><p>R744 — the only mainstream refrigerant whose cycle is
 optimised for this duty. Not subcritical, so the
-<code class="docutils literal notranslate"><span class="pre">pbhp</span></code> result is a sanity check rather than a design;
+<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> result is a sanity check rather than a design;
 see <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
 </dd>
 <dt><em>Industrial refrigeration and process cooling</em></dt><dd><p>R717 (ammonia) is the workhorse. R744 (CO<sub>2</sub>) is the
@@ -697,7 +697,7 @@ implications.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

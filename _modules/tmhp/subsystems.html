@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp.subsystems - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/_modules/pbhp/subsystems.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.subsystems - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/_modules/tmhp/subsystems.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -30,7 +30,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -38,7 +38,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -107,7 +107,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -131,7 +131,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -139,7 +139,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">pbhp.subsystems</strong>
+        <strong itemprop="name">tmhp.subsystems</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -152,7 +152,7 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <h1>Source code for pbhp.subsystems</h1><div class="highlight"><pre>
+          <h1>Source code for tmhp.subsystems</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Attachable subsystems for heat-pump boiler models.</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="sd">Each subsystem is a self-contained **pure physics engine**: given</span>
@@ -216,7 +216,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="61">
 </span><span data-line="62">
 <div class="viewcode-block" id="SolarThermalCollector">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.SolarThermalCollector">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector">[docs]</a>
 </span><span data-line="63"><span class="nd">@dataclass</span>
 </span><span data-line="64"><span class="k">class</span><span class="w"> </span><span class="nc">SolarThermalCollector</span><span class="p">:</span>
 </span><span data-line="65"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Solar Thermal Collector (STC) — pure physics engine.</span>
@@ -288,7 +288,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="131">    <span class="c1"># ----------------------------------------------------------</span>
 </span><span data-line="132">
 <div class="viewcode-block" id="SolarThermalCollector.calc_overall_heat_transfer_coeff">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.calc_overall_heat_transfer_coeff">[docs]</a>
 </span><span data-line="133">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_overall_heat_transfer_coeff</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="134"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute overall U-value from parallel resistances.</span>
 </span><span data-line="135">
@@ -385,7 +385,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="225">    <span class="c1"># ----------------------------------------------------------</span>
 </span><span data-line="226">
 <div class="viewcode-block" id="SolarThermalCollector.calc_performance">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.SolarThermalCollector.calc_performance">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.calc_performance">[docs]</a>
 </span><span data-line="227">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_performance</span><span class="p">(</span>
 </span><span data-line="228">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="229">        <span class="n">I_DN_stc</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -507,7 +507,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="344">    <span class="c1"># ----------------------------------------------------------</span>
 </span><span data-line="345">
 <div class="viewcode-block" id="SolarThermalCollector.is_preheat_on">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.SolarThermalCollector.is_preheat_on">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.is_preheat_on">[docs]</a>
 </span><span data-line="346">    <span class="k">def</span><span class="w"> </span><span class="nf">is_preheat_on</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 </span><span data-line="347"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check whether *hour_of_day* falls in the window.</span>
 </span><span data-line="348">
@@ -530,7 +530,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="363">
 </span><span data-line="364">
 <div class="viewcode-block" id="PhotovoltaicSystem">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.PhotovoltaicSystem">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem">[docs]</a>
 </span><span data-line="365"><span class="nd">@dataclass</span>
 </span><span data-line="366"><span class="k">class</span><span class="w"> </span><span class="nc">PhotovoltaicSystem</span><span class="p">:</span>
 </span><span data-line="367"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Photovoltaic System (PV + Charge Controller) — pure physics engine.</span>
@@ -560,7 +560,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="391">    <span class="n">T_ctrl_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">308.15</span>
 </span><span data-line="392">
 <div class="viewcode-block" id="PhotovoltaicSystem.calc_performance">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.PhotovoltaicSystem.calc_performance">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.calc_performance">[docs]</a>
 </span><span data-line="393">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_performance</span><span class="p">(</span>
 </span><span data-line="394">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="395">        <span class="n">I_DN</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -645,7 +645,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="472">
 </span><span data-line="473">
 <div class="viewcode-block" id="EnergyStorageSystem">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.EnergyStorageSystem">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem">[docs]</a>
 </span><span data-line="474"><span class="nd">@dataclass</span>
 </span><span data-line="475"><span class="k">class</span><span class="w"> </span><span class="nc">EnergyStorageSystem</span><span class="p">:</span>
 </span><span data-line="476"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Energy Storage System (Battery) — pure physics engine.</span>
@@ -713,7 +713,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="538">    <span class="c1"># ── public API ───────────────────────────────────────────────</span>
 </span><span data-line="539">
 <div class="viewcode-block" id="EnergyStorageSystem.charge">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.EnergyStorageSystem.charge">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.charge">[docs]</a>
 </span><span data-line="540">    <span class="k">def</span><span class="w"> </span><span class="nf">charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">E_req_chg</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span data-line="541"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Request to charge the ESS with *E_req_chg* [W] for *dt* [s].</span>
 </span><span data-line="542">
@@ -732,7 +732,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="555">
 <div class="viewcode-block" id="EnergyStorageSystem.discharge">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.EnergyStorageSystem.discharge">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.discharge">[docs]</a>
 </span><span data-line="556">    <span class="k">def</span><span class="w"> </span><span class="nf">discharge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">E_req_dis</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span data-line="557"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Request to discharge *E_req_dis* [W] from the ESS for *dt* [s].</span>
 </span><span data-line="558">
@@ -758,7 +758,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="576">
 </span><span data-line="577">
 <div class="viewcode-block" id="UVLamp">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.UVLamp">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.UVLamp">[docs]</a>
 </span><span data-line="578"><span class="nd">@dataclass</span>
 </span><span data-line="579"><span class="k">class</span><span class="w"> </span><span class="nc">UVLamp</span><span class="p">:</span>
 </span><span data-line="580"><span class="w">    </span><span class="sd">&quot;&quot;&quot;UV disinfection lamp subsystem.</span>
@@ -786,7 +786,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="602">    <span class="n">period_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">h2s</span>
 </span><span data-line="603">
 <div class="viewcode-block" id="UVLamp.step">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.UVLamp.step">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.UVLamp.step">[docs]</a>
 </span><span data-line="604">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span>
 </span><span data-line="605">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="606">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
@@ -813,7 +813,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="627">
 <div class="viewcode-block" id="UVLamp.assemble_results">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.UVLamp.assemble_results">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.UVLamp.assemble_results">[docs]</a>
 </span><span data-line="628">    <span class="k">def</span><span class="w"> </span><span class="nf">assemble_results</span><span class="p">(</span>
 </span><span data-line="629">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="630">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
@@ -829,7 +829,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="640">
 <div class="viewcode-block" id="UVLamp.calc_exergy">
-<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.subsystems.UVLamp.calc_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.subsystems.UVLamp.calc_exergy">[docs]</a>
 </span><span data-line="641">    <span class="k">def</span><span class="w"> </span><span class="nf">calc_exergy</span><span class="p">(</span>
 </span><span data-line="642">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="643">        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
@@ -867,7 +867,7 @@ data-aria-dark="Switch to auto color mode">
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

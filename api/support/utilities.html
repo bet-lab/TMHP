@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Utilities &amp; constants - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Validation" href="../../validation/index.html" /><link rel="prev" title="Visualization" href="visualization.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/api/support/utilities.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Utilities &amp; constants - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Validation" href="../../validation/index.html" /><link rel="prev" title="Visualization" href="visualization.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/api/support/utilities.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Utilities & constants" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/api/support/utilities.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/utilities.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="Unit-conversion helpers and physical constants used across the package. Unit conversions: Unit conversion utilities and conversion constants. This module provides temperature conversion functions a..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Unit-conversion helpers and physical constants used across the package. Unit conversions: Unit conversion utilities and conversion constants. This module provides temperature conversion functions a..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -130,16 +130,16 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#module-pbhp.calc_util">Unit conversions</a><ul>
+<li><a class="reference internal" href="#module-tmhp.calc_util">Unit conversions</a><ul>
 <li><a class="reference internal" href="#categories">Categories</a></li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#pbhp.calc_util.K2C"><code class="docutils literal notranslate"><span class="pre">K2C()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.calc_util.C2K"><code class="docutils literal notranslate"><span class="pre">C2K()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.calc_util.F2C"><code class="docutils literal notranslate"><span class="pre">F2C()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.calc_util.C2F"><code class="docutils literal notranslate"><span class="pre">C2F()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.calc_util.K2C"><code class="docutils literal notranslate"><span class="pre">K2C()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.calc_util.C2K"><code class="docutils literal notranslate"><span class="pre">C2K()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.calc_util.F2C"><code class="docutils literal notranslate"><span class="pre">F2C()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.calc_util.C2F"><code class="docutils literal notranslate"><span class="pre">C2F()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-pbhp.constants">Physical constants</a></li>
+<li><a class="reference internal" href="#module-tmhp.constants">Physical constants</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -153,7 +153,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -181,8 +181,8 @@ data-aria-dark="Switch to auto color mode">
           <section id="utilities-constants">
 <h1>Utilities &amp; constants<a class="headerlink" href="#utilities-constants" title="Link to this heading">¶</a></h1>
 <p>Unit-conversion helpers and physical constants used across the package.</p>
-<section id="module-pbhp.calc_util">
-<span id="unit-conversions"></span><h2>Unit conversions<a class="headerlink" href="#module-pbhp.calc_util" title="Link to this heading">¶</a></h2>
+<section id="module-tmhp.calc_util">
+<span id="unit-conversions"></span><h2>Unit conversions<a class="headerlink" href="#module-tmhp.calc_util" title="Link to this heading">¶</a></h2>
 <p>Unit conversion utilities and conversion constants.</p>
 <p>This module provides temperature conversion functions and a comprehensive
 set of unit conversion multipliers organized by physical dimension.</p>
@@ -207,32 +207,32 @@ set of unit conversion multipliers organized by physical dimension.</p>
 e.g. <code class="docutils literal notranslate"><span class="pre">h2s</span> <span class="pre">=</span> <span class="pre">3600</span></code> converts hours to seconds.</p>
 </section>
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.calc_util.K2C">
-<span class="sig-prename descclassname"><span class="pre">pbhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">K2C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/calc_util.html#K2C"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.calc_util.K2C" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.calc_util.K2C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">K2C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/calc_util.html#K2C"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.calc_util.K2C" title="Link to this definition">¶</a></dt>
 <dd><p>Convert Kelvin to Celsius.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.calc_util.C2K">
-<span class="sig-prename descclassname"><span class="pre">pbhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">C2K</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/calc_util.html#C2K"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.calc_util.C2K" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.calc_util.C2K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">C2K</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/calc_util.html#C2K"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.calc_util.C2K" title="Link to this definition">¶</a></dt>
 <dd><p>Convert Celsius to Kelvin.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.calc_util.F2C">
-<span class="sig-prename descclassname"><span class="pre">pbhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">F2C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/calc_util.html#F2C"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.calc_util.F2C" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.calc_util.F2C">
+<span class="sig-prename descclassname"><span class="pre">tmhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">F2C</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">F</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/calc_util.html#F2C"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.calc_util.F2C" title="Link to this definition">¶</a></dt>
 <dd><p>Convert Fahrenheit to Celsius.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.calc_util.C2F">
-<span class="sig-prename descclassname"><span class="pre">pbhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">C2F</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/calc_util.html#C2F"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.calc_util.C2F" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.calc_util.C2F">
+<span class="sig-prename descclassname"><span class="pre">tmhp.calc_util.</span></span><span class="sig-name descname"><span class="pre">C2F</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/calc_util.html#C2F"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.calc_util.C2F" title="Link to this definition">¶</a></dt>
 <dd><p>Convert Celsius to Fahrenheit.</p>
 </dd></dl>
 
 </section>
-<section id="module-pbhp.constants">
-<span id="physical-constants"></span><h2>Physical constants<a class="headerlink" href="#module-pbhp.constants" title="Link to this heading">¶</a></h2>
+<section id="module-tmhp.constants">
+<span id="physical-constants"></span><h2>Physical constants<a class="headerlink" href="#module-tmhp.constants" title="Link to this heading">¶</a></h2>
 <p>Physical constants for energy, entropy, and exergy analysis.</p>
 <dl class="simple">
 <dt>Categories:</dt><dd><ol class="arabic simple">
@@ -289,7 +289,7 @@ e.g. <code class="docutils literal notranslate"><span class="pre">h2s</span> <sp
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

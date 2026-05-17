@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp.heat_transfer - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/_modules/pbhp/heat_transfer.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.heat_transfer - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/_modules/tmhp/heat_transfer.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -30,7 +30,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -38,7 +38,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -107,7 +107,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -131,7 +131,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -139,7 +139,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">pbhp.heat_transfer</strong>
+        <strong itemprop="name">tmhp.heat_transfer</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -152,7 +152,7 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <h1>Source code for pbhp.heat_transfer</h1><div class="highlight"><pre>
+          <h1>Source code for tmhp.heat_transfer</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="2"><span class="sd">Heat transfer and fluid dynamics calculations.</span>
 </span><span data-line="3"><span class="sd">&quot;&quot;&quot;</span>
@@ -173,7 +173,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="18">
 </span><span data-line="19">
 <div class="viewcode-block" id="darcy_friction_factor">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.darcy_friction_factor">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.darcy_friction_factor">[docs]</a>
 </span><span data-line="20"><span class="k">def</span><span class="w"> </span><span class="nf">darcy_friction_factor</span><span class="p">(</span><span class="n">Re</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="21"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the Darcy friction factor.</span>
 </span><span data-line="22">
@@ -206,7 +206,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="48">
 </span><span data-line="49">
 <div class="viewcode-block" id="calc_h_vertical_plate">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.calc_h_vertical_plate">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.calc_h_vertical_plate">[docs]</a>
 </span><span data-line="50"><span class="k">def</span><span class="w"> </span><span class="nf">calc_h_vertical_plate</span><span class="p">(</span>
 </span><span data-line="51">    <span class="n">T_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="52">    <span class="n">T_inf</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -264,7 +264,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="103">
 </span><span data-line="104">
 <div class="viewcode-block" id="calc_UA_tank_arr">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.calc_UA_tank_arr">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.calc_UA_tank_arr">[docs]</a>
 </span><span data-line="105"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_tank_arr</span><span class="p">(</span>
 </span><span data-line="106">    <span class="n">arr_D_in</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
 </span><span data-line="107">    <span class="n">arr_D_out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -307,7 +307,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="143">
 </span><span data-line="144">
 <div class="viewcode-block" id="calc_simple_tank_UA">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.calc_simple_tank_UA">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.calc_simple_tank_UA">[docs]</a>
 </span><span data-line="145"><span class="k">def</span><span class="w"> </span><span class="nf">calc_simple_tank_UA</span><span class="p">(</span>
 </span><span data-line="146">    <span class="n">r0</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
 </span><span data-line="147">    <span class="n">H</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
@@ -372,7 +372,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="205">
 </span><span data-line="206">
 <div class="viewcode-block" id="calc_LMTD_counter_flow">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.calc_LMTD_counter_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.calc_LMTD_counter_flow">[docs]</a>
 </span><span data-line="207"><span class="k">def</span><span class="w"> </span><span class="nf">calc_LMTD_counter_flow</span><span class="p">(</span><span class="n">Th_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="208"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate Log-Mean Temperature Difference for counter-flow heat exchanger.</span>
 </span><span data-line="209">
@@ -406,7 +406,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="236">
 </span><span data-line="237">
 <div class="viewcode-block" id="calc_LMTD_parallel_flow">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.calc_LMTD_parallel_flow">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.calc_LMTD_parallel_flow">[docs]</a>
 </span><span data-line="238"><span class="k">def</span><span class="w"> </span><span class="nf">calc_LMTD_parallel_flow</span><span class="p">(</span><span class="n">Th_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Th_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Tc_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
 </span><span data-line="239"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate Log-Mean Temperature Difference for parallel-flow heat exchanger.</span>
 </span><span data-line="240">
@@ -440,7 +440,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="267">
 </span><span data-line="268">
 <div class="viewcode-block" id="TRIDIAG_MATRIX_ALGORITHM">
-<a class="viewcode-back" href="../../api/support/heat-transfer.html#pbhp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">[docs]</a>
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.heat_transfer.TRIDIAG_MATRIX_ALGORITHM">[docs]</a>
 </span><span data-line="269"><span class="k">def</span><span class="w"> </span><span class="nf">TRIDIAG_MATRIX_ALGORITHM</span><span class="p">(</span>
 </span><span data-line="270">    <span class="n">a_M</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
 </span><span data-line="271">    <span class="n">a_P</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -513,7 +513,7 @@ data-aria-dark="Switch to auto color mode">
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

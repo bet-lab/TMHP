@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Validation - pbhp</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Utilities &amp; constants" href="../api/support/utilities.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/validation/" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Validation - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Utilities &amp; constants" href="../api/support/utilities.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/validation/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Validation" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/validation/index.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/validation/index.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="#">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -149,7 +149,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -168,7 +168,7 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="validation">
 <h1>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h1>
-<p><a class="reference internal" href="../api/models/ashpb.html#pbhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="pbhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a>
+<p><a class="reference internal" href="../api/models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a>
 has been validated against the <strong>Samsung EHS Mono HT Quiet R32 14 kW</strong>
 catalogue across 15 operating points spanning
 <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in \{40, 50, 65\}\)</span> °C and outdoor air
@@ -391,7 +391,7 @@ set 2.5 K below <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\)<
 <section id="reproducibility">
 <h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
 <p>The parity plot and the table above are regenerated by
-<a class="reference external" href="https://github.com/bet-lab/pbhp/blob/main/scripts/validation/samsung_ehs_parity.py">scripts/validation/samsung_ehs_parity.py</a>,
+<a class="reference external" href="https://github.com/bet-lab/tmhp/blob/main/scripts/validation/samsung_ehs_parity.py">scripts/validation/samsung_ehs_parity.py</a>,
 so anyone can rerun the comparison from the source.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--locked
 </span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/validation/samsung_ehs_parity.py
@@ -414,10 +414,10 @@ at each point.</p></li>
 <p class="admonition-title">What has — and hasn’t — been benchmarked</p>
 <p>Only <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> has been quantitatively
 validated against catalogue data. The other system classes
-(<a class="reference internal" href="../api/models/gshpb.html#pbhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="pbhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>,
-<a class="reference internal" href="../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler" title="pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code></a>,
-<a class="reference internal" href="../api/models/space-conditioning.html#pbhp.air_source_heat_pump.AirSourceHeatPump" title="pbhp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>,
-<a class="reference internal" href="../api/models/space-conditioning.html#pbhp.ground_source_heat_pump.GroundSourceHeatPump" title="pbhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>,
+(<a class="reference internal" href="../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>,
+<a class="reference internal" href="../api/models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler" title="tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code></a>,
+<a class="reference internal" href="../api/models/space-conditioning.html#tmhp.air_source_heat_pump.AirSourceHeatPump" title="tmhp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>,
+<a class="reference internal" href="../api/models/space-conditioning.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump" title="tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>,
 and the subsystem-augmented variants) share the same
 refrigerant-cycle core and pass smoke tests on representative
 operating points, but they have not yet been benchmarked
@@ -473,7 +473,7 @@ Book</em> (2024) —
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

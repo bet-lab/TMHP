@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Demand &amp; weather - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Subsystems" href="subsystems.html" /><link rel="prev" title="Heat transfer &amp; exchangers" href="heat-transfer.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/pbhp/api/support/demand-weather.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Demand &amp; weather - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Subsystems" href="subsystems.html" /><link rel="prev" title="Heat transfer &amp; exchangers" href="heat-transfer.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/api/support/demand-weather.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Demand & weather" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/pbhp/api/support/demand-weather.html" />
-<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/demand-weather.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Domestic hot ..." />
-<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Domestic hot ..." />
 
-    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>pbhp</strong>
+      <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,7 +117,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
 <li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
@@ -130,17 +130,17 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#module-pbhp.weather">Weather</a><ul>
-<li><a class="reference internal" href="#pbhp.weather.decompose_ghi_to_poa"><code class="docutils literal notranslate"><span class="pre">decompose_ghi_to_poa()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.weather.load_kma_T0_sol_hourly_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_T0_sol_hourly_csv()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.weather.load_kma_solar_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_solar_csv()</span></code></a></li>
+<li><a class="reference internal" href="#module-tmhp.weather">Weather</a><ul>
+<li><a class="reference internal" href="#tmhp.weather.decompose_ghi_to_poa"><code class="docutils literal notranslate"><span class="pre">decompose_ghi_to_poa()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.weather.load_kma_T0_sol_hourly_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_T0_sol_hourly_csv()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.weather.load_kma_solar_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_solar_csv()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-pbhp.dhw">Domestic hot water demand</a><ul>
-<li><a class="reference internal" href="#pbhp.dhw.build_dhw_usage_ratio"><code class="docutils literal notranslate"><span class="pre">build_dhw_usage_ratio()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.dhw.calc_cold_water_temp"><code class="docutils literal notranslate"><span class="pre">calc_cold_water_temp()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.dhw.calc_total_water_use_from_schedule"><code class="docutils literal notranslate"><span class="pre">calc_total_water_use_from_schedule()</span></code></a></li>
-<li><a class="reference internal" href="#pbhp.dhw.make_dhw_schedule_from_Annex_42_profile"><code class="docutils literal notranslate"><span class="pre">make_dhw_schedule_from_Annex_42_profile()</span></code></a></li>
+<li><a class="reference internal" href="#module-tmhp.dhw">Domestic hot water demand</a><ul>
+<li><a class="reference internal" href="#tmhp.dhw.build_dhw_usage_ratio"><code class="docutils literal notranslate"><span class="pre">build_dhw_usage_ratio()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.calc_cold_water_temp"><code class="docutils literal notranslate"><span class="pre">calc_cold_water_temp()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.calc_total_water_use_from_schedule"><code class="docutils literal notranslate"><span class="pre">calc_total_water_use_from_schedule()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile"><code class="docutils literal notranslate"><span class="pre">make_dhw_schedule_from_Annex_42_profile()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -156,7 +156,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -185,12 +185,12 @@ data-aria-dark="Switch to auto color mode">
 <h1>Demand &amp; weather<a class="headerlink" href="#demand-weather" title="Link to this heading">¶</a></h1>
 <p>Outdoor-air temperature utilities and domestic hot water demand profiles
 consumed by the dynamic simulation entry points.</p>
-<section id="module-pbhp.weather">
-<span id="weather"></span><h2>Weather<a class="headerlink" href="#module-pbhp.weather" title="Link to this heading">¶</a></h2>
+<section id="module-tmhp.weather">
+<span id="weather"></span><h2>Weather<a class="headerlink" href="#module-tmhp.weather" title="Link to this heading">¶</a></h2>
 <p>Weather data processing and irradiance calculations.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.weather.decompose_ghi_to_poa">
-<span class="sig-prename descclassname"><span class="pre">pbhp.weather.</span></span><span class="sig-name descname"><span class="pre">decompose_ghi_to_poa</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ghi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Asia/Seoul'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'erbs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/weather.html#decompose_ghi_to_poa"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.weather.decompose_ghi_to_poa" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.weather.decompose_ghi_to_poa">
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">decompose_ghi_to_poa</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ghi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Asia/Seoul'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'erbs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#decompose_ghi_to_poa"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.decompose_ghi_to_poa" title="Link to this definition">¶</a></dt>
 <dd><p>Decompose GHI to POA (Plane of Array) total irradiance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -216,8 +216,8 @@ consumed by the dynamic simulation entry points.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.weather.load_kma_T0_sol_hourly_csv">
-<span class="sig-prename descclassname"><span class="pre">pbhp.weather.</span></span><span class="sig-name descname"><span class="pre">load_kma_T0_sol_hourly_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csv_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'euc-kr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/weather.html#load_kma_T0_sol_hourly_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.weather.load_kma_T0_sol_hourly_csv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.weather.load_kma_T0_sol_hourly_csv">
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">load_kma_T0_sol_hourly_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csv_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'euc-kr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#load_kma_T0_sol_hourly_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.load_kma_T0_sol_hourly_csv" title="Link to this definition">¶</a></dt>
 <dd><p>Load KMA hourly temperature and solar irradiance CSV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -236,8 +236,8 @@ consumed by the dynamic simulation entry points.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.weather.load_kma_solar_csv">
-<span class="sig-prename descclassname"><span class="pre">pbhp.weather.</span></span><span class="sig-name descname"><span class="pre">load_kma_solar_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csv_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'euc-kr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/weather.html#load_kma_solar_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.weather.load_kma_solar_csv" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.weather.load_kma_solar_csv">
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">load_kma_solar_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">csv_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'euc-kr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#load_kma_solar_csv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.load_kma_solar_csv" title="Link to this definition">¶</a></dt>
 <dd><p>Load a Korea Meteorological Administration (KMA, 기상청) 1-minute
 cumulative solar irradiance CSV.</p>
 <dl class="field-list simple">
@@ -257,12 +257,12 @@ cumulative solar irradiance CSV.</p>
 </dd></dl>
 
 </section>
-<section id="module-pbhp.dhw">
-<span id="domestic-hot-water-demand"></span><h2>Domestic hot water demand<a class="headerlink" href="#module-pbhp.dhw" title="Link to this heading">¶</a></h2>
+<section id="module-tmhp.dhw">
+<span id="domestic-hot-water-demand"></span><h2>Domestic hot water demand<a class="headerlink" href="#module-tmhp.dhw" title="Link to this heading">¶</a></h2>
 <p>Domestic Hot Water (DHW) load modeling.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.dhw.build_dhw_usage_ratio">
-<span class="sig-prename descclassname"><span class="pre">pbhp.dhw.</span></span><span class="sig-name descname"><span class="pre">build_dhw_usage_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dhw.html#build_dhw_usage_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.dhw.build_dhw_usage_ratio" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.dhw.build_dhw_usage_ratio">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">build_dhw_usage_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#build_dhw_usage_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.build_dhw_usage_ratio" title="Link to this definition">¶</a></dt>
 <dd><p>Build schedule ratio array from schedule entries for each timestep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -281,8 +281,8 @@ cumulative solar irradiance CSV.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.dhw.calc_cold_water_temp">
-<span class="sig-prename descclassname"><span class="pre">pbhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.dhw.calc_cold_water_temp">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate mains water temperature using EnergyPlus algorithm.</p>
 <p>Uses monthly average outdoor air temperature to estimate the water mains
 temperature based on the algorithm from Hendron et al. (2004).</p>
@@ -307,8 +307,8 @@ National Renewable Energy Laboratory (NREL). <a class="reference external" href=
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.dhw.calc_total_water_use_from_schedule">
-<span class="sig-prename descclassname"><span class="pre">pbhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_total_water_use_from_schedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_load_m3s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'L'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dhw.html#calc_total_water_use_from_schedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.dhw.calc_total_water_use_from_schedule" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.dhw.calc_total_water_use_from_schedule">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_total_water_use_from_schedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schedule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_load_m3s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info_unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'L'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_total_water_use_from_schedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_total_water_use_from_schedule" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate total daily water use from a schedule.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -329,8 +329,8 @@ National Renewable Energy Laboratory (NREL). <a class="reference external" href=
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pbhp.dhw.make_dhw_schedule_from_Annex_42_profile">
-<span class="sig-prename descclassname"><span class="pre">pbhp.dhw.</span></span><span class="sig-name descname"><span class="pre">make_dhw_schedule_from_Annex_42_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_rate_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dhw.html#make_dhw_schedule_from_Annex_42_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.dhw.make_dhw_schedule_from_Annex_42_profile" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="tmhp.dhw.make_dhw_schedule_from_Annex_42_profile">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">make_dhw_schedule_from_Annex_42_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_rate_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#make_dhw_schedule_from_Annex_42_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile" title="Link to this definition">¶</a></dt>
 <dd><p>Generate DHW schedule list from flow profile data.</p>
 <p>This function implements the logic to convert a flow profile (L/min)
 into a schedule list with specified time step.</p>
@@ -394,7 +394,7 @@ into a schedule list with specified time step.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

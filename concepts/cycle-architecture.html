@@ -34,7 +34,7 @@ evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
 <meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T15:04:15+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -133,7 +133,10 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#the-shared-core">The shared core</a></li>
-<li><a class="reference internal" href="#source-side-where-heat-comes-from">Source side: where heat comes from</a></li>
+<li><a class="reference internal" href="#source-side-where-heat-comes-from">Source side: where heat comes from</a><ul>
+<li><a class="reference internal" href="#the-borehole-g-function">The borehole g-function</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#sink-side-where-heat-goes">Sink side: where heat goes</a></li>
 <li><a class="reference internal" href="#composed-subsystems">Composed subsystems</a></li>
 <li><a class="reference internal" href="#why-the-structure-matters">Why the structure matters</a></li>
@@ -446,6 +449,27 @@ coefficient.</p>
 </tbody>
 </table>
 </div>
+<section id="the-borehole-g-function">
+<h3>The borehole g-function<a class="headerlink" href="#the-borehole-g-function" title="Link to this heading">¶</a></h3>
+<p>For ground-source models, the source-side dynamics are encoded in a
+<strong>g-function</strong> — the dimensionless thermal response of a borehole
+field to a unit heat-extraction step. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> precomputes the
+g-function once via
+<a class="reference external" href="https://github.com/MassimoCimmino/pygfunction">pygfunction</a> and
+interpolates it during the simulation, so the per-step cost stays
+constant whether the field is one borehole or a hundred.</p>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/g_function_curve.svg"><img alt="g-function vs ln(t/t_s) for three rectangular borehole field geometries: 1×1, 2×2, and 4×4." src="../_images/g_function_curve.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Dimensionless g-function for three rectangular borehole-field
+geometries. The 1 × 1 field is the single-borehole baseline;
+2 × 2 and 4 × 4 diverge as borehole-to-borehole thermal
+interference accumulates over the multi-year horizon. Generated
+by <code class="docutils literal notranslate"><span class="pre">scripts/visualization/g_function_curve.py</span></code>.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
 </section>
 <section id="sink-side-where-heat-goes">
 <h2>Sink side: where heat goes<a class="headerlink" href="#sink-side-where-heat-goes" title="Link to this heading">¶</a></h2>

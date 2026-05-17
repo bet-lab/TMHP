@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Because tmhp solves the cycle from first principles, every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condense..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:42:02+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T15:04:15+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -131,6 +131,7 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#the-output">The output</a></li>
+<li><a class="reference internal" href="#the-t-s-companion-view">The T-s companion view</a></li>
 <li><a class="reference internal" href="#how-to-read-it">How to read it</a></li>
 <li><a class="reference internal" href="#the-script">The script</a></li>
 <li><a class="reference internal" href="#going-further">Going further</a></li>
@@ -182,7 +183,8 @@ CoolProp and Matplotlib, both already pulled in by <code class="docutils literal
 <section id="the-output">
 <h2>The output<a class="headerlink" href="#the-output" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">
-<img alt="Two-panel cycle diagram for R32 ASHPB at T_tank = 60 °C, T_0 = 12 °C, Q_cond = 8 kW. Panel (a) shows the cycle on a P–h chart, panel (b) on a T–h chart with horizontal reference lines marking the tank-water and outdoor-air temperatures." src="../_images/mollier_cycle_R32.svg" />
+<a class="reference internal image-reference" href="../_images/mollier_cycle_R32.svg"><img alt="Two-panel cycle diagram for R32 ASHPB at T_tank = 60 °C, T_0 = 12 °C, Q_cond = 8 kW. Panel (a) shows the cycle on a P–h chart, panel (b) on a T–h chart with horizontal reference lines marking the tank-water and outdoor-air temperatures." src="../_images/mollier_cycle_R32.svg" style="width: 100%;" />
+</a>
 <figcaption>
 <p><span class="caption-text">R32 cycle at a realistic DHW operating point —
 <span class="math notranslate nohighlight">\(T_{\mathrm{tank}}=60\,^{\circ}\mathrm{C}\)</span>,
@@ -192,6 +194,19 @@ Filled circles are the four cycle states (cmp,in / cmp,out /
 exp,in / exp,out); open circles are the saturation-envelope
 crossings. Panel (b) overlays the tank-water and outdoor-air
 temperatures as the heat-sink and heat-source references.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="the-t-s-companion-view">
+<h2>The T-s companion view<a class="headerlink" href="#the-t-s-companion-view" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="../_images/mollier_ts_R32.svg"><img alt="Temperature-entropy diagram for the same R32 cycle, with the saturation dome and the four cycle nodes." src="../_images/mollier_ts_R32.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Same cycle, plotted on a T-s plane. Compression (1→2) is a
+near-vertical climb (the cycle is close to isentropic), while
+isenthalpic expansion (3→4) generates entropy and sits visibly to
+the right of point 3 on the saturation dome.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>

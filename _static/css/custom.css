@@ -281,17 +281,19 @@
  * landmark instead of disappearing into the list.
  * ------------------------------------------------------------------------- */
 
-.sy-side a.current {
+.sy-lside a.current,
+.globaltoc a.current {
     background: var(--rx-accent-3);
-    color: var(--rx-accent-11);
+    color: var(--rx-accent-11) !important;
     font-weight: var(--rx-fw-medium);
     border-radius: var(--rx-radius-full);
     padding: 0.2rem 0.7rem;
     margin: 0 -0.7rem;
 }
-.sy-side a.current:hover {
+.sy-lside a.current:hover,
+.globaltoc a.current:hover {
     background: var(--rx-accent-3);  /* hold the pill on hover */
-    color: var(--rx-accent-11);
+    color: var(--rx-accent-11) !important;
 }
 
 /* ---------------------------------------------------------------------------
@@ -322,10 +324,10 @@ body,
 .yue,
 .yue h1, .yue h2, .yue h3, .yue h4, .yue h5, .yue h6,
 .yue p, .yue li,
-.sy-side,
+.sy-lside,
 .sy-rside,
 .sy-foot,
-.sy-topbar,
+.sy-head-links,
 .sy-breadcrumbs {
     font-family: var(--rx-font-sans);
     font-feature-settings: "cv01", "cv02", "cv11", "ss01";

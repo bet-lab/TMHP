@@ -297,19 +297,25 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Inline code — Radix accent-3 / accent-11 tint
+ * Inline code — Radix indigo accent tint, locked to the light scale.
  *
  * Shibuya already paints a faint blue-tinted pill on `<code>` inside
  * paragraphs; aligning the exact hue with the page accent makes the
  * inline code blend with link / kicker tokens used elsewhere.
+ *
+ * Colors are hard-coded to the Radix indigo light scale instead of routed
+ * through `--rx-accent-*` so the inline pill keeps the same appearance
+ * across light/dark page modes — readers on mobile in OS dark mode would
+ * otherwise see a dark pill with bright text, which looks inconsistent
+ * with how the docs render on a typical desktop.
  * ------------------------------------------------------------------------- */
 
 .yue :not(pre) > code,
 .yue :not(pre) > code.literal,
 .yue p > code,
 .yue li > code {
-    background: var(--rx-accent-3);
-    color: var(--rx-accent-11);
+    background: #edf2fe;  /* Radix indigo step 3 (light) */
+    color: #3a5bc7;        /* Radix indigo step 11 (light) */
     border-radius: var(--rx-radius-1);
 }
 

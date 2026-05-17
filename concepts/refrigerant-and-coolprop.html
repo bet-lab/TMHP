@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerants and CoolProp - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Tutorials" href="../tutorials/index.html" /><link rel="prev" title="failure_reason semantics" href="failure-reason-semantics.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/concepts/refrigerant-and-coolprop.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerants and CoolProp - pbhp</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Tutorials" href="../tutorials/index.html" /><link rel="prev" title="failure_reason semantics" href="failure-reason-semantics.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/concepts/refrigerant-and-coolprop.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Refrigerants and CoolProp" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/refrigerant-and-coolprop.html" />
-<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:url" content="https://bet-lab.github.io/pbhp/concepts/refrigerant-and-coolprop.html" />
+<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
 <meta property="og:description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
-<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,8 +117,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -148,7 +148,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -226,7 +226,7 @@ change.</p>
 envelope — for example, asking for a saturation pressure above
 the critical point, or asking for a property at a state that
 crossed into two-phase by accident. These show up inside
-<code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> as:</p>
+<code class="docutils literal notranslate"><span class="pre">pbhp</span></code> as:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;cycle_invalid&quot;</span></code> when the cycle couldn’t
 produce a coherent state at all (often the EOS itself rejected
@@ -260,7 +260,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 16, 2026
+  Last updated May 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -299,7 +299,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="./">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Getting Started" href="getting-started/index.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp</title><link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Getting Started" href="getting-started/index.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,14 +23,14 @@
 }
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta property="og:title" content="Physics-Based Heat Pump Models" />
+<meta property="og:title" content="pbhp" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/index.html" />
-<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. physics_hp solves the thermodynamic refrigerant cycle at every time step using CoolProp, so the sa..." />
-<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:url" content="https://bet-lab.github.io/pbhp/index.html" />
+<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:description" content="Physics-Based Heat Pump — a general-purpose, physics-based heat pump modeling library. First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. pbhp solves..." />
+<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. physics_hp solves the thermodynamic refrigerant cycle at every time step using CoolProp, so the sa..." />
+<meta name="description" content="Physics-Based Heat Pump — a general-purpose, physics-based heat pump modeling library. First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. pbhp solves..." />
 
   </head>
 <body><div class="sy-head">
@@ -39,7 +39,7 @@
     <a class="sy-head-brand" href="#">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="getting-started/index.html">Getting Started</a></li><li class="link"><a href="concepts/index.html">Concepts</a></li><li class="link"><a href="tutorials/index.html">Tutorials</a></li><li class="link"><a href="api/index.html">API Reference</a></li><li class="link"><a href="validation/index.html">Validation</a></li></ul></nav>
@@ -47,7 +47,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -116,8 +116,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -140,7 +140,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="#"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="#"><span itemprop="name">pbhp</span></a>
         <meta itemprop="position" content="1" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -153,28 +153,27 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <section id="physics-based-heat-pump-models">
-<h1>Physics-Based Heat Pump Models<a class="headerlink" href="#physics-based-heat-pump-models" title="Link to this heading">¶</a></h1>
+          <section id="pbhp">
+<h1>pbhp<a class="headerlink" href="#pbhp" title="Link to this heading">¶</a></h1>
+<p><strong>Physics-Based Heat Pump</strong> — a general-purpose, physics-based heat pump modeling library.</p>
 <p class="lead">First-principles dynamic models for air-source, ground-source, and
 water-source heat pump systems.</p>
-<p><code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> solves the thermodynamic refrigerant cycle at every time
+<p><code class="docutils literal notranslate"><span class="pre">pbhp</span></code> solves the thermodynamic refrigerant cycle at every time
 step using <a class="reference external" href="http://www.coolprop.org">CoolProp</a>, so the same model
 code applies across refrigerants and operating envelopes without
 needing manufacturer-specific curve fits.</p>
 <div class="hero-badges docutils container">
 <a class="reference external image-reference" href="https://www.python.org/downloads/"><img alt="Python 3.10 – 3.13" src="https://img.shields.io/badge/python-3.10--3.13-3776ab?logo=python&amp;logoColor=white" />
 </a>
-<a class="reference external image-reference" href="https://github.com/bet-lab/physics-heatpump-models/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-success" />
+<a class="reference external image-reference" href="https://github.com/bet-lab/pbhp/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-success" />
 </a>
 <img alt="Development status — Alpha" src="https://img.shields.io/badge/status-alpha-orange" />
-<a class="reference external image-reference" href="http://www.coolprop.org"><img alt="Powered by CoolProp" src="https://img.shields.io/badge/refrigerant-CoolProp-6366f1" />
-</a>
 </div>
 <div class="hero-cta docutils container">
 <p><a class="reference internal" href="getting-started/installation.html"><span class="doc">Install</span></a>
 <a class="reference internal" href="getting-started/quickstart.html"><span class="doc">Quick start</span></a>
 <a class="reference internal" href="validation/index.html"><span class="doc">Validation</span></a>
-<a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub</a></p>
+<a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub</a></p>
 </div>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 landing-cards docutils">
 <div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-3 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
@@ -214,7 +213,7 @@ schedules, compose PV / STC / ESS subsystems.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 API Reference</div>
 <p class="sd-card-text">Every model, support module, and helper exposed by the
-<code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> package, with full type signatures.</p>
+<code class="docutils literal notranslate"><span class="pre">pbhp</span></code> package, with full type signatures.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="api/index.html"><span class="doc">API Reference</span></a></div>
 </div>
@@ -277,7 +276,7 @@ only CoolProp and Matplotlib.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

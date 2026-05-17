@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>physics_hp.refrigerant - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/refrigerant.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp.refrigerant - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/_modules/pbhp/refrigerant.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -38,7 +38,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -107,8 +107,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -131,7 +131,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -139,7 +139,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">physics_hp.refrigerant</strong>
+        <strong itemprop="name">pbhp.refrigerant</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -152,7 +152,7 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <h1>Source code for physics_hp.refrigerant</h1><div class="highlight"><pre>
+          <h1>Source code for pbhp.refrigerant</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="2"><span class="sd">Refrigerant cycle calculations and optimization.</span>
 </span><span data-line="3"><span class="sd">&quot;&quot;&quot;</span>
@@ -173,7 +173,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="18">
 </span><span data-line="19">
 <div class="viewcode-block" id="calc_ref_state">
-<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#physics_hp.refrigerant.calc_ref_state">[docs]</a>
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#pbhp.refrigerant.calc_ref_state">[docs]</a>
 </span><span data-line="20"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ref_state</span><span class="p">(</span>
 </span><span data-line="21">    <span class="n">T_evap_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># evaporating temperature [K] (treated as saturation T)</span>
 </span><span data-line="22">    <span class="n">T_cond_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># condensing temperature [K] (treated as saturation T)</span>
@@ -361,7 +361,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="203">
 </span><span data-line="204">
 <div class="viewcode-block" id="create_lmtd_constraints">
-<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#physics_hp.refrigerant.create_lmtd_constraints">[docs]</a>
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#pbhp.refrigerant.create_lmtd_constraints">[docs]</a>
 </span><span data-line="205"><span class="k">def</span><span class="w"> </span><span class="nf">create_lmtd_constraints</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 </span><span data-line="206"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create LMTD-based constraint functions for cycle optimization.</span>
 </span><span data-line="207">
@@ -391,7 +391,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="230">
 </span><span data-line="231">
 <div class="viewcode-block" id="find_ref_loop_optimal_operation">
-<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#physics_hp.refrigerant.find_ref_loop_optimal_operation">[docs]</a>
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#pbhp.refrigerant.find_ref_loop_optimal_operation">[docs]</a>
 </span><span data-line="232"><span class="k">def</span><span class="w"> </span><span class="nf">find_ref_loop_optimal_operation</span><span class="p">(</span>
 </span><span data-line="233">    <span class="n">simulator_func</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
 </span><span data-line="234">    <span class="n">refrigerant</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -491,7 +491,7 @@ data-aria-dark="Switch to auto color mode">
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

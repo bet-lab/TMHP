@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Thermodynamic cycle architecture - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="failure_reason semantics" href="failure-reason-semantics.html" /><link rel="prev" title="Why physics-based?" href="why-physics-based.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/concepts/cycle-architecture.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Thermodynamic cycle architecture - pbhp</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="failure_reason semantics" href="failure-reason-semantics.html" /><link rel="prev" title="Why physics-based?" href="why-physics-based.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/concepts/cycle-architecture.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,16 +25,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Thermodynamic cycle architecture" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/concepts/cycle-architecture.html" />
-<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
-<meta property="og:description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it..." />
-<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_images/system_schematic.png" />
+<meta property="og:url" content="https://bet-lab.github.io/pbhp/concepts/cycle-architecture.html" />
+<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
+<meta property="og:description" content="Every model in pbhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it. The ..." />
+<meta property="og:image" content="https://bet-lab.github.io/pbhp/_images/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB system schematic — refrigerant cycle, condenser HX,
 evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
-<meta name="description" content="Every model in physics_hp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it..." />
+<meta name="description" content="Every model in pbhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it. The ..." />
 
-    <meta property="article:modified_time" content="2026-05-16T15:05:42+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -42,7 +42,7 @@ flow connections." />
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
@@ -50,7 +50,7 @@ flow connections." />
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -119,8 +119,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -150,7 +150,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -173,7 +173,7 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="thermodynamic-cycle-architecture">
 <h1>Thermodynamic cycle architecture<a class="headerlink" href="#thermodynamic-cycle-architecture" title="Link to this heading">¶</a></h1>
-<p>Every model in <code class="docutils literal notranslate"><span class="pre">physics_hp</span></code> is the same closed refrigerant cycle
+<p>Every model in <code class="docutils literal notranslate"><span class="pre">pbhp</span></code> is the same closed refrigerant cycle
 wrapped in a different source / sink pairing. This page sketches
 the shared structure and shows where each system family plugs into
 it.</p>
@@ -256,7 +256,7 @@ it.</p>
 </div>
 
 <p class="cycle-arch-caption">
-  Data flow shared by every <code>physics_hp</code> model.  Bold blocks are
+  Data flow shared by every <code>pbhp</code> model.  Bold blocks are
   reused across ASHPB, GSHPB, WSHPB, ASHP, and GSHP.
 </p>
 
@@ -265,7 +265,7 @@ it.</p>
 (function () {
   if (!document.getElementById("cy-arch")) return;
 
-  // ─── Data extracted from physics_hp source ───────────────────────
+  // ─── Data extracted from pbhp source ───────────────────────
   //   ASHPB._calc_state, refrigerant.calc_ref_state, heat_transfer.py,
   //   _opt_utils.py (scalar minimizer over dT_ref_evap).
   const nodes = [
@@ -466,8 +466,8 @@ Used by every <code class="docutils literal notranslate"><span class="pre">*Heat
 </tr>
 <tr class="row-odd"><td><p><strong>Building load</strong></p></td>
 <td><p>Zone temperature / load proxy. Used by
-<a class="reference internal" href="../api/models/space-conditioning.html#physics_hp.air_source_heat_pump.AirSourceHeatPump" title="physics_hp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>
-and <a class="reference internal" href="../api/models/space-conditioning.html#physics_hp.ground_source_heat_pump.GroundSourceHeatPump" title="physics_hp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>.</p></td>
+<a class="reference internal" href="../api/models/space-conditioning.html#pbhp.air_source_heat_pump.AirSourceHeatPump" title="pbhp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>
+and <a class="reference internal" href="../api/models/space-conditioning.html#pbhp.ground_source_heat_pump.GroundSourceHeatPump" title="pbhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -502,7 +502,7 @@ hold identically across the family.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 16, 2026
+  Last updated May 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -541,7 +541,7 @@ hold identically across the family.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

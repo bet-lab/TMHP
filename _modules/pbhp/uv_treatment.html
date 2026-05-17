@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>physics_hp.hx_fan - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/hx_fan.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp.uv_treatment - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/_modules/pbhp/uv_treatment.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -38,7 +38,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -107,8 +107,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -131,7 +131,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -139,7 +139,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">physics_hp.hx_fan</strong>
+        <strong itemprop="name">pbhp.uv_treatment</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -152,111 +152,172 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <h1>Source code for physics_hp.hx_fan</h1><div class="highlight"><pre>
-<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Heat exchanger and fan utility functions.</span>
+          <h1>Source code for pbhp.uv_treatment</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;UV water treatment utility functions.</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="sd">Functions for velocity-dependent UA calculation, HX performance</span>
-</span><span data-line="4"><span class="sd">solving, fan power curves, and HP schedule checking.</span>
+</span><span data-line="3"><span class="sd">Functions for UV lamp power scheduling, turbidity-based parameter</span>
+</span><span data-line="4"><span class="sd">lookup, and required exposure time calculation (Radial Model).</span>
 </span><span data-line="5"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="6">
 </span><span data-line="7"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span data-line="8">
-</span><span data-line="9"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="9"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 </span><span data-line="10">
-</span><span data-line="11">
-<div class="viewcode-block" id="calc_UA_from_dV_fan">
-<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.hx_fan.calc_UA_from_dV_fan">[docs]</a>
-</span><span data-line="12"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_from_dV_fan</span><span class="p">(</span>
-</span><span data-line="13">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="14">    <span class="n">dV_fan_design</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="15">    <span class="n">A_cross</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="16">    <span class="n">UA</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="17">    <span class="n">exponent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.71</span><span class="p">,</span>
-</span><span data-line="18"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="19"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</span>
-</span><span data-line="20">
-</span><span data-line="21"><span class="sd">    Parameters</span>
-</span><span data-line="22"><span class="sd">    ----------</span>
-</span><span data-line="23"><span class="sd">    dV_fan : float</span>
-</span><span data-line="24"><span class="sd">        Current fan flow rate [m³/s].</span>
-</span><span data-line="25"><span class="sd">    dV_fan_design : float</span>
-</span><span data-line="26"><span class="sd">        Design fan flow rate [m³/s].</span>
-</span><span data-line="27"><span class="sd">    A_cross : float</span>
-</span><span data-line="28"><span class="sd">        Heat exchanger cross-sectional area [m²].</span>
-</span><span data-line="29"><span class="sd">    UA : float</span>
-</span><span data-line="30"><span class="sd">        Design UA value [W/K].</span>
-</span><span data-line="31"><span class="sd">    exponent : float</span>
-</span><span data-line="32"><span class="sd">        Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</span>
-</span><span data-line="33">
-</span><span data-line="34"><span class="sd">    Returns</span>
-</span><span data-line="35"><span class="sd">    -------</span>
-</span><span data-line="36"><span class="sd">    float</span>
-</span><span data-line="37"><span class="sd">        Scaled UA value [W/K].</span>
+</span><span data-line="11"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="12">
+</span><span data-line="13">
+<div class="viewcode-block" id="calc_uv_lamp_power">
+<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.enex_functions.calc_uv_lamp_power">[docs]</a>
+</span><span data-line="14"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_lamp_power</span><span class="p">(</span>
+</span><span data-line="15">    <span class="n">current_time_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="16">    <span class="n">period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="17">    <span class="n">num_switching</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="18">    <span class="n">exposure_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="19">    <span class="n">lamp_watts</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="20"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="21"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate UV lamp power at a given time instant.</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="sd">    The lamp switches on ``num_switching`` times per ``period_sec``,</span>
+</span><span data-line="24"><span class="sd">    each activation lasting ``exposure_sec``.</span>
+</span><span data-line="25">
+</span><span data-line="26"><span class="sd">    Parameters</span>
+</span><span data-line="27"><span class="sd">    ----------</span>
+</span><span data-line="28"><span class="sd">    current_time_s : float</span>
+</span><span data-line="29"><span class="sd">        Current simulation time [s].</span>
+</span><span data-line="30"><span class="sd">    period_sec : float</span>
+</span><span data-line="31"><span class="sd">        Switching period (e.g. 3 h → 10800 s).</span>
+</span><span data-line="32"><span class="sd">    num_switching : int</span>
+</span><span data-line="33"><span class="sd">        Number of on-cycles per period.</span>
+</span><span data-line="34"><span class="sd">    exposure_sec : float</span>
+</span><span data-line="35"><span class="sd">        Duration of each on-cycle [s].</span>
+</span><span data-line="36"><span class="sd">    lamp_watts : float</span>
+</span><span data-line="37"><span class="sd">        Rated lamp power [W].</span>
 </span><span data-line="38">
-</span><span data-line="39"><span class="sd">    Notes</span>
-</span><span data-line="40"><span class="sd">    -----</span>
-</span><span data-line="41"><span class="sd">    Instead of the Dittus-Boelter tube-side exponent (0.8), this uses</span>
-</span><span data-line="42"><span class="sd">    a simplified lumped exponent (default 0.71). This derivation assumes a 1-row</span>
-</span><span data-line="43"><span class="sd">    plain fin-and-tube configuration (N=1) where the Colburn j-factor</span>
-</span><span data-line="44"><span class="sd">    is proportional to Re^-0.29, leading to h ∝ V^0.71. Multi-row coils may</span>
-</span><span data-line="45"><span class="sd">    use exponents between 0.5 and 0.8 depending on configuration.</span>
-</span><span data-line="46"><span class="sd">    Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</span>
-</span><span data-line="47"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="48">    <span class="n">v</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">A_cross</span> <span class="k">if</span> <span class="n">A_cross</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="49">    <span class="n">v_design</span> <span class="o">=</span> <span class="n">dV_fan_design</span> <span class="o">/</span> <span class="n">A_cross</span> <span class="k">if</span> <span class="n">A_cross</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="50">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA</span> <span class="o">*</span> <span class="p">(</span><span class="n">v</span> <span class="o">/</span> <span class="n">v_design</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span></div>
+</span><span data-line="39"><span class="sd">    Returns</span>
+</span><span data-line="40"><span class="sd">    -------</span>
+</span><span data-line="41"><span class="sd">    float</span>
+</span><span data-line="42"><span class="sd">        Instantaneous lamp power [W] (0 or ``lamp_watts``).</span>
+</span><span data-line="43"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="44">    <span class="k">if</span> <span class="n">num_switching</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">lamp_watts</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="45">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="46">
+</span><span data-line="47">    <span class="n">time_in_period</span> <span class="o">=</span> <span class="n">current_time_s</span> <span class="o">%</span> <span class="n">period_sec</span>
+</span><span data-line="48">    <span class="n">interval</span> <span class="o">=</span> <span class="p">(</span><span class="n">period_sec</span> <span class="o">-</span> <span class="n">num_switching</span> <span class="o">*</span> <span class="n">exposure_sec</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_switching</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span><span data-line="49">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_switching</span><span class="p">):</span>
+</span><span data-line="50">        <span class="n">start_time</span> <span class="o">=</span> <span class="n">interval</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">exposure_sec</span>
+</span><span data-line="51">        <span class="k">if</span> <span class="n">start_time</span> <span class="o">&lt;=</span> <span class="n">time_in_period</span> <span class="o">&lt;</span> <span class="n">start_time</span> <span class="o">+</span> <span class="n">exposure_sec</span><span class="p">:</span>
+</span><span data-line="52">            <span class="k">return</span> <span class="n">lamp_watts</span>
+</span><span data-line="53">    <span class="k">return</span> <span class="mf">0.0</span></div>
 
-</span><span data-line="51">
-</span><span data-line="52">
-<div class="viewcode-block" id="calc_fan_power_from_dV_fan">
-<a class="viewcode-back" href="../../api/support/simulation.html#physics_hp.hx_fan.calc_fan_power_from_dV_fan">[docs]</a>
-</span><span data-line="53"><span class="k">def</span><span class="w"> </span><span class="nf">calc_fan_power_from_dV_fan</span><span class="p">(</span>
-</span><span data-line="54">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="55">    <span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="56">    <span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="57">    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="58"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="59"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate fan power using ASHRAE 90.1 VSD Curve.</span>
-</span><span data-line="60">
-</span><span data-line="61"><span class="sd">    Parameters</span>
-</span><span data-line="62"><span class="sd">    ----------</span>
-</span><span data-line="63"><span class="sd">    dV_fan : float</span>
-</span><span data-line="64"><span class="sd">        Current flow rate [m³/s].</span>
-</span><span data-line="65"><span class="sd">    fan_params : dict</span>
-</span><span data-line="66"><span class="sd">        Must contain ``fan_design_flow_rate`` and ``fan_design_power``.</span>
-</span><span data-line="67"><span class="sd">    vsd_coeffs : dict</span>
-</span><span data-line="68"><span class="sd">        VSD Curve coefficients (``c1`` through ``c5``).</span>
-</span><span data-line="69"><span class="sd">    is_active : bool</span>
-</span><span data-line="70"><span class="sd">        If False, returns ``np.nan``.</span>
-</span><span data-line="71">
-</span><span data-line="72"><span class="sd">    Returns</span>
-</span><span data-line="73"><span class="sd">    -------</span>
-</span><span data-line="74"><span class="sd">    float</span>
-</span><span data-line="75"><span class="sd">        Fan power [W].</span>
-</span><span data-line="76"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="77">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
-</span><span data-line="78">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="79">
-</span><span data-line="80">    <span class="n">fan_design_flow_rate</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">)</span>
-</span><span data-line="81">    <span class="n">fan_design_power</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_power&quot;</span><span class="p">)</span>
+</span><span data-line="54">
+</span><span data-line="55">
+<div class="viewcode-block" id="get_uv_params_from_turbidity">
+<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.enex_functions.get_uv_params_from_turbidity">[docs]</a>
+</span><span data-line="56"><span class="k">def</span><span class="w"> </span><span class="nf">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="57"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return UV parameters from a turbidity lookup table.</span>
+</span><span data-line="58">
+</span><span data-line="59"><span class="sd">    Table data based on *Table 1. Effect of Turbidity on UVT, UV</span>
+</span><span data-line="60"><span class="sd">    Absorbance, UV Intensity, and Exposure Time*.</span>
+</span><span data-line="61">
+</span><span data-line="62"><span class="sd">    Parameters</span>
+</span><span data-line="63"><span class="sd">    ----------</span>
+</span><span data-line="64"><span class="sd">    turbidity_ntu : float</span>
+</span><span data-line="65"><span class="sd">        Turbidity value [NTU].</span>
+</span><span data-line="66">
+</span><span data-line="67"><span class="sd">    Returns</span>
+</span><span data-line="68"><span class="sd">    -------</span>
+</span><span data-line="69"><span class="sd">    dict</span>
+</span><span data-line="70"><span class="sd">        Keys: ``uv_absorbance``, ``uv_transmittance_percent``,</span>
+</span><span data-line="71"><span class="sd">        ``reference_intensity_mw_cm2``, ``reference_exposure_time_sec``.</span>
+</span><span data-line="72"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="73">    <span class="c1"># [Turbidity (NTU), % UVT, A254, Intensity (mW/cm²), Exposure (s)]</span>
+</span><span data-line="74">    <span class="n">turbidity_table</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="75">        <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mi">86</span><span class="p">,</span> <span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">12.4</span><span class="p">],</span>
+</span><span data-line="76">        <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mi">78</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">,</span> <span class="mf">0.39</span><span class="p">,</span> <span class="mf">12.8</span><span class="p">],</span>
+</span><span data-line="77">        <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.36</span><span class="p">,</span> <span class="mf">13.9</span><span class="p">],</span>
+</span><span data-line="78">        <span class="p">[</span><span class="mf">20.1</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mf">0.23</span><span class="p">,</span> <span class="mf">0.33</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">],</span>
+</span><span data-line="79">    <span class="p">]</span>
+</span><span data-line="80">
+</span><span data-line="81">    <span class="n">turbidity_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">turbidity_table</span><span class="p">]</span>
 </span><span data-line="82">
-</span><span data-line="83">    <span class="k">if</span> <span class="n">fan_design_flow_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="84">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate and fan_design_power must be provided in fan_params&quot;</span><span class="p">)</span>
-</span><span data-line="85">
-</span><span data-line="86">    <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="87">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan flow rate must be greater than 0&quot;</span><span class="p">)</span>
-</span><span data-line="88">
-</span><span data-line="89">    <span class="n">c1</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="mf">0.0013</span><span class="p">)</span>
-</span><span data-line="90">    <span class="n">c2</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c2&quot;</span><span class="p">,</span> <span class="mf">0.1470</span><span class="p">)</span>
-</span><span data-line="91">    <span class="n">c3</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c3&quot;</span><span class="p">,</span> <span class="mf">0.9506</span><span class="p">)</span>
-</span><span data-line="92">    <span class="n">c4</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c4&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0998</span><span class="p">)</span>
-</span><span data-line="93">    <span class="n">c5</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c5&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="94">
-</span><span data-line="95">    <span class="n">x</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">fan_design_flow_rate</span>
-</span><span data-line="96">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
-</span><span data-line="97">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
-</span><span data-line="98">
-</span><span data-line="99">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">)</span></div>
+</span><span data-line="83">    <span class="k">def</span><span class="w"> </span><span class="nf">_row_to_dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="84">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="85">            <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+</span><span data-line="86">            <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+</span><span data-line="87">            <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+</span><span data-line="88">            <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+</span><span data-line="89">        <span class="p">}</span>
+</span><span data-line="90">
+</span><span data-line="91">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+</span><span data-line="92">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="93">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&gt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="94">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="95">
+</span><span data-line="96">    <span class="c1"># Linear interpolation</span>
+</span><span data-line="97">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+</span><span data-line="98">        <span class="k">if</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="99">            <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+</span><span data-line="100">            <span class="n">row1</span><span class="p">,</span> <span class="n">row2</span> <span class="o">=</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+</span><span data-line="101">            <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t2</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span>
+</span><span data-line="102">            <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="103">                <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+</span><span data-line="104">                <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+</span><span data-line="105">                <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+</span><span data-line="106">                <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+</span><span data-line="107">            <span class="p">}</span>
+</span><span data-line="108">
+</span><span data-line="109">    <span class="c1"># Exact match fallback</span>
+</span><span data-line="110">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t_val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">):</span>
+</span><span data-line="111">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t_val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+</span><span data-line="112">            <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+</span><span data-line="113">
+</span><span data-line="114">    <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+</span><span data-line="115">
+</span><span data-line="116">
+<div class="viewcode-block" id="calc_uv_exposure_time">
+<a class="viewcode-back" href="../../api/support/subsystems.html#pbhp.enex_functions.calc_uv_exposure_time">[docs]</a>
+</span><span data-line="117"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_exposure_time</span><span class="p">(</span>
+</span><span data-line="118">    <span class="n">radius_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="119">    <span class="n">uvc_output_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="120">    <span class="n">lamp_arc_length_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="121">    <span class="n">target_dose_mj_cm2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">186</span><span class="p">,</span>
+</span><span data-line="122">    <span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+</span><span data-line="123"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="124"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate required UV lamp exposure time via Radial Model.</span>
+</span><span data-line="125">
+</span><span data-line="126"><span class="sd">    Reference: ADA453967.pdf — Radial Model for UV disinfection.</span>
+</span><span data-line="127">
+</span><span data-line="128"><span class="sd">    Parameters</span>
+</span><span data-line="129"><span class="sd">    ----------</span>
+</span><span data-line="130"><span class="sd">    radius_cm : float</span>
+</span><span data-line="131"><span class="sd">        Tank radius (lamp-to-wall distance) [cm].</span>
+</span><span data-line="132"><span class="sd">    uvc_output_W : float</span>
+</span><span data-line="133"><span class="sd">        UV-C output power of the lamp [W].</span>
+</span><span data-line="134"><span class="sd">    lamp_arc_length_cm : float</span>
+</span><span data-line="135"><span class="sd">        Arc length of the lamp [cm].</span>
+</span><span data-line="136"><span class="sd">    target_dose_mj_cm2 : float</span>
+</span><span data-line="137"><span class="sd">        Target germicidal dose [mJ/cm²]. Default 186 (EPA 4-log virus).</span>
+</span><span data-line="138"><span class="sd">    turbidity_ntu : float</span>
+</span><span data-line="139"><span class="sd">        Water turbidity [NTU].</span>
+</span><span data-line="140">
+</span><span data-line="141"><span class="sd">    Returns</span>
+</span><span data-line="142"><span class="sd">    -------</span>
+</span><span data-line="143"><span class="sd">    float</span>
+</span><span data-line="144"><span class="sd">        Required single-exposure time [min].</span>
+</span><span data-line="145"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="146">    <span class="n">uv_params</span> <span class="o">=</span> <span class="n">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">)</span>
+</span><span data-line="147">    <span class="n">uv_absorbance</span> <span class="o">=</span> <span class="n">uv_params</span><span class="p">[</span><span class="s2">&quot;uv_absorbance&quot;</span><span class="p">]</span>
+</span><span data-line="148">    <span class="n">absorption_coeff</span> <span class="o">=</span> <span class="mf">2.303</span> <span class="o">*</span> <span class="n">uv_absorbance</span>
+</span><span data-line="149">
+</span><span data-line="150">    <span class="c1"># Linear power density [mW/cm]</span>
+</span><span data-line="151">    <span class="n">p_l_mw_cm</span> <span class="o">=</span> <span class="p">(</span><span class="n">uvc_output_W</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">W2mW</span><span class="p">)</span> <span class="o">/</span> <span class="n">lamp_arc_length_cm</span>
+</span><span data-line="152">
+</span><span data-line="153">    <span class="c1"># Intensity at tank wall [mW/cm²]</span>
+</span><span data-line="154">    <span class="n">intensity_mw_cm2</span> <span class="o">=</span> <span class="p">(</span><span class="n">p_l_mw_cm</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">))</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">absorption_coeff</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">)</span>
+</span><span data-line="155">
+</span><span data-line="156">    <span class="n">required_time_sec</span> <span class="o">=</span> <span class="n">target_dose_mj_cm2</span> <span class="o">/</span> <span class="n">intensity_mw_cm2</span>
+</span><span data-line="157">    <span class="k">return</span> <span class="n">required_time_sec</span> <span class="o">/</span> <span class="mi">60</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">
@@ -282,7 +343,7 @@ data-aria-dark="Switch to auto color mode">
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

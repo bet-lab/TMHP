@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Simulation helpers - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Visualization" href="visualization.html" /><link rel="prev" title="Subsystems" href="subsystems.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/api/support/simulation.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Simulation helpers - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Visualization" href="visualization.html" /><link rel="prev" title="Subsystems" href="subsystems.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/api/support/simulation.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,14 +25,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta property="og:title" content="Simulation helpers" />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://bet-lab.github.io/physics-heatpump-models/api/support/simulation.html" />
-<meta property="og:site_name" content="Physics-Based Heat Pump Models" />
+<meta property="og:url" content="https://bet-lab.github.io/pbhp/api/support/simulation.html" />
+<meta property="og:site_name" content="pbhp — Physics-Based Heat Pump" />
 <meta property="og:description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
-<meta property="og:image" content="https://bet-lab.github.io/physics-heatpump-models/_static/system_schematic.png" />
+<meta property="og:image" content="https://bet-lab.github.io/pbhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T13:50:42+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,7 +40,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -48,7 +48,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -117,8 +117,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -131,41 +131,41 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#per-step-dynamic-context">Per-step dynamic context</a></li>
-<li><a class="reference internal" href="#module-physics_hp.enex_functions">Energy &amp; exergy helpers</a><ul>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_HX_perf_for_target_heat"><code class="docutils literal notranslate"><span class="pre">calc_HX_perf_for_target_heat()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_Orifice_flow_coefficient"><code class="docutils literal notranslate"><span class="pre">calc_Orifice_flow_coefficient()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_boussinessq_mixing_flow"><code class="docutils literal notranslate"><span class="pre">calc_boussinessq_mixing_flow()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_mixing_valve_flows"><code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_flows()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_mixing_valve_temp"><code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_temp()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_stc_performance"><code class="docutils literal notranslate"><span class="pre">calc_stc_performance()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.cubic_function"><code class="docutils literal notranslate"><span class="pre">cubic_function()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.linear_function"><code class="docutils literal notranslate"><span class="pre">linear_function()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.print_balance"><code class="docutils literal notranslate"><span class="pre">print_balance()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.quadratic_function"><code class="docutils literal notranslate"><span class="pre">quadratic_function()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.quartic_function"><code class="docutils literal notranslate"><span class="pre">quartic_function()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.update_tank_temperature"><code class="docutils literal notranslate"><span class="pre">update_tank_temperature()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.G_FLS"><code class="docutils literal notranslate"><span class="pre">G_FLS()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.air_dynamic_viscosity"><code class="docutils literal notranslate"><span class="pre">air_dynamic_viscosity()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.air_prandtl_number"><code class="docutils literal notranslate"><span class="pre">air_prandtl_number()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_ASHP_cooling_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_cooling_COP()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_ASHP_heating_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_heating_COP()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_energy_flow"><code class="docutils literal notranslate"><span class="pre">calc_energy_flow()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_exergy_flow"><code class="docutils literal notranslate"><span class="pre">calc_exergy_flow()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_GSHP_COP"><code class="docutils literal notranslate"><span class="pre">calc_GSHP_COP()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_refrigerant_exergy"><code class="docutils literal notranslate"><span class="pre">calc_refrigerant_exergy()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_UA_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_uv_exposure_time"><code class="docutils literal notranslate"><span class="pre">calc_uv_exposure_time()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.calc_uv_lamp_power"><code class="docutils literal notranslate"><span class="pre">calc_uv_lamp_power()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.chi"><code class="docutils literal notranslate"><span class="pre">chi()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.convert_electricity_to_exergy"><code class="docutils literal notranslate"><span class="pre">convert_electricity_to_exergy()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.f"><code class="docutils literal notranslate"><span class="pre">f()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.generate_entropy_exergy_term"><code class="docutils literal notranslate"><span class="pre">generate_entropy_exergy_term()</span></code></a></li>
-<li><a class="reference internal" href="#physics_hp.enex_functions.get_uv_params_from_turbidity"><code class="docutils literal notranslate"><span class="pre">get_uv_params_from_turbidity()</span></code></a></li>
+<li><a class="reference internal" href="#module-pbhp.enex_functions">Energy &amp; exergy helpers</a><ul>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_HX_perf_for_target_heat"><code class="docutils literal notranslate"><span class="pre">calc_HX_perf_for_target_heat()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_Orifice_flow_coefficient"><code class="docutils literal notranslate"><span class="pre">calc_Orifice_flow_coefficient()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_boussinessq_mixing_flow"><code class="docutils literal notranslate"><span class="pre">calc_boussinessq_mixing_flow()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_mixing_valve_flows"><code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_flows()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_mixing_valve_temp"><code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_temp()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_stc_performance"><code class="docutils literal notranslate"><span class="pre">calc_stc_performance()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.cubic_function"><code class="docutils literal notranslate"><span class="pre">cubic_function()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.linear_function"><code class="docutils literal notranslate"><span class="pre">linear_function()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.print_balance"><code class="docutils literal notranslate"><span class="pre">print_balance()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.quadratic_function"><code class="docutils literal notranslate"><span class="pre">quadratic_function()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.quartic_function"><code class="docutils literal notranslate"><span class="pre">quartic_function()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.update_tank_temperature"><code class="docutils literal notranslate"><span class="pre">update_tank_temperature()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.G_FLS"><code class="docutils literal notranslate"><span class="pre">G_FLS()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.air_dynamic_viscosity"><code class="docutils literal notranslate"><span class="pre">air_dynamic_viscosity()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.air_prandtl_number"><code class="docutils literal notranslate"><span class="pre">air_prandtl_number()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_ASHP_cooling_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_cooling_COP()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_ASHP_heating_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_heating_COP()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_energy_flow"><code class="docutils literal notranslate"><span class="pre">calc_energy_flow()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_exergy_flow"><code class="docutils literal notranslate"><span class="pre">calc_exergy_flow()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_GSHP_COP"><code class="docutils literal notranslate"><span class="pre">calc_GSHP_COP()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_refrigerant_exergy"><code class="docutils literal notranslate"><span class="pre">calc_refrigerant_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_UA_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_uv_exposure_time"><code class="docutils literal notranslate"><span class="pre">calc_uv_exposure_time()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.calc_uv_lamp_power"><code class="docutils literal notranslate"><span class="pre">calc_uv_lamp_power()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.chi"><code class="docutils literal notranslate"><span class="pre">chi()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.convert_electricity_to_exergy"><code class="docutils literal notranslate"><span class="pre">convert_electricity_to_exergy()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.f"><code class="docutils literal notranslate"><span class="pre">f()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.generate_entropy_exergy_term"><code class="docutils literal notranslate"><span class="pre">generate_entropy_exergy_term()</span></code></a></li>
+<li><a class="reference internal" href="#pbhp.enex_functions.get_uv_params_from_turbidity"><code class="docutils literal notranslate"><span class="pre">get_uv_params_from_turbidity()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-physics_hp.simulation_summary">Simulation summary tables</a><ul>
-<li><a class="reference internal" href="#physics_hp.simulation_summary.print_simulation_summary"><code class="docutils literal notranslate"><span class="pre">print_simulation_summary()</span></code></a></li>
+<li><a class="reference internal" href="#module-pbhp.simulation_summary">Simulation summary tables</a><ul>
+<li><a class="reference internal" href="#pbhp.simulation_summary.print_simulation_summary"><code class="docutils literal notranslate"><span class="pre">print_simulation_summary()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -181,7 +181,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -219,7 +219,7 @@ backbone of time-stepping heat-pump simulations.  Extracted from
 and future models can share the same infrastructure.</p>
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">ControlState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#ControlState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">ControlState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#ControlState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Heat-source control decisions for one timestep.</p>
 <p>Model-agnostic container: any boiler model populates
@@ -321,7 +321,7 @@ sentinel (inflow resolved inside residual).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">StepContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_flags</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">288.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#StepContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">StepContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_flags</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">288.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#StepContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Per-timestep immutable context (time, environment, demand).</p>
 <dl class="py attribute">
@@ -581,7 +581,7 @@ An empty dict means no subsystem has a schedule constraint.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">Subsystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#Subsystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">Subsystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#Subsystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
 <p>Pluggable subsystem interface.</p>
 <p>Each subsystem computes its contribution for a single
@@ -590,7 +590,7 @@ DataFrame.  New subsystems (PV, battery, …) implement
 this protocol and register with the boiler model.</p>
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#Subsystem.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#Subsystem.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Compute subsystem state for this timestep.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -621,7 +621,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">assemble_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_solved_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#Subsystem.assemble_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">assemble_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_solved_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#Subsystem.assemble_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Build result columns for DataFrame output.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -643,7 +643,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">calc_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#Subsystem.calc_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">calc_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#Subsystem.calc_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Compute subsystem-level exergy items.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -660,7 +660,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#Subsystem.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-name descname"><span class="pre">calc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#Subsystem.calc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Calculate performance at a specific condition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -678,7 +678,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">SubsystemExergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_tot_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_in_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_out_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#SubsystemExergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">SubsystemExergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_tot_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_in_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_out_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#SubsystemExergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Subsystem-specific exergy calculation results.</p>
 <p>Each subsystem’s <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code> returns this object
@@ -780,7 +780,7 @@ the result DataFrame and adjust system-level totals.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">check_hp_schedule_active</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#check_hp_schedule_active"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">check_hp_schedule_active</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#check_hp_schedule_active"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Check whether current hour falls within HP operating schedule.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -797,7 +797,7 @@ the result DataFrame and adjust system-level totals.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">determine_heat_source_on_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#determine_heat_source_on_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">determine_heat_source_on_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#determine_heat_source_on_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Hysteresis-based heat-source on/off decision.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -821,7 +821,7 @@ the result DataFrame and adjust system-level totals.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">determine_tank_refill_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#determine_tank_refill_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">determine_tank_refill_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#determine_tank_refill_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Determine refill flow rate from current level and operational mode.</p>
 <p>Pure tank-level management: all subsystem-specific flow
 overrides (e.g. STC mains-preheat forced refill) are the
@@ -854,7 +854,7 @@ responsibility of the scenario class via
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_mass_energy_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/dynamic_context.html#tank_mass_energy_residual"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">pbhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_mass_energy_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/dynamic_context.html#tank_mass_energy_residual"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Energy and mass balance residuals at T^{n+1}.</p>
 <p>The 3-way mixing valve ratio α(T) makes the outflow a
 nonlinear function of T^{n+1}, requiring <code class="docutils literal notranslate"><span class="pre">fsolve</span></code>.</p>
@@ -887,8 +887,8 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 </section>
-<section id="module-physics_hp.enex_functions">
-<span id="energy-exergy-helpers"></span><h2>Energy &amp; exergy helpers<a class="headerlink" href="#module-physics_hp.enex_functions" title="Link to this heading">¶</a></h2>
+<section id="module-pbhp.enex_functions">
+<span id="energy-exergy-helpers"></span><h2>Energy &amp; exergy helpers<a class="headerlink" href="#module-pbhp.enex_functions" title="Link to this heading">¶</a></h2>
 <p>Utility functions for energy, entropy, and exergy analysis.</p>
 <p>This module contains helper functions organized into the following categories:</p>
 <ol class="arabic simple">
@@ -924,8 +924,8 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 - print_balance: Print energy/entropy/exergy balance</p></li>
 </ol>
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_HX_perf_for_target_heat">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_HX_perf_for_target_heat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_ref_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ou_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_evap_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_cond_sat_l_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_HX_perf_for_target_heat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_HX_perf_for_target_heat" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_HX_perf_for_target_heat">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_HX_perf_for_target_heat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_ref_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ou_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_evap_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_cond_sat_l_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_HX_perf_for_target_heat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_HX_perf_for_target_heat" title="Link to this definition">¶</a></dt>
 <dd><p>Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.</p>
 <p>Given a target heat transfer duty, find the airflow that delivers it,
 accounting for the velocity dependence of UA via the Wang et al. (2000)
@@ -967,8 +967,8 @@ fin-and-tube correlation (UA ∝ velocity^0.71).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_Orifice_flow_coefficient">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_Orifice_flow_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_Orifice_flow_coefficient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_Orifice_flow_coefficient" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_Orifice_flow_coefficient">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_Orifice_flow_coefficient</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_Orifice_flow_coefficient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_Orifice_flow_coefficient" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the orifice flow coefficient based on diameters.</p>
 <p>Flow configuration:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="o">---------------</span>
@@ -998,8 +998,8 @@ should be based on physical equations.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_boussinessq_mixing_flow">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_boussinessq_mixing_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_boussinessq_mixing_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_boussinessq_mixing_flow" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_boussinessq_mixing_flow">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_boussinessq_mixing_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_boussinessq_mixing_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_boussinessq_mixing_flow" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate mixing flow rate between two adjacent nodes based on Boussinesq approximation.</p>
 <p>Mixing occurs only when the lower node temperature is higher than the upper node,
 creating a gravitationally unstable condition.</p>
@@ -1025,8 +1025,8 @@ creating a gravitationally unstable condition.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_mixing_valve_flows">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_mixing_valve_flows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_mix_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_mixing_valve_flows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_mixing_valve_flows" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_mixing_valve_flows">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_mixing_valve_flows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_mix_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_mixing_valve_flows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_mixing_valve_flows" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate volumetric flow rates at a 3-way mixing valve given a mixing ratio.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1048,8 +1048,8 @@ creating a gravitationally unstable condition.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_mixing_valve_temp">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_mixing_valve_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_mixing_valve_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_mixing_valve_temp" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_mixing_valve_temp">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_mixing_valve_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_mixing_valve_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_mixing_valve_temp" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate 3-way mixing valve output temperature and mixing ratio.</p>
 <p>Mixes hot tank water with cold mains water to achieve the target
 service temperature <code class="docutils literal notranslate"><span class="pre">T_mix_w_out_K</span></code>.</p>
@@ -1074,8 +1074,8 @@ service temperature <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_stc_performance">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_stc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_stc_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pump</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#calc_stc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_stc_performance" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_stc_performance">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_stc_performance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">I_DN_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_stc_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_stc_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_r_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_air_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pump</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#calc_stc_performance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_stc_performance" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the performance of a solar thermal collector (STC).</p>
 <p>Adapted from the <code class="docutils literal notranslate"><span class="pre">SolarAssistedGasBoiler.system_update</span></code> logic in the
 legacy <code class="docutils literal notranslate"><span class="pre">enex_engine.py</span></code>.</p>
@@ -1130,20 +1130,20 @@ them as a post-processing step on the result CSV if needed.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.cubic_function">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">cubic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#cubic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.cubic_function" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.cubic_function">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">cubic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#cubic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.cubic_function" title="Link to this definition">¶</a></dt>
 <dd><p>Cubic function: y = a*x³ + b*x² + c*x + d</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.linear_function">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">linear_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#linear_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.linear_function" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.linear_function">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">linear_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#linear_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.linear_function" title="Link to this definition">¶</a></dt>
 <dd><p>Linear function: y = a*x + b</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.print_balance">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">print_balance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">balance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#print_balance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.print_balance" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.print_balance">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">print_balance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">balance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#print_balance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.print_balance" title="Link to this definition">¶</a></dt>
 <dd><p>Print energy, entropy, or exergy balance dictionary in a formatted way.</p>
 <p>This function prints balance information for subsystems, categorizing entries
 into in, out, consumed, and generated categories.</p>
@@ -1177,20 +1177,20 @@ Categories: ‘in’, ‘out’, ‘con’ (consumed), ‘gen’ (generated)</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.quadratic_function">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">quadratic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#quadratic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.quadratic_function" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.quadratic_function">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">quadratic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#quadratic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.quadratic_function" title="Link to this definition">¶</a></dt>
 <dd><p>Quadratic function: y = a*x² + b*x + c</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.quartic_function">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">quartic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#quartic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.quartic_function" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.quartic_function">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">quartic_function</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#quartic_function"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.quartic_function" title="Link to this definition">¶</a></dt>
 <dd><p>Quartic function: y = a*x⁴ + b*x³ + c*x² + d*x + e</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.update_tank_temperature">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">update_tank_temperature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/enex_functions.html#update_tank_temperature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.update_tank_temperature" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.update_tank_temperature">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">update_tank_temperature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/enex_functions.html#update_tank_temperature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.update_tank_temperature" title="Link to this definition">¶</a></dt>
 <dd><p>Update tank temperature using the Crank-Nicolson implicit scheme.</p>
 <p>The governing ODE for a lumped-capacitance tank is:</p>
 <blockquote>
@@ -1224,8 +1224,8 @@ when dt is large relative to the thermal time constant C/UA.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.G_FLS">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">G_FLS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#G_FLS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.G_FLS" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.G_FLS">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">G_FLS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/g_function.html#G_FLS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.G_FLS" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the g-function for finite line source (FLS) model.</p>
 <p>This function calculates the g-function used in ground source heat pump
 analysis. Results are cached for performance.</p>
@@ -1250,8 +1250,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.air_dynamic_viscosity">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">air_dynamic_viscosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#air_dynamic_viscosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.air_dynamic_viscosity" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.air_dynamic_viscosity">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">air_dynamic_viscosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/g_function.html#air_dynamic_viscosity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.air_dynamic_viscosity" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate air dynamic viscosity using Sutherland’s formula.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1270,8 +1270,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.air_prandtl_number">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">air_prandtl_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#air_prandtl_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.air_prandtl_number" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.air_prandtl_number">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">air_prandtl_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/g_function.html#air_prandtl_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.air_prandtl_number" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate air Prandtl number.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1289,8 +1289,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_ASHP_cooling_COP">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_cooling_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_int_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_ext_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COP_ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_ASHP_cooling_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_ASHP_cooling_COP" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_ASHP_cooling_COP">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_cooling_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_int_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_ext_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COP_ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/cop.html#calc_ASHP_cooling_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_ASHP_cooling_COP" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in cooling mode.</p>
 <p>Reference: <a class="reference external" href="https://publications.ibpsa.org/proceedings/bs/2023/papers/bs2023_1118.pdf">https://publications.ibpsa.org/proceedings/bs/2023/papers/bs2023_1118.pdf</a></p>
 <dl class="field-list simple">
@@ -1319,8 +1319,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_ASHP_heating_COP">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_heating_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_ASHP_heating_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_ASHP_heating_COP" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_ASHP_heating_COP">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_heating_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/cop.html#calc_ASHP_heating_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_ASHP_heating_COP" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the Coefficient of Performance (COP) for an Air Source Heat Pump (ASHP) in heating mode.</p>
 <p>Reference: <a class="reference external" href="https://www.mdpi.com/2071-1050/15/3/1880">https://www.mdpi.com/2071-1050/15/3/1880</a></p>
 <dl class="field-list simple">
@@ -1345,8 +1345,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_energy_flow">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_energy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_energy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_energy_flow" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_energy_flow">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_energy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/thermodynamics.html#calc_energy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_energy_flow" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate energy flow rate.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1366,8 +1366,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_exergy_flow">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_exergy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_exergy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_exergy_flow" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_exergy_flow">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_exergy_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/thermodynamics.html#calc_exergy_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_exergy_flow" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate exergy flow rate.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1387,8 +1387,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_fan_power_from_dV_fan">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_fan_power_from_dV_fan">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate fan power using ASHRAE 90.1 VSD Curve.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1409,8 +1409,8 @@ array for multiple time values.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_GSHP_COP">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_GSHP_COP">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate COP for a Ground Source Heat Pump.</p>
 <p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
 (Equation-Fit Method).</p>
@@ -1452,8 +1452,8 @@ no ValueError on temperature inversion.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_refrigerant_exergy">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_refrigerant_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#calc_refrigerant_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_refrigerant_exergy" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_refrigerant_exergy">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_refrigerant_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/thermodynamics.html#calc_refrigerant_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_refrigerant_exergy" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate refrigerant state-point exergy using pre-computed properties.</p>
 <p>Uses the entropy (<code class="docutils literal notranslate"><span class="pre">s_ref_*</span></code>) and enthalpy (<code class="docutils literal notranslate"><span class="pre">h_ref_*</span></code>) columns
 already present in <code class="docutils literal notranslate"><span class="pre">df</span></code> (produced by <code class="docutils literal notranslate"><span class="pre">calc_ref_state</span></code>) to compute
@@ -1488,8 +1488,8 @@ entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</sp
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_UA_from_dV_fan">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_UA_from_dV_fan">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1518,8 +1518,8 @@ Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_uv_exposure_time">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_uv_exposure_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvc_output_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_arc_length_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_dose_mj_cm2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">186</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/uv_treatment.html#calc_uv_exposure_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_uv_exposure_time" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_uv_exposure_time">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_uv_exposure_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">radius_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uvc_output_W</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_arc_length_cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_dose_mj_cm2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">186</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#calc_uv_exposure_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_uv_exposure_time" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate required UV lamp exposure time via Radial Model.</p>
 <p>Reference: ADA453967.pdf — Radial Model for UV disinfection.</p>
 <dl class="field-list simple">
@@ -1542,8 +1542,8 @@ Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.calc_uv_lamp_power">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_uv_lamp_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/uv_treatment.html#calc_uv_lamp_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.calc_uv_lamp_power" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.calc_uv_lamp_power">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_uv_lamp_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">period_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_switching</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_sec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamp_watts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#calc_uv_lamp_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.calc_uv_lamp_power" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate UV lamp power at a given time instant.</p>
 <p>The lamp switches on <code class="docutils literal notranslate"><span class="pre">num_switching</span></code> times per <code class="docutils literal notranslate"><span class="pre">period_sec</span></code>,
 each activation lasting <code class="docutils literal notranslate"><span class="pre">exposure_sec</span></code>.</p>
@@ -1567,8 +1567,8 @@ each activation lasting <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.chi">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">chi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#chi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.chi" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.chi">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">chi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/g_function.html#chi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.chi" title="Link to this definition">¶</a></dt>
 <dd><p>Helper function for G-function calculation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1589,8 +1589,8 @@ each activation lasting <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.convert_electricity_to_exergy">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">convert_electricity_to_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#convert_electricity_to_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.convert_electricity_to_exergy" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.convert_electricity_to_exergy">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">convert_electricity_to_exergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/thermodynamics.html#convert_electricity_to_exergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.convert_electricity_to_exergy" title="Link to this definition">¶</a></dt>
 <dd><p>Copy all electricity columns (<code class="docutils literal notranslate"><span class="pre">E_*</span></code>) to exergy columns (<code class="docutils literal notranslate"><span class="pre">X_*</span></code>).</p>
 <p>Electrical energy is 100 %% pure exergy, so <code class="docutils literal notranslate"><span class="pre">X</span> <span class="pre">=</span> <span class="pre">E</span></code> for all
 electricity-consumption columns.</p>
@@ -1610,8 +1610,8 @@ electricity-consumption columns.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.f">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">f</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/g_function.html#f"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.f" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.f">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">f</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/g_function.html#f"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.f" title="Link to this definition">¶</a></dt>
 <dd><p>Helper function for G-function calculation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1627,8 +1627,8 @@ electricity-consumption columns.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.generate_entropy_exergy_term">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">generate_entropy_exergy_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gas'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/thermodynamics.html#generate_entropy_exergy_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.generate_entropy_exergy_term" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.generate_entropy_exergy_term">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">generate_entropy_exergy_term</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gas'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/thermodynamics.html#generate_entropy_exergy_term"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.generate_entropy_exergy_term" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate entropy, enthalpy, and exergy.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1652,8 +1652,8 @@ electricity-consumption columns.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.enex_functions.get_uv_params_from_turbidity">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">get_uv_params_from_turbidity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/uv_treatment.html#get_uv_params_from_turbidity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.enex_functions.get_uv_params_from_turbidity" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.enex_functions.get_uv_params_from_turbidity">
+<span class="sig-prename descclassname"><span class="pre">pbhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">get_uv_params_from_turbidity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">turbidity_ntu</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/uv_treatment.html#get_uv_params_from_turbidity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.enex_functions.get_uv_params_from_turbidity" title="Link to this definition">¶</a></dt>
 <dd><p>Return UV parameters from a turbidity lookup table.</p>
 <p>Table data based on <em>Table 1. Effect of Turbidity on UVT, UV
 Absorbance, UV Intensity, and Exposure Time</em>.</p>
@@ -1672,12 +1672,12 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </dd></dl>
 
 </section>
-<section id="module-physics_hp.simulation_summary">
-<span id="simulation-summary-tables"></span><h2>Simulation summary tables<a class="headerlink" href="#module-physics_hp.simulation_summary" title="Link to this heading">¶</a></h2>
+<section id="module-pbhp.simulation_summary">
+<span id="simulation-summary-tables"></span><h2>Simulation summary tables<a class="headerlink" href="#module-pbhp.simulation_summary" title="Link to this heading">¶</a></h2>
 <p>Simulation summary output functions.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="physics_hp.simulation_summary.print_simulation_summary">
-<span class="sig-prename descclassname"><span class="pre">physics_hp.simulation_summary.</span></span><span class="sig-name descname"><span class="pre">print_simulation_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_a_design</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/physics_hp/simulation_summary.html#print_simulation_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#physics_hp.simulation_summary.print_simulation_summary" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pbhp.simulation_summary.print_simulation_summary">
+<span class="sig-prename descclassname"><span class="pre">pbhp.simulation_summary.</span></span><span class="sig-name descname"><span class="pre">print_simulation_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_a_design</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pbhp/simulation_summary.html#print_simulation_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pbhp.simulation_summary.print_simulation_summary" title="Link to this definition">¶</a></dt>
 <dd><p>Print a comprehensive summary of simulation results.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1697,7 +1697,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 16, 2026
+  Last updated May 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -1736,7 +1736,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

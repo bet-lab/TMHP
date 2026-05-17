@@ -2,8 +2,8 @@
 <html lang="en" data-accent-color="iris" data-content_root="../../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>physics_hp.water_source_heat_pump_boiler - Physics-Based Heat Pump Models</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
-      <link rel="canonical" href="https://bet-lab.github.io/physics-heatpump-models/_modules/physics_hp/water_source_heat_pump_boiler.html" /><script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>pbhp.water_source_heat_pump_boiler - pbhp</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/pbhp/_modules/pbhp/water_source_heat_pump_boiler.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
   </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=ab5d58db" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=1acfce28" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>Physics-Based Heat Pump Models</strong>
+      <strong>pbhp</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
       <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
@@ -38,7 +38,7 @@
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
 </form><div class="sy-head-socials">
-  <a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+  <a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
     <iconify-icon icon="simple-icons:github"></iconify-icon>
   </a></div></div>
     </div>
@@ -107,8 +107,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/physics-heatpump-models">GitHub Repository</a></li>
-<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex_analysis_engine">enex_analysis_engine</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/pbhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
 </ul>
         </div>
       </div>
@@ -131,7 +131,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">Physics-Based Heat Pump Models</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">pbhp</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -139,7 +139,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">physics_hp.water_source_heat_pump_boiler</strong>
+        <strong itemprop="name">pbhp.water_source_heat_pump_boiler</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -152,7 +152,7 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <h1>Source code for physics_hp.water_source_heat_pump_boiler</h1><div class="highlight"><pre>
+          <h1>Source code for pbhp.water_source_heat_pump_boiler</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Ground source heat pump boiler — physics-based cycle model.</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="sd">Resolves a vapour-compression refrigerant cycle coupled to a borehole heat</span>
@@ -199,7 +199,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="44">
 </span><span data-line="45">
 <div class="viewcode-block" id="WaterSourceHeatPumpBoiler">
-<a class="viewcode-back" href="../../api/models/wshpb.html#physics_hp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler">[docs]</a>
+<a class="viewcode-back" href="../../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler">[docs]</a>
 </span><span data-line="46"><span class="k">class</span><span class="w"> </span><span class="nc">WaterSourceHeatPumpBoiler</span><span class="p">:</span>
 </span><span data-line="47"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Water source heat pump boiler with BHE and lumped-tank model.</span>
 </span><span data-line="48">
@@ -210,7 +210,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="53"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="54">
 <div class="viewcode-block" id="WaterSourceHeatPumpBoiler.__init__">
-<a class="viewcode-back" href="../../api/models/wshpb.html#physics_hp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.__init__">[docs]</a>
+<a class="viewcode-back" href="../../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.__init__">[docs]</a>
 </span><span data-line="55">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span data-line="56">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="57">        <span class="c1"># 1. Refrigerant / cycle / compressor</span>
@@ -820,7 +820,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="660">    <span class="c1"># =============================================================</span>
 </span><span data-line="661">
 <div class="viewcode-block" id="WaterSourceHeatPumpBoiler.analyze_dynamic">
-<a class="viewcode-back" href="../../api/models/wshpb.html#physics_hp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
+<a class="viewcode-back" href="../../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
 </span><span data-line="662">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_dynamic</span><span class="p">(</span>
 </span><span data-line="663">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="664">        <span class="n">simulation_period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1053,7 +1053,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="891">
 <div class="viewcode-block" id="WaterSourceHeatPumpBoiler.analyze_steady">
-<a class="viewcode-back" href="../../api/models/wshpb.html#physics_hp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_steady">[docs]</a>
+<a class="viewcode-back" href="../../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.analyze_steady">[docs]</a>
 </span><span data-line="892">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_steady</span><span class="p">(</span>
 </span><span data-line="893">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="894">        <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1210,7 +1210,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="1045">
 <div class="viewcode-block" id="WaterSourceHeatPumpBoiler.postprocess_exergy">
-<a class="viewcode-back" href="../../api/models/wshpb.html#physics_hp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
+<a class="viewcode-back" href="../../api/models/wshpb.html#pbhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
 </span><span data-line="1046">    <span class="k">def</span><span class="w"> </span><span class="nf">postprocess_exergy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 </span><span data-line="1047"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute GSHPB-specific exergy variables.&quot;&quot;&quot;</span>
 </span><span data-line="1048">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_energy_flow</span><span class="p">,</span> <span class="n">calc_refrigerant_exergy</span><span class="p">,</span> <span class="n">convert_electricity_to_exergy</span>
@@ -1329,7 +1329,7 @@ data-aria-dark="Switch to auto color mode">
   </p>
 </div>
       <div class="sy-foot-socials">
-<a href="https://github.com/bet-lab/physics-heatpump-models" aria-label="GitHub">
+<a href="https://github.com/bet-lab/pbhp" aria-label="GitHub">
   <iconify-icon icon="simple-icons:github"></iconify-icon>
 </a></div>
     </div>

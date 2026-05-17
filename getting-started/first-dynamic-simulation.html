@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest possible cal..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:54+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -172,8 +172,10 @@ data-aria-dark="Switch to auto color mode">
 <p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> solves the same refrigerant cycle as
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> at every time step, coupled to a tank-energy
 balance and any active subsystems. This page walks through the
-simplest possible call: 24 hours of operation against a constant
-outdoor temperature and zero DHW draw.</p>
+simplest possible call — 24 hours of operation against a constant
+outdoor temperature and zero DHW draw — so you can see the shape of
+the per-step result before adding realistic schedules in the
+<a class="reference internal" href="../tutorials/index.html"><span class="doc">tutorials</span></a>.</p>
 <section id="minimum-viable-example">
 <h2>Minimum viable example<a class="headerlink" href="#minimum-viable-example" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>

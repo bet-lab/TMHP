@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/concepts/refrigerant-and-coolprop.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
+<meta property="og:description" content="“Refrigerant-agnostic” is one of the headline properties of tmhp — and this is the page that makes it concrete. The refrigerant is a constructor argument on every model ( ref=&quot;&lt;name&gt;&quo..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="The refrigerant is a constructor argument across the whole library — every model takes ref=&quot;&lt;name&gt;&quot; and routes its state queries to CoolProp. This page covers what that means in pra..." />
+<meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of tmhp — and this is the page that makes it concrete. The refrigerant is a constructor argument on every model ( ref=&quot;&lt;name&gt;&quo..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -171,12 +171,14 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="refrigerants-and-coolprop">
 <h1>Refrigerants and CoolProp<a class="headerlink" href="#refrigerants-and-coolprop" title="Link to this heading">¶</a></h1>
-<p>The refrigerant is a constructor argument across the whole
-library — every model takes <code class="docutils literal notranslate"><span class="pre">ref=&quot;&lt;name&gt;&quot;</span></code> and routes its state
-queries to <a class="reference external" href="http://www.coolprop.org">CoolProp</a>. This page covers
-what that means in practice: which refrigerants work out of the
-box, where the cycle assumptions break, and how to read CoolProp-
-related failures.</p>
+<p>“Refrigerant-agnostic” is one of the headline properties of
+<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> — and this is the page that makes it concrete. The
+refrigerant is a constructor argument on every model
+(<code class="docutils literal notranslate"><span class="pre">ref=&quot;&lt;name&gt;&quot;</span></code>); state queries route through
+<a class="reference external" href="http://www.coolprop.org">CoolProp</a>, which carries the
+equation-of-state heavy lifting. Below: which refrigerants work
+out of the box, where the cycle assumptions break, and how to read
+CoolProp-related failures.</p>
 <section id="the-contract">
 <h2>The contract<a class="headerlink" href="#the-contract" title="Link to this heading">¶</a></h2>
 <p>Any refrigerant CoolProp supports as a pure fluid or a mixture

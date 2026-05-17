@@ -27,10 +27,10 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="A general-purpose, physics-based heat pump modeling library. First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. tmhp solves the thermodynamic refrige..." />
+<meta property="og:description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for air-source, ground-source, and water-source heat pumps — covering DHW, space heating, and space cooling...." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="A general-purpose, physics-based heat pump modeling library. First-principles dynamic models for air-source, ground-source, and water-source heat pump systems. tmhp solves the thermodynamic refrige..." />
+<meta name="description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for air-source, ground-source, and water-source heat pumps — covering DHW, space heating, and space cooling...." />
 
   </head>
 <body><div class="sy-head">
@@ -155,13 +155,15 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="thermodynamic-models-for-heat-pumps">
 <h1>Thermodynamic Models for Heat Pumps<a class="headerlink" href="#thermodynamic-models-for-heat-pumps" title="Link to this heading">¶</a></h1>
-<p>A general-purpose, physics-based heat pump modeling library.</p>
+<p>A physics-based Python library for heat pump simulation.</p>
 <p class="lead">First-principles dynamic models for air-source, ground-source, and
-water-source heat pump systems.</p>
-<p><code class="docutils literal notranslate"><span class="pre">tmhp</span></code> solves the thermodynamic refrigerant cycle at every time
-step using <a class="reference external" href="http://www.coolprop.org">CoolProp</a>, so the same model
-code applies across refrigerants and operating envelopes without
-needing manufacturer-specific curve fits.</p>
+water-source heat pumps — covering DHW, space heating, and space
+cooling.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tmhp</span></code> solves the closed refrigerant cycle at every time step using
+<a class="reference external" href="http://www.coolprop.org">CoolProp</a> as the equation-of-state
+backend. The same model code applies across refrigerants and
+operating envelopes, with no manufacturer-specific curve fits and no
+per-unit recalibration.</p>
 <div class="hero-badges docutils container">
 <a class="reference external image-reference" href="https://www.python.org/downloads/"><img alt="Python 3.10 – 3.13" src="https://img.shields.io/badge/python-3.10--3.13-3776ab?logo=python&amp;logoColor=white" />
 </a>

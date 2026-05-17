@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/compose-subsystems.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
+<meta property="og:description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model on the demand side, augmenting (not re..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model. This tutorial walks through the simpl..." />
+<meta name="description" content="Solar thermal collectors, photovoltaic systems, and energy storage are not modelled as separate top-level classes — they plug into an existing heat-pump model on the demand side, augmenting (not re..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:42:02+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -171,12 +171,13 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="compose-subsystems">
 <h1>Compose subsystems<a class="headerlink" href="#compose-subsystems" title="Link to this heading">¶</a></h1>
-<p>Solar thermal collectors, photovoltaic systems, and energy
-storage are not modelled as separate top-level classes — they
-plug into an existing heat-pump model. This tutorial walks
-through the simplest such composition: <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>,
-where a <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> heats the cold mains water
-before it reaches the DHW tank.</p>
+<p>Solar thermal collectors, photovoltaic systems, and energy storage
+are not modelled as separate top-level classes — they plug into an
+existing heat-pump model on the demand side, augmenting (not
+replacing) the refrigerant cycle. This tutorial walks through the
+simplest such composition: <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>, where a
+<code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> heats the cold mains water before it
+reaches the DHW tank.</p>
 <section id="the-two-pieces">
 <h2>The two pieces<a class="headerlink" href="#the-two-pieces" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> is a

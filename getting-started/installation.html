@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/getting-started/installation.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked tells uv to respect the committed uv.lock and fail rather than silently re-resolving versions. This is the same cont..." />
+<meta property="og:description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install: The--locked flag tells uv to respect the committed uv.lock and fail rather than silently re-resolve versions. This is the sa..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install:--locked tells uv to respect the committed uv.lock and fail rather than silently re-resolving versions. This is the same cont..." />
+<meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install: The--locked flag tells uv to respect the committed uv.lock and fail rather than silently re-resolve versions. This is the sa..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:54+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -186,9 +186,11 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="3">uv<span class="w"> </span>sync<span class="w"> </span>--locked
 </span></pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">--locked</span></code> tells <code class="docutils literal notranslate"><span class="pre">uv</span></code> to respect the committed <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> and
-fail rather than silently re-resolving versions. This is the same
-contract CI uses, so your local install matches what we test.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--locked</span></code> flag tells <code class="docutils literal notranslate"><span class="pre">uv</span></code> to respect the committed
+<code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> and fail rather than silently re-resolve versions. This
+is the same contract CI uses, so your local environment matches the
+one we test against. (If you’re hacking on dependencies and want to
+let <code class="docutils literal notranslate"><span class="pre">uv</span></code> re-resolve, drop <code class="docutils literal notranslate"><span class="pre">--locked</span></code>.)</p>
 </section>
 <section id="optional-dependency-groups">
 <h2>Optional dependency groups<a class="headerlink" href="#optional-dependency-groups" title="Link to this heading">¶</a></h2>

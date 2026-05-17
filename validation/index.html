@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/validation/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
+<meta property="og:description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it’s meant to describe. This page is that check. AirSourceHeatPumpBoiler has been benchmarked ag..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="AirSourceHeatPumpBoiler has been validated against the Samsung EHS Mono HT Quiet R32 14 kW catalogue across 15 operating points spanning T_{\mathrm{LWT}} \in \{40, 50, 65\} °C and outdoor air tempe..." />
+<meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it’s meant to describe. This page is that check. AirSourceHeatPumpBoiler has been benchmarked ag..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:34:04+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:42:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -168,13 +168,16 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="validation">
 <h1>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h1>
+<p>A physics-based model is only useful if its first-principles answers
+land close to the real machines it’s meant to describe. This page is
+that check.</p>
 <p><a class="reference internal" href="../api/models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a>
-has been validated against the <strong>Samsung EHS Mono HT Quiet R32 14 kW</strong>
-catalogue across 15 operating points spanning
-<span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \in \{40, 50, 65\}\)</span> °C and outdoor air
-temperatures from −10 to 30 °C, tracking the catalogue COP to a mean
-absolute error of 0.35 (MAPE 10.1 %) without any unit-specific
-calibration — the same code path applies to any CoolProp refrigerant.</p>
+has been benchmarked against the <strong>Samsung EHS Mono HT Quiet R32
+14 kW</strong> catalogue across 15 operating points — <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}
+\in \{40, 50, 65\}\)</span> °C paired with outdoor air temperatures from −10
+to 30 °C. The model tracks the catalogue COP to a mean absolute error
+of 0.35 (MAPE 10.1 %), with no unit-specific calibration — the same
+code path applies to any CoolProp refrigerant.</p>
 <section id="parity-plot">
 <h2>Parity plot<a class="headerlink" href="#parity-plot" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">
@@ -423,10 +426,10 @@ refrigerant-cycle core and pass smoke tests on representative
 operating points, but they have not yet been benchmarked
 against unit-specific data.</p>
 </div>
-<p>The accuracy reported here is achieved <strong>without unit-specific
-calibration</strong> — the same code path applies to any CoolProp
-refrigerant and any operating envelope the cycle can physically
-close in.</p>
+<p>Because the shared cycle is what’s being validated here — not a fit
+to one machine — the same accuracy budget is expected to carry across
+the rest of the family. Per-family catalogue comparisons will be
+added as the relevant data becomes available.</p>
 </section>
 <section id="citations">
 <h2>Citations<a class="headerlink" href="#citations" title="Link to this heading">¶</a></h2>

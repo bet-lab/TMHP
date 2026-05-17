@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/visualize-the-cycle.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condenser saturation). Plotting those points on a pressure–en..." />
+<meta property="og:description" content="Because tmhp solves the cycle from first principles, every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condense..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condenser saturation). Plotting those points on a pressure–en..." />
+<meta name="description" content="Because tmhp solves the cycle from first principles, every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condense..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:34:04+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:42:02+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -170,14 +170,15 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="visualize-thermodynamic-cycle">
 <h1>Visualize thermodynamic cycle<a class="headerlink" href="#visualize-thermodynamic-cycle" title="Link to this heading">¶</a></h1>
-<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call returns the full thermodynamic state
-at each cycle node (compressor in / out, expander in / out,
-evaporator / condenser saturation). Plotting those points on a
+<p>Because <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> solves the cycle from first principles, every
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> call returns the full thermodynamic state at each
+cycle node (compressor in / out, expander in / out, evaporator /
+condenser saturation). Plotting those points on a
 pressure–enthalpy (P–h) chart — and, side by side, on a
 temperature–enthalpy (T–h) chart — is the fastest way to
 sanity-check a solved cycle.</p>
-<p>This tutorial draws both panels with no extra dependencies; just
-CoolProp and Matplotlib, both already pulled in by the library.</p>
+<p>This tutorial draws both panels with no extra dependencies — just
+CoolProp and Matplotlib, both already pulled in by <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span></code>.</p>
 <section id="the-output">
 <h2>The output<a class="headerlink" href="#the-output" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">

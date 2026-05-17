@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-05-16T11:07:12+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -171,11 +171,12 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="failure-reason-semantics">
 <h1><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics<a class="headerlink" href="#failure-reason-semantics" title="Link to this heading">¶</a></h1>
-<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result carries a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> key.
-It is a diagnostic <em>report</em> — independent of whether the result
-dict contains usable cycle numbers — that lets callers branch on
-<em>why</em> a step looks the way it does, without having to inspect the
-cycle internals.</p>
+<p>Every <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result carries a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> key. It
+is a diagnostic <em>report</em> — independent of whether the result dict
+contains usable cycle numbers — that lets callers branch on <em>why</em> a
+step looks the way it does without having to inspect the cycle
+internals. This page is the reference for what each value means and
+when to branch on it.</p>
 <section id="the-four-values">
 <h2>The four values<a class="headerlink" href="#the-four-values" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-given docutils container">
@@ -318,7 +319,7 @@ core models. See the docstrings under:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 16, 2026
+  Last updated May 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

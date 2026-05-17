@@ -27,14 +27,14 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/concepts/cycle-architecture.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it. The ..." />
+<meta property="og:description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_images/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB system schematic — refrigerant cycle, condenser HX,
 evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
-<meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. This page sketches the shared structure and shows where each system family plugs into it. The ..." />
+<meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -173,10 +173,12 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="thermodynamic-cycle-architecture">
 <h1>Thermodynamic cycle architecture<a class="headerlink" href="#thermodynamic-cycle-architecture" title="Link to this heading">¶</a></h1>
-<p>Every model in <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> is the same closed refrigerant cycle
-wrapped in a different source / sink pairing. This page sketches
-the shared structure and shows where each system family plugs into
-it.</p>
+<p>Every model in <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> is the same closed refrigerant cycle wrapped
+in a different source / sink pairing. That single piece of shared
+machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP,
+GSHP, and every subsystem variant on top — without rewriting the
+thermodynamics each time. This page sketches the shared structure
+and shows where each system family plugs into it.</p>
 <section id="the-shared-core">
 <h2>The shared core<a class="headerlink" href="#the-shared-core" title="Link to this heading">¶</a></h2>
 <p>Every system reuses the same closed cycle — only the blocks marked
@@ -491,13 +493,15 @@ preferentially.</p></li>
 </section>
 <section id="why-the-structure-matters">
 <h2>Why the structure matters<a class="headerlink" href="#why-the-structure-matters" title="Link to this heading">¶</a></h2>
-<p>Because the cycle is the same code path for every system, a
-parameter sweep across refrigerants, source types, or subsystem
-combinations doesn’t require re-implementing the model — it
-requires picking a different class and a different schedule. That
-also means the cycle-level invariants (energy balance, COP
-definitions, <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>)
-hold identically across the family.</p>
+<p>Because the cycle is the same code path for every system, a parameter
+sweep across refrigerants, source types, or subsystem combinations
+doesn’t require re-implementing the model — it requires picking a
+different class and a different schedule. The cycle-level invariants
+(energy balance, COP definitions,
+<a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>) therefore
+hold identically across the family, so a result from ASHPB is
+directly comparable to a result from GSHPB or WSHPB at the same
+operating point.</p>
 </section>
 </section>
 

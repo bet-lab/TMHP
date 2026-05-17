@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/concepts/why-physics-based.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Most building-energy simulators model a heat pump as an empirical curve fit — typically a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test p..." />
+<meta property="og:description" content="The name “Thermodynamic Models for Heat Pumps” describes what tmhp is — a library of thermodynamic cycle models. How those models are written is the part this page is about: every cycle is solved f..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Most building-energy simulators model a heat pump as an empirical curve fit — typically a polynomial in (outdoor temperature, leaving-water temperature) calibrated against the manufacturer’s test p..." />
+<meta name="description" content="The name “Thermodynamic Models for Heat Pumps” describes what tmhp is — a library of thermodynamic cycle models. How those models are written is the part this page is about: every cycle is solved f..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -169,12 +169,16 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="why-physics-based">
 <h1>Why physics-based?<a class="headerlink" href="#why-physics-based" title="Link to this heading">¶</a></h1>
-<p>Most building-energy simulators model a heat pump as an empirical
-curve fit — typically a polynomial in (outdoor temperature,
-leaving-water temperature) calibrated against the manufacturer’s test
-points. That approach is cheap and accurate <em>inside the calibration
-envelope</em>, but it carries three structural limitations that this
-library was built to remove.</p>
+<p>The name “Thermodynamic Models for Heat Pumps” describes <em>what</em>
+<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> is — a library of thermodynamic cycle models. <em>How</em> those
+models are written is the part this page is about: every cycle is
+solved from first principles, not fitted against catalogue data.</p>
+<p>Most building-energy simulators take the opposite route. They model
+a heat pump as an empirical curve fit — typically a polynomial in
+(outdoor temperature, leaving-water temperature) calibrated against
+the manufacturer’s test points. That approach is cheap and accurate
+<em>inside the calibration envelope</em>, but it carries three structural
+limitations that this library was built to remove.</p>
 <section id="the-three-structural-limits-of-curve-fits">
 <h2>The three structural limits of curve fits<a class="headerlink" href="#the-three-structural-limits-of-curve-fits" title="Link to this heading">¶</a></h2>
 <div class="table-wrapper colwidths-given docutils container">
@@ -270,9 +274,10 @@ evaluating a polynomial. In practice it lands around a few hundred
 steps per second on a single core for a vanilla ASHPB — fast enough
 that a year-long minute-resolution run takes hours, not minutes.</p>
 <p>If that is still too slow for your use case, a fitted surrogate is
-the right escape hatch. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> is calibrated against
-commercial catalogue data well enough that you can train the
-surrogate against this library itself, with no fresh bench data.</p>
+the right escape hatch. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> tracks commercial catalogue data
+well enough (see <a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>) that you can train the
+surrogate against this library itself, without collecting fresh
+bench data.</p>
 </section>
 </section>
 

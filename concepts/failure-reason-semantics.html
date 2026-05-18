@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
+    <meta property="article:modified_time" content="2026-05-18T00:51:23+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -43,7 +43,7 @@
       <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -86,21 +86,21 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
@@ -310,16 +310,17 @@ feasibility) so the resulting DataFrame is safe to vectorise over.</p>
 <p>The diagnostic flag is set inside <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> for the five
 core models. See the docstrings under:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="../api/models/ashpb.html"><span class="doc">Air-source heat pump boilers (ASHPB)</span></a></p></li>
-<li><p><a class="reference internal" href="../api/models/gshpb.html"><span class="doc">Ground-source heat pump boilers (GSHPB)</span></a></p></li>
-<li><p><a class="reference internal" href="../api/models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></p></li>
-<li><p><a class="reference internal" href="../api/models/space-conditioning.html"><span class="doc">Space-conditioning heat pumps</span></a></p></li>
+<li><p><a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a></p></li>
+<li><p><a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a></p></li>
+<li><p><a class="reference internal" href="../models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></p></li>
+<li><p><a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a></p></li>
+<li><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a></p></li>
 </ul>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

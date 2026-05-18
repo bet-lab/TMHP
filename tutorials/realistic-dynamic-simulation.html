@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Realistic dynamic simulation - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Compose subsystems" href="compose-subsystems.html" /><link rel="prev" title="Swap refrigerants" href="swap-refrigerant.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Realistic dynamic simulation - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Visualize thermodynamic cycle" href="visualize-the-cycle.html" /><link rel="prev" title="Swap refrigerants" href="swap-refrigerant.html" />
       <link rel="canonical" href="https://bet-lab.github.io/tmhp/tutorials/realistic-dynamic-simulation.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Your first dynamic simulation runs analyze_dynamic with flat schedules — a clean sanity check, but real runs almost never look like that. This tutorial assembles a more representative 24-hour scena..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:42:02+00:00" />
+    <meta property="article:modified_time" content="2026-05-18T00:51:23+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -43,7 +43,7 @@
       <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -86,21 +86,21 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Tutorials</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Realistic dynamic simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="compose-subsystems.html">Compose subsystems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
@@ -130,6 +130,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#what-a-real-day-looks-like">What a real day looks like</a></li>
 <li><a class="reference internal" href="#the-schedule-arrays">The schedule arrays</a></li>
 <li><a class="reference internal" href="#running-and-saving">Running and saving</a></li>
 <li><a class="reference internal" href="#inspecting-the-run">Inspecting the run</a></li>
@@ -180,6 +181,18 @@ real runs almost never look like that.</p>
 mid-afternoon high);</p></li>
 <li><p>and CSV output for downstream analysis.</p></li>
 </ul>
+<section id="what-a-real-day-looks-like">
+<h2>What a real day looks like<a class="headerlink" href="#what-a-real-day-looks-like" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="../_images/dynamic_24h_timeseries.svg"><img alt="24-hour dynamic simulation of the ASHPB. Three stacked panels — tank temperature with its upper/lower bounds, condenser heat rate and compressor electrical power, and instantaneous + running-mean system COP." src="../_images/dynamic_24h_timeseries.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">24-hour ASHPB run with two DHW draws (07:00 and 20:00) and a
+sinusoidal outdoor temperature. Generated by
+<code class="docutils literal notranslate"><span class="pre">scripts/visualization/dynamic_24h_timeseries.py</span></code>.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
 <section id="the-schedule-arrays">
 <h2>The schedule arrays<a class="headerlink" href="#the-schedule-arrays" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -260,13 +273,13 @@ resampled to your <code class="docutils literal notranslate"><span class="pre">d
 <li><p>Drive a multi-day or annual run by concatenating schedules and
 passing the longer <code class="docutils literal notranslate"><span class="pre">simulation_period_sec</span></code>.</p></li>
 <li><p>Plug in subsystems (STC, PV/ESS) — see
-<a class="reference internal" href="compose-subsystems.html"><span class="doc">Compose subsystems</span></a>.</p></li>
+<a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>.</p></li>
 </ul>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -280,10 +293,10 @@ passing the longer <code class="docutils literal notranslate"><span class="pre">
         <span>Previous</span><div class="title">Swap refrigerants</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="compose-subsystems.html">
+    <a href="visualize-the-cycle.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">Compose subsystems</div>
+        <div class="title">Visualize thermodynamic cycle</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>

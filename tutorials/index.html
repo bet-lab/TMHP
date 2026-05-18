@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tutorials - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Swap refrigerants" href="swap-refrigerant.html" /><link rel="prev" title="Refrigerants and CoolProp" href="../concepts/refrigerant-and-coolprop.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tutorials - Thermodynamic Models for Heat Pumps</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Swap refrigerants" href="swap-refrigerant.html" /><link rel="prev" title="Ground-source heat pump (GSHP — space conditioning)" href="../models/gshp.html" />
       <link rel="canonical" href="https://bet-lab.github.io/tmhp/tutorials/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Focused, end-to-end walkthroughs that pick up where Getting Started leaves off. Each tutorial is self-contained — copy the snippet, change one or two values, and you have a working starting point f..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:42:02+00:00" />
+    <meta property="article:modified_time" content="2026-05-18T00:51:23+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -43,7 +43,7 @@
       <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="#">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="#">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -86,21 +86,21 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="compose-subsystems.html">Compose subsystems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
@@ -190,16 +190,6 @@ draw profile, a sinusoidal outdoor schedule, and CSV output.</p>
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-Compose subsystems</div>
-<p class="sd-card-text">Wire a <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> onto <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code> and
-feed irradiance schedules into <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>.</p>
-</div>
-<a class="sd-stretched-link sd-hide-link-text reference internal" href="compose-subsystems.html"><span class="doc">Compose subsystems</span></a></div>
-</div>
-<div class="sd-col sd-d-flex-row docutils">
-<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
-<div class="sd-card-body docutils">
-<div class="sd-card-title sd-font-weight-bold docutils">
 Visualize the thermodynamic cycle</div>
 <p class="sd-card-text">Plot a solved refrigerant cycle on a pressure–enthalpy
 chart using only CoolProp and Matplotlib.</p>
@@ -213,7 +203,7 @@ chart using only CoolProp and Matplotlib.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -221,10 +211,10 @@ chart using only CoolProp and Matplotlib.</p>
   </svg>
   <span>Back to top</span>
 </button><div class="navigation flex print:hidden"><div class="navigation-prev">
-    <a href="../concepts/refrigerant-and-coolprop.html">
+    <a href="../models/gshp.html">
       <i class="i-lucide chevron-left"></i>
       <div class="page-info">
-        <span>Previous</span><div class="title">Refrigerants and CoolProp</div></div>
+        <span>Previous</span><div class="title">Ground-source heat pump (GSHP — space conditioning)</div></div>
     </a>
   </div><div class="navigation-next">
     <a href="swap-refrigerant.html">

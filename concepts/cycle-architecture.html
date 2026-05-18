@@ -34,7 +34,7 @@ evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
 <meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 
-    <meta property="article:modified_time" content="2026-05-17T15:04:15+00:00" />
+    <meta property="article:modified_time" content="2026-05-18T00:51:23+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -45,7 +45,7 @@ flow connections." />
       <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Getting Started</a></li><li class="link"><a href="index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -88,21 +88,21 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../tutorials/compose-subsystems.html">Compose subsystems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
@@ -133,11 +133,6 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#the-shared-core">The shared core</a></li>
-<li><a class="reference internal" href="#source-side-where-heat-comes-from">Source side: where heat comes from</a><ul>
-<li><a class="reference internal" href="#the-borehole-g-function">The borehole g-function</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#sink-side-where-heat-goes">Sink side: where heat goes</a></li>
 <li><a class="reference internal" href="#composed-subsystems">Composed subsystems</a></li>
 <li><a class="reference internal" href="#why-the-structure-matters">Why the structure matters</a></li>
 </ul>
@@ -276,13 +271,13 @@ and shows where each system family plugs into it.</p>
   const nodes = [
     { id: "SRC",  type: "src",    title: "Source side",      sub: "air · ground · water",
       code: "ashpb.py / gshpb.py / wshpb.py — outdoor coil, borehole g-function, prescribed water inlet",
-      api:  "cycle-architecture.html#source-side-where-heat-comes-from" },
+      api:  "../models/index.html" },
     { id: "EVAP", type: "cycle",  title: "Evaporator HX",    sub: "ε-NTU",
       code: "_calc_state: T_evap_sat_K = T0_K − dT_ref_evap",
       api:  "../api/support/heat-transfer.html" },
     { id: "CMP",  type: "cycle",  title: "Compressor",       sub: "η_is · η_vol · η_mech",
       code: "_calc_state lines 410–471: h_cmp_out via η_isen, m_dot = V_disp·ρ·η_vol·rps",
-      api:  "../api/models/ashpb.html" },
+      api:  "../models/ashpb.html" },
     { id: "COND", type: "cycle",  title: "Condenser HX",     sub: "ε-NTU",
       code: "_calc_state: T_cond_sat_K = T_tank_w_K + dT_ref_cond, UA_cond_design",
       api:  "../api/support/heat-transfer.html" },
@@ -416,88 +411,10 @@ with an ε-NTU model. The evaporating temperature is left as a
 free parameter and chosen by minimizing compressor power, so the
 cycle closes on a physical optimum rather than on a fitted
 coefficient.</p>
-</section>
-<section id="source-side-where-heat-comes-from">
-<h2>Source side: where heat comes from<a class="headerlink" href="#source-side-where-heat-comes-from" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper colwidths-given docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 25.0%" />
-<col style="width: 35.0%" />
-<col style="width: 40.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Source</p></th>
-<th class="head"><p>Component</p></th>
-<th class="head"><p>Model class family</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>Air</strong></p></td>
-<td><p>Outdoor coil + variable-speed fan, ε-NTU air side</p></td>
-<td><p><a class="reference internal" href="../api/models/ashpb.html"><span class="doc">Air-source heat pump boilers (ASHPB)</span></a>,
-<a class="reference internal" href="../api/models/space-conditioning.html"><span class="doc">Space-conditioning heat pumps</span></a></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Ground</strong></p></td>
-<td><p>Borehole field, g-function dynamics</p></td>
-<td><p><a class="reference internal" href="../api/models/gshpb.html"><span class="doc">Ground-source heat pump boilers (GSHPB)</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>Water</strong></p></td>
-<td><p>Water loop, prescribed inlet temperature</p></td>
-<td><p><a class="reference internal" href="../api/models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<section id="the-borehole-g-function">
-<h3>The borehole g-function<a class="headerlink" href="#the-borehole-g-function" title="Link to this heading">¶</a></h3>
-<p>For ground-source models, the source-side dynamics are encoded in a
-<strong>g-function</strong> — the dimensionless thermal response of a borehole
-field to a unit heat-extraction step. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> precomputes the
-g-function once via
-<a class="reference external" href="https://github.com/MassimoCimmino/pygfunction">pygfunction</a> and
-interpolates it during the simulation, so the per-step cost stays
-constant whether the field is one borehole or a hundred.</p>
-<figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="../_images/g_function_curve.svg"><img alt="g-function vs ln(t/t_s) for three rectangular borehole field geometries: 1×1, 2×2, and 4×4." src="../_images/g_function_curve.svg" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-text">Dimensionless g-function for three rectangular borehole-field
-geometries. The 1 × 1 field is the single-borehole baseline;
-2 × 2 and 4 × 4 diverge as borehole-to-borehole thermal
-interference accumulates over the multi-year horizon. Generated
-by <code class="docutils literal notranslate"><span class="pre">scripts/visualization/g_function_curve.py</span></code>.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
-</figcaption>
-</figure>
-</section>
-</section>
-<section id="sink-side-where-heat-goes">
-<h2>Sink side: where heat goes<a class="headerlink" href="#sink-side-where-heat-goes" title="Link to this heading">¶</a></h2>
-<div class="table-wrapper colwidths-given docutils container">
-<table class="docutils align-default">
-<colgroup>
-<col style="width: 30.0%" />
-<col style="width: 70.0%" />
-</colgroup>
-<thead>
-<tr class="row-odd"><th class="head"><p>Sink</p></th>
-<th class="head"><p>What’s modelled on top of the cycle</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><strong>DHW tank</strong></p></td>
-<td><p>Single-node or stratified tank energy balance, draw
-schedule, mains supply temperature, optional UV treatment.
-Used by every <code class="docutils literal notranslate"><span class="pre">*HeatPumpBoiler</span></code> class.</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>Building load</strong></p></td>
-<td><p>Zone temperature / load proxy. Used by
-<a class="reference internal" href="../api/models/space-conditioning.html#tmhp.air_source_heat_pump.AirSourceHeatPump" title="tmhp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>
-and <a class="reference internal" href="../api/models/space-conditioning.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump" title="tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
+<p>Per-source mechanics — the outdoor coil for ASHP, the g-function
+borehole for GSHP, the prescribed water inlet for WSHP — live on
+each model’s page under <a class="reference internal" href="../models/index.html"><span class="doc">Models</span></a>. The sink side
+(DHW tank or building load) is documented the same way.</p>
 </section>
 <section id="composed-subsystems">
 <h2>Composed subsystems<a class="headerlink" href="#composed-subsystems" title="Link to this heading">¶</a></h2>
@@ -530,7 +447,7 @@ operating point.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
       <strong>Thermodynamic Models for Heat Pumps</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -76,21 +76,21 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../tutorials/compose-subsystems.html">Compose subsystems</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../api/models/index.html">Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models/ashpb.html">Air-source heat pump boilers (ASHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models/gshpb.html">Ground-source heat pump boilers (GSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models/space-conditioning.html">Space-conditioning heat pumps</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
@@ -225,7 +225,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="70">
 </span><span data-line="71">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler">
-<a class="viewcode-back" href="../../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler">[docs]</a>
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler">[docs]</a>
 </span><span data-line="72"><span class="k">class</span><span class="w"> </span><span class="nc">GroundSourceHeatPumpBoiler</span><span class="p">:</span>
 </span><span data-line="73"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Ground source heat pump boiler with BHE and lumped-tank model.</span>
 </span><span data-line="74">
@@ -236,7 +236,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="79"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="80">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.__init__">
-<a class="viewcode-back" href="../../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__">[docs]</a>
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__">[docs]</a>
 </span><span data-line="81">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
 </span><span data-line="82">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="83">        <span class="c1"># 1. Refrigerant / cycle / compressor</span>
@@ -950,7 +950,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="790">    <span class="c1"># =============================================================</span>
 </span><span data-line="791">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.analyze_dynamic">
-<a class="viewcode-back" href="../../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic">[docs]</a>
 </span><span data-line="792">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_dynamic</span><span class="p">(</span>
 </span><span data-line="793">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="794">        <span class="n">simulation_period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1148,7 +1148,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="986">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.analyze_steady">
-<a class="viewcode-back" href="../../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady">[docs]</a>
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady">[docs]</a>
 </span><span data-line="987">    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_steady</span><span class="p">(</span>
 </span><span data-line="988">        <span class="bp">self</span><span class="p">,</span>
 </span><span data-line="989">        <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -1304,7 +1304,7 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="1139">
 <div class="viewcode-block" id="GroundSourceHeatPumpBoiler.postprocess_exergy">
-<a class="viewcode-back" href="../../api/models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy">[docs]</a>
 </span><span data-line="1140">    <span class="k">def</span><span class="w"> </span><span class="nf">postprocess_exergy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 </span><span data-line="1141"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute GSHPB-specific exergy variables.&quot;&quot;&quot;</span>
 </span><span data-line="1142">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_energy_flow</span><span class="p">,</span> <span class="n">calc_refrigerant_exergy</span><span class="p">,</span> <span class="n">convert_electricity_to_exergy</span>

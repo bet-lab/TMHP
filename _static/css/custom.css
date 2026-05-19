@@ -914,7 +914,7 @@ button.copybtn:hover {
  * remains untouched.
  * ------------------------------------------------------------------------- */
 
-/* --- Plot containers (① ② ③) --- */
+/* --- Plot containers (①) — ② parity and ③ scrub reverted --- */
 .tmhp-plot-mount {
     margin: 1.5em 0;
     font-family: var(--rx-font-sans);
@@ -1015,6 +1015,7 @@ footer.sy-foot { display: none; }
     font-weight: var(--rx-fw-medium);
 }
 .composition-tabs .sd-tab-content { padding: var(--rx-space-4) 0; }
+
 /* --- Glossary popover (⑥) --- */
 .glossary {
     /* Slightly heavier dash than 1 px so the underline reads as
@@ -1048,7 +1049,7 @@ footer.sy-foot { display: none; }
 .glossary-pop .def   { margin-top: 4px; color: var(--rx-ink); }
 .glossary-pop .link  { display: inline-block; margin-top: 6px; color: var(--rx-accent-11); font-size: var(--rx-fs-1); text-decoration: none; }
 .glossary-pop .link:hover { text-decoration: underline; }
-/* --- Hero motion (⑦) --- */
+
 /* --- Cmd+K palette (⑧) --- */
 .cmdk-overlay {
     position: fixed; inset: 0; z-index: 10000;

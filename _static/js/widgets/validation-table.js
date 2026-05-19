@@ -1,10 +1,16 @@
 /**
  * ④ Filterable, sortable validation table.
  *
- * Reads the same /_static/data/validation-points.json as the parity
- * plot. On successful hydration, the existing rst-rendered table is
- * hidden via CSS class (and remains in the DOM as the JS-disabled
- * fallback). Row click → 'tmhp:table-selected' event (consumed by ②).
+ * Reads /_static/data/validation-points.json. Columns mirror the static
+ * rst table inside the dropdown below: case id, source / sink, Q_cond,
+ * COP_target / COP_predicted, and the percent error on COP. (The model
+ * is solved *for* the catalogue Q_cond, so q_mod_kw equals q_cat_kw by
+ * construction — the semantically meaningful comparison is COP.)
+ *
+ * On successful hydration the static dropdown is hidden via the
+ * `hidden-by-js` class so the JS-on view shows the widget alone. The
+ * hide is deferred until after the fetch resolves; if the JSON load
+ * fails the static dropdown remains visible as the fallback.
  */
 (function () {
   "use strict";
@@ -16,21 +22,10 @@
   }
   const { loadJson, staticDir } = window.tmhpPlot;
 
-  // Hide the static rst table sibling once we're alive. The list-table is
-  // wrapped in a sphinx-design `.. dropdown::` block (so JS-off readers see
-  // a collapsible "Show all 15 operating points" toggle); when JS is up
-  // the dropdown chrome adds noise on top of the widget, so we hide the
-  // whole <details> ancestor, not just the table-wrapper.
-  const staticTable = document.querySelector(".validation-table-static");
-  if (staticTable) {
-    const dropdown = staticTable.closest("details.sd-dropdown");
-    (dropdown || staticTable).classList.add("hidden-by-js");
-  }
-
   mount.classList.add("validation-table");
   mount.innerHTML = `
     <div class="vt-chrome">
-      <input class="vt-filter" placeholder="Filter (try '7' or 'R32')…">
+      <input class="vt-filter" placeholder="Filter (try '45' or 'R32')…">
       <div class="vt-chips"></div>
     </div>
     <table class="vt-table">
@@ -39,8 +34,9 @@
         <th data-sort="refrigerant">Ref.</th>
         <th data-sort="t_source_c">T_src [°C]</th>
         <th data-sort="t_sink_c">T_sink [°C]</th>
-        <th data-sort="q_cat_kw">Q_cat [kW]</th>
-        <th data-sort="q_mod_kw">Q_mod [kW]</th>
+        <th data-sort="q_cat_kw">Q_cond [kW]</th>
+        <th data-sort="cop_cat">COP_cat</th>
+        <th data-sort="cop_mod">COP_pred</th>
         <th data-sort="delta_pct">Δ [%]</th>
       </tr></thead>
       <tbody></tbody>
@@ -53,16 +49,15 @@
   let sortKey = "case_id";
   let sortAsc = true;
   let chipFilter = null;
-  let selectedId = null;
 
   function deltaPct(r) {
-    return ((r.q_mod_kw - r.q_cat_kw) / r.q_cat_kw) * 100;
+    return ((r.cop_mod - r.cop_cat) / r.cop_cat) * 100;
   }
 
   function render() {
     const q = filterEl.value.trim().toLowerCase();
-    let visible = rows.filter(r => {
-      const blob = `${r.case_id} ${r.refrigerant} ${r.t_source_c} ${r.t_sink_c} ${r.q_cat_kw} ${r.q_mod_kw}`.toLowerCase();
+    const visible = rows.filter(r => {
+      const blob = `${r.case_id} ${r.refrigerant} ${r.t_source_c} ${r.t_sink_c} ${r.q_cat_kw} ${r.cop_cat} ${r.cop_mod}`.toLowerCase();
       const hitText = !q || blob.includes(q);
       const hitChip = !chipFilter || r.refrigerant === chipFilter;
       return hitText && hitChip;
@@ -79,21 +74,34 @@
     tbody.innerHTML = visible.map(r => {
       const d = deltaPct(r);
       const cls = Math.abs(d) < 5 ? "ok" : "warn";
-      const sel = r.case_id === selectedId ? " is-selected" : "";
-      return `<tr data-case="${r.case_id}" class="vt-row${sel}">
+      const sign = d >= 0 ? "+" : "";
+      return `<tr data-case="${r.case_id}" class="vt-row">
         <td>${r.case_id}</td>
         <td>${r.refrigerant}</td>
         <td>${r.t_source_c}</td>
         <td>${r.t_sink_c}</td>
         <td>${r.q_cat_kw.toFixed(2)}</td>
-        <td>${r.q_mod_kw.toFixed(2)}</td>
-        <td class="${cls}">${d >= 0 ? "+" : ""}${d.toFixed(1)}</td>
+        <td>${r.cop_cat.toFixed(2)}</td>
+        <td>${r.cop_mod.toFixed(2)}</td>
+        <td class="${cls}">${sign}${d.toFixed(1)}</td>
       </tr>`;
     }).join("");
   }
 
   (async () => {
-    rows = await loadJson(`${staticDir()}/data/validation-points.json`);
+    try {
+      rows = await loadJson(`${staticDir()}/data/validation-points.json`);
+    } catch (err) {
+      console.error("validation-table: failed to load JSON", err);
+      return;  // Leave the static dropdown visible as the fallback.
+    }
+
+    // JSON loaded successfully — only now hide the static dropdown.
+    const staticTable = document.querySelector(".validation-table-static");
+    if (staticTable) {
+      const dropdown = staticTable.closest("details.sd-dropdown");
+      (dropdown || staticTable).classList.add("hidden-by-js");
+    }
 
     const refs = [...new Set(rows.map(r => r.refrigerant))];
     chipsEl.innerHTML = refs.map(r =>
@@ -117,22 +125,6 @@
         else { sortKey = k; sortAsc = true; }
         render();
       });
-    });
-
-    tbody.addEventListener("click", e => {
-      const tr = e.target.closest("tr.vt-row");
-      if (!tr) return;
-      selectedId = +tr.dataset.case;
-      render();
-      window.dispatchEvent(new CustomEvent("tmhp:table-selected",
-        { detail: { case_id: selectedId } }));
-    });
-
-    window.addEventListener("tmhp:parity-selected", e => {
-      selectedId = e.detail.case_id;
-      render();
-      const tr = tbody.querySelector(`tr[data-case="${selectedId}"]`);
-      if (tr) tr.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
 
     render();

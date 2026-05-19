@@ -92,10 +92,12 @@
  *        step 11   accessible foreground text on light background
  *   6. Gray alpha tokens (key for muted text against any background).
  *
- * Light values are defined on :root. Dark-mode overrides ride
- * @media (prefers-color-scheme: dark) so they auto-track the OS
- * preference; Shibuya's manual toggle (data-color-mode) cooperates
- * because Shibuya re-evaluates the same media query inside its theme.
+ * Light values are defined on :root. Dark-mode overrides ride two
+ * selectors so both paths flip our --rx-* tokens together:
+ *   1. @media (prefers-color-scheme: dark) — OS / browser preference
+ *   2. html[data-color-mode="dark"]        — Shibuya's manual toggle
+ * Both selectors carry the same declaration block; keep them in sync
+ * when adding tokens.
  * ------------------------------------------------------------------------- */
 
 :root {
@@ -227,7 +229,7 @@
  * that consumes `--rx-accent-3` (etc.) keeps working under data-color-mode
  * = "dark". Values lifted from radix-ui.com/colors dark scales. */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-color-mode="light"]) {
         --rx-accent-3:  #182449;
         --rx-accent-6:  #253974;
         --rx-accent-9:  #3e63dd;
@@ -271,6 +273,55 @@
         --rx-gray-a11:  rgba(255, 255, 255, 0.706);
         --rx-gray-a12:  rgba(255, 255, 255, 0.929);
     }
+}
+
+/* Shibuya's manual toggle sets html[data-color-mode="dark"] regardless
+ * of the OS preference. Mirror every dark override above so the manual
+ * switch flips the --rx-* tokens too. Keep in sync with the @media
+ * block above when tokens change. */
+html[data-color-mode="dark"] {
+    --rx-accent-3:  #182449;
+    --rx-accent-6:  #253974;
+    --rx-accent-9:  #3e63dd;
+    --rx-accent-11: #9eb1ff;
+
+    --rx-gray-1:   #111;
+    --rx-gray-3:   #222;
+    --rx-gray-6:   #363636;
+    --rx-gray-9:   #707070;
+    --rx-gray-11:  #b4b4b4;
+    --rx-gray-12:  #eeeeee;
+
+    --rx-green-3:  #132d21;
+    --rx-green-6:  #1b543a;
+    --rx-green-9:  #30a46c;
+    --rx-green-11: #4cc38a;
+
+    --rx-amber-3:  #361a00;
+    --rx-amber-6:  #714811;
+    --rx-amber-9:  #ffb224;
+    --rx-amber-11: #ffb224;
+
+    --rx-red-3:    #2a1314;
+    --rx-red-6:    #67191c;
+    --rx-red-9:    #e5484d;
+    --rx-red-11:   #ff6369;
+
+    --rx-blue-3:   #0d2847;
+    --rx-blue-6:   #195591;
+    --rx-blue-9:   #0091ff;
+    --rx-blue-11:  #52a9ff;
+
+    --rx-violet-3: #221039;
+    --rx-violet-6: #432d7e;
+    --rx-violet-9: #6e56cf;
+    --rx-violet-11:#9b8cf4;
+
+    --rx-gray-a3:   rgba(255, 255, 255, 0.072);
+    --rx-gray-a6:   rgba(255, 255, 255, 0.181);
+    --rx-gray-a9:   rgba(255, 255, 255, 0.435);
+    --rx-gray-a11:  rgba(255, 255, 255, 0.706);
+    --rx-gray-a12:  rgba(255, 255, 255, 0.929);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1042,6 +1093,24 @@ footer.sy-foot { display: none; }
     color: var(--rx-ink-muted);
     font-style: italic;
     text-align: center;
+}
+/* Cmd+K affordance — Shibuya's header search box ships a `<kbd>/</kbd>`
+ * hint pointing at its full-text search page. Append a sibling hint so
+ * power users discover the in-page palette. Hidden on touch devices
+ * (no Cmd/Ctrl key to press). */
+.searchbox::after {
+    content: "⌘K";
+    font-family: var(--rx-font-mono);
+    font-size: var(--rx-fs-1);
+    color: var(--rx-ink-muted);
+    border: 1px solid var(--rx-hairline);
+    border-radius: var(--rx-radius-2);
+    padding: 1px 6px;
+    margin-left: 6px;
+    line-height: 1.4;
+}
+@media (hover: none) {
+    .searchbox::after { display: none; }
 }
 /* --- Reading progress + scroll-spy (⑨) --- */
 .reading-progress {

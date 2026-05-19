@@ -75,13 +75,22 @@
     const span_r = span.getBoundingClientRect();
     const pop_r = pop.getBoundingClientRect();
     const margin = 8;
+
+    // Horizontal clamp: right-align to the viewport edge if the natural
+    // (left-aligned) placement would overflow off-screen.
     let left = span_r.left;
     if (left + pop_r.width > window.innerWidth - margin) {
-      // Right-aligned to the viewport edge if the popover would overflow
-      // (terms near the right gutter of the article).
       left = Math.max(margin, window.innerWidth - pop_r.width - margin);
     }
-    pop.style.top = `${window.scrollY + span_r.bottom + 2}px`;
+
+    // Vertical flip: place above the span if there isn't room below
+    // (terms near the bottom of the viewport on short windows / phones).
+    let top = span_r.bottom + 2;
+    if (top + pop_r.height > window.innerHeight - margin) {
+      top = Math.max(margin, span_r.top - pop_r.height - 2);
+    }
+
+    pop.style.top = `${window.scrollY + top}px`;
     pop.style.left = `${window.scrollX + left}px`;
     pop.style.visibility = "";
     STATE.active = span;

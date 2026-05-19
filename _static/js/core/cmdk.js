@@ -68,7 +68,13 @@
     STATE.modal.classList.add("open");
     STATE.input.value = "";
     STATE.focusIdx = 0;
-    loadIndex().then(render).catch(console.error);
+    loadIndex()
+      .then(render)
+      .catch(err => {
+        console.error("cmdk: failed to load searchindex.js", err);
+        STATE.list.innerHTML =
+          `<li class="cmdk-empty">Search index failed to load. Try the search box in the header.</li>`;
+      });
     setTimeout(() => STATE.input.focus(), 10);
   }
 

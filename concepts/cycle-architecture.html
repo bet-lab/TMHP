@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,8 +34,13 @@ evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
 <meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 
-    <meta property="article:modified_time" content="2026-05-18T09:46:05+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:37:51+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -260,7 +265,7 @@ and shows where each system family plugs into it.</p>
   reused across ASHPB, GSHPB, WSHPB, ASHP, and GSHP.
 </p>
 
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.0/dist/cytoscape.min.js"></script>
+<script src="../_static/js/lib/cytoscape.min.js"></script>
 <script>
 (function () {
   if (!document.getElementById("cy-arch")) return;
@@ -407,7 +412,7 @@ GSHPB, WSHPB, ASHP, and GSHP models.</span><a class="headerlink" href="#id1" tit
 <p>The cycle solves four refrigerant state points (compressor in /
 out, expander in / out) plus the evaporator and condenser
 saturation states. Heat transfer at each heat exchanger is solved
-with an ε-NTU model. The evaporating temperature is left as a
+with an <span class="glossary" data-term="epsilon-ntu">ε-NTU</span> model. The evaporating temperature is left as a
 free parameter and chosen by minimizing compressor power, so the
 cycle closes on a physical optimum rather than on a fitted
 coefficient.</p>
@@ -438,7 +443,7 @@ preferentially.</p></li>
 sweep across refrigerants, source types, or subsystem combinations
 doesn’t require re-implementing the model — it requires picking a
 different class and a different schedule. The cycle-level invariants
-(energy balance, COP definitions,
+(energy balance, <span class="glossary" data-term="cop">COP</span> definitions,
 <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>) therefore
 hold identically across the family, so a result from ASHPB is
 directly comparable to a result from GSHPB or WSHPB at the same

@@ -1,0 +1,1302 @@
+{
+  "step_min": 10,
+  "refrigerant": "R32",
+  "series": [
+    {
+      "t_min": 0,
+      "t_amb_c": 4.8,
+      "q_heat_kw": 8.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 2.599,
+      "cop": 3.035,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 10,
+      "t_amb_c": 4.68,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 20,
+      "t_amb_c": 4.56,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 30,
+      "t_amb_c": 4.46,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 40,
+      "t_amb_c": 4.36,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 50,
+      "t_amb_c": 4.28,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 60,
+      "t_amb_c": 4.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 70,
+      "t_amb_c": 4.14,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 80,
+      "t_amb_c": 4.09,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 90,
+      "t_amb_c": 4.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 100,
+      "t_amb_c": 4.02,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 110,
+      "t_amb_c": 4.01,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 120,
+      "t_amb_c": 4.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 130,
+      "t_amb_c": 4.01,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 140,
+      "t_amb_c": 4.02,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 150,
+      "t_amb_c": 4.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 160,
+      "t_amb_c": 4.09,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 170,
+      "t_amb_c": 4.14,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 180,
+      "t_amb_c": 4.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 190,
+      "t_amb_c": 4.28,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 200,
+      "t_amb_c": 4.36,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 210,
+      "t_amb_c": 4.46,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 220,
+      "t_amb_c": 4.56,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 230,
+      "t_amb_c": 4.68,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 240,
+      "t_amb_c": 4.8,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 250,
+      "t_amb_c": 4.94,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 260,
+      "t_amb_c": 5.09,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 270,
+      "t_amb_c": 5.24,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 280,
+      "t_amb_c": 5.4,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 290,
+      "t_amb_c": 5.58,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 300,
+      "t_amb_c": 5.76,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 310,
+      "t_amb_c": 5.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 320,
+      "t_amb_c": 6.14,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 330,
+      "t_amb_c": 6.35,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 340,
+      "t_amb_c": 6.56,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 350,
+      "t_amb_c": 6.78,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 360,
+      "t_amb_c": 7.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 370,
+      "t_amb_c": 7.23,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 380,
+      "t_amb_c": 7.46,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 390,
+      "t_amb_c": 7.7,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 400,
+      "t_amb_c": 7.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 410,
+      "t_amb_c": 8.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 420,
+      "t_amb_c": 8.45,
+      "q_heat_kw": 8.0,
+      "q_demand_kw": 8.0,
+      "p_cmp_kw": 2.811,
+      "cop": 2.822,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 430,
+      "t_amb_c": 8.7,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 440,
+      "t_amb_c": 8.96,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 450,
+      "t_amb_c": 9.22,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 460,
+      "t_amb_c": 9.48,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 470,
+      "t_amb_c": 9.74,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 480,
+      "t_amb_c": 10.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 490,
+      "t_amb_c": 10.26,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 500,
+      "t_amb_c": 10.52,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 510,
+      "t_amb_c": 10.78,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 520,
+      "t_amb_c": 11.04,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 530,
+      "t_amb_c": 11.3,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 540,
+      "t_amb_c": 11.55,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 550,
+      "t_amb_c": 11.8,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 560,
+      "t_amb_c": 12.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 570,
+      "t_amb_c": 12.3,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 580,
+      "t_amb_c": 12.54,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 590,
+      "t_amb_c": 12.77,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 600,
+      "t_amb_c": 13.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 610,
+      "t_amb_c": 13.22,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 620,
+      "t_amb_c": 13.44,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 630,
+      "t_amb_c": 13.65,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 640,
+      "t_amb_c": 13.86,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 650,
+      "t_amb_c": 14.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 660,
+      "t_amb_c": 14.24,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 670,
+      "t_amb_c": 14.42,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 680,
+      "t_amb_c": 14.6,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 690,
+      "t_amb_c": 14.76,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 700,
+      "t_amb_c": 14.91,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 710,
+      "t_amb_c": 15.06,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 720,
+      "t_amb_c": 15.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 730,
+      "t_amb_c": 15.32,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 740,
+      "t_amb_c": 15.44,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 750,
+      "t_amb_c": 15.54,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 760,
+      "t_amb_c": 15.64,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 770,
+      "t_amb_c": 15.72,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 780,
+      "t_amb_c": 15.8,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 790,
+      "t_amb_c": 15.86,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 800,
+      "t_amb_c": 15.91,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 810,
+      "t_amb_c": 15.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 820,
+      "t_amb_c": 15.98,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 830,
+      "t_amb_c": 15.99,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 840,
+      "t_amb_c": 16.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 850,
+      "t_amb_c": 15.99,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 860,
+      "t_amb_c": 15.98,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 870,
+      "t_amb_c": 15.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 880,
+      "t_amb_c": 15.91,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 890,
+      "t_amb_c": 15.86,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 900,
+      "t_amb_c": 15.8,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 910,
+      "t_amb_c": 15.72,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 920,
+      "t_amb_c": 15.64,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 930,
+      "t_amb_c": 15.54,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 940,
+      "t_amb_c": 15.44,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 950,
+      "t_amb_c": 15.32,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 960,
+      "t_amb_c": 15.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 970,
+      "t_amb_c": 15.06,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 980,
+      "t_amb_c": 14.91,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 990,
+      "t_amb_c": 14.76,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1000,
+      "t_amb_c": 14.6,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1010,
+      "t_amb_c": 14.42,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1020,
+      "t_amb_c": 14.24,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1030,
+      "t_amb_c": 14.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1040,
+      "t_amb_c": 13.86,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1050,
+      "t_amb_c": 13.65,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1060,
+      "t_amb_c": 13.44,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1070,
+      "t_amb_c": 13.22,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1080,
+      "t_amb_c": 13.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1090,
+      "t_amb_c": 12.77,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1100,
+      "t_amb_c": 12.54,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1110,
+      "t_amb_c": 12.3,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1120,
+      "t_amb_c": 12.05,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1130,
+      "t_amb_c": 11.8,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1140,
+      "t_amb_c": 11.55,
+      "q_heat_kw": 8.0,
+      "q_demand_kw": 8.0,
+      "p_cmp_kw": 2.811,
+      "cop": 2.83,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1150,
+      "t_amb_c": 11.3,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1160,
+      "t_amb_c": 11.04,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1170,
+      "t_amb_c": 10.78,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1180,
+      "t_amb_c": 10.52,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1190,
+      "t_amb_c": 10.26,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1200,
+      "t_amb_c": 10.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1210,
+      "t_amb_c": 9.74,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1220,
+      "t_amb_c": 9.48,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1230,
+      "t_amb_c": 9.22,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1240,
+      "t_amb_c": 8.96,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1250,
+      "t_amb_c": 8.7,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1260,
+      "t_amb_c": 8.45,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1270,
+      "t_amb_c": 8.2,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1280,
+      "t_amb_c": 7.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1290,
+      "t_amb_c": 7.7,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1300,
+      "t_amb_c": 7.46,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1310,
+      "t_amb_c": 7.23,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1320,
+      "t_amb_c": 7.0,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1330,
+      "t_amb_c": 6.78,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1340,
+      "t_amb_c": 6.56,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1350,
+      "t_amb_c": 6.35,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1360,
+      "t_amb_c": 6.14,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1370,
+      "t_amb_c": 5.95,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1380,
+      "t_amb_c": 5.76,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1390,
+      "t_amb_c": 5.58,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1400,
+      "t_amb_c": 5.4,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1410,
+      "t_amb_c": 5.24,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1420,
+      "t_amb_c": 5.09,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    },
+    {
+      "t_min": 1430,
+      "t_amb_c": 4.94,
+      "q_heat_kw": 0.0,
+      "q_demand_kw": 0.0,
+      "p_cmp_kw": 0.0,
+      "cop": null,
+      "t_tank_c": 55.73
+    }
+  ]
+}

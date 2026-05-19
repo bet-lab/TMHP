@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,8 +32,13 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 
-    <meta property="article:modified_time" content="2026-05-18T02:03:41+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:09:16+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -246,7 +251,12 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
 <code class="docutils literal notranslate"><span class="pre">scripts/visualization/refrigerant_compare_ph.py</span></code>.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-</section>
+<div id="ph-chart-mount"
+     data-refrigerants="R32,R290,R134a,R1234yf"
+     data-default="R32"></div>
+<script src="../_static/js/lib/d3.v7.custom.min.js"></script>
+<script src="../_static/js/plots/_plot-common.js"></script>
+<script src="../_static/js/plots/ph-chart.js"></script></section>
 <section id="reading-the-result">
 <h2>Reading the result<a class="headerlink" href="#reading-the-result" title="Link to this heading">¶</a></h2>
 <p>A few things to look for:</p>

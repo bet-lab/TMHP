@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,8 +32,13 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the default first stop and the model the Getting Started flow uses. Overview: ..." />
 
-    <meta property="article:modified_time" content="2026-05-18T08:28:31+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:37:51+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -206,7 +211,7 @@ outdoor-coil source side and a DHW tank sink side. This is the
 default first stop and the model the Getting Started flow uses.</p>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>ASHPB solves the closed refrigerant cycle every step against an
+<p><span class="glossary" data-term="ashpb">ASHPB</span> solves the closed refrigerant cycle every step against an
 outdoor coil (ε-NTU air-side) and a tank-coupled condenser. The
 class is <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.AirSourceHeatPumpBoiler</span></code>. Three composed
 variants extend it with subsystems:</p>
@@ -254,6 +259,66 @@ cycle.</p>
 </section>
 <section id="composed-variants">
 <h2>Composed variants<a class="headerlink" href="#composed-variants" title="Link to this heading">¶</a></h2>
+<div class="sd-tab-set composition-tabs docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-0">
+Base</label><div class="sd-tab-content docutils">
+<p>The standalone ASHPB: outdoor coil ε-NTU evaporator, R32 cycle,
+DHW tank charge.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">result</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
+</span><span data-line="5">    <span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">T0</span><span class="o">=</span><span class="mf">7.0</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mi">8_000</span><span class="p">,</span>
+</span><span data-line="8"><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-1">
++ STC preheat</label><div class="sd-tab-content docutils">
+<p>Adds a flat-plate STC that preheats mains water entering the
+tank. Reduces the tank-charge duty the heat pump has to deliver.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_preheat</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_preheat</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-2">
++ STC stratified</label><div class="sd-tab-content docutils">
+<p>STC charges a separate top node of a stratified tank; the heat
+pump charges the bottom. Top-of-tank water is drawn first.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_tank</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_tank</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-3">
++ PV / ESS</label><div class="sd-tab-content docutils">
+<p>Photovoltaic generation + ESS preferentially feeds the
+compressor and auxiliaries.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_PV_ESS</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyStorageSystem</span><span class="p">,</span> <span class="n">PhotovoltaicSystem</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_PV_ESS</span><span class="p">(</span>
+</span><span data-line="5">    <span class="n">pv</span><span class="o">=</span><span class="n">PhotovoltaicSystem</span><span class="p">(),</span>
+</span><span data-line="6">    <span class="n">ess</span><span class="o">=</span><span class="n">EnergyStorageSystem</span><span class="p">(),</span>
+</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">,</span>
+</span><span data-line="8"><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+</div>
 <section id="stc-preheat">
 <h3>STC preheat<a class="headerlink" href="#stc-preheat" title="Link to this heading">¶</a></h3>
 <p>A <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> heats the cold mains

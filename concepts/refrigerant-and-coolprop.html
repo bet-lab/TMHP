@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,8 +32,13 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of tmhp — and this is the page that makes it concrete. The refrigerant is a constructor argument on every model ( ref=&quot;&lt;name&gt;&quo..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:41:47+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:09:16+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -181,7 +186,12 @@ out of the box, where the cycle assumptions break, and how to read
 CoolProp-related failures.</p>
 <section id="the-contract">
 <h2>The contract<a class="headerlink" href="#the-contract" title="Link to this heading">¶</a></h2>
-<p>Any refrigerant CoolProp supports as a pure fluid or a mixture
+<div id="ph-chart-mount"
+     data-refrigerants="R32,R290,R134a,R1234yf"
+     data-default="R32"></div>
+<script src="../_static/js/lib/d3.v7.custom.min.js"></script>
+<script src="../_static/js/plots/_plot-common.js"></script>
+<script src="../_static/js/plots/ph-chart.js"></script><p>Any refrigerant CoolProp supports as a pure fluid or a mixture
 that CoolProp can resolve via its built-in alias table is usable
 out of the box:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>        <span class="c1"># difluoromethane</span>
@@ -262,7 +272,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

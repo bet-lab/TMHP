@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,13 +27,18 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/models/gshpb.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: GSHPB solves the closed refrigerant cycle..." />
+<meta property="og:description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: solves the closed refrigerant cycle again..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: GSHPB solves the closed refrigerant cycle..." />
+<meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: solves the closed refrigerant cycle again..." />
 
-    <meta property="article:modified_time" content="2026-05-18T00:51:23+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:37:51+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -205,7 +210,7 @@ ground-loop source side (vertical borehole field) and the same DHW
 tank sink as ASHPB.</p>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>GSHPB solves the closed refrigerant cycle against a borehole heat
+<p><span class="glossary" data-term="gshpb">GSHPB</span> solves the closed refrigerant cycle against a borehole heat
 exchanger characterised by a precomputed <strong>g-function</strong>. The class is
 <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GroundSourceHeatPumpBoiler</span></code>. Three composed variants
 extend it the same way ASHPB’s do:</p>
@@ -263,6 +268,71 @@ by <code class="docutils literal notranslate"><span class="pre">scripts/visualiz
 <p>Usage patterns for the three variants are identical to ASHPB’s —
 see <a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> for full STC preheat and PV + ESS examples. Only
 the base class swaps; the schedules and routing are unchanged.</p>
+<div class="sd-tab-set composition-tabs docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-0">
+Base</label><div class="sd-tab-content docutils">
+<p>The standalone GSHPB: borehole-field g-function source, R32 cycle,
+DHW tank charge.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoiler</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">gshpb</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span>
+</span><span data-line="4">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span>
+</span><span data-line="5">    <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span>
+</span><span data-line="7"><span class="p">)</span>
+</span><span data-line="8"><span class="n">result</span> <span class="o">=</span> <span class="n">gshpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
+</span><span data-line="9">    <span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">T_source</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mi">8_000</span><span class="p">,</span>
+</span><span data-line="12"><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-1">
++ STC preheat</label><div class="sd-tab-content docutils">
+<p>Adds a flat-plate STC that preheats mains water entering the
+tank. Reduces the tank-charge duty the heat pump has to deliver.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_preheat</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_preheat</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-2">
++ STC stratified</label><div class="sd-tab-content docutils">
+<p>STC charges a separate top node of a stratified tank; the heat
+pump charges the bottom. Top-of-tank water is drawn first.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_tank</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_tank</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-3">
++ PV / ESS</label><div class="sd-tab-content docutils">
+<p>Photovoltaic generation + ESS preferentially feeds the
+compressor and auxiliaries.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_PV_ESS</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyStorageSystem</span><span class="p">,</span> <span class="n">PhotovoltaicSystem</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_PV_ESS</span><span class="p">(</span>
+</span><span data-line="5">    <span class="n">pv</span><span class="o">=</span><span class="n">PhotovoltaicSystem</span><span class="p">(),</span>
+</span><span data-line="6">    <span class="n">ess</span><span class="o">=</span><span class="n">EnergyStorageSystem</span><span class="p">(),</span>
+</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span>
+</span><span data-line="9"><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+</div>
 <section id="stc-preheat">
 <h3>STC preheat<a class="headerlink" href="#stc-preheat" title="Link to this heading">¶</a></h3>
 <dl class="py class">

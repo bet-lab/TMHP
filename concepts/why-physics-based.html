@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=1acfce28" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=b1e7b3fb" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,8 +32,13 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The name “Thermodynamic Models for Heat Pumps” describes what tmhp is — a library of thermodynamic cycle models. How those models are written is the part this page is about: every cycle is solved f..." />
 
-    <meta property="article:modified_time" content="2026-05-17T15:04:15+00:00" />
-  </head>
+    <meta property="article:modified_time" content="2026-05-18T14:37:51+00:00" />
+  
+<script src="../_static/js/core/glossary.js" defer></script>
+<script src="../_static/js/core/cmdk.js" defer></script>
+<script src="../_static/js/core/reading-progress.js" defer></script>
+<script src="../_static/js/core/scroll-spy.js" defer></script>
+<script src="../_static/js/core/global.js" defer></script></head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
   <div class="sy-head-inner sy-container mx-auto">
@@ -209,7 +214,7 @@ requires a new dataset.</p></td>
 (<code class="docutils literal notranslate"><span class="pre">ref=&quot;R290&quot;</span></code>). Anything CoolProp supports works.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>State visibility</strong></p></td>
-<td><p>Cycle state is hidden behind the fit. You see COP; you
+<td><p>Cycle state is hidden behind the fit. You see <span class="glossary" data-term="cop">COP</span>; you
 don’t see why.</p></td>
 <td><p>Every cycle node (compressor in/out, expander in/out,
 evaporator / condenser saturation) is in the result frame
@@ -264,7 +269,7 @@ on a physical optimum rather than on fitted coefficients.</p>
 <td><p>Isentropic + volumetric + mechanical efficiency.</p></td>
 </tr>
 <tr class="row-even"><td><p>Condenser / evaporator</p></td>
-<td><p>ε-NTU heat exchanger model.</p></td>
+<td><p><span class="glossary" data-term="epsilon-ntu">ε-NTU</span> heat exchanger model.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Outdoor unit fan</p></td>
 <td><p>ASHRAE 90.1-style VSD power curve, air-side ε-NTU.</p></td>
@@ -302,7 +307,7 @@ bench data.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated May 18, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

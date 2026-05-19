@@ -83,35 +83,40 @@
       : STATE.items.filter(it =>
           it.title.toLowerCase().includes(q) || it.doc.toLowerCase().includes(q)
         ).slice(0, 12);
+    if (!items.length) {
+      STATE.list.innerHTML = `<li class="cmdk-empty">No pages match “${q}”.</li>`;
+      return;
+    }
     STATE.list.innerHTML = items.map((it, i) =>
       `<li role="option" class="cmdk-item${i === STATE.focusIdx ? " active" : ""}"
            data-url="${it.url}">${it.title}<span class="cmdk-doc">${it.doc}</span></li>`
     ).join("");
-    STATE.list.querySelectorAll("li").forEach((li, i) => {
+    STATE.list.querySelectorAll("li.cmdk-item").forEach((li, i) => {
       li.addEventListener("mouseenter", () => { STATE.focusIdx = i; updateFocus(); });
       li.addEventListener("click", () => { window.location = li.dataset.url; });
     });
   }
 
   function updateFocus() {
-    STATE.list.querySelectorAll("li").forEach((li, i) =>
-      li.classList.toggle("active", i === STATE.focusIdx));
-    const cur = STATE.list.querySelector("li.active");
+    const items = STATE.list.querySelectorAll("li.cmdk-item");
+    items.forEach((li, i) => li.classList.toggle("active", i === STATE.focusIdx));
+    const cur = STATE.list.querySelector("li.cmdk-item.active");
     if (cur) cur.scrollIntoView({ block: "nearest" });
   }
 
   function onKey(e) {
-    const n = STATE.list.children.length;
+    const items = STATE.list.querySelectorAll("li.cmdk-item");
+    const n = items.length;
     if (e.key === "Escape") { close(); }
     else if (e.key === "Enter") {
-      const cur = STATE.list.querySelector("li.active");
+      const cur = STATE.list.querySelector("li.cmdk-item.active");
       if (cur) window.location = cur.dataset.url;
     }
-    else if (e.key === "ArrowDown") {
+    else if (e.key === "ArrowDown" && n > 0) {
       e.preventDefault();
       STATE.focusIdx = (STATE.focusIdx + 1) % n; updateFocus();
     }
-    else if (e.key === "ArrowUp") {
+    else if (e.key === "ArrowUp" && n > 0) {
       e.preventDefault();
       STATE.focusIdx = (STATE.focusIdx - 1 + n) % n; updateFocus();
     }

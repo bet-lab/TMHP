@@ -966,11 +966,19 @@ footer.sy-foot { display: none; }
 .composition-tabs .sd-tab-content { padding: var(--rx-space-4) 0; }
 /* --- Glossary popover (⑥) --- */
 .glossary {
-    border-bottom: 1px dashed var(--rx-accent-11);
+    /* Slightly heavier dash than 1 px so the underline reads as
+       "interactive hint" rather than a render artefact, but still
+       lighter than a solid underline (which would imply a link). */
+    border-bottom: 1.5px dashed var(--rx-accent-9);
     cursor: help;
     padding: 0 1px;
+    transition: background 100ms ease;
 }
-.glossary:hover, .glossary:focus { outline: none; background: var(--rx-accent-3); border-radius: 2px; }
+.glossary:hover, .glossary:focus {
+    outline: none;
+    background: var(--rx-accent-3);
+    border-radius: 2px;
+}
 .glossary-pop {
     position: absolute; z-index: 9999;
     max-width: 280px;
@@ -1028,6 +1036,13 @@ footer.sy-foot { display: none; }
     color: var(--rx-ink-muted);
 }
 .cmdk-item.active { background: var(--rx-accent-3); color: var(--rx-accent-11); }
+.cmdk-empty {
+    /* "No pages match …" state — italic, muted, centred-feel. */
+    padding: 16px 14px;
+    color: var(--rx-ink-muted);
+    font-style: italic;
+    text-align: center;
+}
 /* --- Reading progress + scroll-spy (⑨) --- */
 .reading-progress {
     position: fixed; top: 0; left: 0; height: 3px; width: 0;

@@ -16,9 +16,16 @@
   }
   const { loadJson, staticDir } = window.tmhpPlot;
 
-  // Hide the static rst table sibling once we're alive.
+  // Hide the static rst table sibling once we're alive. The list-table is
+  // wrapped in a sphinx-design `.. dropdown::` block (so JS-off readers see
+  // a collapsible "Show all 15 operating points" toggle); when JS is up
+  // the dropdown chrome adds noise on top of the widget, so we hide the
+  // whole <details> ancestor, not just the table-wrapper.
   const staticTable = document.querySelector(".validation-table-static");
-  if (staticTable) staticTable.classList.add("hidden-by-js");
+  if (staticTable) {
+    const dropdown = staticTable.closest("details.sd-dropdown");
+    (dropdown || staticTable).classList.add("hidden-by-js");
+  }
 
   mount.classList.add("validation-table");
   mount.innerHTML = `

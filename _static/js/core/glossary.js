@@ -67,12 +67,23 @@
       <div class="def">${entry.def}</div>
       <a class="link" href="${baseUrl}/${entry.link}">↳ Concepts page</a>
     `;
-    const r = span.getBoundingClientRect();
-    // 2px gap (down from 4) — closes the dead zone the cursor used to
-    // cross when reaching for the link.
-    pop.style.top = `${window.scrollY + r.bottom + 2}px`;
-    pop.style.left = `${window.scrollX + r.left}px`;
+    // Show invisibly first so the browser computes the real popover size,
+    // then position it. 2 px gap (down from 4) closes the dead zone the
+    // cursor used to cross when reaching for the link.
+    pop.style.visibility = "hidden";
     pop.classList.add("visible");
+    const span_r = span.getBoundingClientRect();
+    const pop_r = pop.getBoundingClientRect();
+    const margin = 8;
+    let left = span_r.left;
+    if (left + pop_r.width > window.innerWidth - margin) {
+      // Right-aligned to the viewport edge if the popover would overflow
+      // (terms near the right gutter of the article).
+      left = Math.max(margin, window.innerWidth - pop_r.width - margin);
+    }
+    pop.style.top = `${window.scrollY + span_r.bottom + 2}px`;
+    pop.style.left = `${window.scrollX + left}px`;
+    pop.style.visibility = "";
     STATE.active = span;
   }
 

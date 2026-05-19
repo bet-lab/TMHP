@@ -36,7 +36,8 @@
         },
       };
       const s = document.createElement("script");
-      s.src = `${staticDir()}/searchindex.js`;
+      // Sphinx places searchindex.js at the build root, not under _static/.
+      s.src = `${docRootUrl()}searchindex.js`;
       s.onerror = () => reject(new Error("searchindex.js failed to load"));
       document.head.appendChild(s);
     });

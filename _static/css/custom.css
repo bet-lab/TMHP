@@ -999,22 +999,30 @@ footer.sy-foot { display: none; }
 .hidden-by-js { display: none !important; }
 
 /* --- Tabs (⑤) --- */
-/* sphinx-design tabs reskin to match Radix-DNA accent. */
-.composition-tabs .sd-tab-set { border-bottom: 1px solid var(--rx-hairline); }
-.composition-tabs .sd-tab-label {
+/* sphinx-design tabs reskin to match Radix-DNA accent.
+ *
+ * The directive's `:class: composition-tabs` lands ON the `.sd-tab-set`
+ * div itself (not as a wrapper), so `.composition-tabs.sd-tab-set` is
+ * the selector — not `.composition-tabs .sd-tab-set`. The radio inputs
+ * sphinx-design emits do not carry the `sd-tab-input` class — they're
+ * plain `<input type="radio">`, so the active-state selector targets
+ * `input[type="radio"]:checked + label.sd-tab-label`.
+ */
+.composition-tabs.sd-tab-set { border-bottom: 1px solid var(--rx-hairline); }
+.composition-tabs > label.sd-tab-label {
     padding: var(--rx-space-2) var(--rx-space-4);
     font-size: var(--rx-fs-2);
     color: var(--rx-ink-muted);
     border-bottom: 2px solid transparent;
     transition: color 120ms ease, border-color 120ms ease;
 }
-.composition-tabs .sd-tab-label:hover { color: var(--rx-ink); }
-.composition-tabs input.sd-tab-input:checked + label.sd-tab-label {
+.composition-tabs > label.sd-tab-label:hover { color: var(--rx-ink); }
+.composition-tabs > input[type="radio"]:checked + label.sd-tab-label {
     color: var(--rx-accent-11);
     border-bottom-color: var(--rx-accent-9);
     font-weight: var(--rx-fw-medium);
 }
-.composition-tabs .sd-tab-content { padding: var(--rx-space-4) 0; }
+.composition-tabs > .sd-tab-content { padding: var(--rx-space-4) 0; }
 
 /* --- Glossary popover (⑥) --- */
 .glossary {

@@ -1,7 +1,13 @@
 /**
  * ⑨b Scroll spy: highlights the right-side TOC entry corresponding to
- * the section heading currently most in view. Uses IntersectionObserver
- * on h2 / h3 inside the article.
+ * the section currently most in view.
+ *
+ * Sphinx 7+ emits `<section id="...">` wrappers around each heading
+ * (rather than putting the id on the h2/h3 itself), so the observer
+ * targets `section[id]` inside the article. Each section's id is
+ * matched against the TOC link's `#hash`. Only top-level sections
+ * that the right-TOC actually links to are observed — deeper nested
+ * sections without a TOC entry are skipped.
  */
 (function () {
   "use strict";
@@ -10,15 +16,19 @@
   const toc = document.querySelector(".sy-rside, nav.toc, .toc-list");
   if (!toc) return;
 
-  const headings = article.querySelectorAll("h2[id], h3[id]");
-  if (!headings.length) return;
-
   const linkByHash = new Map();
   toc.querySelectorAll('a[href*="#"]').forEach(a => {
     const hash = a.getAttribute("href").split("#")[1];
     if (hash) linkByHash.set(hash, a);
   });
   if (!linkByHash.size) return;
+
+  const targets = [];
+  linkByHash.forEach((_link, hash) => {
+    const el = article.querySelector(`#${CSS.escape(hash)}`);
+    if (el) targets.push(el);
+  });
+  if (!targets.length) return;
 
   let last = null;
   const obs = new IntersectionObserver((entries) => {
@@ -33,5 +43,5 @@
     }
   }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
 
-  headings.forEach(h => obs.observe(h));
+  targets.forEach(t => obs.observe(t));
 })();

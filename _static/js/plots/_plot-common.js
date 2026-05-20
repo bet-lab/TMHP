@@ -73,10 +73,14 @@
   }
 
   function staticDir() {
-    const here = window.location.pathname.replace(/\/$/, "");
-    const parts = here.split("/").filter(Boolean);
-    const up = parts.length ? "../".repeat(parts.length - 1) : "";
-    return up + "_static";
+    const scripts = document.getElementsByTagName("script");
+    for (let script of scripts) {
+      if (script.src && script.src.includes("_static/js/plots/_plot-common.js")) {
+        const idx = script.src.indexOf("_static/js/plots/_plot-common.js");
+        return script.src.substring(0, idx + 7);
+      }
+    }
+    return "_static";
   }
 
   root.tmhpPlot = { tokens, loadJson, bilinear, domeLookup, staticDir };

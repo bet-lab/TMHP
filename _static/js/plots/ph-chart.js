@@ -1,4 +1,8 @@
 /**
+ * @deprecated This file is superseded by the integrated cycle_widget.html
+ * widget (docs/source/_static/html/cycle_widget.html) which provides T-h,
+ * P-h, and T-s diagrams with 7 physics-based sliders.  Kept for reference.
+ *
  * ① Live P–h chart with refrigerant selector.
  *
  * Reads /docs/source/_static/data/refrigerants/<REF>.json (built by

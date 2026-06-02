@@ -1,0 +1,813 @@
+<style>
+    .cw-root {
+        --cw-bg: var(--sy-c-bg, var(--color-background-primary, #ffffff));
+        --cw-bg-soft: var(--sy-c-bg-hover, var(--color-background-secondary, #f6f8fa));
+        --cw-border: var(--sy-c-border, var(--color-background-border, #e3e6ea));
+        --cw-text: var(--sy-c-text, var(--color-foreground-primary, #1f2328));
+        --cw-text-muted: var(--color-foreground-muted, #57606a);
+        --cw-primary: var(--sy-c-primary, var(--color-brand-primary, #1c7ed6));
+        --cw-axis: color-mix(in srgb, var(--cw-text) 45%, transparent);
+        --cw-grid: color-mix(in srgb, var(--cw-text) 10%, transparent);
+        --cw-liquid: #1c7ed6;
+        --cw-vapor: #f03e3e;
+        --cw-cycle: color-mix(in srgb, var(--cw-text) 72%, transparent);
+        --cw-source: #f08c00;
+        --cw-sink: #e8590c;
+
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        border: 1px solid var(--cw-border);
+        border-radius: 14px;
+        padding: 20px;
+        background: var(--cw-bg);
+        margin: 24px 0;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+        color: var(--cw-text);
+    }
+
+    .cw-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px 22px;
+        margin-bottom: 18px;
+    }
+
+    .cw-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .cw-field>label {
+        font-weight: 600;
+        font-size: 0.82em;
+        letter-spacing: 0.01em;
+        color: var(--cw-text-muted);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .cw-field .cw-val {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--cw-primary);
+        font-size: 0.95em;
+    }
+
+    .cw-field select {
+        padding: 8px 10px;
+        border-radius: 9px;
+        border: 1px solid var(--cw-border);
+        background: var(--cw-bg-soft);
+        color: var(--cw-text);
+        font-size: 0.92em;
+        cursor: pointer;
+    }
+
+    /* Glassmorphism range sliders */
+    .cw-field input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 7px;
+        border-radius: 999px;
+        background: linear-gradient(to right,
+                var(--cw-primary) 0%,
+                var(--cw-primary) var(--cw-fill, 50%),
+                var(--cw-grid) var(--cw-fill, 50%),
+                var(--cw-grid) 100%);
+        outline: none;
+        cursor: pointer;
+        margin: 5px 0;
+    }
+
+    .cw-field input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: var(--cw-bg);
+        border: 2.5px solid var(--cw-primary);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        transition: transform 0.12s ease;
+    }
+
+    .cw-field input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.18);
+    }
+
+    .cw-field input[type="range"]::-moz-range-thumb {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: var(--cw-bg);
+        border: 2.5px solid var(--cw-primary);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+    }
+
+    .cw-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 6px 0 12px;
+        padding-top: 14px;
+        border-top: 1px solid var(--cw-border);
+    }
+
+    .cw-segmented {
+        display: inline-flex;
+        padding: 3px;
+        gap: 2px;
+        background: var(--cw-bg-soft);
+        border: 1px solid var(--cw-border);
+        border-radius: 11px;
+    }
+
+    .cw-segmented button {
+        padding: 7px 15px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.86em;
+        color: var(--cw-text-muted);
+        transition: all 0.18s ease;
+    }
+
+    .cw-segmented button:hover {
+        color: var(--cw-text);
+    }
+
+    .cw-segmented button.active {
+        background: var(--cw-primary);
+        color: #fff;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--cw-primary) 45%, transparent);
+    }
+
+    .cw-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 0.8em;
+        color: var(--cw-text-muted);
+    }
+
+    .cw-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .cw-legend i {
+        width: 16px;
+        height: 0;
+        border-top-width: 2.5px;
+        border-top-style: solid;
+        display: inline-block;
+    }
+
+    .cw-legend i.dotted {
+        border-top-style: dotted;
+        border-top-width: 2px;
+    }
+
+    .cw-stage {
+        position: relative;
+        width: 100%;
+    }
+
+    .cw-stage svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        touch-action: none;
+    }
+
+    .cw-svg text {
+        fill: var(--cw-text);
+    }
+
+    .cw-axis-line {
+        stroke: var(--cw-axis);
+        stroke-width: 1;
+    }
+
+    .cw-grid-line {
+        stroke: var(--cw-grid);
+        stroke-width: 1;
+    }
+
+    .cw-sat-liq {
+        stroke: var(--cw-liquid);
+        fill: none;
+        stroke-width: 2;
+    }
+
+    .cw-sat-vap {
+        stroke: var(--cw-vapor);
+        fill: none;
+        stroke-width: 2;
+    }
+
+    .cw-cycle-line {
+        stroke: var(--cw-cycle);
+        fill: none;
+        stroke-width: 1.6;
+        stroke-dasharray: 4 3;
+    }
+
+    .cw-bound {
+        stroke-width: 1.4;
+        stroke-dasharray: 3 3;
+        fill: none;
+    }
+
+    .cw-marker {
+        cursor: pointer;
+        transition: r 0.1s ease;
+    }
+
+    .cw-marker:hover {
+        r: 6;
+    }
+
+    .cw-overlay {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: color-mix(in srgb, var(--cw-bg) 78%, transparent);
+        backdrop-filter: blur(2px);
+        border-radius: 8px;
+        padding: 16px;
+        font-size: 0.9em;
+        color: var(--cw-text-muted);
+    }
+
+    .cw-tooltip {
+        position: absolute;
+        pointer-events: none;
+        z-index: 20;
+        min-width: 150px;
+        padding: 9px 11px;
+        border-radius: 10px;
+        font-size: 0.78em;
+        line-height: 1.5;
+        background: color-mix(in srgb, var(--cw-bg) 82%, transparent);
+        border: 1px solid var(--cw-border);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+        backdrop-filter: blur(8px) saturate(160%);
+        -webkit-backdrop-filter: blur(8px) saturate(160%);
+        color: var(--cw-text);
+        opacity: 0;
+        transform: translateY(4px);
+        transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+
+    .cw-tooltip.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .cw-tooltip .cw-tt-title {
+        font-weight: 700;
+        margin-bottom: 4px;
+        border-bottom: 1px solid var(--cw-border);
+        padding-bottom: 4px;
+    }
+
+    .cw-tooltip .cw-tt-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .cw-tooltip .cw-tt-row span:first-child {
+        color: var(--cw-text-muted);
+    }
+
+    .cw-tooltip .cw-tt-row span:last-child {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+    }
+
+    .cw-status {
+        font-size: 0.78em;
+        color: var(--cw-text-muted);
+        margin-top: 10px;
+        text-align: right;
+    }
+
+    .cw-error {
+        color: #e03131;
+    }
+</style>
+
+<div class="cw-root" id="cwRoot">
+    <div class="cw-controls" id="cwControls">
+        <div class="cw-field">
+            <label for="cwRef">Refrigerant</label>
+            <select id="cwRef"></select>
+        </div>
+        <!-- Sliders injected by script -->
+    </div>
+
+    <div class="cw-toolbar">
+        <div class="cw-segmented" id="cwDiagram">
+            <button data-type="th" class="active">T&ndash;h</button>
+            <button data-type="ph">P&ndash;h</button>
+            <button data-type="ts">T&ndash;s</button>
+        </div>
+        <div class="cw-legend">
+            <span><i class="cw-sat-liq" style="border-top-color:#1c7ed6"></i>Sat. liquid</span>
+            <span><i class="cw-sat-vap" style="border-top-color:#f03e3e"></i>Sat. vapor</span>
+            <span><i class="dotted" style="border-top-color:#868e96"></i>Cycle</span>
+        </div>
+    </div>
+
+    <div class="cw-stage" id="cwStage">
+        <div class="cw-overlay" id="cwOverlay"></div>
+        <div class="cw-tooltip" id="cwTooltip"></div>
+    </div>
+    <div class="cw-status" id="cwStatus"></div>
+</div>
+
+<script>
+    (function () {
+        "use strict";
+
+        const ROOT = document.getElementById("cwRoot");
+        if (!ROOT || ROOT.dataset.cwInit) return;   // guard against double-injection
+        ROOT.dataset.cwInit = "1";
+
+        const refSelect = document.getElementById("cwRef");
+        const controls = document.getElementById("cwControls");
+        const diagramBar = document.getElementById("cwDiagram");
+        const stage = document.getElementById("cwStage");
+        const overlay = document.getElementById("cwOverlay");
+        const tooltip = document.getElementById("cwTooltip");
+        const statusEl = document.getElementById("cwStatus");
+
+        const SVG_NS = "http://www.w3.org/2000/svg";
+        const W = 660, H = 470;
+        const M = { left: 66, right: 18, top: 18, bottom: 50 };
+        const PW = W - M.left - M.right;
+        const PH = H - M.top - M.bottom;
+
+        // Sliders, in display order. `key` matches data.params / state-key axis order.
+        const SLIDER_DEFS = [
+            { key: "T_source", label: "Source temp. (T_source)", unit: "°C", def: 2 },
+            { key: "T_sink", label: "Sink temp. (T_sink)", unit: "°C", def: 1 },
+            { key: "dT_subcool", label: "Subcooling (ΔT_sub)", unit: "K", def: 1 },
+            { key: "dT_superheat", label: "Superheating (ΔT_sup)", unit: "K", def: 1 },
+            { key: "Q_cond", label: "Heating load (Q_cond)", unit: "kW", def: 1, scale: 0.001 },
+            { key: "UA_cond", label: "Condenser UA", unit: "W/K", def: 1 },
+            { key: "UA_evap", label: "Evaporator UA", unit: "W/K", def: 1 },
+        ];
+
+        // Each state point is [h (kJ/kg), T (degC), P (kPa), s (kJ/kgK)].
+        const HI = 0, TI = 1, PI = 2, SI = 3;
+        const POINT_ORDER = ["1s", "1", "2", "2s", "3s", "3", "4"];
+        const POINT_TITLES = {
+            "1s": "evaporator sat. vapor",
+            "1": "cmp,in · compressor inlet",
+            "2": "cmp,out · compressor outlet",
+            "2s": "condenser sat. vapor",
+            "3s": "condenser sat. liquid",
+            "3": "exp,in · expansion-valve inlet",
+            "4": "exp,out · expansion-valve outlet",
+        };
+        // On-chart text labels. Saturation/prime points (1', 2', 3') are drawn
+        // as markers only — no text label — so the diagram stays uncluttered.
+        const POINT_DISPLAY = {
+            "1": "cmp,in", "2": "cmp,out", "3": "exp,in", "4": "exp,out",
+        };
+        // Cycle traversal order (matches the Matplotlib renderer).
+        const CYCLE_SEQ = ["4", "1s", "1", "2", "2s", "3s", "3", "4"];
+
+        let DATA = null;
+        let diagramType = "th";
+        const sliderEls = {};   // key -> input element
+
+        // ---- data path resolution (robust to GitHub Pages sub-directories) ----
+        function resolveDataUrl() {
+            const link = document.querySelector('link[href*="_static/"], script[src*="_static/"]');
+            const attr = link ? (link.getAttribute("href") || link.getAttribute("src")) : null;
+            if (attr) {
+                const idx = attr.indexOf("_static/");
+                if (idx !== -1) return attr.slice(0, idx) + "_static/widgets/cycle_data.json";
+            }
+            return "../../_static/widgets/cycle_data.json";
+        }
+
+        // ---- coordinate transforms ----
+        function makeTransform(limits, type) {
+            const xMin = limits.xmin, xMax = limits.xmax;
+            const yMin = limits.ymin, yMax = limits.ymax;
+            const logY = (type === "ph");
+            const yLo = logY ? Math.log10(yMin) : yMin;
+            const yHi = logY ? Math.log10(yMax) : yMax;
+            return {
+                limits, logY,
+                xToPx: (x) => M.left + (x - xMin) / (xMax - xMin) * PW,
+                yToPx: (y) => {
+                    const v = logY ? Math.log10(Math.max(y, 1e-9)) : y;
+                    return M.top + (1 - (v - yLo) / (yHi - yLo)) * PH;
+                },
+                inX: (x) => x >= xMin && x <= xMax,
+                inY: (y) => y >= yMin && y <= yMax,
+            };
+        }
+
+        // Which stored value feeds each axis for a given diagram type.
+        function axisIndices(type) {
+            if (type === "th") return { x: HI, y: TI };
+            if (type === "ph") return { x: HI, y: PI };
+            return { x: SI, y: TI };   // ts
+        }
+
+        function axisLabels(type) {
+            if (type === "th") return { x: "Enthalpy  [kJ/kg]", y: "Temperature  [°C]" };
+            if (type === "ph") return { x: "Enthalpy  [kJ/kg]", y: "Pressure  [kPa]" };
+            return { x: "Entropy  [kJ/(kg·K)]", y: "Temperature  [°C]" };
+        }
+
+        function satCurves(type, sat) {
+            // returns [liquidPts, vaporPts] as arrays of [xData, yData]
+            if (type === "th") {
+                return [
+                    sat.h_liq.map((h, i) => [h, sat.T[i]]),
+                    sat.h_vap.map((h, i) => [h, sat.T[i]]),
+                ];
+            }
+            if (type === "ph") {
+                return [
+                    sat.h_liq.map((h, i) => [h, sat.p_sat[i]]),
+                    sat.h_vap.map((h, i) => [h, sat.p_sat[i]]),
+                ];
+            }
+            return [
+                sat.s_liq.map((s, i) => [s, sat.T[i]]),
+                sat.s_vap.map((s, i) => [s, sat.T[i]]),
+            ];
+        }
+
+        // ---- nice tick generation ----
+        function linTicks(min, max, target) {
+            const span = max - min;
+            const raw = span / target;
+            const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+            const norm = raw / mag;
+            let step;
+            if (norm < 1.5) step = 1; else if (norm < 3) step = 2; else if (norm < 7) step = 5; else step = 10;
+            step *= mag;
+            const ticks = [];
+            for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) {
+                ticks.push(Math.abs(v) < step * 1e-6 ? 0 : v);
+            }
+            return { ticks, step };
+        }
+        function logTicks(min, max) {
+            const ticks = [];
+            for (let e = Math.ceil(Math.log10(min)); e <= Math.floor(Math.log10(max) + 1e-9); e++) {
+                ticks.push(Math.pow(10, e));
+            }
+            return ticks;
+        }
+        function fmtTick(v, step) {
+            if (v === 0) return "0";
+            if (Math.abs(v) >= 1000) return (v / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 }) + "k";
+            const dec = step && step < 1 ? 1 : 0;
+            return v.toLocaleString(undefined, { maximumFractionDigits: dec });
+        }
+
+        // ---- SVG builders ----
+        function el(name, attrs) {
+            const e = document.createElementNS(SVG_NS, name);
+            for (const k in attrs) e.setAttribute(k, attrs[k]);
+            return e;
+        }
+        function polyline(pts, cls, tf) {
+            let d = "";
+            let pen = false;
+            for (const [x, y] of pts) {
+                const px = tf.xToPx(x), py = tf.yToPx(y);
+                // light clipping so the dome never spills into the margins
+                if (px < M.left - 1 || px > M.left + PW + 1 || py < M.top - 1 || py > M.top + PH + 1) {
+                    pen = false; continue;
+                }
+                d += (pen ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1) + " ";
+                pen = true;
+            }
+            return el("path", { d: d.trim(), class: cls });
+        }
+
+        function render() {
+            // sync slider fills + value labels
+            SLIDER_DEFS.forEach((def) => {
+                const inp = sliderEls[def.key];
+                const vals = DATA.params[def.key];
+                const i = parseInt(inp.value, 10);
+                const pct = vals.length > 1 ? (i / (vals.length - 1)) * 100 : 50;
+                inp.style.setProperty("--cw-fill", pct + "%");
+                const raw = vals[i] * (def.scale || 1);
+                const disp = Number.isInteger(raw) ? raw : raw.toFixed(1);
+                inp.parentElement.querySelector(".cw-val").textContent = disp + " " + def.unit;
+            });
+
+            const refIdx = refSelect.selectedIndex;
+            const ref = DATA.params.refrigerant[refIdx];
+            let limits = DATA.limits[ref][diagramType];
+            if (diagramType === "th" || diagramType === "ts") {
+                limits = { ...limits, ymin: -50, ymax: 150 };
+            }
+            const tf = makeTransform(limits, diagramType);
+            const ai = axisIndices(diagramType);
+            const labels = axisLabels(diagramType);
+
+            const svg = el("svg", { class: "cw-svg", viewBox: `0 0 ${W} ${H}`, role: "img" });
+
+            // clip region
+            const defs = el("defs", {});
+            const clip = el("clipPath", { id: "cwClip" });
+            clip.appendChild(el("rect", { x: M.left, y: M.top, width: PW, height: PH }));
+            defs.appendChild(clip);
+            svg.appendChild(defs);
+
+            // grid + ticks
+            const gGrid = el("g", {});
+            const xt = linTicks(limits.xmin, limits.xmax, 6);
+            xt.ticks.forEach((v) => {
+                const px = tf.xToPx(v);
+                gGrid.appendChild(el("line", { x1: px, y1: M.top, x2: px, y2: M.top + PH, class: "cw-grid-line" }));
+                const t = el("text", { x: px, y: M.top + PH + 16, "text-anchor": "middle", "font-size": 11 });
+                t.textContent = fmtTick(v, xt.step);
+                gGrid.appendChild(t);
+            });
+            const yticks = tf.logY ? logTicks(limits.ymin, limits.ymax) : linTicks(limits.ymin, limits.ymax, 6).ticks;
+            const ystep = tf.logY ? null : linTicks(limits.ymin, limits.ymax, 6).step;
+            yticks.forEach((v) => {
+                const py = tf.yToPx(v);
+                gGrid.appendChild(el("line", { x1: M.left, y1: py, x2: M.left + PW, y2: py, class: "cw-grid-line" }));
+                const t = el("text", { x: M.left - 8, y: py + 4, "text-anchor": "end", "font-size": 11 });
+                t.textContent = tf.logY ? fmtTick(v, 1) : fmtTick(v, ystep);
+                gGrid.appendChild(t);
+            });
+            svg.appendChild(gGrid);
+
+            // axis frame
+            svg.appendChild(el("rect", { x: M.left, y: M.top, width: PW, height: PH, fill: "none", class: "cw-axis-line" }));
+
+            // axis titles
+            const xTitle = el("text", { x: M.left + PW / 2, y: H - 10, "text-anchor": "middle", "font-size": 12.5, "font-weight": 600 });
+            xTitle.textContent = labels.x;
+            svg.appendChild(xTitle);
+            const yTitle = el("text", { x: 16, y: M.top + PH / 2, "text-anchor": "middle", "font-size": 12.5, "font-weight": 600, transform: `rotate(-90 16 ${M.top + PH / 2})` });
+            yTitle.textContent = labels.y;
+            svg.appendChild(yTitle);
+
+            // saturation dome (clipped)
+            const gSat = el("g", { "clip-path": "url(#cwClip)" });
+            const [liqPts, vapPts] = satCurves(diagramType, DATA.saturation[ref]);
+            // The tabulated dome stops just short of the critical point, leaving a
+            // visible gap between the liquid and vapor branches. Extend both branches
+            // to their shared critical apex so the dome closes cleanly.
+            if (liqPts.length && vapPts.length) {
+                const lt = liqPts[liqPts.length - 1], vt = vapPts[vapPts.length - 1];
+                const apex = [(lt[0] + vt[0]) / 2, (lt[1] + vt[1]) / 2];
+                liqPts.push(apex);
+                vapPts.push(apex);
+            }
+            gSat.appendChild(polyline(liqPts, "cw-sat-liq", tf));
+            gSat.appendChild(polyline(vapPts, "cw-sat-vap", tf));
+            svg.appendChild(gSat);
+
+            // saturation-temperature bound lines (T-h / T-s only)
+            const state = lookupState(refIdx);
+            if (diagramType !== "ph") {
+                const tSource = DATA.params.T_source[parseInt(sliderEls.T_source.value, 10)];
+                const tSink = DATA.params.T_sink[parseInt(sliderEls.T_sink.value, 10)];
+                drawBound(svg, tf, tSource, "var(--cw-source)", "Source " + tSource + "°C", "top");
+                drawBound(svg, tf, tSink, "var(--cw-sink)", "Sink " + tSink + "°C", "bottom");
+            }
+
+            // cycle
+            if (state) {
+                drawCycle(svg, tf, ai, state);
+                drawMetrics(svg, state);
+                overlay.style.display = "none";
+                if (statusEl) statusEl.classList.remove("cw-error");
+            } else {
+                overlay.style.display = "flex";
+                overlay.innerHTML = "This parameter combination is thermodynamically unreachable " +
+                    "(e.g. the condensing temperature exceeds the refrigerant critical point). " +
+                    "Try a lower sink temperature, lower load, or a larger UA.";
+                if (statusEl) { statusEl.classList.add("cw-error"); statusEl.textContent = `${ref} · selected state unavailable`; }
+            }
+
+            stage.querySelectorAll("svg").forEach((s) => s.remove());
+            stage.insertBefore(svg, overlay);
+        }
+
+        function drawBound(svg, tf, T, color, label, side) {
+            if (!tf.inY(T)) return;
+            const py = tf.yToPx(T);
+            svg.appendChild(el("line", { x1: M.left, y1: py, x2: M.left + PW, y2: py, class: "cw-bound", stroke: color }));
+            const t = el("text", { x: M.left + 6, y: py + (side === "top" ? -4 : 12), "font-size": 10.5, fill: color, "font-weight": 600 });
+            t.textContent = label;
+            svg.appendChild(t);
+        }
+
+        // Performance summary box: refrigerant COP and compressor power drawn for
+        // the currently selected operating point. The denominator is the refrigerant
+        // compressor work only (no auxiliaries), so this is the refrigerant-side COP:
+        // COP_ref = (h2 - h3) / (h2 - h1), and W_comp = Q_cond / COP_ref.
+        function drawMetrics(svg, state) {
+            const h1 = state[1][HI], h2 = state[2][HI], h3 = state[5][HI];
+            const wSpec = h2 - h1;   // compressor specific work [kJ/kg]
+            const qSpec = h2 - h3;   // condenser specific heat (heating output) [kJ/kg]
+            if (!(wSpec > 0) || !(qSpec > 0)) return;
+            const cop = qSpec / wSpec;
+            const qCondW = DATA.params.Q_cond[parseInt(sliderEls.Q_cond.value, 10)];
+            const wCompKw = (qCondW * 0.001) / cop;
+
+            const bw = 184, bh = 50;
+            const bx = M.left + 12, by = M.top + PH - bh - 12;
+            const g = el("g", {});
+            g.appendChild(el("rect", {
+                x: bx, y: by, width: bw, height: bh, rx: 8,
+                fill: "var(--cw-bg)", "fill-opacity": 0.92,
+                stroke: "var(--cw-border)", "stroke-width": 1,
+            }));
+            const rows = [
+                ["Refrigerant COP", cop.toFixed(2)],
+                ["Comp. power", wCompKw.toFixed(2) + " kW"],
+            ];
+            rows.forEach(([label, value], i) => {
+                const ty = by + 20 + i * 18;
+                const lab = el("text", { x: bx + 12, y: ty, "font-size": 11.5, fill: "var(--cw-text-muted)" });
+                lab.textContent = label;
+                g.appendChild(lab);
+                const val = el("text", { x: bx + bw - 12, y: ty, "text-anchor": "end", "font-size": 12, "font-weight": 700, fill: "var(--cw-primary)" });
+                val.textContent = value;
+                g.appendChild(val);
+            });
+            svg.appendChild(g);
+        }
+
+        function drawCycle(svg, tf, ai, state) {
+            const pt = {};
+            POINT_ORDER.forEach((name, idx) => { pt[name] = state[idx]; });
+            const xy = (name) => [tf.xToPx(pt[name][ai.x]), tf.yToPx(pt[name][ai.y])];
+
+            // path
+            let d = "";
+            CYCLE_SEQ.forEach((name, i) => {
+                const [px, py] = xy(name);
+                d += (i ? "L" : "M") + px.toFixed(1) + " " + py.toFixed(1) + " ";
+            });
+            svg.appendChild(el("path", { d: d.trim(), class: "cw-cycle-line", "clip-path": "url(#cwClip)" }));
+
+            // detect coincident prime points (no superheat / subcool)
+            const close = (a, b) => {
+                const [ax, ay] = xy(a), [bx, by] = xy(b);
+                return Math.abs(ax - bx) < 3 && Math.abs(ay - by) < 3;
+            };
+            const skip = new Set();
+            if (close("1s", "1")) skip.add("1s");
+            if (close("2s", "2")) skip.add("2s");
+            if (close("3s", "3")) skip.add("3s");
+
+            const labelCfg = {
+                "1": [9, 4], "2": [9, 4], "3": [-9, 4], "4": [-9, 4],
+            };
+            const gMarkers = el("g", {});
+            POINT_ORDER.forEach((name) => {
+                if (skip.has(name)) return;
+                const [px, py] = xy(name);
+                if (px < M.left - 2 || px > M.left + PW + 2 || py < M.top - 2 || py > M.top + PH + 2) return;
+                const prime = name.endsWith("s");
+                const fill = prime ? "var(--cw-bg)" : "var(--cw-text)";
+                const stroke = prime ? (name === "3s" ? "var(--cw-liquid)" : "var(--cw-vapor)") : "none";
+                const strokeWidth = prime ? 1.8 : 0;
+                const c = el("circle", { cx: px, cy: py, r: 4, fill, stroke, "stroke-width": strokeWidth, class: "cw-marker" });
+                c.dataset.point = name;
+                c.dataset.idx = POINT_ORDER.indexOf(name);
+                gMarkers.appendChild(c);
+
+                // Only the four principal states carry a text label; the
+                // saturation/prime points stay marker-only.
+                const txt = POINT_DISPLAY[name];
+                if (txt) {
+                    const [dx, dy] = labelCfg[name];
+                    const anchor = dx > 0 ? "start" : (dx < 0 ? "end" : "middle");
+                    const t = el("text", { x: px + dx, y: py + dy, "text-anchor": anchor, "font-size": 11.5, "font-weight": 700 });
+                    t.textContent = txt;
+                    gMarkers.appendChild(t);
+                }
+            });
+            svg.appendChild(gMarkers);
+        }
+
+        // ---- state lookup ----
+        function lookupState(refIdx) {
+            const key = [
+                refIdx,
+                sliderEls.T_source.value, sliderEls.T_sink.value,
+                sliderEls.dT_subcool.value, sliderEls.dT_superheat.value,
+                sliderEls.Q_cond.value, sliderEls.UA_cond.value, sliderEls.UA_evap.value,
+            ].join("_");
+            return DATA.states[key] || null;
+        }
+
+        // ---- tooltip (event delegation) ----
+        function pointTooltipHtml(name, p) {
+            const rows = [
+                ["T", p[TI].toFixed(1), "°C"],
+                ["P", p[PI].toLocaleString(undefined, { maximumFractionDigits: 1 }), "kPa"],
+                ["h", p[HI].toFixed(1), "kJ/kg"],
+                ["s", p[SI].toFixed(3), "kJ/(kg·K)"],
+            ].map(([k, v, u]) => `<div class="cw-tt-row"><span>${k}</span><span>${v} ${u}</span></div>`).join("");
+            return `<div class="cw-tt-title">${POINT_TITLES[name] || name}</div>${rows}`;
+        }
+        function bindTooltip() {
+            stage.addEventListener("mouseover", (e) => {
+                const c = e.target.closest && e.target.closest(".cw-marker");
+                if (!c) return;
+                const refIdx = refSelect.selectedIndex;
+                const state = lookupState(refIdx);
+                if (!state) return;
+                const idx = parseInt(c.dataset.idx, 10);
+                tooltip.innerHTML = pointTooltipHtml(c.dataset.point, state[idx]);
+                tooltip.classList.add("show");
+            });
+            stage.addEventListener("mousemove", (e) => {
+                if (!tooltip.classList.contains("show")) return;
+                const r = stage.getBoundingClientRect();
+                let x = e.clientX - r.left + 14;
+                let y = e.clientY - r.top + 14;
+                if (x + tooltip.offsetWidth > r.width) x = e.clientX - r.left - tooltip.offsetWidth - 14;
+                tooltip.style.left = x + "px";
+                tooltip.style.top = y + "px";
+            });
+            stage.addEventListener("mouseout", (e) => {
+                if (e.target.closest && e.target.closest(".cw-marker")) tooltip.classList.remove("show");
+            });
+        }
+
+        // ---- UI setup ----
+        function buildControls() {
+            DATA.params.refrigerant.forEach((r, i) => {
+                const opt = document.createElement("option");
+                opt.value = r; opt.textContent = r;
+                refSelect.appendChild(opt);
+            });
+            refSelect.addEventListener("change", render);
+
+            SLIDER_DEFS.forEach((def) => {
+                const vals = DATA.params[def.key];
+                const field = document.createElement("div");
+                field.className = "cw-field";
+                const lab = document.createElement("label");
+                lab.innerHTML = `<span>${def.label}</span><span class="cw-val"></span>`;
+                const inp = document.createElement("input");
+                inp.type = "range";
+                inp.min = "0"; inp.max = String(vals.length - 1); inp.step = "1";
+                inp.value = String(Math.min(def.def, vals.length - 1));
+                inp.addEventListener("input", render);
+                field.appendChild(lab);
+                field.appendChild(inp);
+                controls.appendChild(field);
+                sliderEls[def.key] = inp;
+            });
+
+            diagramBar.addEventListener("click", (e) => {
+                const btn = e.target.closest("button");
+                if (!btn) return;
+                diagramBar.querySelectorAll("button").forEach((b) => b.classList.remove("active"));
+                btn.classList.add("active");
+                diagramType = btn.dataset.type;
+                render();
+            });
+        }
+
+        fetch(resolveDataUrl())
+            .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+            .then((json) => {
+                DATA = json;
+                buildControls();
+                bindTooltip();
+                render();
+            })
+            .catch((err) => {
+                if (statusEl) { statusEl.classList.add("cw-error"); statusEl.textContent = "Failed to load cycle data: " + err.message; }
+            });
+    })();
+</script>

@@ -1,4 +1,7 @@
 /**
+ * @deprecated This file is superseded by the integrated cycle_widget.html
+ * widget (docs/source/_static/html/cycle_widget.html).  Kept for reference.
+ *
  * Shared helpers for tmhp interactive plots.
  *
  * Reads Radix-DNA CSS variables off :root so every plot picks up the

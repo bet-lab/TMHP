@@ -26,9 +26,18 @@
 
     .cw-controls {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        grid-template-columns: 180px 1fr 1fr;
         gap: 14px 22px;
         margin-bottom: 18px;
+    }
+
+    @media (max-width: 640px) {
+        .cw-controls {
+            grid-template-columns: 1fr;
+        }
+        .cw-field-compact {
+            max-width: 100%;
+        }
     }
 
     .cw-field {
@@ -46,6 +55,8 @@
         justify-content: space-between;
         align-items: baseline;
         gap: 8px;
+        height: 16px;
+        line-height: 16px;
     }
 
     .cw-field .cw-val {
@@ -56,7 +67,10 @@
     }
 
     .cw-field select {
-        padding: 8px 10px;
+        width: 100%;
+        box-sizing: border-box;
+        height: 36px;
+        padding: 0 10px;
         border-radius: 9px;
         border: 1px solid var(--cw-border);
         background: var(--cw-bg-soft);
@@ -65,11 +79,25 @@
         cursor: pointer;
     }
 
+    .cw-field-compact {
+        max-width: 180px;
+        width: 100%;
+    }
+
     /* Glassmorphism range sliders */
     .cw-field input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
         width: 100%;
+        height: 36px;
+        background: transparent;
+        outline: none;
+        cursor: pointer;
+        margin: 0;
+        display: block;
+    }
+
+    .cw-field input[type="range"]::-webkit-slider-runnable-track {
         height: 7px;
         border-radius: 999px;
         background: linear-gradient(to right,
@@ -77,9 +105,16 @@
                 var(--cw-primary) var(--cw-fill, 50%),
                 var(--cw-grid) var(--cw-fill, 50%),
                 var(--cw-grid) 100%);
-        outline: none;
-        cursor: pointer;
-        margin: 5px 0;
+    }
+
+    .cw-field input[type="range"]::-moz-range-track {
+        height: 7px;
+        border-radius: 999px;
+        background: linear-gradient(to right,
+                var(--cw-primary) 0%,
+                var(--cw-primary) var(--cw-fill, 50%),
+                var(--cw-grid) var(--cw-fill, 50%),
+                var(--cw-grid) 100%);
     }
 
     .cw-field input[type="range"]::-webkit-slider-thumb {
@@ -92,6 +127,7 @@
         border: 2.5px solid var(--cw-primary);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
         transition: transform 0.12s ease;
+        margin-top: -5px; /* Center thumb on 7px webkit track */
     }
 
     .cw-field input[type="range"]::-webkit-slider-thumb:hover {
@@ -119,7 +155,10 @@
     }
 
     .cw-segmented {
-        display: inline-flex;
+        display: flex;
+        width: 100%;
+        box-sizing: border-box;
+        height: 36px;
         padding: 3px;
         gap: 2px;
         background: var(--cw-bg-soft);
@@ -128,7 +167,11 @@
     }
 
     .cw-segmented button {
-        padding: 7px 15px;
+        flex: 1;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         border: none;
         background: transparent;
         border-radius: 8px;
@@ -172,8 +215,21 @@
     }
 
     .cw-legend i.dotted {
+        position: relative;
         border-top-style: dotted;
         border-top-width: 2px;
+    }
+
+    .cw-legend i.dotted::after {
+        content: "";
+        position: absolute;
+        width: 4.5px;
+        height: 4.5px;
+        background: var(--cw-text, #1f2328);
+        border-radius: 50%;
+        top: -1.25px;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .cw-stage {
@@ -312,25 +368,14 @@
 
 <div class="cw-root" id="cwRoot">
     <div class="cw-controls" id="cwControls">
-        <div class="cw-field">
+        <div class="cw-field cw-field-compact">
             <label for="cwRef">Refrigerant</label>
             <select id="cwRef"></select>
         </div>
         <!-- Sliders injected by script -->
     </div>
 
-    <div class="cw-toolbar">
-        <div class="cw-segmented" id="cwDiagram">
-            <button data-type="th" class="active">T&ndash;h</button>
-            <button data-type="ph">P&ndash;h</button>
-            <button data-type="ts">T&ndash;s</button>
-        </div>
-        <div class="cw-legend">
-            <span><i class="cw-sat-liq" style="border-top-color:#1c7ed6"></i>Sat. liquid</span>
-            <span><i class="cw-sat-vap" style="border-top-color:#f03e3e"></i>Sat. vapor</span>
-            <span><i class="dotted" style="border-top-color:#868e96"></i>Cycle</span>
-        </div>
-    </div>
+
 
     <div class="cw-stage" id="cwStage">
         <div class="cw-overlay" id="cwOverlay"></div>
@@ -349,7 +394,7 @@
 
         const refSelect = document.getElementById("cwRef");
         const controls = document.getElementById("cwControls");
-        const diagramBar = document.getElementById("cwDiagram");
+        let diagramBar = null;
         const stage = document.getElementById("cwStage");
         const overlay = document.getElementById("cwOverlay");
         const tooltip = document.getElementById("cwTooltip");
@@ -363,13 +408,10 @@
 
         // Sliders, in display order. `key` matches data.params / state-key axis order.
         const SLIDER_DEFS = [
-            { key: "T_source", label: "Source temp. (T_source)", unit: "°C", def: 2 },
-            { key: "T_sink", label: "Sink temp. (T_sink)", unit: "°C", def: 1 },
-            { key: "dT_subcool", label: "Subcooling (ΔT_sub)", unit: "K", def: 1 },
-            { key: "dT_superheat", label: "Superheating (ΔT_sup)", unit: "K", def: 1 },
-            { key: "Q_cond", label: "Heating load (Q_cond)", unit: "kW", def: 1, scale: 0.001 },
-            { key: "UA_cond", label: "Condenser UA", unit: "W/K", def: 1 },
-            { key: "UA_evap", label: "Evaporator UA", unit: "W/K", def: 1 },
+            { key: "T_source", label: "Source temperature", unit: "°C", def: 5 },
+            { key: "T_sink", label: "Sink temperature", unit: "°C", def: 20 },
+            { key: "dT_subcool", label: "Subcooling temperature", unit: "K", def: 1 },
+            { key: "dT_superheat", label: "Superheating temperature", unit: "K", def: 1 },
         ];
 
         // Each state point is [h (kJ/kg), T (degC), P (kPa), s (kJ/kgK)].
@@ -526,7 +568,7 @@
             const ref = DATA.params.refrigerant[refIdx];
             let limits = DATA.limits[ref][diagramType];
             if (diagramType === "th" || diagramType === "ts") {
-                limits = { ...limits, ymin: -50, ymax: 150 };
+                limits = { ...limits, ymin: -50, ymax: 200 };
             }
             const tf = makeTransform(limits, diagramType);
             const ai = axisIndices(diagramType);
@@ -581,21 +623,26 @@
             // to their shared critical apex so the dome closes cleanly.
             if (liqPts.length && vapPts.length) {
                 const lt = liqPts[liqPts.length - 1], vt = vapPts[vapPts.length - 1];
-                const apex = [(lt[0] + vt[0]) / 2, (lt[1] + vt[1]) / 2];
-                liqPts.push(apex);
-                vapPts.push(apex);
+                if (Math.abs(lt[0] - vt[0]) > 1e-3 || Math.abs(lt[1] - vt[1]) > 1e-3) {
+                    const apex = [(lt[0] + vt[0]) / 2, (lt[1] + vt[1]) / 2];
+                    liqPts.push(apex);
+                    vapPts.push(apex);
+                }
             }
             gSat.appendChild(polyline(liqPts, "cw-sat-liq", tf));
             gSat.appendChild(polyline(vapPts, "cw-sat-vap", tf));
             svg.appendChild(gSat);
+
+            // draw the legend inside the axes
+            drawLegend(svg);
 
             // saturation-temperature bound lines (T-h / T-s only)
             const state = lookupState(refIdx);
             if (diagramType !== "ph") {
                 const tSource = DATA.params.T_source[parseInt(sliderEls.T_source.value, 10)];
                 const tSink = DATA.params.T_sink[parseInt(sliderEls.T_sink.value, 10)];
-                drawBound(svg, tf, tSource, "var(--cw-source)", "Source " + tSource + "°C", "top");
-                drawBound(svg, tf, tSink, "var(--cw-sink)", "Sink " + tSink + "°C", "bottom");
+                drawBound(svg, tf, tSource, "var(--cw-source)", "Source " + tSource + " °C", "top");
+                drawBound(svg, tf, tSink, "var(--cw-sink)", "Sink " + tSink + " °C", "bottom");
             }
 
             // cycle
@@ -635,30 +682,74 @@
             const qSpec = h2 - h3;   // condenser specific heat (heating output) [kJ/kg]
             if (!(wSpec > 0) || !(qSpec > 0)) return;
             const cop = qSpec / wSpec;
-            const qCondW = DATA.params.Q_cond[parseInt(sliderEls.Q_cond.value, 10)];
+            const qCondW = DATA.params.Q_cond[0];
             const wCompKw = (qCondW * 0.001) / cop;
 
-            const bw = 184, bh = 50;
-            const bx = M.left + 12, by = M.top + PH - bh - 12;
+            const bx = M.left + 5, by = M.top + 3;
+            const bw = 170;
             const g = el("g", {});
-            g.appendChild(el("rect", {
-                x: bx, y: by, width: bw, height: bh, rx: 8,
-                fill: "var(--cw-bg)", "fill-opacity": 0.92,
-                stroke: "var(--cw-border)", "stroke-width": 1,
-            }));
             const rows = [
                 ["Refrigerant COP", cop.toFixed(2)],
-                ["Comp. power", wCompKw.toFixed(2) + " kW"],
+                ["Comp. power [kW]", wCompKw.toFixed(2)],
             ];
             rows.forEach(([label, value], i) => {
-                const ty = by + 20 + i * 18;
-                const lab = el("text", { x: bx + 12, y: ty, "font-size": 11.5, fill: "var(--cw-text-muted)" });
+                const ty = by + 14 + i * 18;
+                const lab = el("text", { x: bx, y: ty, "font-size": 11.5, fill: "var(--cw-text-muted)" });
                 lab.textContent = label;
                 g.appendChild(lab);
-                const val = el("text", { x: bx + bw - 12, y: ty, "text-anchor": "end", "font-size": 12, "font-weight": 700, fill: "var(--cw-primary)" });
+                const val = el("text", { x: bx + bw, y: ty, "text-anchor": "end", "font-size": 12, "font-weight": 700, fill: "var(--cw-primary)" });
                 val.textContent = value;
                 g.appendChild(val);
             });
+            svg.appendChild(g);
+        }
+
+        function drawLegend(svg) {
+            const lx = M.left + PW - 265;
+            const ly = M.top + 12;
+            const g = el("g", {});
+
+            // 1. Sat. liquid
+            g.appendChild(el("line", {
+                x1: lx, y1: ly, x2: lx + 24, y2: ly,
+                stroke: "var(--cw-liquid)", "stroke-width": 2
+            }));
+            const t1 = el("text", {
+                x: lx + 30, y: ly + 4,
+                "font-size": 11, fill: "var(--cw-text-muted)", "font-weight": 600
+            });
+            t1.textContent = "Sat. liquid";
+            g.appendChild(t1);
+
+            // 2. Sat. vapor
+            g.appendChild(el("line", {
+                x1: lx + 92, y1: ly, x2: lx + 116, y2: ly,
+                stroke: "var(--cw-vapor)", "stroke-width": 2
+            }));
+            const t2 = el("text", {
+                x: lx + 122, y: ly + 4,
+                "font-size": 11, fill: "var(--cw-text-muted)", "font-weight": 600
+            });
+            t2.textContent = "Sat. vapor";
+            g.appendChild(t2);
+
+            // 3. Cycle
+            g.appendChild(el("line", {
+                x1: lx + 184, y1: ly, x2: lx + 208, y2: ly,
+                stroke: "var(--cw-cycle)", "stroke-width": 1.6,
+                "stroke-dasharray": "4 3"
+            }));
+            g.appendChild(el("circle", {
+                cx: lx + 196, cy: ly, r: 3.5,
+                fill: "var(--cw-text)"
+            }));
+            const t3 = el("text", {
+                x: lx + 214, y: ly + 4,
+                "font-size": 11, fill: "var(--cw-text-muted)", "font-weight": 600
+            });
+            t3.textContent = "Cycle";
+            g.appendChild(t3);
+
             svg.appendChild(g);
         }
 
@@ -722,7 +813,7 @@
                 refIdx,
                 sliderEls.T_source.value, sliderEls.T_sink.value,
                 sliderEls.dT_subcool.value, sliderEls.dT_superheat.value,
-                sliderEls.Q_cond.value, sliderEls.UA_cond.value, sliderEls.UA_evap.value,
+                "0", "0", "0",
             ].join("_");
             return DATA.states[key] || null;
         }
@@ -767,26 +858,65 @@
             DATA.params.refrigerant.forEach((r, i) => {
                 const opt = document.createElement("option");
                 opt.value = r; opt.textContent = r;
+                if (r === "R32") opt.selected = true;
                 refSelect.appendChild(opt);
             });
             refSelect.addEventListener("change", render);
 
-            SLIDER_DEFS.forEach((def) => {
-                const vals = DATA.params[def.key];
-                const field = document.createElement("div");
-                field.className = "cw-field";
-                const lab = document.createElement("label");
-                lab.innerHTML = `<span>${def.label}</span><span class="cw-val"></span>`;
-                const inp = document.createElement("input");
-                inp.type = "range";
-                inp.min = "0"; inp.max = String(vals.length - 1); inp.step = "1";
-                inp.value = String(Math.min(def.def, vals.length - 1));
-                inp.addEventListener("input", render);
-                field.appendChild(lab);
-                field.appendChild(inp);
-                controls.appendChild(field);
-                sliderEls[def.key] = inp;
+            // 1. Create and append the top two sliders (T_source, T_sink)
+            const topSliders = ["T_source", "T_sink"];
+            topSliders.forEach((key) => {
+                const def = SLIDER_DEFS.find(d => d.key === key);
+                createSliderField(def);
             });
+
+            // 2. Create and append the Diagram selector field
+            createDiagramField();
+
+            // 3. Create and append the bottom two sliders (dT_subcool, dT_superheat)
+            const bottomSliders = ["dT_subcool", "dT_superheat"];
+            bottomSliders.forEach((key) => {
+                const def = SLIDER_DEFS.find(d => d.key === key);
+                createSliderField(def);
+            });
+        }
+
+        function createSliderField(def) {
+            const vals = DATA.params[def.key];
+            const field = document.createElement("div");
+            field.className = "cw-field";
+            const lab = document.createElement("label");
+            lab.innerHTML = `<span>${def.label}</span><span class="cw-val"></span>`;
+            const inp = document.createElement("input");
+            inp.type = "range";
+            inp.min = "0"; inp.max = String(vals.length - 1); inp.step = "1";
+            inp.value = String(Math.min(def.def, vals.length - 1));
+            inp.addEventListener("input", render);
+            field.appendChild(lab);
+            field.appendChild(inp);
+            controls.appendChild(field);
+            sliderEls[def.key] = inp;
+        }
+
+        function createDiagramField() {
+            const field = document.createElement("div");
+            field.className = "cw-field cw-field-compact";
+            const lab = document.createElement("label");
+            lab.textContent = "Diagram type";
+
+            const seg = document.createElement("div");
+            seg.className = "cw-segmented";
+            seg.id = "cwDiagram";
+            seg.innerHTML = `
+                <button data-type="th" class="active">T&ndash;h</button>
+                <button data-type="ph">P&ndash;h</button>
+                <button data-type="ts">T&ndash;s</button>
+            `;
+            field.appendChild(lab);
+            field.appendChild(seg);
+            controls.appendChild(field);
+
+            diagramBar = seg;
 
             diagramBar.addEventListener("click", (e) => {
                 const btn = e.target.closest("button");

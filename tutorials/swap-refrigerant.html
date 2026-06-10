@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 
-    <meta property="article:modified_time" content="2026-06-02T12:45:14+00:00" />
+    <meta property="article:modified_time" content="2026-06-10T10:52:51+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -283,6 +283,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         .cw-controls {
             grid-template-columns: 1fr;
         }
+
         .cw-field-compact {
             max-width: 100%;
         }
@@ -375,7 +376,8 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         border: 2.5px solid var(--cw-primary);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
         transition: transform 0.12s ease;
-        margin-top: -5px; /* Center thumb on 7px webkit track */
+        margin-top: -5px;
+        /* Center thumb on 7px webkit track */
     }
 
     .cw-field input[type="range"]::-webkit-slider-thumb:hover {
@@ -933,8 +935,8 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
             const qCondW = DATA.params.Q_cond[0];
             const wCompKw = (qCondW * 0.001) / cop;
 
-            const bx = M.left + 5, by = M.top + 3;
-            const bw = 170;
+            const bx = M.left + 10, by = M.top + 5;
+            const bw = 140;
             const g = el("g", {});
             const rows = [
                 ["Refrigerant COP", cop.toFixed(2)],
@@ -1619,7 +1621,7 @@ implications.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 02, 2026
+  Last updated Jun 10, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -35,6 +35,7 @@
         .cw-controls {
             grid-template-columns: 1fr;
         }
+
         .cw-field-compact {
             max-width: 100%;
         }
@@ -127,7 +128,8 @@
         border: 2.5px solid var(--cw-primary);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
         transition: transform 0.12s ease;
-        margin-top: -5px; /* Center thumb on 7px webkit track */
+        margin-top: -5px;
+        /* Center thumb on 7px webkit track */
     }
 
     .cw-field input[type="range"]::-webkit-slider-thumb:hover {
@@ -685,8 +687,8 @@
             const qCondW = DATA.params.Q_cond[0];
             const wCompKw = (qCondW * 0.001) / cop;
 
-            const bx = M.left + 5, by = M.top + 3;
-            const bw = 170;
+            const bx = M.left + 10, by = M.top + 5;
+            const bw = 140;
             const g = el("g", {});
             const rows = [
                 ["Refrigerant COP", cop.toFixed(2)],

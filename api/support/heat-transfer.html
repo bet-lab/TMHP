@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB. ε-NTU heat exchanger: Heat transfer and fluid dynamics..." />
 
-    <meta property="article:modified_time" content="2026-06-10T10:52:51+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -376,15 +376,15 @@ model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB.</p>
 solving, fan power curves, and HP schedule checking.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.hx_fan.calc_UA_from_dV_fan">
-<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dV_fan</strong> (<em>float</em>) – Current fan flow rate [m³/s].</p></li>
-<li><p><strong>dV_fan_design</strong> (<em>float</em>) – Design fan flow rate [m³/s].</p></li>
+<li><p><strong>dV_fan_rated</strong> (<em>float</em>) – Rated fan flow rate [m³/s].</p></li>
 <li><p><strong>A_cross</strong> (<em>float</em>) – Heat exchanger cross-sectional area [m²].</p></li>
-<li><p><strong>UA</strong> (<em>float</em>) – Design UA value [W/K].</p></li>
+<li><p><strong>UA</strong> (<em>float</em>) – Rated UA value [W/K].</p></li>
 <li><p><strong>exponent</strong> (<em>float</em>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
 </ul>
 </dd>
@@ -715,12 +715,13 @@ R_conv: convective resistance inside the pipe (Gnielinski correlation).
 R_cond: conductive resistance through the pipe wall (ln(r_out/r_in)/(2πk_p)).</p>
 </dd>
 <dt>Stage 2 — 2D cross-section (Local R_b via multipole method):</dt><dd><p>SingleUTube solves the steady-state 2D Laplace equation in the grout
-cross-section using Hellström’s multipole expansion (default order J=10).
+cross-section using Hellström’s multipole expansion <a class="footnote-reference brackets" href="#id5" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> <a class="footnote-reference brackets" href="#id6" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a> (default
+order J=10); see <a class="footnote-reference brackets" href="#id7" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a> for an accuracy benchmark of this method.
 Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.
 Outputs: Local R_b (fluid → borehole wall, cross-section only).</p>
 </dd>
 <dt>Stage 3 — Axial short-circuit correction (Effective R_b*):</dt><dd><p>pipe.effective_borehole_thermal_resistance() applies the Cimmino / Hellström
-(1991) analytical solution for axial fluid temperature variation and
+(1991) <a class="footnote-reference brackets" href="#id5" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> analytical solution for axial fluid temperature variation and
 thermal short-circuiting between the two U-tube legs.</p>
 </dd>
 </dl>
@@ -754,19 +755,20 @@ For a Single U-tube (series), this equals the flow in each pipe leg.</p></li>
 </dl>
 <p class="rubric">References</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id1" role="doc-footnote">
+<aside class="footnote brackets" id="id5" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id1">1</a>,<a role="doc-backlink" href="#id4">2</a>)</span>
 <p>Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems
 (Ph.D. thesis). University of Lund, Sweden.</p>
 </aside>
-<aside class="footnote brackets" id="id2" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id6" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
 <p>Claesson, J., &amp; Hellström, G. (2011). Multipole method to calculate borehole
 thermal resistances in a borehole heat exchanger. HVAC&amp;R Research, 17(6), 895-911.
 DOI: 10.1080/10789669.2011.609927</p>
 </aside>
-<aside class="footnote brackets" id="id3" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></span>
+<aside class="footnote brackets" id="id7" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">3</a><span class="fn-bracket">]</span></span>
 <p>Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance
 calculation methods for grouted single U-tube ground heat exchangers.
 Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</p>
@@ -811,7 +813,7 @@ to the grout and ground.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 10, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

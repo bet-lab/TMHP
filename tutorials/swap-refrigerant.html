@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 
-    <meta property="article:modified_time" content="2026-06-10T10:52:51+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -199,7 +199,7 @@ data.</p>
 </span><span data-line="4">
 </span><span data-line="5"><span class="n">T_tank_w</span>   <span class="o">=</span> <span class="mf">55.0</span>   <span class="c1"># °C</span>
 </span><span data-line="6"><span class="n">T0</span>         <span class="o">=</span> <span class="mf">5.0</span>    <span class="c1"># °C</span>
-</span><span data-line="7"><span class="n">Q_ref_cond</span> <span class="o">=</span> <span class="mi">8_000</span>  <span class="c1"># W</span>
+</span><span data-line="7"><span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="mi">8_000</span>  <span class="c1"># W</span>
 </span><span data-line="8">
 </span><span data-line="9"><span class="n">refrigerants</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;R32&quot;</span><span class="p">,</span> <span class="s2">&quot;R290&quot;</span><span class="p">,</span> <span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="s2">&quot;R134a&quot;</span><span class="p">]</span>
 </span><span data-line="10">
@@ -209,7 +209,7 @@ data.</p>
 </span><span data-line="14">    <span class="n">r</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
 </span><span data-line="15">        <span class="n">T_tank_w</span><span class="o">=</span><span class="n">T_tank_w</span><span class="p">,</span>
 </span><span data-line="16">        <span class="n">T0</span><span class="o">=</span><span class="n">T0</span><span class="p">,</span>
-</span><span data-line="17">        <span class="n">Q_ref_cond</span><span class="o">=</span><span class="n">Q_ref_cond</span><span class="p">,</span>
+</span><span data-line="17">        <span class="n">Q_ref_tank</span><span class="o">=</span><span class="n">Q_ref_tank</span><span class="p">,</span>
 </span><span data-line="18">    <span class="p">)</span>
 </span><span data-line="19">    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
 </span><span data-line="20">        <span class="s2">&quot;ref&quot;</span><span class="p">:</span> <span class="n">ref</span><span class="p">,</span>
@@ -1621,7 +1621,7 @@ implications.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 10, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

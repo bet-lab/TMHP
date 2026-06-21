@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), and COP correlations. Refrigerant state points: Refrigerant cycle calculations and optimiz..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-06-14T06:17:08+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -197,7 +197,7 @@ ratio, isentropic efficiency, COP), and COP correlations.</p>
 <p>Refrigerant cycle calculations and optimization.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.refrigerant.calc_ref_state">
-<span class="sig-prename descclassname"><span class="pre">tmhp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">calc_ref_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_evap_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/refrigerant.html#calc_ref_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.refrigerant.calc_ref_state" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.refrigerant.</span></span><span class="sig-name descname"><span class="pre">calc_ref_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_evap_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_cond_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/refrigerant.html#calc_ref_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.refrigerant.calc_ref_state" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the four thermodynamic state points of the refrigerant cycle.</p>
 <p>The vapour-compression cycle has four canonical state points:</p>
 <ul class="simple">
@@ -231,6 +231,7 @@ this function.</p>
 <li><p><strong>dT_superheat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dT_subcool</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -519,7 +520,7 @@ no ValueError on temperature inversion.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated Jun 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

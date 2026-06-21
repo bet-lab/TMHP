@@ -767,191 +767,192 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="577">
 </span><span data-line="578"><span class="sd">    Stage 2 — 2D cross-section (Local R_b via multipole method):</span>
 </span><span data-line="579"><span class="sd">        SingleUTube solves the steady-state 2D Laplace equation in the grout</span>
-</span><span data-line="580"><span class="sd">        cross-section using Hellström&#39;s multipole expansion (default order J=10).</span>
-</span><span data-line="581"><span class="sd">        Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.</span>
-</span><span data-line="582"><span class="sd">        Outputs: Local R_b (fluid → borehole wall, cross-section only).</span>
-</span><span data-line="583">
-</span><span data-line="584"><span class="sd">    Stage 3 — Axial short-circuit correction (Effective R_b*):</span>
-</span><span data-line="585"><span class="sd">        pipe.effective_borehole_thermal_resistance() applies the Cimmino / Hellström</span>
-</span><span data-line="586"><span class="sd">        (1991) analytical solution for axial fluid temperature variation and</span>
-</span><span data-line="587"><span class="sd">        thermal short-circuiting between the two U-tube legs.</span>
-</span><span data-line="588">
-</span><span data-line="589"><span class="sd">    For a Single U-tube (series flow), each pipe leg carries the full borehole</span>
-</span><span data-line="590"><span class="sd">    flow rate; m_flow_borehole is passed directly without division by 2.</span>
-</span><span data-line="591">
-</span><span data-line="592"><span class="sd">    Parameters</span>
-</span><span data-line="593"><span class="sd">    ----------</span>
-</span><span data-line="594"><span class="sd">    k_s : float</span>
-</span><span data-line="595"><span class="sd">        Ground thermal conductivity [W/mK]</span>
-</span><span data-line="596"><span class="sd">    k_g : float</span>
-</span><span data-line="597"><span class="sd">        Grout thermal conductivity [W/mK]</span>
-</span><span data-line="598"><span class="sd">    k_p : float</span>
-</span><span data-line="599"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
-</span><span data-line="600"><span class="sd">    r_b : float</span>
-</span><span data-line="601"><span class="sd">        Borehole radius [m]</span>
-</span><span data-line="602"><span class="sd">    r_out : float</span>
-</span><span data-line="603"><span class="sd">        Pipe outer radius [m]</span>
-</span><span data-line="604"><span class="sd">    r_in : float</span>
-</span><span data-line="605"><span class="sd">        Pipe inner radius [m]</span>
-</span><span data-line="606"><span class="sd">    D_s : float</span>
-</span><span data-line="607"><span class="sd">        Distance from borehole centre to pipe centre [m]</span>
-</span><span data-line="608"><span class="sd">    H_b : float</span>
-</span><span data-line="609"><span class="sd">        Borehole depth [m]</span>
-</span><span data-line="610"><span class="sd">    m_flow_borehole : float</span>
-</span><span data-line="611"><span class="sd">        Total fluid mass flow rate into the borehole [kg/s].</span>
-</span><span data-line="612"><span class="sd">        For a Single U-tube (series), this equals the flow in each pipe leg.</span>
-</span><span data-line="613"><span class="sd">    rho_f : float</span>
-</span><span data-line="614"><span class="sd">        Fluid density [kg/m³]</span>
-</span><span data-line="615"><span class="sd">    mu_f : float</span>
-</span><span data-line="616"><span class="sd">        Fluid dynamic viscosity [Pa·s]</span>
-</span><span data-line="617"><span class="sd">    cp_f : float</span>
-</span><span data-line="618"><span class="sd">        Fluid specific heat capacity [J/kgK]</span>
-</span><span data-line="619"><span class="sd">    k_f : float</span>
-</span><span data-line="620"><span class="sd">        Fluid thermal conductivity [W/mK]</span>
-</span><span data-line="621">
-</span><span data-line="622"><span class="sd">    Returns</span>
-</span><span data-line="623"><span class="sd">    -------</span>
-</span><span data-line="624"><span class="sd">    float</span>
-</span><span data-line="625"><span class="sd">        Effective borehole thermal resistance R_b* [mK/W].</span>
-</span><span data-line="626">
-</span><span data-line="627"><span class="sd">    References</span>
-</span><span data-line="628"><span class="sd">    ----------</span>
-</span><span data-line="629"><span class="sd">    .. [1] Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems</span>
-</span><span data-line="630"><span class="sd">           (Ph.D. thesis). University of Lund, Sweden.</span>
-</span><span data-line="631"><span class="sd">    .. [2] Claesson, J., &amp; Hellström, G. (2011). Multipole method to calculate borehole</span>
-</span><span data-line="632"><span class="sd">           thermal resistances in a borehole heat exchanger. HVAC&amp;R Research, 17(6), 895-911.</span>
-</span><span data-line="633"><span class="sd">           DOI: 10.1080/10789669.2011.609927</span>
-</span><span data-line="634"><span class="sd">    .. [3] Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance</span>
-</span><span data-line="635"><span class="sd">           calculation methods for grouted single U-tube ground heat exchangers.</span>
-</span><span data-line="636"><span class="sd">           Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</span>
-</span><span data-line="637"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="638">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
-</span><span data-line="639">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
-</span><span data-line="640">
-</span><span data-line="641">    <span class="c1"># --- Stage 1: R_fp (1D analytic, fluid → pipe outer wall) ---</span>
-</span><span data-line="642">    <span class="k">if</span> <span class="n">m_flow_borehole</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="643">        <span class="n">h_f</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
-</span><span data-line="644">            <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
-</span><span data-line="645">        <span class="p">)</span>
-</span><span data-line="646">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_f</span><span class="p">)</span>
-</span><span data-line="647">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="648">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># large fallback when there is no flow</span>
-</span><span data-line="649">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
-</span><span data-line="650">    <span class="n">R_fp</span> <span class="o">=</span> <span class="n">R_conv</span> <span class="o">+</span> <span class="n">R_cond</span>
-</span><span data-line="651">
-</span><span data-line="652">    <span class="c1"># --- Stage 2 + 3: 2D multipole → Local R_b, then axial correction → R_b* ---</span>
-</span><span data-line="653">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
-</span><span data-line="654">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="655">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">)</span>
-</span><span data-line="656">
-</span><span data-line="657">    <span class="c1"># pygfunction public API: internally applies Cimmino/Hellström axial correction</span>
-</span><span data-line="658">    <span class="n">R_b_eff</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">effective_borehole_thermal_resistance</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">)</span>
-</span><span data-line="659">
-</span><span data-line="660">    <span class="k">return</span> <span class="n">R_b_eff</span></div>
+</span><span data-line="580"><span class="sd">        cross-section using Hellström&#39;s multipole expansion [1]_ [2]_ (default</span>
+</span><span data-line="581"><span class="sd">        order J=10); see [3]_ for an accuracy benchmark of this method.</span>
+</span><span data-line="582"><span class="sd">        Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.</span>
+</span><span data-line="583"><span class="sd">        Outputs: Local R_b (fluid → borehole wall, cross-section only).</span>
+</span><span data-line="584">
+</span><span data-line="585"><span class="sd">    Stage 3 — Axial short-circuit correction (Effective R_b*):</span>
+</span><span data-line="586"><span class="sd">        pipe.effective_borehole_thermal_resistance() applies the Cimmino / Hellström</span>
+</span><span data-line="587"><span class="sd">        (1991) [1]_ analytical solution for axial fluid temperature variation and</span>
+</span><span data-line="588"><span class="sd">        thermal short-circuiting between the two U-tube legs.</span>
+</span><span data-line="589">
+</span><span data-line="590"><span class="sd">    For a Single U-tube (series flow), each pipe leg carries the full borehole</span>
+</span><span data-line="591"><span class="sd">    flow rate; m_flow_borehole is passed directly without division by 2.</span>
+</span><span data-line="592">
+</span><span data-line="593"><span class="sd">    Parameters</span>
+</span><span data-line="594"><span class="sd">    ----------</span>
+</span><span data-line="595"><span class="sd">    k_s : float</span>
+</span><span data-line="596"><span class="sd">        Ground thermal conductivity [W/mK]</span>
+</span><span data-line="597"><span class="sd">    k_g : float</span>
+</span><span data-line="598"><span class="sd">        Grout thermal conductivity [W/mK]</span>
+</span><span data-line="599"><span class="sd">    k_p : float</span>
+</span><span data-line="600"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
+</span><span data-line="601"><span class="sd">    r_b : float</span>
+</span><span data-line="602"><span class="sd">        Borehole radius [m]</span>
+</span><span data-line="603"><span class="sd">    r_out : float</span>
+</span><span data-line="604"><span class="sd">        Pipe outer radius [m]</span>
+</span><span data-line="605"><span class="sd">    r_in : float</span>
+</span><span data-line="606"><span class="sd">        Pipe inner radius [m]</span>
+</span><span data-line="607"><span class="sd">    D_s : float</span>
+</span><span data-line="608"><span class="sd">        Distance from borehole centre to pipe centre [m]</span>
+</span><span data-line="609"><span class="sd">    H_b : float</span>
+</span><span data-line="610"><span class="sd">        Borehole depth [m]</span>
+</span><span data-line="611"><span class="sd">    m_flow_borehole : float</span>
+</span><span data-line="612"><span class="sd">        Total fluid mass flow rate into the borehole [kg/s].</span>
+</span><span data-line="613"><span class="sd">        For a Single U-tube (series), this equals the flow in each pipe leg.</span>
+</span><span data-line="614"><span class="sd">    rho_f : float</span>
+</span><span data-line="615"><span class="sd">        Fluid density [kg/m³]</span>
+</span><span data-line="616"><span class="sd">    mu_f : float</span>
+</span><span data-line="617"><span class="sd">        Fluid dynamic viscosity [Pa·s]</span>
+</span><span data-line="618"><span class="sd">    cp_f : float</span>
+</span><span data-line="619"><span class="sd">        Fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="620"><span class="sd">    k_f : float</span>
+</span><span data-line="621"><span class="sd">        Fluid thermal conductivity [W/mK]</span>
+</span><span data-line="622">
+</span><span data-line="623"><span class="sd">    Returns</span>
+</span><span data-line="624"><span class="sd">    -------</span>
+</span><span data-line="625"><span class="sd">    float</span>
+</span><span data-line="626"><span class="sd">        Effective borehole thermal resistance R_b* [mK/W].</span>
+</span><span data-line="627">
+</span><span data-line="628"><span class="sd">    References</span>
+</span><span data-line="629"><span class="sd">    ----------</span>
+</span><span data-line="630"><span class="sd">    .. [1] Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems</span>
+</span><span data-line="631"><span class="sd">           (Ph.D. thesis). University of Lund, Sweden.</span>
+</span><span data-line="632"><span class="sd">    .. [2] Claesson, J., &amp; Hellström, G. (2011). Multipole method to calculate borehole</span>
+</span><span data-line="633"><span class="sd">           thermal resistances in a borehole heat exchanger. HVAC&amp;R Research, 17(6), 895-911.</span>
+</span><span data-line="634"><span class="sd">           DOI: 10.1080/10789669.2011.609927</span>
+</span><span data-line="635"><span class="sd">    .. [3] Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance</span>
+</span><span data-line="636"><span class="sd">           calculation methods for grouted single U-tube ground heat exchangers.</span>
+</span><span data-line="637"><span class="sd">           Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</span>
+</span><span data-line="638"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="639">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="640">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="641">
+</span><span data-line="642">    <span class="c1"># --- Stage 1: R_fp (1D analytic, fluid → pipe outer wall) ---</span>
+</span><span data-line="643">    <span class="k">if</span> <span class="n">m_flow_borehole</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="644">        <span class="n">h_f</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="645">            <span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
+</span><span data-line="646">        <span class="p">)</span>
+</span><span data-line="647">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_f</span><span class="p">)</span>
+</span><span data-line="648">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="649">        <span class="n">R_conv</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># large fallback when there is no flow</span>
+</span><span data-line="650">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="651">    <span class="n">R_fp</span> <span class="o">=</span> <span class="n">R_conv</span> <span class="o">+</span> <span class="n">R_cond</span>
+</span><span data-line="652">
+</span><span data-line="653">    <span class="c1"># --- Stage 2 + 3: 2D multipole → Local R_b, then axial correction → R_b* ---</span>
+</span><span data-line="654">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="655">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="656">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s</span><span class="p">,</span> <span class="n">k_g</span><span class="p">,</span> <span class="n">R_fp</span><span class="p">)</span>
+</span><span data-line="657">
+</span><span data-line="658">    <span class="c1"># pygfunction public API: internally applies Cimmino/Hellström axial correction</span>
+</span><span data-line="659">    <span class="n">R_b_eff</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">effective_borehole_thermal_resistance</span><span class="p">(</span><span class="n">m_flow_borehole</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">)</span>
+</span><span data-line="660">
+</span><span data-line="661">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">R_b_eff</span><span class="p">)</span></div>
 
-</span><span data-line="661">
 </span><span data-line="662">
+</span><span data-line="663">
 <div class="viewcode-block" id="calc_submerged_coil_thermal_resistance">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.calc_submerged_coil_thermal_resistance">[docs]</a>
-</span><span data-line="663"><span class="k">def</span><span class="w"> </span><span class="nf">calc_submerged_coil_thermal_resistance</span><span class="p">(</span>
-</span><span data-line="664">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="665">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="666">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="667">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="668">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="669">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="670">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="671">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="672">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="673">    <span class="n">v_river</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span data-line="674"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="675"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</span>
-</span><span data-line="676">
-</span><span data-line="677"><span class="sd">    Uses the Churchill-Bernstein correlation for cross-flow forced convection over a cylinder</span>
-</span><span data-line="678"><span class="sd">    to estimate the external (river water) convective heat transfer coefficient.</span>
-</span><span data-line="679"><span class="sd">    It tricks pygfunction&#39;s SingleUTube model into capturing this pure pipe resistance</span>
-</span><span data-line="680"><span class="sd">    without any ground thermal mass by assigning exceptionally high thermal conductivities</span>
-</span><span data-line="681"><span class="sd">    to the grout and ground.</span>
-</span><span data-line="682">
-</span><span data-line="683"><span class="sd">    Parameters</span>
-</span><span data-line="684"><span class="sd">    ----------</span>
-</span><span data-line="685"><span class="sd">    r_out : float</span>
-</span><span data-line="686"><span class="sd">        Pipe outer radius [m]</span>
-</span><span data-line="687"><span class="sd">    r_in : float</span>
-</span><span data-line="688"><span class="sd">        Pipe inner radius [m]</span>
-</span><span data-line="689"><span class="sd">    D_s : float</span>
-</span><span data-line="690"><span class="sd">        Shank spacing (half distance between pipes) [m]</span>
-</span><span data-line="691"><span class="sd">    k_p : float</span>
-</span><span data-line="692"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
-</span><span data-line="693"><span class="sd">    m_flow_pipe : float</span>
-</span><span data-line="694"><span class="sd">        Mass flow rate per pipe [kg/s]</span>
-</span><span data-line="695"><span class="sd">    rho_f : float</span>
-</span><span data-line="696"><span class="sd">        Internal fluid density [kg/m³]</span>
-</span><span data-line="697"><span class="sd">    mu_f : float</span>
-</span><span data-line="698"><span class="sd">        Internal fluid dynamic viscosity [Pa·s]</span>
-</span><span data-line="699"><span class="sd">    cp_f : float</span>
-</span><span data-line="700"><span class="sd">        Internal fluid specific heat capacity [J/kgK]</span>
-</span><span data-line="701"><span class="sd">    k_f : float</span>
-</span><span data-line="702"><span class="sd">        Internal fluid thermal conductivity [W/mK]</span>
-</span><span data-line="703"><span class="sd">    v_river : float</span>
-</span><span data-line="704"><span class="sd">        Velocity of the river water cross-flow [m/s]</span>
-</span><span data-line="705">
-</span><span data-line="706"><span class="sd">    Returns</span>
-</span><span data-line="707"><span class="sd">    -------</span>
-</span><span data-line="708"><span class="sd">    float</span>
-</span><span data-line="709"><span class="sd">        Thermal resistance of the submerged coil [mK/W].</span>
-</span><span data-line="710"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="711">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
-</span><span data-line="712">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
-</span><span data-line="713">
-</span><span data-line="714">    <span class="c1"># 1. Convective resistance inside the pipe</span>
-</span><span data-line="715">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="716">        <span class="n">h_in</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
-</span><span data-line="717">            <span class="n">m_flow_pipe</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
-</span><span data-line="718">        <span class="p">)</span>
-</span><span data-line="719">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_in</span><span class="p">)</span>
-</span><span data-line="720">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="721">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">10.0</span>
-</span><span data-line="722">
-</span><span data-line="723">    <span class="c1"># 2. Conduction resistance of the pipe wall</span>
-</span><span data-line="724">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
-</span><span data-line="725">
-</span><span data-line="726">    <span class="c1"># 3. External (river water) convective resistance</span>
-</span><span data-line="727">    <span class="c1"># Reference river properties at ~15 degC</span>
-</span><span data-line="728">    <span class="n">rho_w</span> <span class="o">=</span> <span class="mf">999.1</span>
-</span><span data-line="729">    <span class="n">mu_w</span> <span class="o">=</span> <span class="mf">0.001138</span>
-</span><span data-line="730">    <span class="n">cp_w</span> <span class="o">=</span> <span class="mf">4187.0</span>
-</span><span data-line="731">    <span class="n">k_w</span> <span class="o">=</span> <span class="mf">0.589</span>
-</span><span data-line="732">
-</span><span data-line="733">    <span class="n">D_out</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_out</span>
-</span><span data-line="734">    <span class="n">Re_D</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">v_river</span> <span class="o">*</span> <span class="n">D_out</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu_w</span>
-</span><span data-line="735">    <span class="n">Pr</span> <span class="o">=</span> <span class="p">(</span><span class="n">cp_w</span> <span class="o">*</span> <span class="n">mu_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">k_w</span>
-</span><span data-line="736">
-</span><span data-line="737">    <span class="k">if</span> <span class="n">Re_D</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">&gt;=</span> <span class="mf">0.2</span><span class="p">:</span>
-</span><span data-line="738">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.62</span> <span class="o">*</span> <span class="n">Re_D</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">Pr</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.4</span><span class="o">/</span><span class="n">Pr</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Re_D</span><span class="o">/</span><span class="mf">282000.0</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">5</span><span class="o">/</span><span class="mi">8</span><span class="p">))</span><span class="o">**</span><span class="mf">0.8</span>
-</span><span data-line="739">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="740">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">10.0</span>
-</span><span data-line="741">
-</span><span data-line="742">    <span class="n">h_ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nu</span> <span class="o">*</span> <span class="n">k_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">D_out</span>
-</span><span data-line="743">    <span class="n">R_conv_ext</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_out</span> <span class="o">*</span> <span class="n">h_ext</span><span class="p">)</span>
-</span><span data-line="744">
-</span><span data-line="745">    <span class="c1"># 4. Total fluid-to-river equivalent resistance</span>
-</span><span data-line="746">    <span class="n">R_fp_total</span> <span class="o">=</span> <span class="n">R_conv_in</span> <span class="o">+</span> <span class="n">R_cond</span> <span class="o">+</span> <span class="n">R_conv_ext</span>
-</span><span data-line="747">
-</span><span data-line="748">    <span class="c1"># 5. The Pygfunction Trick</span>
-</span><span data-line="749">    <span class="c1"># We assign a massive conductivity to nullify the grout/ground resistance</span>
-</span><span data-line="750">    <span class="n">k_g_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="751">    <span class="n">k_s_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="752">
-</span><span data-line="753">    <span class="c1"># Set up a dummy borehole around the submerged U-tube structure</span>
-</span><span data-line="754">    <span class="n">r_b_trick</span> <span class="o">=</span> <span class="n">D_s</span> <span class="o">+</span> <span class="n">r_out</span> <span class="o">+</span> <span class="mf">0.01</span>
-</span><span data-line="755">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b_trick</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="756">
-</span><span data-line="757">    <span class="c1"># The two legs of the U-tube</span>
-</span><span data-line="758">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
-</span><span data-line="759">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s_trick</span><span class="p">,</span> <span class="n">k_g_trick</span><span class="p">,</span> <span class="n">R_fp_total</span><span class="p">)</span>
-</span><span data-line="760">
-</span><span data-line="761">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">())</span></div>
+</span><span data-line="664"><span class="k">def</span><span class="w"> </span><span class="nf">calc_submerged_coil_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="665">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="666">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="667">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="668">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="669">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="670">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="671">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="672">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="673">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="674">    <span class="n">v_river</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span data-line="675"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="676"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</span>
+</span><span data-line="677">
+</span><span data-line="678"><span class="sd">    Uses the Churchill-Bernstein correlation for cross-flow forced convection over a cylinder</span>
+</span><span data-line="679"><span class="sd">    to estimate the external (river water) convective heat transfer coefficient.</span>
+</span><span data-line="680"><span class="sd">    It tricks pygfunction&#39;s SingleUTube model into capturing this pure pipe resistance</span>
+</span><span data-line="681"><span class="sd">    without any ground thermal mass by assigning exceptionally high thermal conductivities</span>
+</span><span data-line="682"><span class="sd">    to the grout and ground.</span>
+</span><span data-line="683">
+</span><span data-line="684"><span class="sd">    Parameters</span>
+</span><span data-line="685"><span class="sd">    ----------</span>
+</span><span data-line="686"><span class="sd">    r_out : float</span>
+</span><span data-line="687"><span class="sd">        Pipe outer radius [m]</span>
+</span><span data-line="688"><span class="sd">    r_in : float</span>
+</span><span data-line="689"><span class="sd">        Pipe inner radius [m]</span>
+</span><span data-line="690"><span class="sd">    D_s : float</span>
+</span><span data-line="691"><span class="sd">        Shank spacing (half distance between pipes) [m]</span>
+</span><span data-line="692"><span class="sd">    k_p : float</span>
+</span><span data-line="693"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
+</span><span data-line="694"><span class="sd">    m_flow_pipe : float</span>
+</span><span data-line="695"><span class="sd">        Mass flow rate per pipe [kg/s]</span>
+</span><span data-line="696"><span class="sd">    rho_f : float</span>
+</span><span data-line="697"><span class="sd">        Internal fluid density [kg/m³]</span>
+</span><span data-line="698"><span class="sd">    mu_f : float</span>
+</span><span data-line="699"><span class="sd">        Internal fluid dynamic viscosity [Pa·s]</span>
+</span><span data-line="700"><span class="sd">    cp_f : float</span>
+</span><span data-line="701"><span class="sd">        Internal fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="702"><span class="sd">    k_f : float</span>
+</span><span data-line="703"><span class="sd">        Internal fluid thermal conductivity [W/mK]</span>
+</span><span data-line="704"><span class="sd">    v_river : float</span>
+</span><span data-line="705"><span class="sd">        Velocity of the river water cross-flow [m/s]</span>
+</span><span data-line="706">
+</span><span data-line="707"><span class="sd">    Returns</span>
+</span><span data-line="708"><span class="sd">    -------</span>
+</span><span data-line="709"><span class="sd">    float</span>
+</span><span data-line="710"><span class="sd">        Thermal resistance of the submerged coil [mK/W].</span>
+</span><span data-line="711"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="712">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="713">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="714">
+</span><span data-line="715">    <span class="c1"># 1. Convective resistance inside the pipe</span>
+</span><span data-line="716">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="717">        <span class="n">h_in</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="718">            <span class="n">m_flow_pipe</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
+</span><span data-line="719">        <span class="p">)</span>
+</span><span data-line="720">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_in</span><span class="p">)</span>
+</span><span data-line="721">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="722">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span data-line="723">
+</span><span data-line="724">    <span class="c1"># 2. Conduction resistance of the pipe wall</span>
+</span><span data-line="725">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="726">
+</span><span data-line="727">    <span class="c1"># 3. External (river water) convective resistance</span>
+</span><span data-line="728">    <span class="c1"># Reference river properties at ~15 degC</span>
+</span><span data-line="729">    <span class="n">rho_w</span> <span class="o">=</span> <span class="mf">999.1</span>
+</span><span data-line="730">    <span class="n">mu_w</span> <span class="o">=</span> <span class="mf">0.001138</span>
+</span><span data-line="731">    <span class="n">cp_w</span> <span class="o">=</span> <span class="mf">4187.0</span>
+</span><span data-line="732">    <span class="n">k_w</span> <span class="o">=</span> <span class="mf">0.589</span>
+</span><span data-line="733">
+</span><span data-line="734">    <span class="n">D_out</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_out</span>
+</span><span data-line="735">    <span class="n">Re_D</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">v_river</span> <span class="o">*</span> <span class="n">D_out</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu_w</span>
+</span><span data-line="736">    <span class="n">Pr</span> <span class="o">=</span> <span class="p">(</span><span class="n">cp_w</span> <span class="o">*</span> <span class="n">mu_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">k_w</span>
+</span><span data-line="737">
+</span><span data-line="738">    <span class="k">if</span> <span class="n">Re_D</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">&gt;=</span> <span class="mf">0.2</span><span class="p">:</span>
+</span><span data-line="739">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">0.3</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.62</span> <span class="o">*</span> <span class="n">Re_D</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">Pr</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.4</span><span class="o">/</span><span class="n">Pr</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Re_D</span><span class="o">/</span><span class="mf">282000.0</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">5</span><span class="o">/</span><span class="mi">8</span><span class="p">))</span><span class="o">**</span><span class="mf">0.8</span>
+</span><span data-line="740">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="741">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span data-line="742">
+</span><span data-line="743">    <span class="n">h_ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nu</span> <span class="o">*</span> <span class="n">k_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">D_out</span>
+</span><span data-line="744">    <span class="n">R_conv_ext</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_out</span> <span class="o">*</span> <span class="n">h_ext</span><span class="p">)</span>
+</span><span data-line="745">
+</span><span data-line="746">    <span class="c1"># 4. Total fluid-to-river equivalent resistance</span>
+</span><span data-line="747">    <span class="n">R_fp_total</span> <span class="o">=</span> <span class="n">R_conv_in</span> <span class="o">+</span> <span class="n">R_cond</span> <span class="o">+</span> <span class="n">R_conv_ext</span>
+</span><span data-line="748">
+</span><span data-line="749">    <span class="c1"># 5. The Pygfunction Trick</span>
+</span><span data-line="750">    <span class="c1"># We assign a massive conductivity to nullify the grout/ground resistance</span>
+</span><span data-line="751">    <span class="n">k_g_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="752">    <span class="n">k_s_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="753">
+</span><span data-line="754">    <span class="c1"># Set up a dummy borehole around the submerged U-tube structure</span>
+</span><span data-line="755">    <span class="n">r_b_trick</span> <span class="o">=</span> <span class="n">D_s</span> <span class="o">+</span> <span class="n">r_out</span> <span class="o">+</span> <span class="mf">0.01</span>
+</span><span data-line="756">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b_trick</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="757">
+</span><span data-line="758">    <span class="c1"># The two legs of the U-tube</span>
+</span><span data-line="759">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="760">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s_trick</span><span class="p">,</span> <span class="n">k_g_trick</span><span class="p">,</span> <span class="n">R_fp_total</span><span class="p">)</span>
+</span><span data-line="761">
+</span><span data-line="762">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">())</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

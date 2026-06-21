@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Because tmhp solves the cycle from first principles, every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condense..." />
 
-    <meta property="article:modified_time" content="2026-06-10T10:52:51+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1195,7 +1195,7 @@ plus a dashed connector through the seven cycle points returned by
 </span><span data-line="6">
 </span><span data-line="7"><span class="n">REF</span> <span class="o">=</span> <span class="s2">&quot;R32&quot;</span>
 </span><span data-line="8"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="n">REF</span><span class="p">)</span>
-</span><span data-line="9"><span class="n">r</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span> <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">)</span>
+</span><span data-line="9"><span class="n">r</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">12.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">)</span>
 </span><span data-line="10">
 </span><span data-line="11"><span class="c1"># Saturation envelope for the P-h panel (kJ/kg, kPa).</span>
 </span><span data-line="12"><span class="n">T_crit</span> <span class="o">=</span> <span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Tcrit&quot;</span><span class="p">,</span> <span class="n">REF</span><span class="p">)</span>
@@ -1264,7 +1264,7 @@ outdoor temperatures or different LWT set-points.</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 10, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

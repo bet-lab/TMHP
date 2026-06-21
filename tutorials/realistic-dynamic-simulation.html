@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Your first dynamic simulation runs analyze_dynamic with flat schedules — a clean sanity check, but real runs almost never look like that. This tutorial assembles a more representative 24-hour scena..." />
 
-    <meta property="article:modified_time" content="2026-05-19T16:17:44+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -247,7 +247,7 @@ into pandas / Excel without re-running the simulation.</p>
 <h2>Inspecting the run<a class="headerlink" href="#inspecting-the-run" title="Link to this heading">¶</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="c1"># Energy balance over the day</span>
 </span><span data-line="2"><span class="n">E_cmp_kWh</span>   <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">dt_s</span> <span class="o">/</span> <span class="mf">3.6e6</span>
-</span><span data-line="3"><span class="n">Q_cond_kWh</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_cond [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">dt_s</span> <span class="o">/</span> <span class="mf">3.6e6</span>
+</span><span data-line="3"><span class="n">Q_cond_kWh</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="n">dt_s</span> <span class="o">/</span> <span class="mf">3.6e6</span>
 </span><span data-line="4"><span class="n">cop_sys_avg</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 </span><span data-line="5">
 </span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total compressor energy  : </span><span class="si">{</span><span class="n">E_cmp_kWh</span><span class="si">:</span><span class="s2">5.2f</span><span class="si">}</span><span class="s2"> kWh&quot;</span><span class="p">)</span>
@@ -279,7 +279,7 @@ passing the longer <code class="docutils literal notranslate"><span class="pre">
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 19, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

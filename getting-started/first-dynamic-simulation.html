@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest possible cal..." />
 
-    <meta property="article:modified_time" content="2026-05-19T16:17:44+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -228,7 +228,7 @@ time step. The columns are the same units-bracketed keys you get from
 <ul class="simple">
 <li><p><strong>Cycle state points</strong> — <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code> pressures, <code class="docutils literal notranslate"><span class="pre">T_ref_*</span></code> temperatures
 at compressor / expander / evaporator / condenser nodes.</p></li>
-<li><p><strong>Energy flows</strong> — <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_evap</span> <span class="pre">[W]</span></code>,
+<li><p><strong>Energy flows</strong> — <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_ou</span> <span class="pre">[W]</span></code>,
 <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>, fan / pump auxiliary power.</p></li>
 <li><p><strong>Tank state</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span> <span class="pre">[-]</span></code>.</p></li>
 <li><p><strong>Figures of merit</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>.</p></li>
@@ -267,7 +267,7 @@ makes the integrator robust to large <code class="docutils literal notranslate">
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 19, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of tmhp — and this is the page that makes it concrete. The refrigerant is a constructor argument on every model ( ref=&quot;&lt;name&gt;&quo..." />
 
-    <meta property="article:modified_time" content="2026-05-18T14:09:16+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -243,7 +243,7 @@ produced a state but the HX iteration drifted because a
 property lookup was unstable near a phase boundary.</p></li>
 </ul>
 <p>In both cases the relevant lever is the <em>operating point</em>:
-either move <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> / <code class="docutils literal notranslate"><span class="pre">T0</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_cond</span></code> away from
+either move <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> / <code class="docutils literal notranslate"><span class="pre">T0</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> away from
 the EOS edge, or oversize the heat exchanger so the iteration
 doesn’t push so hard. See <a class="reference internal" href="failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a> for
 the branching pattern.</p>
@@ -267,7 +267,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 18, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

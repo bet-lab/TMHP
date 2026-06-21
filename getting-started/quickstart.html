@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="This page walks through a single steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library, and the fastest way to confirm your install works..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:41:54+00:00" />
+    <meta property="article:modified_time" content="2026-06-21T06:27:56+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -185,12 +185,12 @@ condenser duty 8 kW — without solving the tank energy balance.</p>
 </span><span data-line="4"><span class="n">result</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
 </span><span data-line="5">    <span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
 </span><span data-line="6">    <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">Q_ref_cond</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mf">8_000.0</span><span class="p">,</span>
 </span><span data-line="8"><span class="p">)</span>
 </span><span data-line="9">
 </span><span data-line="10"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;COP (refrigerant) : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;cop_ref [-]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span><span data-line="11"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;COP (system)      : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;cop_sys [-]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="12"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Heating capacity  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;Q_ref_cond [W]&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kW&quot;</span><span class="p">)</span>
+</span><span data-line="12"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Heating capacity  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;Q_ref_tank [W]&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kW&quot;</span><span class="p">)</span>
 </span><span data-line="13"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compressor power  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;E_cmp [W]&#39;</span><span class="p">]</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kW&quot;</span><span class="p">)</span>
 </span><span data-line="14"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Evap. sat. temp.  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;T_ref_evap_sat [°C]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C&quot;</span><span class="p">)</span>
 </span><span data-line="15"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cond. sat. temp.  : </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;T_ref_cond_sat_v [°C]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C&quot;</span><span class="p">)</span>
@@ -222,7 +222,7 @@ required. Any fluid CoolProp recognises works:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated Jun 21, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

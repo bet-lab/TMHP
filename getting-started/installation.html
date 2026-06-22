@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install: The--locked flag tells uv to respect the committed uv.lock and fail rather than silently re-resolve versions. This is the sa..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:41:54+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -107,6 +107,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
 </ul>
@@ -133,6 +134,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#requirements">Requirements</a></li>
 <li><a class="reference internal" href="#clone-and-install">Clone and install</a></li>
 <li><a class="reference internal" href="#optional-dependency-groups">Optional dependency groups</a></li>
+<li><a class="reference internal" href="#optional-integration-extras">Optional integration extras</a></li>
 <li><a class="reference internal" href="#what-s-installed">What&#8217;s installed</a></li>
 <li><a class="reference internal" href="#running-the-dev-checks">Running the dev checks</a></li>
 <li><a class="reference internal" href="#building-the-docs-locally">Building the docs locally</a></li>
@@ -210,6 +212,20 @@ pollute the runtime install.</p>
 </span></pre></div>
 </div>
 </section>
+<section id="optional-integration-extras">
+<h2>Optional integration extras<a class="headerlink" href="#optional-integration-extras" title="Link to this heading">¶</a></h2>
+<p>The core package does not install co-simulation runtimes by default. Add the
+<code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra when you need the FMI 2.0 FMU adapter:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>integrations<span class="w"> </span>--locked
+</span></pre></div>
+</div>
+<p>This installs <code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code> and <code class="docutils literal notranslate"><span class="pre">fmpy</span></code> for building and smoke-testing the FMU
+wrapper around <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler.step()</span></code>. The EnergyPlus Python Plugin
+adapter does not have a pip-installable extra because <code class="docutils literal notranslate"><span class="pre">pyenergyplus</span></code> is
+bundled with EnergyPlus itself; run that adapter inside EnergyPlus’s embedded
+Python or make the EnergyPlus Python package visible through
+<code class="docutils literal notranslate"><span class="pre">PythonPlugin:SearchPaths</span></code>.</p>
+</section>
 <section id="what-s-installed">
 <h2>What’s installed<a class="headerlink" href="#what-s-installed" title="Link to this heading">¶</a></h2>
 <p>The runtime install pulls in <a class="reference external" href="http://www.coolprop.org">CoolProp</a>
@@ -243,7 +259,7 @@ fails the documentation job.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated Jun 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/refrigerant-thermo.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), and COP correlations. Refrigerant state points: Refrigerant cycle calculations and optimiz..." />
+<meta property="og:description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), and COP correlations. Refrigerant state points: Refrigerant cycle calculations and optimiz..." />
+<meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-06-14T06:17:08+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -107,6 +107,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
 <li class="toctree-l3"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="integrations.html">Integrations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
 </ul>
@@ -150,6 +151,12 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.cop.calc_GSHP_COP"><code class="docutils literal notranslate"><span class="pre">calc_GSHP_COP()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#module-tmhp.compressor_envelope">Compressor envelope</a><ul>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.check_pr_envelope"><code class="docutils literal notranslate"><span class="pre">check_pr_envelope()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.PR_BELOW_MIN"><code class="docutils literal notranslate"><span class="pre">PR_BELOW_MIN</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.compressor_envelope.PR_ABOVE_MAX"><code class="docutils literal notranslate"><span class="pre">PR_ABOVE_MAX</span></code></a></li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -191,7 +198,8 @@ data-aria-dark="Switch to auto color mode">
           <section id="refrigerant-thermodynamics">
 <h1>Refrigerant &amp; thermodynamics<a class="headerlink" href="#refrigerant-thermodynamics" title="Link to this heading">¶</a></h1>
 <p>CoolProp-backed state-point helpers, cycle-level analysis (compression
-ratio, isentropic efficiency, COP), and COP correlations.</p>
+ratio, isentropic efficiency, COP), compressor operating-envelope
+guards, and COP correlations.</p>
 <section id="module-tmhp.refrigerant">
 <span id="refrigerant-state-points"></span><h2>Refrigerant state points<a class="headerlink" href="#module-tmhp.refrigerant" title="Link to this heading">¶</a></h2>
 <p>Refrigerant cycle calculations and optimization.</p>
@@ -517,10 +525,81 @@ no ValueError on temperature inversion.</p>
 </dd></dl>
 
 </section>
+<section id="module-tmhp.compressor_envelope">
+<span id="compressor-envelope"></span><h2>Compressor envelope<a class="headerlink" href="#module-tmhp.compressor_envelope" title="Link to this heading">¶</a></h2>
+<p>Compressor operating-envelope guard (pressure-ratio based).</p>
+<p>The physically primary limit on a vapour-compression cycle is the compressor
+<strong>pressure ratio</strong> <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">=</span> <span class="pre">P_cond</span> <span class="pre">/</span> <span class="pre">P_evap</span></code>, not a fixed temperature lift: the
+lift required to reach a given <code class="docutils literal notranslate"><span class="pre">PR</span></code> maps non-linearly through the refrigerant
+saturation curve (Clausius–Clapeyron) and therefore differs by refrigerant and
+operating level. A fixed minimum lift (e.g. 20 K) over- or under-states the true
+physical minimum depending on conditions; a <code class="docutils literal notranslate"><span class="pre">PR</span></code> floor is transferable.</p>
+<p>This module provides the shared envelope decision used by every heat-pump model
+so the floor/ceiling logic and reason codes stay consistent. Each model owns its
+own <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> / <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> attributes (user-configurable) and calls
+<a class="reference internal" href="#tmhp.compressor_envelope.check_pr_envelope" title="tmhp.compressor_envelope.check_pr_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_pr_envelope()</span></code></a>; the caller then <strong>clamps</strong> the floor (project the
+cycle onto <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> for a continuous low-lift transition) and <strong>rejects</strong>
+the ceiling (outside the single-stage envelope).</p>
+<p>References (see <code class="docutils literal notranslate"><span class="pre">dT_and_Pr_cycle_min.md</span></code>): scroll axial-loading / built-in
+volume ratio, oil-feed pressure differential, and isentropic-efficiency collapse
+all place the floor near <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">1.5</span></code> (1.3–2.0 band). The ceiling default of
+<code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">10</span></code> sits just below the AC-scroll hardware self-unload limit (~11:1) and
+above the single-stage modelling boundary (~7–8); it is a sanity bound that
+admits legitimate high-lift operation (e.g. domestic-hot-water boilers
+condensing at 55–75 degC from a 0–12 degC source reach <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">8</span></code>) while still
+rejecting non-physical pressure ratios (Cuevas &amp; Lebrun 2009; Bertsch &amp; Groll
+2008; Gayeski et al. 2011).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.check_pr_envelope">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">check_pr_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#check_pr_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.check_pr_envelope" title="Link to this definition">¶</a></dt>
+<dd><p>Classify a compressor pressure ratio against the operating envelope.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Compressor pressure ratio <code class="docutils literal notranslate"><span class="pre">P_cond</span> <span class="pre">/</span> <span class="pre">P_evap</span></code> (dimensionless, &gt;= 1).</p></li>
+<li><p><strong>pr_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Lower envelope bound (floor). Below this the scrolls unload / oil-feed
+differential and isentropic efficiency collapse.</p></li>
+<li><p><strong>pr_max</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Upper envelope bound (ceiling). Above this a single-stage cycle is no
+longer representative.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> when <code class="docutils literal notranslate"><span class="pre">pr_min</span> <span class="pre">&lt;=</span> <span class="pre">pr</span> <span class="pre">&lt;=</span> <span class="pre">pr_max</span></code> (feasible); otherwise
+<a class="reference internal" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="tmhp.compressor_envelope.PR_BELOW_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">PR_BELOW_MIN</span></code></a> or <a class="reference internal" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="tmhp.compressor_envelope.PR_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">PR_ABOVE_MAX</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_BELOW_MIN">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_BELOW_MIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_below_min'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="Link to this definition">¶</a></dt>
+<dd><p>pressure ratio is below <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> (floor -&gt; clamp).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reason code</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_ABOVE_MAX">
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_ABOVE_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_above_max'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="Link to this definition">¶</a></dt>
+<dd><p>pressure ratio is above <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (ceiling -&gt; reject).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reason code</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 14, 2026
+  Last updated Jun 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

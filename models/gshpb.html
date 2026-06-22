@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: solves the closed refrigerant cycle again..." />
 
-    <meta property="article:modified_time" content="2026-06-22T12:19:22+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -107,6 +107,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
 </ul>
@@ -137,6 +138,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#composed-variants">Composed variants</a><ul>
 <li><a class="reference internal" href="#stc-preheat">STC preheat</a></li>
 <li><a class="reference internal" href="#stc-with-stratified-tank">STC with stratified tank</a></li>
+<li><a class="reference internal" href="#stc-to-ground-loop">STC to ground loop</a></li>
+<li><a class="reference internal" href="#stc-routed-between-tank-and-ground">STC routed between tank and ground</a></li>
 <li><a class="reference internal" href="#pv-ess">PV + ESS</a></li>
 </ul>
 </li>
@@ -157,6 +160,18 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#id5">Usage</a></li>
 <li><a class="reference internal" href="#tmhp.gshpb_stc_tank.GSHPB_STC_tank"><code class="docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.gshpb_stc_tank.GSHPB_STC_tank.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id8">Physical configuration</a></li>
+<li><a class="reference internal" href="#implementation">Implementation</a></li>
+<li><a class="reference internal" href="#tmhp.gshpb_stc_ground.GSHPB_STC_ground"><code class="docutils literal notranslate"><span class="pre">GSHPB_STC_ground</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.gshpb_stc_ground.GSHPB_STC_ground.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#routing-as-a-control-input">Routing as a control input</a></li>
+<li><a class="reference internal" href="#tmhp.gshpb_stc_routed.default_solar_router"><code class="docutils literal notranslate"><span class="pre">default_solar_router()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.gshpb_stc_routed.GSHPB_STC_routed"><code class="docutils literal notranslate"><span class="pre">GSHPB_STC_routed</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.gshpb_stc_routed.GSHPB_STC_routed.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#tmhp.gshpb_pv_ess.GSHPB_PV_ESS"><code class="docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code></a><ul>
@@ -208,11 +223,13 @@ tank sink as ASHPB.</p>
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
 <p><span class="glossary" data-term="gshpb">GSHPB</span> solves the closed refrigerant cycle against a borehole heat
 exchanger characterised by a precomputed <strong>g-function</strong>. The class is
-<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GroundSourceHeatPumpBoiler</span></code>. Three composed variants
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GroundSourceHeatPumpBoiler</span></code>. Composed variants
 extend it the same way ASHPB’s do:</p>
 <ul class="simple">
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_STC_preheat</span></code></p></li>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_STC_tank</span></code></p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_STC_ground</span></code></p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_STC_routed</span></code></p></li>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_PV_ESS</span></code></p></li>
 </ul>
 </section>
@@ -243,7 +260,7 @@ g-function once via
 <a class="reference external" href="https://github.com/MassimoCimmino/pygfunction">pygfunction</a> and
 interpolates it during the simulation, so the per-step cost stays
 constant whether the field is one borehole or a hundred.</p>
-<figure class="align-center" id="id8">
+<figure class="align-center" id="id9">
 <a class="reference internal image-reference" href="../_images/g_function_curve.svg"><img alt="g-function vs ln(t/t_s) for three rectangular borehole field geometries: 1×1, 2×2, and 4×4." src="../_images/g_function_curve.svg" style="width: 100%;" />
 </a>
 <figcaption>
@@ -251,7 +268,7 @@ constant whether the field is one borehole or a hundred.</p>
 geometries. The 1 × 1 field is the single-borehole baseline;
 2 × 2 and 4 × 4 diverge as borehole-to-borehole thermal
 interference accumulates over the multi-year horizon. Generated
-by <code class="docutils literal notranslate"><span class="pre">scripts/visualization/g_function_curve.py</span></code>.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+by <code class="docutils literal notranslate"><span class="pre">scripts/visualization/g_function_curve.py</span></code>.</span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -261,9 +278,10 @@ by <code class="docutils literal notranslate"><span class="pre">scripts/visualiz
 </section>
 <section id="composed-variants">
 <h2>Composed variants<a class="headerlink" href="#composed-variants" title="Link to this heading">¶</a></h2>
-<p>Usage patterns for the three variants are identical to ASHPB’s —
-see <a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> for full STC preheat and PV + ESS examples. Only
-the base class swaps; the schedules and routing are unchanged.</p>
+<p>Usage patterns for the tank-side variants are identical to ASHPB’s —
+see <a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> for full STC preheat and PV + ESS examples. The
+ground-side STC variants route collected solar heat into the borehole
+field instead of, or in exclusive alternation with, the tank.</p>
 <div class="sd-tab-set composition-tabs docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
 <label class="sd-tab-label" for="sd-tab-item-0">
@@ -313,6 +331,33 @@ pump charges the bottom. Top-of-tank water is drawn first.</p>
 </div>
 <input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
 <label class="sd-tab-label" for="sd-tab-item-3">
++ STC ground</label><div class="sd-tab-content docutils">
+<p>STC injects collected heat into the borehole loop for seasonal
+ground charging; the DHW tank balance remains heat-pump-only.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_ground</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_ground</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-4" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-4">
++ STC routed</label><div class="sd-tab-content docutils">
+<p>A per-step router sends solar heat either to the tank or to the
+borehole field. The default policy serves a cold tank first, then
+charges the ground.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_routed</span>
+</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span> <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_routed</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">N_1</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<input id="sd-tab-item-5" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" for="sd-tab-item-5">
 + PV / ESS</label><div class="sd-tab-content docutils">
 <p>Photovoltaic generation + ESS preferentially feeds the
 compressor and auxiliaries.</p>
@@ -443,6 +488,64 @@ correction (<code class="docutils literal notranslate"><span class="pre">X_tot</
 </dd></dl>
 
 </section>
+</dd></dl>
+
+</section>
+<section id="stc-to-ground-loop">
+<h3>STC to ground loop<a class="headerlink" href="#stc-to-ground-loop" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_ground</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_ground.html#GSHPB_STC_ground"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector in <em>ground-loop</em> (borehole) placement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_ground.html#GSHPB_STC_ground.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="stc-routed-between-tank-and-ground">
+<h3>STC routed between tank and ground<a class="headerlink" href="#stc-routed-between-tank-and-ground" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_routed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_router</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#GSHPB_STC_routed"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector with a per-timestep ground/tank router.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p></li>
+<li><p><strong>solar_router</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_router</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#GSHPB_STC_routed.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p></li>
+<li><p><strong>solar_router</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -592,7 +695,7 @@ analytical condenser temperature relations.</p>
 <li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
-<li><p><strong>ground_coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code>]</span>)</p></li>
+<li><p><strong>ground_coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler" title="tmhp.ground_coupling.GroundCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a>]</span>)</p></li>
 <li><p><strong>T_sur</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dT_cycle_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>dT_hx_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
@@ -668,7 +771,7 @@ analytical condenser temperature relations.</p>
 <li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
-<li><p><strong>ground_coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code>]</span>)</p></li>
+<li><p><strong>ground_coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler" title="tmhp.ground_coupling.GroundCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a>]</span>)</p></li>
 <li><p><strong>T_sur</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dT_cycle_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>dT_hx_min</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
@@ -940,6 +1043,146 @@ correction (<code class="docutils literal notranslate"><span class="pre">X_tot</
 </dd></dl>
 
 </section>
+</dd></dl>
+
+<p id="module-tmhp.gshpb_stc_ground">GSHPB with a SolarThermalCollector charging the <strong>ground loop</strong> (not the tank).</p>
+<p>Counterpart to <a class="reference internal" href="#tmhp.gshpb_stc_tank.GSHPB_STC_tank" title="tmhp.gshpb_stc_tank.GSHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a>. Solar heat charges
+the ground <strong>OR</strong> the tank, never both at once — this scenario routes it to the
+ground.</p>
+<section id="id8">
+<h3>Physical configuration<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<p>The collector loop circulates <strong>ground-loop fluid</strong> (inlet = current borehole
+fluid temperature <code class="docutils literal notranslate"><span class="pre">T_bhe_f</span></code>), is warmed by solar irradiance, and returns to the
+borehole field, <strong>injecting</strong> the collected heat into the ground (seasonal /
+inter-seasonal charging). This raises the ground temperature and therefore the
+heat-pump source temperature — improving COP later — at the cost of the collector
+pump electricity. Activation requires a net heat gain (collector outlet hotter
+than the ground fluid).</p>
+</section>
+<section id="implementation">
+<h3>Implementation<a class="headerlink" href="#implementation" title="Link to this heading">¶</a></h3>
+<p>The base <a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>
+is left <strong>unchanged</strong> (byte-identical). This subclass:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: evaluates the collector at the ground-fluid inlet and
+stores the net solar heat <code class="docutils literal notranslate"><span class="pre">Q_solar</span></code> [W] to inject into the ground.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code>: subtracts <code class="docutils literal notranslate"><span class="pre">Q_solar</span></code> from the HP ground load
+(net <code class="docutils literal notranslate"><span class="pre">Q_bhe</span> <span class="pre">=</span> <span class="pre">HP</span> <span class="pre">extraction</span> <span class="pre">−</span> <span class="pre">solar</span> <span class="pre">injection</span></code>) before the standard ground
+superposition, so a net injection warms the borehole field. The tank energy
+balance is untouched (solar heat does not enter the tank in this scenario).</p></li>
+</ul>
+<p>With zero irradiance the collector is inactive and results reduce to the base
+GSHPB exactly.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.gshpb_stc_ground.GSHPB_STC_ground">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.gshpb_stc_ground.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_ground</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_ground.html#GSHPB_STC_ground"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.gshpb_stc_ground.GSHPB_STC_ground" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector in <em>ground-loop</em> (borehole) placement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.gshpb_stc_ground.GSHPB_STC_ground.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_ground.html#GSHPB_STC_ground.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.gshpb_stc_ground.GSHPB_STC_ground.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p id="module-tmhp.gshpb_stc_routed">GSHPB with a SolarThermalCollector routed per-timestep to the ground OR tank.</p>
+<p>Unifies <a class="reference internal" href="#tmhp.gshpb_stc_ground.GSHPB_STC_ground" title="tmhp.gshpb_stc_ground.GSHPB_STC_ground"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_ground</span></code></a> and
+<a class="reference internal" href="#tmhp.gshpb_stc_tank.GSHPB_STC_tank" title="tmhp.gshpb_stc_tank.GSHPB_STC_tank"><code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code></a>: at <strong>each timestep</strong> a routing
+decision sends the collected solar heat to <em>either</em> the borehole field (seasonal
+/ inter-seasonal ground charging, raising the HP source temperature and COP) <em>or</em>
+the storage tank (immediate DHW preheat) — <strong>exclusively, never both at once</strong>.</p>
+<p>The two destinations enter the dynamic solve through different couplings, so the
+routed model gates each per step:</p>
+<ul>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">tank</span></code><span class="classifier">net <code class="docutils literal notranslate"><span class="pre">Q_STC</span></code> enters the tank energy balance (implicit residual),</span></dt><dd><p>exactly as <code class="docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code>; the ground load is untouched.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">ground</span></code><span class="classifier">net solar heat is subtracted from the HP ground load before the</span></dt><dd><p>borehole superposition, exactly as <code class="docutils literal notranslate"><span class="pre">GSHPB_STC_ground</span></code>; the tank
+balance is untouched.</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">off</span></code>    : no solar; the step reduces to the base GSHPB.</p></li>
+</ul>
+<section id="routing-as-a-control-input">
+<h3>Routing as a control input<a class="headerlink" href="#routing-as-a-control-input" title="Link to this heading">¶</a></h3>
+<p>The decision is produced by a callable <code class="docutils literal notranslate"><span class="pre">solar_router</span></code> evaluated every step, so
+it is a natural per-timestep <strong>decision variable for an MPC</strong> — an optimiser can
+supply the route in place of the default policy. The default
+(<a class="reference internal" href="#tmhp.gshpb_stc_routed.default_solar_router" title="tmhp.gshpb_stc_routed.default_solar_router"><code class="xref py py-func docutils literal notranslate"><span class="pre">default_solar_router()</span></code></a>) is a greedy rule: serve the tank when it is below
+its lower setpoint (a DHW need), otherwise dump surplus solar into the ground.
+The router is only consulted when solar is actually available (positive
+irradiance and the collector schedule on); the chosen destination is still gated
+by a net-heat-gain feasibility check (collector outlet hotter than the sink),
+falling back to <code class="docutils literal notranslate"><span class="pre">off</span></code> if infeasible.</p>
+<p>With zero irradiance the collector is inactive and results reduce to the base
+GSHPB exactly (only extra reporting columns are added).</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.gshpb_stc_routed.default_solar_router">
+<span class="sig-prename descclassname"><span class="pre">tmhp.gshpb_stc_routed.</span></span><span class="sig-name descname"><span class="pre">default_solar_router</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_lower</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#default_solar_router"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.gshpb_stc_routed.default_solar_router" title="Link to this definition">¶</a></dt>
+<dd><p>Greedy exclusive policy: serve the tank when cold, else charge the ground.</p>
+<p>Called only when solar is available. Returns <code class="docutils literal notranslate"><span class="pre">&quot;tank&quot;</span></code> while the tank is
+below its lower setpoint (immediate DHW need has priority), otherwise
+<code class="docutils literal notranslate"><span class="pre">&quot;ground&quot;</span></code> to bank surplus solar in the borehole field for later COP gain.
+Extra keyword state (<code class="docutils literal notranslate"><span class="pre">hour_of_day</span></code>, <code class="docutils literal notranslate"><span class="pre">T_bhe</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code>) is accepted and
+ignored so a custom router can use it without changing this signature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_tank_w</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_tank_lower</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>_</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.gshpb_stc_routed.GSHPB_STC_routed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.gshpb_stc_routed.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_routed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_router</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#GSHPB_STC_routed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.gshpb_stc_routed.GSHPB_STC_routed" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a></p>
+<p>GSHPB + SolarThermalCollector with a per-timestep ground/tank router.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p></li>
+<li><p><strong>solar_router</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.gshpb_stc_routed.GSHPB_STC_routed.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_router</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#GSHPB_STC_routed.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.gshpb_stc_routed.GSHPB_STC_routed.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p></li>
+<li><p><strong>solar_router</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <p id="module-tmhp.gshpb_pv_ess">GSHPB Scenario: Heat Pump driven by PV + ESS with Grid/Dump integration.</p>

@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/heat-transfer.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB. ε-NTU heat exchanger: Heat transfer and fluid dynamics..." />
+<meta property="og:description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB. ε-NTU heat exchanger: Heat transfer and fluid dynamics..." />
+<meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-06-22T12:19:22+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -107,6 +107,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
 <li class="toctree-l3"><a class="reference internal" href="subsystems.html">Subsystems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="integrations.html">Integrations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
 </ul>
@@ -161,6 +162,23 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.g_function.calc_submerged_coil_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_submerged_coil_thermal_resistance()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#module-tmhp.ground_coupling">Ground coupling</a><ul>
+<li><a class="reference internal" href="#contract">Contract</a></li>
+<li><a class="reference internal" href="#sign-convention-matches-the-legacy-gshpb">Sign convention (matches the legacy GSHPB)</a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler"><code class="docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler"><code class="docutils literal notranslate"><span class="pre">AggregateGFunctionCoupler</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -202,7 +220,8 @@ data-aria-dark="Switch to auto color mode">
           <section id="heat-transfer-exchangers">
 <h1>Heat transfer &amp; exchangers<a class="headerlink" href="#heat-transfer-exchangers" title="Link to this heading">¶</a></h1>
 <p>ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger
-model used by ASHP/ASHPB, and the borehole g-function used by GSHP/GSHPB.</p>
+model used by ASHP/ASHPB, and the borehole g-function and coupling
+abstractions used by GSHP/GSHPB.</p>
 <section id="module-tmhp.heat_transfer">
 <span id="ntu-heat-exchanger"></span><h2>ε-NTU heat exchanger<a class="headerlink" href="#module-tmhp.heat_transfer" title="Link to this heading">¶</a></h2>
 <p>Heat transfer and fluid dynamics calculations.</p>
@@ -486,6 +505,7 @@ analysis. Results are cached for performance.</p>
 <li><p><strong>as</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
 <li><p><strong>rb</strong> (<em>float</em>) – Borehole radius [m]</p></li>
 <li><p><strong>H</strong> (<em>float</em>) – Borehole height [m]</p></li>
+<li><p><strong>as_</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -797,6 +817,152 @@ to the grout and ground.</p>
 <dd class="field-odd"><p>float</p>
 </dd>
 </dl>
+</dd></dl>
+
+</section>
+<section id="module-tmhp.ground_coupling">
+<span id="ground-coupling"></span><h2>Ground coupling<a class="headerlink" href="#module-tmhp.ground_coupling" title="Link to this heading">¶</a></h2>
+<p>Ground-coupling abstraction for borehole-heat-exchanger temporal superposition.</p>
+<p>This module separates the <em>ground thermal response</em> (how the borehole-wall
+temperature responds to a history of ground loads) from the heat-pump cycle
+physics, so the response backend becomes swappable behind one small contract:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="tmhp.ground_coupling.AggregateGFunctionCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AggregateGFunctionCoupler</span></code></a> (default) wraps a single field-average
+g-function interpolator <code class="docutils literal notranslate"><span class="pre">g(tau)</span></code> [m·K/W] and reproduces the legacy inline
+temporal superposition <strong>byte-for-byte</strong>.</p></li>
+<li><p>External packages (e.g. <code class="docutils literal notranslate"><span class="pre">geolink</span></code>) can implement the <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler" title="tmhp.ground_coupling.GroundCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a>
+protocol with a <em>resolved multi-borehole network</em> response — replacing the
+single lumped g-function with full borehole-to-borehole superposition —
+<em>without this package depending on them</em> (dependency inversion: <code class="docutils literal notranslate"><span class="pre">tmhp</span></code>
+defines the abstraction it needs; the richer implementation lives elsewhere
+and is injected).</p></li>
+</ul>
+<section id="contract">
+<h3>Contract<a class="headerlink" href="#contract" title="Link to this heading">¶</a></h3>
+<p>A coupler owns the ground-load <em>pulse history</em>. The host
+(<a class="reference internal" href="../../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>) calls
+<a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset" title="tmhp.ground_coupling.GroundCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundCoupler.reset()</span></code></a> once per simulation and
+<a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise" title="tmhp.ground_coupling.GroundCoupler.wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundCoupler.wall_temperature_rise()</span></code></a> once per timestep with the current
+per-length ground load <code class="docutils literal notranslate"><span class="pre">q_unit</span></code> [W/m]; the coupler returns the borehole-wall
+temperature <em>rise</em> magnitude <code class="docutils literal notranslate"><span class="pre">dT</span></code> [K].</p>
+</section>
+<section id="sign-convention-matches-the-legacy-gshpb">
+<h3>Sign convention (matches the legacy GSHPB)<a class="headerlink" href="#sign-convention-matches-the-legacy-gshpb" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">q_unit</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> denotes heat <em>extraction</em> from the ground; the returned <code class="docutils literal notranslate"><span class="pre">dT</span></code> is
+the positive magnitude such that the disturbed wall temperature is
+<code class="docutils literal notranslate"><span class="pre">T_wall</span> <span class="pre">=</span> <span class="pre">T_undisturbed</span> <span class="pre">-</span> <span class="pre">dT</span></code>. (Note this is the opposite sign labelling from
+<code class="docutils literal notranslate"><span class="pre">geolink</span></code>’s <code class="docutils literal notranslate"><span class="pre">q'</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> = injection convention; a <code class="docutils literal notranslate"><span class="pre">geolink</span></code> coupler maps the
+sign at its boundary so the value returned here keeps the extraction-positive
+meaning.)</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">GroundCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
+<p>Pluggable ground-response backend for BHE temporal superposition.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Initialise pulse-history state for a simulation of <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_steps</strong> (<em>int</em>) – Number of timesteps in the upcoming simulation.</p></li>
+<li><p><strong>time_arr</strong> (<em>np.ndarray</em>) – Absolute time of each step [s] (uniform grid). Backends that
+precompute a response matrix at fixed times use this.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler.wall_temperature_rise">
+<span class="sig-name descname"><span class="pre">wall_temperature_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_unit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler.wall_temperature_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise" title="Link to this definition">¶</a></dt>
+<dd><p>Borehole-wall temperature rise [K] at step <code class="docutils literal notranslate"><span class="pre">n</span></code> for load <code class="docutils literal notranslate"><span class="pre">q_unit</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<em>int</em>) – Current step index (0-based).</p></li>
+<li><p><strong>time_arr</strong> (<em>np.ndarray</em>) – Absolute time of each step [s] (same array passed to <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset" title="tmhp.ground_coupling.GroundCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a>).</p></li>
+<li><p><strong>q_unit</strong> (<em>float</em>) – Per-length ground load at this step [W/m], extraction-positive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">AggregateGFunctionCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Single field-average g-function temporal superposition (legacy default).</p>
+<p>Reproduces the legacy <code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code> inner loop exactly:
+a pulse is recorded whenever the per-length load changes by more than
+<code class="docutils literal notranslate"><span class="pre">pulse_tol</span></code>, and the pulse train is convolved with <code class="docutils literal notranslate"><span class="pre">g(tau)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>g_interp</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em>) – Field-average g-function interpolator mapping lag time <code class="docutils literal notranslate"><span class="pre">tau</span></code> [s] to
+the dimensional response <code class="docutils literal notranslate"><span class="pre">g</span></code> [m·K/W].</p></li>
+<li><p><strong>pulse_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum load change [W/m] that registers a new pulse (default 1e-6).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pulse_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_steps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise">
+<span class="sig-name descname"><span class="pre">wall_temperature_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_unit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.wall_temperature_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>q_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.gshpb_stc_routed - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/_modules/tmhp/gshpb_stc_routed.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=a54a37c0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Thermodynamic Models for Heat Pumps</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.gshpb_stc_routed</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.gshpb_stc_routed</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;GSHPB with a SolarThermalCollector routed per-timestep to the ground OR tank.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">Unifies :class:`~tmhp.gshpb_stc_ground.GSHPB_STC_ground` and</span>
+</span><span data-line="4"><span class="sd">:class:`~tmhp.gshpb_stc_tank.GSHPB_STC_tank`: at **each timestep** a routing</span>
+</span><span data-line="5"><span class="sd">decision sends the collected solar heat to *either* the borehole field (seasonal</span>
+</span><span data-line="6"><span class="sd">/ inter-seasonal ground charging, raising the HP source temperature and COP) *or*</span>
+</span><span data-line="7"><span class="sd">the storage tank (immediate DHW preheat) — **exclusively, never both at once**.</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="sd">The two destinations enter the dynamic solve through different couplings, so the</span>
+</span><span data-line="10"><span class="sd">routed model gates each per step:</span>
+</span><span data-line="11">
+</span><span data-line="12"><span class="sd">- ``tank``   : net ``Q_STC`` enters the tank energy balance (implicit residual),</span>
+</span><span data-line="13"><span class="sd">               exactly as ``GSHPB_STC_tank``; the ground load is untouched.</span>
+</span><span data-line="14"><span class="sd">- ``ground`` : net solar heat is subtracted from the HP ground load before the</span>
+</span><span data-line="15"><span class="sd">               borehole superposition, exactly as ``GSHPB_STC_ground``; the tank</span>
+</span><span data-line="16"><span class="sd">               balance is untouched.</span>
+</span><span data-line="17"><span class="sd">- ``off``    : no solar; the step reduces to the base GSHPB.</span>
+</span><span data-line="18">
+</span><span data-line="19"><span class="sd">Routing as a control input</span>
+</span><span data-line="20"><span class="sd">--------------------------</span>
+</span><span data-line="21"><span class="sd">The decision is produced by a callable ``solar_router`` evaluated every step, so</span>
+</span><span data-line="22"><span class="sd">it is a natural per-timestep **decision variable for an MPC** — an optimiser can</span>
+</span><span data-line="23"><span class="sd">supply the route in place of the default policy. The default</span>
+</span><span data-line="24"><span class="sd">(:func:`default_solar_router`) is a greedy rule: serve the tank when it is below</span>
+</span><span data-line="25"><span class="sd">its lower setpoint (a DHW need), otherwise dump surplus solar into the ground.</span>
+</span><span data-line="26"><span class="sd">The router is only consulted when solar is actually available (positive</span>
+</span><span data-line="27"><span class="sd">irradiance and the collector schedule on); the chosen destination is still gated</span>
+</span><span data-line="28"><span class="sd">by a net-heat-gain feasibility check (collector outlet hotter than the sink),</span>
+</span><span data-line="29"><span class="sd">falling back to ``off`` if infeasible.</span>
+</span><span data-line="30">
+</span><span data-line="31"><span class="sd">With zero irradiance the collector is inactive and results reduce to the base</span>
+</span><span data-line="32"><span class="sd">GSHPB exactly (only extra reporting columns are added).</span>
+</span><span data-line="33"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="36">
+</span><span data-line="37"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+</span><span data-line="38"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="39">
+</span><span data-line="40"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="41"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="42"><span class="kn">from</span><span class="w"> </span><span class="nn">.ground_source_heat_pump_boiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoiler</span>
+</span><span data-line="43"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="44">
+</span><span data-line="45"><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+</span><span data-line="46">    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="47">
+</span><span data-line="48">    <span class="kn">from</span><span class="w"> </span><span class="nn">.dynamic_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">ControlState</span><span class="p">,</span> <span class="n">StepContext</span>
+</span><span data-line="49">
+</span><span data-line="50"><span class="n">_ROUTES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;ground&quot;</span><span class="p">,</span> <span class="s2">&quot;tank&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
+</span><span data-line="51">
+</span><span data-line="52">
+<div class="viewcode-block" id="default_solar_router">
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.default_solar_router">[docs]</a>
+</span><span data-line="53"><span class="k">def</span><span class="w"> </span><span class="nf">default_solar_router</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_tank_lower</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="54"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Greedy exclusive policy: serve the tank when cold, else charge the ground.</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="sd">    Called only when solar is available. Returns ``&quot;tank&quot;`` while the tank is</span>
+</span><span data-line="57"><span class="sd">    below its lower setpoint (immediate DHW need has priority), otherwise</span>
+</span><span data-line="58"><span class="sd">    ``&quot;ground&quot;`` to bank surplus solar in the borehole field for later COP gain.</span>
+</span><span data-line="59"><span class="sd">    Extra keyword state (``hour_of_day``, ``T_bhe``, ``T0``) is accepted and</span>
+</span><span data-line="60"><span class="sd">    ignored so a custom router can use it without changing this signature.</span>
+</span><span data-line="61"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="62">    <span class="k">return</span> <span class="s2">&quot;tank&quot;</span> <span class="k">if</span> <span class="n">T_tank_w</span> <span class="o">&lt;</span> <span class="n">T_tank_lower</span> <span class="k">else</span> <span class="s2">&quot;ground&quot;</span></div>
+
+</span><span data-line="63">
+</span><span data-line="64">
+<div class="viewcode-block" id="GSHPB_STC_routed">
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_STC_routed">[docs]</a>
+</span><span data-line="65"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_STC_routed</span><span class="p">(</span><span class="n">GroundSourceHeatPumpBoiler</span><span class="p">):</span>
+</span><span data-line="66"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB + SolarThermalCollector with a per-timestep ground/tank router.&quot;&quot;&quot;</span>
+</span><span data-line="67">
+<div class="viewcode-block" id="GSHPB_STC_routed.__init__">
+<a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_STC_routed.__init__">[docs]</a>
+</span><span data-line="68">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="69">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="70">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="71">        <span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span><span class="p">,</span>
+</span><span data-line="72">        <span class="n">solar_router</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="73">        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="74">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="75">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stc</span><span class="p">,</span> <span class="n">SolarThermalCollector</span><span class="p">):</span>
+</span><span data-line="76">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stc must be a SolarThermalCollector instance, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="77">        <span class="c1"># Do NOT pass stc to super().__init__ — keeps self._subsystems empty; the</span>
+</span><span data-line="78">        <span class="c1"># solar coupling is applied explicitly by the per-route hooks below.</span>
+</span><span data-line="79">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="80">        <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span> <span class="o">=</span> <span class="n">stc</span>
+</span><span data-line="81">        <span class="bp">self</span><span class="o">.</span><span class="n">stc</span> <span class="o">=</span> <span class="n">stc</span>  <span class="c1"># enables I_DN/I_dH schedules in analyze_dynamic</span>
+</span><span data-line="82">        <span class="bp">self</span><span class="o">.</span><span class="n">_router</span> <span class="o">=</span> <span class="n">solar_router</span> <span class="k">if</span> <span class="n">solar_router</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_solar_router</span>
+</span><span data-line="83">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+
+</span><span data-line="84">
+</span><span data-line="85">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="86">    <span class="k">def</span><span class="w"> </span><span class="nf">_needs_solar_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="87">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="88">
+</span><span data-line="89">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+</span><span data-line="90">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">is_preheat_on</span><span class="p">(</span><span class="n">hour_of_day</span><span class="p">)}</span>
+</span><span data-line="91">
+</span><span data-line="92">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
+</span><span data-line="93">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="94">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="95">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="96">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="97">        <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="98">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+</span><span data-line="99"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Decide the route, evaluate the collector at the route&#39;s inlet, store state.&quot;&quot;&quot;</span>
+</span><span data-line="100">        <span class="n">has_sun</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span> <span class="o">+</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+</span><span data-line="101">        <span class="n">available</span> <span class="o">=</span> <span class="n">has_sun</span> <span class="ow">and</span> <span class="n">ctx</span><span class="o">.</span><span class="n">activation_flags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span data-line="102">
+</span><span data-line="103">        <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
+</span><span data-line="104">        <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+</span><span data-line="105">            <span class="n">route</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_router</span><span class="p">(</span>
+</span><span data-line="106">                <span class="n">hour_of_day</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">hour_of_day</span><span class="p">,</span>
+</span><span data-line="107">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">),</span>
+</span><span data-line="108">                <span class="n">T_tank_lower</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_lower_bound</span><span class="p">,</span>
+</span><span data-line="109">                <span class="n">T_bhe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">,</span>
+</span><span data-line="110">                <span class="n">T0</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">),</span>
+</span><span data-line="111">            <span class="p">)</span>
+</span><span data-line="112">            <span class="k">if</span> <span class="n">route</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ROUTES</span><span class="p">:</span>
+</span><span data-line="113">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;solar_router returned </span><span class="si">{</span><span class="n">route</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="n">_ROUTES</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="114">
+</span><span data-line="115">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="116">        <span class="n">stc_active</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="117">        <span class="n">e_pump</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="118">        <span class="c1"># Inlet differs by destination: tank water for the tank route, borehole</span>
+</span><span data-line="119">        <span class="c1"># wall for the ground route. Default (off) probes at the tank for reporting.</span>
+</span><span data-line="120">        <span class="n">inlet_K</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span> <span class="k">if</span> <span class="n">route</span> <span class="o">!=</span> <span class="s2">&quot;ground&quot;</span> <span class="k">else</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">)</span>
+</span><span data-line="121">
+</span><span data-line="122">        <span class="k">if</span> <span class="n">route</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;tank&quot;</span><span class="p">,</span> <span class="s2">&quot;ground&quot;</span><span class="p">):</span>
+</span><span data-line="123">            <span class="n">probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="124">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">inlet_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="125">            <span class="p">)</span>
+</span><span data-line="126">            <span class="k">if</span> <span class="n">probe</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">inlet_K</span><span class="p">:</span>  <span class="c1"># net heat gain at the chosen sink</span>
+</span><span data-line="127">                <span class="n">stc_active</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="128">                <span class="n">stc_result</span> <span class="o">=</span> <span class="n">probe</span>
+</span><span data-line="129">                <span class="n">e_pump</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span>
+</span><span data-line="130">                <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;ground&quot;</span><span class="p">:</span>
+</span><span data-line="131">                    <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="n">probe</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">probe</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">]</span>
+</span><span data-line="132">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="133">                <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>  <span class="c1"># infeasible at this sink — do not auto-switch destination</span>
+</span><span data-line="134">                <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="135">                    <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">inlet_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="136">                <span class="p">)</span>
+</span><span data-line="137">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="138">            <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="139">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">inlet_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="140">            <span class="p">)</span>
+</span><span data-line="141">
+</span><span data-line="142">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="143">            <span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="144">                <span class="s2">&quot;route&quot;</span><span class="p">:</span> <span class="n">route</span><span class="p">,</span>
+</span><span data-line="145">                <span class="s2">&quot;stc_active&quot;</span><span class="p">:</span> <span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="146">                <span class="s2">&quot;stc_result&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="p">,</span>
+</span><span data-line="147">                <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="148">                <span class="c1"># Tank route: pump electricity enters the tank balance (as STC_tank).</span>
+</span><span data-line="149">                <span class="c1"># Ground route: pump tracked separately (as STC_ground), not in tank.</span>
+</span><span data-line="150">                <span class="s2">&quot;E_subsystem&quot;</span><span class="p">:</span> <span class="n">e_pump</span> <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="151">                <span class="s2">&quot;Q_contribution&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="152">                <span class="s2">&quot;E_stc_pump&quot;</span><span class="p">:</span> <span class="n">e_pump</span><span class="p">,</span>
+</span><span data-line="153">                <span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span><span class="p">,</span>
+</span><span data-line="154">            <span class="p">}</span>
+</span><span data-line="155">        <span class="p">}</span>
+</span><span data-line="156">
+</span><span data-line="157">    <span class="k">def</span><span class="w"> </span><span class="nf">_build_residual_fn</span><span class="p">(</span>
+</span><span data-line="158">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="159">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="160">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="161">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="162">        <span class="n">T_tank_w_in_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="163">        <span class="n">T_sup_w_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="164">        <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="165">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="166">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="167"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Inject ``Q_STC`` into the tank balance only on the tank route.&quot;&quot;&quot;</span>
+</span><span data-line="168">        <span class="k">if</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
+</span><span data-line="169">            <span class="c1"># ground / off: solar does not enter the tank balance — base residual.</span>
+</span><span data-line="170">            <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+</span><span data-line="171">                <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
+</span><span data-line="172">                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_build_residual_fn</span><span class="p">(</span>
+</span><span data-line="173">                    <span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">dt_s</span><span class="p">,</span> <span class="n">T_tank_w_in_K_n</span><span class="p">,</span> <span class="n">T_sup_w_K_n</span><span class="p">,</span> <span class="n">tank_level</span><span class="p">,</span> <span class="n">sub_states</span><span class="p">,</span>
+</span><span data-line="174">                <span class="p">),</span>
+</span><span data-line="175">            <span class="p">)</span>
+</span><span data-line="176">
+</span><span data-line="177">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span data-line="178">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span> <span class="k">if</span> <span class="n">stc_active</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="179">
+</span><span data-line="180">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">T_cand_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="181">            <span class="n">stc_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="182">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_cand_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="183">            <span class="p">)</span>
+</span><span data-line="184">            <span class="n">Q_stc_net</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">]</span>
+</span><span data-line="185">
+</span><span data-line="186">            <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_cand_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span>
+</span><span data-line="187">            <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
+</span><span data-line="188">            <span class="n">dV_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
+</span><span data-line="189">            <span class="n">dV_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_out</span> <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span>
+</span><span data-line="190">
+</span><span data-line="191">            <span class="n">Q_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_in</span> <span class="o">*</span> <span class="n">T_tank_w_in_K_n</span> <span class="o">-</span> <span class="n">dV_out</span> <span class="o">*</span> <span class="n">T_cand_K</span><span class="p">)</span>
+</span><span data-line="192">            <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_loss</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_cand_K</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sur_K</span><span class="p">)</span>
+</span><span data-line="193">            <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="194">            <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="195">
+</span><span data-line="196">            <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="197">                <span class="n">C_next</span> <span class="o">*</span> <span class="n">T_cand_K</span>
+</span><span data-line="198">                <span class="o">-</span> <span class="n">C_curr</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span>
+</span><span data-line="199">                <span class="o">-</span> <span class="n">dt_s</span> <span class="o">*</span> <span class="p">(</span><span class="n">ctrl</span><span class="o">.</span><span class="n">Q_heat_source</span> <span class="o">+</span> <span class="n">E_pump</span> <span class="o">+</span> <span class="n">Q_stc_net</span> <span class="o">+</span> <span class="n">Q_flow</span> <span class="o">-</span> <span class="n">Q_loss</span><span class="p">)</span>
+</span><span data-line="200">            <span class="p">)</span>
+</span><span data-line="201">            <span class="k">return</span> <span class="n">r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span>
+</span><span data-line="202">
+</span><span data-line="203">        <span class="k">return</span> <span class="n">residual</span>
+</span><span data-line="204">
+</span><span data-line="205">    <span class="k">def</span><span class="w"> </span><span class="nf">_compute_bhe_superposition</span><span class="p">(</span>
+</span><span data-line="206">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="207">        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="208">        <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="209">        <span class="n">hp_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="210">        <span class="n">hp_is_on</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+</span><span data-line="211">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="212"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Inject solar heat into the ground only on the ground route (q_sol != 0).&quot;&quot;&quot;</span>
+</span><span data-line="213">        <span class="n">q_sol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span>
+</span><span data-line="214">        <span class="k">if</span> <span class="n">q_sol</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="215">            <span class="n">base_q</span> <span class="o">=</span> <span class="n">hp_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">hp_is_on</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="216">            <span class="n">hp_result</span><span class="p">[</span><span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_q</span> <span class="o">-</span> <span class="n">q_sol</span>  <span class="c1"># extraction-positive convention</span>
+</span><span data-line="217">            <span class="n">hp_is_on</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># drive the ground response even when the HP is off</span>
+</span><span data-line="218">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_compute_bhe_superposition</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">,</span> <span class="n">hp_result</span><span class="p">,</span> <span class="n">hp_is_on</span><span class="p">)</span>
+</span><span data-line="219">
+</span><span data-line="220">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
+</span><span data-line="221">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="222">        <span class="n">r</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="223">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="224">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="225">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="226">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="227">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="228">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="229">        <span class="n">route</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
+</span><span data-line="230">        <span class="n">sr</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_result&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="231">        <span class="n">q_net</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">sr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="232">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;solar_route [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route</span>
+</span><span data-line="233">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;stc_active [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+</span><span data-line="234">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;Q_solar_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_net</span> <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="235">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="236">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;E_stc_pump [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="237">        <span class="k">if</span> <span class="s2">&quot;T_stc_w_out_K&quot;</span> <span class="ow">in</span> <span class="n">sr</span><span class="p">:</span>
+</span><span data-line="238">            <span class="n">r</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">sr</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">]))</span>
+</span><span data-line="239">        <span class="k">return</span> <span class="n">r</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script></body>
+</html>

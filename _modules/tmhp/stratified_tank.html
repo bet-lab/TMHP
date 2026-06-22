@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.stratified_tank - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/_modules/tmhp/stratified_tank.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=a54a37c0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>Thermodynamic Models for Heat Pumps</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../api/index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.stratified_tank</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.stratified_tank</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Multi-node (1-D finite-volume) stratified thermal-storage tank.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">Implements the multi-node model of Cadau et al. (*Development and Analysis of a</span>
+</span><span data-line="4"><span class="sd">Multi-Node Dynamic Model for the Simulation of Stratified Thermal Energy</span>
+</span><span data-line="5"><span class="sd">Storage*, Energies 2019, 12:4275): the tank is divided into ``N`` vertically</span>
+</span><span data-line="6"><span class="sd">stacked nodes (node 0 = top/hottest, node N-1 = bottom/coldest), each with a</span>
+</span><span data-line="7"><span class="sd">uniform temperature ``T_i``. The per-node energy balance combines</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="sd">- **advection** — port inflow/outflow and inter-node vertical flow, upwinded by</span>
+</span><span data-line="10"><span class="sd">  the flow direction (Cadau Eq. 4-6);</span>
+</span><span data-line="11"><span class="sd">- **pseudo-conduction** — ``k·(T_{i-1}-T_i) - k·(T_i-T_{i+1})`` between</span>
+</span><span data-line="12"><span class="sd">  neighbouring nodes, lumping conductive + convective exchange; and</span>
+</span><span data-line="13"><span class="sd">- **ambient loss** — ``UA_i·(T_i - T_amb)`` through the side wall.</span>
+</span><span data-line="14">
+</span><span data-line="15"><span class="sd">It is integrated **implicitly** (backward Euler) as a tridiagonal solve, so the</span>
+</span><span data-line="16"><span class="sd">update is unconditionally stable and smooth in the state — a property the legacy</span>
+</span><span data-line="17"><span class="sd">single-node lumped tank lacks and that an MPC-internal model needs. The lumped</span>
+</span><span data-line="18"><span class="sd">fully-mixed tank is exactly the ``N=1`` limit of this model.</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="sd">This is a standalone, testable component; wiring it into</span>
+</span><span data-line="21"><span class="sd">``GroundSourceHeatPumpBoiler`` as a swappable tank backend is a separate step.</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="sd">Conventions</span>
+</span><span data-line="24"><span class="sd">-----------</span>
+</span><span data-line="25"><span class="sd">- Node index increases downward: ``T[0]`` top (hot), ``T[N-1]`` bottom (cold).</span>
+</span><span data-line="26"><span class="sd">- ``charge_flow`` [m³/s] ≥ 0 (HP charging) enters the **top** node at</span>
+</span><span data-line="27"><span class="sd">  ``T_charge`` and exits the **bottom** node (hot return to top, cold draw to</span>
+</span><span data-line="28"><span class="sd">  HP) — a downward internal flow.</span>
+</span><span data-line="29"><span class="sd">- ``draw_flow`` [m³/s] ≥ 0 (load) draws hot water from the **top** node and</span>
+</span><span data-line="30"><span class="sd">  admits cold makeup ``T_makeup`` at the **bottom** node — an upward internal</span>
+</span><span data-line="31"><span class="sd">  flow.</span>
+</span><span data-line="32"><span class="sd">- The net inter-node flow is ``charge_flow - draw_flow`` (downward positive);</span>
+</span><span data-line="33"><span class="sd">  advection is upwinded by its direction (Cadau Eq. 4-6).</span>
+</span><span data-line="34"><span class="sd">- Temperatures in °C; energy balances are temperature-difference based so the</span>
+</span><span data-line="35"><span class="sd">  reference cancels.</span>
+</span><span data-line="36"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="37">
+</span><span data-line="38"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="39">
+</span><span data-line="40"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="41"><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_banded</span>
+</span><span data-line="42">
+</span><span data-line="43"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="44">
+</span><span data-line="45">
+<div class="viewcode-block" id="StratifiedTank">
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank">[docs]</a>
+</span><span data-line="46"><span class="k">class</span><span class="w"> </span><span class="nc">StratifiedTank</span><span class="p">:</span>
+</span><span data-line="47"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-node stratified hot-water tank (implicit tridiagonal stepper).</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="sd">    Parameters</span>
+</span><span data-line="50"><span class="sd">    ----------</span>
+</span><span data-line="51"><span class="sd">    n_nodes : int</span>
+</span><span data-line="52"><span class="sd">        Number of vertical nodes ``N`` (``N=1`` recovers the lumped tank).</span>
+</span><span data-line="53"><span class="sd">    volume : float</span>
+</span><span data-line="54"><span class="sd">        Total tank volume [m³].</span>
+</span><span data-line="55"><span class="sd">    height : float</span>
+</span><span data-line="56"><span class="sd">        Tank height [m] (sets node thickness ``dz = height/N`` and the</span>
+</span><span data-line="57"><span class="sd">        cross-sectional area ``volume/height`` for conduction).</span>
+</span><span data-line="58"><span class="sd">    k_eff : float, optional</span>
+</span><span data-line="59"><span class="sd">        Effective inter-node conductivity [W/m/K] (water conduction plus any</span>
+</span><span data-line="60"><span class="sd">        turbulent-mixing enhancement). Defaults to water (``k_w``).</span>
+</span><span data-line="61"><span class="sd">    ua : float, optional</span>
+</span><span data-line="62"><span class="sd">        Total tank-to-ambient loss coefficient ``UA`` [W/K], split uniformly</span>
+</span><span data-line="63"><span class="sd">        across nodes. Defaults to 0 (adiabatic).</span>
+</span><span data-line="64"><span class="sd">    rho, cp : float, optional</span>
+</span><span data-line="65"><span class="sd">        Water density [kg/m³] and specific heat [J/kg/K]; default to the project</span>
+</span><span data-line="66"><span class="sd">        constants. Assumed constant (Cadau: density assumed constant per node).</span>
+</span><span data-line="67"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="68">
+<div class="viewcode-block" id="StratifiedTank.__init__">
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.__init__">[docs]</a>
+</span><span data-line="69">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="70">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="71">        <span class="n">n_nodes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="72">        <span class="n">volume</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="73">        <span class="n">height</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="74">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="75">        <span class="n">k_eff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">k_w</span><span class="p">,</span>
+</span><span data-line="76">        <span class="n">ua</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="77">        <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="78">        <span class="n">cp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="79">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="80">        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_nodes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="81">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;n_nodes must be &gt;= 1 — got </span><span class="si">{</span><span class="n">n_nodes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="82">        <span class="k">if</span> <span class="n">volume</span> <span class="o">&lt;=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">height</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="83">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;volume and height must be &gt; 0 — got </span><span class="si">{</span><span class="n">volume</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">height</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="84">
+</span><span data-line="85">        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_nodes</span><span class="p">)</span>
+</span><span data-line="86">        <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">volume</span><span class="p">)</span>
+</span><span data-line="87">        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">height</span><span class="p">)</span>
+</span><span data-line="88">        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+</span><span data-line="89">        <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cp</span><span class="p">)</span>
+</span><span data-line="90">        <span class="bp">self</span><span class="o">.</span><span class="n">k_eff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k_eff</span><span class="p">)</span>
+</span><span data-line="91">        <span class="bp">self</span><span class="o">.</span><span class="n">ua_total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ua</span><span class="p">)</span>
+</span><span data-line="92">
+</span><span data-line="93">        <span class="c1"># Geometry / lumped node properties.</span>
+</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>          <span class="c1"># [m²]</span>
+</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">dz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                       <span class="c1"># node thickness [m]</span>
+</span><span data-line="96">        <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                   <span class="c1"># node volume [m³]</span>
+</span><span data-line="97">        <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span>                 <span class="c1"># node mass [kg]</span>
+</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_eff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dz</span>      <span class="c1"># inter-node conductance [W/K]</span>
+</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                <span class="c1"># per-node loss [W/K]</span>
+</span><span data-line="100">
+</span><span data-line="101">        <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span></div>
+
+</span><span data-line="102">
+</span><span data-line="103">    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="StratifiedTank.reset">
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.reset">[docs]</a>
+</span><span data-line="104">    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T_init</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="105"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Set node temperatures (scalar = uniform, or length-N array).&quot;&quot;&quot;</span>
+</span><span data-line="106">        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">T_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="107">        <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="108">            <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>
+</span><span data-line="109">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="110">            <span class="k">if</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">,):</span>
+</span><span data-line="111">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_init must be scalar or shape (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="si">}</span><span class="s2">,) — got </span><span class="si">{</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="112">            <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="113">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span></div>
+
+</span><span data-line="114">
+</span><span data-line="115">    <span class="nd">@property</span>
+</span><span data-line="116">    <span class="k">def</span><span class="w"> </span><span class="nf">stored_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="117"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Sensible energy relative to 0 °C [J] (``Σ m_node·cp·T_i``).&quot;&quot;&quot;</span>
+</span><span data-line="118">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+</span><span data-line="119">
+</span><span data-line="120">    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="StratifiedTank.step">
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.step">[docs]</a>
+</span><span data-line="121">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">charge_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">T_charge</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="122">             <span class="n">draw_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">T_makeup</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+</span><span data-line="123">             <span class="n">q_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">T_amb</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="124"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Advance one timestep (backward Euler, charge + draw + heat source).</span>
+</span><span data-line="125">
+</span><span data-line="126"><span class="sd">        Parameters</span>
+</span><span data-line="127"><span class="sd">        ----------</span>
+</span><span data-line="128"><span class="sd">        dt : float</span>
+</span><span data-line="129"><span class="sd">            Timestep [s].</span>
+</span><span data-line="130"><span class="sd">        charge_flow : float, optional</span>
+</span><span data-line="131"><span class="sd">            HP charge flow [m³/s] (hot ``T_charge`` into top, out at bottom).</span>
+</span><span data-line="132"><span class="sd">        T_charge : float, optional</span>
+</span><span data-line="133"><span class="sd">            Charge inlet temperature [°C] (used when ``charge_flow &gt; 0``).</span>
+</span><span data-line="134"><span class="sd">        draw_flow : float, optional</span>
+</span><span data-line="135"><span class="sd">            Load draw flow [m³/s] (hot from top, cold ``T_makeup`` into bottom).</span>
+</span><span data-line="136"><span class="sd">        T_makeup : float, optional</span>
+</span><span data-line="137"><span class="sd">            Cold makeup temperature [°C] (used when ``draw_flow &gt; 0``).</span>
+</span><span data-line="138"><span class="sd">        q_source : float or array-like, optional</span>
+</span><span data-line="139"><span class="sd">            Internal heat input [W] from an immersed heater/condenser. A scalar</span>
+</span><span data-line="140"><span class="sd">            is applied to the top node; a length-``N`` array is applied per node.</span>
+</span><span data-line="141"><span class="sd">        T_amb : float, optional</span>
+</span><span data-line="142"><span class="sd">            Ambient temperature [°C] for the side-wall loss.</span>
+</span><span data-line="143">
+</span><span data-line="144"><span class="sd">        Returns</span>
+</span><span data-line="145"><span class="sd">        -------</span>
+</span><span data-line="146"><span class="sd">        dict</span>
+</span><span data-line="147"><span class="sd">            ``T`` (new node temperatures), ``T_top`` (= hot draw outlet),</span>
+</span><span data-line="148"><span class="sd">            ``T_outlet`` (bottom = cold HP return).</span>
+</span><span data-line="149"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="150">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+</span><span data-line="151">        <span class="n">mc_dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">/</span> <span class="n">dt</span>          <span class="c1"># capacitance/dt [W/K]</span>
+</span><span data-line="152">        <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span>
+</span><span data-line="153">        <span class="n">ua</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span>
+</span><span data-line="154">        <span class="n">rc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
+</span><span data-line="155">        <span class="n">mc_chg</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">charge_flow</span>                    <span class="c1"># charge advective conductance [W/K]</span>
+</span><span data-line="156">        <span class="n">mc_draw</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">draw_flow</span>                     <span class="c1"># draw advective conductance [W/K]</span>
+</span><span data-line="157">        <span class="n">v_net</span> <span class="o">=</span> <span class="n">charge_flow</span> <span class="o">-</span> <span class="n">draw_flow</span>              <span class="c1"># net downward inter-node flow [m³/s]</span>
+</span><span data-line="158">        <span class="n">mc_int</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v_net</span><span class="p">)</span>                     <span class="c1"># internal advective conductance [W/K]</span>
+</span><span data-line="159">        <span class="n">down</span> <span class="o">=</span> <span class="n">v_net</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+</span><span data-line="160">
+</span><span data-line="161">        <span class="c1"># Heat source [W per node]: scalar -&gt; top node; array -&gt; per node.</span>
+</span><span data-line="162">        <span class="n">q_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="163">        <span class="k">if</span> <span class="n">q_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="164">            <span class="n">qs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q_source</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="165">            <span class="k">if</span> <span class="n">qs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="166">                <span class="n">q_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
+</span><span data-line="167">            <span class="k">elif</span> <span class="n">qs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="p">,):</span>
+</span><span data-line="168">                <span class="n">q_arr</span> <span class="o">=</span> <span class="n">qs</span>
+</span><span data-line="169">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="170">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;q_source must be scalar or shape (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">,) — got </span><span class="si">{</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="171">
+</span><span data-line="172">        <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   <span class="c1"># coupling of row i to T_{i-1}</span>
+</span><span data-line="173">        <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="174">        <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   <span class="c1"># coupling of row i to T_{i+1}</span>
+</span><span data-line="175">        <span class="n">rhs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="176">
+</span><span data-line="177">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+</span><span data-line="178">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">+</span> <span class="n">ua</span>
+</span><span data-line="179">            <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">ua</span> <span class="o">*</span> <span class="n">T_amb</span> <span class="o">+</span> <span class="n">q_arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</span><span data-line="180">
+</span><span data-line="181">            <span class="c1"># Boundary ports.</span>
+</span><span data-line="182">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="183">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span> <span class="o">*</span> <span class="n">T_charge</span>          <span class="c1"># charge hot inflow (top)</span>
+</span><span data-line="184">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span>                   <span class="c1"># draw outflow at T_0 (top)</span>
+</span><span data-line="185">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="186">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span> <span class="o">*</span> <span class="n">T_makeup</span>         <span class="c1"># cold makeup inflow (bottom)</span>
+</span><span data-line="187">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span>                    <span class="c1"># charge outflow at T_{N-1} (bottom)</span>
+</span><span data-line="188">
+</span><span data-line="189">            <span class="c1"># Internal advection (upwind by net direction).</span>
+</span><span data-line="190">            <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
+</span><span data-line="191">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="192">                    <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>              <span class="c1"># inflow from node above</span>
+</span><span data-line="193">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
+</span><span data-line="194">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>                <span class="c1"># outflow to node below</span>
+</span><span data-line="195">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="196">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
+</span><span data-line="197">                    <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>              <span class="c1"># inflow from node below</span>
+</span><span data-line="198">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="199">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>                <span class="c1"># outflow to node above</span>
+</span><span data-line="200">
+</span><span data-line="201">            <span class="c1"># Pseudo-conduction to neighbours.</span>
+</span><span data-line="202">            <span class="n">g_above</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="203">            <span class="n">g_below</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="204">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">g_above</span> <span class="o">+</span> <span class="n">g_below</span>
+</span><span data-line="205">            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="206">                <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_above</span>
+</span><span data-line="207">            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="208">                <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_below</span>
+</span><span data-line="209">
+</span><span data-line="210">        <span class="c1"># Banded form for solve_banded((1, 1), ab, rhs):</span>
+</span><span data-line="211">        <span class="c1">#   ab[0, 1:] = super-diagonal, ab[1] = diagonal, ab[2, :-1] = sub-diagonal.</span>
+</span><span data-line="212">        <span class="n">ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+</span><span data-line="213">        <span class="n">ab</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="214">        <span class="n">ab</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">diag</span>
+</span><span data-line="215">        <span class="n">ab</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">lower</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span data-line="216">        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">solve_banded</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ab</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+</span><span data-line="217">
+</span><span data-line="218">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="s2">&quot;T_top&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;T_outlet&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])}</span></div>
+</div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script></body>
+</html>

@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/subsystems.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy storage system: UV l..." />
+<meta property="og:description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, tank backends, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy stora..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy storage system: UV l..." />
+<meta name="description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, tank backends, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy stora..." />
 
-    <meta property="article:modified_time" content="2026-05-17T14:11:26+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -107,6 +107,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l3"><a class="reference internal" href="demand-weather.html">Demand &amp; weather</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Subsystems</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="integrations.html">Integrations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="utilities.html">Utilities &amp; constants</a></li>
 </ul>
@@ -209,6 +210,27 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.uv_treatment.calc_uv_exposure_time"><code class="docutils literal notranslate"><span class="pre">calc_uv_exposure_time()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#module-tmhp.stratified_tank">Stratified tank</a><ul>
+<li><a class="reference internal" href="#conventions">Conventions</a></li>
+<li><a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank"><code class="docutils literal notranslate"><span class="pre">StratifiedTank</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank.stored_energy"><code class="docutils literal notranslate">stored_energy</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank.step"><code class="docutils literal notranslate">step()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.hybrid_tank">Hybrid stratified tank</a><ul>
+<li><a class="reference internal" href="#tmhp.hybrid_tank.HybridStratifiedTank"><code class="docutils literal notranslate"><span class="pre">HybridStratifiedTank</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.hybrid_tank.HybridStratifiedTank.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.hybrid_tank.HybridStratifiedTank.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.hybrid_tank.HybridStratifiedTank.stored_energy"><code class="docutils literal notranslate">stored_energy</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.hybrid_tank.HybridStratifiedTank.step"><code class="docutils literal notranslate">step()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -250,7 +272,8 @@ data-aria-dark="Switch to auto color mode">
           <section id="subsystems">
 <h1>Subsystems<a class="headerlink" href="#subsystems" title="Link to this heading">¶</a></h1>
 <p>Composable subsystems that the <code class="docutils literal notranslate"><span class="pre">*_stc_*</span></code> and <code class="docutils literal notranslate"><span class="pre">*_pv_ess</span></code> model
-variants plug onto the core cycle, plus the UV-treatment subsystem.</p>
+variants plug onto the core cycle, tank backends, plus the
+UV-treatment subsystem.</p>
 <section id="solar-thermal-collector">
 <h2>Solar thermal collector<a class="headerlink" href="#solar-thermal-collector" title="Link to this heading">¶</a></h2>
 <dl class="py class">
@@ -898,10 +921,232 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </dd></dl>
 
 </section>
+<section id="module-tmhp.stratified_tank">
+<span id="stratified-tank"></span><h2>Stratified tank<a class="headerlink" href="#module-tmhp.stratified_tank" title="Link to this heading">¶</a></h2>
+<p>Multi-node (1-D finite-volume) stratified thermal-storage tank.</p>
+<p>Implements the multi-node model of Cadau et al. (<em>Development and Analysis of a
+Multi-Node Dynamic Model for the Simulation of Stratified Thermal Energy
+Storage</em>, Energies 2019, 12:4275): the tank is divided into <code class="docutils literal notranslate"><span class="pre">N</span></code> vertically
+stacked nodes (node 0 = top/hottest, node N-1 = bottom/coldest), each with a
+uniform temperature <code class="docutils literal notranslate"><span class="pre">T_i</span></code>. The per-node energy balance combines</p>
+<ul class="simple">
+<li><p><strong>advection</strong> — port inflow/outflow and inter-node vertical flow, upwinded by
+the flow direction (Cadau Eq. 4-6);</p></li>
+<li><p><strong>pseudo-conduction</strong> — <code class="docutils literal notranslate"><span class="pre">k·(T_{i-1}-T_i)</span> <span class="pre">-</span> <span class="pre">k·(T_i-T_{i+1})</span></code> between
+neighbouring nodes, lumping conductive + convective exchange; and</p></li>
+<li><p><strong>ambient loss</strong> — <code class="docutils literal notranslate"><span class="pre">UA_i·(T_i</span> <span class="pre">-</span> <span class="pre">T_amb)</span></code> through the side wall.</p></li>
+</ul>
+<p>It is integrated <strong>implicitly</strong> (backward Euler) as a tridiagonal solve, so the
+update is unconditionally stable and smooth in the state — a property the legacy
+single-node lumped tank lacks and that an MPC-internal model needs. The lumped
+fully-mixed tank is exactly the <code class="docutils literal notranslate"><span class="pre">N=1</span></code> limit of this model.</p>
+<p>This is a standalone, testable component; wiring it into
+<code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> as a swappable tank backend is a separate step.</p>
+<section id="conventions">
+<h3>Conventions<a class="headerlink" href="#conventions" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Node index increases downward: <code class="docutils literal notranslate"><span class="pre">T[0]</span></code> top (hot), <code class="docutils literal notranslate"><span class="pre">T[N-1]</span></code> bottom (cold).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">charge_flow</span></code> [m³/s] ≥ 0 (HP charging) enters the <strong>top</strong> node at
+<code class="docutils literal notranslate"><span class="pre">T_charge</span></code> and exits the <strong>bottom</strong> node (hot return to top, cold draw to
+HP) — a downward internal flow.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw_flow</span></code> [m³/s] ≥ 0 (load) draws hot water from the <strong>top</strong> node and
+admits cold makeup <code class="docutils literal notranslate"><span class="pre">T_makeup</span></code> at the <strong>bottom</strong> node — an upward internal
+flow.</p></li>
+<li><p>The net inter-node flow is <code class="docutils literal notranslate"><span class="pre">charge_flow</span> <span class="pre">-</span> <span class="pre">draw_flow</span></code> (downward positive);
+advection is upwinded by its direction (Cadau Eq. 4-6).</p></li>
+<li><p>Temperatures in °C; energy balances are temperature-difference based so the
+reference cancels.</p></li>
+</ul>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.stratified_tank.StratifiedTank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.stratified_tank.</span></span><span class="sig-name descname"><span class="pre">StratifiedTank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.606</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ua</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4186</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/stratified_tank.html#StratifiedTank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.stratified_tank.StratifiedTank" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Multi-node stratified hot-water tank (implicit tridiagonal stepper).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_nodes</strong> (<em>int</em>) – Number of vertical nodes <code class="docutils literal notranslate"><span class="pre">N</span></code> (<code class="docutils literal notranslate"><span class="pre">N=1</span></code> recovers the lumped tank).</p></li>
+<li><p><strong>volume</strong> (<em>float</em>) – Total tank volume [m³].</p></li>
+<li><p><strong>height</strong> (<em>float</em>) – Tank height [m] (sets node thickness <code class="docutils literal notranslate"><span class="pre">dz</span> <span class="pre">=</span> <span class="pre">height/N</span></code> and the
+cross-sectional area <code class="docutils literal notranslate"><span class="pre">volume/height</span></code> for conduction).</p></li>
+<li><p><strong>k_eff</strong> (<em>float</em><em>, </em><em>optional</em>) – Effective inter-node conductivity [W/m/K] (water conduction plus any
+turbulent-mixing enhancement). Defaults to water (<code class="docutils literal notranslate"><span class="pre">k_w</span></code>).</p></li>
+<li><p><strong>ua</strong> (<em>float</em><em>, </em><em>optional</em>) – Total tank-to-ambient loss coefficient <code class="docutils literal notranslate"><span class="pre">UA</span></code> [W/K], split uniformly
+across nodes. Defaults to 0 (adiabatic).</p></li>
+<li><p><strong>rho</strong> (<em>float</em><em>, </em><em>optional</em>) – Water density [kg/m³] and specific heat [J/kg/K]; default to the project
+constants. Assumed constant (Cadau: density assumed constant per node).</p></li>
+<li><p><strong>cp</strong> (<em>float</em><em>, </em><em>optional</em>) – Water density [kg/m³] and specific heat [J/kg/K]; default to the project
+constants. Assumed constant (Cadau: density assumed constant per node).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.stratified_tank.StratifiedTank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.606</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ua</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4186</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/stratified_tank.html#StratifiedTank.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.stratified_tank.StratifiedTank.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_nodes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>volume</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_eff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>ua</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.stratified_tank.StratifiedTank.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_init</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/stratified_tank.html#StratifiedTank.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.stratified_tank.StratifiedTank.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Set node temperatures (scalar = uniform, or length-N array).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.stratified_tank.StratifiedTank.stored_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stored_energy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#tmhp.stratified_tank.StratifiedTank.stored_energy" title="Link to this definition">¶</a></dt>
+<dd><p>Sensible energy relative to 0 °C [J] (<code class="docutils literal notranslate"><span class="pre">Σ</span> <span class="pre">m_node·cp·T_i</span></code>).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.stratified_tank.StratifiedTank.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_makeup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_amb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/stratified_tank.html#StratifiedTank.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.stratified_tank.StratifiedTank.step" title="Link to this definition">¶</a></dt>
+<dd><p>Advance one timestep (backward Euler, charge + draw + heat source).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dt</strong> (<em>float</em>) – Timestep [s].</p></li>
+<li><p><strong>charge_flow</strong> (<em>float</em><em>, </em><em>optional</em>) – HP charge flow [m³/s] (hot <code class="docutils literal notranslate"><span class="pre">T_charge</span></code> into top, out at bottom).</p></li>
+<li><p><strong>T_charge</strong> (<em>float</em><em>, </em><em>optional</em>) – Charge inlet temperature [°C] (used when <code class="docutils literal notranslate"><span class="pre">charge_flow</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>).</p></li>
+<li><p><strong>draw_flow</strong> (<em>float</em><em>, </em><em>optional</em>) – Load draw flow [m³/s] (hot from top, cold <code class="docutils literal notranslate"><span class="pre">T_makeup</span></code> into bottom).</p></li>
+<li><p><strong>T_makeup</strong> (<em>float</em><em>, </em><em>optional</em>) – Cold makeup temperature [°C] (used when <code class="docutils literal notranslate"><span class="pre">draw_flow</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>).</p></li>
+<li><p><strong>q_source</strong> (<em>float</em><em> or </em><em>array-like</em><em>, </em><em>optional</em>) – Internal heat input [W] from an immersed heater/condenser. A scalar
+is applied to the top node; a length-<code class="docutils literal notranslate"><span class="pre">N</span></code> array is applied per node.</p></li>
+<li><p><strong>T_amb</strong> (<em>float</em><em>, </em><em>optional</em>) – Ambient temperature [°C] for the side-wall loss.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">T</span></code> (new node temperatures), <code class="docutils literal notranslate"><span class="pre">T_top</span></code> (= hot draw outlet),
+<code class="docutils literal notranslate"><span class="pre">T_outlet</span></code> (bottom = cold HP return).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-tmhp.hybrid_tank">
+<span id="hybrid-stratified-tank"></span><h2>Hybrid stratified tank<a class="headerlink" href="#module-tmhp.hybrid_tank" title="Link to this heading">¶</a></h2>
+<p>1-D hybrid continuous–discrete multi-node stratified tank (Cruz-Loredo 2023).</p>
+<p>Implements the hybrid thermocline model of De la Cruz-Loredo et al.
+(<em>Experimental validation of a hybrid 1-D multi-node model of a hot water
+thermal energy storage tank</em>, Applied Energy 2023, 332:120556). It augments the
+standard multi-node model (<a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank" title="tmhp.stratified_tank.StratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">StratifiedTank</span></code></a>) with a
+<strong>flat thermocline barrier</strong> at vertical position <code class="docutils literal notranslate"><span class="pre">y_th</span></code> that travels in plug
+flow at <code class="docutils literal notranslate"><span class="pre">v_th</span> <span class="pre">=</span> <span class="pre">V̇/A_c</span></code>.</p>
+<p>The key device against numerical diffusion: while charging, the advective inflow
+into each node uses a <em>discrete reference temperature</em> of its upstream neighbour
+that is <strong>frozen until the thermocline front passes that neighbour’s mid-height</strong>
+(<code class="docutils literal notranslate"><span class="pre">y_mid</span></code>). The transition therefore propagates at the physical front speed
+instead of smearing across nodes. This is the charge-only thermocline form
+(Cruz-Loredo Eq. 7): discharge/idle destroys the barrier and the model reverts to
+the standard continuous multi-node behaviour.</p>
+<p>Targets the <strong>plant / ground-truth</strong> role (high fidelity, non-smooth); the smooth
+<a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank" title="tmhp.stratified_tank.StratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">StratifiedTank</span></code></a> (Cadau) targets the MPC-internal
+role. Same geometry/units conventions as <code class="docutils literal notranslate"><span class="pre">StratifiedTank</span></code> (node 0 = top/hot).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.hybrid_tank.</span></span><span class="sig-name descname"><span class="pre">HybridStratifiedTank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.606</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ua</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4186</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hybrid_tank.html#HybridStratifiedTank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Hybrid continuous–discrete multi-node tank with a flat thermocline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_nodes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>volume</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_eff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>ua</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.606</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ua</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4186</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hybrid_tank.html#HybridStratifiedTank.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_nodes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>volume</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>height</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_eff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>ua</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rho</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_init</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hybrid_tank.html#HybridStratifiedTank.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank.reset" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank.stored_energy">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stored_energy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank.stored_energy" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">draw_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_makeup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_amb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hybrid_tank.html#HybridStratifiedTank.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank.step" title="Link to this definition">¶</a></dt>
+<dd><p>Advance one timestep.</p>
+<p>Pure charge (<code class="docutils literal notranslate"><span class="pre">charge_flow</span> <span class="pre">&gt;</span> <span class="pre">0,</span> <span class="pre">draw_flow</span> <span class="pre">==</span> <span class="pre">0</span></code>) activates the hybrid
+frozen-reference thermocline; draw/idle/mixed flow uses the standard
+continuous multi-node update (the barrier is destroyed).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>charge_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_charge</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>draw_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_makeup</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_amb</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated May 17, 2026
+  Last updated Jun 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

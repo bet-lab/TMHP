@@ -366,9 +366,9 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="199">    <span class="n">R_side_tot</span> <span class="o">=</span> <span class="n">R_side</span> <span class="o">+</span> <span class="n">R_side_ext</span>
 </span><span data-line="200">
 </span><span data-line="201">    <span class="c1"># U-value [W/K]</span>
-</span><span data-line="202">    <span class="n">UA_tank</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">R_base_tot</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">R_side_tot</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span>
+</span><span data-line="202">    <span class="n">UA_tank_wall</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">R_base_tot</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">R_side_tot</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">)</span>
 </span><span data-line="203">
-</span><span data-line="204">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA_tank</span><span class="p">)</span></div>
+</span><span data-line="204">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA_tank_wall</span><span class="p">)</span></div>
 
 </span><span data-line="205">
 </span><span data-line="206">

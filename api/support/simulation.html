@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T23:04:14+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -977,7 +977,7 @@ responsibility of the scenario class via
 
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_mass_energy_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_mass_energy_residual"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_mass_energy_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank_wall</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_mass_energy_residual"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Energy and mass balance residuals at T^{n+1}.</p>
 <p>The 3-way mixing valve ratio α(T) makes the outflow a
 nonlinear function of T^{n+1}, requiring <code class="docutils literal notranslate"><span class="pre">fsolve</span></code>.</p>
@@ -994,7 +994,7 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 <li><p><strong>T_sup_w_K</strong> (<em>float</em>) – Mains water supply temperature [K] (for mixing valve).</p></li>
 <li><p><strong>T_mix_w_out_K</strong> (<em>float</em>) – Target mixing-valve outlet temperature [K].</p></li>
 <li><p><strong>C_tank</strong> (<em>float</em>) – Tank thermal capacitance [J/K].</p></li>
-<li><p><strong>UA_tank</strong> (<em>float</em>) – Tank overall heat-loss coefficient [W/K].</p></li>
+<li><p><strong>UA_tank_wall</strong> (<em>float</em>) – Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</p></li>
 <li><p><strong>V_tank_full</strong> (<em>float</em>) – Tank full volume [m³].</p></li>
 <li><p><strong>subsystems</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Subsystem</em><em>]</em>) – Registered subsystem instances.</p></li>
 <li><p><strong>sub_states</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – Per-subsystem state dicts from <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p></li>
@@ -1314,7 +1314,7 @@ Categories: ‘in’, ‘out’, ‘con’ (consumed), ‘gen’ (generated)</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.enex_functions.update_tank_temperature">
-<span class="sig-prename descclassname"><span class="pre">tmhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">update_tank_temperature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/enex_functions.html#update_tank_temperature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.enex_functions.update_tank_temperature" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">update_tank_temperature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_gain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank_wall</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/enex_functions.html#update_tank_temperature"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.enex_functions.update_tank_temperature" title="Link to this definition">¶</a></dt>
 <dd><p>Update tank temperature using the Crank-Nicolson implicit scheme.</p>
 <p>The governing ODE for a lumped-capacitance tank is:</p>
 <blockquote>
@@ -1332,7 +1332,7 @@ when dt is large relative to the thermal time constant C/UA.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T_tank_w_K</strong> (<em>float</em>) – Current tank temperature [K].</p></li>
 <li><p><strong>Q_gain</strong> (<em>float</em>) – Total heat gain rate [W] (condenser, UV, STC, refill, etc.).</p></li>
-<li><p><strong>UA_tank</strong> (<em>float</em>) – Overall tank heat-loss coefficient [W/K].</p></li>
+<li><p><strong>UA_tank_wall</strong> (<em>float</em>) – Overall tank heat-loss coefficient [W/K] (shell/insulation envelope).</p></li>
 <li><p><strong>T0_K</strong> (<em>float</em>) – Dead-state / ambient temperature [K].</p></li>
 <li><p><strong>C_tank</strong> (<em>float</em>) – Tank thermal capacitance [J/K] (= c_w * rho_w * V_tank * level).</p></li>
 <li><p><strong>dt</strong> (<em>float</em>) – Time step [s].</p></li>

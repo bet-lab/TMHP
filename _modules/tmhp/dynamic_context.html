@@ -634,7 +634,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="440">    <span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="441">    <span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="442">    <span class="n">C_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="443">    <span class="n">UA_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="443">    <span class="n">UA_tank_wall</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="444">    <span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 </span><span data-line="445">    <span class="n">subsystems</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Subsystem</span><span class="p">],</span>
 </span><span data-line="446">    <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
@@ -666,8 +666,8 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="472"><span class="sd">        Target mixing-valve outlet temperature [K].</span>
 </span><span data-line="473"><span class="sd">    C_tank : float</span>
 </span><span data-line="474"><span class="sd">        Tank thermal capacitance [J/K].</span>
-</span><span data-line="475"><span class="sd">    UA_tank : float</span>
-</span><span data-line="476"><span class="sd">        Tank overall heat-loss coefficient [W/K].</span>
+</span><span data-line="475"><span class="sd">    UA_tank_wall : float</span>
+</span><span data-line="476"><span class="sd">        Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</span>
 </span><span data-line="477"><span class="sd">    V_tank_full : float</span>
 </span><span data-line="478"><span class="sd">        Tank full volume [m³].</span>
 </span><span data-line="479"><span class="sd">    subsystems : dict[str, Subsystem]</span>
@@ -698,7 +698,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="504">    <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
 </span><span data-line="505">    <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">level_next</span><span class="p">)</span>
 </span><span data-line="506">    <span class="n">T_sur_K</span> <span class="o">=</span> <span class="n">T_sur_K</span> <span class="k">if</span> <span class="n">T_sur_K</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span>
-</span><span data-line="507">    <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">UA_tank</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sur_K</span><span class="p">)</span>
+</span><span data-line="507">    <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sur_K</span><span class="p">)</span>
 </span><span data-line="508">
 </span><span data-line="509">    <span class="c1"># Effective tank inlet temperature</span>
 </span><span data-line="510">    <span class="c1"># (subsystems may override, e.g. mains preheat)</span>

@@ -758,7 +758,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="572">
 <div class="viewcode-block" id="update_tank_temperature">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.enex_functions.update_tank_temperature">[docs]</a>
-</span><span data-line="573"><span class="k">def</span><span class="w"> </span><span class="nf">update_tank_temperature</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">Q_gain</span><span class="p">,</span> <span class="n">UA_tank</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">C_tank</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+</span><span data-line="573"><span class="k">def</span><span class="w"> </span><span class="nf">update_tank_temperature</span><span class="p">(</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">Q_gain</span><span class="p">,</span> <span class="n">UA_tank_wall</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">C_tank</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
 </span><span data-line="574"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Update tank temperature using the Crank-Nicolson implicit scheme.</span>
 </span><span data-line="575">
 </span><span data-line="576"><span class="sd">    The governing ODE for a lumped-capacitance tank is:</span>
@@ -779,8 +779,8 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="591"><span class="sd">        Current tank temperature [K].</span>
 </span><span data-line="592"><span class="sd">    Q_gain : float</span>
 </span><span data-line="593"><span class="sd">        Total heat gain rate [W] (condenser, UV, STC, refill, etc.).</span>
-</span><span data-line="594"><span class="sd">    UA_tank : float</span>
-</span><span data-line="595"><span class="sd">        Overall tank heat-loss coefficient [W/K].</span>
+</span><span data-line="594"><span class="sd">    UA_tank_wall : float</span>
+</span><span data-line="595"><span class="sd">        Overall tank heat-loss coefficient [W/K] (shell/insulation envelope).</span>
 </span><span data-line="596"><span class="sd">    T0_K : float</span>
 </span><span data-line="597"><span class="sd">        Dead-state / ambient temperature [K].</span>
 </span><span data-line="598"><span class="sd">    C_tank : float</span>
@@ -794,7 +794,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="606"><span class="sd">        Updated tank temperature [K].</span>
 </span><span data-line="607"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="608">    <span class="n">a</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">/</span> <span class="n">dt</span>
-</span><span data-line="609">    <span class="n">T_tank_w_K_new</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span> <span class="o">-</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">Q_gain</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">*</span> <span class="n">T0_K</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">UA_tank</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+</span><span data-line="609">    <span class="n">T_tank_w_K_new</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span> <span class="o">-</span> <span class="n">UA_tank_wall</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">Q_gain</span> <span class="o">+</span> <span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="n">T0_K</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">UA_tank_wall</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
 </span><span data-line="610">    <span class="k">return</span> <span class="n">T_tank_w_K_new</span></div>
 
 </span><span data-line="611">

@@ -173,134 +173,152 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="17">
 </span><span data-line="18"><span class="sd">Lead track is FMI 2.0 (co-simulation only): ``tmhp`` exposes no continuous</span>
 </span><span data-line="19"><span class="sd">state derivatives, and 2.0 co-sim is the most broadly importable flavour.</span>
-</span><span data-line="20">
-</span><span data-line="21"><span class="sd">.. note::</span>
-</span><span data-line="22"><span class="sd">   Native-wheel caveat (CoolProp/numpy/scipy): the FMU is a *tool-coupling*</span>
-</span><span data-line="23"><span class="sd">   artifact, not a hermetic binary — the importing environment must provide</span>
-</span><span data-line="24"><span class="sd">   ``tmhp`` and its native dependencies for the chosen (OS, arch, Python-ABI).</span>
-</span><span data-line="25"><span class="sd">   No save-state/rollback at this scope (single-pass co-sim only).</span>
-</span><span data-line="26"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="27">
-</span><span data-line="28"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="20"><span class="sd">Boundary outputs are sanitized to avoid ``NaN`` values, while ``converged`` and</span>
+</span><span data-line="21"><span class="sd">``failure_reason`` preserve step-level diagnostics for the importing master.</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="sd">.. note::</span>
+</span><span data-line="24"><span class="sd">   Native-wheel caveat (CoolProp/numpy/scipy): the FMU is a *tool-coupling*</span>
+</span><span data-line="25"><span class="sd">   artifact, not a hermetic binary — the importing environment must provide</span>
+</span><span data-line="26"><span class="sd">   ``tmhp`` and its native dependencies for the chosen (OS, arch, Python-ABI).</span>
+</span><span data-line="27"><span class="sd">   No save-state/rollback at this scope (single-pass co-sim only).</span>
+</span><span data-line="28"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="29">
-</span><span data-line="30"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="31"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="kn">from</span><span class="w"> </span><span class="nn">pythonfmu</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="34">    <span class="n">Boolean</span><span class="p">,</span>
-</span><span data-line="35">    <span class="n">Fmi2Causality</span><span class="p">,</span>
-</span><span data-line="36">    <span class="n">Fmi2Slave</span><span class="p">,</span>
-</span><span data-line="37">    <span class="n">Fmi2Variability</span><span class="p">,</span>
-</span><span data-line="38">    <span class="n">Real</span><span class="p">,</span>
-</span><span data-line="39">    <span class="n">String</span><span class="p">,</span>
-</span><span data-line="40"><span class="p">)</span>
-</span><span data-line="41">
-</span><span data-line="42"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
-</span><span data-line="43"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.dynamic_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynamicState</span>
-</span><span data-line="44">
-</span><span data-line="45">
-</span><span data-line="46"><span class="k">def</span><span class="w"> </span><span class="nf">_finite</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="47"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sanitize a value before it crosses the FMI boundary (no NaN/None).&quot;&quot;&quot;</span>
-</span><span data-line="48">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="49">        <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="50">    <span class="n">out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="51">    <span class="k">return</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">else</span> <span class="n">out</span>
-</span><span data-line="52">
-</span><span data-line="53">
+</span><span data-line="30"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="31">
+</span><span data-line="32"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="33"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="kn">from</span><span class="w"> </span><span class="nn">pythonfmu</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="36">    <span class="n">Boolean</span><span class="p">,</span>
+</span><span data-line="37">    <span class="n">Fmi2Causality</span><span class="p">,</span>
+</span><span data-line="38">    <span class="n">Fmi2Slave</span><span class="p">,</span>
+</span><span data-line="39">    <span class="n">Fmi2Variability</span><span class="p">,</span>
+</span><span data-line="40">    <span class="n">Real</span><span class="p">,</span>
+</span><span data-line="41">    <span class="n">String</span><span class="p">,</span>
+</span><span data-line="42"><span class="p">)</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
+</span><span data-line="45"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.dynamic_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">DynamicState</span>
+</span><span data-line="46">
+</span><span data-line="47">
+</span><span data-line="48"><span class="k">def</span><span class="w"> </span><span class="nf">_finite</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="49"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sanitize a value before it crosses the FMI boundary (no NaN/None).&quot;&quot;&quot;</span>
+</span><span data-line="50">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="51">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="52">    <span class="n">out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="53">    <span class="k">return</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="k">else</span> <span class="n">out</span>
+</span><span data-line="54">
+</span><span data-line="55">
+</span><span data-line="56"><span class="k">def</span><span class="w"> </span><span class="nf">_failure_reason</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="57"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Normalize diagnostic reasons at the FMI string boundary.&quot;&quot;&quot;</span>
+</span><span data-line="58">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="59">        <span class="k">return</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="60">    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="61">
+</span><span data-line="62">
 <div class="viewcode-block" id="TmhpAshpbSlave">
 <a class="viewcode-back" href="../../../api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave">[docs]</a>
-</span><span data-line="54"><span class="k">class</span><span class="w"> </span><span class="nc">TmhpAshpbSlave</span><span class="p">(</span><span class="n">Fmi2Slave</span><span class="p">):</span>
-</span><span data-line="55"><span class="w">    </span><span class="sd">&quot;&quot;&quot;ASHPB single-timestep co-simulation kernel (FMI 2.0).&quot;&quot;&quot;</span>
-</span><span data-line="56">
-</span><span data-line="57">    <span class="n">author</span> <span class="o">=</span> <span class="s2">&quot;BET Lab&quot;</span>
-</span><span data-line="58">    <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;tmhp ASHPB one-dt co-simulation kernel (FMI 2.0)&quot;</span>
-</span><span data-line="59">
+</span><span data-line="63"><span class="k">class</span><span class="w"> </span><span class="nc">TmhpAshpbSlave</span><span class="p">(</span><span class="n">Fmi2Slave</span><span class="p">):</span>
+</span><span data-line="64"><span class="w">    </span><span class="sd">&quot;&quot;&quot;ASHPB single-timestep co-simulation kernel (FMI 2.0).&quot;&quot;&quot;</span>
+</span><span data-line="65">
+</span><span data-line="66">    <span class="n">author</span> <span class="o">=</span> <span class="s2">&quot;BET Lab&quot;</span>
+</span><span data-line="67">    <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot;tmhp ASHPB one-dt co-simulation kernel (FMI 2.0)&quot;</span>
+</span><span data-line="68">
 <div class="viewcode-block" id="TmhpAshpbSlave.__init__">
 <a class="viewcode-back" href="../../../api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave.__init__">[docs]</a>
-</span><span data-line="60">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="61">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="62">
-</span><span data-line="63">        <span class="c1"># --- Parameters (fixed at initialization) ---</span>
-</span><span data-line="64">        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="s2">&quot;R32&quot;</span>
-</span><span data-line="65">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span> <span class="o">=</span> <span class="mf">15000.0</span>
-</span><span data-line="66">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span> <span class="o">=</span> <span class="mf">55.0</span>
-</span><span data-line="67">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sur</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># surrounding (tank-loss) temperature [°C]</span>
-</span><span data-line="68">        <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
-</span><span data-line="69">            <span class="n">String</span><span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">fixed</span><span class="p">)</span>
-</span><span data-line="70">        <span class="p">)</span>
-</span><span data-line="71">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;hp_capacity&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w_init&quot;</span><span class="p">,</span> <span class="s2">&quot;T_sur&quot;</span><span class="p">):</span>
-</span><span data-line="72">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
-</span><span data-line="73">                <span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">fixed</span><span class="p">)</span>
-</span><span data-line="74">            <span class="p">)</span>
-</span><span data-line="75">
-</span><span data-line="76">        <span class="c1"># --- Inputs (master sets before each do_step) ---</span>
-</span><span data-line="77">        <span class="bp">self</span><span class="o">.</span><span class="n">T0</span> <span class="o">=</span> <span class="mf">7.0</span>  <span class="c1"># outdoor / dead-state air temperature [°C]</span>
-</span><span data-line="78">        <span class="bp">self</span><span class="o">.</span><span class="n">dhw_draw</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># service-water draw-off [m³/s] (-&gt; dV_mix_w_out)</span>
-</span><span data-line="79">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span> <span class="o">=</span> <span class="mf">15.0</span>  <span class="c1"># mains make-up water temperature [°C]</span>
-</span><span data-line="80">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;T0&quot;</span><span class="p">,</span> <span class="s2">&quot;dhw_draw&quot;</span><span class="p">,</span> <span class="s2">&quot;T_sup_w&quot;</span><span class="p">):</span>
+</span><span data-line="69">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="70">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="71">
+</span><span data-line="72">        <span class="c1"># --- Parameters (fixed at initialization) ---</span>
+</span><span data-line="73">        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="s2">&quot;R32&quot;</span>
+</span><span data-line="74">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span> <span class="o">=</span> <span class="mf">15000.0</span>
+</span><span data-line="75">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span> <span class="o">=</span> <span class="mf">55.0</span>
+</span><span data-line="76">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sur</span> <span class="o">=</span> <span class="mf">20.0</span>  <span class="c1"># surrounding (tank-loss) temperature [°C]</span>
+</span><span data-line="77">        <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
+</span><span data-line="78">            <span class="n">String</span><span class="p">(</span><span class="s2">&quot;ref&quot;</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">fixed</span><span class="p">)</span>
+</span><span data-line="79">        <span class="p">)</span>
+</span><span data-line="80">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;hp_capacity&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w_init&quot;</span><span class="p">,</span> <span class="s2">&quot;T_sur&quot;</span><span class="p">):</span>
 </span><span data-line="81">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
-</span><span data-line="82">                <span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">continuous</span><span class="p">)</span>
+</span><span data-line="82">                <span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">parameter</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">fixed</span><span class="p">)</span>
 </span><span data-line="83">            <span class="p">)</span>
 </span><span data-line="84">
-</span><span data-line="85">        <span class="c1"># --- Outputs (master reads after each do_step) ---</span>
-</span><span data-line="86">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="87">        <span class="bp">self</span><span class="o">.</span><span class="n">E_tot</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="88">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="89">        <span class="bp">self</span><span class="o">.</span><span class="n">cop_sys</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="90">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span>
-</span><span data-line="91">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_is_on</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span data-line="92">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
-</span><span data-line="93">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;E_cmp&quot;</span><span class="p">,</span> <span class="s2">&quot;E_tot&quot;</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">,</span> <span class="s2">&quot;cop_sys&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w&quot;</span><span class="p">):</span>
-</span><span data-line="94">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span><span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
-</span><span data-line="95">        <span class="c1"># FMI forbids variability=&quot;continuous&quot; on Boolean variables.</span>
-</span><span data-line="96">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="s2">&quot;converged&quot;</span><span class="p">):</span>
-</span><span data-line="97">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
-</span><span data-line="98">                <span class="n">Boolean</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">discrete</span><span class="p">)</span>
-</span><span data-line="99">            <span class="p">)</span>
-</span><span data-line="100">
-</span><span data-line="101">        <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="p">:</span> <span class="n">AirSourceHeatPumpBoiler</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="102">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="n">DynamicState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="103">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span></div>
+</span><span data-line="85">        <span class="c1"># --- Inputs (master sets before each do_step) ---</span>
+</span><span data-line="86">        <span class="bp">self</span><span class="o">.</span><span class="n">T0</span> <span class="o">=</span> <span class="mf">7.0</span>  <span class="c1"># outdoor / dead-state air temperature [°C]</span>
+</span><span data-line="87">        <span class="bp">self</span><span class="o">.</span><span class="n">dhw_draw</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># service-water draw-off [m³/s] (-&gt; dV_mix_w_out)</span>
+</span><span data-line="88">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span> <span class="o">=</span> <span class="mf">15.0</span>  <span class="c1"># mains make-up water temperature [°C]</span>
+</span><span data-line="89">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;T0&quot;</span><span class="p">,</span> <span class="s2">&quot;dhw_draw&quot;</span><span class="p">,</span> <span class="s2">&quot;T_sup_w&quot;</span><span class="p">):</span>
+</span><span data-line="90">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
+</span><span data-line="91">                <span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">continuous</span><span class="p">)</span>
+</span><span data-line="92">            <span class="p">)</span>
+</span><span data-line="93">
+</span><span data-line="94">        <span class="c1"># --- Outputs (master reads after each do_step) ---</span>
+</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="96">        <span class="bp">self</span><span class="o">.</span><span class="n">E_tot</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="97">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">cop_sys</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span>
+</span><span data-line="100">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_is_on</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="101">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="102">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="103">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;E_cmp&quot;</span><span class="p">,</span> <span class="s2">&quot;E_tot&quot;</span><span class="p">,</span> <span class="s2">&quot;Q_ref_tank&quot;</span><span class="p">,</span> <span class="s2">&quot;cop_sys&quot;</span><span class="p">,</span> <span class="s2">&quot;T_tank_w&quot;</span><span class="p">):</span>
+</span><span data-line="104">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span><span class="n">Real</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
+</span><span data-line="105">        <span class="c1"># FMI forbids variability=&quot;continuous&quot; on Boolean variables.</span>
+</span><span data-line="106">        <span class="k">for</span> <span class="n">nm</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="s2">&quot;converged&quot;</span><span class="p">):</span>
+</span><span data-line="107">            <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
+</span><span data-line="108">                <span class="n">Boolean</span><span class="p">(</span><span class="n">nm</span><span class="p">,</span> <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">discrete</span><span class="p">)</span>
+</span><span data-line="109">            <span class="p">)</span>
+</span><span data-line="110">        <span class="bp">self</span><span class="o">.</span><span class="n">register_variable</span><span class="p">(</span>
+</span><span data-line="111">            <span class="n">String</span><span class="p">(</span>
+</span><span data-line="112">                <span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span>
+</span><span data-line="113">                <span class="n">causality</span><span class="o">=</span><span class="n">Fmi2Causality</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+</span><span data-line="114">                <span class="n">variability</span><span class="o">=</span><span class="n">Fmi2Variability</span><span class="o">.</span><span class="n">discrete</span><span class="p">,</span>
+</span><span data-line="115">            <span class="p">)</span>
+</span><span data-line="116">        <span class="p">)</span>
+</span><span data-line="117">
+</span><span data-line="118">        <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="p">:</span> <span class="n">AirSourceHeatPumpBoiler</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="119">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">:</span> <span class="n">DynamicState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="120">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span></div>
 
-</span><span data-line="104">
+</span><span data-line="121">
 <div class="viewcode-block" id="TmhpAshpbSlave.exit_initialization_mode">
 <a class="viewcode-back" href="../../../api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave.exit_initialization_mode">[docs]</a>
-</span><span data-line="105">    <span class="k">def</span><span class="w"> </span><span class="nf">exit_initialization_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="106">        <span class="c1"># Parameters are final here — build the model and seed the state.</span>
-</span><span data-line="107">        <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">)</span>
-</span><span data-line="108">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="o">.</span><span class="n">make_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span><span class="p">)</span>
-</span><span data-line="109">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="110">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span></div>
+</span><span data-line="122">    <span class="k">def</span><span class="w"> </span><span class="nf">exit_initialization_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="123">        <span class="c1"># Parameters are final here — build the model and seed the state.</span>
+</span><span data-line="124">        <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">)</span>
+</span><span data-line="125">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="o">.</span><span class="n">make_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span><span class="p">)</span>
+</span><span data-line="126">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="127">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_init</span></div>
 
-</span><span data-line="111">
+</span><span data-line="128">
 <div class="viewcode-block" id="TmhpAshpbSlave.do_step">
 <a class="viewcode-back" href="../../../api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave.do_step">[docs]</a>
-</span><span data-line="112">    <span class="k">def</span><span class="w"> </span><span class="nf">do_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="113">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="114">            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;FMU slave used before exit_initialization_mode()&quot;</span><span class="p">)</span>
-</span><span data-line="115">
-</span><span data-line="116">        <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="117">            <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span><span class="p">,</span>
-</span><span data-line="118">            <span class="s2">&quot;current_time_s&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">current_time</span><span class="p">),</span>
-</span><span data-line="119">            <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">),</span>
-</span><span data-line="120">            <span class="s2">&quot;dV_mix_w_out&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dhw_draw</span><span class="p">),</span>
-</span><span data-line="121">            <span class="s2">&quot;T_sup_w&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">),</span>
-</span><span data-line="122">            <span class="s2">&quot;T_sur&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sur</span><span class="p">),</span>
-</span><span data-line="123">            <span class="s2">&quot;I_DN&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="124">            <span class="s2">&quot;I_dH&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="125">        <span class="p">}</span>
-</span><span data-line="126">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">step_size</span><span class="p">))</span>
-</span><span data-line="127">
-</span><span data-line="128">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">])</span>
-</span><span data-line="129">        <span class="bp">self</span><span class="o">.</span><span class="n">E_tot</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">])</span>
-</span><span data-line="130">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">])</span>
-</span><span data-line="131">        <span class="bp">self</span><span class="o">.</span><span class="n">cop_sys</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)))</span>
-</span><span data-line="132">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="133">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_is_on</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">))</span>
-</span><span data-line="134">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;converged&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
-</span><span data-line="135">
-</span><span data-line="136">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">+=</span> <span class="mi">1</span>
-</span><span data-line="137">        <span class="k">return</span> <span class="kc">True</span></div>
+</span><span data-line="129">    <span class="k">def</span><span class="w"> </span><span class="nf">do_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_time</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">step_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="130">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="131">            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;FMU slave used before exit_initialization_mode()&quot;</span><span class="p">)</span>
+</span><span data-line="132">
+</span><span data-line="133">        <span class="n">inputs</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="134">            <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n</span><span class="p">,</span>
+</span><span data-line="135">            <span class="s2">&quot;current_time_s&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">current_time</span><span class="p">),</span>
+</span><span data-line="136">            <span class="s2">&quot;T0&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T0</span><span class="p">),</span>
+</span><span data-line="137">            <span class="s2">&quot;dV_mix_w_out&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dhw_draw</span><span class="p">),</span>
+</span><span data-line="138">            <span class="s2">&quot;T_sup_w&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">),</span>
+</span><span data-line="139">            <span class="s2">&quot;T_sur&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sur</span><span class="p">),</span>
+</span><span data-line="140">            <span class="s2">&quot;I_DN&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="141">            <span class="s2">&quot;I_dH&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="142">        <span class="p">}</span>
+</span><span data-line="143">        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hp</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">step_size</span><span class="p">))</span>
+</span><span data-line="144">
+</span><span data-line="145">        <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">])</span>
+</span><span data-line="146">        <span class="bp">self</span><span class="o">.</span><span class="n">E_tot</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">])</span>
+</span><span data-line="147">        <span class="bp">self</span><span class="o">.</span><span class="n">Q_ref_tank</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">])</span>
+</span><span data-line="148">        <span class="bp">self</span><span class="o">.</span><span class="n">cop_sys</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)))</span>
+</span><span data-line="149">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w</span> <span class="o">=</span> <span class="n">_finite</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="150">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_is_on</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_cmp</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="151">        <span class="bp">self</span><span class="o">.</span><span class="n">converged</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;converged&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="152">        <span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span> <span class="o">=</span> <span class="n">_failure_reason</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">))</span>
+</span><span data-line="153">
+</span><span data-line="154">        <span class="bp">self</span><span class="o">.</span><span class="n">_n</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="155">        <span class="k">return</span> <span class="kc">True</span></div>
 </div>
 
 </span></pre></div>

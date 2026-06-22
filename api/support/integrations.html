@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Optional adapters for coupling tmhp to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level tmhp import path so the core package remains u..." />
 
-    <meta property="article:modified_time" content="2026-06-22T14:11:12+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T15:27:25+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -378,7 +378,9 @@ model as a co-simulation component.</p>
 </span></pre></div>
 </div>
 <p>Lead track is FMI 2.0 (co-simulation only): <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> exposes no continuous
-state derivatives, and 2.0 co-sim is the most broadly importable flavour.</p>
+state derivatives, and 2.0 co-sim is the most broadly importable flavour.
+Boundary outputs are sanitized to avoid <code class="docutils literal notranslate"><span class="pre">NaN</span></code> values, while <code class="docutils literal notranslate"><span class="pre">converged</span></code> and
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> preserve step-level diagnostics for the importing master.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Native-wheel caveat (CoolProp/numpy/scipy): the FMU is a <em>tool-coupling</em>

@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: solves the closed refrigerant cycle again..." />
 
-    <meta property="article:modified_time" content="2026-06-22T08:09:09+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T12:19:22+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -143,6 +143,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#module-tmhp.ground_source_heat_pump_boiler">API reference</a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
@@ -680,6 +681,25 @@ analytical condenser temperature relations.</p>
 <li><p><strong>eta_cmp_mech</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>)</p></li>
 <li><p><strong>UA_cond_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
 <li><p><strong>UA_evap_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step" title="Link to this definition">¶</a></dt>
+<dd><p>Reject point-state stepping — GSHPB is history-dependent (#165 P0b).</p>
+<p><code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code> reads the <em>entire</em> past borehole
+load-pulse history each timestep, so a point-state <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel
+(as defined for ASHP/ASHPB) would silently corrupt the ground
+temperature drift. Use <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code>, or implement a <code class="docutils literal notranslate"><span class="pre">step()</span></code>
+that carries the borehole pulse vector inside its state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>

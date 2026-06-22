@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the default first stop and the model the Getting Started flow uses. Overview: ..." />
 
-    <meta property="article:modified_time" content="2026-06-22T08:09:09+00:00" />
+    <meta property="article:modified_time" content="2026-06-22T12:19:22+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -144,6 +144,8 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state"><code class="docutils literal notranslate">make_initial_state()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.postprocess_exergy"><code class="docutils literal notranslate">postprocess_exergy()</span></code></a></li>
 </ul>
@@ -771,6 +773,49 @@ tolerance and the converged flag is False. Off-mode fallback
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict | pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state">
+<span class="sig-name descname"><span class="pre">make_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.make_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state" title="Link to this definition">¶</a></dt>
+<dd><p>Build the initial carried state for a <code class="docutils literal notranslate"><span class="pre">step()</span></code>-driven run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_tank_w_init_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_init</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DynamicState</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step" title="Link to this definition">¶</a></dt>
+<dd><p>Advance one timestep from <em>state</em> under <em>inputs</em>.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">(new_state,</span> <span class="pre">result_row)</span></code>. Re-entrant: every cross-step
+quantity is read from <code class="docutils literal notranslate"><span class="pre">state</span></code> (never <code class="docutils literal notranslate"><span class="pre">self</span></code>), so an external
+co-simulation master (FMI/EnergyPlus) can drive the model one exchange
+at a time and re-run it independently. The per-step environment is set
+on <code class="docutils literal notranslate"><span class="pre">self</span></code> afresh from <code class="docutils literal notranslate"><span class="pre">inputs</span></code> each call (transient scratch shared
+with the cycle/tank helpers).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>DynamicState</em>) – Carried state from <code class="docutils literal notranslate"><span class="pre">make_initial_state</span></code> or the previous <code class="docutils literal notranslate"><span class="pre">step</span></code>.</p></li>
+<li><p><strong>inputs</strong> (<em>dict</em>) – Per-step drivers: <code class="docutils literal notranslate"><span class="pre">n</span></code> (int), <code class="docutils literal notranslate"><span class="pre">current_time_s</span></code> [s], <code class="docutils literal notranslate"><span class="pre">T0</span></code> [°C],
+<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span></code> [m³/s], <code class="docutils literal notranslate"><span class="pre">T_sup_w</span></code> [°C], <code class="docutils literal notranslate"><span class="pre">T_sur</span></code> [°C], and
+optional <code class="docutils literal notranslate"><span class="pre">I_DN</span></code> / <code class="docutils literal notranslate"><span class="pre">I_dH</span></code> [W/m²] (default 0).</p></li>
+<li><p><strong>dt_s</strong> (<em>float</em>) – Timestep [s].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">DynamicState</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>

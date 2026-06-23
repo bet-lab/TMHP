@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=a54a37c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and the same DHW tank sink as ASHPB. Overview: solves the closed refrigerant cycle again..." />
 
-    <meta property="article:modified_time" content="2026-06-23T00:50:02+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -255,7 +255,7 @@ extend it the same way ASHPB’s do:</p>
 <h2>Source-side mechanics<a class="headerlink" href="#source-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>For ground-source models, the source-side dynamics are encoded in a
 <strong>g-function</strong> — the dimensionless thermal response of a borehole
-field to a unit heat-extraction step. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> precomputes the
+field to a unit heat-extraction step. TMHP precomputes the
 g-function once via
 <a class="reference external" href="https://github.com/MassimoCimmino/pygfunction">pygfunction</a> and
 interpolates it during the simulation, so the per-step cost stays

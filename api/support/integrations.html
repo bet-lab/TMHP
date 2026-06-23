@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=a54a37c0" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=6b1006f3" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/api/support/integrations.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Optional adapters for coupling tmhp to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level tmhp import path so the core package remains u..." />
+<meta property="og:description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="Optional adapters for coupling tmhp to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level tmhp import path so the core package remains u..." />
+<meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-06-23T07:37:22+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -219,9 +219,9 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="integrations">
 <h1>Integrations<a class="headerlink" href="#integrations" title="Link to this heading">¶</a></h1>
-<p>Optional adapters for coupling <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> to building-energy simulators and
+<p>Optional adapters for coupling TMHP to building-energy simulators and
 co-simulation masters. These modules are intentionally kept out of the
-top-level <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> import path so the core package remains usable without the
+top-level package import path so the core package remains usable without the
 adapter-specific runtimes.</p>
 <p>Install the FMI dependencies with the <code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>integrations<span class="w"> </span>--locked
@@ -232,7 +232,7 @@ EnergyPlus installation and is not a PyPI dependency.</p>
 <section id="interoperability-contracts">
 <h2>Interoperability contracts<a class="headerlink" href="#interoperability-contracts" title="Link to this heading">¶</a></h2>
 <p>FMI co-simulation uses FMI 2.0 through PythonFMU. The generated FMU is a
-tool-coupling artifact: Python, <code class="docutils literal notranslate"><span class="pre">tmhp</span></code>, CoolProp, NumPy, and SciPy must be
+tool-coupling artifact: Python, TMHP, CoolProp, NumPy, and SciPy must be
 available in the importing environment. The FMU model description is validated
 with FMPy in CI; all output variables are listed in both <code class="docutils literal notranslate"><span class="pre">Outputs</span></code> and
 <code class="docutils literal notranslate"><span class="pre">InitialUnknowns</span></code> so importers can resolve the initial output dependency set.

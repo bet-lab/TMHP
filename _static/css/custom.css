@@ -80,7 +80,7 @@
  * a Shibuya upgrade will not fight our customisation.
  *
  * What lives here:
- *   1. Typography scale (font-size, line-height, letter-spacing × 9 steps)
+ *   1. Typography scale (font-size, line-height, neutral letter spacing)
  *   2. Font weights (Inter-compatible)
  *   3. Space scale (1–9)
  *   4. Radius scale (1–6 + full)
@@ -131,15 +131,15 @@
     --rx-lh-8: 40px;
     --rx-lh-9: 60px;
 
-    --rx-ls-1:  0.005em;
+    --rx-ls-1:  0em;
     --rx-ls-2:  0em;
     --rx-ls-3:  0em;
-    --rx-ls-4: -0.005em;
-    --rx-ls-5: -0.01em;
-    --rx-ls-6: -0.0125em;
-    --rx-ls-7: -0.015em;
-    --rx-ls-8: -0.02em;
-    --rx-ls-9: -0.05em;
+    --rx-ls-4:  0em;
+    --rx-ls-5:  0em;
+    --rx-ls-6:  0em;
+    --rx-ls-7:  0em;
+    --rx-ls-8:  0em;
+    --rx-ls-9:  0em;
 
     /* ---------- 2. Font weights (Inter-compatible) ---------- */
     --rx-fw-light:    300;
@@ -404,7 +404,7 @@ pre.literal-block {
  * Article typography — Radix Themes scale
  *
  * Shibuya already routes body / heading text through Inter (its default
- * font stack), so this block only adjusts size, weight, letter-spacing,
+ * font stack), so this block only adjusts size, weight, letter spacing,
  * and section margins to the canonical 9-step scale from
  * radix-ui.com/themes/docs/theme/typography.
  *
@@ -415,21 +415,21 @@ pre.literal-block {
 .yue h1 {
     font-size: var(--rx-fs-8);          /* 35px */
     line-height: var(--rx-lh-8);        /* 40px */
-    letter-spacing: var(--rx-ls-8);     /* -0.02em */
+    letter-spacing: var(--rx-ls-8);
     font-weight: var(--rx-fw-bold);     /* 700, not 800 */
     margin: 0 0 var(--rx-space-2);      /* 0 bottom, 8px before subtitle */
 }
 .yue h2 {
     font-size: var(--rx-fs-6);          /* 24px */
     line-height: var(--rx-lh-6);        /* 30px */
-    letter-spacing: var(--rx-ls-6);     /* -0.0125em */
+    letter-spacing: var(--rx-ls-6);
     font-weight: var(--rx-fw-bold);
     margin: var(--rx-space-8) 0 var(--rx-space-3);  /* 48 top, 12 bottom */
 }
 .yue h3 {
     font-size: var(--rx-fs-4);          /* 18px */
     line-height: var(--rx-lh-3);        /* 24px (denser than lh-4 for the smaller heading) */
-    letter-spacing: var(--rx-ls-4);     /* -0.005em */
+    letter-spacing: var(--rx-ls-4);
     font-weight: var(--rx-fw-bold);
     margin: var(--rx-space-7) 0 var(--rx-space-2);  /* 40 top, 8 bottom */
 }
@@ -918,6 +918,7 @@ button.copybtn:hover {
 .tmhp-plot-mount {
     margin: 1.5em 0;
     font-family: var(--rx-font-sans);
+    max-width: 100%;
 }
 .tmhp-plot-mount svg { display: block; max-width: 100%; height: auto; }
 .tmhp-plot-mount .axis text { font-size: 12px; fill: var(--rx-ink-muted); }
@@ -925,8 +926,10 @@ button.copybtn:hover {
 .tmhp-plot-mount .axis path { stroke: var(--rx-hairline); }
 
 .ph-chart .ph-chrome {
-    display: flex; gap: var(--rx-space-4);
-    flex-wrap: wrap; align-items: center;
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) minmax(180px, 1fr);
+    gap: var(--rx-space-3) var(--rx-space-4);
+    align-items: center;
     padding: var(--rx-space-3); border: 1px solid var(--rx-hairline);
     border-radius: var(--rx-radius-3);
     background: var(--rx-gray-1);
@@ -934,10 +937,13 @@ button.copybtn:hover {
 .ph-chart .ph-chrome label {
     display: flex; gap: var(--rx-space-2); align-items: center;
     font-size: var(--rx-fs-2); color: var(--rx-ink-muted);
+    min-width: 0;
 }
 .ph-chart .ph-chrome select,
 .ph-chart .ph-chrome input[type="range"] {
     accent-color: var(--rx-accent-9);
+    min-width: 0;
+    max-width: 100%;
 }
 .ph-chart .ph-chrome output {
     font-variant-numeric: tabular-nums;
@@ -948,6 +954,8 @@ button.copybtn:hover {
     /* COP readout is rendered inline inside the SVG now, so the side
        column is gone and the canvas takes the full width. */
     margin-top: var(--rx-space-3);
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 /* Shibuya theme footer ("© 2025, betlab · Made with Sphinx") — explicitly
@@ -959,6 +967,10 @@ footer.sy-foot { display: none; }
 .validation-table .vt-chrome {
     display: flex; gap: var(--rx-space-3); margin-bottom: var(--rx-space-3);
     flex-wrap: wrap; align-items: center;
+}
+.validation-table {
+    max-width: 100%;
+    overflow-x: auto;
 }
 .validation-table .vt-filter {
     flex: 1; min-width: 200px; padding: 6px 10px;
@@ -977,7 +989,8 @@ footer.sy-foot { display: none; }
     color: var(--rx-accent-11); font-weight: var(--rx-fw-medium);
 }
 .validation-table .vt-table {
-    width: 100%; border-collapse: collapse; font-size: var(--rx-fs-2);
+    width: 100%; min-width: 520px;
+    border-collapse: collapse; font-size: var(--rx-fs-2);
 }
 .validation-table .vt-table th,
 .validation-table .vt-table td {
@@ -997,6 +1010,23 @@ footer.sy-foot { display: none; }
 .validation-table .vt-table td.ok   { color: var(--rx-green-11); }
 .validation-table .vt-table td.warn { color: var(--rx-amber-11); }
 .hidden-by-js { display: none !important; }
+
+@media (max-width: 700px) {
+    .ph-chart .ph-chrome {
+        grid-template-columns: 1fr;
+    }
+    .ph-chart .ph-chrome label {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+    .ph-chart .ph-chrome select,
+    .ph-chart .ph-chrome input[type="range"] {
+        width: 100%;
+    }
+    .validation-table .vt-filter {
+        min-width: 100%;
+    }
+}
 
 /* --- Tabs (⑤) --- */
 /* sphinx-design tabs reskin to match Radix-DNA accent.

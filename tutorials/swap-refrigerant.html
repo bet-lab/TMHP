@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=a54a37c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,12 +27,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/swap-refrigerant.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
+<meta property="og:description" content="The refrigerant is a constructor argument on every model in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="The refrigerant is a constructor argument on every model in tmhp. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
+<meta name="description" content="The refrigerant is a constructor argument on every model in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
 
-    <meta property="article:modified_time" content="2026-06-22T11:45:32+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -174,7 +174,7 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="swap-refrigerants">
 <h1>Swap refrigerants<a class="headerlink" href="#swap-refrigerants" title="Link to this heading">¶</a></h1>
-<p>The refrigerant is a constructor argument on every model in <code class="docutils literal notranslate"><span class="pre">tmhp</span></code>.
+<p>The refrigerant is a constructor argument on every model in TMHP.
 Changing it requires no recalibration and no manufacturer data —
 pick any name CoolProp recognises and the library re-solves the
 cycle from first principles. That’s the single most concrete way to
@@ -265,12 +265,22 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
 
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         border: 1px solid var(--cw-border);
-        border-radius: 14px;
-        padding: 20px;
+        border-radius: 8px;
+        padding: clamp(14px, 3vw, 20px);
         background: var(--cw-bg);
         margin: 24px 0;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+        box-shadow: none;
         color: var(--cw-text);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    .cw-root *,
+    .cw-root *::before,
+    .cw-root *::after {
+        box-sizing: border-box;
     }
 
     .cw-controls {
@@ -278,28 +288,20 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         grid-template-columns: 180px 1fr 1fr;
         gap: 14px 22px;
         margin-bottom: 18px;
-    }
-
-    @media (max-width: 640px) {
-        .cw-controls {
-            grid-template-columns: 1fr;
-        }
-
-        .cw-field-compact {
-            max-width: 100%;
-        }
+        min-width: 0;
     }
 
     .cw-field {
         display: flex;
         flex-direction: column;
         gap: 7px;
+        min-width: 0;
     }
 
     .cw-field>label {
         font-weight: 600;
         font-size: 0.82em;
-        letter-spacing: 0.01em;
+        letter-spacing: 0;
         color: var(--cw-text-muted);
         display: flex;
         justify-content: space-between;
@@ -321,7 +323,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         box-sizing: border-box;
         height: 36px;
         padding: 0 10px;
-        border-radius: 9px;
+        border-radius: 6px;
         border: 1px solid var(--cw-border);
         background: var(--cw-bg-soft);
         color: var(--cw-text);
@@ -334,7 +336,6 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         width: 100%;
     }
 
-    /* Glassmorphism range sliders */
     .cw-field input[type="range"] {
         -webkit-appearance: none;
         appearance: none;
@@ -375,7 +376,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         border-radius: 50%;
         background: var(--cw-bg);
         border: 2.5px solid var(--cw-primary);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
         transition: transform 0.12s ease;
         margin-top: -5px;
         /* Center thumb on 7px webkit track */
@@ -414,7 +415,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         gap: 2px;
         background: var(--cw-bg-soft);
         border: 1px solid var(--cw-border);
-        border-radius: 11px;
+        border-radius: 8px;
     }
 
     .cw-segmented button {
@@ -425,7 +426,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         justify-content: center;
         border: none;
         background: transparent;
-        border-radius: 8px;
+        border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
         font-size: 0.86em;
@@ -440,7 +441,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
     .cw-segmented button.active {
         background: var(--cw-primary);
         color: #fff;
-        box-shadow: 0 2px 8px color-mix(in srgb, var(--cw-primary) 45%, transparent);
+        box-shadow: none;
     }
 
     .cw-legend {
@@ -486,10 +487,12 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
     .cw-stage {
         position: relative;
         width: 100%;
+        min-width: 0;
     }
 
     .cw-stage svg {
         width: 100%;
+        max-width: 100%;
         height: auto;
         display: block;
         touch-action: none;
@@ -550,8 +553,7 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         align-items: center;
         justify-content: center;
         text-align: center;
-        background: color-mix(in srgb, var(--cw-bg) 78%, transparent);
-        backdrop-filter: blur(2px);
+        background: color-mix(in srgb, var(--cw-bg) 90%, transparent);
         border-radius: 8px;
         padding: 16px;
         font-size: 0.9em;
@@ -564,14 +566,12 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
         z-index: 20;
         min-width: 150px;
         padding: 9px 11px;
-        border-radius: 10px;
+        border-radius: 8px;
         font-size: 0.78em;
         line-height: 1.5;
-        background: color-mix(in srgb, var(--cw-bg) 82%, transparent);
+        background: var(--cw-bg);
         border: 1px solid var(--cw-border);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-        backdrop-filter: blur(8px) saturate(160%);
-        -webkit-backdrop-filter: blur(8px) saturate(160%);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
         color: var(--cw-text);
         opacity: 0;
         transform: translateY(4px);
@@ -614,6 +614,47 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
 
     .cw-error {
         color: #e03131;
+    }
+
+    .cw-overlay.cw-overlay-error {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        color: var(--cw-text);
+    }
+
+    .cw-overlay .cw-overlay-title {
+        font-weight: 700;
+        color: #c92a2a;
+    }
+
+    .cw-overlay code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: var(--cw-bg-soft);
+        color: var(--cw-text);
+        font-size: 0.88em;
+    }
+
+    @media (max-width: 640px) {
+        .cw-root {
+            padding: 14px;
+        }
+
+        .cw-controls {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .cw-field-compact {
+            max-width: 100%;
+        }
+
+        .cw-field>label {
+            height: auto;
+            min-height: 16px;
+            flex-wrap: wrap;
+        }
     }
 </style>
 
@@ -1179,19 +1220,38 @@ of magnitude lower than R32’s; R134a lands between the two.</p>
             });
         }
 
+        function showDataLoadError(err) {
+            const message = err && err.message ? err.message : String(err);
+            overlay.classList.add("cw-overlay-error");
+            overlay.style.display = "flex";
+            overlay.innerHTML = `
+                <div class="cw-overlay-title">Cycle data is unavailable.</div>
+                <div>
+                    Build the interactive docs data with
+                    <code>make -C docs data</code>, then rebuild the docs.
+                </div>
+            `;
+            if (statusEl) {
+                statusEl.classList.add("cw-error");
+                statusEl.textContent = "Failed to load cycle data: " + message;
+            }
+        }
+
         fetch(resolveDataUrl())
             .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
             .then((json) => {
                 DATA = json;
+                overlay.classList.remove("cw-overlay-error");
                 buildControls();
                 bindTooltip();
                 render();
             })
             .catch((err) => {
-                if (statusEl) { statusEl.classList.add("cw-error"); statusEl.textContent = "Failed to load cycle data: " + err.message; }
+                showDataLoadError(err);
             });
     })();
-</script></section>
+</script>
+</section>
 <section id="reading-the-result">
 <h2>Reading the result<a class="headerlink" href="#reading-the-result" title="Link to this heading">¶</a></h2>
 <p>A few things to look for:</p>
@@ -1523,7 +1583,7 @@ heat exchangers, and instrumentation. Sub-cooler /
 expander details dominate COP; can’t be analysed with a
 subcritical-condenser model — see
 <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a> for how
-<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> currently treats this case.</p>
+TMHP currently treats this case.</p>
 <p><em>Typical use</em>: sanitary-water heat pumps (Japan, Europe),
 commercial / supermarket refrigeration, transport
 refrigeration.</p>
@@ -1569,7 +1629,7 @@ very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
 pattern.</p>
 </dd>
 <dt><em>High-temperature industrial heat pump (LWT 80–95 °C)</em></dt><dd><p>R1234ze(E), R134a, or R717 (ammonia). R600a is occasionally
-used for niche small units. <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> solves these
+used for niche small units. TMHP solves these
 subcritically as long as T<sub>crit</sub> clears the condenser
 by ~10 K; check <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> for <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>.</p>
 </dd>
@@ -1580,7 +1640,7 @@ COP.</p>
 </dd>
 <dt><em>Transcritical sanitary hot water (≥ 65 °C, cold return)</em></dt><dd><p>R744 — the only mainstream refrigerant whose cycle is
 optimised for this duty. Not subcritical, so the
-<code class="docutils literal notranslate"><span class="pre">tmhp</span></code> result is a sanity check rather than a design;
+TMHP result is a sanity check rather than a design;
 see <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
 </dd>
 <dt><em>Industrial refrigeration and process cooling</em></dt><dd><p>R717 (ammonia) is the workhorse. R744 (CO<sub>2</sub>) is the
@@ -1622,7 +1682,7 @@ implications.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 22, 2026
+  Last updated Jun 23, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=a54a37c0" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,14 +27,14 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/concepts/cycle-architecture.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
+<meta property="og:description" content="Every model in TMHP is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_images/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB system schematic — refrigerant cycle, condenser HX,
 evaporator HX with outdoor fan, expander, and tank-side
 flow connections." />
-<meta name="description" content="Every model in tmhp is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
+<meta name="description" content="Every model in TMHP is the same closed refrigerant cycle wrapped in a different source / sink pairing. That single piece of shared machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP..." />
 
-    <meta property="article:modified_time" content="2026-06-22T23:04:14+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -172,7 +172,7 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="thermodynamic-cycle-architecture">
 <h1>Thermodynamic cycle architecture<a class="headerlink" href="#thermodynamic-cycle-architecture" title="Link to this heading">¶</a></h1>
-<p>Every model in <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> is the same closed refrigerant cycle wrapped
+<p>Every model in TMHP is the same closed refrigerant cycle wrapped
 in a different source / sink pairing. That single piece of shared
 machinery is what lets one library cover ASHPB, GSHPB, WSHPB, ASHP,
 GSHP, and every subsystem variant on top — without rewriting the
@@ -186,7 +186,7 @@ and shows where each system family plugs into it.</p>
   .cycle-arch-card {
     margin: 1.25em auto;
     border: 1px solid var(--sy-c-border, #e5e7eb);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--sy-c-bg, #fff);
     padding: 16px 18px;
     position: relative;
@@ -203,7 +203,6 @@ and shows where each system family plugs into it.</p>
     background: rgba(255,255,255,0.9);
     border: 1px solid #e5e7eb; border-radius: 8px;
     padding: 4px; z-index: 5;
-    backdrop-filter: blur(4px);
   }
   .cycle-arch-toolbar button {
     background: transparent; border: 0;
@@ -257,7 +256,7 @@ and shows where each system family plugs into it.</p>
 </div>
 
 <p class="cycle-arch-caption">
-  Data flow shared by every <code>tmhp</code> model.  Bold blocks are
+  Data flow shared by every <strong>TMHP</strong> model.  Bold blocks are
   reused across ASHPB, GSHPB, WSHPB, ASHP, and GSHP.
 </p>
 
@@ -266,7 +265,7 @@ and shows where each system family plugs into it.</p>
 (function () {
   if (!document.getElementById("cy-arch")) return;
 
-  // ─── Data extracted from tmhp source ───────────────────────
+  // ─── Data extracted from TMHP source ───────────────────────
   //   ASHPB._calc_state, refrigerant.calc_ref_state, heat_transfer.py,
   //   _opt_utils.py (scalar minimizer over dT_ref_ou).
   const nodes = [
@@ -448,7 +447,7 @@ operating point.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 22, 2026
+  Last updated Jun 23, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

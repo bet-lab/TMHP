@@ -23,7 +23,7 @@
 }
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta property="og:title" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:title" content="TMHP: Thermodynamic Models for Heat Pumps" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
@@ -39,10 +39,10 @@
     <a class="sy-head-brand" href="#">
       
       
-      <strong>Thermodynamic Models for Heat Pumps</strong>
+      <strong>TMHP</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="getting-started/index.html">Getting Started</a></li><li class="link"><a href="concepts/index.html">Concepts</a></li><li class="link"><a href="models/index.html">Models</a></li><li class="link"><a href="tutorials/index.html">Tutorials</a></li><li class="link"><a href="api/index.html">API Reference</a></li><li class="link"><a href="validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="getting-started/index.html">Start</a></li><li class="link"><a href="concepts/index.html">Concepts</a></li><li class="link"><a href="models/index.html">Models</a></li><li class="link"><a href="tutorials/index.html">Tutorials</a></li><li class="link"><a href="integrations/index.html">Integrations</a></li><li class="link"><a href="api/index.html">API</a></li><li class="link"><a href="validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -99,6 +99,11 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="integrations/fmu.html">FMI 2.0 FMU export</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="api/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
@@ -141,8 +146,12 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="#"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
+        <a itemprop="item" href="#"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
         <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">TMHP: Thermodynamic Models for Heat Pumps</strong>
+        <meta itemprop="position" content="2" />
       </li></ol>
     <div class="xl:hidden ml-1">
       <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
@@ -154,8 +163,8 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <section id="thermodynamic-models-for-heat-pumps">
-<h1>Thermodynamic Models for Heat Pumps<a class="headerlink" href="#thermodynamic-models-for-heat-pumps" title="Link to this heading">¶</a></h1>
+          <section id="tmhp-thermodynamic-models-for-heat-pumps">
+<h1>TMHP: Thermodynamic Models for Heat Pumps<a class="headerlink" href="#tmhp-thermodynamic-models-for-heat-pumps" title="Link to this heading">¶</a></h1>
 <p>A physics-based Python library for heat pump simulation.</p>
 <p class="lead">First-principles dynamic models for air-source, ground-source, and
 water-source heat pumps — covering DHW, space heating, and space
@@ -175,6 +184,7 @@ per-unit recalibration.</p>
 <div class="hero-cta docutils container">
 <p><a class="reference internal" href="getting-started/installation.html"><span class="doc">Install</span></a>
 <a class="reference internal" href="getting-started/quickstart.html"><span class="doc">Quick start</span></a>
+<a class="reference internal" href="integrations/index.html"><span class="doc">Integrations</span></a>
 <a class="reference internal" href="validation/index.html"><span class="doc">Validation</span></a>
 <a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub</a></p>
 </div>
@@ -220,6 +230,16 @@ Tutorials</div>
 schedules, compose PV / STC / ESS subsystems.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="tutorials/index.html"><span class="doc">Tutorials</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+Integrations</div>
+<p class="sd-card-text">Couple TMHP to EnergyPlus Python Plugins or export the
+ASHPB dynamic kernel as an FMI 2.0 co-simulation FMU.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="integrations/index.html"><span class="doc">Integrations</span></a></div>
 </div>
 <div class="sd-col sd-d-flex-row docutils">
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">

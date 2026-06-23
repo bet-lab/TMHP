@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,10 +40,10 @@
     <a class="sy-head-brand" href="../../index.html">
       
       
-      <strong>Thermodynamic Models for Heat Pumps</strong>
+      <strong>TMHP</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Getting Started</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../index.html">API Reference</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -98,6 +98,11 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI 2.0 FMU export</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
@@ -192,7 +197,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -223,6 +228,9 @@ data-aria-dark="Switch to auto color mode">
 co-simulation masters. These modules are intentionally kept out of the
 top-level package import path so the core package remains usable without the
 adapter-specific runtimes.</p>
+<p>For usage-first guides, model boundaries, and simulator wiring, see
+<a class="reference internal" href="../../integrations/energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> and
+<a class="reference internal" href="../../integrations/fmu.html"><span class="doc">FMI 2.0 FMU export</span></a>.</p>
 <p>Install the FMI dependencies with the <code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>integrations<span class="w"> </span>--locked
 </span></pre></div>

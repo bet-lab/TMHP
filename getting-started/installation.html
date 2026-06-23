@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install: The--locked flag tells uv to respect the committed uv.lock and fail rather than silently re-resolve versions. This is the sa..." />
 
-    <meta property="article:modified_time" content="2026-06-22T23:04:14+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -40,10 +40,10 @@
     <a class="sy-head-brand" href="../index.html">
       
       
-      <strong>Thermodynamic Models for Heat Pumps</strong>
+      <strong>TMHP</strong>
     </a>
     <div class="sy-head-nav" id="head-nav">
-      <nav class="sy-head-links"><ul><li class="link"><a href="index.html">Getting Started</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../api/index.html">API Reference</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <nav class="sy-head-links"><ul><li class="link"><a href="index.html">Start</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../integrations/index.html">Integrations</a></li><li class="link"><a href="../api/index.html">API</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
       <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
   <input type="text" name="q" placeholder="Search" />
   <kbd>/</kbd>
@@ -100,6 +100,11 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
 </ul>
 </li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI 2.0 FMU export</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
@@ -151,7 +156,7 @@ data-aria-dark="Switch to auto color mode">
       </button>
     </div>
     <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <a itemprop="item" href="../index.html"><span itemprop="name">Thermodynamic Models for Heat Pumps</span></a>
+        <a itemprop="item" href="../index.html"><span itemprop="name">TMHP</span></a>
         <span>/</span>
         <meta itemprop="position" content="1" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
@@ -224,7 +229,8 @@ wrapper around <code class="docutils literal notranslate"><span class="pre">AirS
 adapter does not have a pip-installable extra because <code class="docutils literal notranslate"><span class="pre">pyenergyplus</span></code> is
 bundled with EnergyPlus itself; run that adapter inside EnergyPlus’s embedded
 Python or make the EnergyPlus Python package visible through
-<code class="docutils literal notranslate"><span class="pre">PythonPlugin:SearchPaths</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">PythonPlugin:SearchPaths</span></code>. See <a class="reference internal" href="../integrations/fmu.html"><span class="doc">FMI 2.0 FMU export</span></a> and
+<a class="reference internal" href="../integrations/energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> for the simulator-specific wiring.</p>
 </section>
 <section id="what-s-installed">
 <h2>What’s installed<a class="headerlink" href="#what-s-installed" title="Link to this heading">¶</a></h2>
@@ -259,7 +265,7 @@ fails the documentation job.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 22, 2026
+  Last updated Jun 23, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Integrations - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="EnergyPlus Python Plugin" href="energyplus-python.html" /><link rel="prev" title="Visualize thermodynamic cycle" href="../tutorials/visualize-the-cycle.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/tmhp/integrations/" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Integrations" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/tmhp/integrations/index.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:description" content="TMHP can stay inside a Python study, but it is also designed to sit behind building-energy simulators and co-simulation masters. The integration adapters are optional so the core heat-pump package ..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
+<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta name="description" content="TMHP can stay inside a Python study, but it is also designed to sit behind building-energy simulators and co-simulation masters. The integration adapters are optional so the core heat-pump package ..." />
+
+    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Start</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="#">Integrations</a></li><li class="link"><a href="../api/index.html">API</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fmu.html">FMI 2.0 FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/tmhp">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#integration-boundary">Integration boundary</a></li>
+<li><a class="reference internal" href="#which-path-should-i-use">Which path should I use?</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Integrations</strong>
+        <meta itemprop="position" content="2" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="integrations">
+<h1>Integrations<a class="headerlink" href="#integrations" title="Link to this heading">¶</a></h1>
+<p>TMHP can stay inside a Python study, but it is also designed to sit
+behind building-energy simulators and co-simulation masters. The
+integration adapters are optional so the core heat-pump package stays
+lightweight: import <code class="docutils literal notranslate"><span class="pre">tmhp</span></code> for native Python simulation, then opt into
+the adapter that matches the external tool boundary.</p>
+<p>Two adapter paths are currently supported:</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-3 sd-g-xs-3 sd-g-sm-3 sd-g-md-3 sd-g-lg-3 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+EnergyPlus Python Plugin</div>
+<p class="sd-card-text">Use TMHP as a <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> surrogate. EnergyPlus
+owns the plant loop and tank state; TMHP answers each plant-solver
+call through <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code>.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a></div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+FMI 2.0 FMU</div>
+<p class="sd-card-text">Export the ASHPB dynamic <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel as a co-simulation FMU
+with explicit input, output, unit, and diagnostic boundaries.</p>
+</div>
+<a class="sd-stretched-link sd-hide-link-text reference internal" href="fmu.html"><span class="doc">FMI 2.0 FMU export</span></a></div>
+</div>
+</div>
+</div>
+<section id="integration-boundary">
+<h2>Integration boundary<a class="headerlink" href="#integration-boundary" title="Link to this heading">¶</a></h2>
+<p>Both adapters use public model seams rather than private implementation
+helpers. The EnergyPlus path is a steady plant-component surrogate because
+EnergyPlus owns the loop dispatch and storage tank. The FMU path is a
+dynamic co-simulation component because the FMU owns the ASHPB state and
+advances it one communication step at a time.</p>
+<style>
+  .integration-graph-card {
+    margin: 1.25em auto;
+    border: 1px solid var(--sy-c-border, #e5e7eb);
+    border-radius: 8px;
+    background: var(--sy-c-bg, #fff);
+    padding: 16px 18px;
+    position: relative;
+    max-width: 100%;
+  }
+  #tmhp-integration-boundary {
+    width: 100%;
+    height: 430px;
+    min-height: 360px;
+    border-radius: 6px;
+  }
+  .integration-graph-toolbar {
+    position: absolute; top: 22px; right: 22px;
+    display: flex; gap: 6px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 4px; z-index: 5;
+  }
+  .integration-graph-toolbar button {
+    background: transparent; border: 0;
+    width: 28px; height: 28px;
+    border-radius: 5px; cursor: pointer;
+    color: #4b5563; font-size: 14px;
+    font-family: inherit;
+  }
+  .integration-graph-toolbar button:hover {
+    background: #f3f4f6; color: #1f2937;
+  }
+  #tmhp-integration-info {
+    margin-top: 12px;
+    background: linear-gradient(180deg, #0f1622 0%, #131a26 100%);
+    color: #e6ecf5;
+    padding: 14px 16px; border-radius: 8px;
+    font-size: 13px; line-height: 1.55;
+    border: 1px solid #1f2a3a;
+    min-height: 4em;
+  }
+  #tmhp-integration-info .placeholder {
+    color: #9aa7b8; font-style: italic;
+  }
+  #tmhp-integration-info .id {
+    font-weight: 600; color: #c7d2fe; font-size: 14px;
+  }
+  #tmhp-integration-info .ty {
+    font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    background: #1f2a3a; color: #9aa7b8; margin-left: 6px;
+    vertical-align: 1px;
+  }
+  #tmhp-integration-info code {
+    background: rgba(255,255,255,0.07); padding: 1px 6px;
+    border-radius: 4px; font-size: 12px; color: #d1d5db;
+  }
+  #tmhp-integration-info .body { margin-top: 6px; }
+  #tmhp-integration-info .apilink {
+    display: inline-block; margin-top: 8px;
+    color: #8b9eff; text-decoration: none; font-size: 12px;
+  }
+  #tmhp-integration-info .apilink:hover { text-decoration: underline; }
+  .integration-graph-hint {
+    color: #6b7280; font-size: 12px; margin-top: 8px;
+  }
+  .integration-graph-caption {
+    text-align: center; font-style: italic;
+    color: var(--sy-c-text-secondary, #6b7280);
+    font-size: 0.92em; margin-top: 0.6em;
+  }
+  @media (max-width: 720px) {
+    #tmhp-integration-boundary { height: 520px; }
+    .integration-graph-toolbar { position: static; margin-bottom: 8px; }
+  }
+</style>
+
+<div class="integration-graph-card">
+  <div class="integration-graph-toolbar">
+    <button id="tmhp-integration-fit" title="Fit to view">⤢</button>
+    <button id="tmhp-integration-zoom-in" title="Zoom in">+</button>
+    <button id="tmhp-integration-zoom-out" title="Zoom out">−</button>
+  </div>
+  <div id="tmhp-integration-boundary"></div>
+  <div id="tmhp-integration-info">
+    <span class="placeholder">Click a node to see the integration contract.</span>
+  </div>
+  <p class="integration-graph-hint">Topology is fixed · scroll-wheel to zoom · drag empty space to pan</p>
+</div>
+
+<p class="integration-graph-caption">
+  TMHP integration data flow. EnergyPlus uses the steady seam; FMU
+  co-simulation uses the dynamic seam.
+</p>
+
+<script src="../_static/js/lib/cytoscape.min.js"></script>
+<script>
+(function () {
+  const container = document.getElementById("tmhp-integration-boundary");
+  if (!container) return;
+  if (typeof cytoscape === "undefined") {
+    document.getElementById("tmhp-integration-info").innerHTML =
+      '<span class="placeholder">Cytoscape did not load, so the integration graph cannot render.</span>';
+    return;
+  }
+
+  const nodes = [
+    {
+      id: "EPLUS", type: "external", title: "EnergyPlus",
+      sub: "Plant loop + Python Plugin",
+      contract: "Owns the plant loop, timestep, dispatch request, and storage-tank state.",
+      code: "PlantComponent:UserDefined + PythonPlugin:SearchPaths",
+      api: "energyplus-python.html"
+    },
+    {
+      id: "EPLUS_IO", type: "io", title: "EnergyPlus boundary",
+      sub: "T_in · mdot · cp · load · T0",
+      contract: "TMHP reads finite plant boundary values and writes outlet temperature, mass flow, and electricity globals.",
+      code: "tmhp_E_cmp_J [J], optional tmhp_E_cmp_W [W]",
+      api: "energyplus-python.html#input-output-boundary"
+    },
+    {
+      id: "EPLUS_ADAPTER", type: "adapter", title: "EnergyPlus adapter",
+      sub: "TmhpPlantSurrogate",
+      contract: "Resolves DataExchange handles, guards invalid values, memoizes repeated plant-solver calls, and actuates the user-defined component.",
+      code: "tmhp.integrations.energyplus_plugin",
+      api: "../api/support/integrations.html#module-tmhp.integrations.energyplus_plugin"
+    },
+    {
+      id: "STEADY", type: "seam", title: "analyze_steady()",
+      sub: "steady plant seam",
+      contract: "Answers one plant-solver request from inlet water temperature, outdoor temperature, and requested heat rate.",
+      code: "AirSourceHeatPumpBoiler.analyze_steady(T_tank_w, T0, Q_ref_tank)",
+      api: "../models/ashpb.html"
+    },
+    {
+      id: "CORE", type: "core", title: "TMHP ASHPB core",
+      sub: "CoolProp cycle solve",
+      contract: "Solves refrigerant state points, heat exchangers, compressor work, COP, convergence, and failure_reason diagnostics.",
+      code: "AirSourceHeatPumpBoiler + refrigerant/cycle helpers",
+      api: "../concepts/cycle-architecture.html"
+    },
+    {
+      id: "FMU_MASTER", type: "external", title: "FMI master",
+      sub: "fmpy · OMSimulator · Dymola",
+      contract: "Owns the co-simulation schedule and sets FMI input variables before each communication step.",
+      code: "FMI 2.0 Co-Simulation importer",
+      api: "fmu.html"
+    },
+    {
+      id: "FMU_IO", type: "io", title: "FMU boundary",
+      sub: "T0 · dhw_draw · T_sup_w",
+      contract: "The importer sets outdoor, DHW draw, and mains-water inputs; the FMU returns power, heat, tank temperature, COP, and diagnostics.",
+      code: "E_cmp, E_tot, Q_ref_tank, cop_sys, T_tank_w",
+      api: "fmu.html#input-output-boundary"
+    },
+    {
+      id: "FMU_ADAPTER", type: "adapter", title: "FMU adapter",
+      sub: "TmhpAshpbSlave",
+      contract: "Builds an FMI 2.0 model description, validates input scalars, owns the dynamic ASHPB state, and sanitizes FMI outputs.",
+      code: "tmhp.integrations.fmu",
+      api: "../api/support/integrations.html#module-tmhp.integrations.fmu"
+    },
+    {
+      id: "STEP", type: "seam", title: "step()",
+      sub: "dynamic state seam",
+      contract: "Advances one ASHPB state over the FMI communication step using the same public dynamic kernel as native Python simulations.",
+      code: "state, result = hp.step(state, inputs, step_size)",
+      api: "../getting-started/first-dynamic-simulation.html"
+    },
+    {
+      id: "OUTPUTS", type: "output", title: "Shared outputs",
+      sub: "power · heat · COP · diagnostics",
+      contract: "Both adapters preserve physical outputs and convergence diagnostics at the simulator boundary instead of hiding guard trips.",
+      code: "converged, failure_reason, hp_is_on",
+      api: "../concepts/failure-reason-semantics.html"
+    }
+  ];
+  const edges = [
+    { source: "EPLUS", target: "EPLUS_IO", label: "DataExchange API" },
+    { source: "EPLUS_IO", target: "EPLUS_ADAPTER", label: "finite values" },
+    { source: "EPLUS_ADAPTER", target: "STEADY", label: "calls" },
+    { source: "STEADY", target: "CORE", label: "cycle solve" },
+    { source: "CORE", target: "EPLUS_ADAPTER", label: "E_cmp, Q_ref, diagnostics" },
+    { source: "EPLUS_ADAPTER", target: "OUTPUTS", label: "actuators + globals" },
+    { source: "FMU_MASTER", target: "FMU_IO", label: "sets FMI inputs" },
+    { source: "FMU_IO", target: "FMU_ADAPTER", label: "valid scalars" },
+    { source: "FMU_ADAPTER", target: "STEP", label: "do_step" },
+    { source: "STEP", target: "CORE", label: "state advance" },
+    { source: "CORE", target: "FMU_ADAPTER", label: "step result" },
+    { source: "FMU_ADAPTER", target: "OUTPUTS", label: "FMU outputs" }
+  ];
+
+  const palette = {
+    external: { fill: "#fef3c7", border: "#d97706", text: "#78350f" },
+    io:       { fill: "#dbeafe", border: "#2563eb", text: "#1e3a8a" },
+    adapter:  { fill: "#eef2ff", border: "#6366f1", text: "#1e1b4b" },
+    seam:     { fill: "#f5f3ff", border: "#8b5cf6", text: "#4c1d95" },
+    core:     { fill: "#dcfce7", border: "#16a34a", text: "#14532d" },
+    output:   { fill: "#f1f5f9", border: "#64748b", text: "#334155" }
+  };
+
+  const cy = cytoscape({
+    container,
+    elements: [
+      ...nodes.map(n => ({ data: { ...n, label: n.title + "\n" + n.sub } })),
+      ...edges.map(e => ({ data: e }))
+    ],
+    style: [
+      { selector: "node", style: {
+          "label": "data(label)", "text-wrap": "wrap",
+          "text-valign": "center", "text-halign": "center",
+          "font-size": 12, "font-weight": 600,
+          "font-family": "-apple-system, BlinkMacSystemFont, Inter, sans-serif",
+          "width": 166, "height": 64,
+          "text-max-width": 148,
+          "padding": "11px", "shape": "round-rectangle",
+          "corner-radius": "10", "border-width": 1.5,
+          "line-height": 1.35
+      } },
+      { selector: 'node[type = "external"]', style: {
+          "background-color": palette.external.fill, "border-color": palette.external.border, "color": palette.external.text } },
+      { selector: 'node[type = "io"]', style: {
+          "background-color": palette.io.fill, "border-color": palette.io.border, "color": palette.io.text } },
+      { selector: 'node[type = "adapter"]', style: {
+          "background-color": palette.adapter.fill, "border-color": palette.adapter.border, "color": palette.adapter.text } },
+      { selector: 'node[type = "seam"]', style: {
+          "background-color": palette.seam.fill, "border-color": palette.seam.border, "color": palette.seam.text,
+          "border-style": "dashed" } },
+      { selector: 'node[type = "core"]', style: {
+          "background-color": palette.core.fill, "border-color": palette.core.border, "color": palette.core.text,
+          "border-width": 2.5 } },
+      { selector: 'node[type = "output"]', style: {
+          "background-color": palette.output.fill, "border-color": palette.output.border, "color": palette.output.text } },
+      { selector: "edge", style: {
+          "width": 1.5, "line-color": "#475569",
+          "target-arrow-color": "#475569", "target-arrow-shape": "triangle",
+          "arrow-scale": 1.05, "curve-style": "bezier",
+          "label": "data(label)", "font-size": 10, "color": "#374151",
+          "text-outline-color": "#fff", "text-outline-opacity": 1, "text-outline-width": 1.5
+      } },
+      { selector: "node:selected", style: { "border-width": 3 } },
+      { selector: ".faded", style: { "opacity": 0.25 } }
+    ],
+    layout: { name: "preset", positions: {
+      EPLUS: { x: 90, y: 95 }, EPLUS_IO: { x: 295, y: 95 },
+      EPLUS_ADAPTER: { x: 500, y: 95 }, STEADY: { x: 700, y: 95 },
+      CORE: { x: 900, y: 225 }, OUTPUTS: { x: 1090, y: 225 },
+      FMU_MASTER: { x: 90, y: 355 }, FMU_IO: { x: 295, y: 355 },
+      FMU_ADAPTER: { x: 500, y: 355 }, STEP: { x: 700, y: 355 }
+    } },
+    autoungrabify: true,
+    minZoom: 0.1, maxZoom: 2.5
+  });
+
+  const info = document.getElementById("tmhp-integration-info");
+  const placeholder = '<span class="placeholder">Click a node to see the integration contract.</span>';
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function showNode(data) {
+    info.innerHTML =
+      '<span class="id">' + escapeHtml(data.title) + '</span>' +
+      '<span class="ty">' + escapeHtml(data.type) + '</span>' +
+      '<div class="body">' + escapeHtml(data.contract) + '</div>' +
+      '<div class="body"><code>' + escapeHtml(data.code) + '</code></div>' +
+      '<a class="apilink" href="' + escapeHtml(data.api) + '">Open related docs</a>';
+  }
+  cy.on("tap", "node", evt => {
+    showNode(evt.target.data());
+    cy.elements().addClass("faded");
+    evt.target.closedNeighborhood().removeClass("faded");
+  });
+  cy.on("tap", evt => {
+    if (evt.target === cy) {
+      info.innerHTML = placeholder;
+      cy.elements().removeClass("faded");
+    }
+  });
+
+  let resizeTimer = null;
+  function fitGraph() {
+    cy.resize();
+    cy.fit(undefined, 30);
+  }
+  document.getElementById("tmhp-integration-fit").addEventListener("click",
+    fitGraph);
+  document.getElementById("tmhp-integration-zoom-in").addEventListener("click",
+    () => cy.zoom({ level: cy.zoom() * 1.25,
+                    renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } }));
+  document.getElementById("tmhp-integration-zoom-out").addEventListener("click",
+    () => cy.zoom({ level: cy.zoom() * 0.8,
+                    renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } }));
+  window.addEventListener("resize", () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(fitGraph, 80);
+  });
+
+  document.fonts && document.fonts.ready
+    && document.fonts.ready.then(fitGraph);
+  setTimeout(fitGraph, 0);
+})();
+</script></section>
+<section id="which-path-should-i-use">
+<h2>Which path should I use?<a class="headerlink" href="#which-path-should-i-use" title="Link to this heading">¶</a></h2>
+<p>Use <a class="reference internal" href="energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> when EnergyPlus already owns the plant loop,
+schedule, and tank objects, and you want TMHP to replace an empirical
+heat-pump curve with a refrigerant-cycle-resolved answer.</p>
+<p>Use <a class="reference internal" href="fmu.html"><span class="doc">FMI 2.0 FMU export</span></a> when an FMI master should own the co-simulation schedule
+and TMHP should advance an ASHPB state across each communication step.
+This path is best for tool-to-tool coupling and for comparing the same
+dynamic kernel against native Python <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> runs.</p>
+<div class="toctree-wrapper compound">
+</div>
+</section>
+</section>
+
+<div class="git-last-updated" role="contentinfo">
+  Last updated Jun 23, 2026
+</div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="../tutorials/visualize-the-cycle.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Visualize thermodynamic cycle</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="energyplus-python.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">EnergyPlus Python Plugin</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/tmhp" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script></body>
+</html>

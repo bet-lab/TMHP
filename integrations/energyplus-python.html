@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="TMHP’s EnergyPlus adapter exposes AirSourceHeatPumpBoiler as a PlantComponent:UserDefined surrogate. EnergyPlus still owns the plant loop, timestep, load dispatch, and storage-tank objects; TMHP an..." />
 
-    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T13:38:13+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -136,7 +136,9 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#what-energyplus-python-plugins-are">What EnergyPlus Python Plugins are</a></li>
 <li><a class="reference internal" href="#runtime-contract">Runtime contract</a></li>
+<li><a class="reference internal" href="#what-this-enables">What this enables</a></li>
 <li><a class="reference internal" href="#idf-wiring">IDF wiring</a></li>
 <li><a class="reference internal" href="#input-output-boundary">Input / output boundary</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
@@ -187,6 +189,25 @@ state through <code class="xref py py-meth docutils literal notranslate"><span c
 <p>Use this path when you have an EnergyPlus model and want the heat pump
 to be more physical than an empirical catalogue curve fit, without
 moving the whole building simulation out of EnergyPlus.</p>
+<section id="what-energyplus-python-plugins-are">
+<h2>What EnergyPlus Python Plugins are<a class="headerlink" href="#what-energyplus-python-plugins-are" title="Link to this heading">¶</a></h2>
+<p>EnergyPlus Python Plugins are user-defined Python classes that inherit
+from EnergyPlus’s <code class="docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code> base class and override named
+methods for specific simulation calling points. In plugin mode,
+EnergyPlus is still launched as a normal EnergyPlus simulation; it
+starts an embedded Python interpreter and calls the plugin when the IDF
+declares the relevant plugin instance and calling manager (<a class="reference external" href="https://bigladdersoftware.com/epx/docs/9-3/input-output-reference/group-python-plugins.html">EnergyPlus
+Python Plugin documentation</a>).</p>
+<p>The broader EnergyPlus Python API exposes functional, runtime, and data
+exchange interfaces. The data exchange API is the part TMHP uses here:
+it reads plant-loop values and writes actuators or plugin globals during
+runtime callback methods (<a class="reference external" href="https://energyplus.readthedocs.io/en/latest/api.html">EnergyPlus Python API</a>).</p>
+<p>For TMHP, this is a narrow and useful boundary. EnergyPlus keeps the
+IDF, weather file, schedules, plant loop iteration, storage tank, sizing,
+and reporting. TMHP only replaces the heat-pump component response with
+a cycle-resolved steady solve, then returns outlet temperature,
+mass-flow request, electricity, and diagnostics to EnergyPlus.</p>
+</section>
 <section id="runtime-contract">
 <h2>Runtime contract<a class="headerlink" href="#runtime-contract" title="Link to this heading">¶</a></h2>
 <p>EnergyPlus Python Plugins run inside EnergyPlus’s embedded CPython.
@@ -208,6 +229,39 @@ embedded Python ABI.</p></li>
 such as CoolProp can fail before the plant callback reaches useful
 logging.</p></li>
 </ol>
+</section>
+<section id="what-this-enables">
+<h2>What this enables<a class="headerlink" href="#what-this-enables" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Workflow</p></th>
+<th class="head"><p>Why the adapter matters</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Replace a catalogue curve</p></td>
+<td><p>Keep the same EnergyPlus plant model, but substitute a
+refrigerant-cycle TMHP solve for an empirical heat-pump
+performance curve.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Compare refrigerants in context</p></td>
+<td><p>Run the same building and plant dispatch against different
+CoolProp-supported refrigerants without re-fitting component
+curves for every candidate.</p></td>
+</tr>
+<tr class="row-even"><td><p>Preserve EnergyPlus reporting</p></td>
+<td><p>Leave EnergyPlus responsible for meters, schedules, plant loop
+iteration, and custom output variables while TMHP exposes
+compressor energy, power, convergence, and failure diagnostics.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 </section>
 <section id="idf-wiring">
 <h2>IDF wiring<a class="headerlink" href="#idf-wiring" title="Link to this heading">¶</a></h2>

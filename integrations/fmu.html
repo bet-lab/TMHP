@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>FMI 2.0 FMU export - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="EnergyPlus Python Plugin" href="energyplus-python.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>FMI FMU export - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="API Reference" href="../api/index.html" /><link rel="prev" title="EnergyPlus Python Plugin" href="energyplus-python.html" />
       <link rel="canonical" href="https://bet-lab.github.io/tmhp/integrations/fmu.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -23,16 +23,16 @@
 }
 </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta property="og:title" content="FMI 2.0 FMU export" />
+<meta property="og:title" content="FMI FMU export" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/integrations/fmu.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI 2.0 co-simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through ..." />
+<meta property="og:description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through step..." />
 <meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI 2.0 co-simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through ..." />
+<meta name="description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through step..." />
 
-    <meta property="article:modified_time" content="2026-06-23T13:38:13+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T15:14:10+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -102,7 +102,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Integrations</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="energyplus-python.html">EnergyPlus Python Plugin</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">FMI 2.0 FMU export</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">FMI FMU export</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -167,7 +167,7 @@ data-aria-dark="Switch to auto color mode">
         <span>/</span>
         <meta itemprop="position" content="2" />
       </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
-        <strong itemprop="name">FMI 2.0 FMU export</strong>
+        <strong itemprop="name">FMI FMU export</strong>
         <meta itemprop="position" content="3" />
       </li></ol>
     <div class="xl:hidden ml-1">
@@ -180,10 +180,10 @@ data-aria-dark="Switch to auto color mode">
 </div><div class="flex flex-col break-words justify-between">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
-          <section id="fmi-2-0-fmu-export">
-<h1>FMI 2.0 FMU export<a class="headerlink" href="#fmi-2-0-fmu-export" title="Link to this heading">¶</a></h1>
+          <section id="fmi-fmu-export">
+<h1>FMI FMU export<a class="headerlink" href="#fmi-fmu-export" title="Link to this heading">¶</a></h1>
 <p>TMHP’s FMU adapter wraps
-<code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> as an FMI 2.0 co-simulation
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> as an FMI Co-Simulation
 component. The FMI master owns the communication schedule; the FMU owns
 the ASHPB dynamic state and advances it through
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">step()</span></code> at each <code class="docutils literal notranslate"><span class="pre">do_step</span></code> call.</p>
@@ -197,12 +197,27 @@ for exchanging dynamic models between simulation tools. An FMU,
 Functional Mock-up Unit, is the packaged model artifact: a ZIP archive
 with XML metadata and implementation files exposed through the FMI API
 (<a class="reference external" href="https://fmi-standard.org/docs/main/">FMI specification</a>).</p>
-<p>FMI separates several interface types. TMHP currently targets FMI 2.0
-Co-Simulation, where the importing tool owns the communication schedule,
-sets inputs at communication points, calls <code class="docutils literal notranslate"><span class="pre">do_step</span></code>, and reads
-outputs. In Co-Simulation, the FMU abstracts its internal computation
-from the importer; the importer coordinates time advancement and data
-exchange across connected components (<a class="reference external" href="https://fmi-standard.org/docs/main/#fmi-for-co-simulation">FMI for Co-Simulation</a>).</p>
+<p>FMI separates several interface types. TMHP targets Co-Simulation, where
+the importing tool owns the communication schedule, sets inputs at
+communication points, calls <code class="docutils literal notranslate"><span class="pre">do_step</span></code>, and reads outputs. In
+Co-Simulation, the FMU abstracts its internal computation from the
+importer; the importer coordinates time advancement and data exchange
+across connected components (<a class="reference external" href="https://fmi-standard.org/docs/main/#fmi-for-co-simulation">FMI for Co-Simulation</a>).</p>
+<p>FMI 3.0 is a separate major standard, not a container that automatically
+includes FMI 2.0. The FMI 3.0.2 specification states compatibility in
+terms of the same major version and any minor version, and adds FMI 3.0
+features such as Scheduled Execution, clocks, early return, event mode,
+intermediate update, array variables, and additional scalar types
+(<a class="reference external" href="https://fmi-standard.org/docs/3.0.2/">FMI 3.0.2 specification</a>). For tool reach, TMHP therefore
+ships two adapters over the same ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> seam:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../api/support/integrations.html#module-tmhp.integrations.fmu" title="tmhp.integrations.fmu"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu</span></code></a> builds an FMI 2.0 Co-Simulation FMU with
+<code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code>. This is the conservative compatibility path.</p></li>
+<li><p><a class="reference internal" href="../api/support/integrations.html#module-tmhp.integrations.fmu3" title="tmhp.integrations.fmu3"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu3</span></code></a> builds an FMI 3.0 Co-Simulation FMU with
+<code class="docutils literal notranslate"><span class="pre">pythonfmu3</span></code>. This is the modern-major-version path. It does not
+expose clocks, Scheduled Execution, or arrays because the current TMHP
+boundary is a scalar one-step heat-pump component.</p></li>
+</ul>
 <p>The practical benefit is tool reach. The FMI project maintains a tools
 catalog across importers, exporters, platforms, and FMI versions (<a class="reference external" href="https://fmi-standard.org/tools/">FMI
 tools</a>). A 2025 FMI project note
@@ -235,18 +250,25 @@ post-processing in the tools that already model each part best.</p></li>
 <p>This installs:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code> for building the FMI 2.0 co-simulation FMU.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pythonfmu3</span></code> for building the FMI 3.0 co-simulation FMU.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">fmpy</span></code> for model-description validation and local smoke simulation.</p></li>
 </ul>
 </section>
 <section id="build-and-simulate">
 <h2>Build and simulate<a class="headerlink" href="#build-and-simulate" title="Link to this heading">¶</a></h2>
-<p>Build from the repository root:</p>
+<p>Build the FMI 2.0 FMU from the repository root:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>run<span class="w"> </span>pythonfmu<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>src/tmhp/integrations/fmu.py<span class="w"> </span>.
 </span></pre></div>
 </div>
 <p>PythonFMU writes <code class="docutils literal notranslate"><span class="pre">TmhpAshpbSlave.fmu</span></code> into the current output
-directory. A local smoke test can then validate and simulate the FMU
-through FMPy:</p>
+directory.</p>
+<p>Build the FMI 3.0 FMU separately:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>run<span class="w"> </span>pythonfmu3<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>src/tmhp/integrations/fmu3.py<span class="w"> </span>.
+</span></pre></div>
+</div>
+<p>PythonFMU3 writes <code class="docutils literal notranslate"><span class="pre">TmhpAshpbFmi3Slave.fmu</span></code>. A local smoke test can then
+validate and simulate either FMU through FMPy, as long as the importer
+supports the FMU’s FMI major version:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">fmpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulate_fmu</span>
 </span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">fmpy.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_fmu</span>
 </span><span data-line="3">
@@ -274,7 +296,7 @@ through FMPy:</p>
 importing environment must provide a compatible Python runtime plus
 TMHP, CoolProp, NumPy, SciPy, and the other native dependencies for the
 target operating system, architecture, and Python ABI.</p>
-<p>The adapter intentionally targets FMI 2.0 co-simulation only:</p>
+<p>Both adapters intentionally target Co-Simulation only:</p>
 <ul class="simple">
 <li><p>TMHP exposes no continuous state derivatives for FMI model exchange.</p></li>
 <li><p>The ASHPB state is advanced in one pass for each communication step.</p></li>
@@ -282,6 +304,10 @@ target operating system, architecture, and Python ABI.</p>
 <li><p>FMI outputs are sanitized so NaN or infinity does not cross the
 importer boundary.</p></li>
 </ul>
+<p>The FMI 3.0 adapter returns <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code> and can signal invalid
+input as a discarded step with early return. It otherwise exposes the
+same scalar boundary as the FMI 2.0 adapter so regression tests can
+compare both FMUs against the same native <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> schedule.</p>
 </section>
 <section id="compatible-host-examples">
 <h2>Compatible host examples<a class="headerlink" href="#compatible-host-examples" title="Link to this heading">¶</a></h2>

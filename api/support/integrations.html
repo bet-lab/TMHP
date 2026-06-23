@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T15:14:10+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -102,7 +102,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI 2.0 FMU export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">API Reference</a><ul class="current">
@@ -147,6 +147,15 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave"><code class="docutils literal notranslate"><span class="pre">TmhpAshpbFmi3Slave</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.author"><code class="docutils literal notranslate">author</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.description"><code class="docutils literal notranslate">description</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.to_xml"><code class="docutils literal notranslate">to_xml()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.exit_initialization_mode"><code class="docutils literal notranslate">exit_initialization_mode()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbFmi3Slave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpPlantInit"><code class="docutils literal notranslate"><span class="pre">TmhpPlantInit</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpPlantInit.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpPlantInit.on_user_defined_component_model"><code class="docutils literal notranslate">on_user_defined_component_model()</span></code></a></li>
@@ -159,7 +168,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-tmhp.integrations.fmu">FMI co-simulation</a><ul>
+<li><a class="reference internal" href="#module-tmhp.integrations.fmu">FMI 2.0 co-simulation</a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave"><code class="docutils literal notranslate"><span class="pre">TmhpAshpbSlave</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.author"><code class="docutils literal notranslate">author</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.description"><code class="docutils literal notranslate">description</span></code></a></li>
@@ -167,6 +176,18 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.to_xml"><code class="docutils literal notranslate">to_xml()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.exit_initialization_mode"><code class="docutils literal notranslate">exit_initialization_mode()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.integrations.fmu3">FMI 3.0 co-simulation</a><ul>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave"><code class="docutils literal notranslate"><span class="pre">TmhpAshpbFmi3Slave</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author"><code class="docutils literal notranslate">author</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description"><code class="docutils literal notranslate">description</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.to_xml"><code class="docutils literal notranslate">to_xml()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.exit_initialization_mode"><code class="docutils literal notranslate">exit_initialization_mode()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -230,7 +251,7 @@ top-level package import path so the core package remains usable without the
 adapter-specific runtimes.</p>
 <p>For usage-first guides, model boundaries, and simulator wiring, see
 <a class="reference internal" href="../../integrations/energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> and
-<a class="reference internal" href="../../integrations/fmu.html"><span class="doc">FMI 2.0 FMU export</span></a>.</p>
+<a class="reference internal" href="../../integrations/fmu.html"><span class="doc">FMI FMU export</span></a>.</p>
 <p>Install the FMI dependencies with the <code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>integrations<span class="w"> </span>--locked
 </span></pre></div>
@@ -239,16 +260,16 @@ adapter-specific runtimes.</p>
 EnergyPlus installation and is not a PyPI dependency.</p>
 <section id="interoperability-contracts">
 <h2>Interoperability contracts<a class="headerlink" href="#interoperability-contracts" title="Link to this heading">¶</a></h2>
-<p>FMI co-simulation uses FMI 2.0 through PythonFMU. The generated FMU is a
-tool-coupling artifact: Python, TMHP, CoolProp, NumPy, and SciPy must be
-available in the importing environment. The FMU model description is validated
-with FMPy in CI; all output variables are listed in both <code class="docutils literal notranslate"><span class="pre">Outputs</span></code> and
-<code class="docutils literal notranslate"><span class="pre">InitialUnknowns</span></code> so importers can resolve the initial output dependency set.
-The XML also declares units for power, temperature, DHW draw, and COP so
-importers can perform basic unit checks. The slave rejects invalid importer
-inputs (non-finite time/input values, non-positive communication step sizes, or
-negative DHW draw) before advancing the internal <code class="docutils literal notranslate"><span class="pre">step()</span></code> state and exposes
-<code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;invalid_input&quot;</span></code>.</p>
+<p>FMI co-simulation is exposed through separate FMI 2.0 and FMI 3.0 adapters.
+FMI 2.0 uses PythonFMU; FMI 3.0 uses PythonFMU3. The generated FMUs are
+tool-coupling artifacts: Python, TMHP, CoolProp, NumPy, and SciPy must be
+available in the importing environment. The FMU model descriptions are validated
+with FMPy in tests. The XML declares units for power, temperature, DHW draw, and
+COP so importers can perform basic unit checks. The slaves reject invalid
+importer inputs (non-finite time/input values, non-positive communication step
+sizes, or negative DHW draw) before advancing the internal <code class="docutils literal notranslate"><span class="pre">step()</span></code> state and
+expose <code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;invalid_input&quot;</span></code>. The FMI 3.0 slave reports that case
+as a discarded step with early return.</p>
 <p>EnergyPlus coupling uses the Python Plugin DataExchange API. The adapter first
 resolves and validates all handles, then reads only finite boundary values
 before calling <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code>. Invalid boundary data is reported through
@@ -274,6 +295,8 @@ helpers:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#module-tmhp.integrations.fmu" title="tmhp.integrations.fmu"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu</span></code></a> (#165 P1) — FMI 2.0 FMU wrapping <code class="docutils literal notranslate"><span class="pre">step()</span></code>
 (the dynamic kernel; the FMU owns the storage-tank state). Needs <code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code>.</p></li>
+<li><p><a class="reference internal" href="#module-tmhp.integrations.fmu3" title="tmhp.integrations.fmu3"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu3</span></code></a> — FMI 3.0 Co-Simulation FMU wrapping the same
+<code class="docutils literal notranslate"><span class="pre">step()</span></code> seam. Needs <code class="docutils literal notranslate"><span class="pre">pythonfmu3</span></code>.</p></li>
 <li><p><a class="reference internal" href="#module-tmhp.integrations.energyplus_plugin" title="tmhp.integrations.energyplus_plugin"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.energyplus_plugin</span></code></a> (#165 P2) — EnergyPlus Python
 Plugin surrogating the ASHPB as a <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> through
 <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code> (the <em>steady-state</em> seam; EnergyPlus owns the
@@ -353,6 +376,80 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3Slave</span></code></p>
+<p>ASHPB single-timestep co-simulation kernel (FMI 3.0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.author">
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.description">
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></em><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.to_xml">
+<span class="sig-name descname"><span class="pre">to_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.to_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.to_xml" title="Link to this definition">¶</a></dt>
+<dd><p>Build a static FMI 3.0 model description for PythonFMU3.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.exit_initialization_mode">
+<span class="sig-name descname"><span class="pre">exit_initialization_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.exit_initialization_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.exit_initialization_mode" title="Link to this definition">¶</a></dt>
+<dd><p>Finalize parameters and initialize the carried ASHPB state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbFmi3Slave.do_step">
+<span class="sig-name descname"><span class="pre">do_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.do_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbFmi3Slave.do_step" title="Link to this definition">¶</a></dt>
+<dd><p>Advance the FMU by one FMI 3.0 communication step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>step_size</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpPlantInit">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantInit" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyPlusPlugin</span></code></p>
@@ -410,7 +507,7 @@ summed joules). <code class="docutils literal notranslate"><span class="pre">tmh
 
 </section>
 <section id="module-tmhp.integrations.fmu">
-<span id="fmi-co-simulation"></span><h2>FMI co-simulation<a class="headerlink" href="#module-tmhp.integrations.fmu" title="Link to this heading">¶</a></h2>
+<span id="fmi-2-0-co-simulation"></span><h2>FMI 2.0 co-simulation<a class="headerlink" href="#module-tmhp.integrations.fmu" title="Link to this heading">¶</a></h2>
 <p>FMI 2.0 co-simulation FMU wrapping the tmhp ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel (#165 P1).</p>
 <p>The slave advances <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> one communication
 step at a time through the public <code class="docutils literal notranslate"><span class="pre">step()</span></code> seam, so any FMI master (fmpy,
@@ -504,6 +601,95 @@ No save-state/rollback at this scope (single-pass co-sim only).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-tmhp.integrations.fmu3">
+<span id="fmi-3-0-co-simulation"></span><h2>FMI 3.0 co-simulation<a class="headerlink" href="#module-tmhp.integrations.fmu3" title="Link to this heading">¶</a></h2>
+<p>FMI 3.0 co-simulation FMU wrapping the TMHP ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel.</p>
+<p>This adapter mirrors <a class="reference internal" href="#module-tmhp.integrations.fmu" title="tmhp.integrations.fmu"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu</span></code></a> at the TMHP boundary but uses
+<code class="docutils literal notranslate"><span class="pre">pythonfmu3</span></code> and the FMI 3.0 <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code> return contract. It targets
+FMI 3.0 Co-Simulation only: the FMU owns the ASHPB dynamic state and advances it
+once for each importer communication step.</p>
+<p>Build:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">pythonfmu3</span> <span class="n">build</span> <span class="o">-</span><span class="n">f</span> <span class="n">src</span><span class="o">/</span><span class="n">tmhp</span><span class="o">/</span><span class="n">integrations</span><span class="o">/</span><span class="n">fmu3</span><span class="o">.</span><span class="n">py</span> <span class="o">.</span>
+</span></pre></div>
+</div>
+<p>The adapter intentionally does not expose FMI 3.0 clocks, Scheduled Execution,
+or array variables. Those features are useful for embedded controls and
+multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.fmu3.</span></span><span class="sig-name descname"><span class="pre">TmhpAshpbFmi3Slave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3Slave</span></code></p>
+<p>ASHPB single-timestep co-simulation kernel (FMI 3.0).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author">
+<span class="sig-name descname"><span class="pre">author</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'BET</span> <span class="pre">Lab'</span></em><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.author" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description">
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'TMHP</span> <span class="pre">ASHPB</span> <span class="pre">one-dt</span> <span class="pre">co-simulation</span> <span class="pre">kernel</span> <span class="pre">(FMI</span> <span class="pre">3.0)'</span></em><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.description" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.to_xml">
+<span class="sig-name descname"><span class="pre">to_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.to_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.to_xml" title="Link to this definition">¶</a></dt>
+<dd><p>Build a static FMI 3.0 model description for PythonFMU3.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.exit_initialization_mode">
+<span class="sig-name descname"><span class="pre">exit_initialization_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.exit_initialization_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.exit_initialization_mode" title="Link to this definition">¶</a></dt>
+<dd><p>Finalize parameters and initialize the carried ASHPB state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.do_step">
+<span class="sig-name descname"><span class="pre">do_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu3.html#TmhpAshpbFmi3Slave.do_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu3.TmhpAshpbFmi3Slave.do_step" title="Link to this definition">¶</a></dt>
+<dd><p>Advance the FMU by one FMI 3.0 communication step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_time</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>step_size</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

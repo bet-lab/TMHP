@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Requirements: Python 3.10 – 3.13, uv package manager. Clone and install: The--locked flag tells uv to respect the committed uv.lock and fail rather than silently re-resolve versions. This is the sa..." />
 
-    <meta property="article:modified_time" content="2026-06-23T11:32:57+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T15:14:10+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -102,7 +102,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../integrations/index.html">Integrations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI 2.0 FMU export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI FMU export</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
@@ -220,17 +220,19 @@ pollute the runtime install.</p>
 <section id="optional-integration-extras">
 <h2>Optional integration extras<a class="headerlink" href="#optional-integration-extras" title="Link to this heading">¶</a></h2>
 <p>The core package does not install co-simulation runtimes by default. Add the
-<code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra when you need the FMI 2.0 FMU adapter:</p>
+<code class="docutils literal notranslate"><span class="pre">integrations</span></code> extra when you need the FMI FMU adapters:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>integrations<span class="w"> </span>--locked
 </span></pre></div>
 </div>
-<p>This installs <code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code> and <code class="docutils literal notranslate"><span class="pre">fmpy</span></code> for building and smoke-testing the FMU
-wrapper around <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler.step()</span></code>. The EnergyPlus Python Plugin
-adapter does not have a pip-installable extra because <code class="docutils literal notranslate"><span class="pre">pyenergyplus</span></code> is
-bundled with EnergyPlus itself; run that adapter inside EnergyPlus’s embedded
-Python or make the EnergyPlus Python package visible through
-<code class="docutils literal notranslate"><span class="pre">PythonPlugin:SearchPaths</span></code>. See <a class="reference internal" href="../integrations/fmu.html"><span class="doc">FMI 2.0 FMU export</span></a> and
-<a class="reference internal" href="../integrations/energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> for the simulator-specific wiring.</p>
+<p>This installs <code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code> for FMI 2.0 export, <code class="docutils literal notranslate"><span class="pre">pythonfmu3</span></code> for FMI 3.0
+export, and <code class="docutils literal notranslate"><span class="pre">fmpy</span></code> for model-description validation and smoke simulation. Both
+FMU adapters wrap <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler.step()</span></code> but produce separate FMI
+major-version artifacts. The EnergyPlus Python Plugin adapter does not have a
+pip-installable extra because <code class="docutils literal notranslate"><span class="pre">pyenergyplus</span></code> is bundled with EnergyPlus
+itself; run that adapter inside EnergyPlus’s embedded Python or make the
+EnergyPlus Python package visible through <code class="docutils literal notranslate"><span class="pre">PythonPlugin:SearchPaths</span></code>. See
+<a class="reference internal" href="../integrations/fmu.html"><span class="doc">FMI FMU export</span></a> and <a class="reference internal" href="../integrations/energyplus-python.html"><span class="doc">EnergyPlus Python Plugin</span></a> for the
+simulator-specific wiring.</p>
 </section>
 <section id="what-s-installed">
 <h2>What’s installed<a class="headerlink" href="#what-s-installed" title="Link to this heading">¶</a></h2>

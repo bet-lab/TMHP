@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="Optional adapters for coupling tmhp to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level tmhp import path so the core package remains u..." />
 
-    <meta property="article:modified_time" content="2026-06-22T23:04:14+00:00" />
+    <meta property="article:modified_time" content="2026-06-23T07:37:22+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -131,11 +131,13 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#interoperability-contracts">Interoperability contracts</a></li>
 <li><a class="reference internal" href="#module-tmhp.integrations">Adapter package</a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave"><code class="docutils literal notranslate"><span class="pre">TmhpAshpbSlave</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.author"><code class="docutils literal notranslate">author</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.description"><code class="docutils literal notranslate">description</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.to_xml"><code class="docutils literal notranslate">to_xml()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.exit_initialization_mode"><code class="docutils literal notranslate">exit_initialization_mode()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.TmhpAshpbSlave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
 </ul>
@@ -157,6 +159,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.author"><code class="docutils literal notranslate">author</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.description"><code class="docutils literal notranslate">description</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.to_xml"><code class="docutils literal notranslate">to_xml()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.exit_initialization_mode"><code class="docutils literal notranslate">exit_initialization_mode()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.fmu.TmhpAshpbSlave.do_step"><code class="docutils literal notranslate">do_step()</span></code></a></li>
 </ul>
@@ -226,6 +229,30 @@ adapter-specific runtimes.</p>
 </div>
 <p>The EnergyPlus adapter is different: <code class="docutils literal notranslate"><span class="pre">pyenergyplus</span></code> is supplied by an
 EnergyPlus installation and is not a PyPI dependency.</p>
+<section id="interoperability-contracts">
+<h2>Interoperability contracts<a class="headerlink" href="#interoperability-contracts" title="Link to this heading">¶</a></h2>
+<p>FMI co-simulation uses FMI 2.0 through PythonFMU. The generated FMU is a
+tool-coupling artifact: Python, <code class="docutils literal notranslate"><span class="pre">tmhp</span></code>, CoolProp, NumPy, and SciPy must be
+available in the importing environment. The FMU model description is validated
+with FMPy in CI; all output variables are listed in both <code class="docutils literal notranslate"><span class="pre">Outputs</span></code> and
+<code class="docutils literal notranslate"><span class="pre">InitialUnknowns</span></code> so importers can resolve the initial output dependency set.
+The XML also declares units for power, temperature, DHW draw, and COP so
+importers can perform basic unit checks. The slave rejects invalid importer
+inputs (non-finite time/input values, non-positive communication step sizes, or
+negative DHW draw) before advancing the internal <code class="docutils literal notranslate"><span class="pre">step()</span></code> state and exposes
+<code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;invalid_input&quot;</span></code>.</p>
+<p>EnergyPlus coupling uses the Python Plugin DataExchange API. The adapter first
+resolves and validates all handles, then reads only finite boundary values
+before calling <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code>. Invalid boundary data is reported through
+<code class="docutils literal notranslate"><span class="pre">issue_severe()</span></code>, the plant actuator is driven to a safe off state, and the
+plugin returns a non-zero status instead of silently computing with bad data.
+Compressor electricity is exposed with explicit plugin-global units:
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code> receives timestep energy in joules by multiplying cycle power
+in watts by EnergyPlus’s fractional-hour <code class="docutils literal notranslate"><span class="pre">system_time_step()</span></code>, while optional
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code> receives the instantaneous cycle power. Older IDFs that
+declare only <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp</span></code> are still accepted; that legacy global is treated as
+a joule sink.</p>
+</section>
 <section id="module-tmhp.integrations">
 <span id="adapter-package"></span><h2>Adapter package<a class="headerlink" href="#module-tmhp.integrations" title="Link to this heading">¶</a></h2>
 <p>Building-energy-simulation co-simulation adapters (#165).</p>
@@ -271,6 +298,20 @@ so it needs the bundled <code class="docutils literal notranslate"><span class="
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.TmhpAshpbSlave.to_xml">
+<span class="sig-name descname"><span class="pre">to_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave.to_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpAshpbSlave.to_xml" title="Link to this definition">¶</a></dt>
+<dd><p>Build a static FMI 2.0 model description for PythonFMU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -337,8 +378,8 @@ manager (E+ runs it once before plant sizing).</p>
 <p>Per-call ASHPB driver: read loop inlet + outdoor, solve, actuate.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>simulation</em> program-calling
 manager. Exposes compressor electricity through the plugin global
-<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp</span></code> (declare it in <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> and meter it via
-<code class="docutils literal notranslate"><span class="pre">PythonPlugin:OutputVariable</span></code>).</p>
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code> (declare it in <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> and meter it as
+summed joules). <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code> can be declared for averaged power output.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.TmhpPlantSurrogate.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.TmhpPlantSurrogate.__init__" title="Link to this definition">¶</a></dt>
@@ -420,6 +461,20 @@ No save-state/rollback at this scope (single-pass co-sim only).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="tmhp.integrations.fmu.TmhpAshpbSlave.to_xml">
+<span class="sig-name descname"><span class="pre">to_xml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave.to_xml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.to_xml" title="Link to this definition">¶</a></dt>
+<dd><p>Build a static FMI 2.0 model description for PythonFMU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_options</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.fmu.TmhpAshpbSlave.exit_initialization_mode">
 <span class="sig-name descname"><span class="pre">exit_initialization_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/fmu.html#TmhpAshpbSlave.exit_initialization_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.fmu.TmhpAshpbSlave.exit_initialization_mode" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
@@ -486,6 +541,14 @@ import-only smoke plugin first — a wrong-ABI CoolProp wheel fails silently.</p
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_LOOP_DESIGN_VDOT</span></code></p></td>
 <td><p>design loop volume flow in m³/s (default <code class="docutils literal notranslate"><span class="pre">0.003</span></code>)</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_ENERGY_GLOBAL</span></code></p></td>
+<td><p>plugin global receiving timestep energy [J]
+(default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_POWER_GLOBAL</span></code></p></td>
+<td><p>optional plugin global receiving power [W]
+(default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code>)</p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_PLUGIN_LOG</span></code></p></td>
 <td><p>if set, append a per-call/tally log to this path</p></td>
 </tr>
@@ -495,8 +558,10 @@ import-only smoke plugin first — a wrong-ABI CoolProp wheel fails silently.</p
 <p>IDF wiring (see the issue #180 / the validated demo for a full example): one
 <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> named <code class="docutils literal notranslate"><span class="pre">ASHPB_UserDefined</span></code> with an init manager
 bound to <a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit" title="tmhp.integrations.energyplus_plugin.TmhpPlantInit"><code class="xref py py-class docutils literal notranslate"><span class="pre">TmhpPlantInit</span></code></a> and a simulation manager bound to
-<a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate" title="tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate"><code class="xref py py-class docutils literal notranslate"><span class="pre">TmhpPlantSurrogate</span></code></a>, a <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> global <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp</span></code>,
-and a <code class="docutils literal notranslate"><span class="pre">PythonPlugin:OutputVariable</span></code> routing it to a meter.</p>
+<a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate" title="tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate"><code class="xref py py-class docutils literal notranslate"><span class="pre">TmhpPlantSurrogate</span></code></a>, a <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> global
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code> for summed energy metering, and optionally <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code> for
+averaged power reporting. The legacy global <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp</span></code> is still accepted as
+an energy sink for older IDFs.</p>
 <p>API strings (actuator component type <code class="docutils literal notranslate"><span class="pre">&quot;Plant</span> <span class="pre">Connection</span> <span class="pre">1&quot;</span></code>; internal
 variables <code class="docutils literal notranslate"><span class="pre">&quot;...</span> <span class="pre">for</span> <span class="pre">Plant</span> <span class="pre">Connection</span> <span class="pre">1&quot;</span></code>) are verified against EnergyPlus
 24.2.0; reconfirm them for other releases.</p>
@@ -534,8 +599,8 @@ manager (E+ runs it once before plant sizing).</p>
 <p>Per-call ASHPB driver: read loop inlet + outdoor, solve, actuate.</p>
 <p>Bind to the <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> <em>simulation</em> program-calling
 manager. Exposes compressor electricity through the plugin global
-<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp</span></code> (declare it in <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> and meter it via
-<code class="docutils literal notranslate"><span class="pre">PythonPlugin:OutputVariable</span></code>).</p>
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code> (declare it in <code class="docutils literal notranslate"><span class="pre">PythonPlugin:Variables</span></code> and meter it as
+summed joules). <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code> can be declared for averaged power output.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantSurrogate.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantSurrogate.__init__" title="Link to this definition">¶</a></dt>
@@ -560,7 +625,7 @@ manager. Exposes compressor electricity through the plugin global
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 22, 2026
+  Last updated Jun 23, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

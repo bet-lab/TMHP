@@ -32,7 +32,7 @@
 <meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
 <meta name="description" content="TMHP can stay inside a Python study, but it is also designed to sit behind building-energy simulators and co-simulation masters. The integration adapters are optional so the core heat-pump package ..." />
 
-    <meta property="article:modified_time" content="2026-06-23T15:14:10+00:00" />
+    <meta property="article:modified_time" content="2026-06-24T03:25:06+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -296,16 +296,20 @@ advances it one communication step at a time.</p>
     border: 1px solid var(--sy-c-border, #e5e7eb);
     border-radius: 8px;
     background: var(--sy-c-bg, #fff);
-    padding: 18px 20px;
+    padding: 16px 18px;
     position: relative;
-    width: 100%;
-    max-width: 1120px;
+    max-width: 100%;
   }
   #tmhp-integration-boundary {
     width: 100%;
-    height: 500px;
-    min-height: 460px;
+    height: 320px;
+    border: 1px solid #e2e8f0;
     border-radius: 6px;
+    background:
+      linear-gradient(90deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(148, 163, 184, 0.10) 1px, transparent 1px),
+      #fbfdff;
+    background-size: 40px 40px, 40px 40px, auto;
   }
   .integration-graph-toolbar {
     position: absolute; top: 22px; right: 22px;
@@ -323,6 +327,19 @@ advances it one communication step at a time.</p>
   }
   .integration-graph-toolbar button:hover {
     background: #f3f4f6; color: #1f2937;
+  }
+  .integration-graph-legend {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin: 2px 110px 12px 0;
+    color: #475569; font-size: 12px;
+  }
+  .integration-graph-legend span {
+    display: inline-flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .integration-graph-legend i {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 3px; border: 1px solid currentColor;
   }
   #tmhp-integration-info {
     margin-top: 12px;
@@ -358,30 +375,19 @@ advances it one communication step at a time.</p>
     color: #6b7280; font-size: 12px; margin-top: 8px;
   }
   .integration-graph-caption {
-    text-align: center; font-style: italic;
+    text-align: center;
+    font-style: italic;
     color: var(--sy-c-text-secondary, #6b7280);
-    font-size: 0.92em; margin-top: 0.6em;
+    font-size: 0.92em;
+    margin-top: 0.6em;
   }
-  .integration-graph-legend {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    margin: 2px 110px 10px 0;
-    color: #475569; font-size: 12px;
-  }
-  .integration-graph-legend span {
-    display: inline-flex; align-items: center; gap: 5px;
-    white-space: nowrap;
-  }
-  .integration-graph-legend i {
-    display: inline-block; width: 10px; height: 10px;
-    border-radius: 3px; border: 1px solid currentColor;
-  }
-  @media (max-width: 720px) {
-    #tmhp-integration-boundary { height: 680px; }
-    .integration-graph-toolbar { position: static; margin-bottom: 8px; }
-    .integration-graph-legend { margin-right: 0; }
-    .integration-graph-card {
-      width: 100%;
-      max-width: 100%;
+  @media (max-width: 820px) {
+    .integration-graph-toolbar {
+      position: static;
+      margin-bottom: 8px;
+    }
+    .integration-graph-legend {
+      margin-right: 0;
     }
   }
 </style>
@@ -394,9 +400,9 @@ advances it one communication step at a time.</p>
   </div>
   <div class="integration-graph-legend" aria-label="Diagram legend">
     <span><i style="background:#fef3c7;color:#d97706"></i>External tool</span>
-    <span><i style="background:#eef2ff;color:#6366f1"></i>Adapter</span>
+    <span><i style="background:#e8f1ff;color:#2563eb"></i>Boundary variables</span>
     <span><i style="background:#f5f3ff;color:#8b5cf6"></i>Public TMHP API</span>
-    <span><i style="background:#dcfce7;color:#16a34a"></i>Cycle core</span>
+    <span><i style="background:#dcfce7;color:#16a34a"></i>Shared core</span>
   </div>
   <div id="tmhp-integration-boundary"></div>
   <div id="tmhp-integration-info">
@@ -406,200 +412,173 @@ advances it one communication step at a time.</p>
 </div>
 
 <p class="integration-graph-caption">
-  TMHP integration data flow. Both paths move left to right: external
-  simulator inputs enter TMHP, the cycle core solves, then each adapter
-  publishes outputs back to its host tool.
+  TMHP integration data flow. EnergyPlus and FMI hosts pass boundary
+  variables through public TMHP seams; the shared heat-pump core solves
+  once behind those seams and returns heat, power, COP, and state values.
 </p>
 
 <script src="../_static/js/lib/cytoscape.min.js"></script>
 <script>
 (function () {
-  const container = document.getElementById("tmhp-integration-boundary");
-  if (!container) return;
-  if (typeof cytoscape === "undefined") {
-    document.getElementById("tmhp-integration-info").innerHTML =
-      '<span class="placeholder">Cytoscape did not load, so the integration graph cannot render.</span>';
-    return;
-  }
-
-  const desktopPositions = {
-    EPLUS: { x: 120, y: 180 },
-    EPLUS_ADAPTER: { x: 340, y: 180 },
-    STEADY: { x: 560, y: 180 },
-    CORE: { x: 660, y: 310 },
-    EPLUS_OUT: { x: 940, y: 180 },
-    FMU_MASTER: { x: 120, y: 440 },
-    FMU_ADAPTER: { x: 340, y: 440 },
-    STEP: { x: 560, y: 440 },
-    FMU_OUT: { x: 940, y: 440 }
-  };
-  const mobilePositions = {
-    EPLUS: { x: 115, y: 90 },
-    EPLUS_ADAPTER: { x: 115, y: 225 },
-    STEADY: { x: 115, y: 360 },
-    CORE: { x: 255, y: 440 },
-    EPLUS_OUT: { x: 415, y: 360 },
-    FMU_MASTER: { x: 115, y: 600 },
-    FMU_ADAPTER: { x: 115, y: 735 },
-    STEP: { x: 275, y: 735 },
-    FMU_OUT: { x: 415, y: 600 }
-  };
-
-  const nodes = [
-    {
-      id: "EPLUS", type: "external", title: "EnergyPlus",
-      sub: "Plant loop + Python Plugin",
-      contract: "Owns the plant loop, timestep, dispatch request, and storage-tank state.",
-      code: "PlantComponent:UserDefined + PythonPlugin:SearchPaths",
-      api: "energyplus-python.html"
-    },
-    {
-      id: "EPLUS_ADAPTER", type: "adapter", title: "EnergyPlus adapter",
-      sub: "T_in · mdot · cp · load · T0",
-      contract: "TmhpPlantSurrogate resolves DataExchange handles, guards invalid boundary values, memoizes repeated plant-solver calls, and actuates the user-defined component.",
-      code: "tmhp.integrations.energyplus_plugin",
-      api: "../api/support/integrations.html#module-tmhp.integrations.energyplus_plugin"
-    },
-    {
-      id: "STEADY", type: "seam", title: "analyze_steady()",
-      sub: "steady public API",
-      contract: "Answers one plant-solver request from inlet water temperature, outdoor temperature, and requested heat rate.",
-      code: "AirSourceHeatPumpBoiler.analyze_steady(T_tank_w, T0, Q_ref_tank)",
-      api: "../models/ashpb.html"
-    },
-    {
-      id: "CORE", type: "core", title: "TMHP ASHPB core",
-      sub: "CoolProp cycle solve",
-      contract: "Solves refrigerant state points, heat exchangers, compressor work, COP, convergence, and failure_reason diagnostics.",
-      code: "AirSourceHeatPumpBoiler + refrigerant/cycle helpers",
-      api: "../concepts/cycle-architecture.html"
-    },
-    {
-      id: "EPLUS_OUT", type: "output", title: "EnergyPlus outputs",
-      sub: "actuators + plugin globals",
-      contract: "Writes outlet temperature, mass-flow request, timestep compressor energy, optional compressor power, and severe diagnostics back to EnergyPlus.",
-      code: "outlet temperature actuator, tmhp_E_cmp_J, tmhp_E_cmp_W",
-      api: "energyplus-python.html#input-output-boundary"
-    },
-    {
-      id: "FMU_MASTER", type: "external", title: "FMI master",
-      sub: "fmpy · OMSimulator · Dymola",
-      contract: "Owns the co-simulation schedule and sets FMI input variables before each communication step.",
-      code: "FMI 2.0/3.0 Co-Simulation importer",
-      api: "fmu.html"
-    },
-    {
-      id: "FMU_ADAPTER", type: "adapter", title: "FMU adapter",
-      sub: "T0 · dhw_draw · T_sup_w",
-      contract: "TmhpAshpbSlave and TmhpAshpbFmi3Slave build FMI model descriptions, validate input scalars, own the dynamic ASHPB state, and sanitize outputs.",
-      code: "tmhp.integrations.fmu / fmu3",
-      api: "../api/support/integrations.html#module-tmhp.integrations.fmu"
-    },
-    {
-      id: "STEP", type: "seam", title: "step()",
-      sub: "dynamic public API",
-      contract: "Advances one ASHPB state over the FMI communication step using the same public dynamic kernel as native Python simulations.",
-      code: "state, result = hp.step(state, inputs, step_size)",
-      api: "../getting-started/first-dynamic-simulation.html"
-    },
-    {
-      id: "FMU_OUT", type: "output", title: "FMU outputs",
-      sub: "power · heat · state · diagnostics",
-      contract: "Publishes FMI output variables for power, heat, tank temperature, COP, convergence, on/off state, and failure_reason.",
-      code: "E_cmp, E_tot, Q_ref_tank, cop_sys, T_tank_w, converged",
-      api: "fmu.html#input-output-boundary"
-    }
-  ];
-  const edges = [
-    { source: "EPLUS", target: "EPLUS_ADAPTER" },
-    { source: "EPLUS_ADAPTER", target: "STEADY" },
-    { source: "STEADY", target: "CORE" },
-    { source: "CORE", target: "EPLUS_OUT" },
-    { source: "FMU_MASTER", target: "FMU_ADAPTER" },
-    { source: "FMU_ADAPTER", target: "STEP" },
-    { source: "STEP", target: "CORE" },
-    { source: "CORE", target: "FMU_OUT" }
-  ];
-
-  const palette = {
-    external: { fill: "#fef3c7", border: "#d97706", text: "#78350f" },
-    io:       { fill: "#dbeafe", border: "#2563eb", text: "#1e3a8a" },
-    adapter:  { fill: "#eef2ff", border: "#6366f1", text: "#1e1b4b" },
-    seam:     { fill: "#f5f3ff", border: "#8b5cf6", text: "#4c1d95" },
-    core:     { fill: "#dcfce7", border: "#16a34a", text: "#14532d" },
-    output:   { fill: "#f1f5f9", border: "#64748b", text: "#334155" }
-  };
+  const el = document.getElementById("tmhp-integration-boundary");
+  if (!el || typeof cytoscape === "undefined") return;
 
   const cy = cytoscape({
-    container,
+    container: el,
+    autoungrabify: true,
+    boxSelectionEnabled: false,
+    layout: { name: "preset", fit: false },
     elements: [
-      ...nodes.map(n => ({ data: { ...n, label: n.title + "\n" + n.sub } })),
-      ...edges.map(e => ({ data: e }))
+      { data: { id: "hostGroup", label: "External host tools", type: "group" }, classes: "group hostGroup" },
+      { data: { id: "contractGroup", label: "Adapter Contracts", type: "group" }, classes: "group contractGroup" },
+      { data: {
+          id: "ep", parent: "hostGroup", label: "EnergyPlus\nplant loop",
+          title: "EnergyPlus plant loop", type: "external",
+          contract: "Owns the plant loop, timestep, dispatch request, and storage-tank state.",
+          code: "PlantComponent:UserDefined + PythonPlugin:SearchPaths",
+          api: "energyplus-python.html"
+        }, classes: "host steady", position: { x: 76, y: 112 } },
+      { data: {
+          id: "fm", parent: "hostGroup", label: "FMI master\nFMPy / OMS",
+          title: "FMI master", type: "external",
+          contract: "Owns the co-simulation schedule and sets FMI input variables before each communication step.",
+          code: "FMI 2.0/3.0 Co-Simulation importer",
+          api: "fmu.html"
+        }, classes: "host dynamic", position: { x: 76, y: 232 } },
+      { data: {
+          id: "eb", parent: "contractGroup", label: "Plant boundary\nT_in, mdot\nload, T0",
+          title: "Plant boundary", type: "boundary",
+          contract: "The EnergyPlus adapter maps plant-loop state into the steady TMHP request boundary.",
+          code: "T_in, mdot, load, T0",
+          api: "energyplus-python.html#input-output-boundary"
+        }, classes: "boundary steady", position: { x: 240, y: 112 } },
+      { data: {
+          id: "fb", parent: "contractGroup", label: "FMU variables\nT0, draw\nT_sup",
+          title: "FMU variables", type: "boundary",
+          contract: "The FMU adapter exposes weather, draw, and supply-temperature variables to the importing FMI master.",
+          code: "T0, dhw_draw, T_sup_w",
+          api: "fmu.html#input-output-boundary"
+        }, classes: "boundary dynamic", position: { x: 240, y: 232 } },
+      { data: {
+          id: "es", parent: "contractGroup", label: "steady seam\nanalyze_steady()",
+          title: "analyze_steady()", type: "seam",
+          contract: "Answers one plant-solver request without advancing a TMHP-owned dynamic state.",
+          code: "AirSourceHeatPumpBoiler.analyze_steady(...)",
+          api: "../models/ashpb.html"
+        }, classes: "seam steady", position: { x: 365, y: 112 } },
+      { data: {
+          id: "fs", parent: "contractGroup", label: "dynamic seam\nstep()",
+          title: "step()", type: "seam",
+          contract: "Advances one communication step for a dynamic TMHP-owned state.",
+          code: "state, result = hp.step(state, inputs, step_size)",
+          api: "../getting-started/first-dynamic-simulation.html"
+        }, classes: "seam dynamic", position: { x: 365, y: 232 } },
+      { data: {
+          id: "core", label: "TMHP shared\nheat pump\ncore",
+          title: "TMHP shared heat-pump core", type: "core",
+          contract: "Keeps the heat-pump model implementation behind stable public seams, so future heat-pump families can reuse the same integration boundary.",
+          code: "heat-pump model + refrigerant/cycle helpers",
+          api: "../concepts/cycle-architecture.html"
+        }, classes: "core", position: { x: 500, y: 172 } },
+      { data: {
+          id: "out", label: "Returned values\nheat, power\nCOP, state",
+          title: "Returned values", type: "output",
+          contract: "Returns adapter-specific outputs to the host: EnergyPlus actuators/globals or FMI output variables.",
+          code: "heat, power, COP, state, diagnostics",
+          api: "fmu.html#input-output-boundary"
+        }, classes: "output", position: { x: 650, y: 172 } },
+      { data: { source: "ep", target: "eb" }, classes: "steady" },
+      { data: { source: "fm", target: "fb" }, classes: "dynamic" },
+      { data: { source: "eb", target: "es" }, classes: "steady" },
+      { data: { source: "fb", target: "fs" }, classes: "dynamic" },
+      { data: { source: "es", target: "core" }, classes: "steady corelink" },
+      { data: { source: "fs", target: "core" }, classes: "dynamic corelink" },
+      { data: { source: "core", target: "out" }, classes: "return" }
     ],
     style: [
-      { selector: "node", style: {
-          "label": "data(label)", "text-wrap": "wrap",
-          "text-valign": "center", "text-halign": "center",
-          "font-size": 12, "font-weight": 600,
-          "font-family": "-apple-system, BlinkMacSystemFont, Inter, sans-serif",
-          "width": 176, "height": 76,
-          "text-max-width": 156,
-          "padding": "11px", "shape": "round-rectangle",
-          "corner-radius": "10", "border-width": 1.5,
-          "line-height": 1.35
-      } },
-      { selector: 'node[type = "external"]', style: {
-          "background-color": palette.external.fill, "border-color": palette.external.border, "color": palette.external.text } },
-      { selector: 'node[type = "io"]', style: {
-          "background-color": palette.io.fill, "border-color": palette.io.border, "color": palette.io.text } },
-      { selector: 'node[type = "adapter"]', style: {
-          "background-color": palette.adapter.fill, "border-color": palette.adapter.border, "color": palette.adapter.text } },
-      { selector: 'node[type = "seam"]', style: {
-          "background-color": palette.seam.fill, "border-color": palette.seam.border, "color": palette.seam.text,
-          "border-style": "dashed" } },
-      { selector: 'node[type = "core"]', style: {
-          "background-color": palette.core.fill, "border-color": palette.core.border, "color": palette.core.text,
-          "border-width": 2.5, "width": 198, "height": 100,
-          "text-max-width": 174 } },
-      { selector: 'node[type = "output"]', style: {
-          "background-color": palette.output.fill, "border-color": palette.output.border, "color": palette.output.text,
-          "width": 190, "height": 82, "text-max-width": 168 } },
-      { selector: "edge", style: {
-          "width": 2, "line-color": "#475569",
-          "target-arrow-color": "#475569", "target-arrow-shape": "triangle",
-          "arrow-scale": 1.05, "curve-style": "straight"
-      } },
-      { selector: "node:selected", style: { "border-width": 3 } },
+      {
+        selector: "node",
+        style: {
+          "shape": "round-rectangle",
+          "width": 112,
+          "height": 58,
+          "background-color": "#f8fafc",
+          "border-width": 0.7,
+          "border-color": "#94a3b8",
+          "label": "data(label)",
+          "font-family": "Inter Variable, system-ui, sans-serif",
+          "font-size": 10.8,
+          "font-weight": 650,
+          "line-height": 1.2,
+          "text-wrap": "wrap",
+          "text-max-width": 98,
+          "text-valign": "center",
+          "text-halign": "center",
+          "color": "#172033",
+          "shadow-blur": 8,
+          "shadow-color": "#0f172a",
+          "shadow-opacity": 0.08,
+          "shadow-offset-x": 0,
+          "shadow-offset-y": 2,
+          "overlay-opacity": 0
+        }
+      },
+      {
+        selector: ".group",
+        style: {
+          "shape": "round-rectangle",
+          "background-color": "#fffde1",
+          "background-opacity": 0.72,
+          "border-color": "#a6a821",
+          "border-width": 0.65,
+          "padding": 22,
+          "compound-sizing-wrt-labels": "include",
+          "label": "data(label)",
+          "text-valign": "top",
+          "text-halign": "center",
+          "text-margin-y": 10,
+          "text-wrap": "none",
+          "text-max-width": 180,
+          "text-background-color": "#fbfdff",
+          "text-background-opacity": 0.96,
+          "text-background-padding": 3,
+          "text-background-shape": "roundrectangle",
+          "font-size": 11.5,
+          "font-weight": 700,
+          "color": "#334155",
+          "shadow-opacity": 0
+        }
+      },
+      { selector: ".hostGroup", style: { "padding": 22 } },
+      { selector: ".contractGroup", style: { "padding": 22 } },
+      { selector: ".host", style: { "background-color": "#fff7d6", "border-color": "#d97706", "color": "#7c2d12" } },
+      { selector: ".boundary", style: { "background-color": "#e8f1ff", "border-color": "#2563eb", "color": "#1e3a8a", "font-family": "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace", "font-size": 10.2, "text-max-width": 100 } },
+      { selector: ".seam", style: { "background-color": "#f4f0ff", "border-color": "#7c3aed", "color": "#4c1d95", "border-style": "dashed", "font-family": "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace", "font-size": 10.2, "text-max-width": 100 } },
+      { selector: ".core", style: { "shape": "ellipse", "background-color": "#dcfce7", "border-color": "#16a34a", "border-width": 1.1, "color": "#166534", "width": 98, "height": 98, "font-size": 10.8, "font-weight": 650, "text-max-width": 82, "shadow-opacity": 0.12 } },
+      { selector: ".output", style: { "background-color": "#f1f5f9", "border-color": "#64748b", "color": "#334155", "font-size": 10.6, "text-max-width": 98 } },
+      {
+        selector: "edge",
+        style: {
+          "curve-style": "straight",
+          "width": 1.45,
+          "line-color": "#2f343b",
+          "target-arrow-color": "#2f343b",
+          "target-arrow-shape": "triangle",
+          "arrow-scale": 0.78,
+          "overlay-opacity": 0
+        }
+      },
+      { selector: "edge.steady", style: { "line-color": "#9a3412", "target-arrow-color": "#9a3412", "opacity": 0.86 } },
+      { selector: "edge.dynamic", style: { "line-color": "#2f343b", "target-arrow-color": "#2f343b", "opacity": 0.82 } },
+      { selector: "edge.corelink", style: { "curve-style": "taxi", "taxi-direction": "rightward", "taxi-turn": "62%", "taxi-turn-min-distance": 18, "taxi-radius": 0, "width": 1.8, "opacity": 0.9 } },
+      { selector: "edge.return", style: { "width": 1.8, "line-color": "#2f343b", "target-arrow-color": "#2f343b", "opacity": 0.9 } },
+      { selector: "node:selected", style: { "border-width": 1.5 } },
       { selector: ".faded", style: { "opacity": 0.25 } }
     ],
-    layout: {
-      name: "preset",
-      positions: container.clientWidth < 560 ? mobilePositions : desktopPositions
-    },
-    autoungrabify: true,
-    minZoom: 0.1, maxZoom: 2.5
+    minZoom: 0.4,
+    maxZoom: 2.5,
+    wheelSensitivity: 0.2
   });
-
-  function applyNodeScale() {
-    const compact = container.clientWidth < 560;
-    cy.nodes().style({
-      width: compact ? 132 : 176,
-      height: compact ? 68 : 76,
-      "font-size": compact ? 11 : 12,
-      "text-max-width": compact ? 116 : 156
-    });
-    cy.nodes('[type = "core"]').style({
-      width: compact ? 150 : 198,
-      height: compact ? 84 : 100,
-      "text-max-width": compact ? 132 : 174
-    });
-    cy.nodes('[type = "output"]').style({
-      width: compact ? 138 : 190,
-      height: compact ? 72 : 82,
-      "text-max-width": compact ? 120 : 168
-    });
-  }
-  applyNodeScale();
 
   const info = document.getElementById("tmhp-integration-info");
   const placeholder = '<span class="placeholder">Click a node to see the integration contract.</span>';
@@ -619,6 +598,7 @@ advances it one communication step at a time.</p>
       '<a class="apilink" href="' + escapeHtml(data.api) + '">Open related docs</a>';
   }
   cy.on("tap", "node", evt => {
+    if (evt.target.data("type") === "group") return;
     showNode(evt.target.data());
     cy.elements().addClass("faded");
     evt.target.closedNeighborhood().removeClass("faded");
@@ -630,41 +610,23 @@ advances it one communication step at a time.</p>
     }
   });
 
-  let resizeTimer = null;
-  let compactLayout = container.clientWidth < 560;
-  function applyResponsiveLayout() {
-    const shouldCompact = container.clientWidth < 560;
-    applyNodeScale();
-    if (shouldCompact !== compactLayout) {
-      compactLayout = shouldCompact;
-      cy.layout({
-        name: "preset",
-        positions: compactLayout ? mobilePositions : desktopPositions,
-        animate: false
-      }).run();
-    }
+  function fit() {
+    cy.fit(cy.elements(), 20);
+    cy.center();
   }
-  function fitGraph() {
-    cy.resize();
-    applyResponsiveLayout();
-    cy.fit(undefined, 30);
-  }
-  document.getElementById("tmhp-integration-fit").addEventListener("click",
-    fitGraph);
+  document.getElementById("tmhp-integration-fit").addEventListener("click", fit);
   document.getElementById("tmhp-integration-zoom-in").addEventListener("click",
     () => cy.zoom({ level: cy.zoom() * 1.25,
                     renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } }));
   document.getElementById("tmhp-integration-zoom-out").addEventListener("click",
     () => cy.zoom({ level: cy.zoom() * 0.8,
                     renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } }));
-  window.addEventListener("resize", () => {
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(fitGraph, 80);
+  fit();
+  window.addEventListener("resize", function () {
+    window.clearTimeout(el._tmhpResizeTimer);
+    el._tmhpResizeTimer = window.setTimeout(fit, 90);
   });
-
-  document.fonts && document.fonts.ready
-    && document.fonts.ready.then(fitGraph);
-  setTimeout(fitGraph, 0);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 })();
 </script></section>
 <section id="which-path-should-i-use">
@@ -739,7 +701,7 @@ experiments while keeping the heat-pump physics in the FMU.</p></td>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 23, 2026
+  Last updated Jun 24, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

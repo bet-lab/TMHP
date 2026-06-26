@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 470"
+     role="img" aria-labelledby="sourceSinkTitle sourceSinkDesc">
+  <title id="sourceSinkTitle">TMHP released source and sink model families</title>
+  <desc id="sourceSinkDesc">Released TMHP model classes reuse the same
+  refrigerant-cycle core. ASHPB, GSHPB, and WSHPB expose domestic-hot-water
+  tank boundaries; ASHP and GSHP expose space-conditioning boundaries with
+  cooling selected by positive Q_r_iu and heating by negative Q_r_iu.</desc>
+  <style><![CDATA[
+    :root {
+      --bg: #ffffff;
+      --ink: #1f2937;
+      --muted: #667085;
+      --edge: #64748b;
+      --core-fill: #eef2ff;
+      --core-stroke: #6366f1;
+      --core-text: #1e1b4b;
+      --source-fill: #fff7ed;
+      --source-stroke: #ea580c;
+      --source-text: #7c2d12;
+      --sink-fill: #ecfeff;
+      --sink-stroke: #0891b2;
+      --sink-text: #164e63;
+      --aux-fill: #f5f3ff;
+      --aux-stroke: #8b5cf6;
+      --aux-text: #4c1d95;
+      --wash: rgba(99, 102, 241, 0.07);
+      --halo: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1020;
+        --ink: #e5e7eb;
+        --muted: #a7b0c0;
+        --edge: #94a3b8;
+        --core-fill: #1a1f3a;
+        --core-stroke: #818cf8;
+        --core-text: #e0e7ff;
+        --source-fill: #3b230a;
+        --source-stroke: #fb923c;
+        --source-text: #fed7aa;
+        --sink-fill: #0f2e35;
+        --sink-stroke: #22d3ee;
+        --sink-text: #cffafe;
+        --aux-fill: #2a1d4a;
+        --aux-stroke: #c4b5fd;
+        --aux-text: #ede9fe;
+        --wash: rgba(129, 140, 248, 0.10);
+        --halo: #0b1020;
+      }
+    }
+    text {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter",
+                   "Helvetica Neue", Arial, sans-serif;
+    }
+    .title { font-size: 26px; font-weight: 700; fill: var(--ink); }
+    .subtitle { font-size: 14px; fill: var(--muted); }
+    .group-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+                   fill: var(--muted); }
+    .box { stroke-width: 1.6; rx: 14; }
+    .box-title { font-size: 17px; font-weight: 700; }
+    .box-sub { font-size: 12px; }
+    .source .box { fill: var(--source-fill); stroke: var(--source-stroke); }
+    .source text { fill: var(--source-text); }
+    .sink .box { fill: var(--sink-fill); stroke: var(--sink-stroke); }
+    .sink text { fill: var(--sink-text); }
+    .core .box { fill: var(--core-fill); stroke: var(--core-stroke); }
+    .core text { fill: var(--core-text); }
+    .aux .box { fill: var(--aux-fill); stroke: var(--aux-stroke); }
+    .aux text { fill: var(--aux-text); }
+    .edge { fill: none; stroke: var(--edge); stroke-width: 1.7;
+            marker-end: url(#arrow); }
+    .dashed { stroke-dasharray: 5 5; marker-end: url(#arrow-muted); }
+    .edge-label { font-size: 12px; fill: var(--muted); paint-order: stroke;
+                  stroke: var(--halo); stroke-width: 3px; }
+    .wash { fill: var(--wash); }
+  ]]></style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8.5" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--edge)"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="470" fill="var(--bg)"/>
+  <text class="title" x="500" y="46" text-anchor="middle">One refrigerant cycle, released source/sink families</text>
+  <text class="subtitle" x="500" y="71" text-anchor="middle">
+    Public classes expose DHW boilers for air, ground, and water; space-conditioning heat pumps for air and ground.
+  </text>
+
+  <rect class="wash" x="52" y="110" width="252" height="274" rx="22"/>
+  <rect class="wash" x="696" y="110" width="252" height="274" rx="22"/>
+  <text class="group-label" x="178" y="137" text-anchor="middle">ENVIRONMENTAL SIDE</text>
+  <text class="group-label" x="822" y="137" text-anchor="middle">RELEASED DEMAND BOUNDARY</text>
+
+  <g class="source">
+    <rect class="box" x="88" y="160" width="180" height="54" rx="14"/>
+    <text class="box-title" x="178" y="184" text-anchor="middle">Air</text>
+    <text class="box-sub" x="178" y="202" text-anchor="middle">ASHPB + ASHP</text>
+    <rect class="box" x="88" y="235" width="180" height="54" rx="14"/>
+    <text class="box-title" x="178" y="259" text-anchor="middle">Water</text>
+    <text class="box-sub" x="178" y="277" text-anchor="middle">WSHPB only</text>
+    <rect class="box" x="88" y="310" width="180" height="54" rx="14"/>
+    <text class="box-title" x="178" y="334" text-anchor="middle">Ground</text>
+    <text class="box-sub" x="178" y="352" text-anchor="middle">GSHPB + GSHP</text>
+  </g>
+
+  <g class="core">
+    <rect class="box" x="360" y="165" width="280" height="168" rx="14"/>
+    <text class="box-title" x="500" y="205" text-anchor="middle">Shared refrigerant-cycle core</text>
+    <text class="box-sub" x="500" y="232" text-anchor="middle">CoolProp state points</text>
+    <text class="box-sub" x="500" y="255" text-anchor="middle">compressor + heat exchangers</text>
+    <text class="box-sub" x="500" y="278" text-anchor="middle">cycle closure and diagnostics</text>
+    <text class="box-sub" x="500" y="301" text-anchor="middle">ref can change at runtime</text>
+  </g>
+
+  <g class="sink">
+    <rect class="box" x="720" y="168" width="204" height="70" rx="14"/>
+    <text class="box-title" x="822" y="193" text-anchor="middle">DHW tank</text>
+    <text class="box-sub" x="822" y="213" text-anchor="middle">ASHPB / GSHPB / WSHPB</text>
+    <rect class="box" x="720" y="278" width="204" height="70" rx="14"/>
+    <text class="box-title" x="822" y="303" text-anchor="middle">Space conditioning</text>
+    <text class="box-sub" x="822" y="323" text-anchor="middle">ASHP / GSHP</text>
+    <text class="box-sub" x="822" y="340" text-anchor="middle">+ cooling, - heating</text>
+  </g>
+
+  <path class="edge" d="M268 187 L360 225"/>
+  <path class="edge" d="M268 262 L360 249"/>
+  <path class="edge" d="M268 337 L360 273"/>
+  <path class="edge" d="M640 225 L720 203"/>
+  <path class="edge" d="M640 273 L720 313"/>
+
+  <text class="edge-label" x="314" y="190" text-anchor="middle">source medium</text>
+  <text class="edge-label" x="686" y="190" text-anchor="middle">public class boundary</text>
+
+  <g class="aux">
+    <rect class="box" x="316" y="382" width="368" height="48" rx="14"/>
+    <text class="box-title" x="500" y="406" text-anchor="middle">Optional subsystems: STC, PV, ESS, UV</text>
+    <text class="box-sub" x="500" y="423" text-anchor="middle">augment the system without replacing the cycle core</text>
+  </g>
+  <path class="edge dashed" d="M500 382 L500 333"/>
+  <text class="subtitle" x="500" y="456" text-anchor="middle">
+    Water-source space-conditioning is not a released public API in the current package.
+  </text>
+</svg>

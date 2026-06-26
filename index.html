@@ -28,10 +28,10 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for air-source, ground-source, and water-source heat pumps — covering DHW, space heating, and space cooling...." />
-<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
-<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for air-source, ground-source, and water-source heat pumps — covering DHW, space heating, and space cooling...." />
+<meta property="og:description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for heat pumps: air-, ground-, and water-source DHW boilers plus air- and ground-source space-conditioning h..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="A physics-based Python library for heat pump simulation. First-principles dynamic models for heat pumps: air-, ground-, and water-source DHW boilers plus air- and ground-source space-conditioning h..." />
 
   </head>
 <body><div class="sy-head">
@@ -167,14 +167,14 @@ data-aria-dark="Switch to auto color mode">
           <section id="tmhp-thermodynamic-models-for-heat-pumps">
 <h1>TMHP: Thermodynamic Models for Heat Pumps<a class="headerlink" href="#tmhp-thermodynamic-models-for-heat-pumps" title="Link to this heading">¶</a></h1>
 <p>A physics-based Python library for heat pump simulation.</p>
-<p class="lead">First-principles dynamic models for air-source, ground-source, and
-water-source heat pumps — covering DHW, space heating, and space
-cooling.</p>
-<p>TMHP solves the closed refrigerant cycle at every time step using
-<a class="reference external" href="http://www.coolprop.org">CoolProp</a> as the equation-of-state
-backend. The same model code applies across refrigerants and
-operating envelopes, with no manufacturer-specific curve fits and no
-per-unit recalibration.</p>
+<p class="lead">First-principles dynamic models for heat pumps: air-, ground-,
+and water-source DHW boilers plus air- and ground-source
+space-conditioning heat pumps for heating and cooling.</p>
+<p>TMHP’s released cycle-resolved families solve the closed refrigerant
+cycle at every time step using <a class="reference external" href="http://www.coolprop.org">CoolProp</a>
+as the equation-of-state backend. The shared core applies across
+refrigerants and operating envelopes, with no manufacturer-specific
+curve fits and no per-unit recalibration.</p>
 <div class="hero-badges docutils container">
 <a class="reference external image-reference" href="https://www.python.org/downloads/"><img alt="Python 3.10 – 3.13" src="https://img.shields.io/badge/python-3.10--3.13-3776ab?logo=python&amp;logoColor=white" />
 </a>
@@ -216,9 +216,8 @@ how to read the diagnostic flags every call returns.</p>
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 Models</div>
-<p class="sd-card-text">ASHPB / GSHPB / WSHPB plus the space-conditioning ASHP /
-GSHP — each one a 1-stop page with source-side mechanics,
-composed subsystem variants, and API reference.</p>
+<p class="sd-card-text">Released source/sink model families: ASHPB, GSHPB, and
+WSHPB for DHW; ASHP and GSHP for space heating/cooling.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="models/index.html"><span class="doc">Models</span></a></div>
 </div>
@@ -238,7 +237,8 @@ schedules, compose PV / STC / ESS subsystems.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 Integrations</div>
 <p class="sd-card-text">Couple TMHP to EnergyPlus Python Plugins or export the
-ASHPB dynamic kernel as FMI 2.0 / FMI 3.0 co-simulation FMUs.</p>
+current ASHPB reference adapter as FMI 2.0 / FMI 3.0
+co-simulation FMUs.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="integrations/index.html"><span class="doc">Integrations</span></a></div>
 </div>
@@ -258,8 +258,9 @@ signatures.</p>
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 Validation</div>
-<p class="sd-card-text">ASHPB benchmarked against 15 Samsung EHS catalogue
-points — parity plot, per-point table, reproducibility.</p>
+<p class="sd-card-text">The ASHPB reference case benchmarked against 15 Samsung
+EHS catalogue points — parity plot, per-point table,
+reproducibility.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="validation/index.html"><span class="doc">Validation</span></a></div>
 </div>
@@ -338,5 +339,5 @@ only CoolProp and Matplotlib.</p>
       <script defer="defer" src="_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="_static/js/widgets/integration-diagrams.js?v=3b31da44"></script></body>
+      <script defer="defer" src="_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
 </html>

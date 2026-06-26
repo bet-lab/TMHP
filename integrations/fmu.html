@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/integrations/fmu.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through step..." />
-<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
-<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="TMHP’s FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB dynamic state and advances it through step..." />
+<meta property="og:description" content="TMHP’s current FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB reference dynamic state and advanc..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="TMHP’s current FMU adapter wraps AirSourceHeatPumpBoiler as an FMI Co-Simulation component. The FMI master owns the communication schedule; the FMU owns the ASHPB reference dynamic state and advanc..." />
 
-    <meta property="article:modified_time" content="2026-06-26T01:38:50+00:00" />
+    <meta property="article:modified_time" content="2026-06-26T07:18:40+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -184,14 +184,18 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="fmi-fmu-export">
 <h1>FMI FMU export<a class="headerlink" href="#fmi-fmu-export" title="Link to this heading">¶</a></h1>
-<p>TMHP’s FMU adapter wraps
+<p>TMHP’s current FMU adapter wraps
 <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> as an FMI Co-Simulation
 component. The FMI master owns the communication schedule; the FMU owns
-the ASHPB dynamic state and advances it through
+the ASHPB reference dynamic state and advances it through
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">step()</span></code> at each <code class="docutils literal notranslate"><span class="pre">do_step</span></code> call.</p>
 <p>Use this path when TMHP needs to participate in a tool-level
 co-simulation workflow, or when a non-Python master should drive a
-cycle-resolved ASHPB component with explicit FMI variables.</p>
+cycle-resolved ASHPB reference component with explicit FMI variables.
+This page documents the adapter that exists today; the broader TMHP
+model family still shares the same refrigerant-cycle core across the
+released DHW-boiler families and the air/ground space-conditioning
+families.</p>
 <section id="fmi-and-fmu-in-one-minute">
 <h2>FMI and FMU in one minute<a class="headerlink" href="#fmi-and-fmu-in-one-minute" title="Link to this heading">¶</a></h2>
 <p>FMI, the Functional Mock-up Interface, is a Modelica Association standard
@@ -211,7 +215,7 @@ terms of the same major version and any minor version, and adds FMI 3.0
 features such as Scheduled Execution, clocks, early return, event mode,
 intermediate update, array variables, and additional scalar types
 (<a class="reference external" href="https://fmi-standard.org/docs/3.0.2/">FMI 3.0.2 specification</a>). For tool reach, TMHP therefore
-ships two adapters over the same ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> seam:</p>
+ships two adapters over the same ASHPB reference <code class="docutils literal notranslate"><span class="pre">step()</span></code> seam:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="../api/support/integrations.html#module-tmhp.integrations.fmu" title="tmhp.integrations.fmu"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.fmu</span></code></a> builds an FMI 2.0 Co-Simulation FMU with
 <code class="docutils literal notranslate"><span class="pre">pythonfmu</span></code>. This is the conservative compatibility path.</p></li>
@@ -231,10 +235,10 @@ Co-Simulation exporters (<a class="reference external" href="https://fmi-standar
 </section>
 <section id="what-becomes-possible">
 <h2>What becomes possible<a class="headerlink" href="#what-becomes-possible" title="Link to this heading">¶</a></h2>
-<p>The FMU adapter turns TMHP from a Python-only model into a reusable
-co-simulation component. That enables:</p>
+<p>The FMU adapter turns the current ASHPB reference boundary from a
+Python-only model into a reusable co-simulation component. That enables:</p>
 <ul class="simple">
-<li><p>putting the same heat-pump model behind a Modelica plant loop, an
+<li><p>putting the same cycle-resolved heat-pump boundary behind a Modelica plant loop, an
 EnergyPlus envelope FMU, a Python regression harness, or a controller
 model;</p></li>
 <li><p>comparing native Python <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> results against the FMU
@@ -300,10 +304,11 @@ supports the FMU’s FMI major version:</p>
 </section>
 <section id="how-one-communication-step-works">
 <h2>How one communication step works<a class="headerlink" href="#how-one-communication-step-works" title="Link to this heading">¶</a></h2>
-<p>The master owns the schedule; the FMU owns the ASHPB state. On each
-communication step the master sets the input variables, calls <code class="docutils literal notranslate"><span class="pre">do_step</span></code>,
-and reads the outputs, while the adapter advances the cycle-resolved core by
-exactly one <code class="docutils literal notranslate"><span class="pre">step()</span></code> call. Walk through it one message at a time:</p>
+<p>The master owns the schedule; the FMU owns the ASHPB reference state. On
+each communication step the master sets the input variables, calls
+<code class="docutils literal notranslate"><span class="pre">do_step</span></code>, and reads the outputs, while the adapter advances the
+cycle-resolved core by exactly one <code class="docutils literal notranslate"><span class="pre">step()</span></code> call. Walk through it one
+message at a time:</p>
 <div class="tmhp-diagram" data-diagram="fmu-seq"></div><p>The headline difference between the two adapters lives in that <code class="docutils literal notranslate"><span class="pre">do_step</span></code>
 return: the FMI 2.0 slave returns a bare <code class="docutils literal notranslate"><span class="pre">bool</span></code>, while the FMI 3.0 slave
 returns an <code class="docutils literal notranslate"><span class="pre">Fmi3StepResult</span></code> and can signal an invalid input as a discarded
@@ -320,7 +325,7 @@ target operating system, architecture, and Python ABI.</p>
 <p>Both adapters intentionally target Co-Simulation only:</p>
 <ul class="simple">
 <li><p>TMHP exposes no continuous state derivatives for FMI model exchange.</p></li>
-<li><p>The ASHPB state is advanced in one pass for each communication step.</p></li>
+<li><p>The ASHPB reference state is advanced in one pass for each communication step.</p></li>
 <li><p>Save-state and rollback support are outside the current adapter scope.</p></li>
 <li><p>FMI outputs are sanitized so NaN or infinity does not cross the
 importer boundary.</p></li>
@@ -358,7 +363,7 @@ buildings, district energy systems, storage, HVAC, and controls,
 and documents use cases such as rapid prototyping, integrated
 energy-system testing, controls development, and Spawn/EnergyPlus
 coupling.</p></td>
-<td><p>Place a TMHP ASHPB FMU inside a Modelica hydronic plant, compare
+<td><p>Place a TMHP ASHPB reference FMU inside a Modelica hydronic plant, compare
 it with Modelica-native heat-pump models, or study refrigerant
 choices in a district-energy controls scenario.</p></td>
 </tr>
@@ -574,5 +579,5 @@ same schedule, especially <code class="docutils literal notranslate"><span class
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=3b31da44"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
 </html>

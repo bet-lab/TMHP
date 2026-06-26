@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/models/ashp.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with ASHPB; what differs is the load side — a zone ener..." />
-<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
-<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with ASHPB; what differs is the load side — a zone ener..." />
+<meta property="og:description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-06-22T23:04:14+00:00" />
+    <meta property="article:modified_time" content="2026-06-26T07:18:40+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -189,8 +189,8 @@ data-aria-dark="Switch to auto color mode">
 <h1>Air-source heat pump (ASHP — space conditioning)<a class="headerlink" href="#air-source-heat-pump-ashp-space-conditioning" title="Link to this heading">¶</a></h1>
 <p><span class="glossary" data-term="ashp">ASHP</span> conditions a building zone (heating + cooling) rather than
 charging a DHW tank. The refrigerant cycle and outdoor-coil source
-side are shared with ASHPB; what differs is the load side — a zone
-energy balance instead of a tank.</p>
+side are shared with the air-source boiler family; what differs is
+the demand side — a zone energy balance instead of a tank.</p>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
 <p>The class is <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.AirSourceHeatPump</span></code>. Use it when the heat
@@ -209,14 +209,15 @@ pump’s job is space conditioning rather than DHW production.</p>
 </section>
 <section id="source-side-mechanics">
 <h2>Source-side mechanics<a class="headerlink" href="#source-side-mechanics" title="Link to this heading">¶</a></h2>
-<p>Identical to ASHPB — outdoor coil with variable-speed fan, ε-NTU
-air-side heat exchanger.</p>
+<p>Outdoor coil with variable-speed fan and an ε-NTU air-side heat
+exchanger — the shared air-source environmental-side model.</p>
 </section>
 <section id="sink-side-mechanics">
 <h2>Sink-side mechanics<a class="headerlink" href="#sink-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>A zone temperature / load proxy stands in for the building. The
-heat pump’s condenser duty serves whatever space-heating or
-cooling load the caller supplies; there is no tank energy balance.</p>
+caller supplies indoor-unit load as <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>: positive values
+select cooling, negative values select heating, and zero values
+represent off operation. There is no tank energy balance.</p>
 </section>
 <section id="module-tmhp.air_source_heat_pump">
 <span id="api-reference"></span><h2>API reference<a class="headerlink" href="#module-tmhp.air_source_heat_pump" title="Link to this heading">¶</a></h2>
@@ -441,7 +442,7 @@ with adaptations for indoor-unit air exchange.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 22, 2026
+  Last updated Jun 26, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -504,5 +505,5 @@ with adaptations for indoor-unit air exchange.</p>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=3b31da44"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
 </html>

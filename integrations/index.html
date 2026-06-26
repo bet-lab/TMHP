@@ -29,11 +29,11 @@
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/integrations/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
 <meta property="og:description" content="TMHP can stay inside a Python study, but it is also built to sit behind building-energy simulators and co-simulation masters. The integration adapters are optional, so the core heat-pump package st..." />
-<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
-<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP can stay inside a Python study, but it is also built to sit behind building-energy simulators and co-simulation masters. The integration adapters are optional, so the core heat-pump package st..." />
 
-    <meta property="article:modified_time" content="2026-06-26T01:38:50+00:00" />
+    <meta property="article:modified_time" content="2026-06-26T07:18:40+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -137,7 +137,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#one-core-three-drivers">One core, three drivers</a></li>
+<li><a class="reference internal" href="#model-core-and-adapter-seams">Model core and adapter seams</a></li>
 <li><a class="reference internal" href="#what-integrations-enable">What integrations enable</a></li>
 <li><a class="reference internal" href="#integration-vocabulary">Integration vocabulary</a></li>
 <li><a class="reference internal" href="#which-path-should-i-use">Which path should I use?</a></li>
@@ -179,34 +179,40 @@ building-energy simulators and co-simulation masters. The integration
 adapters are optional, so the core heat-pump package stays lightweight:
 <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">tmhp</span></code> for native Python simulation, then opt into the one adapter
 that matches the tool on the other side of the boundary.</p>
-<p>The whole idea is <strong>model reuse</strong>. TMHP keeps one cycle-resolved heat-pump
-model in a single place, while each external tool keeps doing what it is
+<p>The whole idea is <strong>model reuse</strong>. TMHP keeps the cycle-resolved heat-pump
+physics in one package, while each external tool keeps doing what it is
 already good at: EnergyPlus owns whole-building loads and plant dispatch,
 Modelica tools own equation-based HVAC and controls, and FMI masters own
-tool-to-tool scheduling.</p>
-<section id="one-core-three-drivers">
-<h2>One core, three drivers<a class="headerlink" href="#one-core-three-drivers" title="Link to this heading">¶</a></h2>
-<p>The same TMHP heat-pump core can be driven in three ways. A Python study
-calls it directly; EnergyPlus drives it as a steady plant component; and an
-FMI master drives it as a dynamic co-simulation FMU. The two
-building-simulation adapters reach the <strong>same</strong> model — they just enter
-through <strong>different public seams</strong>, and that single choice is what makes one
-<em>steady</em> and the other <em>dynamic</em>.</p>
-<div class="tmhp-diagram" data-diagram="hero"></div><p>Read the diagram left to right. Each driver hands TMHP a small set of
-boundary variables, those variables cross a public seam, and the shared core
-solves one refrigerant cycle behind that seam before returning heat, power,
-COP, tank temperature, and step diagnostics. The seam is the important part:</p>
+tool-to-tool scheduling. The adapters on this page currently expose the
+ASHPB reference boundary; the broader model family remains available
+natively in Python.</p>
+<section id="model-core-and-adapter-seams">
+<h2>Model core and adapter seams<a class="headerlink" href="#model-core-and-adapter-seams" title="Link to this heading">¶</a></h2>
+<p>There are two layers to keep separate. The released cycle-resolved model
+families can be used directly in Python through their public
+<code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code> and <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> methods. The optional
+external adapters currently expose the ASHPB reference boundary:
+EnergyPlus enters through a steady plant-component seam, and FMI enters
+through the ASHPB dynamic <code class="docutils literal notranslate"><span class="pre">step()</span></code> seam.</p>
+<div class="tmhp-diagram" data-diagram="hero"></div><p>Read the diagram left to right as an adapter view of ASHPB. Each external
+driver hands TMHP a small set of boundary variables, those variables cross
+a public seam, and the shared core solves one refrigerant cycle behind that
+seam before returning heat, power, COP, tank temperature, and diagnostics.
+The seam is the important part:</p>
 <ul class="simple">
 <li><p>The <strong>EnergyPlus</strong> path enters through <code class="xref py py-meth docutils literal notranslate"><span class="pre">analyze_steady()</span></code>.
 EnergyPlus already owns the plant loop, the storage tank, the timestep, and
-the meters, so it only needs a <em>steady</em> answer for the current conditions.</p></li>
+the meters, so the current ASHPB reference adapter only needs a <em>steady</em>
+answer for the current conditions.</p></li>
 <li><p>The <strong>FMI</strong> path enters through <code class="xref py py-meth docutils literal notranslate"><span class="pre">step()</span></code>.
 Here the FMU owns the dynamic tank state and advances it one communication
-step at a time, while the master owns the schedule.</p></li>
+step at a time, while the master owns the schedule. This is the current
+ASHPB dynamic adapter, not a statement that the refrigerant-cycle core is
+ASHPB-only.</p></li>
 </ul>
 <p>Keeping those seams separate is deliberate: it stops an EnergyPlus tank and an
-FMU tank from ever being mistaken for one another, and it lets future
-heat-pump families reuse the very same integration boundary.</p>
+FMU tank from ever being mistaken for one another, and it leaves a clear path
+for future heat-pump families to reuse the same kind of integration boundary.</p>
 </section>
 <section id="what-integrations-enable">
 <h2>What integrations enable<a class="headerlink" href="#what-integrations-enable" title="Link to this heading">¶</a></h2>
@@ -228,9 +234,9 @@ schedules, plant loop, and reporting.</p>
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 Export the heat pump as a reusable FMU</div>
-<p class="sd-card-text">Package the dynamic ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel behind FMI variables
-so a co-simulation master can set weather and DHW draw inputs and
-read power, heat, COP, tank temperature, and diagnostics.</p>
+<p class="sd-card-text">Package the current ASHPB dynamic <code class="docutils literal notranslate"><span class="pre">step()</span></code> boundary behind FMI
+variables so a co-simulation master can set weather and DHW draw
+inputs and read power, heat, COP, tank temperature, and diagnostics.</p>
 </div>
 </div>
 </div>
@@ -239,9 +245,9 @@ read power, heat, COP, tank temperature, and diagnostics.</p>
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 Connect to other simulation ecosystems</div>
-<p class="sd-card-text">Use the same TMHP model in Python smoke tests, Modelica-based
+<p class="sd-card-text">Use the current ASHPB adapter in Python smoke tests, Modelica-based
 plant and controls studies, Simulink controller workflows, or
-composite FMU co-simulation.</p>
+composite FMU co-simulation while keeping the cycle physics in TMHP.</p>
 </div>
 </div>
 </div>
@@ -266,8 +272,8 @@ call through <code class="docutils literal notranslate"><span class="pre">analyz
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 FMI FMU</div>
-<p class="sd-card-text">Export the ASHPB dynamic <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel as a co-simulation FMU
-with explicit input, output, unit, and diagnostic boundaries.
+<p class="sd-card-text">Export the current ASHPB dynamic <code class="docutils literal notranslate"><span class="pre">step()</span></code> boundary as a
+co-simulation FMU with explicit input, output, unit, and diagnostic boundaries.
 TMHP provides separate FMI 2.0 and FMI 3.0 artifacts.</p>
 </div>
 <a class="sd-stretched-link sd-hide-link-text reference internal" href="fmu.html"><span class="doc">FMI FMU export</span></a></div>
@@ -293,7 +299,7 @@ calls <code class="docutils literal notranslate"><span class="pre">do_step</span
 <p><strong>FMI 3.0</strong> is a separate major version, not a container that automatically
 includes FMI 2.0. The 3.0 specification adds features such as Scheduled
 Execution, clocks, early return, and array variables (<a class="reference external" href="https://fmi-standard.org/docs/3.0.2/">FMI 3.0.2 specification</a>). TMHP therefore ships two adapters
-over the same ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> kernel — see <a class="reference internal" href="fmu.html"><span class="doc">FMI FMU export</span></a> for how they differ.</p>
+over the current ASHPB <code class="docutils literal notranslate"><span class="pre">step()</span></code> boundary — see <a class="reference internal" href="fmu.html"><span class="doc">FMI FMU export</span></a> for how they differ.</p>
 <p>The reason this matters is reach. The FMI project’s tools catalog covers
 hundreds of FMI-capable tools (<a class="reference external" href="https://fmi-standard.org/tools/">FMI tools</a>),
 and a 2025 project note reported 250 listed tools, including 178
@@ -308,9 +314,9 @@ FMI one rather than a TMHP-specific protocol.</p>
 schedule, and tank objects, and you want TMHP to replace an empirical
 heat-pump curve with a refrigerant-cycle-resolved answer.</p>
 <p>Use <a class="reference internal" href="fmu.html"><span class="doc">FMI FMU export</span></a> when an FMI master should own the co-simulation schedule and
-TMHP should advance an ASHPB state across each communication step. This path
-is best for tool-to-tool coupling, and for comparing the same dynamic kernel
-against native Python <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> runs.</p>
+TMHP should advance the current ASHPB reference state across each communication
+step. This path is best for tool-to-tool coupling, and for comparing the same
+dynamic boundary against native Python <code class="docutils literal notranslate"><span class="pre">analyze_dynamic()</span></code> runs.</p>
 </section>
 <section id="examples-of-fmu-host-workflows">
 <h2>Examples of FMU host workflows<a class="headerlink" href="#examples-of-fmu-host-workflows" title="Link to this heading">¶</a></h2>
@@ -350,7 +356,7 @@ and <a class="reference external" href="https://www.3ds.com/products/catia/dymol
 <td><p>Modelica tools can import/export FMUs and build composite
 co-simulation models that mix Modelica and non-Modelica
 submodels.</p></td>
-<td><p>Put TMHP’s cycle-resolved ASHPB next to Modelica hydronic loops,
+<td><p>Put TMHP’s cycle-resolved ASHPB reference FMU next to Modelica hydronic loops,
 tanks, district plants, or controllers.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference external" href="https://github.com/CATIA-Systems/FMPy">FMPy</a></p></td>
@@ -437,5 +443,5 @@ experiments while keeping the heat-pump physics in the FMU.</p></td>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=3b31da44"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
 </html>

@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/tmhp/tutorials/swap-refrigerant.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="The refrigerant is a constructor argument on every model in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
-<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/system_schematic.png" />
-<meta property="og:image:alt" content="ASHPB refrigerant cycle schematic" />
-<meta name="description" content="The refrigerant is a constructor argument on every model in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises and the library re-solves the cy..." />
+<meta property="og:description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises a..." />
+<meta property="og:image" content="https://bet-lab.github.io/tmhp/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises a..." />
 
-    <meta property="article:modified_time" content="2026-06-23T09:32:04+00:00" />
+    <meta property="article:modified_time" content="2026-06-26T07:18:40+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -180,11 +180,12 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="swap-refrigerants">
 <h1>Swap refrigerants<a class="headerlink" href="#swap-refrigerants" title="Link to this heading">¶</a></h1>
-<p>The refrigerant is a constructor argument on every model in TMHP.
-Changing it requires no recalibration and no manufacturer data —
-pick any name CoolProp recognises and the library re-solves the
-cycle from first principles. That’s the single most concrete way to
-see what “refrigerant-agnostic” means in this library.</p>
+<p>The refrigerant is a constructor argument on every released
+cycle-resolved model family in TMHP. Changing it requires no
+recalibration and no manufacturer data — pick any name CoolProp
+recognises and the library re-solves the cycle from first principles.
+That’s the single most concrete way to see what “refrigerant-agnostic”
+means in this library.</p>
 <p>This page is both a copy-runnable tutorial — sweep four refrigerants
 at one operating point and inspect the COP — and an engineering
 reference covering the ten working fluids that actually show up in
@@ -200,6 +201,9 @@ data.</p>
 </div>
 <section id="sweep">
 <h2>Sweep<a class="headerlink" href="#sweep" title="Link to this heading">¶</a></h2>
+<p>The sweep uses the ASHPB reference class so all refrigerants see the
+same source and sink boundary. What changes is the refrigerant EOS and
+the solved cycle state, not a fitted performance curve.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
@@ -232,8 +236,8 @@ data.</p>
 </span><span data-line="30"><span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 </span></pre></div>
 </div>
-<p>The output is a four-row DataFrame — same operating point, same
-code path, four refrigerants. Compressor power, saturation
+<p>The output is a four-row DataFrame — same ASHPB reference boundary,
+same operating point, four refrigerants. Compressor power, saturation
 temperatures, and COP all move together with the refrigerant’s
 EOS.</p>
 </section>
@@ -243,10 +247,11 @@ EOS.</p>
 visible at a glance. R290’s saturation envelope sits roughly an order
 of magnitude lower than R32’s; R134a lands between the two.</p>
 <figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/refrigerant_compare_ph.svg"><img alt="Three P-h diagrams for R32, R290, and R134a at the same operating point, showing the saturation envelope and the converged ASHPB cycle for each refrigerant." src="../_images/refrigerant_compare_ph.svg" style="width: 100%;" />
+<a class="reference internal image-reference" href="../_images/refrigerant_compare_ph.svg"><img alt="Three P-h diagrams for R32, R290, and R134a at the same operating point, showing the saturation envelope and the converged refrigerant cycle for each ASHPB reference example." src="../_images/refrigerant_compare_ph.svg" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Converged ASHPB cycles for R32, R290, and R134a at
+<p><span class="caption-text">Converged refrigerant cycles for R32, R290, and R134a through
+the ASHPB reference boundary at
 <span class="math notranslate nohighlight">\(T_{\mathrm{tank}}=55\,^{\circ}\mathrm{C}\)</span>,
 <span class="math notranslate nohighlight">\(T_{0}=7\,^{\circ}\mathrm{C}\)</span>,
 <span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}}=8\,\mathrm{kW}\)</span>. Generated by
@@ -1688,7 +1693,7 @@ implications.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jun 23, 2026
+  Last updated Jun 26, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -1753,5 +1758,5 @@ implications.</p>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
       <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
       <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
-      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=3b31da44"></script></body>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
 </html>

@@ -86,7 +86,7 @@
     var ret = { x: retX, y: cy("ep") - 72, w: retW, h: 144, role: "out" };
     var B = {
       pyH: { x: colHost, y: rows.py, w: hostW, h: Hb, role: "host", lines: [{ t: "Python study" }, { t: "you own the loop", k: "sub" }] },
-      pyS: { x: colSeam, y: rows.py, w: seamW, h: Hb, role: "seam", lines: [{ t: "analyze_dynamic()", k: "mono" }, { t: "/ step()", k: "mono" }] },
+      pyS: { x: colSeam, y: rows.py, w: seamW, h: Hb, role: "seam", lines: [{ t: "analyze_steady()", k: "mono" }, { t: "analyze_dynamic()", k: "mono" }] },
       epH: { x: colHost, y: rows.ep, w: hostW, h: Hb, role: "host", lines: [{ t: "EnergyPlus" }, { t: "owns loop·tank·meters", k: "sub" }] },
       epV: { x: colVar, y: rows.ep, w: varW, h: Hb, role: "vars", lines: [{ t: "T_in, mdot, cp", k: "mono" }, { t: "load, T0", k: "mono" }] },
       epS: { x: colSeam, y: rows.ep, w: seamW, h: Hb, role: "seam", lines: [{ t: "analyze_steady()", k: "mono" }, { t: "steady surrogate", k: "note" }] },
@@ -102,7 +102,7 @@
     ].join("");
     var lane = function (k, parts) { return '<g class="lane" data-lane="' + k + '">' + parts + "</g>"; };
     var lanes = lane("py", box(B.pyH) + box(B.pyS)) + lane("ep", box(B.epH) + box(B.epV) + box(B.epS)) + lane("fm", box(B.fmH) + box(B.fmV) + box(B.fmS));
-    var core2 = box({ x: core.x, y: core.y, w: core.w, h: core.h, role: "core", lines: [{ t: "TMHP core" }, { t: "cycle-resolved", k: "sub" }, { t: "heat-pump model", k: "sub" }] });
+    var core2 = box({ x: core.x, y: core.y, w: core.w, h: core.h, role: "core", lines: [{ t: "TMHP cycle core" }, { t: "ASHPB adapter boundary", k: "sub" }, { t: "broader families native", k: "note" }] });
     var ret2 = box({ x: ret.x, y: ret.y, w: ret.w, h: ret.h, role: "out", lines: [{ t: "Returns" }, { t: "E_cmp · E_tot", k: "mono" }, { t: "Q_ref_tank", k: "mono" }, { t: "cop_sys · T_tank_w", k: "mono" }, { t: "+ diagnostics", k: "note" }] });
     var ctl = '<div class="tid-ctl">'
       + '<button data-lane="all" class="on">All paths</button>'
@@ -110,9 +110,9 @@
       + '<button data-lane="ep">EnergyPlus</button>'
       + '<button data-lane="fm">FMI master</button></div>';
     el.innerHTML = ctl
-      + svg(W, H, "TMHP integration dataflow", "Python, EnergyPlus and an FMI master each drive the same TMHP core through a public seam.",
+      + svg(W, H, "TMHP integration dataflow", "Native Python uses model-family APIs; EnergyPlus and FMI currently wrap the ASHPB reference boundary.",
         group + conn + lanes + core2 + ret2)
-      + '<p class="tid-cap">Many entry points, one cycle-resolved model. EnergyPlus and FMI reach it through different public seams.</p>';
+      + '<p class="tid-cap">Native Python exposes the released model families. EnergyPlus and FMI currently expose the ASHPB reference boundary through different public seams.</p>';
     var s = el.querySelector("svg");
     el.querySelectorAll(".tid-ctl button[data-lane]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -254,16 +254,16 @@
     var lb = lc + colW / 2, rb = rc + colW / 2, cbY = card.y + card.h, midY = (cbY + kernel.y) / 2;
     var conn = edge("M" + lb + " " + cbY + " L" + lb + " " + kernel.y, { dash: true }) + edge("M" + rb + " " + cbY + " L" + rb + " " + kernel.y, { dash: true })
       + '<text class="elab" x="' + lb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text><text class="elab" x="' + rb + '" y="' + (midY + 3) + '" text-anchor="middle">wraps</text>';
-    var kbox = box({ x: kernel.x, y: kernel.y, w: kernel.w, h: kernel.h, role: "core", lines: [{ t: "Shared kernel — AirSourceHeatPumpBoiler.step()" }, { t: "same 4 params · 3 inputs · 8 outputs · identical input mapping", k: "sub" }] });
+    var kbox = box({ x: kernel.x, y: kernel.y, w: kernel.w, h: kernel.h, role: "core", lines: [{ t: "Current FMU kernel - AirSourceHeatPumpBoiler.step()" }, { t: "same 4 params · 3 inputs · 8 outputs · identical input mapping", k: "sub" }] });
     el.innerHTML = svg(W, H, "FMI 2.0 vs 3.0 adapters", "Two FMI adapters wrapping one TMHP step kernel.", conn + L + R + '<g class="pulse">' + kbox + "</g>")
-      + '<p class="tid-cap">Pick FMI 2.0 for reach, FMI 3.0 for the modern major version — the physics is byte-for-byte the same.</p>';
+      + '<p class="tid-cap">Pick FMI 2.0 for reach, FMI 3.0 for the modern major version. Both adapters wrap the same current ASHPB reference boundary.</p>';
   }
 
   /* ---------------------- #4 composite co-simulation ---------------------- */
   function fmuExample(el) {
     var W = 1000, H = 300;
     var env = { x: 84, y: 90, w: 196, h: 120, role: "host", lines: [{ t: "Building envelope" }, { t: "EnergyPlus → FMU", k: "sub" }, { t: "loads · zone temps", k: "note" }] };
-    var hp = { x: 402, y: 75, w: 196, h: 150, role: "core", lines: [{ t: "TMHP heat pump" }, { t: "cycle-resolved FMU", k: "sub" }, { t: "E_cmp · Q_ref_tank · cop_sys", k: "note" }] };
+    var hp = { x: 402, y: 75, w: 196, h: 150, role: "core", lines: [{ t: "TMHP reference HP" }, { t: "cycle-resolved FMU", k: "sub" }, { t: "E_cmp · Q_ref_tank · cop_sys", k: "note" }] };
     var ctl = { x: 720, y: 90, w: 196, h: 120, role: "seam", lines: [{ t: "Supervisory controller" }, { t: "Modelica / Simulink", k: "sub" }, { t: "setpoints · on/off", k: "note" }] };
     var e1 = A(env, "r"), h1 = A(hp, "l"), h2 = A(hp, "r"), c1 = A(ctl, "l");
     var cb = A(ctl, "b"), hb = A(hp, "b"), yb = Math.max(cb[1], hb[1]) + 28;
@@ -276,7 +276,7 @@
     var dots = '<circle class="flowdot" r="3.6"><animateMotion dur="2s" repeatCount="indefinite"><mpath href="#tid-cp1"/></animateMotion></circle><circle class="flowdot" r="3.6"><animateMotion dur="2s" begin="-1s" repeatCount="indefinite"><mpath href="#tid-cp2"/></animateMotion></circle>';
     el.innerHTML = svg(W, H, "Composite co-simulation example", "Envelope, heat pump and controller coupled through an FMI master.",
       group + link1 + link2 + sp + box(env) + box(hp) + box(ctl) + labs + dots)
-      + '<p class="tid-cap">You get real refrigerant-cycle physics inside a multi-tool study, with no model rewritten per host.</p>';
+      + '<p class="tid-cap">You get the current ASHPB reference boundary inside a multi-tool study, with the refrigerant-cycle physics kept in TMHP.</p>';
   }
 
   /* ------------------------ #6 cycle-resolved swap-in --------------------- */
@@ -304,7 +304,7 @@
     });
     el.innerHTML = svg(W, H, "Cycle-resolved swap-in example", "EnergyPlus building with the heat-pump plant component replaced by a TMHP cycle solve.",
       gL + gR + conn + box(bl) + box(pl) + box(hp) + bars)
-      + '<p class="tid-cap">You get catalogue-free refrigerant studies in a real building, without re-fitting a performance curve per candidate.</p>';
+      + '<p class="tid-cap">You get catalogue-free refrigerant studies through the current ASHPB reference adapter, without re-fitting a performance curve per candidate.</p>';
   }
 
   var DIAGRAMS = { hero: hero, "fmu-seq": fmuSeq, "ep-seq": epSeq, "fmi-compare": fmiCompare, "fmu-example": fmuExample, "ep-example": epExample };

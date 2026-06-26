@@ -1,0 +1,97 @@
+/* ===========================================================================
+   TMHP integration diagrams — shared styles (rendered by integration-diagrams.js)
+   ---------------------------------------------------------------------------
+   Design-token SSOT. Colours mirror the hand-authored cycle-architecture.svg
+   (indigo = shared core, violet = public seam/API, amber = external host).
+   Dark mode is handled in CSS only (no JS): both the OS preference
+   (prefers-color-scheme) and Shibuya's manual toggle (html[data-color-mode]).
+   All vars are scoped under .tmhp-diagram so they never collide with the
+   theme's --sy-* or the site's --rx-* tokens.
+   =========================================================================== */
+
+.tmhp-diagram {
+  /* roles */
+  --host-fill:#fef3c7; --host-stroke:#b45309; --host-text:#78350f;
+  --vars-fill:#e8f1ff; --vars-stroke:#2563eb; --vars-text:#1e3a8a;
+  --seam-fill:#f5f3ff; --seam-stroke:#8b5cf6; --seam-text:#4c1d95;
+  --core-fill:#eef2ff; --core-stroke:#6366f1; --core-text:#1e1b4b;
+  --out-fill:#f1f5f9;  --out-stroke:#64748b;  --out-text:#334155;
+  --ok-fill:#dcfce7;   --ok-stroke:#16a34a;   --ok-text:#166534;
+  --edge:#64748b; --edge-dash:#8b5cf6; --label:#374151;
+  --group-wash:rgba(99,102,241,0.055); --group-line:rgba(99,102,241,0.28);
+  --halo:#ffffff; --muted:#6b7280; --flow:#6366f1; --flow-glow:rgba(99,102,241,.45);
+  --card-brd:#e6e8ee; --card-bg:#fbfdff; --ink:#1f2937;
+  margin:1.4em auto;
+}
+/* dark values, shared by the OS-preference and the manual-toggle selectors */
+@media (prefers-color-scheme: dark){
+  html:not([data-color-mode="light"]) .tmhp-diagram{
+    --host-fill:#3a2a06; --host-stroke:#fbbf24; --host-text:#fde68a;
+    --vars-fill:#10243f; --vars-stroke:#60a5fa; --vars-text:#dbeafe;
+    --seam-fill:#2a1d4a; --seam-stroke:#c4b5fd; --seam-text:#ede9fe;
+    --core-fill:#1a1f3a; --core-stroke:#818cf8; --core-text:#e0e7ff;
+    --out-fill:#1e293b;  --out-stroke:#94a3b8;  --out-text:#e2e8f0;
+    --ok-fill:#0f2e1a;   --ok-stroke:#4ade80;   --ok-text:#bbf7d0;
+    --edge:#8b97a8; --edge-dash:#c4b5fd; --label:#cbd5e1;
+    --group-wash:rgba(129,140,248,0.09); --group-line:rgba(129,140,248,0.34);
+    --halo:#0d1117; --muted:#9aa7b8; --flow:#a5b4fc; --flow-glow:rgba(129,140,248,.55);
+    --card-brd:#222c3c; --card-bg:#131a26; --ink:#e6ecf5;
+  }
+}
+html[data-color-mode="dark"] .tmhp-diagram{
+  --host-fill:#3a2a06; --host-stroke:#fbbf24; --host-text:#fde68a;
+  --vars-fill:#10243f; --vars-stroke:#60a5fa; --vars-text:#dbeafe;
+  --seam-fill:#2a1d4a; --seam-stroke:#c4b5fd; --seam-text:#ede9fe;
+  --core-fill:#1a1f3a; --core-stroke:#818cf8; --core-text:#e0e7ff;
+  --out-fill:#1e293b;  --out-stroke:#94a3b8;  --out-text:#e2e8f0;
+  --ok-fill:#0f2e1a;   --ok-stroke:#4ade80;   --ok-text:#bbf7d0;
+  --edge:#8b97a8; --edge-dash:#c4b5fd; --label:#cbd5e1;
+  --group-wash:rgba(129,140,248,0.09); --group-line:rgba(129,140,248,0.34);
+  --halo:#0d1117; --muted:#9aa7b8; --flow:#a5b4fc; --flow-glow:rgba(129,140,248,.55);
+  --card-brd:#222c3c; --card-bg:#131a26; --ink:#e6ecf5;
+}
+
+.tmhp-diagram svg{width:100%;height:auto;display:block}
+.tmhp-diagram svg text{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+
+/* boxes (outlines deliberately thin so the labels read first) */
+.tmhp-diagram .nb{stroke-width:0.75}
+.tmhp-diagram .n-host .nb{fill:var(--host-fill);stroke:var(--host-stroke)} .tmhp-diagram .n-host text{fill:var(--host-text)}
+.tmhp-diagram .n-vars .nb{fill:var(--vars-fill);stroke:var(--vars-stroke)} .tmhp-diagram .n-vars text{fill:var(--vars-text)}
+.tmhp-diagram .n-seam .nb{fill:var(--seam-fill);stroke:var(--seam-stroke);stroke-dasharray:4 3} .tmhp-diagram .n-seam text{fill:var(--seam-text)}
+.tmhp-diagram .n-core .nb{fill:var(--core-fill);stroke:var(--core-stroke);stroke-width:0.9} .tmhp-diagram .n-core text{fill:var(--core-text)}
+.tmhp-diagram .n-out  .nb{fill:var(--out-fill); stroke:var(--out-stroke)} .tmhp-diagram .n-out text{fill:var(--out-text)}
+.tmhp-diagram .n-ok   .nb{fill:var(--ok-fill);  stroke:var(--ok-stroke)} .tmhp-diagram .n-ok text{fill:var(--ok-text)}
+.tmhp-diagram .bx-ttl{font-weight:650;font-size:13.5px} .tmhp-diagram .bx-sub{font-size:11.3px;font-style:italic;opacity:.92}
+.tmhp-diagram .bx-mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11.3px} .tmhp-diagram .bx-note{font-size:10.6px;opacity:.85}
+
+/* connectors */
+.tmhp-diagram .edge{fill:none;stroke:var(--edge);stroke-width:1.6}
+.tmhp-diagram .edge.dash{stroke:var(--edge-dash);stroke-dasharray:5 4;stroke-width:1.6}
+.tmhp-diagram .elab{font-size:11.3px;fill:var(--label);paint-order:stroke;stroke:var(--halo);stroke-width:2.9;stroke-linejoin:round}
+.tmhp-diagram .elab.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.tmhp-diagram .glab{font-size:11px;letter-spacing:.06em;fill:var(--muted);font-weight:600}
+.tmhp-diagram .phaselab{font-size:10px;letter-spacing:.07em;fill:var(--muted);font-weight:700}
+.tmhp-diagram .grect{fill:var(--group-wash);stroke:var(--group-line);stroke-width:1}
+.tmhp-diagram .motion{fill:none;stroke:none}
+.tmhp-diagram .flowdot{fill:var(--flow);filter:drop-shadow(0 0 4px var(--flow-glow))}
+.tmhp-diagram .lifeline{stroke:var(--card-brd);stroke-width:1.4;stroke-dasharray:3 4}
+.tmhp-diagram .numnode circle{fill:var(--core-fill);stroke:var(--core-stroke);stroke-width:0.9}
+.tmhp-diagram .numnode text{fill:var(--core-text);font-weight:700;font-size:10px;font-family:"JetBrains Mono",ui-monospace,monospace}
+
+/* interaction states */
+.tmhp-diagram .lane{transition:opacity .25s} .tmhp-diagram svg.has-sel .lane:not(.sel){opacity:.14}
+.tmhp-diagram .msg{transition:opacity .25s} .tmhp-diagram .msg.dim{opacity:.16}
+.tmhp-diagram .pulse{animation:tid-pulse 2.8s ease-in-out infinite}
+@keyframes tid-pulse{0%,100%{opacity:1}50%{opacity:.6}}
+@media (prefers-reduced-motion: reduce){.tmhp-diagram .flowdot{display:none}.tmhp-diagram .pulse{animation:none}}
+
+/* control bar (rendered by the engine for interactive diagrams) */
+.tmhp-diagram .tid-ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.tmhp-diagram .tid-ctl button{background:var(--card-bg);color:var(--ink);border:1px solid var(--card-brd);border-radius:8px;
+  padding:6px 12px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1.1}
+.tmhp-diagram .tid-ctl button:hover{border-color:var(--core-stroke)}
+.tmhp-diagram .tid-ctl button.on{background:var(--core-fill);color:var(--core-text);border-color:var(--core-stroke)}
+.tmhp-diagram .tid-ctl .tid-sp{flex:1}
+.tmhp-diagram .tid-ctl .tid-hint{font-size:11px;color:var(--muted)}
+.tmhp-diagram .tid-cap{color:var(--muted);font-size:11.5px;font-style:italic;text-align:center;margin:12px 0 0}

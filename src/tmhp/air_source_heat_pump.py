@@ -130,8 +130,7 @@ class AirSourceHeatPump:
                 UA_iu_rated = UA_evap_rated
         if n_cond is not None or n_evap is not None:
             warnings.warn(
-                "n_cond/n_evap are deprecated and will be removed in a future release."
-                " Use n_ou/n_iu.",
+                "n_cond/n_evap are deprecated and will be removed in a future release. Use n_ou/n_iu.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -218,9 +217,7 @@ class AirSourceHeatPump:
         else:
             self.A_cross_ou = A_cross_ou
 
-        self.E_ou_fan_rated: float = (
-            self.dV_ou_fan_a_rated * self.dP_ou_fan_rated / self.eta_ou_fan_rated
-        )
+        self.E_ou_fan_rated: float = self.dV_ou_fan_a_rated * self.dP_ou_fan_rated / self.eta_ou_fan_rated
         self.vsd_coeffs_ou: dict = vsd_coeffs_ou
         self.fan_params_ou: dict = {
             "fan_rated_flow_rate": self.dV_ou_fan_a_rated,
@@ -241,9 +238,7 @@ class AirSourceHeatPump:
         else:
             self.A_cross_iu = A_cross_iu
 
-        self.E_iu_fan_rated: float = (
-            self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
-        )
+        self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
@@ -252,7 +247,6 @@ class AirSourceHeatPump:
 
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
-
 
     # =============================================================
     # Refrigerant cycle physics
@@ -347,13 +341,13 @@ class AirSourceHeatPump:
         if Q_r_iu > 0:
             # Cooling mode: indoor = evaporator, outdoor = condenser
             mode = "cooling"
-            T_evap_sat_K = T_a_room_K - dT_ref_evap     # evap below room
-            T_cond_sat_K = T0_K + dT_ref_cond            # cond above outdoor
+            T_evap_sat_K = T_a_room_K - dT_ref_evap  # evap below room
+            T_cond_sat_K = T0_K + dT_ref_cond  # cond above outdoor
         else:
             # Heating mode: indoor = condenser, outdoor = evaporator
             mode = "heating"
-            T_evap_sat_K = T0_K - dT_ref_evap            # evap below outdoor
-            T_cond_sat_K = T_a_room_K + dT_ref_cond      # cond above room
+            T_evap_sat_K = T0_K - dT_ref_evap  # evap below outdoor
+            T_cond_sat_K = T_a_room_K + dT_ref_cond  # cond above room
 
         # Guard: evap must be below cond with required minimal lift
         if (T_cond_sat_K - T_evap_sat_K) <= self.dT_cycle_min:
@@ -413,6 +407,7 @@ class AirSourceHeatPump:
             # the saturation curve for the constrained condensing temperature,
             # then refresh the cycle state at the clamped condition.
             import CoolProp.CoolProp as CP
+
             P_cond = self.PR_cycle_min * P_evap
             T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
             cs = calc_ref_state(
@@ -435,6 +430,7 @@ class AirSourceHeatPump:
 
         try:
             import CoolProp.CoolProp as CP
+
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
@@ -529,10 +525,7 @@ class AirSourceHeatPump:
             vsd_coeffs=self.vsd_coeffs_ou,
             is_active=True,
         )
-        T_ou_a_out: float = (
-            T_ou_a_mid + E_ou_fan / (c_a * rho_a * dV_ou_a)
-            if dV_ou_a > 0 else T0
-        )
+        T_ou_a_out: float = T_ou_a_mid + E_ou_fan / (c_a * rho_a * dV_ou_a) if dV_ou_a > 0 else T0
         v_ou_a: float = dV_ou_a / self.A_cross_ou
 
         # ── Indoor unit HX ──
@@ -570,10 +563,7 @@ class AirSourceHeatPump:
             vsd_coeffs=self.vsd_coeffs_iu,
             is_active=True,
         )
-        T_iu_a_out: float = (
-            T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a)
-            if dV_iu_a > 0 else T_a_room
-        )
+        T_iu_a_out: float = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if dV_iu_a > 0 else T_a_room
         v_iu_a: float = dV_iu_a / self.A_cross_iu
 
         # --- Check convergence for both HXs ---
@@ -636,12 +626,8 @@ class AirSourceHeatPump:
                 "E_cmp [W]": E_cmp,
                 "E_tot [W]": E_tot,
                 # COP metrics (indoor-unit duty basis; == |Q_r_iu| at convergence)
-                "cop_ref [-]": (
-                    Q_ref_iu / E_cmp if E_cmp > 0 else np.nan
-                ),
-                "cop_sys [-]": (
-                    Q_ref_iu / E_tot if E_tot > 0 else np.nan
-                ),
+                "cop_ref [-]": (Q_ref_iu / E_cmp if E_cmp > 0 else np.nan),
+                "cop_sys [-]": (Q_ref_iu / E_tot if E_tot > 0 else np.nan),
             }
         )
         return result
@@ -692,8 +678,16 @@ class AirSourceHeatPump:
         # evaluations return the same 1e6 sentinel. Scanning a coarse grid first
         # finds a valid basin (if one exists) so Phase 2 refines from there.
         _candidates = [
-            (3.0, 3.0), (5.0, 5.0), (8.0, 8.0), (12.0, 12.0), (15.0, 15.0),
-            (3.0, 8.0), (8.0, 3.0), (5.0, 12.0), (12.0, 5.0), (10.0, 10.0),
+            (3.0, 3.0),
+            (5.0, 5.0),
+            (8.0, 8.0),
+            (12.0, 12.0),
+            (15.0, 15.0),
+            (3.0, 8.0),
+            (8.0, 3.0),
+            (5.0, 12.0),
+            (12.0, 5.0),
+            (10.0, 10.0),
         ]
         best_x0 = [15.0, 15.0]
         best_val = 1e6
@@ -822,9 +816,7 @@ class AirSourceHeatPump:
                 # Distinguish a pressure-ratio ceiling rejection from a generic
                 # invalid cycle so downstream consumers see the specific cause.
                 failure_reason = (
-                    "pr_above_max"
-                    if pr_event is not None and pr_event[0] == "pr_above_max"
-                    else "cycle_invalid"
+                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
                 )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"
@@ -918,20 +910,14 @@ class AirSourceHeatPump:
         Q_r_iu_schedule = np.array(Q_r_iu_schedule, dtype=float)
 
         if len(T0_schedule) != tN:
-            raise ValueError(
-                f"T0_schedule length ({len(T0_schedule)}) != time length ({tN})"
-            )
+            raise ValueError(f"T0_schedule length ({len(T0_schedule)}) != time length ({tN})")
         if len(Q_r_iu_schedule) != tN:
-            raise ValueError(
-                f"Q_r_iu_schedule length ({len(Q_r_iu_schedule)}) != time length ({tN})"
-            )
+            raise ValueError(f"Q_r_iu_schedule length ({len(Q_r_iu_schedule)}) != time length ({tN})")
 
         if T_a_room_schedule is not None:
             T_a_room_arr = np.array(T_a_room_schedule, dtype=float)
             if len(T_a_room_arr) != tN:
-                raise ValueError(
-                    f"T_a_room_schedule length ({len(T_a_room_arr)}) != tN ({tN})"
-                )
+                raise ValueError(f"T_a_room_schedule length ({len(T_a_room_arr)}) != tN ({tN})")
         else:
             T_a_room_arr = np.full(tN, self.T_a_room)
 
@@ -955,7 +941,7 @@ class AirSourceHeatPump:
                 T_a_room=T_a_room_n,
                 return_dict=True,
                 postprocess=False,  # Exergy postprocessing applied in bulk at the end
-                verbose=False,      # Suppress warnings during long dynamic loops
+                verbose=False,  # Suppress warnings during long dynamic loops
             )
 
             # Add time columns
@@ -1020,9 +1006,7 @@ class AirSourceHeatPump:
             G_a_ou = c_a * rho_a * df["dV_ou_a [m3/s]"].fillna(0)
             Tin_ou = cu.C2K(df["T_ou_a_in [°C]"])
             Tmid_ou = cu.C2K(df["T_ou_a_mid [°C]"])
-            Tout_ou = (
-                cu.C2K(df["T_ou_a_out [°C]"]) if "T_ou_a_out [°C]" in df.columns else Tin_ou
-            )
+            Tout_ou = cu.C2K(df["T_ou_a_out [°C]"]) if "T_ou_a_out [°C]" in df.columns else Tin_ou
             df["X_a_ou_in [W]"] = calc_exergy_flow(G_a_ou, Tin_ou, T0_K)
             df["X_a_ou_out [W]"] = calc_exergy_flow(G_a_ou, Tout_ou, T0_K)
             df["X_a_ou_mid [W]"] = calc_exergy_flow(G_a_ou, Tmid_ou, T0_K)
@@ -1032,9 +1016,7 @@ class AirSourceHeatPump:
             G_a_iu = c_a * rho_a * df["dV_iu_a [m3/s]"].fillna(0)
             Tin_iu = cu.C2K(df["T_iu_a_in [°C]"])
             Tmid_iu = cu.C2K(df["T_iu_a_mid [°C]"])
-            Tout_iu = (
-                cu.C2K(df["T_iu_a_out [°C]"]) if "T_iu_a_out [°C]" in df.columns else Tin_iu
-            )
+            Tout_iu = cu.C2K(df["T_iu_a_out [°C]"]) if "T_iu_a_out [°C]" in df.columns else Tin_iu
             df["X_a_iu_in [W]"] = calc_exergy_flow(G_a_iu, Tin_iu, T0_K)
             df["X_a_iu_out [W]"] = calc_exergy_flow(G_a_iu, Tout_iu, T0_K)
             df["X_a_iu_mid [W]"] = calc_exergy_flow(G_a_iu, Tmid_iu, T0_K)
@@ -1055,12 +1037,8 @@ class AirSourceHeatPump:
         # saturation keys remain cond/evap (refrigerant-intrinsic).
         if {"T_ref_cond_sat_v [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
             is_heating = df["mode"] == "heating"
-            T_iu_sat_K = cu.C2K(
-                df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"])
-            )
-            T_ou_sat_K = cu.C2K(
-                df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"])
-            )
+            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
+            T_ou_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"]))
             df["X_ref_iu [W]"] = df["Q_ref_iu [W]"] * (1 - T0_K / T_iu_sat_K)
             df["X_ref_ou [W]"] = df["Q_ref_ou [W]"] * (1 - T0_K / T_ou_sat_K)
 
@@ -1132,9 +1110,7 @@ class AirSourceHeatPump:
 
         # ── 7. Exergetic efficiency metrics ─────────────
         # System exergetic efficiency
-        df["X_eff_sys [-]"] = (
-            (X_a_iu_out - X_a_iu_in) / df["X_tot [W]"].replace(0, np.nan)
-        )
+        df["X_eff_sys [-]"] = (X_a_iu_out - X_a_iu_in) / df["X_tot [W]"].replace(0, np.nan)
 
         # Compressor exergetic efficiency
         df["X_eff_cmp [-]"] = 1 - df["Xc_cmp [W]"] / df["X_in_cmp [W]"].replace(0, np.nan)

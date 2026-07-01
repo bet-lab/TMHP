@@ -65,6 +65,7 @@ CATALOGUE: tuple[OperatingPoint, ...] = (
 
 def build_model() -> AirSourceHeatPumpBoiler:
     """Configure ASHPB with the parameter set from the paper's Table 2."""
+
     def eta_vol(pi: float) -> float:
         return float(1.0 - 0.035 * (pi ** (1.0 / 1.18) - 1.0))
 
@@ -124,15 +125,16 @@ def plot_parity(rows: list[tuple[OperatingPoint, float]], out_stem: Path) -> Non
     line = np.linspace(lo, hi, 200)
 
     fig, ax = plt.subplots(figsize=dm.figsize("11cm", "square"))
-    ax.fill_between(line, 0.80 * line, 1.20 * line, color=COLORS["band20"],
-                    alpha=0.55, label="±20 % error", linewidth=0)
-    ax.fill_between(line, 0.90 * line, 1.10 * line, color=COLORS["band10"],
-                    alpha=0.70, label="±10 % error", linewidth=0)
+    ax.fill_between(
+        line, 0.80 * line, 1.20 * line, color=COLORS["band20"], alpha=0.55, label="±20 % error", linewidth=0
+    )
+    ax.fill_between(
+        line, 0.90 * line, 1.10 * line, color=COLORS["band10"], alpha=0.70, label="±10 % error", linewidth=0
+    )
     ax.plot(line, line, linestyle=":", color=COLORS["muted"], linewidth=dm.lw(0))
 
-    ax.scatter(target, pred, s=dm.fs(8), color=COLORS["accent"], zorder=4,
-               edgecolor="white", linewidth=dm.lw(-1))
-    for (op, cop) in rows:
+    ax.scatter(target, pred, s=dm.fs(8), color=COLORS["accent"], zorder=4, edgecolor="white", linewidth=dm.lw(-1))
+    for op, cop in rows:
         ax.annotate(
             str(op.id),
             (op.target_cop, cop),
@@ -152,10 +154,12 @@ def plot_parity(rows: list[tuple[OperatingPoint, float]], out_stem: Path) -> Non
 
     # Inline error budget — saves the reader a trip to the body table.
     ax.text(
-        0.04, 0.96,
+        0.04,
+        0.96,
         f"MAE = {mae:.2f}\nMAPE = {mape:.1f} %",
         transform=ax.transAxes,
-        va="top", ha="left",
+        va="top",
+        ha="left",
         fontsize=dm.fs(-1),
         color=COLORS["ink"],
     )

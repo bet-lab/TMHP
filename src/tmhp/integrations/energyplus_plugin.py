@@ -58,11 +58,13 @@ from typing import Any
 try:
     from pyenergyplus.plugin import EnergyPlusPlugin
 except ModuleNotFoundError:  # pragma: no cover - exercised where EnergyPlus is absent
+
     class EnergyPlusPlugin:  # type: ignore[no-redef]
         """Minimal stand-in so pure adapter helpers stay testable outside E+."""
 
         def __init__(self) -> None:
             self.api: Any = None
+
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -76,8 +78,8 @@ ECMP_POWER_GLOBAL = os.environ.get("TMHP_EPLUS_ECMP_POWER_GLOBAL", "tmhp_E_cmp_W
 ECMP_LEGACY_GLOBAL = "tmhp_E_cmp"
 _LOG = os.environ.get("TMHP_PLUGIN_LOG")  # None -> stdout only
 
-MDOT_FLOOR = 0.05   # kg/s — below this the inlet flow is treated as "off"
-TOUT_MAX = 95.0     # °C — clamp inside the liquid-water property range
+MDOT_FLOOR = 0.05  # kg/s — below this the inlet flow is treated as "off"
+TOUT_MAX = 95.0  # °C — clamp inside the liquid-water property range
 RHO_WATER = 1000.0  # kg/m³ — sizing only
 
 
@@ -110,9 +112,7 @@ def _is_positive_finite(value: Any) -> bool:
 
 def _has_usable_cycle_output(res: dict[str, Any]) -> bool:
     """Whether a steady result can actuate the EnergyPlus plant component."""
-    return _is_positive_finite(res.get("E_cmp [W]")) and _is_positive_finite(
-        res.get("Q_ref_tank [W]")
-    )
+    return _is_positive_finite(res.get("E_cmp [W]")) and _is_positive_finite(res.get("Q_ref_tank [W]"))
 
 
 def _issue_severe(api: Any, state: Any, msg: str) -> None:
@@ -295,15 +295,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         q_req = _finite_float_or_none(q_req_raw)  # loop heating load request [W]
         t0 = _finite_float_or_none(t0_raw)
 
-        if (
-            t_in is None
-            or mdot is None
-            or mdot < 0.0
-            or cp is None
-            or cp <= 0.0
-            or q_req is None
-            or t0 is None
-        ):
+        if t_in is None or mdot is None or mdot < 0.0 or cp is None or cp <= 0.0 or q_req is None or t0 is None:
             _issue_severe(
                 self.api,
                 state,
@@ -353,8 +345,10 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         else:
             self._reasons[reason] = self._reasons.get(reason, 0) + 1
         if self._ndispatch % self._tally_every == 0:
-            _log(f"[tally @ dispatch {self._ndispatch}] converged={self._nconv} "
-                 f"({100.0 * self._nconv / self._ndispatch:.1f}%) guard_trips={dict(self._reasons)}")
+            _log(
+                f"[tally @ dispatch {self._ndispatch}] converged={self._nconv} "
+                f"({100.0 * self._nconv / self._ndispatch:.1f}%) guard_trips={dict(self._reasons)}"
+            )
 
         if _has_usable_cycle_output(res):
             q = float(res["Q_ref_tank [W]"])
@@ -371,7 +365,9 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
         if self._nlog < 40:
             self._nlog += 1
-            _log(f"[call {self._ncall:4d}] T_in={t_in:6.2f}C T0={t0:6.2f}C mdot={mdot:6.3f}kg/s "
-                 f"Qreq={q_req:8.1f}W -> converged={converged} reason={reason} "
-                 f"E_cmp={e_cmp:8.1f}W Q={q:8.1f}W T_out={t_out:6.2f}C")
+            _log(
+                f"[call {self._ncall:4d}] T_in={t_in:6.2f}C T0={t0:6.2f}C mdot={mdot:6.3f}kg/s "
+                f"Qreq={q_req:8.1f}W -> converged={converged} reason={reason} "
+                f"E_cmp={e_cmp:8.1f}W Q={q:8.1f}W T_out={t_out:6.2f}C"
+            )
         return 0

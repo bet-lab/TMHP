@@ -21,12 +21,17 @@ from matplotlib.figure import Figure
 DEFAULT_MARGIN = "2%"
 
 
-def finalize(fig: Figure, out_stem: Path, *, margin: str | float = DEFAULT_MARGIN,
-             ml: str | float | None = None,
-             mr: str | float | None = None,
-             mt: str | float | None = None,
-             mb: str | float | None = None,
-             formats: tuple[str, ...] = ("svg",)) -> None:
+def finalize(
+    fig: Figure,
+    out_stem: Path,
+    *,
+    margin: str | float = DEFAULT_MARGIN,
+    ml: str | float | None = None,
+    mr: str | float | None = None,
+    mt: str | float | None = None,
+    mb: str | float | None = None,
+    formats: tuple[str, ...] = ("svg",),
+) -> None:
     """Apply the standard layout buffer and save through ``dm.save_formats``.
 
     ``out_stem`` is a path without extension (``dm.save_formats`` appends
@@ -61,26 +66,24 @@ def _assert_no_overflow(fig: Figure, tol_in: float = 1.0 / 144.0) -> None:
     fw_in, fh_in = fig.get_size_inches()
     tb = fig.get_tightbbox()
     over = {
-        "left":   max(0.0, -tb.x0),
+        "left": max(0.0, -tb.x0),
         "bottom": max(0.0, -tb.y0),
-        "right":  max(0.0, tb.x1 - fw_in),
-        "top":    max(0.0, tb.y1 - fh_in),
+        "right": max(0.0, tb.x1 - fw_in),
+        "top": max(0.0, tb.y1 - fh_in),
     }
     worst = max(over.values())
     if worst > tol_in:
         # Inches → display pixels for the diagnostic, so the number lines
         # up with what a user sees when they zoom into the SVG preview.
         dpi = fig.dpi
-        bumps = ", ".join(
-            f"{side}={ov * dpi:.1f}px" for side, ov in over.items() if ov > tol_in
-        )
+        bumps = ", ".join(f"{side}={ov * dpi:.1f}px" for side, ov in over.items() if ov > tol_in)
         side_to_kw = {"left": "ml", "bottom": "mb", "right": "mr", "top": "mt"}
         worst_side = max(over, key=over.__getitem__)
         raise RuntimeError(
             f"Figure content overflows canvas ({bumps}; "
             f"canvas={fw_in * dpi:.0f}x{fh_in * dpi:.0f}px). "
             f"Increase the corresponding side margin — e.g. pass "
-            f"`{side_to_kw[worst_side]}=\"<larger %>\"` to finalize()."
+            f'`{side_to_kw[worst_side]}="<larger %>"` to finalize().'
         )
 
 
@@ -97,10 +100,14 @@ def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
     headroom; bump ``mt``/``ml`` if it fires.
     """
     ax.text(
-        x, y, letter,
+        x,
+        y,
+        letter,
         transform=ax.transAxes,
-        fontsize=dm.fs(3), fontweight=dm.fw(2),
-        va="bottom", ha="left",
+        fontsize=dm.fs(3),
+        fontweight=dm.fw(2),
+        va="bottom",
+        ha="left",
     )
 
 
@@ -132,16 +139,16 @@ def static_path(name: str) -> Path:
 # which makes the gallery read as a single design system instead of seven
 # unrelated plots.
 COLORS = {
-    "accent":   "oc.indigo6",   # primary line / scatter
-    "accent2":  "oc.violet5",   # secondary series
-    "warm":     "oc.orange6",   # ambient air / warm-side process
-    "cool":     "oc.blue5",     # sat. liquid / cold-side process
-    "hot":      "oc.red5",      # sat. vapour / discharge
-    "ink":      "oc.gray8",     # node markers, axis ink
-    "muted":    "oc.gray5",     # grids, secondary annotations
-    "band20":   "oc.gray3",     # ±20 % band
-    "band10":   "oc.blue2",     # ±10 % band
-    "ess":      "oc.teal6",     # ESS / storage series
-    "pv":       "oc.yellow6",   # PV irradiance / generation
-    "load":     "oc.grape6",    # load / demand
+    "accent": "oc.indigo6",  # primary line / scatter
+    "accent2": "oc.violet5",  # secondary series
+    "warm": "oc.orange6",  # ambient air / warm-side process
+    "cool": "oc.blue5",  # sat. liquid / cold-side process
+    "hot": "oc.red5",  # sat. vapour / discharge
+    "ink": "oc.gray8",  # node markers, axis ink
+    "muted": "oc.gray5",  # grids, secondary annotations
+    "band20": "oc.gray3",  # ±20 % band
+    "band10": "oc.blue2",  # ±10 % band
+    "ess": "oc.teal6",  # ESS / storage series
+    "pv": "oc.yellow6",  # PV irradiance / generation
+    "load": "oc.grape6",  # load / demand
 }

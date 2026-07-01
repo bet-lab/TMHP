@@ -28,6 +28,7 @@ def test_t_min_is_monotonic():
 def test_writes_timeseries_json(tmp_path, monkeypatch):
     monkeypatch.setattr("scripts.data._common.DATA_DIR", tmp_path)
     from scripts.data.gen_timeseries_data import main
+
     main()
     out = tmp_path / "timeseries-24h.json"
     assert out.exists()

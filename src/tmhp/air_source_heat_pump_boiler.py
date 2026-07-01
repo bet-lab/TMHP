@@ -498,6 +498,7 @@ class AirSourceHeatPumpBoiler:
         if pr_event == "pr_below_min":
             self._last_pr_event = ("pr_below_min", ratio_P_cmp, self.PR_cycle_min)
             import CoolProp.CoolProp as CP
+
             P_evap_clamp = cs["P_ref_cmp_in [Pa]"]
             P_cond_clamp = self.PR_cycle_min * P_evap_clamp
             T_tank_sat_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
@@ -513,8 +514,7 @@ class AirSourceHeatPumpBoiler:
                 rps=None,
             )
             ratio_P_cmp = (
-                cs["P_ref_cmp_out [Pa]"] / cs["P_ref_cmp_in [Pa]"]
-                if cs["P_ref_cmp_in [Pa]"] > 0 else self.PR_cycle_min
+                cs["P_ref_cmp_out [Pa]"] / cs["P_ref_cmp_in [Pa]"] if cs["P_ref_cmp_in [Pa]"] > 0 else self.PR_cycle_min
             )
 
         P_cond = cs["P_ref_cmp_out [Pa]"]
@@ -525,6 +525,7 @@ class AirSourceHeatPumpBoiler:
         # Compute isentropic enthalpy once before loop
         try:
             import CoolProp.CoolProp as CP
+
             h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
             h_ref_cmp_out_isen = h_cmp_in
@@ -840,9 +841,7 @@ class AirSourceHeatPumpBoiler:
             opt_success = bool(getattr(opt_result, "success", False))
             if result is None or not isinstance(result, dict):
                 failure_reason = (
-                    "pr_above_max"
-                    if pr_event is not None and pr_event[0] == "pr_above_max"
-                    else "cycle_invalid"
+                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
                 )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"
@@ -952,7 +951,7 @@ class AirSourceHeatPumpBoiler:
             "dV_tank_w_out [m3/s]": dV_tank_w_out,
             "dV_tank_w_in [m3/s]": dV_tank_w_in,
             "dV_mix_sup_w_in [m3/s]": flows["dV_cold_in"],
-            "alp": mix_state["alp"]
+            "alp": mix_state["alp"],
         }
 
     def _determine_hp_state(
@@ -1227,9 +1226,7 @@ class AirSourceHeatPumpBoiler:
     # Public single-timestep kernel (#165 P0) — analyze_dynamic loops over it
     # =============================================================
 
-    def make_initial_state(
-        self, T_tank_w_init_C: float, tank_level_init: float = 1.0
-    ) -> DynamicState:
+    def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:
         """Build the initial carried state for a ``step()``-driven run."""
         return DynamicState(
             T_tank_w_K=cu.C2K(T_tank_w_init_C),
@@ -1304,9 +1301,7 @@ class AirSourceHeatPumpBoiler:
         )
 
         # --- Phase A: control decisions ---
-        hp_is_on, hp_result, Q_ref_cond = self._determine_hp_state(
-            ctx, state.hp_is_on_prev
-        )
+        hp_is_on, hp_result, Q_ref_cond = self._determine_hp_state(ctx, state.hp_is_on_prev)
 
         dV_tank_w_in_ctrl, is_refilling = determine_tank_refill_flow(
             dt=dt_s,
@@ -1372,9 +1367,7 @@ class AirSourceHeatPumpBoiler:
             # Explicit Euler step for energy:
             # r_energy = C_curr * T_next - C_curr * T_curr - dt * (Q_total - UA*(T_curr - T0)) = 0
             Q_hp_val = ctrl.Q_heat_source
-            alp_curr = min(
-                1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
-            )
+            alp_curr = min(1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n)))
             dV_out_curr = alp_curr * ctx.dV_mix_w_out
             Q_flow_curr = c_w * rho_w * dV_out_curr * (T_sup_w_K_n - ctx.T_tank_w_K)
             Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
@@ -1523,9 +1516,7 @@ class AirSourceHeatPumpBoiler:
         # STC/PV schedule flags — resolve I_DN/I_dH per step before step()
         _use_solar: bool = self._needs_solar_input()
 
-        state: DynamicState = self.make_initial_state(
-            T_tank_w_init_C, tank_level_init
-        )
+        state: DynamicState = self.make_initial_state(T_tank_w_init_C, tank_level_init)
 
         for n in tqdm(range(tN), desc="ASHPB Simulating"):
             inputs: dict = {
@@ -1666,9 +1657,7 @@ class AirSourceHeatPumpBoiler:
         if "X_uv [W]" in df.columns:
             X_in_tank = X_in_tank + df["X_uv [W]"].fillna(0)
 
-        X_out_tank = df[
-            "Xst_tank [W]"
-        ]  # X_tank_loss is intentionally excluded here: it is treated as
+        X_out_tank = df["Xst_tank [W]"]  # X_tank_loss is intentionally excluded here: it is treated as
         # part of the tank's exergy consumption rather than an outflow.
         if "X_tank_w_out [W]" in df.columns:
             X_out_tank = X_out_tank + df["X_tank_w_out [W]"].fillna(0)

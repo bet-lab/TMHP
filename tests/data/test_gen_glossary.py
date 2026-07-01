@@ -7,10 +7,19 @@ import json
 from scripts.data.gen_glossary import build_glossary
 
 REQUIRED_TERMS = (
-    "epsilon-ntu", "cop", "exv",
-    "ashpb", "gshpb", "wshpb", "ashp", "gshp",
-    "m-dot", "dt-evap",
-    "eta-is", "eta-vol", "eta-mech",
+    "epsilon-ntu",
+    "cop",
+    "exv",
+    "ashpb",
+    "gshpb",
+    "wshpb",
+    "ashp",
+    "gshp",
+    "m-dot",
+    "dt-evap",
+    "eta-is",
+    "eta-vol",
+    "eta-mech",
 )
 
 
@@ -40,6 +49,7 @@ def test_glossary_writes_json(tmp_path, monkeypatch):
     """End-to-end: invoke the script's main() and verify it writes valid JSON."""
     monkeypatch.setattr("scripts.data._common.DATA_DIR", tmp_path)
     from scripts.data.gen_glossary import main
+
     main()
     out = tmp_path / "glossary.json"
     assert out.exists()

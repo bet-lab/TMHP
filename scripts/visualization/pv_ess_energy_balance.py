@@ -47,11 +47,11 @@ N_STEPS = SIM_HOURS * 3600 // DT_S
 # the visual link across panels.
 ESS_CHG_COLOR = "oc.teal4"
 ESS_DIS_COLOR = "oc.teal8"
-PV_BAR_COLOR  = "oc.yellow3"
-ESS_CHG_BAR   = "oc.teal2"
-ESS_DIS_BAR   = "oc.teal5"
-DUMP_BAR      = "oc.gray3"
-GRID_BAR      = "oc.indigo4"
+PV_BAR_COLOR = "oc.yellow3"
+ESS_CHG_BAR = "oc.teal2"
+ESS_DIS_BAR = "oc.teal5"
+DUMP_BAR = "oc.gray3"
+GRID_BAR = "oc.indigo4"
 
 # Defaults (A_pv=5 m², 1 kWh) leave 75% of midday PV unused. Sizing
 # was tuned together so the ledger shows movement on every column:
@@ -61,8 +61,8 @@ GRID_BAR      = "oc.indigo4"
 # accounts for the morning peak — the regime where the tradeoff is
 # legible. Pushing PV/ESS further drives dump → 0 and grid → 0, which
 # is a less interesting design point to illustrate.
-A_PV_M2  = 10.0
-C_ESS_J  = 28_800_000  # 8 kWh
+A_PV_M2 = 10.0
+C_ESS_J = 28_800_000  # 8 kWh
 
 
 def _dhw_profile(n: int) -> np.ndarray:
@@ -96,7 +96,7 @@ def main() -> None:
     model = ASHPB_PV_ESS(pv=pv, ess=ess, ref="R32")
 
     dhw = _dhw_profile(N_STEPS)
-    t0  = _t0_profile(N_STEPS)
+    t0 = _t0_profile(N_STEPS)
     i_dn, i_dh = _clearsky_irradiance(N_STEPS)
 
     df = model.analyze_dynamic(
@@ -110,52 +110,47 @@ def main() -> None:
     )
 
     t_h = np.arange(len(df)) * DT_S / 3600.0
-    e_pv   = df["E_pv_out [W]"].to_numpy() / 1_000.0
-    e_hp   = df["E_cmp [W]"].to_numpy() / 1_000.0
+    e_pv = df["E_pv_out [W]"].to_numpy() / 1_000.0
+    e_hp = df["E_cmp [W]"].to_numpy() / 1_000.0
     e_grid = df["E_grid_import [W]"].to_numpy() / 1_000.0
-    e_chg  = df["E_ess_chg [W]"].to_numpy() / 1_000.0
-    e_dis  = df["E_ess_dis [W]"].to_numpy() / 1_000.0
+    e_chg = df["E_ess_chg [W]"].to_numpy() / 1_000.0
+    e_dis = df["E_ess_dis [W]"].to_numpy() / 1_000.0
 
     # Daily energy ledger (kWh) by integrating power over the day.
     dt_h = DT_S / 3600.0
-    kwh_pv   = float(e_pv.sum()   * dt_h)
+    kwh_pv = float(e_pv.sum() * dt_h)
     kwh_grid = float(e_grid.sum() * dt_h)
-    kwh_dis  = float(e_dis.sum()  * dt_h)
-    kwh_chg  = float(e_chg.sum()  * dt_h)
-    kwh_hp   = float(e_hp.sum()   * dt_h)
+    kwh_dis = float(e_dis.sum() * dt_h)
+    kwh_chg = float(e_chg.sum() * dt_h)
+    kwh_hp = float(e_hp.sum() * dt_h)
     # The dump column is implicit: PV that wasn't used directly and
     # couldn't be absorbed by the ESS. By energy balance:
     #   PV = direct-to-HP + ESS charge + dump
     # With direct-to-HP estimated as min(PV, HP load) per step.
     direct = np.minimum(e_pv, e_hp)
     kwh_direct = float(direct.sum() * dt_h)
-    kwh_dump   = max(0.0, kwh_pv - kwh_direct - kwh_chg)
+    kwh_dump = max(0.0, kwh_pv - kwh_direct - kwh_chg)
 
     fig, (ax_t, ax_b) = plt.subplots(
-        1, 2,
+        1,
+        2,
         figsize=dm.figsize("17cm", 6 / 12),
         gridspec_kw={"width_ratios": [3, 2]},
     )
 
     # --- (a) timeseries ------------------------------------------------
-    ax_t.plot(t_h, e_pv,   color=COLORS["pv"],     linewidth=dm.lw(1),
-              label="PV generation")
-    ax_t.plot(t_h, e_hp,   color=COLORS["load"],   linewidth=dm.lw(0),
-              label="HP electrical load")
-    ax_t.plot(t_h, e_grid, color=COLORS["accent"], linewidth=dm.lw(0),
-              linestyle=(0, (3, 3)), label="Grid import")
-    ax_t.plot(t_h, e_chg,  color=ESS_CHG_COLOR,    linewidth=dm.lw(0),
-              label="ESS charge")
-    ax_t.plot(t_h, e_dis,  color=ESS_DIS_COLOR,    linewidth=dm.lw(0),
-              label="ESS discharge")
+    ax_t.plot(t_h, e_pv, color=COLORS["pv"], linewidth=dm.lw(1), label="PV generation")
+    ax_t.plot(t_h, e_hp, color=COLORS["load"], linewidth=dm.lw(0), label="HP electrical load")
+    ax_t.plot(t_h, e_grid, color=COLORS["accent"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), label="Grid import")
+    ax_t.plot(t_h, e_chg, color=ESS_CHG_COLOR, linewidth=dm.lw(0), label="ESS charge")
+    ax_t.plot(t_h, e_dis, color=ESS_DIS_COLOR, linewidth=dm.lw(0), label="ESS discharge")
     ax_t.fill_between(t_h, 0, e_pv, color=COLORS["pv"], alpha=0.20, linewidth=0)
     ax_t.set_xlabel("Time of day [h]")
     ax_t.set_ylabel("Power [kW]")
     ax_t.set_xlim(0, SIM_HOURS)
     ax_t.set_xticks(np.arange(0, SIM_HOURS + 1, 3))
     ax_t.grid(True, alpha=0.25, linewidth=dm.lw(-2))
-    ax_t.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0),
-                frameon=False, fontsize=dm.fs(-1), ncol=2)
+    ax_t.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-1), ncol=2)
     panel_letter(ax_t, "a")
 
     # --- (b) stacked ledger -------------------------------------------
@@ -169,38 +164,35 @@ def main() -> None:
         if height <= 0:
             return
         ax_b.text(
-            xpos, bottom + height / 2,
+            xpos,
+            bottom + height / 2,
             f"{height:.1f}",
-            ha="center", va="center",
-            fontsize=dm.fs(-1), color=COLORS["ink"],
+            ha="center",
+            va="center",
+            fontsize=dm.fs(-1),
+            color=COLORS["ink"],
         )
 
     # PV destinations stack
     bottom_pv = 0.0
-    ax_b.bar(x[0], kwh_direct, width=width, bottom=bottom_pv,
-             color=PV_BAR_COLOR, label="PV to HP (direct)")
+    ax_b.bar(x[0], kwh_direct, width=width, bottom=bottom_pv, color=PV_BAR_COLOR, label="PV to HP (direct)")
     _annot(x[0], bottom_pv, kwh_direct)
     bottom_pv += kwh_direct
-    ax_b.bar(x[0], kwh_chg, width=width, bottom=bottom_pv,
-             color=ESS_CHG_BAR, label="PV to ESS")
+    ax_b.bar(x[0], kwh_chg, width=width, bottom=bottom_pv, color=ESS_CHG_BAR, label="PV to ESS")
     _annot(x[0], bottom_pv, kwh_chg)
     bottom_pv += kwh_chg
-    ax_b.bar(x[0], kwh_dump, width=width, bottom=bottom_pv,
-             color=DUMP_BAR, label="PV to dump")
+    ax_b.bar(x[0], kwh_dump, width=width, bottom=bottom_pv, color=DUMP_BAR, label="PV to dump")
     _annot(x[0], bottom_pv, kwh_dump)
 
     # HP-load sources stack
     bottom_hp = 0.0
-    ax_b.bar(x[1], kwh_direct, width=width, bottom=bottom_hp,
-             color=PV_BAR_COLOR)
+    ax_b.bar(x[1], kwh_direct, width=width, bottom=bottom_hp, color=PV_BAR_COLOR)
     _annot(x[1], bottom_hp, kwh_direct)
     bottom_hp += kwh_direct
-    ax_b.bar(x[1], kwh_dis, width=width, bottom=bottom_hp,
-             color=ESS_DIS_BAR, label="ESS to HP")
+    ax_b.bar(x[1], kwh_dis, width=width, bottom=bottom_hp, color=ESS_DIS_BAR, label="ESS to HP")
     _annot(x[1], bottom_hp, kwh_dis)
     bottom_hp += kwh_dis
-    ax_b.bar(x[1], kwh_grid, width=width, bottom=bottom_hp,
-             color=GRID_BAR, label="Grid to HP")
+    ax_b.bar(x[1], kwh_grid, width=width, bottom=bottom_hp, color=GRID_BAR, label="Grid to HP")
     _annot(x[1], bottom_hp, kwh_grid)
 
     ax_b.set_xticks(x)
@@ -210,22 +202,29 @@ def main() -> None:
     ax_b.set_xticklabels(x_labels)
     ax_b.set_ylabel("Daily energy [kWh]")
     ax_b.grid(True, alpha=0.25, linewidth=dm.lw(-2), axis="y")
-    ax_b.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0),
-                frameon=False, fontsize=dm.fs(-2))
+    ax_b.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-2))
     panel_letter(ax_b, "b")
 
     # Totals sit above each bar — unit elided to match segment labels.
     top_pv = bottom_pv + kwh_dump
     top_hp = bottom_hp + kwh_grid
     ax_b.text(
-        x[0], top_pv + 0.2, f"{kwh_pv:.1f}",
-        ha="center", va="bottom",
-        fontsize=dm.fs(0), color=COLORS["ink"],
+        x[0],
+        top_pv + 0.2,
+        f"{kwh_pv:.1f}",
+        ha="center",
+        va="bottom",
+        fontsize=dm.fs(0),
+        color=COLORS["ink"],
     )
     ax_b.text(
-        x[1], top_hp + 0.2, f"{kwh_hp:.1f}",
-        ha="center", va="bottom",
-        fontsize=dm.fs(0), color=COLORS["ink"],
+        x[1],
+        top_hp + 0.2,
+        f"{kwh_hp:.1f}",
+        ha="center",
+        va="bottom",
+        fontsize=dm.fs(0),
+        color=COLORS["ink"],
     )
 
     out = static_path("pv_ess_energy_balance.svg").with_suffix("")

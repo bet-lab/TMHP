@@ -66,8 +66,8 @@ class HybridStratifiedTank:
         self.y_mid = self.height - (np.arange(self.n) + 0.5) * self.dz
 
         self.T: np.ndarray = np.zeros(self.n)
-        self.y_th = self.height          # thermocline at the top (no active front)
-        self.T_ref: np.ndarray = np.zeros(self.n)    # frozen upstream reference temperatures
+        self.y_th = self.height  # thermocline at the top (no active front)
+        self.T_ref: np.ndarray = np.zeros(self.n)  # frozen upstream reference temperatures
         self._charging = False
 
     # ------------------------------------------------------------------
@@ -89,9 +89,16 @@ class HybridStratifiedTank:
         return float(self.m_node * self.cp * self.T.sum())
 
     # ------------------------------------------------------------------
-    def step(self, dt: float, *, charge_flow: float = 0.0, T_charge: float = 0.0,
-             draw_flow: float = 0.0, T_makeup: float = 10.0,
-             T_amb: float = 20.0) -> dict:
+    def step(
+        self,
+        dt: float,
+        *,
+        charge_flow: float = 0.0,
+        T_charge: float = 0.0,
+        draw_flow: float = 0.0,
+        T_makeup: float = 10.0,
+        T_amb: float = 20.0,
+    ) -> dict:
         """Advance one timestep.
 
         Pure charge (``charge_flow > 0, draw_flow == 0``) activates the hybrid
@@ -152,7 +159,7 @@ class HybridStratifiedTank:
         for i in range(n):
             g_above = G if i > 0 else 0.0
             g_below = G if i < n - 1 else 0.0
-            diag[i] = mc_dt + mc + g_above + g_below + ua    # +mc = advection out
+            diag[i] = mc_dt + mc + g_above + g_below + ua  # +mc = advection out
             rhs[i] = mc_dt * self.T[i] + ua * T_amb + mc * adv_in[i]
             if i > 0:
                 lower[i] = -g_above

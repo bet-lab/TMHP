@@ -188,10 +188,7 @@ def test_fmu_builds_and_simulates(tmp_path):
     assert validate_fmu(str(fmu_file)) == []
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
-    unit_names = {
-        unit.attrib["name"]
-        for unit in root.findall("./UnitDefinitions/Unit")
-    }
+    unit_names = {unit.attrib["name"] for unit in root.findall("./UnitDefinitions/Unit")}
     assert {"W", "degC", "m3/s", "1"} <= unit_names
     units = {}
     for scalar in root.findall("./ModelVariables/ScalarVariable"):

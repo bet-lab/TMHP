@@ -158,9 +158,7 @@ class GroundSourceHeatPump:
         else:
             self.A_cross_iu = A_cross_iu
 
-        self.E_iu_fan_rated: float = (
-            self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
-        )
+        self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
@@ -191,9 +189,16 @@ class GroundSourceHeatPump:
         # --- Precompute g-function ---
         self.dt_s: float = dt_s
         self._gfunc_interp = precompute_gfunction(
-            N_1=N_1, N_2=N_2, B=B, H_b=H_b, D_b=D_b,
-            r_b=r_b, alpha_s=self.alp_s, k_s=k_s,
-            t_max_s=t_max_s, dt_s=dt_s,
+            N_1=N_1,
+            N_2=N_2,
+            B=B,
+            H_b=H_b,
+            D_b=D_b,
+            r_b=r_b,
+            alpha_s=self.alp_s,
+            k_s=k_s,
+            t_max_s=t_max_s,
+            dt_s=dt_s,
         )
 
         # --- Simulation state ---
@@ -244,9 +249,9 @@ class GroundSourceHeatPump:
             # Heating: BHE = evaporator (absorb from ground), IU = condenser (heat room)
             mode = "heating"
             self.T_a_room = 27
-            self.dT_r_ghx = 3 # GHX refrigerant - GHX outlet water [K]
-            self.dT_r_iu = 15 # Indoor unit refrigerant - Indoor unit inlet air [K]
-            self.T_r_iu = self.T_a_room + self.dT_r_iu # Indoor unit refrigerant [°C]
+            self.dT_r_ghx = 3  # GHX refrigerant - GHX outlet water [K]
+            self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
+            self.T_r_iu = self.T_a_room + self.dT_r_iu  # Indoor unit refrigerant [°C]
             T_source_K = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
             T_evap_sat_K = T_source_K - dT_ref_evap
             T_cond_sat_K = T_a_room_K + dT_ref_cond
@@ -255,13 +260,13 @@ class GroundSourceHeatPump:
             # Cooling: IU = evaporator (cool room), BHE = condenser (reject to ground)
             mode = "cooling"
             self.T_a_room = 21  # Room air temperature [°C]
-            self.dT_r_ghx = -3 # GHX refrigerant - GHX outlet water [K]
-            self.dT_r_iu = 15 # Indoor unit refrigerant - Indoor unit inlet air [K]
+            self.dT_r_ghx = -3  # GHX refrigerant - GHX outlet water [K]
+            self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
             T_source_K = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
             T_evap_sat_K = T_a_room_K - dT_ref_evap
             T_cond_sat_K = T_source_K + dT_ref_cond
             Q_ref_iu = Q_r_iu
-            self.T_r_iu = self.T_a_room + self.dT_r_iu # Indoor unit refrigerant [°C]
+            self.T_r_iu = self.T_a_room + self.dT_r_iu  # Indoor unit refrigerant [°C]
         else:
             mode = "off"
             T_evap_sat_K = self.Ts_K
@@ -303,10 +308,7 @@ class GroundSourceHeatPump:
         Q_ref_cond = m_dot_ref * (h_cmp_out - h_exp_in) if is_active else 0.0
         Q_ref_evap = m_dot_ref * (h_cmp_in - h_exp_out) if is_active else 0.0
         E_cmp = m_dot_ref * (h_cmp_out - h_cmp_in) if is_active else 0.0
-        cmp_rps = (
-            m_dot_ref / (self.V_cmp_ref * cycle_states["rho_ref_cmp_in [kg/m3]"])
-            if is_active else 0.0
-        )
+        cmp_rps = m_dot_ref / (self.V_cmp_ref * cycle_states["rho_ref_cmp_in [kg/m3]"]) if is_active else 0.0
 
         if is_active and E_cmp <= 0:
             return None
@@ -359,13 +361,12 @@ class GroundSourceHeatPump:
         dV_iu_a = iu_hx["dV_fan"]
         T_iu_a_mid = iu_hx["T_a_mid_C"]
         E_iu_fan = calc_fan_power_from_dV_fan(
-            dV_fan=dV_iu_a, fan_params=self.fan_params_iu,
-            vsd_coeffs=self.vsd_coeffs_iu, is_active=is_active,
+            dV_fan=dV_iu_a,
+            fan_params=self.fan_params_iu,
+            vsd_coeffs=self.vsd_coeffs_iu,
+            is_active=is_active,
         )
-        T_iu_a_out = (
-            T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a)
-            if is_active and dV_iu_a > 0 else T_a_room
-        )
+        T_iu_a_out = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if is_active and dV_iu_a > 0 else T_a_room
         v_iu_a = dV_iu_a / self.A_cross_iu if is_active else 0.0
 
         # BHE NTU check (heating: evaporator constraint)
@@ -389,55 +390,55 @@ class GroundSourceHeatPump:
         E_tot = E_cmp + E_pmp_active + E_iu_fan
 
         result = cycle_states.copy()
-        result.update({
-            "hp_is_on": is_active,
-            "mode": mode,
-            "converged": bool(iu_hx.get("converged", True)),
-            "converged_rps": True,
-            "iu_fan_flow_min_limit": iu_hx.get("min_limit", False),
-            "iu_fan_flow_max_limit": iu_hx.get("max_limit", False),
-            "err_Q_evap [W]": err_Q_evap,
-            # Temperatures [°C]
-            "T_iu_a_in [°C]": T_a_room,
-            "T_iu_a_mid [°C]": T_iu_a_mid,
-            "T_iu_a_out [°C]": T_iu_a_out,
-            "T_a_room [°C]": T_a_room,
-            "T0 [°C]": T0,
-            "Ts [°C]": self.Ts,
-            "T_bhe [°C]": T_bhe,
-            "T_bhe_f [°C]": T_bhe_f,
-            "T_bhe_f_in [°C]": cu.K2C(T_bhe_f_in_K),
-            "T_bhe_f_out [°C]": cu.K2C(T_bhe_f_out_K),
-            # Volume flow rates
-            "dV_iu_a [m3/s]": dV_iu_a,
-            "v_iu_a [m/s]": v_iu_a,
-            "dV_bhe_f [m3/s]": self.dV_b_f_m3s if is_active else 0.0,
-            "m_dot_ref [kg/s]": m_dot_ref,
-            "cmp_rpm [rpm]": cmp_rps * 60,
-            # Energy rates [W]
-            "E_iu_fan [W]": E_iu_fan,
-            "E_pmp [W]": E_pmp_active,
-            # Heat duties by physical location (mode-mapped): in heating the indoor
-            # unit is the condenser and the ground loop the evaporator; in cooling
-            # the roles swap. Reported by location so the labels are mode-independent
-            # and the consumer never sees the cond/evap bookkeeping (the
-            # refrigerant-perspective cond/evap remain only in the refrigerant-state
-            # keys T/P/h/s_ref_*_sat and in refrigerant.py).
-            "Q_ref_iu [W]": Q_ref_cond if mode == "heating" else Q_ref_evap,
-            "Q_ref_ground [W]": Q_ref_evap if mode == "heating" else Q_ref_cond,
-            "Q_bhe [W]": Q_bhe,
-            "E_cmp [W]": E_cmp,
-            "E_tot [W]": E_tot,
-            # COP (indoor-unit duty basis; == |Q_r_iu| at convergence)
-            "cop_ref [-]": (
-                (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_cmp
-                if (is_active and E_cmp > 0) else np.nan
-            ),
-            "cop_sys [-]": (
-                (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_tot
-                if (is_active and E_tot > 0) else np.nan
-            ),
-        })
+        result.update(
+            {
+                "hp_is_on": is_active,
+                "mode": mode,
+                "converged": bool(iu_hx.get("converged", True)),
+                "converged_rps": True,
+                "iu_fan_flow_min_limit": iu_hx.get("min_limit", False),
+                "iu_fan_flow_max_limit": iu_hx.get("max_limit", False),
+                "err_Q_evap [W]": err_Q_evap,
+                # Temperatures [°C]
+                "T_iu_a_in [°C]": T_a_room,
+                "T_iu_a_mid [°C]": T_iu_a_mid,
+                "T_iu_a_out [°C]": T_iu_a_out,
+                "T_a_room [°C]": T_a_room,
+                "T0 [°C]": T0,
+                "Ts [°C]": self.Ts,
+                "T_bhe [°C]": T_bhe,
+                "T_bhe_f [°C]": T_bhe_f,
+                "T_bhe_f_in [°C]": cu.K2C(T_bhe_f_in_K),
+                "T_bhe_f_out [°C]": cu.K2C(T_bhe_f_out_K),
+                # Volume flow rates
+                "dV_iu_a [m3/s]": dV_iu_a,
+                "v_iu_a [m/s]": v_iu_a,
+                "dV_bhe_f [m3/s]": self.dV_b_f_m3s if is_active else 0.0,
+                "m_dot_ref [kg/s]": m_dot_ref,
+                "cmp_rpm [rpm]": cmp_rps * 60,
+                # Energy rates [W]
+                "E_iu_fan [W]": E_iu_fan,
+                "E_pmp [W]": E_pmp_active,
+                # Heat duties by physical location (mode-mapped): in heating the indoor
+                # unit is the condenser and the ground loop the evaporator; in cooling
+                # the roles swap. Reported by location so the labels are mode-independent
+                # and the consumer never sees the cond/evap bookkeeping (the
+                # refrigerant-perspective cond/evap remain only in the refrigerant-state
+                # keys T/P/h/s_ref_*_sat and in refrigerant.py).
+                "Q_ref_iu [W]": Q_ref_cond if mode == "heating" else Q_ref_evap,
+                "Q_ref_ground [W]": Q_ref_evap if mode == "heating" else Q_ref_cond,
+                "Q_bhe [W]": Q_bhe,
+                "E_cmp [W]": E_cmp,
+                "E_tot [W]": E_tot,
+                # COP (indoor-unit duty basis; == |Q_r_iu| at convergence)
+                "cop_ref [-]": (
+                    (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_cmp if (is_active and E_cmp > 0) else np.nan
+                ),
+                "cop_sys [-]": (
+                    (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_tot if (is_active and E_tot > 0) else np.nan
+                ),
+            }
+        )
         return result
 
     # =============================================================
@@ -493,7 +494,7 @@ class GroundSourceHeatPump:
             Q_bhe_unit_pulse[n] = Q_bhe_unit - Q_bhe_unit_old
             Q_bhe_unit_old = Q_bhe_unit
 
-        pulses_idx = np.flatnonzero(Q_bhe_unit_pulse[:n + 1])
+        pulses_idx = np.flatnonzero(Q_bhe_unit_pulse[: n + 1])
         if len(pulses_idx) > 0:
             dQ = Q_bhe_unit_pulse[pulses_idx]
             tau = time_arr[n] - time_arr[pulses_idx]
@@ -703,7 +704,12 @@ class GroundSourceHeatPump:
 
             # BHE superposition
             Q_bhe_unit_old = self._compute_bhe_superposition(
-                n, time, Q_bhe_unit_pulse, Q_bhe_unit_old, hp_result, hp_is_on,
+                n,
+                time,
+                Q_bhe_unit_pulse,
+                Q_bhe_unit_old,
+                hp_result,
+                hp_is_on,
             )
 
             hp_result["time [s]"] = t_s
@@ -774,12 +780,8 @@ class GroundSourceHeatPump:
         # (X_ref_iu / X_ref_ground); refrigerant-state saturation keys stay cond/evap.
         if {"T_ref_cond_sat_v [°C]", "T_ref_evap_sat [°C]", "mode"} <= set(df.columns):
             is_heating = df["mode"] == "heating"
-            T_iu_sat_K = cu.C2K(
-                df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"])
-            )
-            T_ground_sat_K = cu.C2K(
-                df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"])
-            )
+            T_iu_sat_K = cu.C2K(df["T_ref_cond_sat_v [°C]"].where(is_heating, df["T_ref_evap_sat [°C]"]))
+            T_ground_sat_K = cu.C2K(df["T_ref_evap_sat [°C]"].where(is_heating, df["T_ref_cond_sat_v [°C]"]))
             df["X_ref_iu [W]"] = df["Q_ref_iu [W]"] * (1 - T0_K / T_iu_sat_K)
             df["X_ref_ground [W]"] = df["Q_ref_ground [W]"] * (1 - T0_K / T_ground_sat_K)
 

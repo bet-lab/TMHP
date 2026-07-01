@@ -81,7 +81,9 @@ def calc_fan_power_from_dV_fan(
     fan_design_power = fan_params.get("fan_rated_power", fan_params.get("fan_design_power"))
 
     if fan_design_flow_rate is None or fan_design_power is None:
-        raise ValueError("fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params")
+        raise ValueError(
+            "fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params"
+        )
 
     if dV_fan < 0:
         raise ValueError("fan flow rate must be greater than 0")

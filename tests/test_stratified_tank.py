@@ -13,9 +13,9 @@ from tmhp.constants import c_w, rho_w
 from tmhp.stratified_tank import StratifiedTank
 
 # A representative small buffer tank.
-_VOL = 0.2          # m³
-_H = 1.2            # m
-_DT = 60.0          # s
+_VOL = 0.2  # m³
+_H = 1.2  # m
+_DT = 60.0  # s
 
 
 def test_construction_validation():
@@ -81,7 +81,7 @@ def test_adiabatic_conduction_conserves_energy_and_smooths():
     for _ in range(50):
         t.step(_DT, charge_flow=0.0, T_amb=20.0)
     assert t.stored_energy == pytest.approx(e0, rel=1e-12)  # adiabatic + no flow
-    assert t.T.var() < var0                                  # profile smoothed
+    assert t.T.var() < var0  # profile smoothed
 
 
 def test_ambient_loss_decays_toward_t_amb():
@@ -95,7 +95,7 @@ def test_ambient_loss_decays_toward_t_amb():
     for _ in range(nsteps):
         t.step(_DT, charge_flow=0.0, T_amb=Ta)
         e_now = t.stored_energy
-        assert e_now <= e_prev + 1e-9   # monotone non-increasing
+        assert e_now <= e_prev + 1e-9  # monotone non-increasing
         e_prev = e_now
     # Uniform start + no flow ⇒ every node is an independent lumped loss; the
     # backward-Euler discrete decay is exact: T_k = Ta + (T0−Ta)·r^k with
@@ -118,7 +118,7 @@ def test_charge_preserves_monotonic_stratification():
     bottom_history = []
     for _ in range(80):
         out = t.step(_DT, charge_flow=q, T_charge=Tc, T_amb=20.0)
-        assert np.all(np.diff(t.T) <= 1e-9)      # T[i] >= T[i+1] (stratified)
+        assert np.all(np.diff(t.T) <= 1e-9)  # T[i] >= T[i+1] (stratified)
         top_history.append(out["T_top"])
         bottom_history.append(out["T_outlet"])
     # Top heats well before the bottom (thermocline travels downward).
@@ -151,7 +151,7 @@ def test_energy_conservation_charge_and_draw():
     de = t.stored_energy - e0
 
     rc = rho_w * c_w
-    e_in = rc * chg * Tc + rc * drw * Tm                       # hot charge + cold makeup
+    e_in = rc * chg * Tc + rc * drw * Tm  # hot charge + cold makeup
     e_out = rc * drw * out["T_top"] + rc * chg * out["T_outlet"]  # hot draw + cold HP return
     loss = (ua / n) * np.sum(t.T - Ta)
     expected_de = _DT * (e_in - e_out - loss)
@@ -168,11 +168,11 @@ def test_draw_cools_from_bottom_preserving_stratification():
     top_hist, bottom_hist = [], []
     for _ in range(80):
         out = t.step(_DT, charge_flow=0.0, draw_flow=drw, T_makeup=Tm, T_amb=20.0)
-        assert np.all(np.diff(t.T) <= 1e-9)   # cold stays at the bottom
+        assert np.all(np.diff(t.T) <= 1e-9)  # cold stays at the bottom
         top_hist.append(out["T_top"])
         bottom_hist.append(out["T_outlet"])
-    assert bottom_hist[5] < 30.0   # bottom cooled quickly by makeup
-    assert top_hist[5] > 55.0      # top still hot (front not arrived)
+    assert bottom_hist[5] < 30.0  # bottom cooled quickly by makeup
+    assert top_hist[5] > 55.0  # top still hot (front not arrived)
     assert top_hist[-1] < top_hist[5]  # cold front eventually reaches the top
 
 

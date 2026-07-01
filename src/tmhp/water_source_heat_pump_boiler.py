@@ -143,8 +143,7 @@ class WaterSourceHeatPumpBoiler:
             import warnings
 
             warnings.warn(
-                "WaterSourceHeatPumpBoiler(refrigerant=...) is deprecated; "
-                "use ref=... instead.",
+                "WaterSourceHeatPumpBoiler(refrigerant=...) is deprecated; use ref=... instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -162,9 +161,7 @@ class WaterSourceHeatPumpBoiler:
         if eta_cmp is None:
             eta_cmp = 0.855
         if UA_tank_hx is None:
-            UA_tank_hx = UA_tank if UA_tank is not None else (
-                UA_cond_design if UA_cond_design is not None else 500.0
-            )
+            UA_tank_hx = UA_tank if UA_tank is not None else (UA_cond_design if UA_cond_design is not None else 500.0)
         if UA_water is None:
             UA_water = UA_evap_design if UA_evap_design is not None else 500.0
 
@@ -185,9 +182,7 @@ class WaterSourceHeatPumpBoiler:
         self.ref = ref
         self.V_cmp_ref = V_cmp_ref
         self.eta_cmp_isen = eta_cmp_isen
-        self.eta_cmp_vol = (
-            eta_cmp_vol if eta_cmp_vol is not None else (lambda r: 0.95 - 0.05 * r)
-        )
+        self.eta_cmp_vol = eta_cmp_vol if eta_cmp_vol is not None else (lambda r: 0.95 - 0.05 * r)
         self.eta_cmp = eta_cmp
 
         self.UA_tank_hx = UA_tank_hx
@@ -418,9 +413,7 @@ class WaterSourceHeatPumpBoiler:
 
         import inspect
 
-        def _eval_eff(
-            eff: float | Callable[..., float] | None, r_p: float, rps: float
-        ) -> float:
+        def _eval_eff(eff: float | Callable[..., float] | None, r_p: float, rps: float) -> float:
             if eff is None:
                 return 1.0
             if callable(eff):
@@ -619,11 +612,7 @@ class WaterSourceHeatPumpBoiler:
                 "E_pmp [W]": self.E_pmp,
                 "E_tot [W]": E_cmp + self.E_pmp,
                 "cop_ref [-]": (Q_ref_tank / E_cmp) if E_cmp > 0 else np.nan,
-                "cop_sys [-]": (
-                    Q_ref_tank / (E_cmp + self.E_pmp)
-                    if (E_cmp + self.E_pmp) > 0
-                    else np.nan
-                ),
+                "cop_sys [-]": (Q_ref_tank / (E_cmp + self.E_pmp) if (E_cmp + self.E_pmp) > 0 else np.nan),
             }
         )
         return result
@@ -901,6 +890,7 @@ class WaterSourceHeatPumpBoiler:
                 # WARNING: if all schedule values are NaN, this silently uses self.Ts (init value).
                 if n == 0 or n % 43200 == 0:  # Log at start and every ~30 days
                     import warnings
+
                     warnings.warn(
                         f"[WSHPB] T_source_w_schedule[{n}] is NaN — falling back to "
                         f"T_bhe={self.T_bhe:.2f}°C. Check NIER data quality.",
@@ -1034,7 +1024,9 @@ class WaterSourceHeatPumpBoiler:
             self.T_bhe_f_out_K = T_bhe_f_out_K
 
             # Apply BHE state to hp_result
-            hp_result["Ts [°C]"] = T_source_w_n  # Override: record timestep-specific river water temp (not the static init value self.Ts)
+            hp_result["Ts [°C]"] = (
+                T_source_w_n  # Override: record timestep-specific river water temp (not the static init value self.Ts)
+            )
             hp_result["T_bhe [°C]"] = self.T_bhe
             hp_result["T_bhe_f [°C]"] = self.T_bhe_f
             hp_result["T_bhe_f_in [°C]"] = self.T_bhe_f_in
@@ -1151,9 +1143,7 @@ class WaterSourceHeatPumpBoiler:
             pr_event = self._last_pr_event
             if result is None or not isinstance(result, dict):
                 failure_reason = (
-                    "pr_above_max"
-                    if pr_event is not None and pr_event[0] == "pr_above_max"
-                    else "cycle_invalid"
+                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
                 )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"

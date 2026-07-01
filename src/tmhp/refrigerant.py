@@ -126,6 +126,7 @@ def calc_ref_state(
 
     if callable(eta_cmp_isen):
         import inspect
+
         sig = inspect.signature(eta_cmp_isen)
         if len(sig.parameters) == 2 and rps is not None:
             val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap, rps)

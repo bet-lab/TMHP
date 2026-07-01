@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 1000 385"
+     role="img" aria-labelledby="cycleArchTitle cycleArchDesc">
+  <title id="cycleArchTitle">TMHP cycle architecture</title>
+  <desc id="cycleArchDesc">Source side delivers Q_evap to the evaporator.
+Refrigerant cycle: low-pressure vapor enters the compressor, leaves as
+high-pressure vapor to the condenser, exits as liquid to the expander,
+and returns to the evaporator as two-phase mixture.  The condenser
+delivers Q_cond to the sink (DHW tank or building load).  A cycle-closure
+solver picks the evaporating-side approach temperature and the
+compressor speed that minimize compressor power.</desc>
+
+  <style><![CDATA[
+    /* Three-hue scheme aligned with the site iris accent:
+     *   - source  -> warm amber (heat source = warm, kept for intuition)
+     *   - cycle   -> iris       (the main refrigerant loop, primary)
+     *   - sink    -> iris-light (consumer of Q_cond, iris-family for cohesion)
+     *   - solver  -> violet     (control loop, distinguished from the cycle)
+     */
+    :root {
+      --src-fill:    #fef3c7;   --src-stroke:    #b45309;   --src-text:    #78350f;
+      --cycle-fill:  #eef2ff;   --cycle-stroke:  #6366f1;   --cycle-text:  #1e1b4b;
+      --sink-fill:   #e0e7ff;   --sink-stroke:   #4f46e5;   --sink-text:   #312e81;
+      --solver-fill: #f5f3ff;   --solver-stroke: #8b5cf6;   --solver-text: #4c1d95;
+      --edge:        #475569;
+      --edge-dashed: #8b5cf6;
+      --label:       #374151;
+      --group-wash:  rgba(99, 102, 241, 0.06);
+      --halo:        #ffffff;
+      --muted:       #6b7280;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --src-fill:    #3a2a06;   --src-stroke:    #fbbf24;   --src-text:    #fde68a;
+        --cycle-fill:  #1a1f3a;   --cycle-stroke:  #818cf8;   --cycle-text:  #e0e7ff;
+        --sink-fill:   #1e1b4b;   --sink-stroke:   #a5b4fc;   --sink-text:   #e0e7ff;
+        --solver-fill: #2a1d4a;   --solver-stroke: #c4b5fd;   --solver-text: #ede9fe;
+        --edge:        #94a3b8;
+        --edge-dashed: #c4b5fd;
+        --label:       #cbd5e1;
+        --group-wash:  rgba(129, 140, 248, 0.08);
+        --halo:        #0d1117;
+        --muted:       #9aa7b8;
+      }
+    }
+
+    text {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter",
+                   "Helvetica Neue", Arial, sans-serif;
+    }
+    .node-box { stroke-width: 1.5; }
+    .node .title { font-weight: 600; font-size: 13px; }
+    .node .sub   { font-size: 11px; font-style: italic; opacity: 0.92; }
+
+    .group-rect { fill: var(--group-wash); stroke: none; }
+    .group-label {
+      font-size: 11px; letter-spacing: 0.04em;
+      fill: var(--muted);
+    }
+
+    .n-src    .node-box { fill: var(--src-fill);    stroke: var(--src-stroke); }
+    .n-src    text      { fill: var(--src-text); }
+    .n-cycle  .node-box { fill: var(--cycle-fill);  stroke: var(--cycle-stroke); }
+    .n-cycle  text      { fill: var(--cycle-text); }
+    .n-sink   .node-box { fill: var(--sink-fill);   stroke: var(--sink-stroke); }
+    .n-sink   text      { fill: var(--sink-text); }
+    .n-solver .node-box {
+      fill: var(--solver-fill); stroke: var(--solver-stroke);
+      stroke-dasharray: 4 3;
+    }
+    .n-solver text { fill: var(--solver-text); }
+
+    .edge        { fill: none; stroke: var(--edge); stroke-width: 1.6; }
+    .edge.dashed { stroke: var(--edge-dashed); stroke-dasharray: 5 4; stroke-width: 1.5; }
+    .edge-label {
+      font-size: 11px; fill: var(--label);
+      paint-order: stroke;
+      stroke: var(--halo);
+      stroke-width: 2.5;
+      stroke-linejoin: round;
+    }
+    .edge-label.solver { fill: var(--solver-text); }
+  ]]></style>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+    <marker id="arrDash" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- Group wash -->
+  <rect class="group-rect" x="215" y="55" width="540" height="320" rx="18"/>
+  <text class="group-label" x="232" y="76">REFRIGERANT CYCLE</text>
+
+  <!-- Solid edges (refrigerant + boundary heat) -->
+  <g style="color: var(--edge);">
+    <path class="edge" d="M 155,220 L 235,220" marker-end="url(#arr)"/>
+    <text class="edge-label" x="195" y="210" text-anchor="middle">Q_evap</text>
+
+    <path class="edge" d="M 290,195 C 320,150 380,110 400,115" marker-end="url(#arr)"/>
+    <text class="edge-label" x="345" y="148" text-anchor="middle">low-P vapor</text>
+
+    <path class="edge" d="M 570,115 C 590,110 650,150 680,195" marker-end="url(#arr)"/>
+    <text class="edge-label" x="625" y="148" text-anchor="middle">high-P vapor</text>
+
+    <path class="edge" d="M 680,245 C 650,290 590,330 570,325" marker-end="url(#arr)"/>
+    <text class="edge-label" x="625" y="300" text-anchor="middle">liquid</text>
+
+    <path class="edge" d="M 400,325 C 380,330 320,290 290,245" marker-end="url(#arr)"/>
+    <text class="edge-label" x="345" y="300" text-anchor="middle">two-phase</text>
+
+    <path class="edge" d="M 740,220 L 805,220" marker-end="url(#arr)"/>
+    <text class="edge-label" x="772" y="210" text-anchor="middle">Q_cond</text>
+  </g>
+
+  <!-- Dashed solver edges -->
+  <g style="color: var(--edge-dashed);">
+    <path class="edge dashed" d="M 290,48 L 290,189" marker-end="url(#arrDash)"/>
+    <path class="edge dashed" d="M 410,28 C 450,28 485,55 485,85" marker-end="url(#arrDash)"/>
+    <text class="edge-label solver" x="305" y="125" text-anchor="middle">optimizes</text>
+    <text class="edge-label solver" x="475" y="62"  text-anchor="middle">optimizes</text>
+  </g>
+
+  <!-- Nodes -->
+  <g class="node n-src">
+    <rect class="node-box" x="15" y="195" width="140" height="50" rx="10"/>
+    <text class="title" x="85" y="216" text-anchor="middle">Source side</text>
+    <text class="sub"   x="85" y="232" text-anchor="middle">air · ground · water</text>
+  </g>
+
+  <g class="node n-cycle">
+    <rect class="node-box" x="235" y="195" width="110" height="50" rx="12"/>
+    <ellipse class="node-box" cx="290" cy="195" rx="55" ry="6"/>
+    <ellipse class="node-box" cx="290" cy="245" rx="55" ry="6"/>
+    <text class="title" x="290" y="218" text-anchor="middle">Evaporator HX</text>
+    <text class="sub"   x="290" y="234" text-anchor="middle">ε-NTU</text>
+  </g>
+
+  <g class="node n-cycle">
+    <rect class="node-box" x="400" y="85" width="170" height="60" rx="10"/>
+    <text class="title" x="485" y="108" text-anchor="middle">Compressor</text>
+    <text class="sub"   x="485" y="125" text-anchor="middle">η_is · η_vol · η_mech</text>
+  </g>
+
+  <g class="node n-cycle">
+    <rect class="node-box" x="625" y="195" width="110" height="50" rx="12"/>
+    <ellipse class="node-box" cx="680" cy="195" rx="55" ry="6"/>
+    <ellipse class="node-box" cx="680" cy="245" rx="55" ry="6"/>
+    <text class="title" x="680" y="218" text-anchor="middle">Condenser HX</text>
+    <text class="sub"   x="680" y="234" text-anchor="middle">ε-NTU</text>
+  </g>
+
+  <g class="node n-cycle">
+    <rect class="node-box" x="400" y="295" width="170" height="60" rx="10"/>
+    <text class="title" x="485" y="318" text-anchor="middle">Expander</text>
+    <text class="sub"   x="485" y="335" text-anchor="middle">isenthalpic</text>
+  </g>
+
+  <g class="node n-sink">
+    <rect class="node-box" x="805" y="195" width="180" height="50" rx="10"/>
+    <text class="title" x="895" y="216" text-anchor="middle">Sink side</text>
+    <text class="sub"   x="895" y="232" text-anchor="middle">DHW tank · building load</text>
+  </g>
+
+  <g class="node n-solver">
+    <rect class="node-box" x="170" y="8" width="240" height="40" rx="20"/>
+    <text class="title" x="290" y="25" text-anchor="middle">Cycle closure solver</text>
+    <text class="sub"   x="290" y="40" text-anchor="middle">min E_cmp(ΔT_evap)</text>
+  </g>
+</svg>

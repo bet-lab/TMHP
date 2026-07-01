@@ -1,0 +1,18 @@
+{%- extends "!page.html" -%}
+
+{# Shibuya's default layout doesn't render the `last_updated` template
+   variable that sphinx-last-updated-by-git populates, so we extend the
+   `content` block to append it ourselves. #}
+
+{%- block content -%}
+{{ super() }}
+{%- if last_updated %}
+<div class="git-last-updated" role="contentinfo">
+  Last updated {{ last_updated }}
+</div>
+{%- endif %}
+{%- endblock -%}
+
+{#- Interactive-layer JS modules are registered in conf.py
+    (`html_js_files`) so Sphinx adds a content-hash `?v=` to each
+    URL, defeating stale browser caches when a module changes. -#}

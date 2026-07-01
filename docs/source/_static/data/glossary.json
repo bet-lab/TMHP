@@ -1,0 +1,92 @@
+{
+  "epsilon-ntu": {
+    "name": "ε-NTU method",
+    "def": "Heat-exchanger effectiveness expressed as a function of NTU and heat-capacity ratio C_r. Used for evaporator and condenser heat transfer.",
+    "link": "concepts/cycle-architecture.html#the-shared-core"
+  },
+  "cop": {
+    "name": "COP (coefficient of performance)",
+    "def": "Useful heat output divided by electrical input. tmhp distinguishes cycle COP from system COP (includes pumps/fans).",
+    "link": "concepts/why-physics-based.html"
+  },
+  "exv": {
+    "name": "EXV (electronic expansion valve)",
+    "def": "The expansion device that drops refrigerant pressure between condenser and evaporator. Modeled as isenthalpic in tmhp.",
+    "link": "concepts/cycle-architecture.html"
+  },
+  "refrigerant-cycle-core": {
+    "name": "Refrigerant-cycle core",
+    "def": "Shared first-principles cycle calculation: refrigerant state points, compressor work, heat exchangers, cycle closure, COP, and diagnostics. Model families swap source and sink boundaries around this core.",
+    "link": "concepts/cycle-architecture.html#the-shared-core"
+  },
+  "source-side": {
+    "name": "Source side",
+    "def": "Environmental side coupled to the evaporator in heating mode and to the condenser in cooling mode. Released TMHP source media include air and ground for DHW and space conditioning, and water for the WSHPB DHW family.",
+    "link": "models/index.html"
+  },
+  "sink-side": {
+    "name": "Sink side",
+    "def": "Demand side receiving useful heat in heating mode or rejecting heat in cooling mode. TMHP demand-side examples include DHW tank charge and building loads.",
+    "link": "models/index.html"
+  },
+  "environmental-medium": {
+    "name": "Environmental medium",
+    "def": "The outside thermal reservoir represented by a model family: outdoor air, a prescribed water loop, or a ground-loop/borehole field.",
+    "link": "models/index.html"
+  },
+  "demand-side": {
+    "name": "Demand side",
+    "def": "The application boundary served by the heat pump. Released public boundaries are DHW tank charge for ASHPB/GSHPB/WSHPB and building heating/cooling load for ASHP/GSHP.",
+    "link": "models/index.html"
+  },
+  "ashpb": {
+    "name": "ASHPB (air-source heat pump boiler)",
+    "def": "Air-source + DHW-tank instantiation of the shared TMHP refrigerant-cycle core. This is the validated reference example.",
+    "link": "models/ashpb.html"
+  },
+  "gshpb": {
+    "name": "GSHPB (ground-source heat pump boiler)",
+    "def": "Ground-source + DHW-tank instantiation of the shared TMHP refrigerant-cycle core. Source side: borehole field via g-function.",
+    "link": "models/gshpb.html"
+  },
+  "wshpb": {
+    "name": "WSHPB (water-source heat pump boiler)",
+    "def": "Water-source + DHW-tank instantiation of the shared TMHP refrigerant-cycle core. Source side: prescribed water inlet temperature.",
+    "link": "models/wshpb.html"
+  },
+  "ashp": {
+    "name": "ASHP (air-source heat pump, space conditioning)",
+    "def": "Air-source heat pump driving a building load. It uses Q_r_iu > 0 for cooling and Q_r_iu < 0 for heating.",
+    "link": "models/ashp.html"
+  },
+  "gshp": {
+    "name": "GSHP (ground-source heat pump, space conditioning)",
+    "def": "Ground-source heat pump driving a building load. It uses Q_r_iu > 0 for cooling and Q_r_iu < 0 for heating, with a borehole-field source and a building demand-side boundary.",
+    "link": "models/gshp.html"
+  },
+  "m-dot": {
+    "name": "ṁ (mass flow rate)",
+    "def": "Refrigerant mass flow. Set by compressor displacement, volumetric efficiency, rotational speed, and suction density.",
+    "link": "concepts/cycle-architecture.html"
+  },
+  "dt-evap": {
+    "name": "ΔT_evap (evaporator approach)",
+    "def": "Difference between source-side fluid and evaporating refrigerant. tmhp solves it as a free parameter that minimizes compressor power.",
+    "link": "concepts/cycle-architecture.html#the-shared-core"
+  },
+  "eta-is": {
+    "name": "η_is (isentropic efficiency)",
+    "def": "Ratio of ideal (isentropic) compression work to actual work.",
+    "link": "models/ashpb.html"
+  },
+  "eta-vol": {
+    "name": "η_vol (volumetric efficiency)",
+    "def": "Fraction of compressor displacement volume actually filled with refrigerant on each stroke.",
+    "link": "models/ashpb.html"
+  },
+  "eta-mech": {
+    "name": "η_mech (mechanical efficiency)",
+    "def": "Shaft-to-compression work ratio. Captures bearing and transmission losses.",
+    "link": "models/ashpb.html"
+  }
+}

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 548"
+     role="img" aria-labelledby="sourceSinkTitle sourceSinkDesc">
+  <title id="sourceSinkTitle">TMHP released source and sink model families</title>
+  <desc id="sourceSinkDesc">Released TMHP model classes reuse the same
+  refrigerant-cycle core. ASHPB, GSHPB, and WSHPB expose domestic-hot-water
+  tank boundaries; ASHP and GSHP expose space-conditioning boundaries with
+  cooling selected by positive Q_r_iu and heating by negative Q_r_iu.</desc>
+  <style><![CDATA[
+    :root {
+      --bg: #ffffff;
+      --ink: #0f172a;
+      --muted: #5b6878;
+      --faint: #64748b;
+      --panel-border: #e7eaf0;
+      --src-wash: rgba(245, 158, 11, 0.055);
+      --snk-wash: rgba(13, 148, 136, 0.055);
+      --core-fill: #eef2ff;
+      --core-stroke: #6366f1;
+      --core-strong: #4f46e5;
+      --core-text: #3730a3;
+      --source-fill: #fff8ef;
+      --source-stroke: #f0a73c;
+      --source-strong: #c2620e;
+      --source-text: #9a3412;
+      --sink-fill: #f0fdfa;
+      --sink-stroke: #16b3a3;
+      --sink-strong: #0f766e;
+      --sink-text: #115e59;
+      --aux-fill: #f6f4ff;
+      --aux-stroke: #9d7af0;
+      --aux-strong: #6d28d9;
+      --aux-text: #5b21b6;
+      --edge: #b0b8c6;
+      --halo: #ffffff;
+      --shadow: #1e1b4b;
+      --shadow-a: 0.10;
+      --core-shadow-a: 0.16;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1020;
+        --ink: #eef2f8;
+        --muted: #aab4c6;
+        --faint: #9aa6ba;
+        --panel-border: #1e2740;
+        --src-wash: rgba(251, 191, 36, 0.085);
+        --snk-wash: rgba(45, 212, 191, 0.075);
+        --core-fill: #191f3c;
+        --core-stroke: #818cf8;
+        --core-strong: #bcc4fc;
+        --core-text: #dfe3ff;
+        --source-fill: #34230f;
+        --source-stroke: #f6b34e;
+        --source-strong: #fbbf24;
+        --source-text: #fcd9a8;
+        --sink-fill: #0c2b29;
+        --sink-stroke: #2dd4bf;
+        --sink-strong: #5eead4;
+        --sink-text: #b9f4ea;
+        --aux-fill: #271b46;
+        --aux-stroke: #b69bf3;
+        --aux-strong: #cbb6fb;
+        --aux-text: #e7ddff;
+        --edge: #5b667e;
+        --halo: #0b1020;
+        --shadow: #000000;
+        --shadow-a: 0.34;
+        --core-shadow-a: 0.42;
+      }
+    }
+    text {
+      font-family: "Inter", -apple-system, BlinkMacSystemFont,
+                   "Helvetica Neue", Arial, sans-serif;
+    }
+    .title { font-size: 25px; font-weight: 700; fill: var(--ink);
+             letter-spacing: -0.005em; }
+    .subtitle { font-size: 13.5px; fill: var(--muted); }
+    .footnote { font-size: 12.5px; fill: var(--faint); }
+    .group-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.12em;
+                   fill: var(--muted); }
+    .group-sub { font-size: 10.5px; font-weight: 500; letter-spacing: 0.02em;
+                 fill: var(--faint); }
+    .box-title { font-size: 16.5px; font-weight: 700; }
+    .box-sub { font-size: 11.5px; font-weight: 500; }
+    .core-title { font-size: 17px; font-weight: 700; fill: var(--core-strong); }
+    .core-sub { font-size: 12px; font-weight: 500; fill: var(--core-text);
+                opacity: 0.92; }
+    .edge-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+                  fill: var(--muted); paint-order: stroke;
+                  stroke: var(--halo); stroke-width: 4px;
+                  stroke-linejoin: round; }
+    .source .box { fill: var(--source-fill); stroke: var(--source-stroke); }
+    .source .box-title { fill: var(--source-strong); }
+    .source .box-sub { fill: var(--source-text); }
+    .sink .box { fill: var(--sink-fill); stroke: var(--sink-stroke); }
+    .sink .box-title { fill: var(--sink-strong); }
+    .sink .box-sub { fill: var(--sink-text); }
+    .aux .box { fill: var(--aux-fill); stroke: var(--aux-stroke); }
+    .aux .box-title { fill: var(--aux-strong); }
+    .aux .box-sub { fill: var(--aux-text); }
+    .core-box { fill: var(--core-fill); stroke: var(--core-stroke); }
+    .box { stroke-width: 1.5; }
+    .panel { fill: var(--bg); stroke: var(--panel-border); stroke-width: 1.3; }
+    .src-wash { fill: var(--src-wash); }
+    .snk-wash { fill: var(--snk-wash); }
+    .divider { stroke: var(--core-stroke); stroke-width: 1; opacity: 0.28; }
+    .flow { fill: none; stroke-width: 2.1; stroke-linecap: round; }
+    .flow-src { stroke: url(#gradSrc); marker-end: url(#arrowSrc); }
+    .flow-snk { stroke: url(#gradSnk); marker-end: url(#arrowSnk); }
+    .flow-aux { stroke: var(--aux-stroke); stroke-width: 1.8;
+                stroke-dasharray: 4 4; stroke-linecap: round;
+                marker-end: url(#arrowAux); opacity: 0.95; }
+    .cycle-glyph { fill: none; stroke: var(--core-strong); stroke-width: 2.4;
+                   stroke-linecap: round; }
+    .cycle-tip { fill: var(--core-strong); }
+  ]]></style>
+  <defs>
+    <marker id="arrowSrc" viewBox="0 0 10 10" refX="7.2" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--core-stroke)"/>
+    </marker>
+    <marker id="arrowSnk" viewBox="0 0 10 10" refX="7.2" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--sink-stroke)"/>
+    </marker>
+    <marker id="arrowAux" viewBox="0 0 10 10" refX="7.2" refY="5"
+            markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="var(--aux-stroke)"/>
+    </marker>
+    <linearGradient id="gradSrc" x1="262" y1="0" x2="360" y2="0"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--source-stroke)"/>
+      <stop offset="1" stop-color="var(--core-stroke)"/>
+    </linearGradient>
+    <linearGradient id="gradSnk" x1="640" y1="0" x2="738" y2="0"
+                    gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="var(--core-stroke)"/>
+      <stop offset="1" stop-color="var(--sink-stroke)"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-12%" y="-18%" width="124%" height="140%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="3"
+                    flood-color="var(--shadow)" flood-opacity="var(--shadow-a)"/>
+    </filter>
+    <filter id="coreShadow" x="-18%" y="-22%" width="136%" height="150%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6"
+                    flood-color="var(--shadow)" flood-opacity="var(--core-shadow-a)"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="548" fill="var(--bg)"/>
+
+  <text class="title" x="500" y="50" text-anchor="middle">One refrigerant cycle, released source/sink families</text>
+  <text class="subtitle" x="500" y="76" text-anchor="middle">Public classes expose DHW boilers for air, ground, and water; space-conditioning heat pumps for air and ground.</text>
+
+  <!-- zone panels -->
+  <rect class="panel" x="48" y="120" width="232" height="322" rx="20"/>
+  <rect class="src-wash" x="48" y="120" width="232" height="322" rx="20"/>
+  <rect class="panel" x="720" y="120" width="232" height="322" rx="20"/>
+  <rect class="snk-wash" x="720" y="120" width="232" height="322" rx="20"/>
+  <text class="group-label" x="164" y="150" text-anchor="middle">ENVIRONMENTAL SIDE</text>
+  <text class="group-sub" x="164" y="168" text-anchor="middle">source side</text>
+  <text class="group-label" x="836" y="150" text-anchor="middle">RELEASED DEMAND BOUNDARY</text>
+  <text class="group-sub" x="836" y="168" text-anchor="middle">sink side</text>
+
+  <!-- flow connectors: source -> core -> sink, terminating on the box edges -->
+  <path class="flow flow-src" d="M262 227 C 312 232 332 270 360 270"/>
+  <path class="flow flow-src" d="M262 303 C 300 303 332 303 360 303"/>
+  <path class="flow flow-src" d="M262 379 C 312 374 332 336 360 336"/>
+  <path class="flow flow-snk" d="M640 282 C 684 282 704 246 738 246"/>
+  <path class="flow flow-snk" d="M640 324 C 684 324 704 360 738 360"/>
+  <path class="flow flow-aux" d="M500 448 L500 405"/>
+
+  <!-- interface labels, anchored on the zone seams / source flow -->
+  <text class="edge-label" x="320" y="307" text-anchor="middle">source medium</text>
+  <text class="edge-label" x="681" y="307" text-anchor="middle">class boundary</text>
+
+  <!-- source family cards -->
+  <g class="source">
+    <rect class="box" x="66" y="196" width="196" height="62" rx="13" filter="url(#cardShadow)"/>
+    <text class="box-title" x="164" y="222" text-anchor="middle">Air</text>
+    <text class="box-sub" x="164" y="242" text-anchor="middle">ASHPB + ASHP</text>
+    <rect class="box" x="66" y="272" width="196" height="62" rx="13" filter="url(#cardShadow)"/>
+    <text class="box-title" x="164" y="298" text-anchor="middle">Water</text>
+    <text class="box-sub" x="164" y="318" text-anchor="middle">WSHPB only</text>
+    <rect class="box" x="66" y="348" width="196" height="62" rx="13" filter="url(#cardShadow)"/>
+    <text class="box-title" x="164" y="374" text-anchor="middle">Ground</text>
+    <text class="box-sub" x="164" y="394" text-anchor="middle">GSHPB + GSHP</text>
+  </g>
+
+  <!-- shared core (hero) -->
+  <g class="core">
+    <rect class="box core-box" x="360" y="205" width="280" height="200" rx="16" filter="url(#coreShadow)"/>
+    <g transform="translate(500 234) scale(1.18) translate(-500 -230)">
+      <g class="cycle-glyph">
+        <path d="M489.5 226 A 11 11 0 0 1 510.5 226"/>
+        <path d="M510.5 234 A 11 11 0 0 1 489.5 234"/>
+      </g>
+      <path class="cycle-tip" d="M510.5 232 l 3.4 -5.2 l -6.6 0.4 z"/>
+      <path class="cycle-tip" d="M489.5 228 l -3.4 5.2 l 6.6 -0.4 z"/>
+    </g>
+    <text class="core-title" x="500" y="270" text-anchor="middle">Shared refrigerant-cycle core</text>
+    <line class="divider" x1="404" y1="284" x2="596" y2="284"/>
+    <text class="core-sub" x="500" y="308" text-anchor="middle">CoolProp state points</text>
+    <text class="core-sub" x="500" y="330" text-anchor="middle">compressor + heat exchangers</text>
+    <text class="core-sub" x="500" y="352" text-anchor="middle">cycle closure and diagnostics</text>
+    <text class="core-sub" x="500" y="374" text-anchor="middle">refrigerant swappable at runtime</text>
+  </g>
+
+  <!-- released demand boundary cards -->
+  <g class="sink">
+    <rect class="box" x="738" y="196" width="196" height="100" rx="13" filter="url(#cardShadow)"/>
+    <text class="box-title" x="836" y="240" text-anchor="middle">DHW tank</text>
+    <text class="box-sub" x="836" y="262" text-anchor="middle">ASHPB &#183; GSHPB &#183; WSHPB</text>
+    <rect class="box" x="738" y="310" width="196" height="100" rx="13" filter="url(#cardShadow)"/>
+    <text class="box-title" x="836" y="344" text-anchor="middle">Space conditioning</text>
+    <text class="box-sub" x="836" y="366" text-anchor="middle">ASHP &#183; GSHP</text>
+    <text class="box-sub" x="836" y="386" text-anchor="middle">+ cooling &#183; &#8722; heating</text>
+  </g>
+
+  <!-- optional subsystems -->
+  <g class="aux">
+    <rect class="box" x="350" y="448" width="300" height="56" rx="14" filter="url(#cardShadow)"/>
+    <text class="box-title" x="500" y="474" text-anchor="middle" style="font-size:14.5px">Optional subsystems: STC, PV, ESS, UV</text>
+    <text class="box-sub" x="500" y="492" text-anchor="middle">augment the system without replacing the cycle core</text>
+  </g>
+
+  <text class="footnote" x="500" y="532" text-anchor="middle">Water-source space-conditioning is not a released public API in the current package.</text>
+</svg>

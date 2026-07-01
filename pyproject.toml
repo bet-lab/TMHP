@@ -1,0 +1,139 @@
+[project]
+name = "tmhp"
+version = "0.1.0"
+description = "tmhp — Thermodynamic Models for Heat Pumps: a general-purpose, physics-based heat pump modeling library for air-source, ground-source, and water-source systems"
+readme = "README.md"
+authors = [
+    { name = "Habin Jo", email = "habinjo0608@gmail.com" }
+]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+keywords = [
+    "heat pump",
+    "thermodynamics",
+    "building energy",
+    "domestic hot water",
+    "physics-based model",
+    "refrigerant cycle",
+    "CoolProp",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "coolprop>=7.2.0",
+    "numpy>=2.2.3",
+    "scipy>=1.15.2",
+    "pandas>=2.2.3",
+    "matplotlib>=3.10.0",
+    "pvlib>=0.15.0",
+    "pygfunction>=2.3.1",
+    "tqdm>=4.67.1",
+    "dartwork-mpl",
+]
+
+[project.optional-dependencies]
+integrations = [
+    "fmpy>=0.3.21",
+    "pythonfmu>=0.7.0,<0.8",
+    "pythonfmu3>=0.3.4,<0.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Source files live under src/tmhp/ (src layout).
+packages = ["src/tmhp"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.5",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "shibuya>=2024.5.2",
+    "sphinx-autodoc-typehints>=1.24.0",
+    "sphinx-design>=0.5.0",
+    "sphinx-copybutton>=0.5.2",
+    "myst-parser>=3.0.1",
+    "sphinx-click>=6.0.0",
+    "linkify-it-py>=2.0.0",
+    # UX/UI extensions: dynamic diagrams, collapsibles, social cards, 404,
+    # sitemap, and per-page "last updated" — all backend-only, theme-agnostic.
+    "sphinxcontrib-mermaid>=1.0.0",
+    "sphinx-togglebutton>=0.3.2",
+    "sphinxext-opengraph>=0.9.1",
+    "sphinx-notfound-page>=1.0.4",
+    "sphinx-sitemap>=2.6.0",
+    "sphinx-last-updated-by-git>=0.3.8",
+]
+
+[project.urls]
+Homepage = "https://github.com/bet-lab/tmhp"
+Repository = "https://github.com/bet-lab/tmhp"
+Documentation = "https://bet-lab.github.io/tmhp/"
+
+# ---------------------------------------------------------------------------
+# Tool configuration
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E741",   # ambiguous variable name (physics code uses single letters)
+    "B006",   # mutable default argument (dataclass patterns)
+    "E501",   # line too long (physics code often has long equations)
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+# Several `analyze_steady` / `_calc_state` paths split on a flag and define
+# the same names (e.g. `cs`, `result`, `dV_tank_w_out`) once per branch with
+# matching annotations. mypy still flags this as redefinition unless we
+# explicitly allow it.
+allow_redefinition = true
+
+[tool.ty.environment]
+# Point Astral's ``ty`` type checker (used by Cursor/VSCode integrations)
+# at the project's ``.venv`` so it resolves numpy / matplotlib / dartwork
+# stubs. Without this ``ty`` falls back to a bare environment and emits
+# spurious "No attribute `ndarray` in module `numpy`" diagnostics on
+# every numpy call site.
+python = ".venv"
+
+[tool.uv.sources]
+dartwork-mpl = { git = "https://github.com/dartworklabs/dartwork-mpl" }

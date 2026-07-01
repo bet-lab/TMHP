@@ -1,0 +1,1169 @@
+/* Custom styling layered on top of the Shibuya theme.
+ *
+ * Scope: small readability tweaks + landing/UX components added on top
+ * of sphinx-design and the new mermaid / togglebutton / last-updated
+ * extensions. Page layout and color tokens are left to the theme so
+ * future Shibuya upgrades don't fight with these rules.
+ */
+
+/* ===========================================================================
+ * Self-hosted web fonts
+ *
+ * Inter Variable for the prose / UI surface, JetBrains Mono for code.
+ * Both are SIL OFL 1.1; files are committed under `_static/fonts/`.
+ *
+ * Inter Variable carries every weight 100–900 in a single woff2, so the
+ * heading/body/medium contrast costs us exactly two network requests
+ * (one upright + one italic). JetBrains Mono ships per-weight, so we
+ * pull only the four weights actually used by code blocks.
+ *
+ * `font-display: swap` means the system fallback paints first; the
+ * webfont swaps in once decoded, so a slow connection still shows the
+ * page immediately.
+ * ------------------------------------------------------------------------- */
+
+@font-face {
+    font-family: "Inter Variable";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/InterVariable.woff2") format("woff2-variations");
+}
+@font-face {
+    font-family: "Inter Variable";
+    font-style: italic;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/InterVariable-Italic.woff2") format("woff2-variations");
+}
+
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Italic.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Medium.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/JetBrainsMono-Bold.woff2") format("woff2");
+}
+
+/* ===========================================================================
+ * Radix-DNA design tokens (foundation, no visual changes by themselves).
+ *
+ * Mirrors the public Radix Themes scale documented at
+ *   https://www.radix-ui.com/themes/docs/theme/typography
+ *   https://www.radix-ui.com/themes/docs/theme/spacing
+ *   https://www.radix-ui.com/colors
+ *
+ * Naming: every token is namespaced `--rx-*` so it cannot collide with
+ * Shibuya theme variables (`--sy-c-*`). Subsequent rules in this file
+ * reference these tokens; the theme itself remains untouched, which means
+ * a Shibuya upgrade will not fight our customisation.
+ *
+ * What lives here:
+ *   1. Typography scale (font-size, line-height, neutral letter spacing)
+ *   2. Font weights (Inter-compatible)
+ *   3. Space scale (1–9)
+ *   4. Radius scale (1–6 + full)
+ *   5. Gray + accent (indigo) + semantic (green/amber/red/blue/violet)
+ *      colour scales at the four pour-points we actually need:
+ *        step  3   subtle background
+ *        step  6   border / hairline accent
+ *        step  9   solid (badge / stripe / accent dot)
+ *        step 11   accessible foreground text on light background
+ *   6. Gray alpha tokens (key for muted text against any background).
+ *
+ * Light values are defined on :root. Dark-mode overrides ride two
+ * selectors so both paths flip our --rx-* tokens together:
+ *   1. @media (prefers-color-scheme: dark) — OS / browser preference
+ *   2. html[data-color-mode="dark"]        — Shibuya's manual toggle
+ * Both selectors carry the same declaration block; keep them in sync
+ * when adding tokens.
+ * ------------------------------------------------------------------------- */
+
+:root {
+    /* ---------- 0. Font stacks (self-hosted + safe fallbacks) ---------- */
+    --rx-font-sans:
+        "Inter Variable", -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji";
+    --rx-font-mono:
+        "JetBrains Mono", ui-monospace, SFMono-Regular,
+        "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    /* ---------- 1. Typography scale (9 steps) ---------- */
+    --rx-fs-1: 12px;
+    --rx-fs-2: 14px;
+    --rx-fs-3: 16px;   /* default body */
+    --rx-fs-4: 18px;
+    --rx-fs-5: 20px;
+    --rx-fs-6: 24px;
+    --rx-fs-7: 28px;
+    --rx-fs-8: 35px;
+    --rx-fs-9: 60px;
+
+    --rx-lh-1: 16px;
+    --rx-lh-2: 20px;
+    --rx-lh-3: 24px;   /* default body */
+    --rx-lh-4: 26px;
+    --rx-lh-5: 28px;
+    --rx-lh-6: 30px;
+    --rx-lh-7: 36px;
+    --rx-lh-8: 40px;
+    --rx-lh-9: 60px;
+
+    --rx-ls-1:  0em;
+    --rx-ls-2:  0em;
+    --rx-ls-3:  0em;
+    --rx-ls-4:  0em;
+    --rx-ls-5:  0em;
+    --rx-ls-6:  0em;
+    --rx-ls-7:  0em;
+    --rx-ls-8:  0em;
+    --rx-ls-9:  0em;
+
+    /* ---------- 2. Font weights (Inter-compatible) ---------- */
+    --rx-fw-light:    300;
+    --rx-fw-regular:  400;
+    --rx-fw-medium:   500;
+    --rx-fw-semibold: 600;
+    --rx-fw-bold:     700;
+
+    /* ---------- 3. Space scale (9 steps) ---------- */
+    --rx-space-1:  4px;
+    --rx-space-2:  8px;
+    --rx-space-3: 12px;
+    --rx-space-4: 16px;
+    --rx-space-5: 24px;
+    --rx-space-6: 32px;
+    --rx-space-7: 40px;
+    --rx-space-8: 48px;
+    --rx-space-9: 64px;
+
+    /* ---------- 4. Radius scale ---------- */
+    --rx-radius-1:  3px;
+    --rx-radius-2:  4px;
+    --rx-radius-3:  6px;
+    --rx-radius-4:  8px;
+    --rx-radius-5: 12px;
+    --rx-radius-6: 16px;
+    --rx-radius-full: 9999px;
+
+    /* ---------- 5. Colour scales — Radix light (step 3 / 6 / 9 / 11) ---------- */
+    /* Indigo — page accent, replaces the previous "iris" sketch.
+       Step values lifted verbatim from radix-ui.com/colors. */
+    --rx-accent-3:  #edf2fe;
+    --rx-accent-6:  #c1d0ff;
+    --rx-accent-9:  #3e63dd;
+    --rx-accent-11: #3a5bc7;
+
+    /* Gray (Radix neutral) */
+    --rx-gray-1:    #fcfcfc;
+    --rx-gray-3:    #f0f0f0;
+    --rx-gray-6:    #d9d9d9;
+    --rx-gray-9:    #8d8d8d;
+    --rx-gray-11:   #646464;
+    --rx-gray-12:   #202020;
+
+    /* Semantic — green / amber / red / blue / violet */
+    --rx-green-3:   #e9f9ee;
+    --rx-green-6:   #b4dfc4;
+    --rx-green-9:   #30a46c;
+    --rx-green-11:  #218358;
+
+    --rx-amber-3:   #fff4d5;
+    --rx-amber-6:   #ffd386;
+    --rx-amber-9:   #ffb224;
+    --rx-amber-11:  #ad5700;
+
+    --rx-red-3:     #ffefef;
+    --rx-red-6:     #f9c6c6;
+    --rx-red-9:     #e5484d;
+    --rx-red-11:    #cd2b31;
+
+    --rx-blue-3:    #edf6ff;
+    --rx-blue-6:    #b7d9f8;
+    --rx-blue-9:    #0091ff;
+    --rx-blue-11:   #006adc;
+
+    --rx-violet-3:  #f5f2ff;
+    --rx-violet-6:  #d7cff9;
+    --rx-violet-9:  #6e56cf;
+    --rx-violet-11: #5746af;
+
+    /* ---------- 6. Gray alpha (light) — the muted-text trick ---------- */
+    --rx-gray-a3:   rgba(0, 0, 0, 0.058);
+    --rx-gray-a6:   rgba(0, 0, 0, 0.149);
+    --rx-gray-a9:   rgba(0, 0, 0, 0.447);
+    --rx-gray-a11: rgba(0, 0, 0, 0.608);  /* primary muted text */
+    --rx-gray-a12: rgba(0, 0, 0, 0.875);  /* primary body text */
+
+    /* ---------- Semantic aliases (used by downstream rules) ---------- */
+    --rx-ink:        var(--rx-gray-12);
+    --rx-ink-muted:  var(--rx-gray-a11);
+    --rx-hairline:   var(--rx-gray-a6);
+    --rx-hairline-soft: var(--rx-gray-a3);
+}
+
+/* Dark-mode overrides. Radix publishes a separate 12-step dark scale; we
+ * map the same four pour-points to their dark counterparts so any rule
+ * that consumes `--rx-accent-3` (etc.) keeps working under data-color-mode
+ * = "dark". Values lifted from radix-ui.com/colors dark scales. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-color-mode="light"]) {
+        --rx-accent-3:  #182449;
+        --rx-accent-6:  #253974;
+        --rx-accent-9:  #3e63dd;
+        --rx-accent-11: #9eb1ff;
+
+        --rx-gray-1:   #111;
+        --rx-gray-3:   #222;
+        --rx-gray-6:   #363636;
+        --rx-gray-9:   #707070;
+        --rx-gray-11:  #b4b4b4;
+        --rx-gray-12:  #eeeeee;
+
+        --rx-green-3:  #132d21;
+        --rx-green-6:  #1b543a;
+        --rx-green-9:  #30a46c;
+        --rx-green-11: #4cc38a;
+
+        --rx-amber-3:  #361a00;
+        --rx-amber-6:  #714811;
+        --rx-amber-9:  #ffb224;
+        --rx-amber-11: #ffb224;
+
+        --rx-red-3:    #2a1314;
+        --rx-red-6:    #67191c;
+        --rx-red-9:    #e5484d;
+        --rx-red-11:   #ff6369;
+
+        --rx-blue-3:   #0d2847;
+        --rx-blue-6:   #195591;
+        --rx-blue-9:   #0091ff;
+        --rx-blue-11:  #52a9ff;
+
+        --rx-violet-3: #221039;
+        --rx-violet-6: #432d7e;
+        --rx-violet-9: #6e56cf;
+        --rx-violet-11:#9b8cf4;
+
+        --rx-gray-a3:   rgba(255, 255, 255, 0.072);
+        --rx-gray-a6:   rgba(255, 255, 255, 0.181);
+        --rx-gray-a9:   rgba(255, 255, 255, 0.435);
+        --rx-gray-a11:  rgba(255, 255, 255, 0.706);
+        --rx-gray-a12:  rgba(255, 255, 255, 0.929);
+    }
+}
+
+/* Shibuya's manual toggle sets html[data-color-mode="dark"] regardless
+ * of the OS preference. Mirror every dark override above so the manual
+ * switch flips the --rx-* tokens too. Keep in sync with the @media
+ * block above when tokens change. */
+html[data-color-mode="dark"] {
+    --rx-accent-3:  #182449;
+    --rx-accent-6:  #253974;
+    --rx-accent-9:  #3e63dd;
+    --rx-accent-11: #9eb1ff;
+
+    --rx-gray-1:   #111;
+    --rx-gray-3:   #222;
+    --rx-gray-6:   #363636;
+    --rx-gray-9:   #707070;
+    --rx-gray-11:  #b4b4b4;
+    --rx-gray-12:  #eeeeee;
+
+    --rx-green-3:  #132d21;
+    --rx-green-6:  #1b543a;
+    --rx-green-9:  #30a46c;
+    --rx-green-11: #4cc38a;
+
+    --rx-amber-3:  #361a00;
+    --rx-amber-6:  #714811;
+    --rx-amber-9:  #ffb224;
+    --rx-amber-11: #ffb224;
+
+    --rx-red-3:    #2a1314;
+    --rx-red-6:    #67191c;
+    --rx-red-9:    #e5484d;
+    --rx-red-11:   #ff6369;
+
+    --rx-blue-3:   #0d2847;
+    --rx-blue-6:   #195591;
+    --rx-blue-9:   #0091ff;
+    --rx-blue-11:  #52a9ff;
+
+    --rx-violet-3: #221039;
+    --rx-violet-6: #432d7e;
+    --rx-violet-9: #6e56cf;
+    --rx-violet-11:#9b8cf4;
+
+    --rx-gray-a3:   rgba(255, 255, 255, 0.072);
+    --rx-gray-a6:   rgba(255, 255, 255, 0.181);
+    --rx-gray-a9:   rgba(255, 255, 255, 0.435);
+    --rx-gray-a11:  rgba(255, 255, 255, 0.706);
+    --rx-gray-a12:  rgba(255, 255, 255, 0.929);
+}
+
+/* ---------------------------------------------------------------------------
+ * Sidebar active pill — Radix Themes pattern
+ *
+ * Replaces Shibuya's "active link recoloured" pattern with the
+ * radix-ui.com docs pattern: subtle accent-tint pill background that
+ * sits on the page background, so the currently-open page becomes a
+ * landmark instead of disappearing into the list.
+ * ------------------------------------------------------------------------- */
+
+.sy-lside a.current,
+.globaltoc a.current {
+    background: var(--rx-accent-3);
+    color: var(--rx-accent-11) !important;
+    font-weight: var(--rx-fw-medium);
+    border-radius: var(--rx-radius-full);
+    padding: 0.2rem 0.7rem;
+    margin: 0 -0.7rem;
+}
+.sy-lside a.current:hover,
+.globaltoc a.current:hover {
+    background: var(--rx-accent-3);  /* hold the pill on hover */
+    color: var(--rx-accent-11) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Inline code — Radix indigo accent tint, locked to the light scale.
+ *
+ * Shibuya already paints a faint blue-tinted pill on `<code>` inside
+ * paragraphs; aligning the exact hue with the page accent makes the
+ * inline code blend with link / kicker tokens used elsewhere.
+ *
+ * Colors are hard-coded to the Radix indigo light scale instead of routed
+ * through `--rx-accent-*` so the inline pill keeps the same appearance
+ * across light/dark page modes — readers on mobile in OS dark mode would
+ * otherwise see a dark pill with bright text, which looks inconsistent
+ * with how the docs render on a typical desktop.
+ * ------------------------------------------------------------------------- */
+
+.yue :not(pre) > code,
+.yue :not(pre) > code.literal,
+.yue p > code,
+.yue li > code {
+    background: #edf2fe;  /* Radix indigo step 3 (light) */
+    color: #3a5bc7;        /* Radix indigo step 11 (light) */
+    border-radius: var(--rx-radius-1);
+}
+
+/* ---------------------------------------------------------------------------
+ * Font stacks — route every surface through the self-hosted webfonts.
+ * Shibuya bundles a generic Inter fallback chain; replacing it here means
+ * cross-platform rendering stays consistent even on systems that don't
+ * already have Inter installed.
+ * ------------------------------------------------------------------------- */
+
+body,
+.yue,
+.yue h1, .yue h2, .yue h3, .yue h4, .yue h5, .yue h6,
+.yue p, .yue li,
+.sy-lside,
+.sy-rside,
+.sy-foot,
+.sy-head-links,
+.sy-breadcrumbs {
+    font-family: var(--rx-font-sans);
+    font-feature-settings: "cv01", "cv02", "cv11", "ss01";
+}
+
+code, kbd, samp, pre,
+.yue code, .yue pre, .yue kbd,
+:not(pre) > code.literal,
+div.highlight pre,
+pre.literal-block {
+    font-family: var(--rx-font-mono);
+    font-feature-settings: "calt" 1;  /* Inter-like contextual alts on JBM */
+}
+
+/* ---------------------------------------------------------------------------
+ * Article typography — Radix Themes scale
+ *
+ * Shibuya already routes body / heading text through Inter (its default
+ * font stack), so this block only adjusts size, weight, letter spacing,
+ * and section margins to the canonical 9-step scale from
+ * radix-ui.com/themes/docs/theme/typography.
+ *
+ * Selectors are scoped to `.yue` (Shibuya's article reset class) so we
+ * don't accidentally retype the sidebar / right toc / breadcrumbs.
+ * ------------------------------------------------------------------------- */
+
+.yue h1 {
+    font-size: var(--rx-fs-8);          /* 35px */
+    line-height: var(--rx-lh-8);        /* 40px */
+    letter-spacing: var(--rx-ls-8);
+    font-weight: var(--rx-fw-bold);     /* 700, not 800 */
+    margin: 0 0 var(--rx-space-2);      /* 0 bottom, 8px before subtitle */
+}
+.yue h2 {
+    font-size: var(--rx-fs-6);          /* 24px */
+    line-height: var(--rx-lh-6);        /* 30px */
+    letter-spacing: var(--rx-ls-6);
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-8) 0 var(--rx-space-3);  /* 48 top, 12 bottom */
+}
+.yue h3 {
+    font-size: var(--rx-fs-4);          /* 18px */
+    line-height: var(--rx-lh-3);        /* 24px (denser than lh-4 for the smaller heading) */
+    letter-spacing: var(--rx-ls-4);
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-7) 0 var(--rx-space-2);  /* 40 top, 8 bottom */
+}
+.yue h4 {
+    font-size: var(--rx-fs-2);          /* 14px */
+    line-height: var(--rx-lh-2);        /* 20px */
+    letter-spacing: var(--rx-ls-2);     /* 0 */
+    font-weight: var(--rx-fw-bold);
+    margin: var(--rx-space-5) 0 var(--rx-space-2);
+}
+
+/* Landing-style lead paragraph (rendered from `.. rst-class:: lead`).
+ * Subtitle role on a docs page — bigger, slightly muted. */
+.yue .lead,
+.yue p.lead {
+    font-size: var(--rx-fs-4);
+    line-height: var(--rx-lh-4);
+    letter-spacing: var(--rx-ls-4);
+    color: var(--rx-ink-muted);
+    margin: 0 0 var(--rx-space-7);
+}
+
+/* ---------------------------------------------------------------------------
+ * sphinx-design badges — Radix step-3 / step-11 pastel
+ *
+ * Default sphinx-design uses Bootstrap-era saturated tones for
+ * `:bdg-success:`, `:bdg-warning:`, etc. Re-map them to the Radix
+ * step-3 (subtle bg) + step-11 (accessible text) pattern so badges
+ * read as metadata on a paper-margin docs page, not as runtime
+ * alerts.
+ *
+ * `!important` is necessary because sphinx-design's own rules use
+ * !important on these classes; we match its specificity.
+ * ------------------------------------------------------------------------- */
+
+.sd-badge {
+    border-radius: var(--rx-radius-full) !important;
+    font-weight: var(--rx-fw-medium) !important;
+    letter-spacing: 0 !important;
+}
+
+.sd-badge.sd-bg-success      { background-color: var(--rx-green-3) !important; }
+.sd-badge.sd-bg-text-success { color:            var(--rx-green-11) !important; }
+
+.sd-badge.sd-bg-warning      { background-color: var(--rx-amber-3) !important; }
+.sd-badge.sd-bg-text-warning { color:            var(--rx-amber-11) !important; }
+
+.sd-badge.sd-bg-danger       { background-color: var(--rx-red-3)   !important; }
+.sd-badge.sd-bg-text-danger  { color:            var(--rx-red-11)  !important; }
+
+.sd-badge.sd-bg-info         { background-color: var(--rx-blue-3)  !important; }
+.sd-badge.sd-bg-text-info    { color:            var(--rx-blue-11) !important; }
+
+.sd-badge.sd-bg-primary,
+.sd-badge.sd-bg-secondary,
+.sd-badge.sd-bg-light,
+.sd-badge.sd-bg-dark {
+    /* Neutral / brand variants fall back to the gray scale + accent. */
+    background-color: var(--rx-gray-3) !important;
+}
+.sd-badge.sd-bg-text-primary,
+.sd-badge.sd-bg-text-secondary,
+.sd-badge.sd-bg-text-light,
+.sd-badge.sd-bg-text-dark {
+    color: var(--rx-gray-12) !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Code blocks
+ * ------------------------------------------------------------------------- */
+
+div.highlight pre,
+pre.literal-block {
+    line-height: 1.5;
+    padding: 0.9em 1.1em;
+}
+
+:not(pre) > code.literal {
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Admonitions
+ * ------------------------------------------------------------------------- */
+
+.admonition .admonition-title {
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tables
+ * ------------------------------------------------------------------------- */
+
+table.docutils td,
+table.docutils th {
+    padding: 0.45em 0.75em;
+}
+
+/* Validation table: tighten numeric columns and right-align numbers so the
+ * per-point grid is scannable instead of zig-zagging. */
+table.validation-table-static td,
+table.validation-table-static th {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+table.validation-table-static td:first-child,
+table.validation-table-static th:first-child {
+    text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+ * Figures
+ * ------------------------------------------------------------------------- */
+
+figure img,
+.figure img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Landing — badges, CTAs, navigation cards
+ *
+ * Tone: scientific / restrained. No hover lifts, no coloured drop shadows,
+ * no decorative pills. The landing should read like the front matter of
+ * a paper, not a SaaS marketing page.
+ * ------------------------------------------------------------------------- */
+
+/* Shields.io row directly under the lead paragraph. Kept as metadata,
+ * not as marketing chrome — small, slightly desaturated, and given room
+ * to breathe above the inline-link hero CTA. */
+.hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.4rem;
+    margin: 0.5rem 0 1.4rem;
+    align-items: center;
+}
+.hero-badges img {
+    height: 17px;
+    display: block;
+    opacity: 0.75;
+    transition: opacity 120ms ease;
+}
+.hero-badges img:hover {
+    opacity: 1;
+}
+
+/* Hero CTA row — underline + arrow, no box.
+ *
+ * Reads as a row of links in the prose stream rather than as marketing
+ * buttons. Internal docs get a "→", the external GitHub link gets "↗".
+ * Hover paints the underline and nudges the arrow.
+ */
+.hero-cta > p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 1.6rem;
+    margin: 0.5rem 0 2rem;
+    font-size: 0.95rem;
+}
+.hero-cta a.reference {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color 120ms ease;
+}
+.hero-cta a.reference::after {
+    content: "→";
+    display: inline-block;
+    transition: transform 120ms ease;
+}
+.hero-cta a.reference.external::after {
+    content: "↗";
+}
+.hero-cta a.reference:hover {
+    border-bottom-color: currentColor;
+}
+.hero-cta a.reference:hover::after {
+    transform: translateX(2px);
+}
+
+/* "Next steps" pointer block — left iris stripe + inline-link with
+ * trailing arrow, so the section reads as a quiet hand-off instead of
+ * two marketing cards.  Used at the bottom of pages that have an
+ * obvious follow-up (e.g. Quick start → First dynamic simulation). */
+.next-steps {
+    margin: 1rem 0 0;
+    padding: 0.15rem 0 0.15rem 1rem;
+    border-left: 3px solid var(--rx-accent-9);
+}
+.next-steps p {
+    margin: 0.45rem 0;
+}
+.next-steps a.reference {
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: border-color 120ms ease;
+}
+.next-steps a.reference::after {
+    content: " →";
+    display: inline-block;
+    transition: transform 120ms ease;
+}
+.next-steps a.reference:hover {
+    border-bottom-color: currentColor;
+}
+.next-steps a.reference:hover::after {
+    transform: translateX(2px);
+}
+
+/* Navigation cards. Light border, no shadow, no hover lift — only the
+ * border colour responds to hover. */
+.landing-cards .sd-card {
+    border-radius: var(--rx-radius-3);
+    border: 1px solid var(--rx-hairline);
+    box-shadow: none;
+    transition: border-color 150ms ease;
+}
+.landing-cards .sd-card:hover {
+    border-color: var(--rx-accent-9);
+}
+.landing-cards .sd-card .sd-card-title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+}
+.landing-cards .sd-card .sd-card-body {
+    padding: 1.1rem 1.25rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * Dropdowns (sphinx-design)
+ *
+ * Quiet the heavy success / warning / danger card colours so dropdowns
+ * read like documentation, not like a runtime alert console.  Severity
+ * still carries — left-edge stripe + an accented icon — but the body is
+ * a faint tint of the same hue against the page background, not a solid
+ * fill that drowns out the prose.
+ * ------------------------------------------------------------------------- */
+
+/* The validation per-point table sits inside a dropdown — give it room. */
+details.sd-dropdown[open] .sd-summary-content {
+    padding: 0.5rem 0.25rem;
+}
+
+/* Restrained card chrome — no shadow, tight radius, modest spacing. */
+.sd-dropdown.sd-card {
+    border-radius: var(--rx-radius-3);
+    box-shadow: none;
+    margin-bottom: 0.65rem;
+    border: 1px solid var(--dropdown-border, var(--rx-hairline));
+    overflow: hidden;
+}
+
+/* Summary (the always-visible header bar). */
+.sd-dropdown > summary.sd-card-header {
+    padding: 0.55rem 0.85rem !important;
+    border-bottom: 0 !important;
+    border-left: 3px solid var(--dropdown-accent, var(--sy-c-border)) !important;
+    background: var(--dropdown-bg, transparent) !important;
+    color: var(--sy-c-text, inherit) !important;
+    font-weight: 500;
+}
+.sd-dropdown > summary.sd-card-header code {
+    background: var(--rx-gray-a3);
+    color: inherit;
+    font-weight: 600;
+    padding: 0.05em 0.35em;
+    border-radius: var(--rx-radius-1);
+    font-size: 0.88em;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-icon {
+    color: var(--dropdown-accent, var(--sy-c-text-secondary));
+    margin-right: 0.45em;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-icon svg {
+    fill: currentColor;
+    stroke: currentColor;
+}
+.sd-dropdown > summary.sd-card-header .sd-summary-down,
+.sd-dropdown > summary.sd-card-header .sd-summary-up {
+    color: var(--sy-c-text-secondary, #6b7280);
+    opacity: 0.6;
+}
+
+/* Expanded body inherits the left stripe and the same tint, so the card
+ * reads as one block. */
+.sd-dropdown[open] > .sd-card-body {
+    border-left: 3px solid var(--dropdown-accent, transparent) !important;
+    background: var(--dropdown-bg, transparent) !important;
+    padding: 0.85rem 0.95rem;
+}
+
+/* Per-severity tokens — Radix step-3 (subtle bg) + step-6 (border) +
+ * step-9 (solid stripe / icon). The same scale powers dark mode
+ * automatically via the @media block in the foundation. */
+.sd-dropdown.sd-card-success {
+    --dropdown-accent: var(--rx-green-9);
+    --dropdown-bg:     var(--rx-green-3);
+    --dropdown-border: var(--rx-green-6);
+}
+.sd-dropdown.sd-card-warning {
+    --dropdown-accent: var(--rx-amber-9);
+    --dropdown-bg:     var(--rx-amber-3);
+    --dropdown-border: var(--rx-amber-6);
+}
+.sd-dropdown.sd-card-danger {
+    --dropdown-accent: var(--rx-red-9);
+    --dropdown-bg:     var(--rx-red-3);
+    --dropdown-border: var(--rx-red-6);
+}
+.sd-dropdown.sd-card-info {
+    --dropdown-accent: var(--rx-blue-9);
+    --dropdown-bg:     var(--rx-blue-3);
+    --dropdown-border: var(--rx-blue-6);
+}
+
+/* ---------------------------------------------------------------------------
+ * Mermaid
+ * ------------------------------------------------------------------------- */
+
+/* Center the rendered SVG and stop it from blowing past the column. */
+.mermaid {
+    text-align: center;
+    margin: 1rem auto 1.25rem;
+}
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab sets (sphinx-design)
+ * ------------------------------------------------------------------------- */
+
+/* Tighter tab labels and a hint of bottom space below the content. */
+.sd-tab-set > label.sd-tab-label {
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+ * Last-updated-by-git footer
+ * ------------------------------------------------------------------------- */
+
+/* The extension drops a small "Last updated" line at the bottom of each
+ * page; align it with the existing footer typography. */
+.git-last-updated {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    margin-top: 2rem;
+    font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+ * Right-hand "On this page" toc
+ *
+ * Cap the rendered toc at section + class. The 3rd level (every method
+ * signature: __init__, analyze_steady, analyze_dynamic, ...) blows the
+ * panel past two screens on the larger model pages and adds noise without
+ * adding navigation value — readers already see methods inline on the
+ * page itself.
+ * ------------------------------------------------------------------------- */
+
+.localtoc ul ul ul {
+    display: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * API signatures
+ * ------------------------------------------------------------------------- */
+
+/* Shibuya forces `.yue dt { font-weight: 600 }` which bleeds into Python
+ * signatures: parens, commas, default values, type annotations all render
+ * bold and the reader can't tell the function name apart from its 30+
+ * parameters. Keep the name (and prename / class qualifier) emphasised,
+ * normalise everything else inside the signature. */
+.yue dl.py > dt.sig,
+.yue dl.py > dt.sig .sig-paren,
+.yue dl.py > dt.sig .default_value,
+.yue dl.py > dt.sig .o,
+.yue dl.py > dt.sig .n,
+.yue dl.py > dt.sig .sig-param,
+.yue dl.py > dt.sig .sig-param .pre {
+    font-weight: 400;
+}
+.yue dl.py > dt.sig .sig-name {
+    font-weight: 600;
+}
+.yue dl.py > dt.sig .sig-prename {
+    font-weight: 500;
+    opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------------------
+ * API field-list (Parameters / Returns / Raises)
+ *
+ * autodoc + napoleon emit every parameter as `<strong>name</strong>` followed
+ * by a typehints inline-code box. On classes with 30+ params every row fires
+ * both emphasis channels at once (700 strong + indigo code chip), so the eye
+ * has no anchor — every line shouts equally.
+ *
+ * Fix uses two structural moves, not a downweight:
+ *   1. Parameter name -> mono + medium + left-aligned column. Mono signals
+ *      "code identifier" without a coloured chip; the column lets the eye
+ *      sweep down the parameter list as if it were a table.
+ *   2. Type-hint code -> drop indigo, render as muted mono. The indigo chip
+ *      stays appropriate for prose `<code>` (one or two per paragraph) but
+ *      stops fighting with the parameter name on autogenerated metadata
+ *      that repeats every row.
+ * ------------------------------------------------------------------------- */
+
+.yue dl.field-list > dd > ul.simple > li > p > strong:first-child {
+    display: inline-block;
+    min-width: 14em;
+    margin-right: 0.75em;
+    vertical-align: baseline;
+    font-family: var(--rx-font-mono);
+    font-weight: var(--rx-fw-semibold);
+    color: var(--rx-ink);
+    font-size: 0.92em;          /* optical size match against surrounding sans */
+}
+
+.yue dl.field-list .sphinx_autodoc_typehints-type {
+    color: var(--rx-ink-muted);
+}
+.yue dl.field-list .sphinx_autodoc_typehints-type code,
+.yue dl.field-list .sphinx_autodoc_typehints-type code.literal,
+.yue dl.field-list .sphinx_autodoc_typehints-type .pre {
+    background: transparent;
+    color: var(--rx-ink-muted);
+    font-weight: var(--rx-fw-regular);
+    padding: 0;
+}
+
+.yue dl.field-list > dd > ul.simple > li {
+    margin: 0.15em 0;
+}
+.yue dl.field-list > dd > ul.simple > li > p {
+    margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * Site footer
+ * ------------------------------------------------------------------------- */
+
+/* Shibuya's default footer divider is heavier than the hairline rules
+ * used across landing cards, admonitions, and the last-updated line.
+ * Re-align it with the same hairline token so the bottom of every page
+ * reads as a unified set of borders, not a separate ruled-off block. */
+footer.sy-foot {
+    border-top-color: var(--color-border, rgba(120, 120, 120, 0.2));
+}
+
+/* ---------------------------------------------------------------------------
+ * Copybutton
+ * ------------------------------------------------------------------------- */
+
+/* Nudge the copy icon out of the corner a touch so it stops overlapping
+ * long single-line code samples. */
+button.copybtn {
+    opacity: 0.55;
+}
+button.copybtn:hover {
+    opacity: 1;
+}
+
+/* ===========================================================================
+ * Interactive layer hooks (filled in by Phase 1 + Phase 2 commits).
+ *
+ * Sections that ship empty here are *placeholders for landmark comments*,
+ * not for unfinished code. Each pattern's commit adds its own rules under
+ * the matching section header below, so all interactive-layer CSS stays
+ * grouped at the bottom of the file and the existing Radix-DNA layer above
+ * remains untouched.
+ * ------------------------------------------------------------------------- */
+
+/* --- Plot containers (①) — ② parity and ③ scrub reverted --- */
+.tmhp-plot-mount {
+    margin: 1.5em 0;
+    font-family: var(--rx-font-sans);
+    max-width: 100%;
+}
+.tmhp-plot-mount svg { display: block; max-width: 100%; height: auto; }
+.tmhp-plot-mount .axis text { font-size: 12px; fill: var(--rx-ink-muted); }
+.tmhp-plot-mount .axis line,
+.tmhp-plot-mount .axis path { stroke: var(--rx-hairline); }
+
+.ph-chart .ph-chrome {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) minmax(180px, 1fr);
+    gap: var(--rx-space-3) var(--rx-space-4);
+    align-items: center;
+    padding: var(--rx-space-3); border: 1px solid var(--rx-hairline);
+    border-radius: var(--rx-radius-3);
+    background: var(--rx-gray-1);
+}
+.ph-chart .ph-chrome label {
+    display: flex; gap: var(--rx-space-2); align-items: center;
+    font-size: var(--rx-fs-2); color: var(--rx-ink-muted);
+    min-width: 0;
+}
+.ph-chart .ph-chrome select,
+.ph-chart .ph-chrome input[type="range"] {
+    accent-color: var(--rx-accent-9);
+    min-width: 0;
+    max-width: 100%;
+}
+.ph-chart .ph-chrome output {
+    font-variant-numeric: tabular-nums;
+    min-width: 3.5ch;
+    display: inline-block;
+}
+.ph-chart .ph-canvas-wrap {
+    /* COP readout is rendered inline inside the SVG now, so the side
+       column is gone and the canvas takes the full width. */
+    margin-top: var(--rx-space-3);
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Shibuya theme footer ("© 2025, betlab · Made with Sphinx") — explicitly
+   suppressed because the docs are an academic library, not a marketing site.
+   To restore: remove this rule. */
+footer.sy-foot { display: none; }
+
+/* --- Table widget (④) --- */
+.validation-table .vt-chrome {
+    display: flex; gap: var(--rx-space-3); margin-bottom: var(--rx-space-3);
+    flex-wrap: wrap; align-items: center;
+}
+.validation-table {
+    max-width: 100%;
+    overflow-x: auto;
+}
+.validation-table .vt-filter {
+    flex: 1; min-width: 200px; padding: 6px 10px;
+    border: 1px solid var(--rx-hairline); border-radius: var(--rx-radius-3);
+    font-family: var(--rx-font-sans); font-size: var(--rx-fs-2);
+    background: var(--rx-gray-1); color: var(--rx-ink);
+}
+.validation-table .vt-chip {
+    padding: 4px 10px; border: 1px solid var(--rx-hairline);
+    background: var(--rx-gray-1); border-radius: var(--rx-radius-full);
+    font-size: var(--rx-fs-1); cursor: pointer;
+    color: var(--rx-ink-muted);
+}
+.validation-table .vt-chip.active {
+    background: var(--rx-accent-3); border-color: var(--rx-accent-6);
+    color: var(--rx-accent-11); font-weight: var(--rx-fw-medium);
+}
+.validation-table .vt-table {
+    width: 100%; min-width: 520px;
+    border-collapse: collapse; font-size: var(--rx-fs-2);
+}
+.validation-table .vt-table th,
+.validation-table .vt-table td {
+    padding: 6px 8px; text-align: right;
+    border-bottom: 1px solid var(--rx-hairline-soft);
+    font-variant-numeric: tabular-nums;
+}
+.validation-table .vt-table th:first-child,
+.validation-table .vt-table td:first-child,
+.validation-table .vt-table th:nth-child(2),
+.validation-table .vt-table td:nth-child(2) { text-align: left; }
+.validation-table .vt-table th {
+    cursor: pointer; user-select: none;
+    color: var(--rx-ink-muted); font-weight: var(--rx-fw-medium);
+}
+.validation-table .vt-row.is-selected { background: var(--rx-accent-3); }
+.validation-table .vt-table td.ok   { color: var(--rx-green-11); }
+.validation-table .vt-table td.warn { color: var(--rx-amber-11); }
+.hidden-by-js { display: none !important; }
+
+@media (max-width: 700px) {
+    .ph-chart .ph-chrome {
+        grid-template-columns: 1fr;
+    }
+    .ph-chart .ph-chrome label {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+    .ph-chart .ph-chrome select,
+    .ph-chart .ph-chrome input[type="range"] {
+        width: 100%;
+    }
+    .validation-table .vt-filter {
+        min-width: 100%;
+    }
+}
+
+/* --- Tabs (⑤) --- */
+/* sphinx-design tabs reskin to match Radix-DNA accent.
+ *
+ * The directive's `:class: composition-tabs` lands ON the `.sd-tab-set`
+ * div itself (not as a wrapper), so `.composition-tabs.sd-tab-set` is
+ * the selector — not `.composition-tabs .sd-tab-set`. The radio inputs
+ * sphinx-design emits do not carry the `sd-tab-input` class — they're
+ * plain `<input type="radio">`, so the active-state selector targets
+ * `input[type="radio"]:checked + label.sd-tab-label`.
+ */
+.composition-tabs.sd-tab-set { border-bottom: 1px solid var(--rx-hairline); }
+.composition-tabs > label.sd-tab-label {
+    padding: var(--rx-space-2) var(--rx-space-4);
+    font-size: var(--rx-fs-2);
+    color: var(--rx-ink-muted);
+    border-bottom: 2px solid transparent;
+    transition: color 120ms ease, border-color 120ms ease;
+}
+.composition-tabs > label.sd-tab-label:hover { color: var(--rx-ink); }
+.composition-tabs > input[type="radio"]:checked + label.sd-tab-label {
+    color: var(--rx-accent-11);
+    border-bottom-color: var(--rx-accent-9);
+    font-weight: var(--rx-fw-medium);
+}
+.composition-tabs > .sd-tab-content { padding: var(--rx-space-4) 0; }
+
+/* --- Glossary popover (⑥) --- */
+.glossary {
+    /* Slightly heavier dash than 1 px so the underline reads as
+       "interactive hint" rather than a render artefact, but still
+       lighter than a solid underline (which would imply a link). */
+    border-bottom: 1.5px dashed var(--rx-accent-9);
+    cursor: help;
+    padding: 0 1px;
+    transition: background 100ms ease;
+}
+.glossary:hover, .glossary:focus {
+    outline: none;
+    background: var(--rx-accent-3);
+    border-radius: 2px;
+}
+.glossary-pop {
+    position: absolute; z-index: 9999;
+    max-width: 280px;
+    padding: var(--rx-space-3);
+    background: var(--rx-gray-1);
+    color: var(--rx-ink);
+    border: 1px solid var(--rx-accent-6);
+    border-radius: var(--rx-radius-3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    font-size: var(--rx-fs-2);
+    opacity: 0; pointer-events: none;
+    transition: opacity 100ms ease;
+}
+.glossary-pop.visible { opacity: 1; pointer-events: auto; }
+.glossary-pop .head  { font-weight: var(--rx-fw-bold); color: var(--rx-accent-11); }
+.glossary-pop .def   { margin-top: 4px; color: var(--rx-ink); }
+.glossary-pop .link  { display: inline-block; margin-top: 6px; color: var(--rx-accent-11); font-size: var(--rx-fs-1); text-decoration: none; }
+.glossary-pop .link:hover { text-decoration: underline; }
+
+/* --- Cmd+K palette (⑧) --- */
+.cmdk-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.35);
+    display: none; align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+}
+.cmdk-overlay.open { display: flex; }
+.cmdk-modal {
+    width: min(560px, 92vw);
+    background: var(--rx-gray-1);
+    border: 1px solid var(--rx-hairline);
+    border-radius: var(--rx-radius-4);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18);
+    overflow: hidden;
+}
+.cmdk-input {
+    width: 100%; padding: 14px 18px; border: 0;
+    font-family: var(--rx-font-sans); font-size: var(--rx-fs-4);
+    background: transparent; color: var(--rx-ink);
+    border-bottom: 1px solid var(--rx-hairline);
+}
+.cmdk-input:focus { outline: none; }
+.cmdk-list {
+    list-style: none; margin: 0; padding: 4px;
+    max-height: 50vh; overflow-y: auto;
+}
+.cmdk-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; border-radius: var(--rx-radius-2);
+    font-size: var(--rx-fs-3); cursor: pointer;
+    color: var(--rx-ink);
+}
+.cmdk-item .cmdk-doc {
+    font-family: var(--rx-font-mono); font-size: var(--rx-fs-1);
+    color: var(--rx-ink-muted);
+}
+.cmdk-item.active { background: var(--rx-accent-3); color: var(--rx-accent-11); }
+.cmdk-empty {
+    /* "No pages match …" state — italic, muted, centred-feel. */
+    padding: 16px 14px;
+    color: var(--rx-ink-muted);
+    font-style: italic;
+    text-align: center;
+}
+/* Cmd+K affordance — Shibuya's header search box ships a `<kbd>/</kbd>`
+ * hint pointing at its full-text search page. Append a sibling hint so
+ * power users discover the in-page palette. Hidden on touch devices
+ * (no Cmd/Ctrl key to press). */
+.searchbox::after {
+    content: "⌘K";
+    font-family: var(--rx-font-mono);
+    font-size: var(--rx-fs-1);
+    color: var(--rx-ink-muted);
+    border: 1px solid var(--rx-hairline);
+    border-radius: var(--rx-radius-2);
+    padding: 1px 6px;
+    margin-left: 6px;
+    line-height: 1.4;
+}
+@media (hover: none) {
+    .searchbox::after { display: none; }
+}
+/* --- Reading progress + scroll-spy (⑨) --- */
+.reading-progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0;
+    background: linear-gradient(90deg, var(--rx-accent-9), var(--rx-violet-9));
+    z-index: 10001; pointer-events: none;
+    transition: width 80ms ease-out;
+}
+.sy-rside a.is-active,
+nav.toc a.is-active,
+.toc-list a.is-active {
+    color: var(--rx-accent-11);
+    background: var(--rx-accent-3);
+    border-radius: var(--rx-radius-2);
+    padding: 0 6px;
+    font-weight: var(--rx-fw-medium);
+}

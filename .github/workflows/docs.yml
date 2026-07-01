@@ -1,0 +1,71 @@
+name: Deploy Sphinx Docs to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**
+      - src/tmhp/**
+      - scripts/data/**
+      - scripts/validation/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/docs.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Full history so sphinx-last-updated-by-git can compute the
+          # per-page modification timestamps. The default shallow clone
+          # (depth=1) trips the `git.too_shallow` warning for every page.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Restore generated docs data cache
+        id: docs-data-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/source/_static/widgets/cycle_data.json
+            docs/source/_static/widgets/cycle_data.*.stamp
+            docs/source/_static/data/*.json
+          key: docs-data-${{ runner.os }}-full-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile', 'scripts/data/**', 'scripts/validation/**', 'src/tmhp/**') }}
+
+      - name: Install dependencies
+        run: uv sync --all-groups --locked
+
+      - name: Refresh cached docs data mtimes
+        if: steps.docs-data-cache.outputs.cache-hit == 'true'
+        run: |
+          find docs/source/_static/widgets -maxdepth 1 \( -name 'cycle_data.json' -o -name 'cycle_data.*.stamp' \) -exec touch {} +
+          find docs/source/_static/data -maxdepth 1 -name '*.json' -exec touch {} +
+
+      - name: Build Sphinx Documentation
+        run: |
+          cd docs
+          uv run make html DOCS_DATA_PROFILE=full
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/build/html

@@ -1,0 +1,149 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-type:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install project (dev group, lockfile pinned)
+        run: uv sync --group dev --locked
+
+      - name: Ruff lint
+        run: uv run ruff check src/tmhp tests
+
+      - name: Mypy
+        run: uv run mypy src/tmhp
+
+  test-scope:
+    name: Pytest matrix scope
+    runs-on: ubuntu-latest
+    outputs:
+      run-matrix: ${{ steps.changed-files.outputs.run-matrix }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether full pytest matrix is needed
+        id: changed-files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "run-matrix=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
+
+          if printf '%s\n' "$changed_files" | grep -E '^src/|^tests/|^scripts/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/tests\.yml$' >/dev/null; then
+            echo "run-matrix=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run-matrix=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: test-scope
+    if: needs.test-scope.outputs.run-matrix == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install project (dev group + integrations extra, lockfile pinned)
+        run: uv sync --group dev --extra integrations --locked
+
+      - name: Pytest
+        if: matrix.python-version != '3.12'
+        run: uv run pytest -q -n auto
+
+      - name: Pytest with coverage
+        if: matrix.python-version == '3.12'
+        run: |
+          uv run pytest -q -n auto \
+            --cov=tmhp \
+            --cov-report=term \
+            --cov-report=xml
+
+      - name: Upload coverage XML
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-3.12
+          path: coverage.xml
+          if-no-files-found: error
+
+  docs:
+    # Sphinx output is Python-version-independent; run once and gate PRs on it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Full history so sphinx-last-updated-by-git can compute the
+          # per-page modification timestamps. The default shallow clone
+          # (depth=1) trips the `git.too_shallow` warning for every page.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Restore generated docs data cache
+        id: docs-data-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/source/_static/widgets/cycle_data.json
+            docs/source/_static/widgets/cycle_data.*.stamp
+            docs/source/_static/data/*.json
+          key: docs-data-${{ runner.os }}-ci-${{ hashFiles('uv.lock', 'pyproject.toml', 'docs/Makefile', 'scripts/data/**', 'scripts/validation/**', 'src/tmhp/**') }}
+
+      - name: Install project (dev + docs groups, lockfile pinned)
+        run: uv sync --all-groups --locked
+
+      - name: Refresh cached docs data mtimes
+        if: steps.docs-data-cache.outputs.cache-hit == 'true'
+        run: |
+          find docs/source/_static/widgets -maxdepth 1 \( -name 'cycle_data.json' -o -name 'cycle_data.*.stamp' \) -exec touch {} +
+          find docs/source/_static/data -maxdepth 1 -name '*.json' -exec touch {} +
+
+      - name: Build docs with interactive data (warnings-as-errors)
+        run: make -C docs html SPHINXOPTS="-W --keep-going" DOCS_DATA_PROFILE="ci"

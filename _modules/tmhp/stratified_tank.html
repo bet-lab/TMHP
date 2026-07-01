@@ -257,12 +257,12 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="91">        <span class="bp">self</span><span class="o">.</span><span class="n">ua_total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ua</span><span class="p">)</span>
 </span><span data-line="92">
 </span><span data-line="93">        <span class="c1"># Geometry / lumped node properties.</span>
-</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>          <span class="c1"># [m²]</span>
-</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">dz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                       <span class="c1"># node thickness [m]</span>
-</span><span data-line="96">        <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                   <span class="c1"># node volume [m³]</span>
-</span><span data-line="97">        <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span>                 <span class="c1"># node mass [kg]</span>
-</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_eff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dz</span>      <span class="c1"># inter-node conductance [W/K]</span>
-</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>                <span class="c1"># per-node loss [W/K]</span>
+</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span>  <span class="c1"># [m²]</span>
+</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">dz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>  <span class="c1"># node thickness [m]</span>
+</span><span data-line="96">        <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>  <span class="c1"># node volume [m³]</span>
+</span><span data-line="97">        <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_node</span>  <span class="c1"># node mass [kg]</span>
+</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_eff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">area_cross</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dz</span>  <span class="c1"># inter-node conductance [W/K]</span>
+</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_total</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>  <span class="c1"># per-node loss [W/K]</span>
 </span><span data-line="100">
 </span><span data-line="101">        <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span></div>
 
@@ -290,104 +290,112 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="120">    <span class="c1"># ------------------------------------------------------------------</span>
 <div class="viewcode-block" id="StratifiedTank.step">
 <a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.step">[docs]</a>
-</span><span data-line="121">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">charge_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">T_charge</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="122">             <span class="n">draw_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">T_makeup</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
-</span><span data-line="123">             <span class="n">q_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">T_amb</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="124"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Advance one timestep (backward Euler, charge + draw + heat source).</span>
-</span><span data-line="125">
-</span><span data-line="126"><span class="sd">        Parameters</span>
-</span><span data-line="127"><span class="sd">        ----------</span>
-</span><span data-line="128"><span class="sd">        dt : float</span>
-</span><span data-line="129"><span class="sd">            Timestep [s].</span>
-</span><span data-line="130"><span class="sd">        charge_flow : float, optional</span>
-</span><span data-line="131"><span class="sd">            HP charge flow [m³/s] (hot ``T_charge`` into top, out at bottom).</span>
-</span><span data-line="132"><span class="sd">        T_charge : float, optional</span>
-</span><span data-line="133"><span class="sd">            Charge inlet temperature [°C] (used when ``charge_flow &gt; 0``).</span>
-</span><span data-line="134"><span class="sd">        draw_flow : float, optional</span>
-</span><span data-line="135"><span class="sd">            Load draw flow [m³/s] (hot from top, cold ``T_makeup`` into bottom).</span>
-</span><span data-line="136"><span class="sd">        T_makeup : float, optional</span>
-</span><span data-line="137"><span class="sd">            Cold makeup temperature [°C] (used when ``draw_flow &gt; 0``).</span>
-</span><span data-line="138"><span class="sd">        q_source : float or array-like, optional</span>
-</span><span data-line="139"><span class="sd">            Internal heat input [W] from an immersed heater/condenser. A scalar</span>
-</span><span data-line="140"><span class="sd">            is applied to the top node; a length-``N`` array is applied per node.</span>
-</span><span data-line="141"><span class="sd">        T_amb : float, optional</span>
-</span><span data-line="142"><span class="sd">            Ambient temperature [°C] for the side-wall loss.</span>
-</span><span data-line="143">
-</span><span data-line="144"><span class="sd">        Returns</span>
-</span><span data-line="145"><span class="sd">        -------</span>
-</span><span data-line="146"><span class="sd">        dict</span>
-</span><span data-line="147"><span class="sd">            ``T`` (new node temperatures), ``T_top`` (= hot draw outlet),</span>
-</span><span data-line="148"><span class="sd">            ``T_outlet`` (bottom = cold HP return).</span>
-</span><span data-line="149"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="150">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
-</span><span data-line="151">        <span class="n">mc_dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">/</span> <span class="n">dt</span>          <span class="c1"># capacitance/dt [W/K]</span>
-</span><span data-line="152">        <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span>
-</span><span data-line="153">        <span class="n">ua</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span>
-</span><span data-line="154">        <span class="n">rc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
-</span><span data-line="155">        <span class="n">mc_chg</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">charge_flow</span>                    <span class="c1"># charge advective conductance [W/K]</span>
-</span><span data-line="156">        <span class="n">mc_draw</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">draw_flow</span>                     <span class="c1"># draw advective conductance [W/K]</span>
-</span><span data-line="157">        <span class="n">v_net</span> <span class="o">=</span> <span class="n">charge_flow</span> <span class="o">-</span> <span class="n">draw_flow</span>              <span class="c1"># net downward inter-node flow [m³/s]</span>
-</span><span data-line="158">        <span class="n">mc_int</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v_net</span><span class="p">)</span>                     <span class="c1"># internal advective conductance [W/K]</span>
-</span><span data-line="159">        <span class="n">down</span> <span class="o">=</span> <span class="n">v_net</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
-</span><span data-line="160">
-</span><span data-line="161">        <span class="c1"># Heat source [W per node]: scalar -&gt; top node; array -&gt; per node.</span>
-</span><span data-line="162">        <span class="n">q_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span><span data-line="163">        <span class="k">if</span> <span class="n">q_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="164">            <span class="n">qs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q_source</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
-</span><span data-line="165">            <span class="k">if</span> <span class="n">qs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="166">                <span class="n">q_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
-</span><span data-line="167">            <span class="k">elif</span> <span class="n">qs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="p">,):</span>
-</span><span data-line="168">                <span class="n">q_arr</span> <span class="o">=</span> <span class="n">qs</span>
-</span><span data-line="169">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="170">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;q_source must be scalar or shape (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">,) — got </span><span class="si">{</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="171">
-</span><span data-line="172">        <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   <span class="c1"># coupling of row i to T_{i-1}</span>
-</span><span data-line="173">        <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span><span data-line="174">        <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>   <span class="c1"># coupling of row i to T_{i+1}</span>
-</span><span data-line="175">        <span class="n">rhs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-</span><span data-line="176">
-</span><span data-line="177">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-</span><span data-line="178">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">+</span> <span class="n">ua</span>
-</span><span data-line="179">            <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">ua</span> <span class="o">*</span> <span class="n">T_amb</span> <span class="o">+</span> <span class="n">q_arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-</span><span data-line="180">
-</span><span data-line="181">            <span class="c1"># Boundary ports.</span>
-</span><span data-line="182">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="183">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span> <span class="o">*</span> <span class="n">T_charge</span>          <span class="c1"># charge hot inflow (top)</span>
-</span><span data-line="184">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span>                   <span class="c1"># draw outflow at T_0 (top)</span>
-</span><span data-line="185">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="186">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span> <span class="o">*</span> <span class="n">T_makeup</span>         <span class="c1"># cold makeup inflow (bottom)</span>
-</span><span data-line="187">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span>                    <span class="c1"># charge outflow at T_{N-1} (bottom)</span>
+</span><span data-line="121">    <span class="k">def</span><span class="w"> </span><span class="nf">step</span><span class="p">(</span>
+</span><span data-line="122">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="123">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="124">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="125">        <span class="n">charge_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="126">        <span class="n">T_charge</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="127">        <span class="n">draw_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="128">        <span class="n">T_makeup</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+</span><span data-line="129">        <span class="n">q_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="130">        <span class="n">T_amb</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
+</span><span data-line="131">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="132"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Advance one timestep (backward Euler, charge + draw + heat source).</span>
+</span><span data-line="133">
+</span><span data-line="134"><span class="sd">        Parameters</span>
+</span><span data-line="135"><span class="sd">        ----------</span>
+</span><span data-line="136"><span class="sd">        dt : float</span>
+</span><span data-line="137"><span class="sd">            Timestep [s].</span>
+</span><span data-line="138"><span class="sd">        charge_flow : float, optional</span>
+</span><span data-line="139"><span class="sd">            HP charge flow [m³/s] (hot ``T_charge`` into top, out at bottom).</span>
+</span><span data-line="140"><span class="sd">        T_charge : float, optional</span>
+</span><span data-line="141"><span class="sd">            Charge inlet temperature [°C] (used when ``charge_flow &gt; 0``).</span>
+</span><span data-line="142"><span class="sd">        draw_flow : float, optional</span>
+</span><span data-line="143"><span class="sd">            Load draw flow [m³/s] (hot from top, cold ``T_makeup`` into bottom).</span>
+</span><span data-line="144"><span class="sd">        T_makeup : float, optional</span>
+</span><span data-line="145"><span class="sd">            Cold makeup temperature [°C] (used when ``draw_flow &gt; 0``).</span>
+</span><span data-line="146"><span class="sd">        q_source : float or array-like, optional</span>
+</span><span data-line="147"><span class="sd">            Internal heat input [W] from an immersed heater/condenser. A scalar</span>
+</span><span data-line="148"><span class="sd">            is applied to the top node; a length-``N`` array is applied per node.</span>
+</span><span data-line="149"><span class="sd">        T_amb : float, optional</span>
+</span><span data-line="150"><span class="sd">            Ambient temperature [°C] for the side-wall loss.</span>
+</span><span data-line="151">
+</span><span data-line="152"><span class="sd">        Returns</span>
+</span><span data-line="153"><span class="sd">        -------</span>
+</span><span data-line="154"><span class="sd">        dict</span>
+</span><span data-line="155"><span class="sd">            ``T`` (new node temperatures), ``T_top`` (= hot draw outlet),</span>
+</span><span data-line="156"><span class="sd">            ``T_outlet`` (bottom = cold HP return).</span>
+</span><span data-line="157"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="158">        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+</span><span data-line="159">        <span class="n">mc_dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">m_node</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span> <span class="o">/</span> <span class="n">dt</span>  <span class="c1"># capacitance/dt [W/K]</span>
+</span><span data-line="160">        <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span>
+</span><span data-line="161">        <span class="n">ua</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ua_node</span>
+</span><span data-line="162">        <span class="n">rc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span>
+</span><span data-line="163">        <span class="n">mc_chg</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">charge_flow</span>  <span class="c1"># charge advective conductance [W/K]</span>
+</span><span data-line="164">        <span class="n">mc_draw</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="n">draw_flow</span>  <span class="c1"># draw advective conductance [W/K]</span>
+</span><span data-line="165">        <span class="n">v_net</span> <span class="o">=</span> <span class="n">charge_flow</span> <span class="o">-</span> <span class="n">draw_flow</span>  <span class="c1"># net downward inter-node flow [m³/s]</span>
+</span><span data-line="166">        <span class="n">mc_int</span> <span class="o">=</span> <span class="n">rc</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v_net</span><span class="p">)</span>  <span class="c1"># internal advective conductance [W/K]</span>
+</span><span data-line="167">        <span class="n">down</span> <span class="o">=</span> <span class="n">v_net</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
+</span><span data-line="168">
+</span><span data-line="169">        <span class="c1"># Heat source [W per node]: scalar -&gt; top node; array -&gt; per node.</span>
+</span><span data-line="170">        <span class="n">q_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="171">        <span class="k">if</span> <span class="n">q_source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="172">            <span class="n">qs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">q_source</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="173">            <span class="k">if</span> <span class="n">qs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="174">                <span class="n">q_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">qs</span><span class="p">)</span>
+</span><span data-line="175">            <span class="k">elif</span> <span class="n">qs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="p">,):</span>
+</span><span data-line="176">                <span class="n">q_arr</span> <span class="o">=</span> <span class="n">qs</span>
+</span><span data-line="177">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="178">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;q_source must be scalar or shape (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">,) — got </span><span class="si">{</span><span class="n">qs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="179">
+</span><span data-line="180">        <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># coupling of row i to T_{i-1}</span>
+</span><span data-line="181">        <span class="n">diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="182">        <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>  <span class="c1"># coupling of row i to T_{i+1}</span>
+</span><span data-line="183">        <span class="n">rhs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+</span><span data-line="184">
+</span><span data-line="185">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+</span><span data-line="186">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">+</span> <span class="n">ua</span>
+</span><span data-line="187">            <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">ua</span> <span class="o">*</span> <span class="n">T_amb</span> <span class="o">+</span> <span class="n">q_arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 </span><span data-line="188">
-</span><span data-line="189">            <span class="c1"># Internal advection (upwind by net direction).</span>
-</span><span data-line="190">            <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
-</span><span data-line="191">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="192">                    <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>              <span class="c1"># inflow from node above</span>
-</span><span data-line="193">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
-</span><span data-line="194">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>                <span class="c1"># outflow to node below</span>
-</span><span data-line="195">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="196">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
-</span><span data-line="197">                    <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>              <span class="c1"># inflow from node below</span>
-</span><span data-line="198">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="199">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>                <span class="c1"># outflow to node above</span>
-</span><span data-line="200">
-</span><span data-line="201">            <span class="c1"># Pseudo-conduction to neighbours.</span>
-</span><span data-line="202">            <span class="n">g_above</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="203">            <span class="n">g_below</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="204">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">g_above</span> <span class="o">+</span> <span class="n">g_below</span>
-</span><span data-line="205">            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="206">                <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_above</span>
-</span><span data-line="207">            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-</span><span data-line="208">                <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_below</span>
-</span><span data-line="209">
-</span><span data-line="210">        <span class="c1"># Banded form for solve_banded((1, 1), ab, rhs):</span>
-</span><span data-line="211">        <span class="c1">#   ab[0, 1:] = super-diagonal, ab[1] = diagonal, ab[2, :-1] = sub-diagonal.</span>
-</span><span data-line="212">        <span class="n">ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
-</span><span data-line="213">        <span class="n">ab</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-</span><span data-line="214">        <span class="n">ab</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">diag</span>
-</span><span data-line="215">        <span class="n">ab</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">lower</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-</span><span data-line="216">        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">solve_banded</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ab</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+</span><span data-line="189">            <span class="c1"># Boundary ports.</span>
+</span><span data-line="190">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="191">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span> <span class="o">*</span> <span class="n">T_charge</span>  <span class="c1"># charge hot inflow (top)</span>
+</span><span data-line="192">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span>  <span class="c1"># draw outflow at T_0 (top)</span>
+</span><span data-line="193">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="194">                <span class="n">rhs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_draw</span> <span class="o">*</span> <span class="n">T_makeup</span>  <span class="c1"># cold makeup inflow (bottom)</span>
+</span><span data-line="195">                <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_chg</span>  <span class="c1"># charge outflow at T_{N-1} (bottom)</span>
+</span><span data-line="196">
+</span><span data-line="197">            <span class="c1"># Internal advection (upwind by net direction).</span>
+</span><span data-line="198">            <span class="k">if</span> <span class="n">down</span><span class="p">:</span>
+</span><span data-line="199">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="200">                    <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>  <span class="c1"># inflow from node above</span>
+</span><span data-line="201">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
+</span><span data-line="202">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>  <span class="c1"># outflow to node below</span>
+</span><span data-line="203">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="204">                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">:</span>
+</span><span data-line="205">                    <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">mc_int</span>  <span class="c1"># inflow from node below</span>
+</span><span data-line="206">                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="207">                    <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mc_int</span>  <span class="c1"># outflow to node above</span>
+</span><span data-line="208">
+</span><span data-line="209">            <span class="c1"># Pseudo-conduction to neighbours.</span>
+</span><span data-line="210">            <span class="n">g_above</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="211">            <span class="n">g_below</span> <span class="o">=</span> <span class="n">G</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="212">            <span class="n">diag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">g_above</span> <span class="o">+</span> <span class="n">g_below</span>
+</span><span data-line="213">            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="214">                <span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_above</span>
+</span><span data-line="215">            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="216">                <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="o">-</span><span class="n">g_below</span>
 </span><span data-line="217">
-</span><span data-line="218">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="s2">&quot;T_top&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;T_outlet&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])}</span></div>
+</span><span data-line="218">        <span class="c1"># Banded form for solve_banded((1, 1), ab, rhs):</span>
+</span><span data-line="219">        <span class="c1">#   ab[0, 1:] = super-diagonal, ab[1] = diagonal, ab[2, :-1] = sub-diagonal.</span>
+</span><span data-line="220">        <span class="n">ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+</span><span data-line="221">        <span class="n">ab</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">upper</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="222">        <span class="n">ab</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">diag</span>
+</span><span data-line="223">        <span class="n">ab</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">lower</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span data-line="224">        <span class="bp">self</span><span class="o">.</span><span class="n">T</span> <span class="o">=</span> <span class="n">solve_banded</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ab</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
+</span><span data-line="225">
+</span><span data-line="226">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="s2">&quot;T_top&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;T_outlet&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])}</span></div>
 </div>
 
 </span></pre></div>

@@ -195,9 +195,7 @@ def precompute_gfunction(
     t_min = max(dt_s, 3600.0)
     times = np.geomspace(t_min, t_max_s * 1.5, num=100)
 
-    boreField = gt.borefield.Borefield.rectangle_field(
-        N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b
-    )
+    boreField = gt.borefield.Borefield.rectangle_field(N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b)
 
     # Use uniform_heat_flux to ensure stability and compatibility with fundamental FLS assumptions
     options = {"method": "uniform_heat_flux"}
@@ -337,9 +335,7 @@ def precompute_gfunction_mls(
     t_min = max(dt_s, 3600.0)
     times = np.geomspace(t_min, t_max_s * 1.5, num=50)
 
-    boreField = gt.borefield.Borefield.rectangle_field(
-        N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b
-    )
+    boreField = gt.borefield.Borefield.rectangle_field(N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b)
 
     g_vals_dim = G_MFLS_Field(
         times=times,
@@ -551,7 +547,7 @@ def calc_effective_borehole_thermal_resistance(
     elif boundary_condition == "uniform_heat_flux":
         # Hellström approximation for uniform heat flux
         # R_b* = R_b + H^2 / (3 * R_a * (2 * m_flow * cp)^2)
-        return R_b + (H**2) / (3.0 * R_a * (2.0 * m_flow_pipe * cp_f)**2)
+        return R_b + (H**2) / (3.0 * R_a * (2.0 * m_flow_pipe * cp_f) ** 2)
 
     else:
         raise ValueError("boundary_condition must be 'uniform_temperature' or 'uniform_heat_flux'")
@@ -746,7 +742,12 @@ def calc_submerged_coil_thermal_resistance(
     Pr = (cp_w * mu_w) / k_w
 
     if Re_D * Pr >= 0.2:
-        Nu = 0.3 + (0.62 * Re_D**0.5 * Pr**(1/3)) / (1 + (0.4/Pr)**(2/3))**0.25 * (1 + (Re_D/282000.0)**(5/8))**0.8
+        Nu = (
+            0.3
+            + (0.62 * Re_D**0.5 * Pr ** (1 / 3))
+            / (1 + (0.4 / Pr) ** (2 / 3)) ** 0.25
+            * (1 + (Re_D / 282000.0) ** (5 / 8)) ** 0.8
+        )
     else:
         Nu = 10.0
 

@@ -34,13 +34,15 @@ def test_model_family_matrix_matches_public_time_boundaries() -> None:
 
 
 def test_docs_do_not_claim_unreleased_water_source_space_conditioning() -> None:
-    docs = "\n".join([
-        _read("README.md"),
-        _read("docs/source/index.rst"),
-        _read("docs/source/models/index.rst"),
-        _read("docs/source/concepts/cycle-architecture.rst"),
-        _read("docs/source/_static/source_sink_matrix.svg"),
-    ])
+    docs = "\n".join(
+        [
+            _read("README.md"),
+            _read("docs/source/index.rst"),
+            _read("docs/source/models/index.rst"),
+            _read("docs/source/concepts/cycle-architecture.rst"),
+            _read("docs/source/_static/source_sink_matrix.svg"),
+        ]
+    )
 
     assert "Water-source space-conditioning is not a released public API" in docs
     assert "air, water, and ground source sides paired with DHW" not in docs

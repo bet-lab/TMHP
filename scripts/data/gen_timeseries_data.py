@@ -47,7 +47,9 @@ def build_timeseries() -> dict:
         cop, p_cmp_kw, q_cond_kw = float("nan"), 0.0, 0.0
         if q_call_kw > 0:
             res = ashpb.analyze_steady(
-                T_tank_w=T_tank, T0=t_amb, Q_ref_tank=q_call_kw * 1000.0,
+                T_tank_w=T_tank,
+                T0=t_amb,
+                Q_ref_tank=q_call_kw * 1000.0,
             )
             cop = res["cop_sys [-]"]
             p_cmp_kw = res["E_cmp [W]"] / 1000.0
@@ -56,15 +58,17 @@ def build_timeseries() -> dict:
         net_kw = q_cond_kw - q_demand_kw
         T_tank += net_kw * STEP_MIN * 60.0 / 837.0
 
-        series.append({
-            "t_min": t_min,
-            "t_amb_c": round(t_amb, 2),
-            "q_heat_kw": round(q_cond_kw, 3),
-            "q_demand_kw": round(q_demand_kw, 3),
-            "p_cmp_kw": round(p_cmp_kw, 3),
-            "cop": None if math.isnan(cop) else round(cop, 3),
-            "t_tank_c": round(T_tank, 2),
-        })
+        series.append(
+            {
+                "t_min": t_min,
+                "t_amb_c": round(t_amb, 2),
+                "q_heat_kw": round(q_cond_kw, 3),
+                "q_demand_kw": round(q_demand_kw, 3),
+                "p_cmp_kw": round(p_cmp_kw, 3),
+                "cop": None if math.isnan(cop) else round(cop, 3),
+                "t_tank_c": round(T_tank, 2),
+            }
+        )
 
     return {
         "step_min": STEP_MIN,

@@ -186,10 +186,7 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
     assert root.attrib["fmiVersion"] == "3.0"
-    unit_names = {
-        unit.attrib["name"]
-        for unit in root.findall("./UnitDefinitions/Unit")
-    }
+    unit_names = {unit.attrib["name"] for unit in root.findall("./UnitDefinitions/Unit")}
     assert {"W", "s", "degC", "m3/s", "1"} <= unit_names
     units = {}
     for variable in root.findall("./ModelVariables/*"):

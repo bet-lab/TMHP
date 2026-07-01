@@ -121,7 +121,11 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
 
         if route in ("tank", "ground"):
             probe = self._stc.calc_performance(
-                I_DN_stc=ctx.I_DN, I_dH_stc=ctx.I_dH, T_stc_w_in_K=inlet_K, T0_K=ctx.T0_K, is_active=True,
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=inlet_K,
+                T0_K=ctx.T0_K,
+                is_active=True,
             )
             if probe["T_stc_w_out_K"] > inlet_K:  # net heat gain at the chosen sink
                 stc_active = True
@@ -132,11 +136,19 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
             else:
                 route = "off"  # infeasible at this sink — do not auto-switch destination
                 stc_result = self._stc.calc_performance(
-                    I_DN_stc=ctx.I_DN, I_dH_stc=ctx.I_dH, T_stc_w_in_K=inlet_K, T0_K=ctx.T0_K, is_active=False,
+                    I_DN_stc=ctx.I_DN,
+                    I_dH_stc=ctx.I_dH,
+                    T_stc_w_in_K=inlet_K,
+                    T0_K=ctx.T0_K,
+                    is_active=False,
                 )
         else:
             stc_result = self._stc.calc_performance(
-                I_DN_stc=ctx.I_DN, I_dH_stc=ctx.I_dH, T_stc_w_in_K=inlet_K, T0_K=ctx.T0_K, is_active=False,
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=inlet_K,
+                T0_K=ctx.T0_K,
+                is_active=False,
             )
 
         return {
@@ -170,7 +182,13 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
             return cast(
                 Callable[[float], float],
                 super()._build_residual_fn(
-                    ctx, ctrl, dt_s, T_tank_w_in_K_n, T_sup_w_K_n, tank_level, sub_states,
+                    ctx,
+                    ctrl,
+                    dt_s,
+                    T_tank_w_in_K_n,
+                    T_sup_w_K_n,
+                    tank_level,
+                    sub_states,
                 ),
             )
 
@@ -179,7 +197,11 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
 
         def residual(T_cand_K: float) -> float:
             stc_r = self._stc.calc_performance(
-                I_DN_stc=ctx.I_DN, I_dH_stc=ctx.I_dH, T_stc_w_in_K=T_cand_K, T0_K=ctx.T0_K, is_active=stc_active,
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=T_cand_K,
+                T0_K=ctx.T0_K,
+                is_active=stc_active,
             )
             Q_stc_net: float = stc_r["Q_stc_w_out"] - stc_r["Q_stc_w_in"]
 

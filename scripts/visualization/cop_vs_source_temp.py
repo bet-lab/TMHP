@@ -24,8 +24,8 @@ from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
 
-T_TANK_W = 55.0   # °C — typical DHW set-point
-Q_COND   = 8_000  # W
+T_TANK_W = 55.0  # °C — typical DHW set-point
+Q_COND = 8_000  # W
 
 # Sweep ranges chosen to match each technology's realistic envelope.
 T_AMB_RANGE = np.linspace(-15.0, 30.0, 19)
@@ -57,7 +57,8 @@ def sweep_gshp() -> tuple[np.ndarray, np.ndarray]:
     # response, not the long-term ground response.
     gshpb = GroundSourceHeatPumpBoiler(
         ref="R410A",
-        N_1=1, N_2=1,
+        N_1=1,
+        N_2=1,
         H_b=100.0,
         t_max_s=24 * 3600,
         dt_s=3600,
@@ -81,10 +82,24 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=dm.figsize("13cm", "standard"))
 
-    ax.plot(t_amb, cop_ashp, color=COLORS["warm"], linewidth=dm.lw(1),
-            marker="o", markersize=4, label="ASHP (R32, source = outdoor air)")
-    ax.plot(t_src, cop_gshp, color=COLORS["accent"], linewidth=dm.lw(1),
-            marker="s", markersize=4, label="GSHP (R410A, source = ground loop)")
+    ax.plot(
+        t_amb,
+        cop_ashp,
+        color=COLORS["warm"],
+        linewidth=dm.lw(1),
+        marker="o",
+        markersize=4,
+        label="ASHP (R32, source = outdoor air)",
+    )
+    ax.plot(
+        t_src,
+        cop_gshp,
+        color=COLORS["accent"],
+        linewidth=dm.lw(1),
+        marker="s",
+        markersize=4,
+        label="GSHP (R410A, source = ground loop)",
+    )
 
     ax.set_xlabel("Heat-source temperature [°C]")
     ax.set_ylabel("System COP [-]")
@@ -94,11 +109,12 @@ def main() -> None:
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-1))
 
     ax.text(
-        0.98, 0.05,
-        f"$T_{{\\mathrm{{tank,w}}}} = {T_TANK_W:.0f}$ °C\n"
-        f"$\\dot Q_{{\\mathrm{{cond}}}} = {Q_COND/1000:.0f}$ kW",
+        0.98,
+        0.05,
+        f"$T_{{\\mathrm{{tank,w}}}} = {T_TANK_W:.0f}$ °C\n$\\dot Q_{{\\mathrm{{cond}}}} = {Q_COND / 1000:.0f}$ kW",
         transform=ax.transAxes,
-        va="bottom", ha="right",
+        va="bottom",
+        ha="right",
         fontsize=dm.fs(-1),
         color=COLORS["ink"],
     )

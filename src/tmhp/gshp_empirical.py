@@ -45,21 +45,21 @@ class GroundSourceHeatPumpEmpirical:
 
     # 1. Borehole parameters
     H_b: float = 150.0  # Borehole height [m]
-    D_b: float = 2.0    # Borehole burial depth [m]
-    r_b: float = 0.08   # Borehole radius [m]
+    D_b: float = 2.0  # Borehole burial depth [m]
+    r_b: float = 0.08  # Borehole radius [m]
 
     # 2. Pipe & Grout parameters
-    k_p: float = 0.4       # Pipe thermal conductivity [W/mK] (HDPE)
-    k_grout: float = 1.5   # Grout thermal conductivity [W/mK]
-    r_out: float = 0.016   # Pipe outer radius [m] (32mm OD / 2)
-    r_in: float = 0.013    # Pipe inner radius [m] (26mm ID / 2)
-    D_s: float = 0.032     # Distance from borehole centre to pipe centre [m]
+    k_p: float = 0.4  # Pipe thermal conductivity [W/mK] (HDPE)
+    k_grout: float = 1.5  # Grout thermal conductivity [W/mK]
+    r_out: float = 0.016  # Pipe outer radius [m] (32mm OD / 2)
+    r_in: float = 0.013  # Pipe inner radius [m] (26mm ID / 2)
+    D_s: float = 0.032  # Distance from borehole centre to pipe centre [m]
 
     # 3. Ground parameters
-    k_g: float = 2.0       # Ground thermal conductivity [W/mK]
-    c_g: float = 800.0     # Ground specific heat capacity [J/(kgK)]
+    k_g: float = 2.0  # Ground thermal conductivity [W/mK]
+    c_g: float = 800.0  # Ground specific heat capacity [J/(kgK)]
     rho_g: float = 2000.0  # Ground density [kg/m³]
-    T_g: float = 15.0      # Initial ground temperature [°C]
+    T_g: float = 15.0  # Initial ground temperature [°C]
 
     # 4. Fluid parameters
     dV_f: float = 20.0  # Volumetric flow rate of fluid [L/min]
@@ -67,9 +67,9 @@ class GroundSourceHeatPumpEmpirical:
     # 5. Rated Performance & Design
     Q_rated_cooling: float = 20590.0  # [W]
     Q_rated_heating: float = 16450.0  # [W]
-    E_pmp: float = 100.0             # Pump power input [W]
-    dP_iu_fan_design: float = 60.0    # Design pressure drop [Pa]
-    eta_iu_fan_design: float = 0.6    # Design fan efficiency
+    E_pmp: float = 100.0  # Pump power input [W]
+    dP_iu_fan_design: float = 60.0  # Design pressure drop [Pa]
+    eta_iu_fan_design: float = 0.6  # Design fan efficiency
 
     # 6. Simulation Control
     dt_hours: int = 1
@@ -90,20 +90,31 @@ class GroundSourceHeatPumpEmpirical:
         # Using water properties at approx 15-20 degC (mu_f = 0.00114 Pa·s)
         m_flow_borehole = self.dV_f * cu.L2m3 * cu.s2m * rho_f  # Total borehole mass flow [kg/s]
         self.R_b = gf.calc_borehole_thermal_resistance(
-            k_s=self.k_g, k_g=self.k_grout, k_p=self.k_p,
-            r_b=self.r_b, r_out=self.r_out, r_in=self.r_in, D_s=self.D_s,
+            k_s=self.k_g,
+            k_g=self.k_grout,
+            k_p=self.k_p,
+            r_b=self.r_b,
+            r_out=self.r_out,
+            r_in=self.r_in,
+            D_s=self.D_s,
             H_b=self.H_b,
-            m_flow_borehole=m_flow_borehole, rho_f=rho_f, mu_f=0.00114, cp_f=c_f, k_f=k_w,
+            m_flow_borehole=m_flow_borehole,
+            rho_f=rho_f,
+            mu_f=0.00114,
+            cp_f=c_f,
+            k_f=k_w,
         )
 
         # Fan parameters (VSD model)
         _hp_capacity = max(self.Q_rated_cooling, self.Q_rated_heating)
         self.dV_iu_fan_design = _hp_capacity / (rho_a * c_a * 10.0)
-        self.E_iu_fan_design = (
-            self.dV_iu_fan_design * self.dP_iu_fan_design / self.eta_iu_fan_design
-        )
+        self.E_iu_fan_design = self.dV_iu_fan_design * self.dP_iu_fan_design / self.eta_iu_fan_design
         self.vsd_coeffs_iu = {
-            "c1": 0.0013, "c2": 0.1470, "c3": 0.9506, "c4": -0.0998, "c5": 0.0,
+            "c1": 0.0013,
+            "c2": 0.1470,
+            "c3": 0.9506,
+            "c4": -0.0998,
+            "c5": 0.0,
         }
         self.fan_params_iu = {
             "fan_design_flow_rate": self.dV_iu_fan_design,
@@ -113,9 +124,14 @@ class GroundSourceHeatPumpEmpirical:
         # Precompute dimensional g-function interpolator [mK/W]
         alpha = self.k_g / (self.rho_g * self.c_g)
         self.g_func_interp = precompute_gfunction(
-            N_1=1, N_2=1, B=6.0,
-            H_b=self.H_b, D_b=self.D_b, r_b=self.r_b,
-            alpha_s=alpha, k_s=self.k_g,
+            N_1=1,
+            N_2=1,
+            B=6.0,
+            H_b=self.H_b,
+            D_b=self.D_b,
+            r_b=self.r_b,
+            alpha_s=alpha,
+            k_s=self.k_g,
             t_max_s=self.sim_hours * 3600.0,
             dt_s=self.dt_sec,
         )
@@ -195,9 +211,7 @@ class GroundSourceHeatPumpEmpirical:
         if self.Q_r_iu == 0:
             self.dV_a = 0.0
         else:
-            self.dV_a = abs(self.Q_r_iu) / (
-                c_a * rho_a * abs(self.T_a_iu_out_K - self.T_a_room_K)
-            )
+            self.dV_a = abs(self.Q_r_iu) / (c_a * rho_a * abs(self.T_a_iu_out_K - self.T_a_room_K))
 
         # Synchronize dV_a_ratio with fan design flow rate
         dV_a_ratio = self.dV_a / self.dV_iu_fan_design if self.dV_iu_fan_design > 0 else 1.0
@@ -239,19 +253,11 @@ class GroundSourceHeatPumpEmpirical:
             # Dimensional g-value for the current step (dt_sec) [mK/W]
             self.g_i_dim = float(self.g_func_interp(self.dt_sec))
             self.T_b_history_effect = T_b_history_effect
-            self.T_b = (
-                self.T_g_K
-                + T_b_history_effect
-                + (self.q_b - self.q_b_history[-1]) * self.g_i_dim
-            )
+            self.T_b = self.T_g_K + T_b_history_effect + (self.q_b - self.q_b_history[-1]) * self.g_i_dim
             # -----------------------------------------------------------------
 
             self.T_f = self.T_b + self.q_b * self.R_b
-            delta_T_fluid = (
-                self.q_b * self.H_b / (2 * c_f * rho_f * dV_f_m3s_active)
-                if dV_f_m3s_active > 0
-                else 0.0
-            )
+            delta_T_fluid = self.q_b * self.H_b / (2 * c_f * rho_f * dV_f_m3s_active) if dV_f_m3s_active > 0 else 0.0
 
             self.T_f_in = self.T_f + delta_T_fluid
             self.T_f_out = self.T_f - delta_T_fluid

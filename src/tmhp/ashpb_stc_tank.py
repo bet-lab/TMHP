@@ -366,7 +366,11 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         df["X_l_stc [W]"] = df["Q_l_stc [W]"].fillna(0) * (1 - T0_K / T_stc_K.replace(0, np.nan))
 
         # 6. STC exergy destruction (2nd-law: Xc = ΣX_in - ΣX_out ≥ 0)
-        is_stc_active = df["stc_active [-]"].fillna(False).astype(bool) if "stc_active [-]" in df.columns else pd.Series(False, index=df.index)
+        is_stc_active = (
+            df["stc_active [-]"].fillna(False).astype(bool)
+            if "stc_active [-]" in df.columns
+            else pd.Series(False, index=df.index)
+        )
         if "X_sol_stc [W]" in df.columns:
             Xc_raw = (
                 df["X_sol_stc [W]"].fillna(0)

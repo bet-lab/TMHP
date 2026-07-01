@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing as mp
 import os
 
 import CoolProp.CoolProp as CP
@@ -55,8 +56,10 @@ Q_COND_W = [14000.0]
 UA_COND_WK = [2500.0]
 UA_EVAP_WK = [2000.0]
 
+
 def ETA_CMP_ISEN(r_p: float) -> float:
     return max(0.2, 0.9 - 0.02 * r_p)
+
 
 SAT_CURVE_POINTS = 10000
 CI_SAT_CURVE_POINTS = 512
@@ -240,12 +243,14 @@ def solve_cycle(
         s_val = res[s_key]
         if any(np.isnan(v) for v in (h_val, t_val, p_val, s_val)):
             return None
-        pts.append([
-            round(h_val * cu.J2kJ, 1),
-            round(t_val, 1),
-            round(p_val * cu.Pa2kPa, 1),
-            round(s_val * cu.J2kJ, 3),
-        ])
+        pts.append(
+            [
+                round(h_val * cu.J2kJ, 1),
+                round(t_val, 1),
+                round(p_val * cu.Pa2kPa, 1),
+                round(s_val * cu.J2kJ, 3),
+            ]
+        )
 
     return pts
 
@@ -253,11 +258,18 @@ def solve_cycle(
 def worker(task: tuple) -> tuple[str, list[list[float]] | None]:
     """Worker function for multiprocessing."""
     ref, t_source, t_sink, dt_sub, dt_sup, q_cond, ua_cond, ua_evap, crit_val, tmin_val, key = task
-    res = solve_cycle(
-        ref, t_source, t_sink, dt_sub, dt_sup,
-        q_cond, ua_cond, ua_evap, crit_val, tmin_val
-    )
+    res = solve_cycle(ref, t_source, t_sink, dt_sub, dt_sup, q_cond, ua_cond, ua_evap, crit_val, tmin_val)
     return key, res
+
+
+def _process_pool_context():
+    """Return a non-fork multiprocessing context when the platform supports it."""
+    methods = mp.get_all_start_methods()
+    if "forkserver" in methods:
+        return mp.get_context("forkserver")
+    if "spawn" in methods:
+        return mp.get_context("spawn")
+    return mp.get_context()
 
 
 def main(out_path: str | os.PathLike[str] | None = None, *, profile: str = "full") -> None:
@@ -301,20 +313,30 @@ def main(out_path: str | os.PathLike[str] | None = None, *, profile: str = "full
                         for i5, q_cond in enumerate(axis["Q_cond"]):
                             for i6, ua_cond in enumerate(axis["UA_cond"]):
                                 for i7, ua_evap in enumerate(axis["UA_evap"]):
-                                    tasks.append((
-                                        ref, t_source, t_sink, dt_sub, dt_sup,
-                                        q_cond, ua_cond, ua_evap,
-                                        crit[ref], tmin[ref],
-                                        f"{i0}_{i1}_{i2}_{i3}_{i4}_{i5}_{i6}_{i7}"
-                                    ))
+                                    tasks.append(
+                                        (
+                                            ref,
+                                            t_source,
+                                            t_sink,
+                                            dt_sub,
+                                            dt_sup,
+                                            q_cond,
+                                            ua_cond,
+                                            ua_evap,
+                                            crit[ref],
+                                            tmin[ref],
+                                            f"{i0}_{i1}_{i2}_{i3}_{i4}_{i5}_{i6}_{i7}",
+                                        )
+                                    )
 
     states: dict[str, list[list[float]]] = {}
     total = len(tasks)
 
     from concurrent.futures import ProcessPoolExecutor
+
     max_workers = min(32, os.cpu_count() or 4)
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers, mp_context=_process_pool_context()) as executor:
         results = executor.map(worker, tasks, chunksize=100)
         with tqdm(total=total, desc="Solving cycle grid") as pbar:
             for key, packed in results:
@@ -328,7 +350,13 @@ def main(out_path: str | os.PathLike[str] | None = None, *, profile: str = "full
             "eta_cmp_isen": "max(0.2, 0.9 - 0.02 * r_p)",
             "point_order": [name for name, *_ in _POINT_SPEC],
             "point_labels": {
-                "1s": "1'", "1": "1", "2": "2", "2s": "2'", "3s": "3'", "3": "3", "4": "4",
+                "1s": "1'",
+                "1": "1",
+                "2": "2",
+                "2s": "2'",
+                "3s": "3'",
+                "3": "3",
+                "4": "4",
             },
             "value_order": ["h", "T", "P", "s"],
             "units": {"h": "kJ/kg", "T": "°C", "P": "kPa", "s": "kJ/(kg·K)"},
@@ -367,10 +395,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "out_path",
         nargs="?",
-        help=(
-            "optional output path; defaults to "
-            "docs/source/_static/widgets/cycle_data.json"
-        ),
+        help=("optional output path; defaults to docs/source/_static/widgets/cycle_data.json"),
     )
     return parser.parse_args()
 

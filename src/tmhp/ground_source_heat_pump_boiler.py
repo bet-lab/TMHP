@@ -181,8 +181,7 @@ class GroundSourceHeatPumpBoiler:
             import warnings
 
             warnings.warn(
-                "GroundSourceHeatPumpBoiler(refrigerant=...) is deprecated; "
-                "use ref=... instead.",
+                "GroundSourceHeatPumpBoiler(refrigerant=...) is deprecated; use ref=... instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -194,9 +193,7 @@ class GroundSourceHeatPumpBoiler:
         if eta_cmp is None:
             eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else 0.855
         if UA_tank_hx is None:
-            UA_tank_hx = UA_tank if UA_tank is not None else (
-                UA_cond_design if UA_cond_design is not None else 500.0
-            )
+            UA_tank_hx = UA_tank if UA_tank is not None else (UA_cond_design if UA_cond_design is not None else 500.0)
         if UA_ground is None:
             UA_ground = UA_evap_design if UA_evap_design is not None else 500.0
 
@@ -220,9 +217,7 @@ class GroundSourceHeatPumpBoiler:
         # isentropic 0.80, volumetric 0.95 - 0.05*PR (eta_cmp already resolved
         # to 0.855 above). Resolve here so an unconfigured model is not ideal.
         self.eta_cmp_isen = eta_cmp_isen if eta_cmp_isen is not None else 0.80
-        self.eta_cmp_vol = (
-            eta_cmp_vol if eta_cmp_vol is not None else (lambda r: 0.95 - 0.05 * r)
-        )
+        self.eta_cmp_vol = eta_cmp_vol if eta_cmp_vol is not None else (lambda r: 0.95 - 0.05 * r)
         self.eta_cmp = eta_cmp
 
         self.UA_tank_hx = UA_tank_hx
@@ -336,13 +331,9 @@ class GroundSourceHeatPumpBoiler:
         self._tank: StratifiedTank | None = None
         if tank_model == "stratified":
             if self._subsystems:
-                raise NotImplementedError(
-                    "stratified tank_model does not yet support subsystems (stc/pv/uv)"
-                )
+                raise NotImplementedError("stratified tank_model does not yet support subsystems (stc/pv/uv)")
             if not tank_always_full:
-                raise NotImplementedError(
-                    "stratified tank_model assumes an always-full tank (tank_always_full=True)"
-                )
+                raise NotImplementedError("stratified tank_model assumes an always-full tank (tank_always_full=True)")
             self._tank = StratifiedTank(
                 n_nodes=n_tank_nodes,
                 volume=self.V_tank_full,
@@ -460,7 +451,6 @@ class GroundSourceHeatPumpBoiler:
                     "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
                     "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
                     "T_cond [°C]": T_tank_w,
-
                     # Volume flow rates [m3/s]
                     "dV_mix_w_out [m3/s]": (dV_mix_w_out_val if dV_mix_w_out_val > 0 else np.nan),
                     "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),
@@ -469,7 +459,6 @@ class GroundSourceHeatPumpBoiler:
                     "dV_bhe_f [m3/s]": self.dV_b_f_m3s,
                     "m_dot_ref [kg/s]": 0.0,
                     "cmp_rpm [rpm]": 0.0,
-
                     # Energy rates [W]
                     "Q_bhe [W]": 0.0,
                     "Q_ref_tank [W]": 0.0,
@@ -478,7 +467,6 @@ class GroundSourceHeatPumpBoiler:
                     "E_cmp [W]": 0.0,
                     "E_pmp [W]": 0.0,
                     "E_tot [W]": 0.0,
-
                     # COP metrics
                     "cop_ref [-]": np.nan,
                     "cop_sys [-]": np.nan,
@@ -491,9 +479,8 @@ class GroundSourceHeatPumpBoiler:
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_tank - self.dT_hx_min))
 
         import inspect
-        def _eval_eff(
-            eff: float | Callable[..., float] | None, r_p: float, rps: float
-        ) -> float:
+
+        def _eval_eff(eff: float | Callable[..., float] | None, r_p: float, rps: float) -> float:
             if eff is None:
                 return 1.0
             if callable(eff):
@@ -574,6 +561,7 @@ class GroundSourceHeatPumpBoiler:
             return (m_dot * dh_cond_local) - Q_tank_load
 
         from scipy.optimize import brentq
+
         try:
             cmp_rps = brentq(_residual_rps, self.rps_min, self.rps_max)
             converged_rps = True
@@ -660,12 +648,8 @@ class GroundSourceHeatPumpBoiler:
                 "P_ref_cond_sat_l [Pa]": cs.get("P_ref_exp_in [Pa]", np.nan),
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
-                "h_ref_evap_sat [J/kg]": CP.PropsSI(
-                    "H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref
-                ),
-                "h_ref_cond_sat_v [J/kg]": CP.PropsSI(
-                    "H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref
-                ),
+                "h_ref_evap_sat [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
+                "h_ref_cond_sat_v [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
                 "Q_tank_load [W]": Q_tank_load,
                 "Q_ref_tank [W]": Q_ref_tank,
@@ -761,7 +745,7 @@ class GroundSourceHeatPumpBoiler:
 
         # Determine convergence specifically when ON
         if Q_tank_load > self.Q_tank_LOAD_OFF_TOL:
-            perf["converged"] = opt_res.success if 'opt_res' in locals() else False
+            perf["converged"] = opt_res.success if "opt_res" in locals() else False
             perf["Q_tank_load [W]"] = Q_tank_load
 
         return Q_tank_load > self.Q_tank_LOAD_OFF_TOL, perf, float(perf.get("Q_tank_load [W]", 0.0))
@@ -909,9 +893,7 @@ class GroundSourceHeatPumpBoiler:
     # Tank backends (swappable)
     # =============================================================
 
-    def _solve_lumped_tank(
-        self, ctx, ctrl, dt_s, T_sup_w_K_n, tank_level_solve, sub_states, dV_tank_w_out_prev
-    ):
+    def _solve_lumped_tank(self, ctx, ctrl, dt_s, T_sup_w_K_n, tank_level_solve, sub_states, dV_tank_w_out_prev):
         """Legacy single-node tank: implicit fsolve over (T_tank, level)."""
         from typing import cast
 
@@ -1163,9 +1145,7 @@ class GroundSourceHeatPumpBoiler:
                     ctx, ctrl, dt_s, T_sup_w_K_n, tank_level_solve, sub_states, dV_tank_w_out_prev
                 )
             else:
-                T_solved_K, flow_state_final, level_next = self._solve_stratified_tank(
-                    ctx, ctrl, dt_s, T_sup_w_K_n
-                )
+                T_solved_K, flow_state_final, level_next = self._solve_stratified_tank(ctx, ctrl, dt_s, T_sup_w_K_n)
 
             # --- Phase C: BHE Temporal Superposition ---
             self._compute_bhe_superposition(
@@ -1306,9 +1286,7 @@ class GroundSourceHeatPumpBoiler:
             opt_success = bool(getattr(opt_result, "success", False))
             if result is None or not isinstance(result, dict):
                 failure_reason = (
-                    "pr_above_max"
-                    if pr_event is not None and pr_event[0] == "pr_above_max"
-                    else "cycle_invalid"
+                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
                 )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"

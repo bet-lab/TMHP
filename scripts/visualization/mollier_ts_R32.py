@@ -27,8 +27,8 @@ from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E40
 
 REF = "R32"
 T_TANK_W = 60.0
-T0       = 12.0
-Q_COND   = 8_000
+T0 = 12.0
+Q_COND = 8_000
 
 
 def _envelope_ts(refrigerant: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -48,21 +48,22 @@ def _envelope_ts(refrigerant: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 CYCLE_PATH = ["1*", "1", "2", "2*", "3*", "3", "4", "1*"]
 CLOSED = ["1", "2", "3", "4"]
-OPEN   = ["1*", "2*", "3*"]
+OPEN = ["1*", "2*", "3*"]
 NODE_LABEL = {"1": "cmp,in", "2": "cmp,out", "3": "exp,in", "4": "exp,out"}
 
 
 def _cycle_ts(result: dict) -> dict[str, tuple[float, float]]:
     def st(s_key: str, t_key: str) -> tuple[float, float]:
         return result[s_key] / 1_000, result[t_key]
+
     return {
-        "1*": st("s_ref_evap_sat [J/(kg·K)]",    "T_ref_evap_sat [°C]"),
-        "1":  st("s_ref_cmp_in [J/(kg·K)]",      "T_ref_cmp_in [°C]"),
-        "2":  st("s_ref_cmp_out [J/(kg·K)]",     "T_ref_cmp_out [°C]"),
-        "2*": st("s_ref_cond_sat_v [J/(kg·K)]",  "T_ref_cond_sat_v [°C]"),
-        "3*": st("s_ref_cond_sat_l [J/(kg·K)]",  "T_ref_cond_sat_l [°C]"),
-        "3":  st("s_ref_exp_in [J/(kg·K)]",      "T_ref_exp_in [°C]"),
-        "4":  st("s_ref_exp_out [J/(kg·K)]",     "T_ref_exp_out [°C]"),
+        "1*": st("s_ref_evap_sat [J/(kg·K)]", "T_ref_evap_sat [°C]"),
+        "1": st("s_ref_cmp_in [J/(kg·K)]", "T_ref_cmp_in [°C]"),
+        "2": st("s_ref_cmp_out [J/(kg·K)]", "T_ref_cmp_out [°C]"),
+        "2*": st("s_ref_cond_sat_v [J/(kg·K)]", "T_ref_cond_sat_v [°C]"),
+        "3*": st("s_ref_cond_sat_l [J/(kg·K)]", "T_ref_cond_sat_l [°C]"),
+        "3": st("s_ref_exp_in [J/(kg·K)]", "T_ref_exp_in [°C]"),
+        "4": st("s_ref_exp_out [J/(kg·K)]", "T_ref_exp_out [°C]"),
     }
 
 
@@ -77,41 +78,49 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=dm.figsize("13cm", "standard"))
 
-    ax.plot(s_liq, T_sat, color=COLORS["cool"], linewidth=dm.lw(1),
-            label="Sat. liquid")
-    ax.plot(s_vap, T_sat, color=COLORS["hot"],  linewidth=dm.lw(1),
-            label="Sat. vapor")
+    ax.plot(s_liq, T_sat, color=COLORS["cool"], linewidth=dm.lw(1), label="Sat. liquid")
+    ax.plot(s_vap, T_sat, color=COLORS["hot"], linewidth=dm.lw(1), label="Sat. vapor")
 
     xs = [pts[k][0] for k in CYCLE_PATH]
     ys = [pts[k][1] for k in CYCLE_PATH]
-    ax.plot(xs, ys, color=COLORS["ink"], linewidth=dm.lw(0),
-            linestyle=(0, (2, 2)), zorder=2, label="Ref. cycle")
+    ax.plot(xs, ys, color=COLORS["ink"], linewidth=dm.lw(0), linestyle=(0, (2, 2)), zorder=2, label="Ref. cycle")
 
     for k in OPEN:
         x, y = pts[k]
-        ax.plot(x, y, marker="o", markersize=4,
-                markerfacecolor="white", markeredgecolor=COLORS["ink"],
-                markeredgewidth=dm.lw(0), linestyle="None", zorder=3)
+        ax.plot(
+            x,
+            y,
+            marker="o",
+            markersize=4,
+            markerfacecolor="white",
+            markeredgecolor=COLORS["ink"],
+            markeredgewidth=dm.lw(0),
+            linestyle="None",
+            zorder=3,
+        )
     label_offsets = {"1": (8, -6), "2": (8, -12), "3": (-30, 8), "4": (-30, -14)}
     for k in CLOSED:
         x, y = pts[k]
-        ax.plot(x, y, marker="o", markersize=4,
-                markerfacecolor=COLORS["ink"], markeredgecolor=COLORS["ink"],
-                linestyle="None", zorder=3)
+        ax.plot(
+            x,
+            y,
+            marker="o",
+            markersize=4,
+            markerfacecolor=COLORS["ink"],
+            markeredgecolor=COLORS["ink"],
+            linestyle="None",
+            zorder=3,
+        )
         dx, dy = label_offsets[k]
-        ax.annotate(NODE_LABEL[k], (x, y),
-                    xytext=(dx, dy), textcoords="offset points",
-                    fontsize=dm.fs(-1), color=COLORS["ink"])
+        ax.annotate(
+            NODE_LABEL[k], (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=dm.fs(-1), color=COLORS["ink"]
+        )
 
     # Reference temperature lines: tank water + ambient.
-    ax.axhline(T_TANK_W, color=COLORS["hot"], linewidth=dm.lw(0),
-               linestyle=(0, (3, 3)), alpha=0.7)
-    ax.text(2.35, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C",
-            color=COLORS["hot"], fontsize=dm.fs(-1), ha="right")
-    ax.axhline(T0, color=COLORS["warm"], linewidth=dm.lw(0),
-               linestyle=(0, (3, 3)), alpha=0.7)
-    ax.text(2.35, T0 - 9, f"Outdoor air: {T0:.0f} °C",
-            color=COLORS["warm"], fontsize=dm.fs(-1), ha="right")
+    ax.axhline(T_TANK_W, color=COLORS["hot"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.7)
+    ax.text(2.35, T_TANK_W + 3, f"Tank water: {T_TANK_W:.0f} °C", color=COLORS["hot"], fontsize=dm.fs(-1), ha="right")
+    ax.axhline(T0, color=COLORS["warm"], linewidth=dm.lw(0), linestyle=(0, (3, 3)), alpha=0.7)
+    ax.text(2.35, T0 - 9, f"Outdoor air: {T0:.0f} °C", color=COLORS["warm"], fontsize=dm.fs(-1), ha="right")
 
     ax.set_xlim(0.8, 2.4)
     ax.set_ylim(-30, 160)

@@ -91,12 +91,12 @@ class StratifiedTank:
         self.ua_total = float(ua)
 
         # Geometry / lumped node properties.
-        self.area_cross = self.volume / self.height          # [m²]
-        self.dz = self.height / self.n                       # node thickness [m]
-        self.v_node = self.volume / self.n                   # node volume [m³]
-        self.m_node = self.rho * self.v_node                 # node mass [kg]
-        self.G = self.k_eff * self.area_cross / self.dz      # inter-node conductance [W/K]
-        self.ua_node = self.ua_total / self.n                # per-node loss [W/K]
+        self.area_cross = self.volume / self.height  # [m²]
+        self.dz = self.height / self.n  # node thickness [m]
+        self.v_node = self.volume / self.n  # node volume [m³]
+        self.m_node = self.rho * self.v_node  # node mass [kg]
+        self.G = self.k_eff * self.area_cross / self.dz  # inter-node conductance [W/K]
+        self.ua_node = self.ua_total / self.n  # per-node loss [W/K]
 
         self.T: np.ndarray = np.zeros(self.n)
 
@@ -118,9 +118,17 @@ class StratifiedTank:
         return float(self.m_node * self.cp * self.T.sum())
 
     # ------------------------------------------------------------------
-    def step(self, dt: float, *, charge_flow: float = 0.0, T_charge: float = 0.0,
-             draw_flow: float = 0.0, T_makeup: float = 10.0,
-             q_source=None, T_amb: float = 20.0) -> dict:
+    def step(
+        self,
+        dt: float,
+        *,
+        charge_flow: float = 0.0,
+        T_charge: float = 0.0,
+        draw_flow: float = 0.0,
+        T_makeup: float = 10.0,
+        q_source=None,
+        T_amb: float = 20.0,
+    ) -> dict:
         """Advance one timestep (backward Euler, charge + draw + heat source).
 
         Parameters
@@ -148,14 +156,14 @@ class StratifiedTank:
             ``T_outlet`` (bottom = cold HP return).
         """
         n = self.n
-        mc_dt = self.m_node * self.cp / dt          # capacitance/dt [W/K]
+        mc_dt = self.m_node * self.cp / dt  # capacitance/dt [W/K]
         G = self.G
         ua = self.ua_node
         rc = self.rho * self.cp
-        mc_chg = rc * charge_flow                    # charge advective conductance [W/K]
-        mc_draw = rc * draw_flow                     # draw advective conductance [W/K]
-        v_net = charge_flow - draw_flow              # net downward inter-node flow [m³/s]
-        mc_int = rc * abs(v_net)                     # internal advective conductance [W/K]
+        mc_chg = rc * charge_flow  # charge advective conductance [W/K]
+        mc_draw = rc * draw_flow  # draw advective conductance [W/K]
+        v_net = charge_flow - draw_flow  # net downward inter-node flow [m³/s]
+        mc_int = rc * abs(v_net)  # internal advective conductance [W/K]
         down = v_net >= 0.0
 
         # Heat source [W per node]: scalar -> top node; array -> per node.
@@ -169,9 +177,9 @@ class StratifiedTank:
             else:
                 raise ValueError(f"q_source must be scalar or shape ({n},) — got {qs.shape}")
 
-        lower = np.zeros(n)   # coupling of row i to T_{i-1}
+        lower = np.zeros(n)  # coupling of row i to T_{i-1}
         diag = np.zeros(n)
-        upper = np.zeros(n)   # coupling of row i to T_{i+1}
+        upper = np.zeros(n)  # coupling of row i to T_{i+1}
         rhs = np.zeros(n)
 
         for i in range(n):
@@ -180,23 +188,23 @@ class StratifiedTank:
 
             # Boundary ports.
             if i == 0:
-                rhs[i] += mc_chg * T_charge          # charge hot inflow (top)
-                diag[i] += mc_draw                   # draw outflow at T_0 (top)
+                rhs[i] += mc_chg * T_charge  # charge hot inflow (top)
+                diag[i] += mc_draw  # draw outflow at T_0 (top)
             if i == n - 1:
-                rhs[i] += mc_draw * T_makeup         # cold makeup inflow (bottom)
-                diag[i] += mc_chg                    # charge outflow at T_{N-1} (bottom)
+                rhs[i] += mc_draw * T_makeup  # cold makeup inflow (bottom)
+                diag[i] += mc_chg  # charge outflow at T_{N-1} (bottom)
 
             # Internal advection (upwind by net direction).
             if down:
                 if i >= 1:
-                    lower[i] += -mc_int              # inflow from node above
+                    lower[i] += -mc_int  # inflow from node above
                 if i <= n - 2:
-                    diag[i] += mc_int                # outflow to node below
+                    diag[i] += mc_int  # outflow to node below
             else:
                 if i <= n - 2:
-                    upper[i] += -mc_int              # inflow from node below
+                    upper[i] += -mc_int  # inflow from node below
                 if i >= 1:
-                    diag[i] += mc_int                # outflow to node above
+                    diag[i] += mc_int  # outflow to node above
 
             # Pseudo-conduction to neighbours.
             g_above = G if i > 0 else 0.0

@@ -28,20 +28,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
 
 # Ground / borehole parameters (representative values, not site-specific).
-H_B = 150.0        # m, borehole length
-D_B = 4.0          # m, buried depth
-R_B = 0.08         # m, borehole radius
-B   = 6.0          # m, borehole spacing
-ALPHA_S = 1.0e-6   # m²/s
-K_S     = 2.0      # W/(m K)
+H_B = 150.0  # m, borehole length
+D_B = 4.0  # m, buried depth
+R_B = 0.08  # m, borehole radius
+B = 6.0  # m, borehole spacing
+ALPHA_S = 1.0e-6  # m²/s
+K_S = 2.0  # W/(m K)
 T_MAX_S = 30 * 365 * 24 * 3600.0  # 30 years
-DT_S    = 3600.0
+DT_S = 3600.0
 
 
 FIELDS = [
-    ("1×1 (single)",   1, 1, COLORS["accent"]),
-    ("2×2 field",      2, 2, COLORS["accent2"]),
-    ("4×4 field",      4, 4, COLORS["hot"]),
+    ("1×1 (single)", 1, 1, COLORS["accent"]),
+    ("2×2 field", 2, 2, COLORS["accent2"]),
+    ("4×4 field", 4, 4, COLORS["hot"]),
 ]
 
 
@@ -57,10 +57,16 @@ def main() -> None:
 
     for label, n1, n2, color in FIELDS:
         g = precompute_gfunction(
-            N_1=n1, N_2=n2,
-            B=B, H_b=H_B, D_b=D_B, r_b=R_B,
-            alpha_s=ALPHA_S, k_s=K_S,
-            t_max_s=T_MAX_S, dt_s=DT_S,
+            N_1=n1,
+            N_2=n2,
+            B=B,
+            H_b=H_B,
+            D_b=D_B,
+            r_b=R_B,
+            alpha_s=ALPHA_S,
+            k_s=K_S,
+            t_max_s=T_MAX_S,
+            dt_s=DT_S,
         )
         # Multiply by 2π·k_s to recover the conventional dimensionless g.
         g_dim = g(t_eval) * (2 * np.pi * K_S)
@@ -72,11 +78,12 @@ def main() -> None:
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-1))
 
     ax.text(
-        0.98, 0.05,
-        f"$H = {H_B:.0f}$ m, $B = {B:.0f}$ m\n"
-        f"$\\alpha_s = {ALPHA_S:.1e}$ m²/s",
+        0.98,
+        0.05,
+        f"$H = {H_B:.0f}$ m, $B = {B:.0f}$ m\n$\\alpha_s = {ALPHA_S:.1e}$ m²/s",
         transform=ax.transAxes,
-        va="bottom", ha="right",
+        va="bottom",
+        ha="right",
         fontsize=dm.fs(-1),
         color=COLORS["ink"],
     )

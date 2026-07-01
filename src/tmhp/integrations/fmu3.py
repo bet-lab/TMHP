@@ -16,9 +16,8 @@ multi-rate models; TMHP's current ASHPB FMU boundary is scalar Co-Simulation.
 
 from __future__ import annotations
 
-import math
 from typing import Any, cast
-from xml.etree.ElementTree import Element, SubElement
+from xml.etree.ElementTree import Element
 
 from pythonfmu3 import (
     Boolean,
@@ -33,6 +32,11 @@ from pythonfmu3 import (
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.dynamic_context import DynamicState
+from tmhp.integrations import _fmi_common
+
+_finite = _fmi_common.finite
+_is_finite = _fmi_common.is_finite
+_failure_reason = _fmi_common.failure_reason
 
 _REAL_UNITS = {
     "time": "s",
@@ -48,54 +52,13 @@ _REAL_UNITS = {
     "cop_sys": "1",
     "T_tank_w": "degC",
 }
-
-
-def _finite(value: float | None) -> float:
-    """Sanitize a value before it crosses the FMI 3.0 boundary."""
-    if value is None:
-        return 0.0
-    out = float(value)
-    return out if math.isfinite(out) else 0.0
-
-
-def _is_finite(value: Any) -> bool:
-    """Return whether *value* is a finite FMI scalar."""
-    try:
-        out = float(value)
-    except (TypeError, ValueError):
-        return False
-    return math.isfinite(out)
-
-
-def _failure_reason(value: object) -> str:
-    """Normalize diagnostic reasons at the FMI string boundary."""
-    if value is None:
-        return "none"
-    return str(value)
-
-
-def _ensure_unit_definitions(root: Element) -> None:
-    """Add FMI 3.0 unit definitions for importer-side unit checks."""
-    if root.find("UnitDefinitions") is not None:
-        return
-
-    unit_definitions = Element("UnitDefinitions")
-    unit_specs: tuple[tuple[str, dict[str, str]], ...] = (
-        ("W", {"kg": "1", "m": "2", "s": "-3"}),
-        ("s", {"s": "1"}),
-        ("degC", {"K": "1", "offset": "273.15"}),
-        ("m3/s", {"m": "3", "s": "-1"}),
-        ("1", {}),
-    )
-    for name, base_attrs in unit_specs:
-        unit = SubElement(unit_definitions, "Unit", attrib={"name": name})
-        SubElement(unit, "BaseUnit", attrib=base_attrs)
-
-    insertion_index = 0
-    for index, child in enumerate(list(root)):
-        if child.tag in {"CoSimulation", "ModelExchange", "ScheduledExecution"}:
-            insertion_index = index + 1
-    root.insert(insertion_index, unit_definitions)
+_UNIT_SPECS: tuple[tuple[str, dict[str, str]], ...] = (
+    ("W", {"kg": "1", "m": "2", "s": "-3"}),
+    ("s", {"s": "1"}),
+    ("degC", {"K": "1", "offset": "273.15"}),
+    ("m3/s", {"m": "3", "s": "-1"}),
+    ("1", {}),
+)
 
 
 class TmhpAshpbFmi3Slave(Fmi3Slave):
@@ -191,7 +154,11 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
     def to_xml(self, model_options: dict[str, str] | None = None) -> Element:
         """Build a static FMI 3.0 model description for PythonFMU3."""
         root = cast(Element, super().to_xml({} if model_options is None else model_options))
-        _ensure_unit_definitions(root)
+        _fmi_common.ensure_unit_definitions(
+            root,
+            _UNIT_SPECS,
+            insertion_after={"CoSimulation", "ModelExchange", "ScheduledExecution"},
+        )
         return root
 
     def exit_initialization_mode(self) -> None:

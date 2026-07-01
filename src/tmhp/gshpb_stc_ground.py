@@ -77,11 +77,7 @@ class GSHPB_STC_ground(GroundSourceHeatPumpBoiler):
         # Activate only during solar hours (positive irradiance) and when the
         # collector outlet is hotter than the ground (net heat gain).
         has_sun = (ctx.I_DN + ctx.I_dH) > 0.0
-        stc_active = (
-            has_sun
-            and ctx.activation_flags.get("stc", False)
-            and probe["T_stc_w_out_K"] > T_in_K
-        )
+        stc_active = has_sun and ctx.activation_flags.get("stc", False) and probe["T_stc_w_out_K"] > T_in_K
 
         if stc_active:
             stc_result = probe
@@ -90,8 +86,11 @@ class GSHPB_STC_ground(GroundSourceHeatPumpBoiler):
             e_pump = self._stc.E_stc_pump
         else:
             stc_result = self._stc.calc_performance(
-                I_DN_stc=ctx.I_DN, I_dH_stc=ctx.I_dH, T_stc_w_in_K=T_in_K,
-                T0_K=ctx.T0_K, is_active=False,
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=T_in_K,
+                T0_K=ctx.T0_K,
+                is_active=False,
             )
             self._q_solar_ground_W = 0.0
             e_pump = 0.0

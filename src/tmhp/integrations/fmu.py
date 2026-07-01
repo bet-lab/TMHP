@@ -30,7 +30,6 @@ importing master.
 
 from __future__ import annotations
 
-import math
 from typing import Any, cast
 from xml.etree.ElementTree import Element, SubElement
 
@@ -45,6 +44,11 @@ from pythonfmu import (
 
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp.dynamic_context import DynamicState
+from tmhp.integrations import _fmi_common
+
+_finite = _fmi_common.finite
+_is_finite = _fmi_common.is_finite
+_failure_reason = _fmi_common.failure_reason
 
 _REAL_UNITS = {
     "hp_capacity": "W",
@@ -59,30 +63,12 @@ _REAL_UNITS = {
     "cop_sys": "1",
     "T_tank_w": "degC",
 }
-
-
-def _finite(value: float | None) -> float:
-    """Sanitize a value before it crosses the FMI boundary."""
-    if value is None:
-        return 0.0
-    out = float(value)
-    return out if math.isfinite(out) else 0.0
-
-
-def _is_finite(value: Any) -> bool:
-    """Return whether *value* is a finite FMI scalar."""
-    try:
-        out = float(value)
-    except (TypeError, ValueError):
-        return False
-    return math.isfinite(out)
-
-
-def _failure_reason(value: object) -> str:
-    """Normalize diagnostic reasons at the FMI string boundary."""
-    if value is None:
-        return "none"
-    return str(value)
+_UNIT_SPECS: tuple[tuple[str, dict[str, str]], ...] = (
+    ("W", {"kg": "1", "m": "2", "s": "-3"}),
+    ("degC", {"K": "1", "offset": "273.15"}),
+    ("m3/s", {"m": "3", "s": "-1"}),
+    ("1", {}),
+)
 
 
 def _ensure_initial_unknowns(root: Element) -> None:
@@ -101,53 +87,13 @@ def _ensure_initial_unknowns(root: Element) -> None:
     if outputs is None:
         return
 
-    indexes = [
-        unknown.attrib["index"]
-        for unknown in outputs.findall("Unknown")
-        if "index" in unknown.attrib
-    ]
+    indexes = [unknown.attrib["index"] for unknown in outputs.findall("Unknown") if "index" in unknown.attrib]
     if not indexes:
         return
 
     initial_unknowns = SubElement(model_structure, "InitialUnknowns")
     for index in indexes:
         SubElement(initial_unknowns, "Unknown", attrib={"index": index})
-
-
-def _ensure_unit_definitions(root: Element) -> None:
-    """Add FMI unit definitions for importer-side unit checks."""
-    if root.find("UnitDefinitions") is not None:
-        return
-
-    unit_definitions = Element("UnitDefinitions")
-    unit_specs: tuple[tuple[str, dict[str, str]], ...] = (
-        ("W", {"kg": "1", "m": "2", "s": "-3"}),
-        ("degC", {"K": "1", "offset": "273.15"}),
-        ("m3/s", {"m": "3", "s": "-1"}),
-        ("1", {}),
-    )
-    for name, base_attrs in unit_specs:
-        unit = SubElement(unit_definitions, "Unit", attrib={"name": name})
-        SubElement(unit, "BaseUnit", attrib=base_attrs)
-
-    insertion_index = 0
-    for index, child in enumerate(list(root)):
-        if child.tag in {"CoSimulation", "ModelExchange"}:
-            insertion_index = index + 1
-    root.insert(insertion_index, unit_definitions)
-
-
-def _apply_real_units(root: Element) -> None:
-    """Attach unit metadata to Real variables in the FMI model description."""
-    model_variables = root.find("ModelVariables")
-    if model_variables is None:
-        return
-
-    for scalar in model_variables.findall("ScalarVariable"):
-        unit = _REAL_UNITS.get(scalar.attrib.get("name", ""))
-        real = scalar.find("Real")
-        if unit is not None and real is not None:
-            real.set("unit", unit)
 
 
 class TmhpAshpbSlave(Fmi2Slave):
@@ -164,22 +110,16 @@ class TmhpAshpbSlave(Fmi2Slave):
         self.hp_capacity = 15000.0
         self.T_tank_w_init = 55.0
         self.T_sur = 20.0  # surrounding (tank-loss) temperature [°C]
-        self.register_variable(
-            String("ref", causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed)
-        )
+        self.register_variable(String("ref", causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed))
         for nm in ("hp_capacity", "T_tank_w_init", "T_sur"):
-            self.register_variable(
-                Real(nm, causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed)
-            )
+            self.register_variable(Real(nm, causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed))
 
         # --- Inputs (master sets before each do_step) ---
         self.T0 = 7.0  # outdoor / dead-state air temperature [°C]
         self.dhw_draw = 0.0  # service-water draw-off [m³/s] (-> dV_mix_w_out)
         self.T_sup_w = 15.0  # mains make-up water temperature [°C]
         for nm in ("T0", "dhw_draw", "T_sup_w"):
-            self.register_variable(
-                Real(nm, causality=Fmi2Causality.input, variability=Fmi2Variability.continuous)
-            )
+            self.register_variable(Real(nm, causality=Fmi2Causality.input, variability=Fmi2Variability.continuous))
 
         # --- Outputs (master reads after each do_step) ---
         self.E_cmp = 0.0
@@ -194,9 +134,7 @@ class TmhpAshpbSlave(Fmi2Slave):
             self.register_variable(Real(nm, causality=Fmi2Causality.output))
         # FMI forbids variability="continuous" on Boolean variables.
         for nm in ("hp_is_on", "converged"):
-            self.register_variable(
-                Boolean(nm, causality=Fmi2Causality.output, variability=Fmi2Variability.discrete)
-            )
+            self.register_variable(Boolean(nm, causality=Fmi2Causality.output, variability=Fmi2Variability.discrete))
         self.register_variable(
             String(
                 "failure_reason",
@@ -212,8 +150,8 @@ class TmhpAshpbSlave(Fmi2Slave):
     def to_xml(self, model_options: dict[str, str] | None = None) -> Element:
         """Build a static FMI 2.0 model description for PythonFMU."""
         root = cast(Element, super().to_xml({} if model_options is None else model_options))
-        _ensure_unit_definitions(root)
-        _apply_real_units(root)
+        _fmi_common.ensure_unit_definitions(root, _UNIT_SPECS, insertion_after={"CoSimulation", "ModelExchange"})
+        _fmi_common.apply_fmi2_real_units(root, _REAL_UNITS)
         _ensure_initial_unknowns(root)
         return root
 

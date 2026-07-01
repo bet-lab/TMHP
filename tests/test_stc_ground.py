@@ -101,5 +101,5 @@ def test_solar_charges_and_warms_ground():
     T_sun = df_sun["T_bhe [°C]"].to_numpy()
     T_base = base["T_bhe [°C]"].to_numpy()
     assert np.all(np.isfinite(T_sun))
-    assert np.all(T_sun >= T_base - 1e-9)        # solar injection never cools the ground
-    assert T_sun.mean() > T_base.mean() + 0.5    # net warming
+    assert np.all(T_sun >= T_base - 1e-9)  # solar injection never cools the ground
+    assert T_sun.mean() > T_base.mean() + 0.5  # net warming

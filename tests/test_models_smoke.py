@@ -37,9 +37,7 @@ def test_ashpb_analyze_steady():
 
 def test_gshpb_analyze_steady():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
-    result = gshpb.analyze_steady(
-        T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0
-    )
+    result = gshpb.analyze_steady(T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0)
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
@@ -55,9 +53,7 @@ def test_gshpb_analyze_steady():
 
 def test_wshpb_analyze_steady():
     wshpb = WaterSourceHeatPumpBoiler(ref="R32")
-    result = wshpb.analyze_steady(
-        T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0
-    )
+    result = wshpb.analyze_steady(T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0)
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["Q_ref_tank [W]"] > 0
@@ -85,9 +81,7 @@ def test_ashp_heating_analyze_steady():
         A_cross_iu=0.5,
         A_cross_ou=0.5,
     )
-    result = ashp.analyze_steady(
-        Q_r_iu=-5_000.0, T0=5.0, T_a_room=20.0, verbose=False
-    )
+    result = ashp.analyze_steady(Q_r_iu=-5_000.0, T0=5.0, T_a_room=20.0, verbose=False)
     assert isinstance(result, dict)
     assert result["E_cmp [W]"] > 0
     assert result["cop_sys [-]"] > 1.0
@@ -155,9 +149,7 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
         A_cross_iu=0.5,
         A_cross_ou=0.5,
     )
-    result = ashp.analyze_steady(
-        Q_r_iu=-3_000.0, T0=5.0, T_a_room=20.0, verbose=False
-    )
+    result = ashp.analyze_steady(Q_r_iu=-3_000.0, T0=5.0, T_a_room=20.0, verbose=False)
     assert isinstance(result, dict)
     assert result["mode"] == "off"
     assert result["converged"] is False
@@ -183,9 +175,7 @@ def test_ashp_deprecated_params_emit_warning():
     assert any("UA_cond_rated" in m or "UA_evap_rated" in m for m in dep_messages), (
         "Expected DeprecationWarning for UA_cond_rated/UA_evap_rated"
     )
-    assert any("n_cond" in m or "n_evap" in m for m in dep_messages), (
-        "Expected DeprecationWarning for n_cond/n_evap"
-    )
+    assert any("n_cond" in m or "n_evap" in m for m in dep_messages), "Expected DeprecationWarning for n_cond/n_evap"
 
 
 def test_ashp_oldest_deprecated_design_params_emit_warning():
@@ -210,8 +200,11 @@ def test_ashp_oldest_deprecated_design_params_emit_warning():
 
 def test_ashp_custom_min_lift_and_pinch():
     ashp = AirSourceHeatPump(
-        ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0,
-        dT_cycle_min=15.0, dT_hx_min=1.0,
+        ref="R32",
+        UA_ou_rated=3000.0,
+        UA_iu_rated=3000.0,
+        dT_cycle_min=15.0,
+        dT_hx_min=1.0,
     )
     assert ashp.dT_cycle_min == 15.0
     assert ashp.dT_hx_min == 1.0
@@ -290,8 +283,13 @@ def test_check_pr_envelope_boundaries():
 
 def test_ashp_custom_pr_and_rps():
     ashp = AirSourceHeatPump(
-        ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0,
-        PR_cycle_min=1.8, PR_cycle_max=8.0, rps_min=15.0, rps_max=120.0,
+        ref="R32",
+        UA_ou_rated=3000.0,
+        UA_iu_rated=3000.0,
+        PR_cycle_min=1.8,
+        PR_cycle_max=8.0,
+        rps_min=15.0,
+        rps_max=120.0,
     )
     assert ashp.PR_cycle_min == 1.8
     assert ashp.PR_cycle_max == 8.0
@@ -309,7 +307,11 @@ def test_ashp_default_pr_and_rps():
 
 def test_ashpb_custom_pr_and_rps():
     ashpb = AirSourceHeatPumpBoiler(
-        ref="R32", PR_cycle_min=1.6, PR_cycle_max=9.0, rps_min=12.0, rps_max=130.0,
+        ref="R32",
+        PR_cycle_min=1.6,
+        PR_cycle_max=9.0,
+        rps_min=12.0,
+        rps_max=130.0,
     )
     assert ashpb.PR_cycle_min == 1.6
     assert ashpb.PR_cycle_max == 9.0
@@ -327,7 +329,11 @@ def test_gshpb_default_pr_and_rps():
 
 def test_wshpb_custom_pr_and_rps():
     wshpb = WaterSourceHeatPumpBoiler(
-        ref="R32", PR_cycle_min=1.6, PR_cycle_max=9.0, rps_min=12.0, rps_max=130.0,
+        ref="R32",
+        PR_cycle_min=1.6,
+        PR_cycle_max=9.0,
+        rps_min=12.0,
+        rps_max=130.0,
     )
     assert wshpb.PR_cycle_min == 1.6
     assert wshpb.PR_cycle_max == 9.0
@@ -349,12 +355,15 @@ def test_wshpb_pr_floor_clamp_keeps_cycle():
     # must still converge (continuous low-lift transition, not rejection). A
     # small compressor keeps the speed search inside [rps_min, rps_max].
     wshpb = WaterSourceHeatPumpBoiler(
-        ref="R410A", V_cmp_ref=5e-5, UA_tank=4000.0, UA_water=4000.0,
-        dT_cycle_min=2.0, PR_cycle_min=2.2, PR_cycle_max=10.0,
+        ref="R410A",
+        V_cmp_ref=5e-5,
+        UA_tank=4000.0,
+        UA_water=4000.0,
+        dT_cycle_min=2.0,
+        PR_cycle_min=2.2,
+        PR_cycle_max=10.0,
     )
-    result = wshpb.analyze_steady(
-        T_tank_w=28.0, T_source=22.0, Q_ref_tank=6000.0, T0=15.0
-    )
+    result = wshpb.analyze_steady(T_tank_w=28.0, T_source=22.0, Q_ref_tank=6000.0, T0=15.0)
     assert result["converged"] is True
     assert result["failure_reason"] == "none"
     assert wshpb._last_pr_event is not None
@@ -365,12 +374,17 @@ def test_wshpb_pr_ceiling_rejects():
     # A very low ceiling rejects an otherwise-valid high-lift heating point.
     # UA_tank kept high so the condensing temperature stays sub-critical.
     wshpb = WaterSourceHeatPumpBoiler(
-        ref="R410A", UA_tank=2000.0, UA_water=2000.0,
-        PR_cycle_min=1.0, PR_cycle_max=2.0,
+        ref="R410A",
+        UA_tank=2000.0,
+        UA_water=2000.0,
+        PR_cycle_min=1.0,
+        PR_cycle_max=2.0,
     )
-    result = wshpb.analyze_steady(
-        T_tank_w=50.0, T_source=12.0, Q_ref_tank=8000.0, T0=15.0
-    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        result = wshpb.analyze_steady(T_tank_w=50.0, T_source=12.0, Q_ref_tank=8000.0, T0=15.0)
+    runtime_messages = [str(w.message) for w in caught if issubclass(w.category, RuntimeWarning)]
+    assert any("pr_above_max" in message for message in runtime_messages)
     assert result["converged"] is False
     assert result["failure_reason"] == "pr_above_max"
     assert wshpb._last_pr_event is not None
@@ -396,12 +410,15 @@ def test_ashp_pr_floor_clamp_keeps_cycle():
     # so PR becomes the binding constraint. A raised floor forces the clamp; the
     # cycle must still converge (continuous low-lift transition, not rejection).
     ashp = AirSourceHeatPump(
-        ref="R410A", hp_capacity=15500.0, UA_ou_rated=2500, UA_iu_rated=2500,
-        dT_cycle_min=3.0, PR_cycle_min=1.8, PR_cycle_max=10.0,
+        ref="R410A",
+        hp_capacity=15500.0,
+        UA_ou_rated=2500,
+        UA_iu_rated=2500,
+        dT_cycle_min=3.0,
+        PR_cycle_min=1.8,
+        PR_cycle_max=10.0,
     )
-    result = ashp.analyze_steady(
-        Q_r_iu=16500.0, T0=10.0, T_a_room=28.0, return_dict=True, verbose=False
-    )
+    result = ashp.analyze_steady(Q_r_iu=16500.0, T0=10.0, T_a_room=28.0, return_dict=True, verbose=False)
     assert result["converged"] is True
     assert result["failure_reason"] == "none"
     assert ashp._last_pr_event is not None
@@ -411,12 +428,14 @@ def test_ashp_pr_floor_clamp_keeps_cycle():
 def test_ashp_pr_ceiling_rejects():
     # A very low ceiling rejects an otherwise-valid heating point.
     ashp = AirSourceHeatPump(
-        ref="R410A", hp_capacity=15500.0, UA_ou_rated=2500, UA_iu_rated=2500,
-        PR_cycle_min=1.0, PR_cycle_max=1.6,
+        ref="R410A",
+        hp_capacity=15500.0,
+        UA_ou_rated=2500,
+        UA_iu_rated=2500,
+        PR_cycle_min=1.0,
+        PR_cycle_max=1.6,
     )
-    result = ashp.analyze_steady(
-        Q_r_iu=-14000.0, T0=-7.0, T_a_room=20.0, return_dict=True, verbose=False
-    )
+    result = ashp.analyze_steady(Q_r_iu=-14000.0, T0=-7.0, T_a_room=20.0, return_dict=True, verbose=False)
     assert result["converged"] is False
     assert result["failure_reason"] == "pr_above_max"
     assert ashp._last_pr_event is not None
@@ -432,21 +451,25 @@ def test_ashp_pr_ceiling_rejects():
 
 
 def test_ashp_output_labels_are_position_based():
-    ashp = AirSourceHeatPump(
-        ref="R410A", hp_capacity=15500.0, UA_ou_rated=2500, UA_iu_rated=2500
-    )
+    ashp = AirSourceHeatPump(ref="R410A", hp_capacity=15500.0, UA_ou_rated=2500, UA_iu_rated=2500)
     for q in (-12000.0, 12000.0):  # heating, cooling
         r = ashp.analyze_steady(
-            Q_r_iu=q, T0=7.0 if q < 0 else 31.0, T_a_room=20.0 if q < 0 else 26.0,
-            return_dict=True, verbose=False,
+            Q_r_iu=q,
+            T0=7.0 if q < 0 else 31.0,
+            T_a_room=20.0 if q < 0 else 26.0,
+            return_dict=True,
+            verbose=False,
         )
         # Position-based duties present, exergy by location present.
         assert "Q_ref_iu [W]" in r and "Q_ref_ou [W]" in r
         assert "X_ref_iu [W]" in r and "X_ref_ou [W]" in r
         # Refrigerant-role duty/exergy keys and the input echo are gone.
         for stale in (
-            "Q_ref_cond [W]", "Q_ref_evap [W]", "Q_r_iu [W]",
-            "X_ref_cond [W]", "X_ref_evap [W]",
+            "Q_ref_cond [W]",
+            "Q_ref_evap [W]",
+            "Q_r_iu [W]",
+            "X_ref_cond [W]",
+            "X_ref_evap [W]",
         ):
             assert stale not in r, f"stale output key {stale}"
         # Refrigerant-state saturation keys remain cond/evap.

@@ -106,9 +106,7 @@ def test_zero_sun_matches_base():
     base = _run(_base_gshpb(), sun=False)
     rt = _run(_routed_gshpb(stc=_stc()), sun=False)
     for col in [*_BHE_COLS, "T_tank_w [°C]", "cop_sys [-]"]:
-        np.testing.assert_array_equal(
-            np.nan_to_num(rt[col].to_numpy()), np.nan_to_num(base[col].to_numpy())
-        )
+        np.testing.assert_array_equal(np.nan_to_num(rt[col].to_numpy()), np.nan_to_num(base[col].to_numpy()))
 
 
 def test_force_ground_route_charges_ground_only():

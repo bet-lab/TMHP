@@ -54,9 +54,9 @@ def _assert_frames_close(df: pd.DataFrame, golden: pd.DataFrame) -> None:
                 err_msg=f"column {col!r} diverged",
             )
         else:
-            assert (
-                d.astype(str).to_numpy() == g.astype(str).to_numpy()
-            ).all(), f"column {col!r} (non-numeric) diverged"
+            assert (d.astype(str).to_numpy() == g.astype(str).to_numpy()).all(), (
+                f"column {col!r} (non-numeric) diverged"
+            )
 
 
 @pytest.mark.parametrize("name,dt", S.SCENARIOS)

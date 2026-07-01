@@ -161,7 +161,6 @@ def _draw_cycle_lines_and_annotations(
             )
 
 
-
 @lru_cache(maxsize=8)
 def _get_saturation_curves(refrigerant: str):
     T_min = CP.PropsSI("Tmin", refrigerant)
@@ -187,6 +186,7 @@ def _get_saturation_curves(refrigerant: str):
         pass
     return temps, h_liq, h_vap, p_sat, s_liq, s_vap
 
+
 REF_LIMITS: dict[str, dict[str, dict[str, float]]] = {
     "R410A": {
         "th": {"xmin": 0.0, "xmax": 700.0, "ymin": -40.0, "ymax": 140.0},
@@ -207,7 +207,7 @@ REF_LIMITS: dict[str, dict[str, dict[str, float]]] = {
         "th": {"xmin": 0.0, "xmax": 850.0, "ymin": -40.0, "ymax": 140.0},
         "ph": {"xmin": 0.0, "xmax": 850.0, "ymin": 100.0, "ymax": 10000.0},
         "ts": {"xmin": 0.0, "xmax": 3.0, "ymin": -40.0, "ymax": 140.0},
-    }
+    },
 }
 
 
@@ -264,10 +264,19 @@ def plot_th_diagram(
     # - tol_y_atol = 0.5 °C   — temperature resolution that lets the SH/SC
     #               (superheat / subcool) segments stay visible.
     _draw_cycle_lines_and_annotations(
-        ax, pts_x, pts_y, is_on, color1, color2, line_color, color3, color4,
-        tol_atol=0.5, tol_y_atol=0.5, point_labels=point_labels,
+        ax,
+        pts_x,
+        pts_y,
+        is_on,
+        color1,
+        color2,
+        line_color,
+        color3,
+        color4,
+        tol_atol=0.5,
+        tol_y_atol=0.5,
+        point_labels=point_labels,
     )
-
 
     trans = ax.get_yaxis_transform()
 
@@ -319,6 +328,7 @@ def plot_th_diagram(
     ax.set_ylim(limits["ymin"], limits["ymax"])
 
     import matplotlib.ticker as ticker
+
     if refrigerant == "R32":
         ax.yaxis.set_major_locator(ticker.MultipleLocator(40))
 
@@ -395,7 +405,20 @@ def plot_ph_diagram(
     pts_x = {"1_star": h1_star, "1": h1, "2": h2, "2_star": h2_star, "3_star": h3_star, "3": h3, "4": h4}
     pts_y = {"1_star": P1_star, "1": P1, "2": P2, "2_star": P2_star, "3_star": P3_star, "3": P3, "4": P4}
     is_on = bool(result.get("hp_is_on", result.get("is_on", False)))
-    _draw_cycle_lines_and_annotations(ax, pts_x, pts_y, is_on, color1, color2, line_color, color3, color4, tol_atol=0.5, tol_y_atol=None, point_labels=point_labels)
+    _draw_cycle_lines_and_annotations(
+        ax,
+        pts_x,
+        pts_y,
+        is_on,
+        color1,
+        color2,
+        line_color,
+        color3,
+        color4,
+        tol_atol=0.5,
+        tol_y_atol=None,
+        point_labels=point_labels,
+    )
 
     ax.set_xlabel("Enthalpy [kJ/kg]")
     ax.set_ylabel("Pressure [kPa]")
@@ -476,7 +499,18 @@ def plot_ts_diagram(
     pts_y = {"1_star": T1_star, "1": T1, "2": T2, "2_star": T2_star, "3_star": T3_star, "3": T3, "4": T4}
     is_on = bool(result.get("hp_is_on", result.get("is_on", False)))
     _draw_cycle_lines_and_annotations(
-        ax, pts_x, pts_y, is_on, color1, color2, line_color, color3, color4, tol_atol=0.05, tol_y_atol=0.5, point_labels=point_labels
+        ax,
+        pts_x,
+        pts_y,
+        is_on,
+        color1,
+        color2,
+        line_color,
+        color3,
+        color4,
+        tol_atol=0.05,
+        tol_y_atol=0.5,
+        point_labels=point_labels,
     )
 
     trans = ax.get_yaxis_transform()
@@ -529,6 +563,7 @@ def plot_ts_diagram(
     ax.set_ylim(limits["ymin"], limits["ymax"])
 
     import matplotlib.ticker as ticker
+
     ax.xaxis.set_major_locator(ticker.MultipleLocator(0.5))
     if refrigerant == "R32":
         ax.yaxis.set_major_locator(ticker.MultipleLocator(40))

@@ -22,9 +22,13 @@ def test_static_analysis_runs_once_outside_python_test_matrix() -> None:
     assert "  lint-type:\n" in text
     assert "name: Static analysis" in text
     assert text.count("name: Ruff lint") == 1
+    assert text.count("name: Ruff format") == 1
     assert text.count("name: Mypy") == 1
     assert "name: Ruff lint" not in test_job
+    assert "name: Ruff format" not in test_job
     assert "name: Mypy" not in test_job
+    assert "uv run ruff check src/tmhp tests scripts" in text
+    assert "uv run ruff format --check src/tmhp tests scripts" in text
 
 
 def test_coverage_is_collected_once_on_canonical_python() -> None:
@@ -66,11 +70,8 @@ def test_pytest_matrix_skips_docs_only_pull_requests() -> None:
         assert matrix_trigger in workflow
 
 
-def test_pytest_matrix_skips_all_main_pushes_after_pr_gate() -> None:
+def test_pytest_matrix_runs_on_main_pushes_after_pr_gate() -> None:
     workflow = _read(".github/workflows/tests.yml")
 
     assert '"${{ github.event_name }}" != "pull_request"' in workflow
-    assert 'echo "run-matrix=false" >> "$GITHUB_OUTPUT"' in workflow
-    assert "github.event.before" not in workflow
-    assert "github.event.after" not in workflow
-    assert "0000000000000000000000000000000000000000" not in workflow
+    assert 'echo "run-matrix=true" >> "$GITHUB_OUTPUT"' in workflow

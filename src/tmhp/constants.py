@@ -15,13 +15,25 @@ import numpy as np
 
 __all__ = [
     # Air properties
-    "c_a", "rho_a", "k_a", "Pr_a",
+    "c_a",
+    "rho_a",
+    "k_a",
+    "Pr_a",
     # Water properties
-    "c_w", "rho_w", "mu_w", "k_w", "Pr_w", "beta",
+    "c_w",
+    "rho_w",
+    "mu_w",
+    "k_w",
+    "Pr_w",
+    "beta",
     # Physical / thermodynamic
-    "g", "sigma", "T0_K", "P0_PA",
+    "g",
+    "sigma",
+    "T0_K",
+    "P0_PA",
     # Solar entropy coefficients
-    "k_D", "k_d",
+    "k_D",
+    "k_d",
     # Natural gas
     "ex_eff_NG",
     # Mathematical

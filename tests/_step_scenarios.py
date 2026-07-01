@@ -21,9 +21,7 @@ from tmhp import AirSourceHeatPumpBoiler
 PERIOD_S: int = 3 * 86400  # 3-day horizon (spec: >= 3 days)
 DTS: tuple[int, ...] = (300, 600)  # spec: dt in {300, 600} s
 SCHEDULE_NAMES: tuple[str, ...] = ("diurnal_2draw", "cold_heavydraw")
-SCENARIOS: list[tuple[str, int]] = [
-    (name, dt) for name in SCHEDULE_NAMES for dt in DTS
-]
+SCENARIOS: list[tuple[str, int]] = [(name, dt) for name in SCHEDULE_NAMES for dt in DTS]
 DATA_DIR: Path = Path(__file__).parent / "data"
 
 
@@ -40,9 +38,7 @@ def scenario_kwargs(name: str, dt_s: int) -> dict:
     if name == "diurnal_2draw":
         # Diurnal outdoor swing + morning/evening DHW draws (HP cycling).
         T0 = 5.0 + 5.0 * np.sin(2 * np.pi * (hod - 9) / 24)
-        dhw = np.where(
-            (np.abs(hod - 7) < 0.5) | (np.abs(hod - 20) < 0.5), 5e-5, 0.0
-        )
+        dhw = np.where((np.abs(hod - 7) < 0.5) | (np.abs(hod - 20) < 0.5), 5e-5, 0.0)
         Tsup = np.full(tN, 15.0)
         Tsur = np.full(tN, 20.0)
     elif name == "cold_heavydraw":
@@ -73,9 +69,7 @@ def golden_path(name: str, dt_s: int) -> Path:
     return DATA_DIR / f"golden_step_{name}_dt{dt_s}.csv.gz"
 
 
-def run_step_driven(
-    model: AirSourceHeatPumpBoiler, name: str, dt_s: int
-) -> pd.DataFrame:
+def run_step_driven(model: AirSourceHeatPumpBoiler, name: str, dt_s: int) -> pd.DataFrame:
     """Drive the public ``step()`` kernel manually over a scenario, mirroring
     ``analyze_dynamic``'s wrapper (array setup + ``_postprocess``).
 
@@ -94,9 +88,7 @@ def run_step_driven(
     model.dt = dt_s
     model.dhw_flow_m3s = dhw
 
-    state = model.make_initial_state(
-        kw["T_tank_w_init_C"], tank_level_init=1.0
-    )
+    state = model.make_initial_state(kw["T_tank_w_init_C"], tank_level_init=1.0)
     rows: list[dict] = []
     for n in range(tN):
         inputs = {

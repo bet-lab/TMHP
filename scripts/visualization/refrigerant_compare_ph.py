@@ -27,8 +27,8 @@ from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E40
 
 REFRIGERANTS = ("R32", "R290", "R134a")
 T_TANK_W = 55.0
-T0       = 7.0
-Q_COND   = 8_000
+T0 = 7.0
+Q_COND = 8_000
 
 
 def _envelope(refrigerant: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -52,14 +52,15 @@ CYCLE_PATH = ["1*", "1", "2", "2*", "3*", "3", "4", "1*"]
 def _cycle_points(result: dict) -> dict[str, tuple[float, float]]:
     def hp(h, p):
         return result[h] / 1_000, result[p] / 1_000
+
     return {
-        "1*": hp("h_ref_evap_sat [J/kg]",    "P_ref_evap_sat [Pa]"),
-        "1":  hp("h_ref_cmp_in [J/kg]",      "P_ref_cmp_in [Pa]"),
-        "2":  hp("h_ref_cmp_out [J/kg]",     "P_ref_cmp_out [Pa]"),
-        "2*": hp("h_ref_cond_sat_v [J/kg]",  "P_ref_cond_sat_v [Pa]"),
-        "3*": hp("h_ref_cond_sat_l [J/kg]",  "P_ref_cond_sat_l [Pa]"),
-        "3":  hp("h_ref_exp_in [J/kg]",      "P_ref_exp_in [Pa]"),
-        "4":  hp("h_ref_exp_out [J/kg]",     "P_ref_exp_out [Pa]"),
+        "1*": hp("h_ref_evap_sat [J/kg]", "P_ref_evap_sat [Pa]"),
+        "1": hp("h_ref_cmp_in [J/kg]", "P_ref_cmp_in [Pa]"),
+        "2": hp("h_ref_cmp_out [J/kg]", "P_ref_cmp_out [Pa]"),
+        "2*": hp("h_ref_cond_sat_v [J/kg]", "P_ref_cond_sat_v [Pa]"),
+        "3*": hp("h_ref_cond_sat_l [J/kg]", "P_ref_cond_sat_l [Pa]"),
+        "3": hp("h_ref_exp_in [J/kg]", "P_ref_exp_in [Pa]"),
+        "4": hp("h_ref_exp_out [J/kg]", "P_ref_exp_out [Pa]"),
     }
 
 
@@ -67,7 +68,8 @@ def main() -> None:
     apply_style("report", hashsalt="tmhp.visualization.refrigerant-compare-ph")
 
     fig, axes = plt.subplots(
-        1, 3,
+        1,
+        3,
         figsize=dm.figsize("17cm", 5 / 12),
         sharey=True,
     )
@@ -75,7 +77,7 @@ def main() -> None:
     for ax, ref in zip(axes, REFRIGERANTS, strict=True):
         h_liq, h_vap, p_sat = _envelope(ref)
         ax.plot(h_liq, p_sat, color=COLORS["cool"], linewidth=dm.lw(1))
-        ax.plot(h_vap, p_sat, color=COLORS["hot"],  linewidth=dm.lw(1))
+        ax.plot(h_vap, p_sat, color=COLORS["hot"], linewidth=dm.lw(1))
 
         ashpb = AirSourceHeatPumpBoiler(ref=ref)
         res = ashpb.analyze_steady(T_tank_w=T_TANK_W, T0=T0, Q_ref_tank=Q_COND)
@@ -84,15 +86,20 @@ def main() -> None:
 
         xs = [pts[k][0] for k in CYCLE_PATH]
         ys = [pts[k][1] for k in CYCLE_PATH]
-        ax.plot(xs, ys, color=COLORS["ink"], linewidth=dm.lw(0),
-                linestyle=(0, (2, 2)))
+        ax.plot(xs, ys, color=COLORS["ink"], linewidth=dm.lw(0), linestyle=(0, (2, 2)))
         # Mark cmp,out + exp,out so the reader can pick out the high
         # / low pressure plateaus without label clutter.
         for key in ("1", "2", "3", "4"):
             x, y = pts[key]
-            ax.plot(x, y, marker="o", markersize=3,
-                    markerfacecolor=COLORS["ink"], markeredgecolor=COLORS["ink"],
-                    linestyle="None")
+            ax.plot(
+                x,
+                y,
+                marker="o",
+                markersize=3,
+                markerfacecolor=COLORS["ink"],
+                markeredgecolor=COLORS["ink"],
+                linestyle="None",
+            )
 
         cop = float(res.get("cop_sys [-]", float("nan")))
         ax.set_title(f"{ref}\nCOP = {cop:.2f}", fontsize=dm.fs(0))
@@ -107,16 +114,15 @@ def main() -> None:
     # Single-column legend tucked into the lower-right of the rightmost
     # panel (R134a) — that quadrant is in the superheated-vapor region
     # so it sits clear of the dome and the cycle path.
-    h_liq_handle, = axes[-1].plot([], [], color=COLORS["cool"],
-                                   linewidth=dm.lw(1), label="Sat. liquid")
-    h_vap_handle, = axes[-1].plot([], [], color=COLORS["hot"],
-                                   linewidth=dm.lw(1), label="Sat. vapor")
-    h_cyc_handle, = axes[-1].plot([], [], color=COLORS["ink"],
-                                   linewidth=dm.lw(0),
-                                   linestyle=(0, (2, 2)), label="Ref. cycle")
+    (h_liq_handle,) = axes[-1].plot([], [], color=COLORS["cool"], linewidth=dm.lw(1), label="Sat. liquid")
+    (h_vap_handle,) = axes[-1].plot([], [], color=COLORS["hot"], linewidth=dm.lw(1), label="Sat. vapor")
+    (h_cyc_handle,) = axes[-1].plot(
+        [], [], color=COLORS["ink"], linewidth=dm.lw(0), linestyle=(0, (2, 2)), label="Ref. cycle"
+    )
     axes[-1].legend(
         handles=[h_liq_handle, h_vap_handle, h_cyc_handle],
-        loc="lower right", frameon=False,
+        loc="lower right",
+        frameon=False,
         fontsize=dm.fs(-2),
     )
 

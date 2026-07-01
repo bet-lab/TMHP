@@ -1,6 +1,7 @@
 """Tests for scripts/data/gen_refrigerant_data.py."""
 
 import json
+import multiprocessing as mp
 
 import CoolProp.CoolProp as CP
 from scripts.data import gen_refrigerant_data as gen
@@ -73,6 +74,13 @@ def test_solve_cycle_returns_seven_display_points() -> None:
     assert result is not None
     assert len(result) == 7
     assert all(len(point) == 4 for point in result)
+
+
+def test_process_pool_context_prefers_non_fork_start_method() -> None:
+    ctx = gen._process_pool_context()
+
+    if any(method != "fork" for method in mp.get_all_start_methods()):
+        assert ctx.get_start_method() != "fork"
 
 
 def test_writes_cycle_widget_payload(tmp_path, monkeypatch) -> None:

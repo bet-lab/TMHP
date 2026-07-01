@@ -270,10 +270,7 @@ def calc_mixing_valve_temp(T_tank_w_K, T_tank_w_in_K, T_mix_w_out_K):
     }
 
 
-def calc_mixing_valve_flows(
-    dV_mix_out: float,
-    alp: float
-) -> dict:
+def calc_mixing_valve_flows(dV_mix_out: float, alp: float) -> dict:
     """
     Calculate volumetric flow rates at a 3-way mixing valve given a mixing ratio.
 
@@ -558,8 +555,6 @@ def calc_HX_perf_for_target_heat(
         "T_ou_a_mid": T_a_mid_C,
         "Q_ou_air": Q_air_sol,
     }
-
-
 
 
 # calc_fan_power_from_dV_fan and check_hp_schedule_active have been moved

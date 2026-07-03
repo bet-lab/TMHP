@@ -881,6 +881,12 @@ class GroundSourceHeatPumpBoiler:
         self.T_bhe_f_in_K = T_bhe_f_K - dT_bhe_f_half
         self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
         T_bhe_f_out_K = T_bhe_f_K + dT_bhe_f_half
+        # Sync the Kelvin attribute too. _calc_state reads self.T_bhe_f_out_K to set
+        # the evaporator condition; without this it stays at its __init__ default (Ts_K),
+        # so in multi-step analyze_dynamic the evaporator/COP never follow the g-driven
+        # ground temperature drift. (analyze_steady sets this attribute explicitly,
+        # which is why only the dynamic path was affected.)
+        self.T_bhe_f_out_K = T_bhe_f_out_K
         self.T_bhe_f_out = cu.K2C(T_bhe_f_out_K)
 
         # Apply BHE state to hp_result (so it is visible correctly)

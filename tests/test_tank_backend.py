@@ -106,14 +106,9 @@ def test_lumped_exergy_splits_condenser_and_storage_tank():
     assert "Xc_ref_tank [W]" in df.columns
     assert df["Xc_tank [W]"].notna().all()
 
-    expected_cond = (
-        df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"] - df["X_ref_tank [W]"]
-    )
+    expected_cond = df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"] - df["X_ref_tank [W]"]
     expected_tank = (
-        df["X_ref_tank [W]"]
-        + df["X_tank_w_in [W]"].fillna(0)
-        - df["Xst_tank [W]"]
-        - df["X_tank_w_out [W]"].fillna(0)
+        df["X_ref_tank [W]"] + df["X_tank_w_in [W]"].fillna(0) - df["Xst_tank [W]"] - df["X_tank_w_out [W]"].fillna(0)
     )
 
     cond_mask = expected_cond.notna()

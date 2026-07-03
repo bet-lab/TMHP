@@ -101,6 +101,32 @@ def test_lumped_and_stratified_both_physical():
         assert Tt.min() > 5.0 and Tt.max() < 130.0  # bounded, no divergence
 
 
+def test_lumped_exergy_splits_condenser_and_storage_tank():
+    df = _run(_gshpb())
+    assert "Xc_ref_tank [W]" in df.columns
+    assert df["Xc_tank [W]"].notna().all()
+
+    expected_cond = df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"] - df["X_ref_tank [W]"]
+    expected_tank = (
+        df["X_ref_tank [W]"] + df["X_tank_w_in [W]"].fillna(0) - df["Xst_tank [W]"] - df["X_tank_w_out [W]"].fillna(0)
+    )
+
+    cond_mask = expected_cond.notna()
+    assert cond_mask.any()
+    np.testing.assert_allclose(
+        df.loc[cond_mask, "Xc_ref_tank [W]"],
+        expected_cond.loc[cond_mask],
+        rtol=1e-12,
+        atol=1e-9,
+    )
+    np.testing.assert_allclose(
+        df["Xc_tank [W]"],
+        expected_tank,
+        rtol=1e-12,
+        atol=1e-9,
+    )
+
+
 def test_condenser_node_concentrates_vs_spreads():
     """condenser_node=None spreads HP heat over the field; a fixed node
     concentrates it (so the two produce different profiles)."""

@@ -1597,8 +1597,18 @@ class AirSourceHeatPumpBoiler:
             df["X_a_ou_mid [W]"] = calc_exergy_flow(G_a, Tmid, T0_K)
 
         # ── 4. HX exergy (Carnot form) ─────────────────────
-        df["X_ref_tank [W]"] = df["Q_ref_tank [W]"] * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"]))
-        df["X_ref_ou [W]"] = df["Q_ref_ou [W]"] * (1 - T0_K / cu.C2K(df["T_ref_evap_sat [°C]"]))
+        Q_ref_tank = df["Q_ref_tank [W]"].fillna(0)
+        Q_ref_ou = df["Q_ref_ou [W]"].fillna(0)
+        df["X_ref_tank [W]"] = np.where(
+            Q_ref_tank > 0,
+            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"])),
+            0.0,
+        )
+        df["X_ref_ou [W]"] = np.where(
+            Q_ref_ou > 0,
+            Q_ref_ou * (1 - T0_K / cu.C2K(df["T_ref_evap_sat [°C]"])),
+            0.0,
+        )
 
         # ── 5. Water exergy (inlet / outlet) ───────────────
         df["X_tank_w_in [W]"] = calc_exergy_flow(
@@ -1644,7 +1654,12 @@ class AirSourceHeatPumpBoiler:
         # ── 10. Component exergy destruction ───────────────
         # Xc = ΣX_in − ΣX_out ≥ 0 (2nd law)
         df["Xc_cmp [W]"] = df["X_cmp [W]"] + df["X_ref_cmp_in [W]"] - df["X_ref_cmp_out [W]"]
-        df["Xc_ref_tank [W]"] = df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"] - df["X_ref_tank [W]"]
+        ref_tank_active = Q_ref_tank > 0
+        df["Xc_ref_tank [W]"] = np.where(
+            ref_tank_active,
+            df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"] - df["X_ref_tank [W]"],
+            0.0,
+        )
         df["Xc_exp [W]"] = df["X_ref_exp_in [W]"] - df["X_ref_exp_out [W]"]
         df["Xc_ref_ou [W]"] = (df["X_ref_exp_out [W]"] + df["X_a_ou_in [W]"]) - (
             df["X_ref_cmp_in [W]"] + df["X_a_ou_mid [W]"]
@@ -1653,7 +1668,7 @@ class AirSourceHeatPumpBoiler:
         df["Xc_mix [W]"] = df["X_tank_w_out [W]"] + df["X_mix_sup_w_in [W]"] - df["X_mix_w_out [W]"]
 
         # 10g. Storage tank
-        X_in_tank = df["X_ref_tank [W]"] + df["X_tank_w_in [W]"].fillna(0)
+        X_in_tank = df["X_ref_tank [W]"].fillna(0) + df["X_tank_w_in [W]"].fillna(0)
         if "X_uv [W]" in df.columns:
             X_in_tank = X_in_tank + df["X_uv [W]"].fillna(0)
 

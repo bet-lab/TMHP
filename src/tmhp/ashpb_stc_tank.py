@@ -54,7 +54,8 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
     The STC collector loop is connected directly to the storage tank.
     The STC draws water from the tank, heats it via solar energy, and
     returns it through the pump. The STC is activated only when the
-    collector outlet temperature exceeds the current tank temperature.
+    collector's thermal gain exceeds the pump electricity required to
+    circulate the loop.
 
     Orchestration responsibility
     ----------------------------
@@ -92,8 +93,6 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         # Do NOT pass stc to super().__init__ — keeps self._subsystems empty.
         super().__init__(**kwargs)
         self._stc: SolarThermalCollector = stc
-        # 펌프 전력 배제 (상수도 수압 활용 및 STC 모델 간 일관성 유지)
-        self._stc.E_stc_pump = 0.0
         # Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.
         self.stc = stc
 
@@ -107,6 +106,12 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
     def _get_activation_flags(self, hour_of_day: float) -> dict[str, bool]:
         """Return STC schedule flag: {"stc": bool}."""
         return {"stc": self._stc.is_preheat_on(hour_of_day)}
+
+    def _collector_gain_exceeds_pump(self, stc_result: dict) -> bool:
+        """Return whether collector heat gain justifies running the loop pump."""
+        collector_gain_w = float(stc_result.get("Q_stc_w_out", 0.0)) - float(stc_result.get("Q_stc_w_in", 0.0))
+        pump_power_w = max(0.0, float(self._stc.E_stc_pump))
+        return bool(np.isfinite(collector_gain_w) and collector_gain_w > pump_power_w)
 
     def _build_residual_fn(
         self,
@@ -160,8 +165,8 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
             Q_flow: float = c_w * rho_w * (dV_in * T_tank_w_in_K_n - dV_out * T_cand_K)
             Q_loss: float = self.UA_tank_wall * (T_cand_K - self.T_sur_K)
 
-            # Prevent radiator effect: if the tank is hotter than STC, STC controller turns off pump.
-            if Q_stc_net < 0.0:
+            # Do not circulate when collector heat gain cannot beat pump electricity.
+            if Q_stc_net <= max(0.0, E_pump):
                 Q_stc_net = 0.0
                 current_E_pump = 0.0
             else:
@@ -192,8 +197,9 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         Physics
         -------
         - STC inlet temperature = current tank water temperature (``ctx.T_tank_w_K``)
-        - STC is activated only when ``T_stc_w_out > T_tank`` (collector
-          outlet is hotter than tank → net heat gain)
+        - STC is activated only when collector heat gain exceeds pump
+          electricity.  If not, a COP=1 electric heater would provide at
+          least as much useful heat as circulating the collector loop.
         - No ``T_tank_w_in_override_K``: STC heats tank directly, not
           the mains supply
 
@@ -216,8 +222,8 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
             T0_K=ctx.T0_K,
             is_active=True,
         )
-        # Activation criterion: net positive heat transfer to tank
-        stc_active: bool = ctx.activation_flags.get("stc", False) and probe["T_stc_w_out_K"] > ctx.T_tank_w_K
+        # Activation criterion: collector heat gain must beat pump electricity.
+        stc_active: bool = ctx.activation_flags.get("stc", False) and self._collector_gain_exceeds_pump(probe)
 
         if stc_active:
             stc_result = probe
@@ -283,8 +289,21 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
             is_active=stc_active,
         )
 
+        if stc_active and not self._collector_gain_exceeds_pump(stc_result):
+            stc_active = False
+            E_pump = 0.0
+            stc_result = self._stc.calc_performance(
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=T_solved_K,
+                T0_K=ctx.T0_K,
+                is_active=False,
+            )
+
         T_stc_w_out_K: float = stc_result["T_stc_w_out_K"]
         T_stc_pump_w_out_K: float = stc_result.get("T_stc_pump_w_out_K", T_stc_w_out_K)
+
+        r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + E_pump
 
         r.update(
             {

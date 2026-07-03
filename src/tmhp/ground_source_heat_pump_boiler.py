@@ -1387,8 +1387,18 @@ class GroundSourceHeatPumpBoiler:
         # Fluid leaves evaporator and enters BHE
         X_ground_out = X_bhe_in
 
-        df["X_ref_tank [W]"] = df["Q_ref_tank [W]"] * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"]))
-        df["X_ref_ground [W]"] = df["Q_ref_ground [W]"] * (1 - T0_K / cu.C2K(df["T_ref_evap_sat [°C]"]))
+        Q_ref_tank = df["Q_ref_tank [W]"].fillna(0)
+        Q_ref_ground = df["Q_ref_ground [W]"].fillna(0)
+        df["X_ref_tank [W]"] = np.where(
+            Q_ref_tank > 0,
+            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"])),
+            0.0,
+        )
+        df["X_ref_ground [W]"] = np.where(
+            Q_ref_ground > 0,
+            Q_ref_ground * (1 - T0_K / cu.C2K(df["T_ref_evap_sat [°C]"])),
+            0.0,
+        )
 
         df["X_tank_w_in [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_tank_w_in [m3/s]"].fillna(0), cu.C2K(df["T_tank_w_in [°C]"]), T0_K
@@ -1431,12 +1441,22 @@ class GroundSourceHeatPumpBoiler:
         df["X_tot [W]"] = df["E_cmp [W]"] + df["E_pmp [W]"] + df.get("X_uv [W]", 0.0) + X_sub_tot_add
 
         df["Xc_cmp [W]"] = df["X_cmp [W]"] + df["X_ref_cmp_in [W]"] - df["X_ref_cmp_out [W]"]
-        df["Xc_tank [W]"] = (df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"]) - df["X_ref_tank [W]"]
+        ref_tank_active = Q_ref_tank > 0
+        df["Xc_ref_tank [W]"] = np.where(
+            ref_tank_active,
+            (df["X_ref_cmp_out [W]"] - df["X_ref_exp_in [W]"]) - df["X_ref_tank [W]"],
+            0.0,
+        )
         df["Xc_exp [W]"] = df["X_ref_exp_in [W]"] - df["X_ref_exp_out [W]"]
         df["Xc_ground [W]"] = (X_ground_in - X_ground_out) - df["X_ref_ground [W]"]
         df["Xc_pmp [W]"] = df["E_pmp [W]"] - (X_ground_in - X_bhe_out)
 
-        X_in_tank = df["X_ref_tank [W]"] + df["X_tank_w_in [W]"].fillna(0) + df.get("X_uv [W]", 0.0) + X_sub_in_tank_add
+        X_in_tank = (
+            df["X_ref_tank [W]"].fillna(0)
+            + df["X_tank_w_in [W]"].fillna(0)
+            + df.get("X_uv [W]", 0.0)
+            + X_sub_in_tank_add
+        )
         X_out_tank = df["Xst_tank [W]"] + df["X_tank_w_out [W]"].fillna(0) + X_sub_out_tank_add
         df["Xc_tank [W]"] = X_in_tank - X_out_tank
 

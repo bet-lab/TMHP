@@ -214,334 +214,362 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="50"><span class="sd">    The STC collector loop is connected directly to the storage tank.</span>
 </span><span data-line="51"><span class="sd">    The STC draws water from the tank, heats it via solar energy, and</span>
 </span><span data-line="52"><span class="sd">    returns it through the pump. The STC is activated only when the</span>
-</span><span data-line="53"><span class="sd">    collector outlet temperature exceeds the current tank temperature.</span>
-</span><span data-line="54">
-</span><span data-line="55"><span class="sd">    Orchestration responsibility</span>
-</span><span data-line="56"><span class="sd">    ----------------------------</span>
-</span><span data-line="57"><span class="sd">    This class owns all simulation logic for the STC:</span>
-</span><span data-line="58">
-</span><span data-line="59"><span class="sd">    - ``_run_subsystems``: activation probe + ``calc_performance()``</span>
-</span><span data-line="60"><span class="sd">    - ``_build_residual_fn``: fully implicit coupling to tank solver</span>
-</span><span data-line="61"><span class="sd">    - ``_augment_results``: result column assembly (re-evaluates at</span>
-</span><span data-line="62"><span class="sd">      solved tank temperature for accuracy)</span>
-</span><span data-line="63"><span class="sd">    - ``_postprocess``: STC exergy calculation and tank boundary</span>
-</span><span data-line="64"><span class="sd">      correction (``X_tot``, ``Xc_tank``)</span>
-</span><span data-line="65">
-</span><span data-line="66"><span class="sd">    Parameters</span>
-</span><span data-line="67"><span class="sd">    ----------</span>
-</span><span data-line="68"><span class="sd">    stc : SolarThermalCollector</span>
-</span><span data-line="69"><span class="sd">        Pure physics engine.  No ``mode`` constraint required.</span>
-</span><span data-line="70"><span class="sd">    **kwargs</span>
-</span><span data-line="71"><span class="sd">        Forwarded to :class:`GroundSourceHeatPumpBoiler`.</span>
-</span><span data-line="72">
-</span><span data-line="73"><span class="sd">    Raises</span>
-</span><span data-line="74"><span class="sd">    ------</span>
-</span><span data-line="75"><span class="sd">    TypeError</span>
-</span><span data-line="76"><span class="sd">        If *stc* is not a :class:`SolarThermalCollector` instance.</span>
-</span><span data-line="77"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="78">
+</span><span data-line="53"><span class="sd">    collector&#39;s thermal gain exceeds the pump electricity required to</span>
+</span><span data-line="54"><span class="sd">    circulate the loop.</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="sd">    Orchestration responsibility</span>
+</span><span data-line="57"><span class="sd">    ----------------------------</span>
+</span><span data-line="58"><span class="sd">    This class owns all simulation logic for the STC:</span>
+</span><span data-line="59">
+</span><span data-line="60"><span class="sd">    - ``_run_subsystems``: activation probe + ``calc_performance()``</span>
+</span><span data-line="61"><span class="sd">    - ``_build_residual_fn``: fully implicit coupling to tank solver</span>
+</span><span data-line="62"><span class="sd">    - ``_augment_results``: result column assembly (re-evaluates at</span>
+</span><span data-line="63"><span class="sd">      solved tank temperature for accuracy)</span>
+</span><span data-line="64"><span class="sd">    - ``_postprocess``: STC exergy calculation and tank boundary</span>
+</span><span data-line="65"><span class="sd">      correction (``X_tot``, ``Xc_tank``)</span>
+</span><span data-line="66">
+</span><span data-line="67"><span class="sd">    Parameters</span>
+</span><span data-line="68"><span class="sd">    ----------</span>
+</span><span data-line="69"><span class="sd">    stc : SolarThermalCollector</span>
+</span><span data-line="70"><span class="sd">        Pure physics engine.  No ``mode`` constraint required.</span>
+</span><span data-line="71"><span class="sd">    **kwargs</span>
+</span><span data-line="72"><span class="sd">        Forwarded to :class:`GroundSourceHeatPumpBoiler`.</span>
+</span><span data-line="73">
+</span><span data-line="74"><span class="sd">    Raises</span>
+</span><span data-line="75"><span class="sd">    ------</span>
+</span><span data-line="76"><span class="sd">    TypeError</span>
+</span><span data-line="77"><span class="sd">        If *stc* is not a :class:`SolarThermalCollector` instance.</span>
+</span><span data-line="78"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="79">
 <div class="viewcode-block" id="GSHPB_STC_tank.__init__">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_STC_tank.__init__">[docs]</a>
-</span><span data-line="79">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span data-line="80">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="81">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="82">        <span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span><span class="p">,</span>
-</span><span data-line="83">        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-</span><span data-line="84">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="85">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stc</span><span class="p">,</span> <span class="n">SolarThermalCollector</span><span class="p">):</span>
-</span><span data-line="86">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-</span><span data-line="87">                <span class="sa">f</span><span class="s2">&quot;stc must be a SolarThermalCollector instance, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">,</span>
-</span><span data-line="88">            <span class="p">)</span>
-</span><span data-line="89">        <span class="c1"># Do NOT pass stc to super().__init__ — keeps self._subsystems empty.</span>
-</span><span data-line="90">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="91">        <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span> <span class="o">=</span> <span class="n">stc</span>
-</span><span data-line="92">        <span class="c1"># Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.</span>
-</span><span data-line="93">        <span class="bp">self</span><span class="o">.</span><span class="n">stc</span> <span class="o">=</span> <span class="n">stc</span></div>
+</span><span data-line="80">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="81">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="82">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="83">        <span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span><span class="p">,</span>
+</span><span data-line="84">        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span data-line="85">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="86">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">stc</span><span class="p">,</span> <span class="n">SolarThermalCollector</span><span class="p">):</span>
+</span><span data-line="87">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+</span><span data-line="88">                <span class="sa">f</span><span class="s2">&quot;stc must be a SolarThermalCollector instance, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span data-line="89">            <span class="p">)</span>
+</span><span data-line="90">        <span class="c1"># Do NOT pass stc to super().__init__ — keeps self._subsystems empty.</span>
+</span><span data-line="91">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="92">        <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span> <span class="o">=</span> <span class="n">stc</span>
+</span><span data-line="93">        <span class="c1"># Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.</span>
+</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">stc</span> <span class="o">=</span> <span class="n">stc</span></div>
 
-</span><span data-line="94">
-</span><span data-line="95">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="96">    <span class="c1"># Hook: subsystem step</span>
-</span><span data-line="97">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="98">
-</span><span data-line="99">    <span class="k">def</span><span class="w"> </span><span class="nf">_needs_solar_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="100">        <span class="k">return</span> <span class="kc">True</span>
-</span><span data-line="101">
-</span><span data-line="102">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-</span><span data-line="103"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return STC schedule flag: {&quot;stc&quot;: bool}.&quot;&quot;&quot;</span>
-</span><span data-line="104">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">is_preheat_on</span><span class="p">(</span><span class="n">hour_of_day</span><span class="p">)}</span>
-</span><span data-line="105">
-</span><span data-line="106">    <span class="k">def</span><span class="w"> </span><span class="nf">_build_residual_fn</span><span class="p">(</span>
-</span><span data-line="107">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="108">        <span class="n">ctx</span><span class="p">,</span>
-</span><span data-line="109">        <span class="n">ctrl</span><span class="p">,</span>
-</span><span data-line="110">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="111">        <span class="n">T_tank_w_in_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="112">        <span class="n">T_sup_w_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="113">        <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="114">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="115">    <span class="p">):</span>
-</span><span data-line="116"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fully implicit residual: Q_STC is evaluated at T_cand each iteration.</span>
-</span><span data-line="117">
-</span><span data-line="118"><span class="sd">        Physics</span>
-</span><span data-line="119"><span class="sd">        -------</span>
-</span><span data-line="120"><span class="sd">        Energy balance (see dynamic_context.tank_mass_energy_residual):</span>
-</span><span data-line="121">
-</span><span data-line="122"><span class="sd">            C(L_{n+1})·T_{n+1} - C(L_n)·T_n</span>
-</span><span data-line="123"><span class="sd">            = dt·[ Q_HP + Q_STC(T_{n+1}) + Q_flow(T_{n+1}) - Q_loss(T_{n+1}) ]</span>
+</span><span data-line="95">
+</span><span data-line="96">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="97">    <span class="c1"># Hook: subsystem step</span>
+</span><span data-line="98">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="99">
+</span><span data-line="100">    <span class="k">def</span><span class="w"> </span><span class="nf">_needs_solar_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="101">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="102">
+</span><span data-line="103">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+</span><span data-line="104"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return STC schedule flag: {&quot;stc&quot;: bool}.&quot;&quot;&quot;</span>
+</span><span data-line="105">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">is_preheat_on</span><span class="p">(</span><span class="n">hour_of_day</span><span class="p">)}</span>
+</span><span data-line="106">
+</span><span data-line="107">    <span class="k">def</span><span class="w"> </span><span class="nf">_collector_gain_exceeds_pump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stc_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="108"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether collector heat gain justifies running the loop pump.&quot;&quot;&quot;</span>
+</span><span data-line="109">        <span class="n">collector_gain_w</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="110">        <span class="n">pump_power_w</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span><span class="p">))</span>
+</span><span data-line="111">        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">collector_gain_w</span><span class="p">)</span> <span class="ow">and</span> <span class="n">collector_gain_w</span> <span class="o">&gt;</span> <span class="n">pump_power_w</span><span class="p">)</span>
+</span><span data-line="112">
+</span><span data-line="113">    <span class="k">def</span><span class="w"> </span><span class="nf">_build_residual_fn</span><span class="p">(</span>
+</span><span data-line="114">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="115">        <span class="n">ctx</span><span class="p">,</span>
+</span><span data-line="116">        <span class="n">ctrl</span><span class="p">,</span>
+</span><span data-line="117">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="118">        <span class="n">T_tank_w_in_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="119">        <span class="n">T_sup_w_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="120">        <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="121">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="122">    <span class="p">):</span>
+</span><span data-line="123"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fully implicit residual: Q_STC is evaluated at T_cand each iteration.</span>
 </span><span data-line="124">
-</span><span data-line="125"><span class="sd">        ``Q_STC(T_{n+1})`` depends on tank inlet temperature which equals</span>
-</span><span data-line="126"><span class="sd">        the (unknown) next-step tank temperature. This override re-evaluates</span>
-</span><span data-line="127"><span class="sd">        ``SolarThermalCollector.calc_performance`` at every ``T_cand``</span>
-</span><span data-line="128"><span class="sd">        candidate, making the solve truly implicit.</span>
-</span><span data-line="129">
-</span><span data-line="130"><span class="sd">        ``stc_active`` is frozen at the value determined by ``_run_subsystems``</span>
-</span><span data-line="131"><span class="sd">        (activation criterion uses ``T_tank_n``; this is intentional).</span>
-</span><span data-line="132"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="133">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-</span><span data-line="134">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span> <span class="k">if</span> <span class="n">stc_active</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="135">
-</span><span data-line="136">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">T_cand_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="137">            <span class="c1"># Q_STC net = heat returned to tank − heat drawn from tank [W]</span>
-</span><span data-line="138">            <span class="c1"># Re-evaluated at T_cand (implicit in T_{n+1})</span>
-</span><span data-line="139">            <span class="n">stc_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
-</span><span data-line="140">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
-</span><span data-line="141">                <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
-</span><span data-line="142">                <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_cand_K</span><span class="p">,</span>  <span class="c1"># ← T_cand</span>
-</span><span data-line="143">                <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="144">                <span class="n">is_active</span><span class="o">=</span><span class="n">stc_active</span><span class="p">,</span>
-</span><span data-line="145">            <span class="p">)</span>
-</span><span data-line="146">            <span class="n">Q_stc_net</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">]</span>
-</span><span data-line="147">
-</span><span data-line="148">            <span class="c1"># Mixing valve: α = (T_mix_set - T_sup) / (T_cand - T_sup)</span>
-</span><span data-line="149">            <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_cand_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span>
-</span><span data-line="150">            <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
-</span><span data-line="151">            <span class="n">dV_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
-</span><span data-line="152">            <span class="n">dV_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_out</span> <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span>
-</span><span data-line="153">
-</span><span data-line="154">            <span class="c1"># Energy flows [W]</span>
-</span><span data-line="155">            <span class="n">Q_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_in</span> <span class="o">*</span> <span class="n">T_tank_w_in_K_n</span> <span class="o">-</span> <span class="n">dV_out</span> <span class="o">*</span> <span class="n">T_cand_K</span><span class="p">)</span>
-</span><span data-line="156">            <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_cand_K</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sur_K</span><span class="p">)</span>
-</span><span data-line="157">
-</span><span data-line="158">            <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
-</span><span data-line="159">            <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="125"><span class="sd">        Physics</span>
+</span><span data-line="126"><span class="sd">        -------</span>
+</span><span data-line="127"><span class="sd">        Energy balance (see dynamic_context.tank_mass_energy_residual):</span>
+</span><span data-line="128">
+</span><span data-line="129"><span class="sd">            C(L_{n+1})·T_{n+1} - C(L_n)·T_n</span>
+</span><span data-line="130"><span class="sd">            = dt·[ Q_HP + Q_STC(T_{n+1}) + Q_flow(T_{n+1}) - Q_loss(T_{n+1}) ]</span>
+</span><span data-line="131">
+</span><span data-line="132"><span class="sd">        ``Q_STC(T_{n+1})`` depends on tank inlet temperature which equals</span>
+</span><span data-line="133"><span class="sd">        the (unknown) next-step tank temperature. This override re-evaluates</span>
+</span><span data-line="134"><span class="sd">        ``SolarThermalCollector.calc_performance`` at every ``T_cand``</span>
+</span><span data-line="135"><span class="sd">        candidate, making the solve truly implicit.</span>
+</span><span data-line="136">
+</span><span data-line="137"><span class="sd">        ``stc_active`` is frozen at the value determined by ``_run_subsystems``</span>
+</span><span data-line="138"><span class="sd">        (activation criterion uses ``T_tank_n``; this is intentional).</span>
+</span><span data-line="139"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="140">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span data-line="141">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span> <span class="k">if</span> <span class="n">stc_active</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="142">
+</span><span data-line="143">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">T_cand_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="144">            <span class="c1"># Q_STC net = heat returned to tank − heat drawn from tank [W]</span>
+</span><span data-line="145">            <span class="c1"># Re-evaluated at T_cand (implicit in T_{n+1})</span>
+</span><span data-line="146">            <span class="n">stc_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="147">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="148">                <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="149">                <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_cand_K</span><span class="p">,</span>  <span class="c1"># ← T_cand</span>
+</span><span data-line="150">                <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="151">                <span class="n">is_active</span><span class="o">=</span><span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="152">            <span class="p">)</span>
+</span><span data-line="153">            <span class="n">Q_stc_net</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">stc_r</span><span class="p">[</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">]</span>
+</span><span data-line="154">
+</span><span data-line="155">            <span class="c1"># Mixing valve: α = (T_mix_set - T_sup) / (T_cand - T_sup)</span>
+</span><span data-line="156">            <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_cand_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span>
+</span><span data-line="157">            <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K_n</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
+</span><span data-line="158">            <span class="n">dV_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
+</span><span data-line="159">            <span class="n">dV_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_out</span> <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span>
 </span><span data-line="160">
-</span><span data-line="161">            <span class="c1"># Energy balance residual, scaled by C_tank to match base solver</span>
-</span><span data-line="162">            <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="163">                <span class="n">C_next</span> <span class="o">*</span> <span class="n">T_cand_K</span>
-</span><span data-line="164">                <span class="o">-</span> <span class="n">C_curr</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span>
-</span><span data-line="165">                <span class="o">-</span> <span class="n">dt_s</span> <span class="o">*</span> <span class="p">(</span><span class="n">ctrl</span><span class="o">.</span><span class="n">Q_heat_source</span> <span class="o">+</span> <span class="n">E_pump</span> <span class="o">+</span> <span class="n">Q_stc_net</span> <span class="o">+</span> <span class="n">Q_flow</span> <span class="o">-</span> <span class="n">Q_loss</span><span class="p">)</span>
-</span><span data-line="166">            <span class="p">)</span>
-</span><span data-line="167">            <span class="k">return</span> <span class="n">r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span>
-</span><span data-line="168">
-</span><span data-line="169">        <span class="k">return</span> <span class="n">residual</span>
-</span><span data-line="170">
-</span><span data-line="171">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
-</span><span data-line="172">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="173">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="174">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="175">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="176">        <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="177">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-</span><span data-line="178"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Activation probe + STC performance for *tank_circuit* placement.</span>
-</span><span data-line="179">
-</span><span data-line="180"><span class="sd">        Physics</span>
-</span><span data-line="181"><span class="sd">        -------</span>
-</span><span data-line="182"><span class="sd">        - STC inlet temperature = current tank water temperature (``ctx.T_tank_w_K``)</span>
-</span><span data-line="183"><span class="sd">        - STC is activated only when ``T_stc_w_out &gt; T_tank`` (collector</span>
-</span><span data-line="184"><span class="sd">          outlet is hotter than tank → net heat gain)</span>
-</span><span data-line="185"><span class="sd">        - No ``T_tank_w_in_override_K``: STC heats tank directly, not</span>
-</span><span data-line="186"><span class="sd">          the mains supply</span>
-</span><span data-line="187">
-</span><span data-line="188"><span class="sd">        Returns</span>
-</span><span data-line="189"><span class="sd">        -------</span>
-</span><span data-line="190"><span class="sd">        dict</span>
-</span><span data-line="191"><span class="sd">            ``{&quot;stc&quot;: state_dict}`` where *state_dict* contains:</span>
-</span><span data-line="192"><span class="sd">            - ``stc_active`` (bool)</span>
-</span><span data-line="193"><span class="sd">            - ``stc_result`` (dict from ``calc_performance()``)</span>
-</span><span data-line="194"><span class="sd">            - ``T_tank_w_in_override_K`` (always ``None``)</span>
-</span><span data-line="195"><span class="sd">            - ``E_subsystem`` (pump electricity [W])</span>
-</span><span data-line="196"><span class="sd">            - ``Q_contribution`` (0.0; STC energy enters tank boundary</span>
-</span><span data-line="197"><span class="sd">              via ``X_in_tank_add`` in ``_postprocess``, not here)</span>
-</span><span data-line="198"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="199">        <span class="c1"># Probe: calculate STC performance assuming active</span>
-</span><span data-line="200">        <span class="n">probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
-</span><span data-line="201">            <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
-</span><span data-line="202">            <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
-</span><span data-line="203">            <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">,</span>  <span class="c1"># inlet = tank temperature</span>
-</span><span data-line="204">            <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="205">            <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="206">        <span class="p">)</span>
-</span><span data-line="207">        <span class="c1"># Activation criterion: net positive heat transfer to tank</span>
-</span><span data-line="208">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">activation_flags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">and</span> <span class="n">probe</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span>
-</span><span data-line="209">
-</span><span data-line="210">        <span class="k">if</span> <span class="n">stc_active</span><span class="p">:</span>
-</span><span data-line="211">            <span class="n">stc_result</span> <span class="o">=</span> <span class="n">probe</span>
-</span><span data-line="212">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="213">            <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
-</span><span data-line="214">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
-</span><span data-line="215">                <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
-</span><span data-line="216">                <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">,</span>
-</span><span data-line="217">                <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="218">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span data-line="219">            <span class="p">)</span>
-</span><span data-line="220">
-</span><span data-line="221">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span> <span class="k">if</span> <span class="n">stc_active</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="222">
-</span><span data-line="223">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="224">            <span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="p">{</span>
-</span><span data-line="225">                <span class="s2">&quot;stc_active&quot;</span><span class="p">:</span> <span class="n">stc_active</span><span class="p">,</span>
-</span><span data-line="226">                <span class="s2">&quot;stc_result&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="p">,</span>
-</span><span data-line="227">                <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># tank_circuit: no inlet override</span>
-</span><span data-line="228">                <span class="s2">&quot;E_subsystem&quot;</span><span class="p">:</span> <span class="n">E_pump</span><span class="p">,</span>
-</span><span data-line="229">                <span class="s2">&quot;Q_contribution&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="230">            <span class="p">}</span>
-</span><span data-line="231">        <span class="p">}</span>
-</span><span data-line="232">
-</span><span data-line="233">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="234">    <span class="c1"># Hook: result assembly</span>
-</span><span data-line="235">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="236">
-</span><span data-line="237">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
-</span><span data-line="238">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="239">        <span class="n">r</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="240">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="241">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="242">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
-</span><span data-line="243">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="244">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="245"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assemble STC result columns for the step result dict.</span>
-</span><span data-line="246">
-</span><span data-line="247"><span class="sd">        For *tank_circuit*, STC performance is **re-evaluated at the</span>
-</span><span data-line="248"><span class="sd">        solved tank temperature** (``T_solved_K``) to obtain accurate</span>
-</span><span data-line="249"><span class="sd">        post-solve reporting values.  This matches the original</span>
-</span><span data-line="250"><span class="sd">        ``assemble_results()`` behaviour.</span>
+</span><span data-line="161">            <span class="c1"># Energy flows [W]</span>
+</span><span data-line="162">            <span class="n">Q_flow</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_in</span> <span class="o">*</span> <span class="n">T_tank_w_in_K_n</span> <span class="o">-</span> <span class="n">dV_out</span> <span class="o">*</span> <span class="n">T_cand_K</span><span class="p">)</span>
+</span><span data-line="163">            <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_cand_K</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sur_K</span><span class="p">)</span>
+</span><span data-line="164">
+</span><span data-line="165">            <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="166">            <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="167">
+</span><span data-line="168">            <span class="c1"># Do not circulate when collector heat gain cannot beat pump electricity.</span>
+</span><span data-line="169">            <span class="k">if</span> <span class="n">Q_stc_net</span> <span class="o">&lt;=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">E_pump</span><span class="p">):</span>
+</span><span data-line="170">                <span class="n">Q_stc_net</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="171">                <span class="n">current_E_pump</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="172">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="173">                <span class="n">current_E_pump</span> <span class="o">=</span> <span class="n">E_pump</span>
+</span><span data-line="174">
+</span><span data-line="175">            <span class="c1"># Energy balance residual, scaled by C_tank to match base solver</span>
+</span><span data-line="176">            <span class="n">r</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="177">                <span class="n">C_next</span> <span class="o">*</span> <span class="n">T_cand_K</span>
+</span><span data-line="178">                <span class="o">-</span> <span class="n">C_curr</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span>
+</span><span data-line="179">                <span class="o">-</span> <span class="n">dt_s</span> <span class="o">*</span> <span class="p">(</span><span class="n">ctrl</span><span class="o">.</span><span class="n">Q_heat_source</span> <span class="o">+</span> <span class="n">current_E_pump</span> <span class="o">+</span> <span class="n">Q_stc_net</span> <span class="o">+</span> <span class="n">Q_flow</span> <span class="o">-</span> <span class="n">Q_loss</span><span class="p">)</span>
+</span><span data-line="180">            <span class="p">)</span>
+</span><span data-line="181">            <span class="k">return</span> <span class="n">r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span>
+</span><span data-line="182">
+</span><span data-line="183">        <span class="k">return</span> <span class="n">residual</span>
+</span><span data-line="184">
+</span><span data-line="185">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
+</span><span data-line="186">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="187">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="188">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="189">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="190">        <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="191">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+</span><span data-line="192"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Activation probe + STC performance for *tank_circuit* placement.</span>
+</span><span data-line="193">
+</span><span data-line="194"><span class="sd">        Physics</span>
+</span><span data-line="195"><span class="sd">        -------</span>
+</span><span data-line="196"><span class="sd">        - STC inlet temperature = current tank water temperature (``ctx.T_tank_w_K``)</span>
+</span><span data-line="197"><span class="sd">        - STC is activated only when collector heat gain exceeds pump</span>
+</span><span data-line="198"><span class="sd">          electricity.  If not, a COP=1 electric heater would provide at</span>
+</span><span data-line="199"><span class="sd">          least as much useful heat as circulating the collector loop.</span>
+</span><span data-line="200"><span class="sd">        - No ``T_tank_w_in_override_K``: STC heats tank directly, not</span>
+</span><span data-line="201"><span class="sd">          the mains supply</span>
+</span><span data-line="202">
+</span><span data-line="203"><span class="sd">        Returns</span>
+</span><span data-line="204"><span class="sd">        -------</span>
+</span><span data-line="205"><span class="sd">        dict</span>
+</span><span data-line="206"><span class="sd">            ``{&quot;stc&quot;: state_dict}`` where *state_dict* contains:</span>
+</span><span data-line="207"><span class="sd">            - ``stc_active`` (bool)</span>
+</span><span data-line="208"><span class="sd">            - ``stc_result`` (dict from ``calc_performance()``)</span>
+</span><span data-line="209"><span class="sd">            - ``T_tank_w_in_override_K`` (always ``None``)</span>
+</span><span data-line="210"><span class="sd">            - ``E_subsystem`` (pump electricity [W])</span>
+</span><span data-line="211"><span class="sd">            - ``Q_contribution`` (0.0; STC energy enters tank boundary</span>
+</span><span data-line="212"><span class="sd">              via ``X_in_tank_add`` in ``_postprocess``, not here)</span>
+</span><span data-line="213"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="214">        <span class="c1"># Probe: calculate STC performance assuming active</span>
+</span><span data-line="215">        <span class="n">probe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="216">            <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="217">            <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="218">            <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">,</span>  <span class="c1"># inlet = tank temperature</span>
+</span><span data-line="219">            <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="220">            <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="221">        <span class="p">)</span>
+</span><span data-line="222">        <span class="c1"># Activation criterion: collector heat gain must beat pump electricity.</span>
+</span><span data-line="223">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">activation_flags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collector_gain_exceeds_pump</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+</span><span data-line="224">
+</span><span data-line="225">        <span class="k">if</span> <span class="n">stc_active</span><span class="p">:</span>
+</span><span data-line="226">            <span class="n">stc_result</span> <span class="o">=</span> <span class="n">probe</span>
+</span><span data-line="227">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="228">            <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="229">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="230">                <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="231">                <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">,</span>
+</span><span data-line="232">                <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="233">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="234">            <span class="p">)</span>
+</span><span data-line="235">
+</span><span data-line="236">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">E_stc_pump</span> <span class="k">if</span> <span class="n">stc_active</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="237">
+</span><span data-line="238">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="239">            <span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="p">{</span>
+</span><span data-line="240">                <span class="s2">&quot;stc_active&quot;</span><span class="p">:</span> <span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="241">                <span class="s2">&quot;stc_result&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="p">,</span>
+</span><span data-line="242">                <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># tank_circuit: no inlet override</span>
+</span><span data-line="243">                <span class="s2">&quot;E_subsystem&quot;</span><span class="p">:</span> <span class="n">E_pump</span><span class="p">,</span>
+</span><span data-line="244">                <span class="s2">&quot;Q_contribution&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="245">            <span class="p">}</span>
+</span><span data-line="246">        <span class="p">}</span>
+</span><span data-line="247">
+</span><span data-line="248">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="249">    <span class="c1"># Hook: result assembly</span>
+</span><span data-line="250">    <span class="c1"># ------------------------------------------------------------------</span>
 </span><span data-line="251">
-</span><span data-line="252"><span class="sd">        Columns appended</span>
-</span><span data-line="253"><span class="sd">        ----------------</span>
-</span><span data-line="254"><span class="sd">        ``stc_active [-]``, ``I_DN_stc [W/m2]``, ``I_dH_stc [W/m2]``,</span>
-</span><span data-line="255"><span class="sd">        ``I_sol_stc [W/m2]``, ``Q_sol_stc [W]``, ``S_sol_stc [W/K]``,</span>
-</span><span data-line="256"><span class="sd">        ``X_sol_stc [W]``, ``Q_stc_w_out [W]``, ``Q_stc_pump_w_out [W]``,</span>
-</span><span data-line="257"><span class="sd">        ``Q_stc_w_in [W]``, ``Q_l_stc [W]``,</span>
-</span><span data-line="258"><span class="sd">        ``T_stc_w_out [°C]``, ``T_stc_pump_w_out [°C]``,</span>
-</span><span data-line="259"><span class="sd">        ``T_stc_w_in [°C]``, ``T_stc [°C]``, ``E_stc_pump [W]``</span>
-</span><span data-line="260"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="261">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="p">[</span><span class="s2">&quot;stc&quot;</span><span class="p">]</span>
-</span><span data-line="262">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;stc_active&quot;</span><span class="p">]</span>
-</span><span data-line="263">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">]</span>
-</span><span data-line="264">
-</span><span data-line="265">        <span class="c1"># Re-evaluate at solved tank temperature for accurate reporting</span>
-</span><span data-line="266">        <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
-</span><span data-line="267">            <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
-</span><span data-line="268">            <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
-</span><span data-line="269">            <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_solved_K</span><span class="p">,</span>
-</span><span data-line="270">            <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
-</span><span data-line="271">            <span class="n">is_active</span><span class="o">=</span><span class="n">stc_active</span><span class="p">,</span>
-</span><span data-line="272">        <span class="p">)</span>
-</span><span data-line="273">
-</span><span data-line="274">        <span class="n">T_stc_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_result</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">]</span>
-</span><span data-line="275">        <span class="n">T_stc_pump_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_pump_w_out_K&quot;</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">)</span>
-</span><span data-line="276">
-</span><span data-line="277">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-</span><span data-line="278">            <span class="p">{</span>
-</span><span data-line="279">                <span class="s2">&quot;stc_active [-]&quot;</span><span class="p">:</span> <span class="n">stc_active</span><span class="p">,</span>
-</span><span data-line="280">                <span class="s2">&quot;I_DN_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
-</span><span data-line="281">                <span class="s2">&quot;I_dH_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
-</span><span data-line="282">                <span class="s2">&quot;I_sol_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;I_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="283">                <span class="s2">&quot;Q_sol_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="284">                <span class="s2">&quot;S_sol_stc [W/K]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;S_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="285">                <span class="s2">&quot;X_sol_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="286">                <span class="s2">&quot;Q_stc_w_out [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-</span><span data-line="287">                <span class="s2">&quot;Q_stc_pump_w_out [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_pump_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-</span><span data-line="288">                <span class="s2">&quot;Q_stc_w_in [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-</span><span data-line="289">                <span class="s2">&quot;Q_l_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_l_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="290">                <span class="s2">&quot;dV_stc [m3/s]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">dV_stc_w</span><span class="p">,</span>
-</span><span data-line="291">                <span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_stc_w_out_K</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">T_stc_w_out_K</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="292">                <span class="s2">&quot;T_stc_pump_w_out [°C]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_stc_pump_w_out_K</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">T_stc_pump_w_out_K</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="293">                <span class="s2">&quot;T_stc_w_in [°C]&quot;</span><span class="p">:</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_solved_K</span><span class="p">),</span>
-</span><span data-line="294">                <span class="s2">&quot;T_stc [°C]&quot;</span><span class="p">:</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_K&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)),</span>
-</span><span data-line="295">                <span class="s2">&quot;E_stc_pump [W]&quot;</span><span class="p">:</span> <span class="n">E_pump</span><span class="p">,</span>
-</span><span data-line="296">            <span class="p">}</span>
-</span><span data-line="297">        <span class="p">)</span>
-</span><span data-line="298">        <span class="k">return</span> <span class="n">r</span>
+</span><span data-line="252">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
+</span><span data-line="253">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="254">        <span class="n">r</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="255">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="256">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="257">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+</span><span data-line="258">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="259">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="260"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Assemble STC result columns for the step result dict.</span>
+</span><span data-line="261">
+</span><span data-line="262"><span class="sd">        For *tank_circuit*, STC performance is **re-evaluated at the</span>
+</span><span data-line="263"><span class="sd">        solved tank temperature** (``T_solved_K``) to obtain accurate</span>
+</span><span data-line="264"><span class="sd">        post-solve reporting values.  This matches the original</span>
+</span><span data-line="265"><span class="sd">        ``assemble_results()`` behaviour.</span>
+</span><span data-line="266">
+</span><span data-line="267"><span class="sd">        Columns appended</span>
+</span><span data-line="268"><span class="sd">        ----------------</span>
+</span><span data-line="269"><span class="sd">        ``stc_active [-]``, ``I_DN_stc [W/m2]``, ``I_dH_stc [W/m2]``,</span>
+</span><span data-line="270"><span class="sd">        ``I_sol_stc [W/m2]``, ``Q_sol_stc [W]``, ``S_sol_stc [W/K]``,</span>
+</span><span data-line="271"><span class="sd">        ``X_sol_stc [W]``, ``Q_stc_w_out [W]``, ``Q_stc_pump_w_out [W]``,</span>
+</span><span data-line="272"><span class="sd">        ``Q_stc_w_in [W]``, ``Q_l_stc [W]``,</span>
+</span><span data-line="273"><span class="sd">        ``T_stc_w_out [°C]``, ``T_stc_pump_w_out [°C]``,</span>
+</span><span data-line="274"><span class="sd">        ``T_stc_w_in [°C]``, ``T_stc [°C]``, ``E_stc_pump [W]``</span>
+</span><span data-line="275"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="276">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="p">[</span><span class="s2">&quot;stc&quot;</span><span class="p">]</span>
+</span><span data-line="277">        <span class="n">stc_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;stc_active&quot;</span><span class="p">]</span>
+</span><span data-line="278">        <span class="n">E_pump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">]</span>
+</span><span data-line="279">
+</span><span data-line="280">        <span class="c1"># Re-evaluate at solved tank temperature for accurate reporting</span>
+</span><span data-line="281">        <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="282">            <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="283">            <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="284">            <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_solved_K</span><span class="p">,</span>
+</span><span data-line="285">            <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="286">            <span class="n">is_active</span><span class="o">=</span><span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="287">        <span class="p">)</span>
+</span><span data-line="288">
+</span><span data-line="289">        <span class="k">if</span> <span class="n">stc_active</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_collector_gain_exceeds_pump</span><span class="p">(</span><span class="n">stc_result</span><span class="p">):</span>
+</span><span data-line="290">            <span class="n">stc_active</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span data-line="291">            <span class="n">E_pump</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="292">            <span class="n">stc_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span>
+</span><span data-line="293">                <span class="n">I_DN_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="294">                <span class="n">I_dH_stc</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="295">                <span class="n">T_stc_w_in_K</span><span class="o">=</span><span class="n">T_solved_K</span><span class="p">,</span>
+</span><span data-line="296">                <span class="n">T0_K</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">,</span>
+</span><span data-line="297">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="298">            <span class="p">)</span>
 </span><span data-line="299">
-</span><span data-line="300">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="301">    <span class="c1"># Hook: post-processing (exergy)</span>
-</span><span data-line="302">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="303">
-</span><span data-line="304">    <span class="k">def</span><span class="w"> </span><span class="nf">_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="305"><span class="w">        </span><span class="sd">&quot;&quot;&quot;ASHP core exergy → STC exergy → tank boundary correction.</span>
-</span><span data-line="306">
-</span><span data-line="307"><span class="sd">        STC exergy topology (*tank_circuit*)</span>
-</span><span data-line="308"><span class="sd">        -------------------------------------</span>
-</span><span data-line="309"><span class="sd">        .. code-block:: text</span>
-</span><span data-line="310">
-</span><span data-line="311"><span class="sd">            [Solar irradiance] → STC → [pump] → [tank in]</span>
-</span><span data-line="312"><span class="sd">                                         ↑</span>
-</span><span data-line="313"><span class="sd">                                   [tank out] (water drawn)</span>
-</span><span data-line="314">
-</span><span data-line="315"><span class="sd">        Balance corrections applied to the ASHP base result:</span>
-</span><span data-line="316">
-</span><span data-line="317"><span class="sd">        .. math::</span>
-</span><span data-line="318">
-</span><span data-line="319"><span class="sd">            \\dot{X}_{\\mathrm{tot}} \\mathrel{+}=</span>
-</span><span data-line="320"><span class="sd">                \\dot{X}_{\\mathrm{stc,pump}} \\quad (\\text{pump electricity})</span>
-</span><span data-line="321">
-</span><span data-line="322"><span class="sd">            \\dot{X}_{\\mathrm{c,tank}} \\mathrel{+}=</span>
-</span><span data-line="323"><span class="sd">                \\dot{X}_{\\mathrm{stc,pump,w,out}}</span>
-</span><span data-line="324"><span class="sd">                - \\dot{X}_{\\mathrm{stc,w,in}}</span>
-</span><span data-line="325"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="326">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_exergy_flow</span>
+</span><span data-line="300">        <span class="n">T_stc_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_result</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out_K&quot;</span><span class="p">]</span>
+</span><span data-line="301">        <span class="n">T_stc_pump_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_pump_w_out_K&quot;</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">)</span>
+</span><span data-line="302">
+</span><span data-line="303">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">+</span> <span class="n">E_pump</span>
+</span><span data-line="304">
+</span><span data-line="305">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span data-line="306">            <span class="p">{</span>
+</span><span data-line="307">                <span class="s2">&quot;stc_active [-]&quot;</span><span class="p">:</span> <span class="n">stc_active</span><span class="p">,</span>
+</span><span data-line="308">                <span class="s2">&quot;I_DN_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span>
+</span><span data-line="309">                <span class="s2">&quot;I_dH_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span>
+</span><span data-line="310">                <span class="s2">&quot;I_sol_stc [W/m2]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;I_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="311">                <span class="s2">&quot;Q_sol_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="312">                <span class="s2">&quot;S_sol_stc [W/K]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;S_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="313">                <span class="s2">&quot;X_sol_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;X_sol_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="314">                <span class="s2">&quot;Q_stc_w_out [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+</span><span data-line="315">                <span class="s2">&quot;Q_stc_pump_w_out [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_pump_w_out&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+</span><span data-line="316">                <span class="s2">&quot;Q_stc_w_in [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_stc_w_in&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+</span><span data-line="317">                <span class="s2">&quot;Q_l_stc [W]&quot;</span><span class="p">:</span> <span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_l_stc&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="318">                <span class="s2">&quot;dV_stc [m3/s]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">dV_stc_w</span><span class="p">,</span>
+</span><span data-line="319">                <span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_stc_w_out_K</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">T_stc_w_out_K</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="320">                <span class="s2">&quot;T_stc_pump_w_out [°C]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_stc_pump_w_out_K</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">T_stc_pump_w_out_K</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="321">                <span class="s2">&quot;T_stc_w_in [°C]&quot;</span><span class="p">:</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_solved_K</span><span class="p">),</span>
+</span><span data-line="322">                <span class="s2">&quot;T_stc [°C]&quot;</span><span class="p">:</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">stc_result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_K&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)),</span>
+</span><span data-line="323">                <span class="s2">&quot;E_stc_pump [W]&quot;</span><span class="p">:</span> <span class="n">E_pump</span><span class="p">,</span>
+</span><span data-line="324">            <span class="p">}</span>
+</span><span data-line="325">        <span class="p">)</span>
+</span><span data-line="326">        <span class="k">return</span> <span class="n">r</span>
 </span><span data-line="327">
-</span><span data-line="328">        <span class="c1"># 1. Standard ASHP exergy</span>
-</span><span data-line="329">        <span class="n">df</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-</span><span data-line="330">
-</span><span data-line="331">        <span class="c1"># 2. Guard: STC columns must be present</span>
-</span><span data-line="332">        <span class="k">if</span> <span class="s2">&quot;T_stc_w_in [°C]&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s2">&quot;T_stc_w_out [°C]&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span data-line="333">            <span class="k">return</span> <span class="n">df</span>
+</span><span data-line="328">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="329">    <span class="c1"># Hook: post-processing (exergy)</span>
+</span><span data-line="330">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="331">
+</span><span data-line="332">    <span class="k">def</span><span class="w"> </span><span class="nf">_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="333"><span class="w">        </span><span class="sd">&quot;&quot;&quot;ASHP core exergy → STC exergy → tank boundary correction.</span>
 </span><span data-line="334">
-</span><span data-line="335">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0 [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="336">        <span class="n">T_stc_w_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_in [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="337">        <span class="n">T_stc_w_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="338">        <span class="n">T_stc_pump_w_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_pump_w_out [°C]&quot;</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">]))</span>
-</span><span data-line="339">        <span class="n">T_stc_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc [°C]&quot;</span><span class="p">])</span>
-</span><span data-line="340">
-</span><span data-line="341">        <span class="c1"># Heat capacity rate [W/K] from explicit flow rate</span>
-</span><span data-line="342">        <span class="n">G_stc</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_stc [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="343">
-</span><span data-line="344">        <span class="c1"># 3. Water exergy flows</span>
-</span><span data-line="345">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="346">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="347">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_pump_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="348">
-</span><span data-line="349">        <span class="c1"># 4. Pump electricity = exergy</span>
-</span><span data-line="350">        <span class="n">E_pump</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_stc_pump [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="351">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">E_pump</span>
-</span><span data-line="352">
-</span><span data-line="353">        <span class="c1"># 5. Heat loss exergy</span>
-</span><span data-line="354">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_l_stc [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_l_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_stc_K</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+</span><span data-line="335"><span class="sd">        STC exergy topology (*tank_circuit*)</span>
+</span><span data-line="336"><span class="sd">        -------------------------------------</span>
+</span><span data-line="337"><span class="sd">        .. code-block:: text</span>
+</span><span data-line="338">
+</span><span data-line="339"><span class="sd">            [Solar irradiance] → STC → [pump] → [tank in]</span>
+</span><span data-line="340"><span class="sd">                                         ↑</span>
+</span><span data-line="341"><span class="sd">                                   [tank out] (water drawn)</span>
+</span><span data-line="342">
+</span><span data-line="343"><span class="sd">        Balance corrections applied to the ASHP base result:</span>
+</span><span data-line="344">
+</span><span data-line="345"><span class="sd">        .. math::</span>
+</span><span data-line="346">
+</span><span data-line="347"><span class="sd">            \\dot{X}_{\\mathrm{tot}} \\mathrel{+}=</span>
+</span><span data-line="348"><span class="sd">                \\dot{X}_{\\mathrm{stc,pump}} \\quad (\\text{pump electricity})</span>
+</span><span data-line="349">
+</span><span data-line="350"><span class="sd">            \\dot{X}_{\\mathrm{c,tank}} \\mathrel{+}=</span>
+</span><span data-line="351"><span class="sd">                \\dot{X}_{\\mathrm{stc,pump,w,out}}</span>
+</span><span data-line="352"><span class="sd">                - \\dot{X}_{\\mathrm{stc,w,in}}</span>
+</span><span data-line="353"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="354">        <span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_exergy_flow</span>
 </span><span data-line="355">
-</span><span data-line="356">        <span class="c1"># 6. STC exergy destruction (2nd-law: Xc = ΣX_in - ΣX_out ≥ 0)</span>
-</span><span data-line="357">        <span class="n">is_stc_active</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;stc_active [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;stc_active [-]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">False</span>
-</span><span data-line="358">        <span class="k">if</span> <span class="s2">&quot;X_sol_stc [W]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-</span><span data-line="359">            <span class="n">Xc_raw</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="360">                <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_sol_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="361">                <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="362">                <span class="o">+</span> <span class="n">E_pump</span>
-</span><span data-line="363">                <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="364">                <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_l_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="365">            <span class="p">)</span>
-</span><span data-line="366">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_stc [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_stc_active</span><span class="p">,</span> <span class="n">Xc_raw</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="367">
-</span><span data-line="368">        <span class="c1"># 7. Tank boundary corrections (tank_circuit specific)</span>
-</span><span data-line="369">        <span class="c1"># STC draws water from tank (X_out_tank_add = X_stc_w_in)</span>
-</span><span data-line="370">        <span class="c1"># STC returns heated water to tank (X_in_tank_add = X_stc_pump_w_out)</span>
-</span><span data-line="371">        <span class="n">X_in_tank_add</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="372">        <span class="n">X_out_tank_add</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="373">
-</span><span data-line="374">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">E_pump</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="375">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">X_in_tank_add</span> <span class="o">-</span> <span class="n">X_out_tank_add</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="356">        <span class="c1"># 1. Standard ASHP exergy</span>
+</span><span data-line="357">        <span class="n">df</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span data-line="358">
+</span><span data-line="359">        <span class="c1"># 2. Guard: STC columns must be present</span>
+</span><span data-line="360">        <span class="k">if</span> <span class="s2">&quot;T_stc_w_in [°C]&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s2">&quot;T_stc_w_out [°C]&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="361">            <span class="k">return</span> <span class="n">df</span>
+</span><span data-line="362">
+</span><span data-line="363">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0 [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="364">        <span class="n">T_stc_w_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_in [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="365">        <span class="n">T_stc_w_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="366">        <span class="n">T_stc_pump_w_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_pump_w_out [°C]&quot;</span><span class="p">,</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc_w_out [°C]&quot;</span><span class="p">]))</span>
+</span><span data-line="367">        <span class="n">T_stc_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_stc [°C]&quot;</span><span class="p">])</span>
+</span><span data-line="368">
+</span><span data-line="369">        <span class="c1"># Heat capacity rate [W/K] from explicit flow rate</span>
+</span><span data-line="370">        <span class="n">G_stc</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_stc [m3/s]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="371">
+</span><span data-line="372">        <span class="c1"># 3. Water exergy flows</span>
+</span><span data-line="373">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="374">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="375">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G_stc</span><span class="p">,</span> <span class="n">T_stc_pump_w_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
 </span><span data-line="376">
-</span><span data-line="377">        <span class="k">return</span> <span class="n">df</span></div>
+</span><span data-line="377">        <span class="c1"># 4. Pump electricity = exergy</span>
+</span><span data-line="378">        <span class="n">E_pump</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_stc_pump [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="379">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">E_pump</span>
+</span><span data-line="380">
+</span><span data-line="381">        <span class="c1"># 5. Heat loss exergy</span>
+</span><span data-line="382">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_l_stc [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Q_l_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">T0_K</span> <span class="o">/</span> <span class="n">T_stc_K</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+</span><span data-line="383">
+</span><span data-line="384">        <span class="c1"># 6. STC exergy destruction (2nd-law: Xc = ΣX_in - ΣX_out ≥ 0)</span>
+</span><span data-line="385">        <span class="n">is_stc_active</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;stc_active [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;stc_active [-]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="kc">False</span>
+</span><span data-line="386">        <span class="k">if</span> <span class="s2">&quot;X_sol_stc [W]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="387">            <span class="n">Xc_raw</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="388">                <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_sol_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="389">                <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="390">                <span class="o">+</span> <span class="n">E_pump</span>
+</span><span data-line="391">                <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="392">                <span class="o">-</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_l_stc [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="393">            <span class="p">)</span>
+</span><span data-line="394">            <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_stc [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_stc_active</span><span class="p">,</span> <span class="n">Xc_raw</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="395">
+</span><span data-line="396">        <span class="c1"># 7. Tank boundary corrections (tank_circuit specific)</span>
+</span><span data-line="397">        <span class="c1"># STC draws water from tank (X_out_tank_add = X_stc_w_in)</span>
+</span><span data-line="398">        <span class="c1"># STC returns heated water to tank (X_in_tank_add = X_stc_pump_w_out)</span>
+</span><span data-line="399">        <span class="n">X_in_tank_add</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_pump_w_out [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="400">        <span class="n">X_out_tank_add</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_stc_w_in [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="401">
+</span><span data-line="402">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;X_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">E_pump</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="403">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;Xc_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">X_in_tank_add</span> <span class="o">-</span> <span class="n">X_out_tank_add</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="404">
+</span><span data-line="405">        <span class="k">return</span> <span class="n">df</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

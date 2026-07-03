@@ -80,6 +80,12 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         If *stc* is not a :class:`SolarThermalCollector` instance.
     """
 
+    #: Boiling-protection ceiling [°C]. The STC loop must not circulate when the
+    #: probed collector outlet would reach/exceed this temperature (liquid water
+    #: boiling at 1 atm). Prevents non-physical >100 °C circulation and the
+    #: associated phantom gain when the tank is near saturation.
+    T_stc_max_C: float = 100.0
+
     def __init__(
         self,
         *,
@@ -104,8 +110,14 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         return True
 
     def _get_activation_flags(self, hour_of_day: float) -> dict[str, bool]:
-        """Return STC schedule flag: {"stc": bool}."""
-        return {"stc": self._stc.is_preheat_on(hour_of_day)}
+        """Return STC schedule flag: {"stc": bool}.
+
+        The tank-circuit STC is governed purely by physical feasibility
+        (collector gain beats pump power, and the outlet stays below boiling);
+        it is not gated by a fixed clock window, so harvesting continues
+        whenever the collector can usefully raise the tank.
+        """
+        return {"stc": True}
 
     def _collector_gain_exceeds_pump(self, stc_result: dict) -> bool:
         """Return whether collector heat gain justifies running the loop pump."""
@@ -222,8 +234,16 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
             T0_K=ctx.T0_K,
             is_active=True,
         )
-        # Activation criterion: collector heat gain must beat pump electricity.
-        stc_active: bool = ctx.activation_flags.get("stc", False) and self._collector_gain_exceeds_pump(probe)
+        # Activation criteria: (1) collector heat gain must beat pump electricity,
+        # and (2) boiling protection — the probed collector outlet (the outlet if
+        # the loop were to circulate this step) must stay below the boiling
+        # ceiling. If circulating would drive the outlet to/above T_stc_max_C,
+        # the loop does not run and the recorded gain is zero.
+        stc_active: bool = (
+            ctx.activation_flags.get("stc", False)
+            and self._collector_gain_exceeds_pump(probe)
+            and probe["T_stc_w_out_K"] < self.T_stc_max_C + 273.15
+        )
 
         if stc_active:
             stc_result = probe
@@ -289,7 +309,10 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
             is_active=stc_active,
         )
 
-        if stc_active and not self._collector_gain_exceeds_pump(stc_result):
+        if stc_active and (
+            not self._collector_gain_exceeds_pump(stc_result)
+            or stc_result["T_stc_w_out_K"] >= self.T_stc_max_C + 273.15
+        ):
             stc_active = False
             E_pump = 0.0
             stc_result = self._stc.calc_performance(

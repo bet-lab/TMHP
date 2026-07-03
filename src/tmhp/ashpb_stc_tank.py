@@ -240,9 +240,9 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         # ceiling. If circulating would drive the outlet to/above T_stc_max_C,
         # the loop does not run and the recorded gain is zero.
         stc_active: bool = (
-            ctx.activation_flags.get("stc", False)
+            bool(ctx.activation_flags.get("stc", False))
             and self._collector_gain_exceeds_pump(probe)
-            and probe["T_stc_w_out_K"] < self.T_stc_max_C + 273.15
+            and bool(probe["T_stc_w_out_K"] < self.T_stc_max_C + 273.15)
         )
 
         if stc_active:

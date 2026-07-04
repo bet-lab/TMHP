@@ -29,6 +29,7 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
+from .compressor_envelope import check_pr_envelope
 from .constants import c_a, c_w, rho_a, rho_w
 from .enex_functions import (
     calc_exergy_flow,
@@ -84,8 +85,10 @@ class GroundSourceHeatPump:
         hp_capacity: float = 4000.0,
         T_a_room: float = 27.0,
         # 6. Cycle guard ---------------------------------
-        dT_cycle_min: float | None = None,
         dT_hx_min: float = 0.5,
+        # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
+        PR_cycle_min: float = 1.5,
+        PR_cycle_max: float = 5.0,
         # 7. Simulation scope ----------------------------
         t_max_s: float = 8760 * 3600,
         dt_s: float = 3600,
@@ -126,11 +129,11 @@ class GroundSourceHeatPump:
         self.eta_cmp_isen: float | Callable = eta_cmp_isen
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
-        if dT_cycle_min is None:
-            self.dT_cycle_min: float = self.dT_subcool
-        else:
-            self.dT_cycle_min = float(dT_cycle_min)
         self.dT_hx_min: float = dT_hx_min
+        # Compressor pressure-ratio envelope (floor -> clamp, ceiling -> reject)
+        self.PR_cycle_min: float = PR_cycle_min
+        self.PR_cycle_max: float = PR_cycle_max
+        self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
@@ -273,8 +276,9 @@ class GroundSourceHeatPump:
             T_cond_sat_K = self.Ts_K
             Q_ref_iu = 0.0
 
-        if is_active and (T_cond_sat_K - T_evap_sat_K) < self.dT_cycle_min:
-            return None
+        # Low-lift feasibility is enforced downstream by the compressor
+        # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
+        # redundant and non-transferable across refrigerants/operating levels.
 
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))
@@ -290,6 +294,36 @@ class GroundSourceHeatPump:
             dT_subcool=actual_dT_subcool,
             is_active=is_active,
         )
+
+        # Compressor pressure-ratio envelope guard (PR = P_cond / P_evap), the
+        # physically primary lift limit. Ceiling -> reject (outside the
+        # single-stage envelope); floor -> clamp the cycle onto PR_cycle_min by
+        # holding P_evap and projecting P_cond, then refresh the cycle state.
+        self._last_pr_event = None
+        if is_active:
+            P_evap = cycle_states["P_ref_cmp_in [Pa]"]
+            P_cond = cycle_states["P_ref_cmp_out [Pa]"]
+            ratio_P_cmp = P_cond / P_evap if P_evap > 0 else 1.0
+            pr_event = check_pr_envelope(ratio_P_cmp, self.PR_cycle_min, self.PR_cycle_max)
+            if pr_event == "pr_above_max":
+                self._last_pr_event = ("pr_above_max", ratio_P_cmp, self.PR_cycle_max)
+                return None
+            if pr_event == "pr_below_min":
+                self._last_pr_event = ("pr_below_min", ratio_P_cmp, self.PR_cycle_min)
+                import CoolProp.CoolProp as CP
+
+                P_cond = self.PR_cycle_min * P_evap
+                T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
+                cycle_states = calc_ref_state(
+                    T_evap_K=T_evap_sat_K,
+                    T_cond_K=T_cond_sat_K,
+                    refrigerant=self.ref,
+                    eta_cmp_isen=self.eta_cmp_isen,
+                    mode=mode,
+                    dT_superheat=actual_dT_superheat,
+                    dT_subcool=actual_dT_subcool,
+                    is_active=is_active,
+                )
 
         h_cmp_out = cycle_states["h_ref_cmp_out [J/kg]"]
         h_cmp_in = cycle_states["h_ref_cmp_in [J/kg]"]
@@ -582,8 +616,13 @@ class GroundSourceHeatPump:
             # to match the historical behaviour of this branch (a converged
             # cycle with `result["converged"] == False` is still returned).
             opt_success = bool(getattr(opt, "success", False))
+            pr_event = self._last_pr_event
             if result is None:
-                failure_reason = "cycle_invalid"
+                # Distinguish a pressure-ratio ceiling rejection from a generic
+                # invalid cycle so downstream consumers see the specific cause.
+                failure_reason = (
+                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
+                )
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"
             elif not opt_success:

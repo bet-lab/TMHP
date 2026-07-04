@@ -8,6 +8,8 @@ against external data.
 
 import warnings
 
+import pytest
+
 from tmhp import (
     AirSourceHeatPump,
     AirSourceHeatPumpBoiler,
@@ -120,7 +122,6 @@ def test_gshp_heating_analyze_steady():
 def test_gshp_cooling_analyze_steady():
     gshp = GroundSourceHeatPump(
         ref="R32",
-        dT_cycle_min=3.0,
         dT_hx_min=0.5,
         UA_evap=6000.0,
         UA_cond=6000.0,
@@ -194,80 +195,50 @@ def test_ashp_oldest_deprecated_design_params_emit_warning():
 
 
 # ---------------------------------------------------------------------------
-# dT_cycle_min / dT_hx_min — expose as user-configurable params (#185)
+# dT_hx_min — heat-exchanger pinch clamp, still user-configurable.
+# The legacy dT_cycle_min fixed-minimum-lift guard was REMOVED across the whole
+# HP family; low-lift feasibility is now governed solely by the PR floor
+# (PR_cycle_min). dT_hx_min is a distinct superheat/subcool pinch clamp and is
+# retained.
 # ---------------------------------------------------------------------------
 
 
-def test_ashp_custom_min_lift_and_pinch():
-    ashp = AirSourceHeatPump(
-        ref="R32",
-        UA_ou_rated=3000.0,
-        UA_iu_rated=3000.0,
-        dT_cycle_min=15.0,
-        dT_hx_min=1.0,
-    )
-    assert ashp.dT_cycle_min == 15.0
-    assert ashp.dT_hx_min == 1.0
+def test_dt_hx_min_default_and_custom():
+    assert AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0).dT_hx_min == 0.5
+    assert AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0, dT_hx_min=1.0).dT_hx_min == 1.0
+    assert GroundSourceHeatPump(ref="R32").dT_hx_min == 0.5
+    assert GroundSourceHeatPump(ref="R32", dT_hx_min=1.0).dT_hx_min == 1.0
+    assert AirSourceHeatPumpBoiler(ref="R32").dT_hx_min == 0.5
+    assert GroundSourceHeatPumpBoiler(ref="R32", dT_hx_min=0.7).dT_hx_min == 0.7
+    assert WaterSourceHeatPumpBoiler(ref="R32", dT_hx_min=0.7).dT_hx_min == 0.7
 
 
-def test_ashp_default_min_lift_and_pinch():
-    ashp = AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0)
-    assert ashp.dT_cycle_min == 20.0
-    assert ashp.dT_hx_min == 0.5
-
-
-def test_gshp_custom_min_lift_and_pinch():
-    gshp = GroundSourceHeatPump(ref="R32", dT_cycle_min=8.0, dT_hx_min=1.0)
-    assert gshp.dT_cycle_min == 8.0
-    assert gshp.dT_hx_min == 1.0
-
-
-def test_gshp_default_min_lift_fallback_to_dT_subcool():
-    gshp = GroundSourceHeatPump(ref="R32", dT_subcool=4.0)
-    assert gshp.dT_cycle_min == 4.0  # falls back to dT_subcool
-    assert gshp.dT_hx_min == 0.5
-
-
-def test_ashpb_custom_min_lift_and_pinch():
-    ashpb = AirSourceHeatPumpBoiler(ref="R32", dT_cycle_min=12.0, dT_hx_min=0.8)
-    assert ashpb.dT_cycle_min == 12.0
-    assert ashpb.dT_hx_min == 0.8
-
-
-def test_ashpb_default_min_lift_is_20():
-    ashpb = AirSourceHeatPumpBoiler(ref="R32")
-    assert ashpb.dT_cycle_min == 20.0
-    assert ashpb.dT_hx_min == 0.5
-
-
-def test_gshpb_custom_min_lift_and_pinch():
-    gshpb = GroundSourceHeatPumpBoiler(ref="R32", dT_cycle_min=10.0, dT_hx_min=0.7)
-    assert gshpb.dT_cycle_min == 10.0
-    assert gshpb.dT_hx_min == 0.7
-
-
-def test_gshpb_default_min_lift_is_20():
-    gshpb = GroundSourceHeatPumpBoiler(ref="R32")
-    assert gshpb.dT_cycle_min == 20.0
-    assert gshpb.dT_hx_min == 0.5
-
-
-def test_wshpb_custom_min_lift_and_pinch():
-    wshpb = WaterSourceHeatPumpBoiler(ref="R32", dT_cycle_min=10.0, dT_hx_min=0.7)
-    assert wshpb.dT_cycle_min == 10.0
-    assert wshpb.dT_hx_min == 0.7
-
-
-def test_wshpb_default_min_lift_is_20():
-    wshpb = WaterSourceHeatPumpBoiler(ref="R32")
-    assert wshpb.dT_cycle_min == 20.0
-    assert wshpb.dT_hx_min == 0.5
+@pytest.mark.parametrize(
+    "cls, kwargs",
+    [
+        (AirSourceHeatPump, {"UA_ou_rated": 3000.0, "UA_iu_rated": 3000.0}),
+        (GroundSourceHeatPump, {}),
+        (AirSourceHeatPumpBoiler, {}),
+        (GroundSourceHeatPumpBoiler, {}),
+        (WaterSourceHeatPumpBoiler, {}),
+    ],
+)
+def test_dt_cycle_min_removed(cls, kwargs):
+    # The fixed-minimum-lift guard was removed across the whole HP family;
+    # passing the retired keyword must now be a hard error, not a silent no-op,
+    # and the attribute must no longer exist on a constructed model.
+    with pytest.raises(TypeError):
+        cls(ref="R32", dT_cycle_min=20.0, **kwargs)
+    assert not hasattr(cls(ref="R32", **kwargs), "dT_cycle_min")
 
 
 # ---------------------------------------------------------------------------
 # Compressor pressure-ratio envelope + rps search bounds (#166, #188)
-# Applied to the modern-solver models (ASHP / ASHPB / GSHPB / WSHPB). GSHP
-# still uses the older analytic cycle and is deferred (see bet-lab/tmhp#188).
+# Applied to the whole HP family (ASHP / ASHPB / GSHP / GSHPB / WSHPB): the PR
+# floor/ceiling is now the single operating-point guard after the dT_cycle_min
+# fixed-lift guard was removed. Ceiling default tightened 10 -> 5 for the
+# space-conditioning models (ASHP/GSHP, single-stage envelope); DHW boilers
+# (ASHPB/GSHPB/WSHPB) keep 10 because they legitimately reach PR ~ 8.
 # ---------------------------------------------------------------------------
 
 
@@ -300,9 +271,21 @@ def test_ashp_custom_pr_and_rps():
 def test_ashp_default_pr_and_rps():
     ashp = AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0)
     assert ashp.PR_cycle_min == 1.5
-    assert ashp.PR_cycle_max == 10.0
+    assert ashp.PR_cycle_max == 5.0
     assert ashp.rps_min == 10.0
     assert ashp.rps_max == 150.0
+
+
+def test_gshp_default_pr_and_rps():
+    gshp = GroundSourceHeatPump(ref="R32")
+    assert gshp.PR_cycle_min == 1.5
+    assert gshp.PR_cycle_max == 5.0
+
+
+def test_gshp_custom_pr():
+    gshp = GroundSourceHeatPump(ref="R32", PR_cycle_min=1.8, PR_cycle_max=7.0)
+    assert gshp.PR_cycle_min == 1.8
+    assert gshp.PR_cycle_max == 7.0
 
 
 def test_ashpb_custom_pr_and_rps():
@@ -322,7 +305,7 @@ def test_ashpb_custom_pr_and_rps():
 def test_gshpb_default_pr_and_rps():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
     assert gshpb.PR_cycle_min == 1.5
-    assert gshpb.PR_cycle_max == 10.0
+    assert gshpb.PR_cycle_max == 10.0  # DHW boiler keeps the higher ceiling
     assert gshpb.rps_min == 10.0
     assert gshpb.rps_max == 150.0
 
@@ -344,7 +327,7 @@ def test_wshpb_custom_pr_and_rps():
 def test_wshpb_default_pr_and_rps():
     wshpb = WaterSourceHeatPumpBoiler(ref="R32")
     assert wshpb.PR_cycle_min == 1.5
-    assert wshpb.PR_cycle_max == 10.0
+    assert wshpb.PR_cycle_max == 10.0  # DHW boiler keeps the higher ceiling
     assert wshpb.rps_min == 10.0
     assert wshpb.rps_max == 150.0
 
@@ -359,7 +342,6 @@ def test_wshpb_pr_floor_clamp_keeps_cycle():
         V_cmp_ref=5e-5,
         UA_tank=4000.0,
         UA_water=4000.0,
-        dT_cycle_min=2.0,
         PR_cycle_min=2.2,
         PR_cycle_max=10.0,
     )
@@ -414,7 +396,6 @@ def test_ashp_pr_floor_clamp_keeps_cycle():
         hp_capacity=15500.0,
         UA_ou_rated=2500,
         UA_iu_rated=2500,
-        dT_cycle_min=3.0,
         PR_cycle_min=1.8,
         PR_cycle_max=10.0,
     )

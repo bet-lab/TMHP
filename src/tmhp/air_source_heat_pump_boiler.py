@@ -137,11 +137,11 @@ class AirSourceHeatPumpBoiler:
         # Surrounding temperature parameter
         T_sur: float = 20.0,
         # Cycle guard: minimum condenser-to-evaporator saturation lift [K].
-        # Default 20 K guards the boundary-condition reversal (source above sink);
-        # pass None explicitly to disable.
-        dT_cycle_min: float | None = 20.0,
         dT_hx_min: float = 0.5,
-        # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
+        # Compressor pressure-ratio envelope (PR = P_cond / P_evap).
+        # DHW boilers legitimately reach PR ~ 8 (condensing 55-75 degC from a
+        # 0-12 degC source), so the single-stage ceiling stays at 10 here
+        # (unlike the space-conditioning ASHP/GSHP, which cap at 5).
         PR_cycle_min: float = 1.5,
         PR_cycle_max: float = 10.0,
         # Compressor speed search bounds [rev/s]
@@ -210,7 +210,6 @@ class AirSourceHeatPumpBoiler:
 
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
-        self.dT_cycle_min: float | None = dT_cycle_min
         self.dT_hx_min: float = dT_hx_min
         # Compressor pressure-ratio envelope (floor -> clamp, ceiling -> reject)
         self.PR_cycle_min: float = PR_cycle_min
@@ -453,8 +452,9 @@ class AirSourceHeatPumpBoiler:
             return result
 
         # --- Active state calculations ---
-        if self.dT_cycle_min is not None and (T_tank_sat_K - T_ou_sat_K) <= self.dT_cycle_min:
-            return None
+        # Low-lift feasibility is enforced downstream by the compressor
+        # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
+        # redundant and non-transferable across refrigerants/operating levels.
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_tank - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_ou - self.dT_hx_min))
 

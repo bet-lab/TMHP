@@ -77,11 +77,10 @@ class AirSourceHeatPump:
         hp_capacity: float = 4000.0,
         T_a_room: float = 27.0,
         # 6. Cycle guard ---------------------------------
-        dT_cycle_min: float = 20.0,
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 10.0,
+        PR_cycle_max: float = 5.0,
         # Compressor speed search bounds [rev/s]
         rps_min: float = 10.0,
         rps_max: float = 150.0,
@@ -176,7 +175,6 @@ class AirSourceHeatPump:
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
-        self.dT_cycle_min: float = dT_cycle_min
         self.dT_hx_min: float = dT_hx_min
         # Compressor pressure-ratio envelope (floor -> clamp, ceiling -> reject)
         self.PR_cycle_min: float = PR_cycle_min
@@ -349,9 +347,9 @@ class AirSourceHeatPump:
             T_evap_sat_K = T0_K - dT_ref_evap  # evap below outdoor
             T_cond_sat_K = T_a_room_K + dT_ref_cond  # cond above room
 
-        # Guard: evap must be below cond with required minimal lift
-        if (T_cond_sat_K - T_evap_sat_K) <= self.dT_cycle_min:
-            return None
+        # Low-lift feasibility is enforced downstream by the compressor
+        # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
+        # redundant and non-transferable across refrigerants/operating levels.
 
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))

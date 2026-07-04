@@ -303,11 +303,11 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="137">        <span class="c1"># Surrounding temperature parameter</span>
 </span><span data-line="138">        <span class="n">T_sur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
 </span><span data-line="139">        <span class="c1"># Cycle guard: minimum condenser-to-evaporator saturation lift [K].</span>
-</span><span data-line="140">        <span class="c1"># Default 20 K guards the boundary-condition reversal (source above sink);</span>
-</span><span data-line="141">        <span class="c1"># pass None explicitly to disable.</span>
-</span><span data-line="142">        <span class="n">dT_cycle_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
-</span><span data-line="143">        <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span data-line="144">        <span class="c1"># Compressor pressure-ratio envelope (PR = P_cond / P_evap)</span>
+</span><span data-line="140">        <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span data-line="141">        <span class="c1"># Compressor pressure-ratio envelope (PR = P_cond / P_evap).</span>
+</span><span data-line="142">        <span class="c1"># DHW boilers legitimately reach PR ~ 8 (condensing 55-75 degC from a</span>
+</span><span data-line="143">        <span class="c1"># 0-12 degC source), so the single-stage ceiling stays at 10 here</span>
+</span><span data-line="144">        <span class="c1"># (unlike the space-conditioning ASHP/GSHP, which cap at 5).</span>
 </span><span data-line="145">        <span class="n">PR_cycle_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
 </span><span data-line="146">        <span class="n">PR_cycle_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
 </span><span data-line="147">        <span class="c1"># Compressor speed search bounds [rev/s]</span>
@@ -376,252 +376,252 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="210">
 </span><span data-line="211">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dT_superheat</span>
 </span><span data-line="212">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_subcool</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dT_subcool</span>
-</span><span data-line="213">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_cycle_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">dT_cycle_min</span>
-</span><span data-line="214">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dT_hx_min</span>
-</span><span data-line="215">        <span class="c1"># Compressor pressure-ratio envelope (floor -&gt; clamp, ceiling -&gt; reject)</span>
-</span><span data-line="216">        <span class="bp">self</span><span class="o">.</span><span class="n">PR_cycle_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">PR_cycle_min</span>
-</span><span data-line="217">        <span class="bp">self</span><span class="o">.</span><span class="n">PR_cycle_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">PR_cycle_max</span>
-</span><span data-line="218">        <span class="c1"># Compressor speed search bounds [rev/s]</span>
-</span><span data-line="219">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_min</span>
-</span><span data-line="220">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_max</span>
-</span><span data-line="221">        <span class="c1"># Records the PR-envelope event of the most recent _calc_state call</span>
-</span><span data-line="222">        <span class="c1"># (None | (&quot;pr_below_min&quot;, pr, bound) | (&quot;pr_above_max&quot;, pr, bound)).</span>
-</span><span data-line="223">        <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="224">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">hp_capacity</span>
-</span><span data-line="225">
-</span><span data-line="226">        <span class="c1"># --- 2. Heat exchanger UA ---</span>
-</span><span data-line="227">        <span class="c1"># If not explicitly provided, the condenser UA dynamically scales to induce a</span>
-</span><span data-line="228">        <span class="c1"># ~10.0 K approach temperature difference, which corresponds to the standard</span>
-</span><span data-line="229">        <span class="c1"># performance specifications for industrial heat pumps.</span>
-</span><span data-line="230">        <span class="c1"># Ref: Application of Industrial Heat Pumps. Annex 35 Final Report (IEA Heat Pump Centre, 2014)</span>
-</span><span data-line="231">        <span class="k">if</span> <span class="n">UA_tank_hx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="232">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">=</span> <span class="n">hp_capacity</span> <span class="o">/</span> <span class="mf">6.0</span>
-</span><span data-line="233">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="234">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">=</span> <span class="n">UA_tank_hx</span>
-</span><span data-line="235">
-</span><span data-line="236">        <span class="c1"># The default evaporator UA is determined to ensure an approximate air-side</span>
-</span><span data-line="237">        <span class="c1"># temperature drop of 7.0 K across the outdoor unit, aligning with empirical</span>
-</span><span data-line="238">        <span class="c1"># laboratory observations of standard residential units.</span>
-</span><span data-line="239">        <span class="c1"># Ref: Residential Air Source Heat Pump Water Heater Performance Testing (ORNL, Baxter 2011, DOI: 10.3390/su17052234)</span>
-</span><span data-line="240">        <span class="k">if</span> <span class="n">UA_ou_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="241">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_ou_rated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">*</span> <span class="mf">0.8</span>
-</span><span data-line="242">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="243">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_ou_rated</span> <span class="o">=</span> <span class="n">UA_ou_rated</span>
-</span><span data-line="244">
-</span><span data-line="245">        <span class="bp">self</span><span class="o">.</span><span class="n">n_ou</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">n_ou</span>
-</span><span data-line="246">
-</span><span data-line="247">        <span class="c1"># --- 3. Outdoor unit fan ---</span>
-</span><span data-line="248">        <span class="c1"># Default fan flow rate is scaled at 0.0002 m^3/s per W (or 720 CMH per kW),</span>
-</span><span data-line="249">        <span class="c1"># representing an optimal ratio of airflow volume to thermal capacity.</span>
-</span><span data-line="250">        <span class="c1"># This provides enough margin so that nominal optimization operates at ~80% fan ratio.</span>
-</span><span data-line="251">        <span class="k">if</span> <span class="n">dV_fan_a_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="252">            <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">=</span> <span class="n">hp_capacity</span> <span class="o">*</span> <span class="mf">0.00015</span>
-</span><span data-line="253">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="254">            <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">=</span> <span class="n">dV_fan_a_rated</span>
-</span><span data-line="255">
-</span><span data-line="256">        <span class="bp">self</span><span class="o">.</span><span class="n">dP_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dP_fan_rated</span>
-</span><span data-line="257">        <span class="bp">self</span><span class="o">.</span><span class="n">eta_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">eta_fan_rated</span>
-</span><span data-line="258">
-</span><span data-line="259">        <span class="c1"># Default coil face area assumes a nominal frontal air velocity of 2.0 m/s.</span>
-</span><span data-line="260">        <span class="c1"># This velocity is selected specifically to maintain pressure drop profiles</span>
-</span><span data-line="261">        <span class="c1"># within optimal ranges for typical plain fin-and-tube configurations.</span>
-</span><span data-line="262">        <span class="c1"># Ref: Heat transfer and friction characteristics of plain fin-and-tube heat exchangers, part II (Wang et al., 2000, DOI: 10.1016/S0017-9310(99)00333-6)</span>
-</span><span data-line="263">        <span class="k">if</span> <span class="n">A_cross</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="264">            <span class="bp">self</span><span class="o">.</span><span class="n">A_cross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">/</span> <span class="mf">2.0</span>  <span class="c1"># Capped at 2.0 m/s face velocity</span>
-</span><span data-line="265">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="266">            <span class="bp">self</span><span class="o">.</span><span class="n">A_cross</span> <span class="o">=</span> <span class="n">A_cross</span>
-</span><span data-line="267">
-</span><span data-line="268">        <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dP_fan_rated</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_fan_rated</span>
-</span><span data-line="269">        <span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">vsd_coeffs</span>
-</span><span data-line="270">        <span class="bp">self</span><span class="o">.</span><span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="271">            <span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span><span class="p">,</span>
-</span><span data-line="272">            <span class="s2">&quot;fan_rated_power&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_rated</span><span class="p">,</span>
-</span><span data-line="273">        <span class="p">}</span>
-</span><span data-line="274">
-</span><span data-line="275">        <span class="c1"># --- 4. Tank geometry and thermal props ---</span>
-</span><span data-line="276">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_physical</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="277">            <span class="s2">&quot;r0&quot;</span><span class="p">:</span> <span class="n">r0</span><span class="p">,</span>
-</span><span data-line="278">            <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="n">H</span><span class="p">,</span>
-</span><span data-line="279">            <span class="s2">&quot;x_shell&quot;</span><span class="p">:</span> <span class="n">x_shell</span><span class="p">,</span>
-</span><span data-line="280">            <span class="s2">&quot;x_ins&quot;</span><span class="p">:</span> <span class="n">x_ins</span><span class="p">,</span>
-</span><span data-line="281">            <span class="s2">&quot;k_shell&quot;</span><span class="p">:</span> <span class="n">k_shell</span><span class="p">,</span>
-</span><span data-line="282">            <span class="s2">&quot;k_ins&quot;</span><span class="p">:</span> <span class="n">k_ins</span><span class="p">,</span>
-</span><span data-line="283">            <span class="s2">&quot;h_o&quot;</span><span class="p">:</span> <span class="n">h_o</span><span class="p">,</span>
-</span><span data-line="284">        <span class="p">}</span>
-</span><span data-line="285">        <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_wall</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_simple_tank_UA</span><span class="p">(</span>
-</span><span data-line="286">            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">tank_physical</span><span class="p">,</span>
-</span><span data-line="287">        <span class="p">)</span>
-</span><span data-line="288">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sur_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sur</span><span class="p">)</span>
-</span><span data-line="289">        <span class="bp">self</span><span class="o">.</span><span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r0</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">H</span>
-</span><span data-line="290">        <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_tank_full</span>
-</span><span data-line="291">
-</span><span data-line="292">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_mix_w_out_max</span>
-</span><span data-line="293">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_upper_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_upper_bound</span>
-</span><span data-line="294">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_lower_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_lower_bound</span>
-</span><span data-line="295">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_sup_w</span>
-</span><span data-line="296">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sup_w</span><span class="p">)</span>
-</span><span data-line="297">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_sup_w</span>
-</span><span data-line="298">        <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_mix_w_out</span>
-</span><span data-line="299">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sup_w</span><span class="p">)</span>
-</span><span data-line="300">        <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_mix_w_out</span><span class="p">)</span>
-</span><span data-line="301">
-</span><span data-line="302">        <span class="c1"># --- 5. Tank water level management ---</span>
-</span><span data-line="303">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_always_full</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">tank_always_full</span>
-</span><span data-line="304">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_level_lower_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">tank_level_lower_bound</span>
-</span><span data-line="305">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_level_upper_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">tank_level_upper_bound</span>
-</span><span data-line="306">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_in_refill</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_tank_w_in_refill</span>
-</span><span data-line="307">        <span class="bp">self</span><span class="o">.</span><span class="n">prevent_simultaneous_flow</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">prevent_simultaneous_flow</span>
-</span><span data-line="308">
-</span><span data-line="309">        <span class="c1"># --- 6. HP operating schedule ---</span>
-</span><span data-line="310">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_on_schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">hp_on_schedule</span>
-</span><span data-line="311">
-</span><span data-line="312">        <span class="c1"># --- 7. Subsystems ---</span>
-</span><span data-line="313">        <span class="bp">self</span><span class="o">.</span><span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">stc</span>
-</span><span data-line="314">        <span class="bp">self</span><span class="o">.</span><span class="n">pv</span><span class="p">:</span> <span class="n">PhotovoltaicSystem</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">pv</span>
-</span><span data-line="315">        <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span data-line="316">        <span class="k">if</span> <span class="n">stc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="317">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;stc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stc</span>
-</span><span data-line="318">        <span class="k">if</span> <span class="n">pv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="319">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;pv&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pv</span>
-</span><span data-line="320">        <span class="k">if</span> <span class="n">uv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="321">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;uv&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uv</span>
-</span><span data-line="322">
-</span><span data-line="323">        <span class="c1"># Flow-rate sync variables</span>
-</span><span data-line="324">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="325">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="326">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="327">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+</span><span data-line="213">        <span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dT_hx_min</span>
+</span><span data-line="214">        <span class="c1"># Compressor pressure-ratio envelope (floor -&gt; clamp, ceiling -&gt; reject)</span>
+</span><span data-line="215">        <span class="bp">self</span><span class="o">.</span><span class="n">PR_cycle_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">PR_cycle_min</span>
+</span><span data-line="216">        <span class="bp">self</span><span class="o">.</span><span class="n">PR_cycle_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">PR_cycle_max</span>
+</span><span data-line="217">        <span class="c1"># Compressor speed search bounds [rev/s]</span>
+</span><span data-line="218">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_min</span>
+</span><span data-line="219">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_max</span>
+</span><span data-line="220">        <span class="c1"># Records the PR-envelope event of the most recent _calc_state call</span>
+</span><span data-line="221">        <span class="c1"># (None | (&quot;pr_below_min&quot;, pr, bound) | (&quot;pr_above_max&quot;, pr, bound)).</span>
+</span><span data-line="222">        <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="223">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">hp_capacity</span>
+</span><span data-line="224">
+</span><span data-line="225">        <span class="c1"># --- 2. Heat exchanger UA ---</span>
+</span><span data-line="226">        <span class="c1"># If not explicitly provided, the condenser UA dynamically scales to induce a</span>
+</span><span data-line="227">        <span class="c1"># ~10.0 K approach temperature difference, which corresponds to the standard</span>
+</span><span data-line="228">        <span class="c1"># performance specifications for industrial heat pumps.</span>
+</span><span data-line="229">        <span class="c1"># Ref: Application of Industrial Heat Pumps. Annex 35 Final Report (IEA Heat Pump Centre, 2014)</span>
+</span><span data-line="230">        <span class="k">if</span> <span class="n">UA_tank_hx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="231">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">=</span> <span class="n">hp_capacity</span> <span class="o">/</span> <span class="mf">6.0</span>
+</span><span data-line="232">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="233">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">=</span> <span class="n">UA_tank_hx</span>
+</span><span data-line="234">
+</span><span data-line="235">        <span class="c1"># The default evaporator UA is determined to ensure an approximate air-side</span>
+</span><span data-line="236">        <span class="c1"># temperature drop of 7.0 K across the outdoor unit, aligning with empirical</span>
+</span><span data-line="237">        <span class="c1"># laboratory observations of standard residential units.</span>
+</span><span data-line="238">        <span class="c1"># Ref: Residential Air Source Heat Pump Water Heater Performance Testing (ORNL, Baxter 2011, DOI: 10.3390/su17052234)</span>
+</span><span data-line="239">        <span class="k">if</span> <span class="n">UA_ou_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="240">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_ou_rated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="o">*</span> <span class="mf">0.8</span>
+</span><span data-line="241">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="242">            <span class="bp">self</span><span class="o">.</span><span class="n">UA_ou_rated</span> <span class="o">=</span> <span class="n">UA_ou_rated</span>
+</span><span data-line="243">
+</span><span data-line="244">        <span class="bp">self</span><span class="o">.</span><span class="n">n_ou</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">n_ou</span>
+</span><span data-line="245">
+</span><span data-line="246">        <span class="c1"># --- 3. Outdoor unit fan ---</span>
+</span><span data-line="247">        <span class="c1"># Default fan flow rate is scaled at 0.0002 m^3/s per W (or 720 CMH per kW),</span>
+</span><span data-line="248">        <span class="c1"># representing an optimal ratio of airflow volume to thermal capacity.</span>
+</span><span data-line="249">        <span class="c1"># This provides enough margin so that nominal optimization operates at ~80% fan ratio.</span>
+</span><span data-line="250">        <span class="k">if</span> <span class="n">dV_fan_a_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="251">            <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">=</span> <span class="n">hp_capacity</span> <span class="o">*</span> <span class="mf">0.00015</span>
+</span><span data-line="252">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="253">            <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">=</span> <span class="n">dV_fan_a_rated</span>
+</span><span data-line="254">
+</span><span data-line="255">        <span class="bp">self</span><span class="o">.</span><span class="n">dP_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dP_fan_rated</span>
+</span><span data-line="256">        <span class="bp">self</span><span class="o">.</span><span class="n">eta_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">eta_fan_rated</span>
+</span><span data-line="257">
+</span><span data-line="258">        <span class="c1"># Default coil face area assumes a nominal frontal air velocity of 2.0 m/s.</span>
+</span><span data-line="259">        <span class="c1"># This velocity is selected specifically to maintain pressure drop profiles</span>
+</span><span data-line="260">        <span class="c1"># within optimal ranges for typical plain fin-and-tube configurations.</span>
+</span><span data-line="261">        <span class="c1"># Ref: Heat transfer and friction characteristics of plain fin-and-tube heat exchangers, part II (Wang et al., 2000, DOI: 10.1016/S0017-9310(99)00333-6)</span>
+</span><span data-line="262">        <span class="k">if</span> <span class="n">A_cross</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="263">            <span class="bp">self</span><span class="o">.</span><span class="n">A_cross</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">/</span> <span class="mf">2.0</span>  <span class="c1"># Capped at 2.0 m/s face velocity</span>
+</span><span data-line="264">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="265">            <span class="bp">self</span><span class="o">.</span><span class="n">A_cross</span> <span class="o">=</span> <span class="n">A_cross</span>
+</span><span data-line="266">
+</span><span data-line="267">        <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dP_fan_rated</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta_fan_rated</span>
+</span><span data-line="268">        <span class="bp">self</span><span class="o">.</span><span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">vsd_coeffs</span>
+</span><span data-line="269">        <span class="bp">self</span><span class="o">.</span><span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="270">            <span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_fan_a_rated</span><span class="p">,</span>
+</span><span data-line="271">            <span class="s2">&quot;fan_rated_power&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_fan_rated</span><span class="p">,</span>
+</span><span data-line="272">        <span class="p">}</span>
+</span><span data-line="273">
+</span><span data-line="274">        <span class="c1"># --- 4. Tank geometry and thermal props ---</span>
+</span><span data-line="275">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_physical</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="276">            <span class="s2">&quot;r0&quot;</span><span class="p">:</span> <span class="n">r0</span><span class="p">,</span>
+</span><span data-line="277">            <span class="s2">&quot;H&quot;</span><span class="p">:</span> <span class="n">H</span><span class="p">,</span>
+</span><span data-line="278">            <span class="s2">&quot;x_shell&quot;</span><span class="p">:</span> <span class="n">x_shell</span><span class="p">,</span>
+</span><span data-line="279">            <span class="s2">&quot;x_ins&quot;</span><span class="p">:</span> <span class="n">x_ins</span><span class="p">,</span>
+</span><span data-line="280">            <span class="s2">&quot;k_shell&quot;</span><span class="p">:</span> <span class="n">k_shell</span><span class="p">,</span>
+</span><span data-line="281">            <span class="s2">&quot;k_ins&quot;</span><span class="p">:</span> <span class="n">k_ins</span><span class="p">,</span>
+</span><span data-line="282">            <span class="s2">&quot;h_o&quot;</span><span class="p">:</span> <span class="n">h_o</span><span class="p">,</span>
+</span><span data-line="283">        <span class="p">}</span>
+</span><span data-line="284">        <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_wall</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_simple_tank_UA</span><span class="p">(</span>
+</span><span data-line="285">            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">tank_physical</span><span class="p">,</span>
+</span><span data-line="286">        <span class="p">)</span>
+</span><span data-line="287">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sur_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sur</span><span class="p">)</span>
+</span><span data-line="288">        <span class="bp">self</span><span class="o">.</span><span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r0</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">H</span>
+</span><span data-line="289">        <span class="bp">self</span><span class="o">.</span><span class="n">C_tank</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">V_tank_full</span>
+</span><span data-line="290">
+</span><span data-line="291">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_mix_w_out_max</span>
+</span><span data-line="292">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_upper_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_upper_bound</span>
+</span><span data-line="293">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_lower_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_lower_bound</span>
+</span><span data-line="294">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_sup_w</span>
+</span><span data-line="295">        <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sup_w</span><span class="p">)</span>
+</span><span data-line="296">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_sup_w</span>
+</span><span data-line="297">        <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_mix_w_out</span>
+</span><span data-line="298">        <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_sup_w</span><span class="p">)</span>
+</span><span data-line="299">        <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_mix_w_out</span><span class="p">)</span>
+</span><span data-line="300">
+</span><span data-line="301">        <span class="c1"># --- 5. Tank water level management ---</span>
+</span><span data-line="302">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_always_full</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">tank_always_full</span>
+</span><span data-line="303">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_level_lower_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">tank_level_lower_bound</span>
+</span><span data-line="304">        <span class="bp">self</span><span class="o">.</span><span class="n">tank_level_upper_bound</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">tank_level_upper_bound</span>
+</span><span data-line="305">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_in_refill</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_tank_w_in_refill</span>
+</span><span data-line="306">        <span class="bp">self</span><span class="o">.</span><span class="n">prevent_simultaneous_flow</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">prevent_simultaneous_flow</span>
+</span><span data-line="307">
+</span><span data-line="308">        <span class="c1"># --- 6. HP operating schedule ---</span>
+</span><span data-line="309">        <span class="bp">self</span><span class="o">.</span><span class="n">hp_on_schedule</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">hp_on_schedule</span>
+</span><span data-line="310">
+</span><span data-line="311">        <span class="c1"># --- 7. Subsystems ---</span>
+</span><span data-line="312">        <span class="bp">self</span><span class="o">.</span><span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">stc</span>
+</span><span data-line="313">        <span class="bp">self</span><span class="o">.</span><span class="n">pv</span><span class="p">:</span> <span class="n">PhotovoltaicSystem</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">pv</span>
+</span><span data-line="314">        <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="315">        <span class="k">if</span> <span class="n">stc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="316">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;stc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stc</span>
+</span><span data-line="317">        <span class="k">if</span> <span class="n">pv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="318">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;pv&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pv</span>
+</span><span data-line="319">        <span class="k">if</span> <span class="n">uv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="320">            <span class="bp">self</span><span class="o">.</span><span class="n">_subsystems</span><span class="p">[</span><span class="s2">&quot;uv&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uv</span>
+</span><span data-line="321">
+</span><span data-line="322">        <span class="c1"># Flow-rate sync variables</span>
+</span><span data-line="323">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="324">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="325">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="326">        <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
 
-</span><span data-line="328">
-</span><span data-line="329">    <span class="c1"># =============================================================</span>
-</span><span data-line="330">    <span class="c1"># Refrigerant cycle physics (ASHP-specific)</span>
-</span><span data-line="331">    <span class="c1"># =============================================================</span>
-</span><span data-line="332">
-</span><span data-line="333">    <span class="k">def</span><span class="w"> </span><span class="nf">_calc_state</span><span class="p">(</span>
-</span><span data-line="334">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="335">        <span class="n">dT_ref_ou</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="336">        <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="337">        <span class="n">Q_ref_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="338">        <span class="n">T0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="339">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="340">        <span class="n">flow_state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="341">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="342"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate refrigerant cycle at a given operating point.</span>
-</span><span data-line="343">
-</span><span data-line="344"><span class="sd">        Parameters</span>
-</span><span data-line="345"><span class="sd">        ----------</span>
-</span><span data-line="346"><span class="sd">        dT_ref_ou : float</span>
-</span><span data-line="347"><span class="sd">            Evaporator approach ΔT [K].</span>
-</span><span data-line="348"><span class="sd">        T_tank_w : float</span>
-</span><span data-line="349"><span class="sd">            Tank water temperature [°C].</span>
-</span><span data-line="350"><span class="sd">        Q_ref_tank : float</span>
-</span><span data-line="351"><span class="sd">            Target condenser heat rate [W].</span>
-</span><span data-line="352"><span class="sd">        T0 : float</span>
-</span><span data-line="353"><span class="sd">            Dead-state / outdoor-air temperature [°C].</span>
-</span><span data-line="354"><span class="sd">        flow_state : dict</span>
-</span><span data-line="355"><span class="sd">            Explicit mixing-valve / tank-flow context. Must contain:</span>
-</span><span data-line="356"><span class="sd">            ``dV_mix_w_out``, ``dV_tank_w_out``, ``dV_tank_w_in``,</span>
-</span><span data-line="357"><span class="sd">            ``dV_mix_sup_w_in``. Replaces former implicit ``self.dV_*`` reads.</span>
-</span><span data-line="358">
-</span><span data-line="359"><span class="sd">        Returns</span>
-</span><span data-line="360"><span class="sd">        -------</span>
-</span><span data-line="361"><span class="sd">        dict | None</span>
-</span><span data-line="362"><span class="sd">            Cycle performance dictionary; ``None`` if infeasible.</span>
-</span><span data-line="363"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="364">        <span class="n">dT_ref_tank</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="k">if</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="365">
-</span><span data-line="366">        <span class="n">T_tank_w_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_tank_w</span><span class="p">)</span>
-</span><span data-line="367">        <span class="n">T0_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T0</span><span class="p">)</span>
-</span><span data-line="368">
-</span><span data-line="369">        <span class="n">T_ou_sat_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T0_K</span> <span class="o">-</span> <span class="n">dT_ref_ou</span>
-</span><span data-line="370">        <span class="n">T_tank_sat_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">dT_ref_tank</span>
-</span><span data-line="371">
-</span><span data-line="372">        <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
-</span><span data-line="373">
-</span><span data-line="374">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
-</span><span data-line="375">            <span class="c1"># Flow state (explicit parameter, no side-effect reads)</span>
-</span><span data-line="376">            <span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span>
-</span><span data-line="377">            <span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">]</span>
-</span><span data-line="378">            <span class="n">dV_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">]</span>
-</span><span data-line="379">            <span class="n">dV_mix_w_out_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_mix_w_out [m3/s]&quot;</span><span class="p">]</span>
-</span><span data-line="380">
-</span><span data-line="381">            <span class="k">if</span> <span class="n">dV_mix_w_out_val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="382">                <span class="n">T_mix_w_out_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="383">                <span class="n">T_mix_w_out_val_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="384">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="385">                <span class="n">mix</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">calc_mixing_valve_temp</span><span class="p">(</span>
-</span><span data-line="386">                    <span class="n">T_tank_w_K</span><span class="p">,</span>
-</span><span data-line="387">                    <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">,</span>
-</span><span data-line="388">                    <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span><span class="p">,</span>
-</span><span data-line="389">                <span class="p">)</span>
-</span><span data-line="390">                <span class="n">T_mix_w_out_val</span> <span class="o">=</span> <span class="n">mix</span><span class="p">[</span><span class="s2">&quot;T_mix_w_out&quot;</span><span class="p">]</span>
-</span><span data-line="391">                <span class="n">T_mix_w_out_val_K</span> <span class="o">=</span> <span class="n">mix</span><span class="p">[</span><span class="s2">&quot;T_mix_w_out_K&quot;</span><span class="p">]</span>
-</span><span data-line="392">
-</span><span data-line="393">            <span class="c1"># Energy balance: Q_tank_w_in + Q_ref_tank = Q_tank_w_out + Q_tank_loss + dU_tank/dt</span>
-</span><span data-line="394">            <span class="n">Q_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_tank_w_in</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="395">            <span class="n">Q_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_tank_w_out</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="396">            <span class="n">Q_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_mix_sup_w_in</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="397">            <span class="n">Q_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_mix_w_out_val</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="n">T_mix_w_out_val_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="398">
-</span><span data-line="399">            <span class="n">cs</span> <span class="o">=</span> <span class="n">calc_ref_state</span><span class="p">(</span>
-</span><span data-line="400">                <span class="n">T_evap_K</span><span class="o">=</span><span class="n">T_ou_sat_K</span><span class="p">,</span>
-</span><span data-line="401">                <span class="n">T_cond_K</span><span class="o">=</span><span class="n">T_tank_sat_K</span><span class="p">,</span>
-</span><span data-line="402">                <span class="n">refrigerant</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span>
-</span><span data-line="403">                <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eta_cmp_isen</span><span class="p">,</span>
-</span><span data-line="404">                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;heating&quot;</span><span class="p">,</span>
-</span><span data-line="405">                <span class="n">dT_superheat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span>
-</span><span data-line="406">                <span class="n">dT_subcool</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="407">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span data-line="408">                <span class="n">rps</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="409">            <span class="p">)</span>
-</span><span data-line="410">
-</span><span data-line="411">            <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-</span><span data-line="412">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-</span><span data-line="413">                <span class="p">{</span>
-</span><span data-line="414">                    <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="415">                    <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="416">                    <span class="s2">&quot;converged_rps&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="417">                    <span class="s2">&quot;fan_flow_min_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="418">                    <span class="s2">&quot;fan_flow_max_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="419">                    <span class="c1"># Temperatures [°C]</span>
-</span><span data-line="420">                    <span class="s2">&quot;T_ou_a_in [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="421">                    <span class="s2">&quot;T_ou_a_mid [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="422">                    <span class="s2">&quot;T_ou_a_out [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="423">                    <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">T_tank_w</span><span class="p">,</span>
-</span><span data-line="424">                    <span class="s2">&quot;T_sup_w [°C]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">,</span>
-</span><span data-line="425">                    <span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in</span><span class="p">,</span>
-</span><span data-line="426">                    <span class="s2">&quot;T_mix_w_out [°C]&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val</span><span class="p">,</span>
-</span><span data-line="427">                    <span class="s2">&quot;T0 [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
-</span><span data-line="428">                    <span class="c1"># Volume flow rates [m3/s]</span>
-</span><span data-line="429">                    <span class="s2">&quot;dV_ou_a [m3/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="430">                    <span class="s2">&quot;v_ou_a [m/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="431">                    <span class="s2">&quot;dV_mix_w_out [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_mix_w_out_val</span> <span class="k">if</span> <span class="n">dV_mix_w_out_val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="432">                    <span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_tank_w_out</span> <span class="k">if</span> <span class="n">dV_tank_w_out</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="433">                    <span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="k">if</span> <span class="n">dV_tank_w_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="434">                    <span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_mix_sup_w_in</span> <span class="k">if</span> <span class="n">dV_mix_sup_w_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-</span><span data-line="435">                    <span class="s2">&quot;m_dot_ref [kg/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="436">                    <span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="437">                    <span class="c1"># Energy rates [W]</span>
-</span><span data-line="438">                    <span class="s2">&quot;E_ou_fan [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="439">                    <span class="s2">&quot;Q_ref_ou [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="440">                    <span class="s2">&quot;Q_ou_a [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="441">                    <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="442">                    <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="443">                    <span class="s2">&quot;Q_tank_w_in [W]&quot;</span><span class="p">:</span> <span class="n">Q_tank_w_in</span><span class="p">,</span>
-</span><span data-line="444">                    <span class="s2">&quot;Q_tank_w_out [W]&quot;</span><span class="p">:</span> <span class="n">Q_tank_w_out</span><span class="p">,</span>
-</span><span data-line="445">                    <span class="s2">&quot;Q_mix_sup_w_in [W]&quot;</span><span class="p">:</span> <span class="n">Q_mix_sup_w_in</span><span class="p">,</span>
-</span><span data-line="446">                    <span class="s2">&quot;Q_mix_w_out [W]&quot;</span><span class="p">:</span> <span class="n">Q_mix_w_out</span><span class="p">,</span>
-</span><span data-line="447">                    <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="448">                    <span class="c1"># COP metrics</span>
-</span><span data-line="449">                    <span class="s2">&quot;cop_ref [-]&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="450">                    <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="451">                <span class="p">}</span>
-</span><span data-line="452">            <span class="p">)</span>
-</span><span data-line="453">            <span class="k">return</span> <span class="n">result</span>
-</span><span data-line="454">
-</span><span data-line="455">        <span class="c1"># --- Active state calculations ---</span>
-</span><span data-line="456">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dT_cycle_min</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">T_tank_sat_K</span> <span class="o">-</span> <span class="n">T_ou_sat_K</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dT_cycle_min</span><span class="p">:</span>
-</span><span data-line="457">            <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="327">
+</span><span data-line="328">    <span class="c1"># =============================================================</span>
+</span><span data-line="329">    <span class="c1"># Refrigerant cycle physics (ASHP-specific)</span>
+</span><span data-line="330">    <span class="c1"># =============================================================</span>
+</span><span data-line="331">
+</span><span data-line="332">    <span class="k">def</span><span class="w"> </span><span class="nf">_calc_state</span><span class="p">(</span>
+</span><span data-line="333">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="334">        <span class="n">dT_ref_ou</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="335">        <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="336">        <span class="n">Q_ref_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="337">        <span class="n">T0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="338">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="339">        <span class="n">flow_state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="340">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="341"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate refrigerant cycle at a given operating point.</span>
+</span><span data-line="342">
+</span><span data-line="343"><span class="sd">        Parameters</span>
+</span><span data-line="344"><span class="sd">        ----------</span>
+</span><span data-line="345"><span class="sd">        dT_ref_ou : float</span>
+</span><span data-line="346"><span class="sd">            Evaporator approach ΔT [K].</span>
+</span><span data-line="347"><span class="sd">        T_tank_w : float</span>
+</span><span data-line="348"><span class="sd">            Tank water temperature [°C].</span>
+</span><span data-line="349"><span class="sd">        Q_ref_tank : float</span>
+</span><span data-line="350"><span class="sd">            Target condenser heat rate [W].</span>
+</span><span data-line="351"><span class="sd">        T0 : float</span>
+</span><span data-line="352"><span class="sd">            Dead-state / outdoor-air temperature [°C].</span>
+</span><span data-line="353"><span class="sd">        flow_state : dict</span>
+</span><span data-line="354"><span class="sd">            Explicit mixing-valve / tank-flow context. Must contain:</span>
+</span><span data-line="355"><span class="sd">            ``dV_mix_w_out``, ``dV_tank_w_out``, ``dV_tank_w_in``,</span>
+</span><span data-line="356"><span class="sd">            ``dV_mix_sup_w_in``. Replaces former implicit ``self.dV_*`` reads.</span>
+</span><span data-line="357">
+</span><span data-line="358"><span class="sd">        Returns</span>
+</span><span data-line="359"><span class="sd">        -------</span>
+</span><span data-line="360"><span class="sd">        dict | None</span>
+</span><span data-line="361"><span class="sd">            Cycle performance dictionary; ``None`` if infeasible.</span>
+</span><span data-line="362"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="363">        <span class="n">dT_ref_tank</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">UA_tank_hx</span> <span class="k">if</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="364">
+</span><span data-line="365">        <span class="n">T_tank_w_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_tank_w</span><span class="p">)</span>
+</span><span data-line="366">        <span class="n">T0_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T0</span><span class="p">)</span>
+</span><span data-line="367">
+</span><span data-line="368">        <span class="n">T_ou_sat_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T0_K</span> <span class="o">-</span> <span class="n">dT_ref_ou</span>
+</span><span data-line="369">        <span class="n">T_tank_sat_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_K</span> <span class="o">+</span> <span class="n">dT_ref_tank</span>
+</span><span data-line="370">
+</span><span data-line="371">        <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Q_ref_tank</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+</span><span data-line="372">
+</span><span data-line="373">        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
+</span><span data-line="374">            <span class="c1"># Flow state (explicit parameter, no side-effect reads)</span>
+</span><span data-line="375">            <span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="376">            <span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="377">            <span class="n">dV_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="378">            <span class="n">dV_mix_w_out_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">flow_state</span><span class="p">[</span><span class="s2">&quot;dV_mix_w_out [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="379">
+</span><span data-line="380">            <span class="k">if</span> <span class="n">dV_mix_w_out_val</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="381">                <span class="n">T_mix_w_out_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="382">                <span class="n">T_mix_w_out_val_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="383">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="384">                <span class="n">mix</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">calc_mixing_valve_temp</span><span class="p">(</span>
+</span><span data-line="385">                    <span class="n">T_tank_w_K</span><span class="p">,</span>
+</span><span data-line="386">                    <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">,</span>
+</span><span data-line="387">                    <span class="bp">self</span><span class="o">.</span><span class="n">T_mix_w_out_K</span><span class="p">,</span>
+</span><span data-line="388">                <span class="p">)</span>
+</span><span data-line="389">                <span class="n">T_mix_w_out_val</span> <span class="o">=</span> <span class="n">mix</span><span class="p">[</span><span class="s2">&quot;T_mix_w_out&quot;</span><span class="p">]</span>
+</span><span data-line="390">                <span class="n">T_mix_w_out_val_K</span> <span class="o">=</span> <span class="n">mix</span><span class="p">[</span><span class="s2">&quot;T_mix_w_out_K&quot;</span><span class="p">]</span>
+</span><span data-line="391">
+</span><span data-line="392">            <span class="c1"># Energy balance: Q_tank_w_in + Q_ref_tank = Q_tank_w_out + Q_tank_loss + dU_tank/dt</span>
+</span><span data-line="393">            <span class="n">Q_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_tank_w_in</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="394">            <span class="n">Q_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_tank_w_out</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="395">            <span class="n">Q_mix_sup_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_mix_sup_w_in</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="396">            <span class="n">Q_mix_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">calc_energy_flow</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">dV_mix_w_out_val</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="n">T_mix_w_out_val_K</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="n">T0_K</span><span class="p">)</span>
+</span><span data-line="397">
+</span><span data-line="398">            <span class="n">cs</span> <span class="o">=</span> <span class="n">calc_ref_state</span><span class="p">(</span>
+</span><span data-line="399">                <span class="n">T_evap_K</span><span class="o">=</span><span class="n">T_ou_sat_K</span><span class="p">,</span>
+</span><span data-line="400">                <span class="n">T_cond_K</span><span class="o">=</span><span class="n">T_tank_sat_K</span><span class="p">,</span>
+</span><span data-line="401">                <span class="n">refrigerant</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span>
+</span><span data-line="402">                <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eta_cmp_isen</span><span class="p">,</span>
+</span><span data-line="403">                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;heating&quot;</span><span class="p">,</span>
+</span><span data-line="404">                <span class="n">dT_superheat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span>
+</span><span data-line="405">                <span class="n">dT_subcool</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="406">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="407">                <span class="n">rps</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="408">            <span class="p">)</span>
+</span><span data-line="409">
+</span><span data-line="410">            <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="411">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span data-line="412">                <span class="p">{</span>
+</span><span data-line="413">                    <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="414">                    <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="415">                    <span class="s2">&quot;converged_rps&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="416">                    <span class="s2">&quot;fan_flow_min_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="417">                    <span class="s2">&quot;fan_flow_max_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="418">                    <span class="c1"># Temperatures [°C]</span>
+</span><span data-line="419">                    <span class="s2">&quot;T_ou_a_in [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="420">                    <span class="s2">&quot;T_ou_a_mid [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="421">                    <span class="s2">&quot;T_ou_a_out [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="422">                    <span class="s2">&quot;T_tank_w [°C]&quot;</span><span class="p">:</span> <span class="n">T_tank_w</span><span class="p">,</span>
+</span><span data-line="423">                    <span class="s2">&quot;T_sup_w [°C]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_sup_w</span><span class="p">,</span>
+</span><span data-line="424">                    <span class="s2">&quot;T_tank_w_in [°C]&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_in</span><span class="p">,</span>
+</span><span data-line="425">                    <span class="s2">&quot;T_mix_w_out [°C]&quot;</span><span class="p">:</span> <span class="n">T_mix_w_out_val</span><span class="p">,</span>
+</span><span data-line="426">                    <span class="s2">&quot;T0 [°C]&quot;</span><span class="p">:</span> <span class="n">T0</span><span class="p">,</span>
+</span><span data-line="427">                    <span class="c1"># Volume flow rates [m3/s]</span>
+</span><span data-line="428">                    <span class="s2">&quot;dV_ou_a [m3/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="429">                    <span class="s2">&quot;v_ou_a [m/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="430">                    <span class="s2">&quot;dV_mix_w_out [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_mix_w_out_val</span> <span class="k">if</span> <span class="n">dV_mix_w_out_val</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="431">                    <span class="s2">&quot;dV_tank_w_out [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_tank_w_out</span> <span class="k">if</span> <span class="n">dV_tank_w_out</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="432">                    <span class="s2">&quot;dV_tank_w_in [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="k">if</span> <span class="n">dV_tank_w_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="433">                    <span class="s2">&quot;dV_mix_sup_w_in [m3/s]&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">dV_mix_sup_w_in</span> <span class="k">if</span> <span class="n">dV_mix_sup_w_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
+</span><span data-line="434">                    <span class="s2">&quot;m_dot_ref [kg/s]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="435">                    <span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="436">                    <span class="c1"># Energy rates [W]</span>
+</span><span data-line="437">                    <span class="s2">&quot;E_ou_fan [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="438">                    <span class="s2">&quot;Q_ref_ou [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="439">                    <span class="s2">&quot;Q_ou_a [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="440">                    <span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="441">                    <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="442">                    <span class="s2">&quot;Q_tank_w_in [W]&quot;</span><span class="p">:</span> <span class="n">Q_tank_w_in</span><span class="p">,</span>
+</span><span data-line="443">                    <span class="s2">&quot;Q_tank_w_out [W]&quot;</span><span class="p">:</span> <span class="n">Q_tank_w_out</span><span class="p">,</span>
+</span><span data-line="444">                    <span class="s2">&quot;Q_mix_sup_w_in [W]&quot;</span><span class="p">:</span> <span class="n">Q_mix_sup_w_in</span><span class="p">,</span>
+</span><span data-line="445">                    <span class="s2">&quot;Q_mix_w_out [W]&quot;</span><span class="p">:</span> <span class="n">Q_mix_w_out</span><span class="p">,</span>
+</span><span data-line="446">                    <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="447">                    <span class="c1"># COP metrics</span>
+</span><span data-line="448">                    <span class="s2">&quot;cop_ref [-]&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="449">                    <span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="450">                <span class="p">}</span>
+</span><span data-line="451">            <span class="p">)</span>
+</span><span data-line="452">            <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="453">
+</span><span data-line="454">        <span class="c1"># --- Active state calculations ---</span>
+</span><span data-line="455">        <span class="c1"># Low-lift feasibility is enforced downstream by the compressor</span>
+</span><span data-line="456">        <span class="c1"># pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is</span>
+</span><span data-line="457">        <span class="c1"># redundant and non-transferable across refrigerants/operating levels.</span>
 </span><span data-line="458">        <span class="n">actual_dT_subcool</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_subcool</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_ref_tank</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">))</span>
 </span><span data-line="459">        <span class="n">actual_dT_superheat</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_ref_ou</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">))</span>
 </span><span data-line="460">

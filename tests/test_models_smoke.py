@@ -237,8 +237,9 @@ def test_dt_cycle_min_removed(cls, kwargs):
 # Applied to the whole HP family (ASHP / ASHPB / GSHP / GSHPB / WSHPB): the PR
 # floor/ceiling is now the single operating-point guard after the dT_cycle_min
 # fixed-lift guard was removed. Ceiling default tightened 10 -> 5 for the
-# space-conditioning models (ASHP/GSHP, single-stage envelope); DHW boilers
-# (ASHPB/GSHPB/WSHPB) keep 10 because they legitimately reach PR ~ 8.
+# space-conditioning models (ASHP/GSHP, single-stage envelope). DHW boiler
+# defaults (ASHPB/GSHPB/WSHPB) use a 20 ceiling for high-lift validation points
+# that reach PR 16-18.
 # ---------------------------------------------------------------------------
 
 
@@ -302,10 +303,18 @@ def test_ashpb_custom_pr_and_rps():
     assert ashpb.rps_max == 130.0
 
 
+def test_ashpb_default_pr_and_rps():
+    ashpb = AirSourceHeatPumpBoiler(ref="R32")
+    assert ashpb.PR_cycle_min == 1.5
+    assert ashpb.PR_cycle_max == 20.0
+    assert ashpb.rps_min == 10.0
+    assert ashpb.rps_max == 150.0
+
+
 def test_gshpb_default_pr_and_rps():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
     assert gshpb.PR_cycle_min == 1.5
-    assert gshpb.PR_cycle_max == 10.0  # DHW boiler keeps the higher ceiling
+    assert gshpb.PR_cycle_max == 20.0
     assert gshpb.rps_min == 10.0
     assert gshpb.rps_max == 150.0
 
@@ -327,7 +336,7 @@ def test_wshpb_custom_pr_and_rps():
 def test_wshpb_default_pr_and_rps():
     wshpb = WaterSourceHeatPumpBoiler(ref="R32")
     assert wshpb.PR_cycle_min == 1.5
-    assert wshpb.PR_cycle_max == 10.0  # DHW boiler keeps the higher ceiling
+    assert wshpb.PR_cycle_max == 20.0
     assert wshpb.rps_min == 10.0
     assert wshpb.rps_max == 150.0
 

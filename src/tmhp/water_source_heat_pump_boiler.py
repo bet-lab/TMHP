@@ -122,11 +122,12 @@ class WaterSourceHeatPumpBoiler:
         T_sur: float = 20.0,
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap).
-        # DHW boilers legitimately reach PR ~ 8 (condensing 55-75 degC from a
-        # low-temperature source), so the single-stage ceiling stays at 10 here
+        # High-lift DHW validation points reach PR 16-18 (condensing
+        # 55-75 degC from a low-temperature source), so the default boiler
+        # ceiling is 20 here
         # (unlike the space-conditioning ASHP/GSHP, which cap at 5).
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 10.0,
+        PR_cycle_max: float = 20.0,
         # Compressor speed search bounds [rev/s]
         rps_min: float = 10.0,
         rps_max: float = 150.0,

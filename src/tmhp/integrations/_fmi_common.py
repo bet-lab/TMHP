@@ -9,6 +9,24 @@ from xml.etree.ElementTree import Element, SubElement
 
 UnitSpec = tuple[str, Mapping[str, str]]
 
+VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
+    "ref": "Working fluid (CoolProp name, e.g. R32, R290, R410A)",
+    "hp_capacity": "Nominal heat pump heating capacity",
+    "T_tank_w_init": "Initial tank water temperature",
+    "T_sur": "Surrounding temperature for tank heat loss",
+    "T0": "Outdoor air temperature",
+    "dhw_draw": "DHW draw-off volumetric flow rate",
+    "T_sup_w": "Mains supply water temperature",
+    "E_cmp": "Compressor electric power",
+    "E_tot": "Total system electric power (compressor and fan)",
+    "Q_ref_tank": "Condenser heat transfer rate to the tank",
+    "cop_sys": "System coefficient of performance (Q_ref_tank / E_tot)",
+    "T_tank_w": "Tank water temperature after the step",
+    "hp_is_on": "Whether the heat pump is active for this step",
+    "converged": "Whether the cycle solve accepted the step",
+    "failure_reason": 'Step-level failure reason, or "none"',
+}
+
 
 def finite(value: float | None) -> float:
     """Return a finite scalar for FMI numeric output variables."""

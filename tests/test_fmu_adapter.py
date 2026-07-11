@@ -24,6 +24,7 @@ import pytest
 pytest.importorskip("pythonfmu")
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
 from tmhp.integrations.fmu import TmhpAshpbSlave, _finite
 
 PERIOD_S = 3 * 86400
@@ -188,6 +189,12 @@ def test_fmu_builds_and_simulates(tmp_path):
     assert validate_fmu(str(fmu_file)) == []
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
+    descriptions = {
+        scalar.attrib["name"]: scalar.attrib.get("description")
+        for scalar in root.findall("./ModelVariables/ScalarVariable")
+        if scalar.attrib["name"] in VARIABLE_DESCRIPTIONS
+    }
+    assert descriptions == VARIABLE_DESCRIPTIONS
     unit_names = {unit.attrib["name"] for unit in root.findall("./UnitDefinitions/Unit")}
     assert {"W", "degC", "m3/s", "1"} <= unit_names
     units = {}

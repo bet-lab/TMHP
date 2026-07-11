@@ -14,6 +14,7 @@ pytest.importorskip("pythonfmu3")
 from pythonfmu3 import Fmi3Status
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
 from tmhp.integrations.fmu3 import TmhpAshpbFmi3Slave, _finite
 
 PERIOD_S = 3 * 86400
@@ -186,6 +187,12 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
     assert root.attrib["fmiVersion"] == "3.0"
+    descriptions = {
+        variable.attrib["name"]: variable.attrib.get("description")
+        for variable in root.findall("./ModelVariables/*")
+        if variable.attrib["name"] in VARIABLE_DESCRIPTIONS
+    }
+    assert descriptions == VARIABLE_DESCRIPTIONS
     unit_names = {unit.attrib["name"] for unit in root.findall("./UnitDefinitions/Unit")}
     assert {"W", "s", "degC", "m3/s", "1"} <= unit_names
     units = {}

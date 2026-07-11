@@ -49,6 +49,7 @@ from tmhp.integrations import _fmi_common
 _finite = _fmi_common.finite
 _is_finite = _fmi_common.is_finite
 _failure_reason = _fmi_common.failure_reason
+_DESCRIPTIONS = _fmi_common.VARIABLE_DESCRIPTIONS
 
 _REAL_UNITS = {
     "hp_capacity": "W",
@@ -110,16 +111,37 @@ class TmhpAshpbSlave(Fmi2Slave):
         self.hp_capacity = 15000.0
         self.T_tank_w_init = 55.0
         self.T_sur = 20.0  # surrounding (tank-loss) temperature [°C]
-        self.register_variable(String("ref", causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed))
+        self.register_variable(
+            String(
+                "ref",
+                causality=Fmi2Causality.parameter,
+                variability=Fmi2Variability.fixed,
+                description=_DESCRIPTIONS["ref"],
+            )
+        )
         for nm in ("hp_capacity", "T_tank_w_init", "T_sur"):
-            self.register_variable(Real(nm, causality=Fmi2Causality.parameter, variability=Fmi2Variability.fixed))
+            self.register_variable(
+                Real(
+                    nm,
+                    causality=Fmi2Causality.parameter,
+                    variability=Fmi2Variability.fixed,
+                    description=_DESCRIPTIONS[nm],
+                )
+            )
 
         # --- Inputs (master sets before each do_step) ---
-        self.T0 = 7.0  # outdoor / dead-state air temperature [°C]
+        self.T0 = 7.0  # outdoor air temperature [°C]
         self.dhw_draw = 0.0  # service-water draw-off [m³/s] (-> dV_mix_w_out)
         self.T_sup_w = 15.0  # mains make-up water temperature [°C]
         for nm in ("T0", "dhw_draw", "T_sup_w"):
-            self.register_variable(Real(nm, causality=Fmi2Causality.input, variability=Fmi2Variability.continuous))
+            self.register_variable(
+                Real(
+                    nm,
+                    causality=Fmi2Causality.input,
+                    variability=Fmi2Variability.continuous,
+                    description=_DESCRIPTIONS[nm],
+                )
+            )
 
         # --- Outputs (master reads after each do_step) ---
         self.E_cmp = 0.0
@@ -131,15 +153,23 @@ class TmhpAshpbSlave(Fmi2Slave):
         self.converged = True
         self.failure_reason = "none"
         for nm in ("E_cmp", "E_tot", "Q_ref_tank", "cop_sys", "T_tank_w"):
-            self.register_variable(Real(nm, causality=Fmi2Causality.output))
+            self.register_variable(Real(nm, causality=Fmi2Causality.output, description=_DESCRIPTIONS[nm]))
         # FMI forbids variability="continuous" on Boolean variables.
         for nm in ("hp_is_on", "converged"):
-            self.register_variable(Boolean(nm, causality=Fmi2Causality.output, variability=Fmi2Variability.discrete))
+            self.register_variable(
+                Boolean(
+                    nm,
+                    causality=Fmi2Causality.output,
+                    variability=Fmi2Variability.discrete,
+                    description=_DESCRIPTIONS[nm],
+                )
+            )
         self.register_variable(
             String(
                 "failure_reason",
                 causality=Fmi2Causality.output,
                 variability=Fmi2Variability.discrete,
+                description=_DESCRIPTIONS["failure_reason"],
             )
         )
 

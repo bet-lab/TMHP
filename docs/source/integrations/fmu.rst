@@ -278,7 +278,7 @@ initial dependency set.
      - Surrounding temperature for tank losses in degrees Celsius.
    * - Input
      - ``T0``
-     - Outdoor or dead-state air temperature in degrees Celsius.
+     - Outdoor air temperature in degrees Celsius.
    * - Input
      - ``dhw_draw``
      - Service-water draw-off in ``m3/s``.

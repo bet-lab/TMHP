@@ -37,6 +37,7 @@ from tmhp.integrations import _fmi_common
 _finite = _fmi_common.finite
 _is_finite = _fmi_common.is_finite
 _failure_reason = _fmi_common.failure_reason
+_DESCRIPTIONS = _fmi_common.VARIABLE_DESCRIPTIONS
 
 _REAL_UNITS = {
     "time": "s",
@@ -89,6 +90,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                 "ref",
                 causality=Fmi3Causality.parameter,
                 variability=Fmi3Variability.fixed,
+                description=_DESCRIPTIONS["ref"],
             )
         )
         for name in ("hp_capacity", "T_tank_w_init", "T_sur"):
@@ -98,6 +100,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                     causality=Fmi3Causality.parameter,
                     variability=Fmi3Variability.fixed,
                     unit=_REAL_UNITS[name],
+                    description=_DESCRIPTIONS[name],
                 )
             )
 
@@ -111,6 +114,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                     causality=Fmi3Causality.input,
                     variability=Fmi3Variability.continuous,
                     unit=_REAL_UNITS[name],
+                    description=_DESCRIPTIONS[name],
                 )
             )
 
@@ -129,6 +133,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                     causality=Fmi3Causality.output,
                     variability=Fmi3Variability.continuous,
                     unit=_REAL_UNITS[name],
+                    description=_DESCRIPTIONS[name],
                 )
             )
         for name in ("hp_is_on", "converged"):
@@ -137,6 +142,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                     name,
                     causality=Fmi3Causality.output,
                     variability=Fmi3Variability.discrete,
+                    description=_DESCRIPTIONS[name],
                 )
             )
         self.register_variable(
@@ -144,6 +150,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                 "failure_reason",
                 causality=Fmi3Causality.output,
                 variability=Fmi3Variability.discrete,
+                description=_DESCRIPTIONS["failure_reason"],
             )
         )
 

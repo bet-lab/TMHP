@@ -25,7 +25,36 @@ VARIABLE_DESCRIPTIONS: Mapping[str, str] = {
     "hp_is_on": "Whether the heat pump is active for this step",
     "converged": "Whether the cycle solve accepted the step",
     "failure_reason": 'Step-level failure reason, or "none"',
+    "preset": "Named ASHPB equipment parameter preset; empty uses model defaults",
+    "V_cmp_disp_cc": "Compressor displacement used by the selected preset",
+    "dV_fan_a_rated": "Rated outdoor-unit fan volumetric flow used by the selected preset",
 }
+
+
+def preset_kwargs(
+    preset: str,
+    *,
+    ref: str,
+    hp_capacity: float,
+    V_cmp_disp_cc: float,
+    dV_fan_a_rated: float,
+) -> dict[str, Any]:
+    """Build optional preset kwargs shared by both FMI adapter versions."""
+    if not preset:
+        return {}
+    if not is_finite(V_cmp_disp_cc) or float(V_cmp_disp_cc) <= 0.0:
+        raise ValueError("V_cmp_disp_cc must be finite and > 0 when preset is specified")
+    if not is_finite(dV_fan_a_rated) or float(dV_fan_a_rated) <= 0.0:
+        raise ValueError("dV_fan_a_rated must be finite and > 0 when preset is specified")
+
+    from tmhp.equipment_presets import resolve_preset
+
+    return resolve_preset(preset)(
+        ref,
+        hp_capacity,
+        V_cmp_disp_cc=float(V_cmp_disp_cc),
+        dV_fan_a_rated=float(dV_fan_a_rated),
+    )
 
 
 def finite(value: float | None) -> float:

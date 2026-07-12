@@ -52,12 +52,15 @@ _REAL_UNITS = {
     "Q_ref_tank": "W",
     "cop_sys": "1",
     "T_tank_w": "degC",
+    "V_cmp_disp_cc": "cm3",
+    "dV_fan_a_rated": "m3/s",
 }
 _UNIT_SPECS: tuple[tuple[str, dict[str, str]], ...] = (
     ("W", {"kg": "1", "m": "2", "s": "-3"}),
     ("s", {"s": "1"}),
     ("degC", {"K": "1", "offset": "273.15"}),
     ("m3/s", {"m": "3", "s": "-1"}),
+    ("cm3", {"m": "3", "factor": "1e-6"}),
     ("1", {}),
 )
 
@@ -85,6 +88,9 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
         self.hp_capacity = 15000.0
         self.T_tank_w_init = 55.0
         self.T_sur = 20.0
+        self.preset = ""
+        self.V_cmp_disp_cc = 0.0
+        self.dV_fan_a_rated = 0.0
         self.register_variable(
             String(
                 "ref",
@@ -93,6 +99,7 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
                 description=_DESCRIPTIONS["ref"],
             )
         )
+
         for name in ("hp_capacity", "T_tank_w_init", "T_sur"):
             self.register_variable(
                 Float64(
@@ -154,6 +161,26 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
             )
         )
 
+        # Appended parameters preserve all existing FMI 3.0 value references.
+        self.register_variable(
+            String(
+                "preset",
+                causality=Fmi3Causality.parameter,
+                variability=Fmi3Variability.fixed,
+                description=_DESCRIPTIONS["preset"],
+            )
+        )
+        for name in ("V_cmp_disp_cc", "dV_fan_a_rated"):
+            self.register_variable(
+                Float64(
+                    name,
+                    causality=Fmi3Causality.parameter,
+                    variability=Fmi3Variability.fixed,
+                    unit=_REAL_UNITS[name],
+                    description=_DESCRIPTIONS[name],
+                )
+            )
+
         self._hp: AirSourceHeatPumpBoiler | None = None
         self._state: DynamicState | None = None
         self._n = 0
@@ -170,7 +197,14 @@ class TmhpAshpbFmi3Slave(Fmi3Slave):
 
     def exit_initialization_mode(self) -> None:
         """Finalize parameters and initialize the carried ASHPB state."""
-        self._hp = AirSourceHeatPumpBoiler(ref=self.ref, hp_capacity=self.hp_capacity)
+        preset_kwargs = _fmi_common.preset_kwargs(
+            self.preset,
+            ref=self.ref,
+            hp_capacity=self.hp_capacity,
+            V_cmp_disp_cc=self.V_cmp_disp_cc,
+            dV_fan_a_rated=self.dV_fan_a_rated,
+        )
+        self._hp = AirSourceHeatPumpBoiler(ref=self.ref, hp_capacity=self.hp_capacity, **preset_kwargs)
         self._state = self._hp.make_initial_state(self.T_tank_w_init)
         self._n = 0
         self.T_tank_w = self.T_tank_w_init

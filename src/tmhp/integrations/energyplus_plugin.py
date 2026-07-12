@@ -26,6 +26,9 @@ Configuration (environment variables, all optional):
 =====================================  ===========================================
 ``TMHP_ASHPB_REF``                     refrigerant (default ``R32``; e.g. R290, R410A)
 ``TMHP_ASHPB_CAPACITY``                nominal HP capacity in W (default ``15000``)
+``TMHP_ASHPB_PRESET``                  named parameter preset (default empty = model defaults)
+``TMHP_ASHPB_VDISP_CC``                compressor displacement in cm³ (required with preset)
+``TMHP_ASHPB_FAN_M3S``                 rated outdoor fan flow in m³/s (required with preset)
 ``TMHP_UD_NAME``                       ``PlantComponent:UserDefined`` object name
                                        (default ``ASHPB_UserDefined``)
 ``TMHP_LOOP_DESIGN_VDOT``              design loop volume flow in m³/s (default ``0.003``)
@@ -67,10 +70,14 @@ except ModuleNotFoundError:  # pragma: no cover - exercised where EnergyPlus is 
 
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.integrations import _fmi_common
 
 # --- Configuration (read once at import) ------------------------------------
 REF = os.environ.get("TMHP_ASHPB_REF", "R32")
 HP_CAPACITY = float(os.environ.get("TMHP_ASHPB_CAPACITY", "15000"))
+PRESET = os.environ.get("TMHP_ASHPB_PRESET", "")
+V_CMP_DISP_CC = float(os.environ.get("TMHP_ASHPB_VDISP_CC", "0"))
+DV_FAN_A_RATED = float(os.environ.get("TMHP_ASHPB_FAN_M3S", "0"))
 UD_NAME = os.environ.get("TMHP_UD_NAME", "ASHPB_UserDefined")
 LOOP_DESIGN_VDOT = float(os.environ.get("TMHP_LOOP_DESIGN_VDOT", "0.003"))  # m³/s
 ECMP_ENERGY_GLOBAL = os.environ.get("TMHP_EPLUS_ECMP_ENERGY_GLOBAL", "tmhp_E_cmp_J")
@@ -81,6 +88,28 @@ _LOG = os.environ.get("TMHP_PLUGIN_LOG")  # None -> stdout only
 MDOT_FLOOR = 0.05  # kg/s — below this the inlet flow is treated as "off"
 TOUT_MAX = 95.0  # °C — clamp inside the liquid-water property range
 RHO_WATER = 1000.0  # kg/m³ — sizing only
+
+
+def _ashpb_model_kwargs(
+    *,
+    ref: str,
+    hp_capacity: float,
+    preset: str = "",
+    V_cmp_disp_cc: float = 0.0,
+    dV_fan_a_rated: float = 0.0,
+) -> dict[str, Any]:
+    """Return constructor kwargs without requiring an EnergyPlus runtime."""
+    return {
+        "ref": ref,
+        "hp_capacity": hp_capacity,
+        **_fmi_common.preset_kwargs(
+            preset,
+            ref=ref,
+            hp_capacity=hp_capacity,
+            V_cmp_disp_cc=V_cmp_disp_cc,
+            dV_fan_a_rated=dV_fan_a_rated,
+        ),
+    }
 
 
 def _normalize_failure_reason(value: object) -> str | None:
@@ -200,7 +229,14 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
     def __init__(self) -> None:
         super().__init__()
-        self.hp = AirSourceHeatPumpBoiler(ref=REF, hp_capacity=HP_CAPACITY)
+        model_kwargs = _ashpb_model_kwargs(
+            ref=REF,
+            hp_capacity=HP_CAPACITY,
+            preset=PRESET,
+            V_cmp_disp_cc=V_CMP_DISP_CC,
+            dV_fan_a_rated=DV_FAN_A_RATED,
+        )
+        self.hp = AirSourceHeatPumpBoiler(**model_kwargs)
         self._need = True
         self._requested = False
         self.h: dict[str, int] = {}

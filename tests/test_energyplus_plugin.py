@@ -21,6 +21,35 @@ CP_WATER = 4181.0  # J/(kg·K)
 TOUT_MAX_REF = 95.0  # mirror the plugin's outlet clamp; fails if it drifts
 
 
+def test_energyplus_model_kwargs_apply_validated_preset_without_pyenergyplus():
+    """The pure configuration helper exposes the paper preset to the plugin."""
+    from tmhp.integrations.energyplus_plugin import _ashpb_model_kwargs
+
+    kwargs = _ashpb_model_kwargs(
+        ref="R32",
+        hp_capacity=9000.0,
+        preset="validated_rule_set",
+        V_cmp_disp_cc=42.0,
+        dV_fan_a_rated=1.153,
+    )
+
+    assert kwargs["ref"] == "R32"
+    assert kwargs["hp_capacity"] == 9000.0
+    assert kwargs["V_cmp_ref"] == pytest.approx(4.2e-5)
+    assert kwargs["UA_tank"] == pytest.approx(1800.0)
+    assert kwargs["UA_ou_rated"] == pytest.approx(1260.0)
+    assert kwargs["dV_fan_a_rated"] == pytest.approx(1.153)
+
+
+def test_energyplus_model_kwargs_empty_preset_keeps_legacy_constructor():
+    from tmhp.integrations.energyplus_plugin import _ashpb_model_kwargs
+
+    assert _ashpb_model_kwargs(ref="R32", hp_capacity=15000.0) == {
+        "ref": "R32",
+        "hp_capacity": 15000.0,
+    }
+
+
 class _FakeExchange:
     def __init__(self, values, system_time_step=0.25):
         self.values = values

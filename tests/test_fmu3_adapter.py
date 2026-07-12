@@ -14,6 +14,7 @@ pytest.importorskip("pythonfmu3")
 from pythonfmu3 import Fmi3Status
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.equipment_presets import resolve_preset
 from tmhp.integrations._fmi_common import VARIABLE_DESCRIPTIONS
 from tmhp.integrations.fmu3 import TmhpAshpbFmi3Slave, _finite
 
@@ -23,6 +24,8 @@ T_SUR = 20.0
 T_SUP = 15.0
 T_TANK_INIT = 55.0
 HPCAP = 15000.0
+PRESET_VDISP_CC = 42.0
+PRESET_FAN_M3S = 1.153
 _OUTPUTS = ("E_cmp", "E_tot", "Q_ref_tank", "cop_sys", "T_tank_w")
 _ANALYZE_DYNAMIC_OUTPUTS = {
     "E_cmp": "E_cmp [W]",
@@ -31,6 +34,24 @@ _ANALYZE_DYNAMIC_OUTPUTS = {
     "cop_sys": "cop_sys [-]",
     "T_tank_w": "T_tank_w [°C]",
 }
+_LEGACY_VARIABLE_ORDER = (
+    "time",
+    "ref",
+    "hp_capacity",
+    "T_tank_w_init",
+    "T_sur",
+    "T0",
+    "dhw_draw",
+    "T_sup_w",
+    "E_cmp",
+    "E_tot",
+    "Q_ref_tank",
+    "cop_sys",
+    "T_tank_w",
+    "hp_is_on",
+    "converged",
+    "failure_reason",
+)
 
 
 @pytest.mark.parametrize(
@@ -113,6 +134,77 @@ def _make_slave() -> TmhpAshpbFmi3Slave:
     return slave
 
 
+def test_fmu3_slave_default_parameters_remain_model_defaults() -> None:
+    """An empty FMI 3.0 preset retains the legacy model defaults."""
+    slave = _make_slave()
+    standalone = AirSourceHeatPumpBoiler(ref="R32", hp_capacity=HPCAP)
+
+    assert slave.preset == ""
+    assert slave._hp is not None
+    for name in ("V_cmp_ref", "UA_tank_hx", "UA_ou_rated", "dV_fan_a_rated"):
+        assert getattr(slave._hp, name) == getattr(standalone, name)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("V_cmp_disp_cc", 0.0), ("V_cmp_disp_cc", -1.0), ("dV_fan_a_rated", 0.0)],
+)
+def test_fmu3_slave_rejects_invalid_preset_parameters(field: str, value: float) -> None:
+    slave = TmhpAshpbFmi3Slave(instance_name="tmhp_ashpb_fmi3_invalid_preset")
+    slave.preset = "validated_rule_set"
+    slave.V_cmp_disp_cc = PRESET_VDISP_CC
+    slave.dV_fan_a_rated = PRESET_FAN_M3S
+    setattr(slave, field, value)
+
+    with pytest.raises(ValueError, match=field):
+        slave.exit_initialization_mode()
+
+
+def test_fmu3_slave_validated_preset_reproduces_standalone_step_kernel() -> None:
+    """The FMI 3.0 preset trajectory equals the same standalone model."""
+    t, T0, dhw = _schedule()
+    slave = TmhpAshpbFmi3Slave(instance_name="tmhp_ashpb_fmi3_validated")
+    slave.ref = "R32"
+    slave.hp_capacity = HPCAP
+    slave.T_tank_w_init = T_TANK_INIT
+    slave.T_sur = T_SUR
+    slave.preset = "validated_rule_set"
+    slave.V_cmp_disp_cc = PRESET_VDISP_CC
+    slave.dV_fan_a_rated = PRESET_FAN_M3S
+    slave.exit_initialization_mode()
+
+    kwargs = resolve_preset("validated_rule_set")(
+        "R32",
+        HPCAP,
+        V_cmp_disp_cc=PRESET_VDISP_CC,
+        dV_fan_a_rated=PRESET_FAN_M3S,
+    )
+    model = AirSourceHeatPumpBoiler(ref="R32", hp_capacity=HPCAP, **kwargs)
+    state = model.make_initial_state(T_TANK_INIT)
+
+    for n in range(12):
+        inputs = {
+            "n": n,
+            "current_time_s": float(t[n]),
+            "T0": float(T0[n]),
+            "dV_mix_w_out": float(dhw[n]),
+            "T_sup_w": T_SUP,
+            "T_sur": T_SUR,
+            "I_DN": 0.0,
+            "I_dH": 0.0,
+        }
+        state, expected = model.step(state, inputs, DT)
+        slave.T0 = inputs["T0"]
+        slave.dhw_draw = inputs["dV_mix_w_out"]
+        slave.T_sup_w = T_SUP
+
+        result = slave.do_step(float(t[n]), DT)
+        assert result.status == Fmi3Status.ok
+        for output, result_key in _ANALYZE_DYNAMIC_OUTPUTS.items():
+            expected_value = _finite(expected.get(result_key))
+            assert getattr(slave, output) == pytest.approx(expected_value, rel=1e-12, abs=1e-9)
+
+
 @pytest.mark.parametrize(
     ("field", "value", "step_size"),
     [
@@ -187,6 +279,9 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     with ZipFile(fmu_file) as archive:
         root = ElementTree.fromstring(archive.read("modelDescription.xml"))
     assert root.attrib["fmiVersion"] == "3.0"
+    variable_names = [variable.attrib["name"] for variable in root.findall("./ModelVariables/*")]
+    assert variable_names[: len(_LEGACY_VARIABLE_ORDER)] == list(_LEGACY_VARIABLE_ORDER)
+    assert variable_names[-3:] == ["preset", "V_cmp_disp_cc", "dV_fan_a_rated"]
     descriptions = {
         variable.attrib["name"]: variable.attrib.get("description")
         for variable in root.findall("./ModelVariables/*")
@@ -194,7 +289,7 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     }
     assert descriptions == VARIABLE_DESCRIPTIONS
     unit_names = {unit.attrib["name"] for unit in root.findall("./UnitDefinitions/Unit")}
-    assert {"W", "s", "degC", "m3/s", "1"} <= unit_names
+    assert {"W", "s", "degC", "m3/s", "cm3", "1"} <= unit_names
     units = {}
     for variable in root.findall("./ModelVariables/*"):
         if "unit" in variable.attrib:
@@ -203,6 +298,8 @@ def test_fmu3_builds_and_simulates(tmp_path) -> None:
     assert units["dhw_draw"] == "m3/s"
     assert units["E_cmp"] == "W"
     assert units["cop_sys"] == "1"
+    assert units["V_cmp_disp_cc"] == "cm3"
+    assert units["dV_fan_a_rated"] == "m3/s"
 
     t, T0, dhw = _schedule()
     input_dtype = np.dtype([("time", "f8"), ("T0", "f8"), ("dhw_draw", "f8"), ("T_sup_w", "f8")])

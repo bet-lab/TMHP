@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-07-11T23:00:03+00:00" />
+    <meta property="article:modified_time" content="2026-07-12T04:51:33+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -729,22 +729,31 @@ import-only smoke plugin first — a wrong-ABI CoolProp wheel fails silently.</p
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_ASHPB_CAPACITY</span></code></p></td>
 <td><p>nominal HP capacity in W (default <code class="docutils literal notranslate"><span class="pre">15000</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_UD_NAME</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_ASHPB_PRESET</span></code></p></td>
+<td><p>named parameter preset (default empty = model defaults)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_ASHPB_VDISP_CC</span></code></p></td>
+<td><p>compressor displacement in cm³ (required with preset)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_ASHPB_FAN_M3S</span></code></p></td>
+<td><p>rated outdoor fan flow in m³/s (required with preset)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_UD_NAME</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> object name
 (default <code class="docutils literal notranslate"><span class="pre">ASHPB_UserDefined</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_LOOP_DESIGN_VDOT</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_LOOP_DESIGN_VDOT</span></code></p></td>
 <td><p>design loop volume flow in m³/s (default <code class="docutils literal notranslate"><span class="pre">0.003</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_ENERGY_GLOBAL</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_ENERGY_GLOBAL</span></code></p></td>
 <td><p>plugin global receiving timestep energy [J]
 (default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_POWER_GLOBAL</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_POWER_GLOBAL</span></code></p></td>
 <td><p>optional plugin global receiving power [W]
 (default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_PLUGIN_LOG</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_PLUGIN_LOG</span></code></p></td>
 <td><p>if set, append a per-call/tally log to this path</p></td>
 </tr>
 </tbody>
@@ -820,7 +829,7 @@ summed joules). <code class="docutils literal notranslate"><span class="pre">tmh
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 11, 2026
+  Last updated Jul 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

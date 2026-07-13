@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-07-10T08:15:36+00:00" />
+    <meta property="article:modified_time" content="2026-07-13T18:55:41+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -140,6 +140,7 @@ data-aria-dark="Switch to auto color mode">
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#base-usage">Base usage</a></li>
+<li><a class="reference internal" href="#default-compressor-efficiencies">Default compressor efficiencies</a></li>
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
 <li><a class="reference internal" href="#composed-variants">Composed variants</a><ul>
@@ -303,6 +304,19 @@ source and demand-side families.</span><a class="headerlink" href="#id8" title="
 </span><span data-line="14"><span class="c1"># df = ashpb.analyze_dynamic(...)</span>
 </span></pre></div>
 </div>
+</section>
+<section id="default-compressor-efficiencies">
+<h2>Default compressor efficiencies<a class="headerlink" href="#default-compressor-efficiencies" title="Link to this heading">¶</a></h2>
+<p>A bare <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> uses the paper-validated compressor
+relations below, where <code class="docutils literal notranslate"><span class="pre">r_p</span></code> is pressure ratio and <code class="docutils literal notranslate"><span class="pre">rps</span></code> is compressor
+speed in revolutions per second:</p>
+<ul class="simple">
+<li><p>volumetric: <code class="docutils literal notranslate"><span class="pre">1.0</span> <span class="pre">-</span> <span class="pre">0.020</span> <span class="pre">*</span> <span class="pre">(r_p</span> <span class="pre">-</span> <span class="pre">1.0)</span></code></p></li>
+<li><p>isentropic: <code class="docutils literal notranslate"><span class="pre">0.90</span> <span class="pre">-</span> <span class="pre">0.02</span> <span class="pre">*</span> <span class="pre">r_p</span></code></p></li>
+<li><p>combined electromechanical: <code class="docutils literal notranslate"><span class="pre">0.80</span> <span class="pre">-</span> <span class="pre">3.0e-5</span> <span class="pre">*</span> <span class="pre">(rps</span> <span class="pre">-</span> <span class="pre">55.0)</span> <span class="pre">**</span> <span class="pre">2</span></code></p></li>
+</ul>
+<p>An explicitly supplied float or callable for the corresponding constructor
+argument overrides these defaults.</p>
 </section>
 <section id="source-side-mechanics">
 <h2>Source-side mechanics<a class="headerlink" href="#source-side-mechanics" title="Link to this heading">¶</a></h2>
@@ -690,6 +704,10 @@ approach temperature is determined analytically
 (<code class="docutils literal notranslate"><span class="pre">dT_ref_tank</span> <span class="pre">=</span> <span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>), and a bounded
 1-D optimiser (Brent’s method) minimises total electrical
 input (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_ou_fan</span></code>) over the evaporator approach.</p>
+<p>Unless explicitly injected, compressor efficiencies use the
+paper-validated relations <code class="docutils literal notranslate"><span class="pre">eta_cmp_vol</span> <span class="pre">=</span> <span class="pre">1.0</span> <span class="pre">-</span> <span class="pre">0.020</span> <span class="pre">*</span> <span class="pre">(r_p</span> <span class="pre">-</span> <span class="pre">1.0)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span> <span class="pre">=</span> <span class="pre">0.90</span> <span class="pre">-</span> <span class="pre">0.02</span> <span class="pre">*</span> <span class="pre">r_p</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">eta_cmp</span> <span class="pre">=</span> <span class="pre">0.80</span> <span class="pre">-</span> <span class="pre">3.0e-5</span> <span class="pre">*</span> <span class="pre">(rps</span> <span class="pre">-</span> <span class="pre">55.0)</span> <span class="pre">**</span> <span class="pre">2</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1425,7 +1443,7 @@ comparison.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 10, 2026
+  Last updated Jul 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

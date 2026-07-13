@@ -84,6 +84,11 @@ class AirSourceHeatPumpBoiler:
     (``dT_ref_tank = Q_ref_tank / UA_tank_hx``), and a bounded
     1-D optimiser (Brent's method) minimises total electrical
     input (``E_cmp + E_ou_fan``) over the evaporator approach.
+
+    Unless explicitly injected, compressor efficiencies use the
+    paper-validated relations ``eta_cmp_vol = 1.0 - 0.020 * (r_p - 1.0)``,
+    ``eta_cmp_isen = 0.90 - 0.02 * r_p``, and
+    ``eta_cmp = 0.80 - 3.0e-5 * (rps - 55.0) ** 2``.
     """
 
     def __init__(
@@ -164,7 +169,11 @@ class AirSourceHeatPumpBoiler:
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else 0.0002
         if eta_cmp is None:
-            eta_cmp = eta_cmp_electro_mech if eta_cmp_electro_mech is not None else 0.855
+            eta_cmp = (
+                eta_cmp_electro_mech
+                if eta_cmp_electro_mech is not None
+                else lambda r_p, rps: 0.80 - 3.0e-5 * (rps - 55.0) ** 2
+            )
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
         if UA_ou_rated is None:
@@ -199,13 +208,13 @@ class AirSourceHeatPumpBoiler:
         if eta_cmp_isen is not None:
             self.eta_cmp_isen: float | Callable = eta_cmp_isen
         else:
-            self.eta_cmp_isen = 0.80
+            self.eta_cmp_isen = lambda r_p: 0.90 - 0.02 * r_p
 
         # Volumetric Efficiency
         if eta_cmp_vol is not None:
             self.eta_cmp_vol: float | Callable = eta_cmp_vol
         else:
-            self.eta_cmp_vol = lambda r: 0.95 - 0.05 * r
+            self.eta_cmp_vol = lambda r_p: 1.0 - 0.020 * (r_p - 1.0)
 
         self.eta_cmp: float | Callable = eta_cmp
 

@@ -37,6 +37,14 @@ def test_ashpb_analyze_steady():
     }
 
 
+def test_ashpb_default_compressor_efficiencies():
+    ashpb = AirSourceHeatPumpBoiler()
+
+    assert ashpb.eta_cmp_vol(4.0) == pytest.approx(0.94)
+    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(0.82)
+    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(0.80)
+
+
 def test_gshpb_analyze_steady():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
     result = gshpb.analyze_steady(T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0)
@@ -382,12 +390,10 @@ def test_wshpb_pr_ceiling_rejects():
     assert wshpb._last_pr_event[0] == "pr_above_max"
 
 
-def test_boiler_common_eta_defaults():
-    # All heat-pump boilers resolve an unspecified isentropic efficiency to the
-    # shared default 0.80 (volumetric to a PR-dependent callable), so a bare
-    # model is never ideal-isentropic.
+def test_non_air_source_boiler_common_eta_defaults():
+    # GSHPB and WSHPB retain the shared constant isentropic default. ASHPB uses
+    # its paper-validated callable, covered by the ASHPB-specific test above.
     for cls in (
-        AirSourceHeatPumpBoiler,
         GroundSourceHeatPumpBoiler,
         WaterSourceHeatPumpBoiler,
     ):

@@ -56,6 +56,20 @@ Base usage
    # construction.
    # df = ashpb.analyze_dynamic(...)
 
+Default compressor efficiencies
+===============================
+
+A bare ``AirSourceHeatPumpBoiler`` uses the paper-validated compressor
+relations below, where ``r_p`` is pressure ratio and ``rps`` is compressor
+speed in revolutions per second:
+
+- volumetric: ``1.0 - 0.020 * (r_p - 1.0)``
+- isentropic: ``0.90 - 0.02 * r_p``
+- combined electromechanical: ``0.80 - 3.0e-5 * (rps - 55.0) ** 2``
+
+An explicitly supplied float or callable for the corresponding constructor
+argument overrides these defaults.
+
 Source-side mechanics
 =====================
 

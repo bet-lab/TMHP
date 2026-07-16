@@ -80,7 +80,7 @@ The script
 
 The complete script lives at
 `scripts/visualization/mollier_cycle_R32.py
-<https://github.com/bet-lab/tmhp/blob/main/scripts/visualization/mollier_cycle_R32.py>`_.
+<https://github.com/bet-lab/TMHP/blob/main/scripts/visualization/mollier_cycle_R32.py>`_.
 The core is a saturation-envelope sweep via CoolProp for each panel
 plus a dashed connector through the seven cycle points returned by
 ``analyze_steady``:

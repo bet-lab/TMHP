@@ -447,4 +447,4 @@ MIT License © 2025 betlab (Habin Jo, Wonjun Choi). See [`LICENSE`](LICENSE) for
 
 ## Acknowledgments
 
-This work was supported by the **Ministry of Land, Infrastructure and Transport (MOLIT)** of the Republic of Korea and the **Korea Authority of Land & Infrastructure Safety (KALIS)**, through the *2025 Industry Discovery Competition for Achieving Carbon Neutrality in the Building Sector* (「'25년 건물분야 탄소중립 달성을 위한 산업발굴 경진대회」), organized by the Green Remodeling Center.
+This work was supported by the Korea Authority of Land & Infrastructure Safety (KALIS) grant funded by the Ministry of Land, Infrastructure and Transport (MOLIT) of the Republic of Korea.

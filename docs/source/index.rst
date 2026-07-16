@@ -26,7 +26,7 @@ curve fits and no per-unit recalibration.
 
    .. image:: https://img.shields.io/badge/license-MIT-success
       :alt: MIT License
-      :target: https://github.com/bet-lab/tmhp/blob/main/LICENSE
+      :target: https://github.com/bet-lab/TMHP/blob/main/LICENSE
 
    .. image:: https://img.shields.io/badge/status-alpha-orange
       :alt: Development status — Alpha
@@ -37,7 +37,7 @@ curve fits and no per-unit recalibration.
    :doc:`Quick start <getting-started/quickstart>`
    :doc:`Integrations <integrations/index>`
    :doc:`Validation <validation/index>`
-   `GitHub <https://github.com/bet-lab/tmhp>`_
+   `GitHub <https://github.com/bet-lab/TMHP>`_
 
 .. grid:: 1 2 2 3
     :gutter: 3
@@ -120,5 +120,5 @@ curve fits and no per-unit recalibration.
    :caption: Project Links
    :hidden:
 
-   GitHub Repository <https://github.com/bet-lab/tmhp>
+   GitHub Repository <https://github.com/bet-lab/TMHP>
    Sister project — Energy-Exergy Analysis Engine <https://github.com/bet-lab/enex-analysis-engine>

@@ -13,7 +13,7 @@ Clone and install
 
 .. code-block:: bash
 
-   git clone https://github.com/bet-lab/tmhp.git
+   git clone https://github.com/bet-lab/TMHP.git
    cd tmhp
    uv sync --locked
 

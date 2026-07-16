@@ -83,7 +83,7 @@ html_js_files = [
     ("js/core/global.js", _DEFER),
     ("js/widgets/integration-diagrams.js", _DEFER),
 ]
-html_baseurl = "https://bet-lab.github.io/tmhp/"
+html_baseurl = "https://bet-lab.github.io/TMHP/"
 
 # Hide the per-page "Show Source" link — the GitHub icon already gives readers
 # a path to the repo, and the in-tree .rst files aren't a useful artifact.
@@ -94,7 +94,7 @@ html_theme_options = {
     # Cool blue accent fits a thermodynamics / refrigerant-cycle library and
     # keeps headings, links, and the active-nav indicator on one consistent hue.
     "accent_color": "iris",
-    "github_url": "https://github.com/bet-lab/tmhp",
+    "github_url": "https://github.com/bet-lab/TMHP",
     # Expand top-level toctree captions in the sidebar by default so the main
     # sections are visible without the reader hunting for them.
     "globaltoc_expand_depth": 1,
@@ -109,7 +109,7 @@ html_theme_options = {
     ],
     # Social-card image shown when the docs are linked on GitHub, Slack, etc.
     "og_image_url": (
-        "https://bet-lab.github.io/tmhp/"
+        "https://bet-lab.github.io/TMHP/"
         "_static/source_sink_matrix.svg"
     ),
 }
@@ -170,10 +170,10 @@ mermaid_init_js = (
 
 # -- Open Graph (social cards) ------------------------------------------------
 
-ogp_site_url = "https://bet-lab.github.io/tmhp/"
+ogp_site_url = "https://bet-lab.github.io/TMHP/"
 ogp_site_name = "Thermodynamic Models for Heat Pumps"
 ogp_image = (
-    "https://bet-lab.github.io/tmhp/"
+    "https://bet-lab.github.io/TMHP/"
     "_static/source_sink_matrix.svg"
 )
 ogp_image_alt = "TMHP source and sink family matrix"

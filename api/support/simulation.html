@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-07-01T07:02:05+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1019,40 +1019,25 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 </section>
 <section id="module-tmhp.enex_functions">
 <span id="energy-exergy-helpers"></span><h2>Energy &amp; exergy helpers<a class="headerlink" href="#module-tmhp.enex_functions" title="Link to this heading">¶</a></h2>
-<p>Utility functions for energy, entropy, and exergy analysis.</p>
-<p>This module contains helper functions organized into the following categories:</p>
-<ol class="arabic simple">
-<li><p>Friction and Flow Functions
-- darcy_friction_factor: Calculate Darcy friction factor
-- calc_Orifice_flow_coefficient: Calculate orifice flow coefficient
-- calc_boussinessq_mixing_flow: Calculate mixing flow based on Boussinesq approximation</p></li>
-<li><p>Heat Transfer Functions
-- calc_h_vertical_plate: Natural convection heat transfer coefficient
-- calc_UA_tank_arr: Tank heat loss UA calculation
-- calc_lmtd_*: Log mean temperature difference calculations
-- calc_UA_from_dV_fan: Heat transfer coefficient from fan flow rate</p></li>
-<li><p>Curve Fitting Functions
-- linear_function, quadratic_function, cubic_function, quartic_function</p></li>
-<li><p>Exergy and Entropy Functions
-- generate_entropy_exergy_term: Calculate entropy and exergy terms
-- calc_exergy_flow: Calculate exergy flow rate due to material flow</p></li>
-<li><p>G-function Calculations (Ground Source Heat Pumps)
-- f, chi, G_FLS: Helper functions for g-function calculation</p></li>
-<li><p>TDMA Solver Functions
-- TDMA: Solve tri-diagonal matrix system
-- _add_loop_advection_terms: Add forced convection terms to TDMA coefficients</p></li>
-<li><p>Heat Pump Cycle Functions
-- calculate_ASHP_*_COP: Air source heat pump COP calculations
-- calculate_GSHP_COP: Ground source heat pump COP calculation
-- calc_ref_state: Calculate refrigerant cycle states (with superheating/subcooling support)
-- find_ref_loop_optimal_operation: Find optimal operation point</p></li>
-<li><p>Tank Functions
-- update_tank_temperature: Update tank temperature based on energy balance</p></li>
-<li><p>Schedule Functions
-- _build_dhw_usage_ratio: Build schedule ratio array</p></li>
-<li><p>Balance Printing Utilities
-- print_balance: Print energy/entropy/exergy balance</p></li>
-</ol>
+<p>Local helper functions for energy, entropy, and exergy analysis, plus a
+backward-compatibility facade over sibling modules.</p>
+<p>Locally defined helpers:</p>
+<ul class="simple">
+<li><p>Curve fitting: <code class="docutils literal notranslate"><span class="pre">linear_function</span></code>, <code class="docutils literal notranslate"><span class="pre">quadratic_function</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cubic_function</span></code>, <code class="docutils literal notranslate"><span class="pre">quartic_function</span></code></p></li>
+<li><p>Flow and mixing: <code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_temp</span></code>, <code class="docutils literal notranslate"><span class="pre">calc_mixing_valve_flows</span></code>,
+<code class="docutils literal notranslate"><span class="pre">calc_Orifice_flow_coefficient</span></code>, <code class="docutils literal notranslate"><span class="pre">calc_boussinessq_mixing_flow</span></code></p></li>
+<li><p>Air-side heat exchanger: <code class="docutils literal notranslate"><span class="pre">calc_HX_perf_for_target_heat</span></code></p></li>
+<li><p>Lumped tank: <code class="docutils literal notranslate"><span class="pre">update_tank_temperature</span></code></p></li>
+<li><p>Solar thermal collector performance: <code class="docutils literal notranslate"><span class="pre">calc_stc_performance</span></code></p></li>
+<li><p>Balance printing: <code class="docutils literal notranslate"><span class="pre">print_balance</span></code></p></li>
+</ul>
+<p>For backward compatibility this module also re-exports selected APIs that now
+live in dedicated modules: <code class="docutils literal notranslate"><span class="pre">cop</span></code> (COP correlations), <code class="docutils literal notranslate"><span class="pre">g_function</span></code>
+(g-function and air-property helpers), <code class="docutils literal notranslate"><span class="pre">hx_fan</span></code> (fan UA / power),
+<code class="docutils literal notranslate"><span class="pre">heat_transfer</span></code> (TDMA solver, LMTD, tank UA), <code class="docutils literal notranslate"><span class="pre">thermodynamics</span></code> (energy /
+exergy flow), and <code class="docutils literal notranslate"><span class="pre">uv_treatment</span></code>. Import those symbols from their owning
+module in new code.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.enex_functions.calc_HX_perf_for_target_heat">
 <span class="sig-prename descclassname"><span class="pre">tmhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_HX_perf_for_target_heat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q_ref_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ou_a_in_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_evap_sat_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_ref_cond_sat_l_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/enex_functions.html#calc_HX_perf_for_target_heat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.enex_functions.calc_HX_perf_for_target_heat" title="Link to this definition">¶</a></dt>
@@ -1828,7 +1813,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Jul 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

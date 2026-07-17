@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-07-01T07:02:05+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -396,9 +396,11 @@ abstractions used by GSHP/GSHPB.</p>
 </section>
 <section id="module-tmhp.hx_fan">
 <span id="air-side-fan-heat-exchanger"></span><h2>Air-side fan &amp; heat exchanger<a class="headerlink" href="#module-tmhp.hx_fan" title="Link to this heading">¶</a></h2>
-<p>Heat exchanger and fan utility functions.</p>
-<p>Functions for velocity-dependent UA calculation, HX performance
-solving, fan power curves, and HP schedule checking.</p>
+<p>Air-side fan UA and power utility functions.</p>
+<p>Airflow-based correlations for the outdoor-coil heat exchanger: a
+velocity-dependent UA scaling law (<code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan</span></code>) and a fan power
+curve (<code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan</span></code>). HX performance solving lives in
+<code class="docutils literal notranslate"><span class="pre">enex_functions</span></code> and HP schedule checking in <code class="docutils literal notranslate"><span class="pre">dynamic_context</span></code>.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.hx_fan.calc_UA_from_dV_fan">
 <span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
@@ -975,7 +977,7 @@ the dimensional response <code class="docutils literal notranslate"><span class=
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Jul 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

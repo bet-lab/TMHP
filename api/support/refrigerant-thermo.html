@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-07-01T07:02:05+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -546,15 +546,16 @@ own <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</s
 <a class="reference internal" href="#tmhp.compressor_envelope.check_pr_envelope" title="tmhp.compressor_envelope.check_pr_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_pr_envelope()</span></code></a>; the caller then <strong>clamps</strong> the floor (project the
 cycle onto <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> for a continuous low-lift transition) and <strong>rejects</strong>
 the ceiling (outside the single-stage envelope).</p>
-<p>References (see <code class="docutils literal notranslate"><span class="pre">dT_and_Pr_cycle_min.md</span></code>): scroll axial-loading / built-in
-volume ratio, oil-feed pressure differential, and isentropic-efficiency collapse
-all place the floor near <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">1.5</span></code> (1.3–2.0 band). The ceiling default of
-<code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">10</span></code> sits just below the AC-scroll hardware self-unload limit (~11:1) and
-above the single-stage modelling boundary (~7–8); it is a sanity bound that
-admits legitimate high-lift operation (e.g. domestic-hot-water boilers
-condensing at 55–75 degC from a 0–12 degC source reach <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">8</span></code>) while still
-rejecting non-physical pressure ratios (Cuevas &amp; Lebrun 2009; Bertsch &amp; Groll
-2008; Gayeski et al. 2011).</p>
+<p>Physical rationale: scroll axial-loading / built-in volume ratio, oil-feed
+pressure differential, and isentropic-efficiency collapse all place the floor
+near <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">1.5</span></code> (1.3–2.0 band). For the ceiling, the AC-scroll hardware
+self-unload limit sits near <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">11:1</span></code> and the single-stage modelling
+boundary near <code class="docutils literal notranslate"><span class="pre">PR</span> <span class="pre">~</span> <span class="pre">7--8</span></code>; the heat-pump models nonetheless default
+<code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> to <code class="docutils literal notranslate"><span class="pre">20</span></code> as a deliberately generous sanity bound so that
+legitimate high-lift domestic-hot-water operation (condensing at 55–75 degC
+from a 0–12 degC source) is admitted while still rejecting non-physical
+pressure ratios (Cuevas &amp; Lebrun 2009; Bertsch &amp; Groll 2008; Gayeski et al.
+2011).</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.check_pr_envelope">
 <span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">check_pr_envelope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr_min</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr_max</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/compressor_envelope.html#check_pr_envelope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.compressor_envelope.check_pr_envelope" title="Link to this definition">¶</a></dt>
@@ -605,7 +606,7 @@ longer representative.</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Jul 17, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

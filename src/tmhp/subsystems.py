@@ -1,17 +1,19 @@
 """Attachable subsystems for heat-pump boiler models.
 
-Each subsystem is a self-contained **pure physics engine**: given
-physical input state it returns a standardised output dict.
-All simulation orchestration (activation logic, result assembly,
-exergy calculation) is the responsibility of the scenario class
-that uses the subsystem.
+Given physical input state each subsystem returns a standardised output dict.
+All simulation orchestration (activation logic, result assembly, exergy
+calculation) is the responsibility of the scenario class that uses the
+subsystem. The solar and UV subsystems are stateless pure-physics engines;
+``EnergyStorageSystem`` additionally carries battery state (state of charge),
+so it is stateful across time steps.
 
 Subsystem catalogue
 -------------------
-- ``SolarThermalCollector`` — flat-plate / evacuated-tube STC
-  physics engine (``calc_performance``, ``is_preheat_on``)
-- ``PhotovoltaicSystem`` — PV + ESS + inverter chain
-- ``UVLamp`` — UV disinfection lamp
+- ``SolarThermalCollector`` — flat-plate / evacuated-tube STC physics engine
+  (``calc_performance``, ``is_preheat_on``); stateless
+- ``PhotovoltaicSystem`` — PV array + inverter chain; stateless
+- ``EnergyStorageSystem`` — battery storage; stateful (tracks state of charge)
+- ``UVLamp`` — UV disinfection lamp; stateless
 """
 
 from __future__ import annotations

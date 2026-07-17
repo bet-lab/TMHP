@@ -1,46 +1,24 @@
 """
-Utility functions for energy, entropy, and exergy analysis.
+Local helper functions for energy, entropy, and exergy analysis, plus a
+backward-compatibility facade over sibling modules.
 
-This module contains helper functions organized into the following categories:
+Locally defined helpers:
 
-1. Friction and Flow Functions
-   - darcy_friction_factor: Calculate Darcy friction factor
-   - calc_Orifice_flow_coefficient: Calculate orifice flow coefficient
-   - calc_boussinessq_mixing_flow: Calculate mixing flow based on Boussinesq approximation
+- Curve fitting: ``linear_function``, ``quadratic_function``,
+  ``cubic_function``, ``quartic_function``
+- Flow and mixing: ``calc_mixing_valve_temp``, ``calc_mixing_valve_flows``,
+  ``calc_Orifice_flow_coefficient``, ``calc_boussinessq_mixing_flow``
+- Air-side heat exchanger: ``calc_HX_perf_for_target_heat``
+- Lumped tank: ``update_tank_temperature``
+- Solar thermal collector performance: ``calc_stc_performance``
+- Balance printing: ``print_balance``
 
-2. Heat Transfer Functions
-   - calc_h_vertical_plate: Natural convection heat transfer coefficient
-   - calc_UA_tank_arr: Tank heat loss UA calculation
-   - calc_lmtd_*: Log mean temperature difference calculations
-   - calc_UA_from_dV_fan: Heat transfer coefficient from fan flow rate
-
-3. Curve Fitting Functions
-   - linear_function, quadratic_function, cubic_function, quartic_function
-
-4. Exergy and Entropy Functions
-   - generate_entropy_exergy_term: Calculate entropy and exergy terms
-   - calc_exergy_flow: Calculate exergy flow rate due to material flow
-
-5. G-function Calculations (Ground Source Heat Pumps)
-   - f, chi, G_FLS: Helper functions for g-function calculation
-
-6. TDMA Solver Functions
-   - TDMA: Solve tri-diagonal matrix system
-   - _add_loop_advection_terms: Add forced convection terms to TDMA coefficients
-
-7. Heat Pump Cycle Functions
-   - calculate_ASHP_*_COP: Air source heat pump COP calculations
-   - calculate_GSHP_COP: Ground source heat pump COP calculation
-   - calc_ref_state: Calculate refrigerant cycle states (with superheating/subcooling support)
-   - find_ref_loop_optimal_operation: Find optimal operation point
-8. Tank Functions
-   - update_tank_temperature: Update tank temperature based on energy balance
-
-9. Schedule Functions
-   - _build_dhw_usage_ratio: Build schedule ratio array
-
-10. Balance Printing Utilities
-    - print_balance: Print energy/entropy/exergy balance
+For backward compatibility this module also re-exports selected APIs that now
+live in dedicated modules: ``cop`` (COP correlations), ``g_function``
+(g-function and air-property helpers), ``hx_fan`` (fan UA / power),
+``heat_transfer`` (TDMA solver, LMTD, tank UA), ``thermodynamics`` (energy /
+exergy flow), and ``uv_treatment``. Import those symbols from their owning
+module in new code.
 """
 
 import math
@@ -219,9 +197,9 @@ def print_balance(balance, decimal=2):
                 print(f"{symbol}: {round(value, decimal)} {unit}")
 
 
-# COP, G-function, Air property, and TDMA functions are now in dedicated
+# COP, G-function, air-property, and TDMA functions are now in dedicated
 # modules.  Re-exported here for backward compatibility.
-# See: cop.py, g_function.py, tdma.py
+# See: cop.py, g_function.py, heat_transfer.py
 
 
 # ============================================================================
@@ -387,8 +365,8 @@ def calc_boussinessq_mixing_flow(T_upper, T_lower, A, dz, C_d=0.1):
 # ============================================================================
 
 
-# TDMA and advection-term functions have been moved to tdma.py.
-# Re-exported above via ``from .tdma import …`` for backward compatibility.
+# TDMA and advection-term functions have been moved to heat_transfer.py.
+# Re-exported above for backward compatibility.
 
 
 # calc_UA_from_dV_fan has been moved to hx_fan.py.

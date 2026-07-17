@@ -1,14 +1,17 @@
-"""Ground source heat pump boiler — physics-based cycle model.
+"""Water source heat pump boiler — physics-based cycle model.
 
-Resolves a vapour-compression refrigerant cycle coupled to a borehole heat
-exchanger (BHE) on the evaporator side and a lumped-capacitance hot-water
+Resolves a vapour-compression refrigerant cycle coupled to a surface-water
+source (e.g. river) on the evaporator side and a lumped-capacitance hot-water
 tank on the condenser side. At each time step the model finds the
 minimum-power operating point via 1D Brent optimization over the evaporator
 approach temperature difference, while the condenser temperature is solved
 analytically.
 
-Borehole thermal response is tracked with pygfunction-based multi-borehole
-g-functions, enabling robust long-term ground temperature drift modeling.
+The water source is treated as an infinite-capacity thermal boundary: the
+evaporator draws heat from the source-water stream through an NTU-based heat
+exchanger without depleting it, so no long-term source temperature drift is
+tracked. (This distinguishes the model from the ground source variant, which
+resolves borehole g-functions.)
 """
 
 from __future__ import annotations
@@ -46,12 +49,12 @@ if TYPE_CHECKING:
 
 
 class WaterSourceHeatPumpBoiler:
-    """Water source heat pump boiler with BHE and lumped-tank model.
+    """Water source heat pump boiler with surface-water source and lumped-tank model.
 
     The refrigerant cycle is resolved via CoolProp with user-specified
     superheat / subcool margins. An optimizer minimises total cycle
-    electrical input subject to NTU-based evaporator constraints and
-    analytical condenser temperature relations.
+    electrical input subject to NTU-based evaporator constraints against the
+    source-water temperature and analytical condenser temperature relations.
     """
 
     def __init__(

@@ -1,7 +1,9 @@
-"""Heat exchanger and fan utility functions.
+"""Air-side fan UA and power utility functions.
 
-Functions for velocity-dependent UA calculation, HX performance
-solving, fan power curves, and HP schedule checking.
+Airflow-based correlations for the outdoor-coil heat exchanger: a
+velocity-dependent UA scaling law (``calc_UA_from_dV_fan``) and a fan power
+curve (``calc_fan_power_from_dV_fan``). HX performance solving lives in
+``enex_functions`` and HP schedule checking in ``dynamic_context``.
 """
 
 from __future__ import annotations

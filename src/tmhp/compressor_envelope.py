@@ -14,15 +14,16 @@ own ``PR_cycle_min`` / ``PR_cycle_max`` attributes (user-configurable) and calls
 cycle onto ``PR_cycle_min`` for a continuous low-lift transition) and **rejects**
 the ceiling (outside the single-stage envelope).
 
-References (see ``dT_and_Pr_cycle_min.md``): scroll axial-loading / built-in
-volume ratio, oil-feed pressure differential, and isentropic-efficiency collapse
-all place the floor near ``PR ~ 1.5`` (1.3--2.0 band). The ceiling default of
-``PR ~ 10`` sits just below the AC-scroll hardware self-unload limit (~11:1) and
-above the single-stage modelling boundary (~7--8); it is a sanity bound that
-admits legitimate high-lift operation (e.g. domestic-hot-water boilers
-condensing at 55--75 degC from a 0--12 degC source reach ``PR ~ 8``) while still
-rejecting non-physical pressure ratios (Cuevas & Lebrun 2009; Bertsch & Groll
-2008; Gayeski et al. 2011).
+Physical rationale: scroll axial-loading / built-in volume ratio, oil-feed
+pressure differential, and isentropic-efficiency collapse all place the floor
+near ``PR ~ 1.5`` (1.3--2.0 band). For the ceiling, the AC-scroll hardware
+self-unload limit sits near ``PR ~ 11:1`` and the single-stage modelling
+boundary near ``PR ~ 7--8``; the heat-pump models nonetheless default
+``PR_cycle_max`` to ``20`` as a deliberately generous sanity bound so that
+legitimate high-lift domestic-hot-water operation (condensing at 55--75 degC
+from a 0--12 degC source) is admitted while still rejecting non-physical
+pressure ratios (Cuevas & Lebrun 2009; Bertsch & Groll 2008; Gayeski et al.
+2011).
 """
 
 from __future__ import annotations

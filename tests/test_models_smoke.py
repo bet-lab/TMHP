@@ -45,6 +45,13 @@ def test_ashpb_default_compressor_efficiencies():
     assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(0.80)
 
 
+def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
+    ashpb = AirSourceHeatPumpBoiler(hp_capacity=9_000.0)
+
+    assert ashpb.UA_tank_hx == pytest.approx(1_800.0)
+    assert ashpb.UA_ou_rated == pytest.approx(1_260.0)
+
+
 def test_gshpb_analyze_steady():
     gshpb = GroundSourceHeatPumpBoiler(ref="R32")
     result = gshpb.analyze_steady(T_tank_w=55.0, T_source=12.0, Q_ref_tank=8_000.0, T0=15.0)

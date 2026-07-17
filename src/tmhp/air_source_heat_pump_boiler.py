@@ -233,21 +233,19 @@ class AirSourceHeatPumpBoiler:
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
-        # If not explicitly provided, the condenser UA dynamically scales to induce a
-        # ~10.0 K approach temperature difference, which corresponds to the standard
-        # performance specifications for industrial heat pumps.
-        # Ref: Application of Industrial Heat Pumps. Annex 35 Final Report (IEA Heat Pump Centre, 2014)
+        # If not explicitly provided, scale the condenser UA with rated heating capacity
+        # to give a 5 K condensing approach at the rated point. This is the common rule
+        # used by the validation manuscript and the Panasonic rule set in equipment_presets.py.
         if UA_tank_hx is None:
-            self.UA_tank_hx = hp_capacity / 6.0
+            self.UA_tank_hx = hp_capacity / 5.0
         else:
             self.UA_tank_hx = UA_tank_hx
 
-        # The default evaporator UA is determined to ensure an approximate air-side
-        # temperature drop of 7.0 K across the outdoor unit, aligning with empirical
-        # laboratory observations of standard residential units.
-        # Ref: Residential Air Source Heat Pump Water Heater Performance Testing (ORNL, Baxter 2011, DOI: 10.3390/su17052234)
+        # The condenser rejects the evaporator load plus compressor work, so the
+        # evaporator load is approximately (1 - 1 / COP) times the condenser load.
+        # Across the COP range considered by the validation manuscript, this is about 0.7.
         if UA_ou_rated is None:
-            self.UA_ou_rated = self.UA_tank_hx * 0.8
+            self.UA_ou_rated = self.UA_tank_hx * 0.7
         else:
             self.UA_ou_rated = UA_ou_rated
 

@@ -88,6 +88,7 @@ _LOG = os.environ.get("TMHP_PLUGIN_LOG")  # None -> stdout only
 MDOT_FLOOR = 0.05  # kg/s — below this the inlet flow is treated as "off"
 TOUT_MAX = 95.0  # °C — clamp inside the liquid-water property range
 RHO_WATER = 1000.0  # kg/m³ — sizing only
+GUARD_WARNING_LIMIT = 5  # repeated warnings per failure reason before suppression
 
 
 def _ashpb_model_kwargs(
@@ -150,6 +151,16 @@ def _issue_severe(api: Any, state: Any, msg: str) -> None:
     issue_severe = getattr(runtime, "issue_severe", None)
     if callable(issue_severe):
         issue_severe(state, msg)
+
+
+def _issue_warning(api: Any, state: Any, msg: str) -> None:
+    """Report an EnergyPlus warning when the runtime API is available."""
+    runtime = getattr(api, "runtime", None)
+    issue_warning = getattr(runtime, "issue_warning", None)
+    if callable(issue_warning):
+        issue_warning(state, msg)
+    else:
+        _log(msg)
 
 
 def _set_global_if_valid(ex: Any, state: Any, handle: int, value: float) -> None:
@@ -242,24 +253,45 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
         self.h: dict[str, int] = {}
         self._ncall = 0
         self._nlog = 0
-        # analyze_steady is a deterministic function of (T_in, T0, Q); the plant
-        # solver re-calls with identical inputs many times per timestep, so
-        # memoize on rounded inputs to avoid recomputing the CoolProp-heavy cycle.
-        self._cache: dict[tuple[float, float, float], dict[str, Any]] = {}
+        # analyze_steady is a deterministic function of (T_in, T0, Q, mdot);
+        # the plant solver re-calls with identical inputs many times per timestep,
+        # so memoize on rounded inputs to avoid recomputing the CoolProp-heavy cycle.
+        self._cache: dict[tuple[float, float, float, float], dict[str, Any]] = {}
         # Convergence tally over dispatched calls (cold-climate high-lift hours
         # may trip the pressure-ratio guard); dumped periodically to the log.
         self._ndispatch = 0
         self._nconv = 0
         self._reasons: dict[str | None, int] = {}
         self._tally_every = 5000
+        self._warning_counts: dict[str, int] = {}
 
-    def _solve(self, t_in: float, t0: float, q_target: float) -> dict[str, Any]:
-        key = (round(t_in, 1), round(t0, 1), round(q_target, 0))
+    def _solve(self, t_in: float, t0: float, q_target: float, m_dot: float) -> dict[str, Any]:
+        key = (round(t_in, 1), round(t0, 1), round(q_target, 0), round(m_dot, 4))
         res = self._cache.get(key)
         if res is None:
-            res = self.hp.analyze_steady(T_tank_w=t_in, T0=t0, Q_ref_tank=q_target)
+            res = self.hp.analyze_steady(
+                T_tank_w=t_in,
+                T0=t0,
+                Q_ref_tank=q_target,
+                m_dot_w=m_dot,
+            )
             self._cache[key] = res
         return res
+
+    def _warn_guard_trip(self, state: Any, reason: str, t_in: float, t0: float, q_target: float) -> None:
+        """Issue a bounded number of warnings for a thermodynamic guard."""
+        count = self._warning_counts.get(reason, 0) + 1
+        self._warning_counts[reason] = count
+        if count > GUARD_WARNING_LIMIT:
+            return
+        suffix = " Further warnings for this reason are suppressed." if count == GUARD_WARNING_LIMIT else ""
+        _issue_warning(
+            self.api,
+            state,
+            f"[TmhpSurrogate] {reason}: condenser temperature is at/below loop inlet; "
+            f"forcing zero heat, compressor power, and water flow "
+            f"(T_in={t_in:.2f}C, T0={t0:.2f}C, Qtarget={q_target:.1f}W).{suffix}",
+        )
 
     def _get_handles(self, state: Any) -> None:
         ex = self.api.exchange
@@ -371,7 +403,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             return 1
 
         q_target = min(q_req, HP_CAPACITY)
-        res = self._solve(t_in, t0, q_target)
+        res = self._solve(t_in, t0, q_target, m_dot)
         converged = bool(res.get("converged"))
         reason = _normalize_failure_reason(res.get("failure_reason"))
 
@@ -386,7 +418,8 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
                 f"({100.0 * self._nconv / self._ndispatch:.1f}%) guard_trips={dict(self._reasons)}"
             )
 
-        if _has_usable_cycle_output(res):
+        guard_trip = reason == "t_cond_below_t_in"
+        if not guard_trip and _has_usable_cycle_output(res):
             q = float(res["Q_ref_tank [W]"])
             e_cmp = float(res["E_cmp [W]"])
             t_out = min(t_in + q / (m_dot * cp), TOUT_MAX)
@@ -395,8 +428,11 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             q = e_cmp = energy_j = 0.0
             t_out = t_in
 
+        if guard_trip:
+            self._warn_guard_trip(state, reason, t_in, t0, q_target)
+
         ex.set_actuator_value(state, self.h["t_out_act"], t_out)
-        ex.set_actuator_value(state, self.h["mdot_act"], m_dot)
+        ex.set_actuator_value(state, self.h["mdot_act"], 0.0 if guard_trip else m_dot)
         self._set_electric_outputs(state, e_cmp_w=e_cmp, e_cmp_j=energy_j)
 
         if self._nlog < 40:

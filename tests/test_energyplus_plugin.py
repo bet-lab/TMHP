@@ -79,9 +79,13 @@ class _FakeExchange:
 class _FakeRuntime:
     def __init__(self):
         self.severe = []
+        self.warnings = []
 
     def issue_severe(self, state, msg):
         self.severe.append(msg)
+
+    def issue_warning(self, state, msg):
+        self.warnings.append(msg)
 
 
 class _FakeApi:
@@ -141,6 +145,37 @@ def test_plugin_derived_formulas_are_unit_consistent():
     assert 54.0 + dt < TOUT_MAX_REF
 
 
+def test_surrogate_solve_passes_loop_flow_and_cp_and_caches_by_flow():
+    """The ε-NTU solve receives loop properties and cannot reuse another flow's result."""
+    from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
+
+    calls = []
+
+    class _StubHp:
+        def analyze_steady(self, **kwargs):
+            calls.append(kwargs)
+            return {"call": len(calls)}
+
+    plant = TmhpPlantSurrogate()
+    plant.hp = _StubHp()
+    plant._cache.clear()
+
+    first = plant._solve(50.0, 7.0, 8000.0, 1.25)
+    cached = plant._solve(50.0, 7.0, 8000.0, 1.25)
+    second_flow = plant._solve(50.0, 7.0, 8000.0, 2.5)
+
+    assert first is cached
+    assert second_flow is not first
+    assert len(calls) == 2
+    assert calls[0] == {
+        "T_tank_w": 50.0,
+        "T0": 7.0,
+        "Q_ref_tank": 8000.0,
+        "m_dot_w": 1.25,
+    }
+    assert calls[1]["m_dot_w"] == 2.5
+
+
 def test_surrogate_uses_usable_diagnostic_cycle_numbers(monkeypatch):
     """EnergyPlus should use positive cycle outputs even when diagnostics warn."""
     from tmhp.integrations.energyplus_plugin import (
@@ -157,7 +192,7 @@ def test_surrogate_uses_usable_diagnostic_cycle_numbers(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target: {
+        lambda t_in, t0, q_target, m_dot: {
             "converged": False,
             "failure_reason": "hx_not_converged",
             "Q_ref_tank [W]": 6000.0,
@@ -187,7 +222,7 @@ def test_surrogate_zeroes_true_off_mode_cycle_outputs(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target: {
+        lambda t_in, t0, q_target, m_dot: {
             "converged": False,
             "failure_reason": "cycle_invalid",
             "Q_ref_tank [W]": 0.0,
@@ -204,6 +239,41 @@ def test_surrogate_zeroes_true_off_mode_cycle_outputs(monkeypatch):
     assert ex.globals[9] == 0.0
 
 
+def test_surrogate_reverse_transfer_guard_stops_flow_and_limits_warnings(monkeypatch):
+    """A reverse-transfer result must not cool the tank through requested loop flow."""
+    from tmhp.integrations.energyplus_plugin import GUARD_WARNING_LIMIT, TmhpPlantSurrogate
+
+    plant = TmhpPlantSurrogate()
+    plant._requested = True
+    plant._need = False
+    plant._tally_every = 10_000
+    plant.h = _surrogate_handles()
+    monkeypatch.setattr(
+        plant,
+        "_solve",
+        lambda t_in, t0, q_target, m_dot: {
+            "converged": False,
+            "failure_reason": "t_cond_below_t_in",
+            # Positive placeholders verify that the reason itself blocks use.
+            "Q_ref_tank [W]": 6000.0,
+            "E_cmp [W]": 2000.0,
+        },
+    )
+    plant.api = _FakeApi({1: 50.0, 2: 1.0, 3: CP_WATER, 4: 8000.0, 7: 7.0})
+
+    for _ in range(GUARD_WARNING_LIMIT + 1):
+        assert plant.on_user_defined_component_model(object()) == 0
+
+    ex = plant.api.exchange
+    assert ex.actuators[5] == 50.0
+    assert ex.actuators[6] == 0.0
+    assert ex.globals[8] == 0.0
+    assert ex.globals[9] == 0.0
+    assert len(plant.api.runtime.warnings) == GUARD_WARNING_LIMIT
+    assert "t_cond_below_t_in" in plant.api.runtime.warnings[0]
+    assert "suppressed" in plant.api.runtime.warnings[-1]
+
+
 def test_surrogate_rejects_invalid_energyplus_boundary_values(monkeypatch):
     """Invalid EnergyPlus numeric inputs must not enter analyze_steady()."""
     from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
@@ -215,7 +285,7 @@ def test_surrogate_rejects_invalid_energyplus_boundary_values(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target: pytest.fail("_solve should not be called"),
+        lambda t_in, t0, q_target, m_dot: pytest.fail("_solve should not be called"),
     )
     plant.api = _FakeApi({1: 50.0, 2: 0.0, 3: None, 4: 8000.0, 7: 7.0})
 
@@ -241,7 +311,7 @@ def test_surrogate_rejects_invalid_system_timestep(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target: pytest.fail("_solve should not be called"),
+        lambda t_in, t0, q_target, m_dot: pytest.fail("_solve should not be called"),
     )
     plant.api = _FakeApi(
         {1: 50.0, 2: 0.0, 3: CP_WATER, 4: 8000.0, 7: 7.0},
@@ -286,7 +356,7 @@ def test_surrogate_uses_legacy_energy_global_when_new_name_missing(monkeypatch):
     monkeypatch.setattr(
         plant,
         "_solve",
-        lambda t_in, t0, q_target: {
+        lambda t_in, t0, q_target, m_dot: {
             "converged": True,
             "failure_reason": "none",
             "Q_ref_tank [W]": 6000.0,

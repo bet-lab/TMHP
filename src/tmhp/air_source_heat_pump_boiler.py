@@ -80,8 +80,9 @@ class AirSourceHeatPumpBoiler:
 
     The refrigerant cycle is resolved via CoolProp with
     user-specified superheat / subcool margins.  The condenser
-    approach temperature is determined analytically
-    (``dT_ref_tank = Q_ref_tank / UA_tank_hx``), and a bounded
+    approach temperature is determined analytically from either the circulating-
+    water flow (constant-surface-temperature ε-NTU) or the backward-compatible
+    ``dT_ref_tank = Q_ref_tank / UA_tank_hx`` fallback, and a bounded
     1-D optimiser (Brent's method) minimises total electrical
     input (``E_cmp + E_ou_fan``) over the evaporator approach.
 
@@ -230,6 +231,9 @@ class AirSourceHeatPumpBoiler:
         # Records the PR-envelope event of the most recent _calc_state call
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
+        # Records an active-cycle infeasibility that must survive the HP-off
+        # fallback long enough for analyze_steady() to expose it to adapters.
+        self._last_cycle_failure_reason: str | None = None
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
@@ -345,6 +349,7 @@ class AirSourceHeatPumpBoiler:
         T0: float,
         *,
         flow_state: dict,
+        m_dot_w: float | None = None,
     ) -> dict | None:
         """Evaluate refrigerant cycle at a given operating point.
 
@@ -362,13 +367,26 @@ class AirSourceHeatPumpBoiler:
             Explicit mixing-valve / tank-flow context. Must contain:
             ``dV_mix_w_out``, ``dV_tank_w_out``, ``dV_tank_w_in``,
             ``dV_mix_sup_w_in``. Replaces former implicit ``self.dV_*`` reads.
+        m_dot_w : float | None
+            Circulating-water mass flow rate [kg/s]. ``None`` preserves the
+            standalone fixed-UA approach calculation. The water specific heat
+            is the shared constant ``c_w`` (``tmhp.constants``).
 
         Returns
         -------
         dict | None
             Cycle performance dictionary; ``None`` if infeasible.
         """
-        dT_ref_tank: float = Q_ref_tank / self.UA_tank_hx if Q_ref_tank > 0 else 0.0
+        if m_dot_w is not None and m_dot_w > 0:
+            # Flow-dependent ε-NTU: circulating water passing a constant
+            # condensing-temperature surface (same physics as the outdoor-side HX,
+            # cf. enex_functions.calc_HX_perf_for_target_heat)
+            C_w = m_dot_w * c_w
+            eps_c = 1.0 - math.exp(-self.UA_tank_hx / C_w)
+            dT_ref_tank = Q_ref_tank / (C_w * eps_c) if Q_ref_tank > 0 else 0.0
+        else:
+            # Backward-compatible fallback (standalone runs without loop flow)
+            dT_ref_tank = Q_ref_tank / self.UA_tank_hx if Q_ref_tank > 0 else 0.0
 
         T_tank_w_K: float = cu.C2K(T_tank_w)
         T0_K: float = cu.C2K(T0)
@@ -460,6 +478,7 @@ class AirSourceHeatPumpBoiler:
             return result
 
         # --- Active state calculations ---
+        self._last_cycle_failure_reason = None
         # Low-lift feasibility is enforced downstream by the compressor
         # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
         # redundant and non-transferable across refrigerants/operating levels.
@@ -524,6 +543,12 @@ class AirSourceHeatPumpBoiler:
             ratio_P_cmp = (
                 cs["P_ref_cmp_out [Pa]"] / cs["P_ref_cmp_in [Pa]"] if cs["P_ref_cmp_in [Pa]"] > 0 else self.PR_cycle_min
             )
+
+        if T_tank_sat_K <= T_tank_w_K:
+            # Condensing temperature at/below tank/loop inlet temperature:
+            # heat transfer to the circulating water is thermodynamically infeasible.
+            self._last_cycle_failure_reason = "t_cond_below_t_in"
+            return None
 
         P_cond = cs["P_ref_cmp_out [Pa]"]
         s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
@@ -695,6 +720,7 @@ class AirSourceHeatPumpBoiler:
         T0: float,
         *,
         flow_state: dict,
+        m_dot_w: float | None = None,
     ):
         """Find min-power operating point (Brent 1-D).
 
@@ -708,6 +734,8 @@ class AirSourceHeatPumpBoiler:
             Dead-state temperature [°C].
         flow_state : dict
             Explicit flow context passed through to ``_calc_state()``.
+        m_dot_w : float | None
+            Circulating-water mass flow rate [kg/s].
 
         Returns
         -------
@@ -721,6 +749,7 @@ class AirSourceHeatPumpBoiler:
                 Q_ref_tank=Q_ref_tank,
                 T0=T0,
                 flow_state=flow_state,
+                m_dot_w=m_dot_w,
             )
             if perf is None or not perf.get("converged", False):
                 return 1e6
@@ -748,6 +777,7 @@ class AirSourceHeatPumpBoiler:
         T0: float,
         Q_ref_tank: float,
         *,
+        m_dot_w: float | None = None,
         return_dict: bool = True,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
@@ -764,6 +794,10 @@ class AirSourceHeatPumpBoiler:
             Dead-state / outdoor-air temperature [°C].
         Q_ref_tank : float
             Target condenser heat rate [W].
+        m_dot_w : float | None
+            Circulating-water mass flow rate [kg/s]. When positive, the
+            condenser approach uses a constant-surface-temperature ε-NTU model
+            with the shared water specific heat ``c_w`` (``tmhp.constants``).
         return_dict : bool
             If True return dict; else single-row DataFrame.
 
@@ -777,8 +811,8 @@ class AirSourceHeatPumpBoiler:
             - ``"converged"`` (bool) — True only when the HX optimisation and
               the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``,
-              ``"cycle_invalid"``, ``"hx_not_converged"``, or
-              ``"optimizer_failed"``.
+              ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
+              ``"hx_not_converged"``, or ``"optimizer_failed"``.
 
             ASHPB returns the cycle numbers (``E_cmp``, ``Q_ref_tank``, ...)
             whenever ``_calc_state`` produced a dict at all. A
@@ -805,6 +839,7 @@ class AirSourceHeatPumpBoiler:
                 Q_ref_tank=0.0,
                 T0=T0,
                 flow_state=flow_state,
+                m_dot_w=m_dot_w,
             )
         else:
             opt_result = self._optimize_operation(
@@ -812,6 +847,7 @@ class AirSourceHeatPumpBoiler:
                 Q_ref_tank=Q_ref_tank,
                 T0=T0,
                 flow_state=flow_state,
+                m_dot_w=m_dot_w,
             )
             result = None
             with contextlib.suppress(Exception):
@@ -821,12 +857,14 @@ class AirSourceHeatPumpBoiler:
                     T0=T0,
                     Q_ref_tank=Q_ref_tank,
                     flow_state=flow_state,
+                    m_dot_w=m_dot_w,
                 )
 
             # Pressure-ratio envelope hint for the final operating point
             # (one message per call; per-probe events are silent). Floor ->
             # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
             pr_event = self._last_pr_event
+            cycle_failure_reason = self._last_cycle_failure_reason
             if pr_event is not None:
                 kind, pr_val, bound = pr_event
                 if kind == "pr_below_min":
@@ -848,9 +886,12 @@ class AirSourceHeatPumpBoiler:
             # the historical behaviour of this branch.
             opt_success = bool(getattr(opt_result, "success", False))
             if result is None or not isinstance(result, dict):
-                failure_reason = (
-                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
-                )
+                if cycle_failure_reason is not None:
+                    failure_reason = cycle_failure_reason
+                elif pr_event is not None and pr_event[0] == "pr_above_max":
+                    failure_reason = "pr_above_max"
+                else:
+                    failure_reason = "cycle_invalid"
             elif not result.get("converged", False):
                 failure_reason = "hx_not_converged"
             elif not opt_success:
@@ -878,6 +919,7 @@ class AirSourceHeatPumpBoiler:
                         Q_ref_tank=0.0,
                         T0=T0,
                         flow_state=flow_state,
+                        m_dot_w=m_dot_w,
                     )
                 except Exception:
                     # `dict[str, object]` so the later string-valued

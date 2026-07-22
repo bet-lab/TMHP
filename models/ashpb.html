@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
+    <meta property="article:modified_time" content="2026-07-22T10:30:30+00:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -700,8 +700,9 @@ configured through constructor parameters.</p>
 <p>Air source heat pump boiler with outdoor-air evaporator.</p>
 <p>The refrigerant cycle is resolved via CoolProp with
 user-specified superheat / subcool margins.  The condenser
-approach temperature is determined analytically
-(<code class="docutils literal notranslate"><span class="pre">dT_ref_tank</span> <span class="pre">=</span> <span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>), and a bounded
+approach temperature is determined analytically from either the circulating-
+water flow (constant-surface-temperature ε-NTU) or the backward-compatible
+<code class="docutils literal notranslate"><span class="pre">dT_ref_tank</span> <span class="pre">=</span> <span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code> fallback, and a bounded
 1-D optimiser (Brent’s method) minimises total electrical
 input (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_ou_fan</span></code>) over the evaporator approach.</p>
 <p>Unless explicitly injected, compressor efficiencies use the
@@ -831,7 +832,7 @@ paper-validated relations <code class="docutils literal notranslate"><span class
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady">
-<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_ref_tank</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_ref_tank</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady" title="Link to this definition">¶</a></dt>
 <dd><p>Run a steady-state performance snapshot.</p>
 <p>Evaluates the refrigerant cycle at a given operating point
 (T_tank_w, T0, Q_ref_tank) <strong>without</strong> solving the tank energy
@@ -842,6 +843,9 @@ balance or tracking dynamic flows.</p>
 <li><p><strong>T_tank_w</strong> (<em>float</em>) – Tank water temperature [°C] — treated as a given input.</p></li>
 <li><p><strong>T0</strong> (<em>float</em>) – Dead-state / outdoor-air temperature [°C].</p></li>
 <li><p><strong>Q_ref_tank</strong> (<em>float</em>) – Target condenser heat rate [W].</p></li>
+<li><p><strong>m_dot_w</strong> (<em>float</em><em> | </em><em>None</em>) – Circulating-water mass flow rate [kg/s]. When positive, the
+condenser approach uses a constant-surface-temperature ε-NTU model
+with the shared water specific heat <code class="docutils literal notranslate"><span class="pre">c_w</span></code> (<code class="docutils literal notranslate"><span class="pre">tmhp.constants</span></code>).</p></li>
 <li><p><strong>return_dict</strong> (<em>bool</em>) – If True return dict; else single-row DataFrame.</p></li>
 </ul>
 </dd>
@@ -852,8 +856,8 @@ balance or tracking dynamic flows.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;converged&quot;</span></code> (bool) — True only when the HX optimisation and
 the SciPy optimiser both succeeded.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
 </ul>
 <p>ASHPB returns the cycle numbers (<code class="docutils literal notranslate"><span class="pre">E_cmp</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>, …)
 whenever <code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> produced a dict at all. A
@@ -1443,7 +1447,7 @@ comparison.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 17, 2026
+  Last updated Jul 22, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

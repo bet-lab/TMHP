@@ -13,7 +13,7 @@ concurrency:
 jobs:
   lint-type:
     name: Static analysis
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ml-main]
     steps:
       - uses: actions/checkout@v6
 
@@ -39,7 +39,7 @@ jobs:
 
   test-scope:
     name: Pytest matrix scope
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ml-main]
     outputs:
       run-matrix: ${{ steps.changed-files.outputs.run-matrix }}
     steps:
@@ -71,7 +71,7 @@ jobs:
   test:
     needs: test-scope
     if: needs.test-scope.outputs.run-matrix == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ml-main]
     strategy:
       fail-fast: false
       matrix:
@@ -112,7 +112,7 @@ jobs:
 
   docs:
     # Sphinx output is Python-version-independent; run once and gate PRs on it.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ml-main]
     steps:
       - uses: actions/checkout@v6
         with:

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T17:12:52+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -245,7 +245,7 @@ this function.</p>
 <li><p><strong>dT_superheat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>dT_subcool</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
-<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>rps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -265,7 +265,7 @@ the heat transferred by the refrigerant cycle.</p>
 <dd class="field-odd"><p>Tuple of constraint functions (constraint_tank, constraint_hx).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>tuple[Any, Any]</p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -278,12 +278,12 @@ the heat transferred by the refrigerant cycle.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>simulator_func</strong> (<em>callable</em>) – Function that takes <cite>[dT_ref_HX, dT_ref_tank]</cite> and returns a perf dict.</p></li>
-<li><p><strong>refrigerant</strong> (<em>str</em>) – Refrigerant name.</p></li>
-<li><p><strong>load_W</strong> (<em>float</em>) – Target heat load [W].</p></li>
-<li><p><strong>initial_guess</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Initial guess for <cite>[dT_evap, dT_cond]</cite>.</p></li>
-<li><p><strong>bounds</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Bounds for <cite>[dT_evap, dT_cond]</cite>.</p></li>
-<li><p><strong>constraint_funcs</strong> (<em>list</em><em>[</em><em>callable</em><em>]</em><em>, </em><em>optional</em>) – List of constraint functions. Each takes <cite>perf</cite> and returns a value
+<li><p><strong>simulator_func</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Function that takes <cite>[dT_ref_HX, dT_ref_tank]</cite> and returns a perf dict.</p></li>
+<li><p><strong>refrigerant</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Refrigerant name.</p></li>
+<li><p><strong>load_W</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Target heat load [W].</p></li>
+<li><p><strong>initial_guess</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Initial guess for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Bounds for <cite>[dT_evap, dT_cond]</cite>.</p></li>
+<li><p><strong>constraint_funcs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – List of constraint functions. Each takes <cite>perf</cite> and returns a value
 that should be 0.</p></li>
 </ul>
 </dd>
@@ -291,7 +291,7 @@ that should be 0.</p></li>
 <dd class="field-even"><p>Optimal performance dictionary, or None if optimization fails.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict[str, Any] | None</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -354,12 +354,12 @@ given refrigerant using CoolProp (vectorized via unique T0 values).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
 entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</span> <span class="pre">[J/(kg·K)]</span></code>, and mass-flow
 <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code> columns.</p></li>
-<li><p><strong>ref</strong> (<em>str</em>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
-<li><p><strong>T0_K</strong> (<em>pd.Series</em>) – Dead-state (environment) temperature per row [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
+<li><p><strong>T0_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span>) – Dead-state (environment) temperature per row [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -367,7 +367,7 @@ entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</sp
 <code class="docutils literal notranslate"><span class="pre">x_ref_{name}</span> <span class="pre">[J/kg]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_ref_{name}</span> <span class="pre">[W]</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -388,13 +388,13 @@ electricity-consumption columns.</p>
 <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> and creates corresponding <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
+<dd class="field-odd"><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">df</span></code> with <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns added.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -406,20 +406,20 @@ electricity-consumption columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>fluid</strong> (<em>str</em>) – Fluid name.</p></li>
-<li><p><strong>T</strong> (<em>float</em>) – Temperature [K].</p></li>
-<li><p><strong>P</strong> (<em>float</em>) – Pressure [Pa].</p></li>
-<li><p><strong>Q</strong> (<em>float</em>) – Quality (0 to 1).</p></li>
-<li><p><strong>T0</strong> (<em>float</em>) – Dead state temperature [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead state pressure [Pa].</p></li>
-<li><p><strong>phase</strong> (<em>Literal</em><em>[</em><em>'gas'</em><em>, </em><em>'liquid'</em><em>, </em><em>'twophase'</em><em>]</em><em>, </em><em>optional</em>) – Fluid phase. Default is ‘gas’.</p></li>
+<li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Fluid name.</p></li>
+<li><p><strong>T</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Temperature [K].</p></li>
+<li><p><strong>P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pressure [Pa].</p></li>
+<li><p><strong>Q</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Quality (0 to 1).</p></li>
+<li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state temperature [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state pressure [Pa].</p></li>
+<li><p><strong>phase</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'gas'</span></code>, <code class="docutils literal notranslate"><span class="pre">'liquid'</span></code>, <code class="docutils literal notranslate"><span class="pre">'twophase'</span></code>]</span>) – Fluid phase. Default is ‘gas’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Entropy [J/kg-K], Enthalpy [J/kg], Exergy [J/kg].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[float, float, float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -575,14 +575,14 @@ longer representative.</p></li>
 <a class="reference internal" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="tmhp.compressor_envelope.PR_BELOW_MIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">PR_BELOW_MIN</span></code></a> or <a class="reference internal" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="tmhp.compressor_envelope.PR_ABOVE_MAX"><code class="xref py py-data docutils literal notranslate"><span class="pre">PR_ABOVE_MAX</span></code></a>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_BELOW_MIN">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_BELOW_MIN</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_below_min'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_BELOW_MIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_below_min'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.PR_BELOW_MIN" title="Link to this definition">¶</a></dt>
 <dd><p>pressure ratio is below <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> (floor -&gt; clamp).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -593,7 +593,7 @@ longer representative.</p></li>
 
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.compressor_envelope.PR_ABOVE_MAX">
-<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_ABOVE_MAX</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_above_max'</span></em><a class="headerlink" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.compressor_envelope.</span></span><span class="sig-name descname"><span class="pre">PR_ABOVE_MAX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pr_above_max'</span></span><a class="headerlink" href="#tmhp.compressor_envelope.PR_ABOVE_MAX" title="Link to this definition">¶</a></dt>
 <dd><p>pressure ratio is above <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (ceiling -&gt; reject).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -652,8 +652,8 @@ longer representative.</p></li>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -663,7 +663,6 @@ longer representative.</p></li>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

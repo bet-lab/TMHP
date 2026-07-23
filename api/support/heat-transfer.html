@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T17:12:52+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -238,18 +238,18 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>a_M</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Main diagonal (a_P in standard notation).</p></li>
-<li><p><strong>a_P</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Not used directly, maintained for signature compatibility.</p></li>
-<li><p><strong>a_E</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Upper diagonal.</p></li>
-<li><p><strong>a_W</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – Lower diagonal.</p></li>
-<li><p><strong>b_P</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – RHS vector.</p></li>
+<li><p><strong>a_M</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Main diagonal (a_P in standard notation).</p></li>
+<li><p><strong>a_P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Not used directly, maintained for signature compatibility.</p></li>
+<li><p><strong>a_E</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Upper diagonal.</p></li>
+<li><p><strong>a_W</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Lower diagonal.</p></li>
+<li><p><strong>b_P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – RHS vector.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Solution vector.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -261,17 +261,17 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Th_in</strong> (<em>float</em>) – Hot stream inlet temp [K].</p></li>
-<li><p><strong>Th_out</strong> (<em>float</em>) – Hot stream outlet temp [K].</p></li>
-<li><p><strong>Tc_in</strong> (<em>float</em>) – Cold stream inlet temp [K].</p></li>
-<li><p><strong>Tc_out</strong> (<em>float</em>) – Cold stream outlet temp [K].</p></li>
+<li><p><strong>Th_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hot stream inlet temp [K].</p></li>
+<li><p><strong>Th_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hot stream outlet temp [K].</p></li>
+<li><p><strong>Tc_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cold stream inlet temp [K].</p></li>
+<li><p><strong>Tc_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cold stream outlet temp [K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMTD [K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -283,17 +283,17 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Th_in</strong> (<em>float</em>) – Hot stream inlet temp [K].</p></li>
-<li><p><strong>Th_out</strong> (<em>float</em>) – Hot stream outlet temp [K].</p></li>
-<li><p><strong>Tc_in</strong> (<em>float</em>) – Cold stream inlet temp [K].</p></li>
-<li><p><strong>Tc_out</strong> (<em>float</em>) – Cold stream outlet temp [K].</p></li>
+<li><p><strong>Th_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hot stream inlet temp [K].</p></li>
+<li><p><strong>Th_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hot stream outlet temp [K].</p></li>
+<li><p><strong>Tc_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cold stream inlet temp [K].</p></li>
+<li><p><strong>Tc_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Cold stream outlet temp [K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>LMTD [K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -305,19 +305,19 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>arr_D_in</strong> (<em>array_like</em><em> or </em><em>list</em>) – Inner diameters of layers [m].</p></li>
-<li><p><strong>arr_D_out</strong> (<em>array_like</em><em> or </em><em>list</em>) – Outer diameters of layers [m].</p></li>
-<li><p><strong>arr_L</strong> (<em>array_like</em><em> or </em><em>list</em>) – Lengths of layers [m].</p></li>
-<li><p><strong>arr_k</strong> (<em>array_like</em><em> or </em><em>list</em>) – Thermal conductivities of layers [W/mK].</p></li>
-<li><p><strong>h_in</strong> (<em>float</em>) – Inner convection coefficient [W/m2K].</p></li>
-<li><p><strong>h_out</strong> (<em>float</em>) – Outer convection coefficient [W/m2K].</p></li>
+<li><p><strong>arr_D_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Inner diameters of layers [m].</p></li>
+<li><p><strong>arr_D_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Outer diameters of layers [m].</p></li>
+<li><p><strong>arr_L</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Lengths of layers [m].</p></li>
+<li><p><strong>arr_k</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Thermal conductivities of layers [W/mK].</p></li>
+<li><p><strong>h_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inner convection coefficient [W/m2K].</p></li>
+<li><p><strong>h_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outer convection coefficient [W/m2K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Thermal conductance [W/K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -329,18 +329,18 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>T_s</strong> (<em>float</em>) – Surface temperature [K].</p></li>
-<li><p><strong>T_inf</strong> (<em>float</em>) – Fluid temperature [K].</p></li>
-<li><p><strong>L</strong> (<em>float</em>) – Characteristic length [m].</p></li>
-<li><p><strong>fluid</strong> (<em>str</em><em>, </em><em>optional</em>) – Fluid name. Default is ‘Air’.</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, returns np.nan.</p></li>
+<li><p><strong>T_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface temperature [K].</p></li>
+<li><p><strong>T_inf</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid temperature [K].</p></li>
+<li><p><strong>L</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Characteristic length [m].</p></li>
+<li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Fluid name. Default is ‘Air’.</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns np.nan.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Heat transfer coefficient [W/m2K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -352,20 +352,20 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>r0</strong> (<em>float</em>) – Tank radius [m]</p></li>
-<li><p><strong>H</strong> (<em>float</em>) – Tank height [m]</p></li>
-<li><p><strong>x_shell</strong> (<em>float</em>) – Shell thickness [m]</p></li>
-<li><p><strong>x_ins</strong> (<em>float</em>) – Insulation thickness [m]</p></li>
-<li><p><strong>k_shell</strong> (<em>float</em>) – Shell thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_ins</strong> (<em>float</em>) – Insulation thermal conductivity [W/mK]</p></li>
-<li><p><strong>h_o</strong> (<em>float</em>) – External convective heat transfer coefficient [W/m²K]</p></li>
+<li><p><strong>r0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank radius [m]</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank height [m]</p></li>
+<li><p><strong>x_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Shell thickness [m]</p></li>
+<li><p><strong>x_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Insulation thickness [m]</p></li>
+<li><p><strong>k_shell</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Shell thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_ins</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Insulation thermal conductivity [W/mK]</p></li>
+<li><p><strong>h_o</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – External convective heat transfer coefficient [W/m²K]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Tank UA value [W/K]</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -378,17 +378,17 @@ abstractions used by GSHP/GSHPB.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>Re</strong> (<em>float</em>) – Reynolds number.</p></li>
-<li><p><strong>e</strong> (<em>float</em>) – Surface roughness [m].</p></li>
-<li><p><strong>d</strong> (<em>float</em>) – Diameter [m].</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em><em>, </em><em>optional</em>) – If False, returns np.nan.</p></li>
+<li><p><strong>Re</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Reynolds number.</p></li>
+<li><p><strong>e</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface roughness [m].</p></li>
+<li><p><strong>d</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Diameter [m].</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns np.nan.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Friction factor.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -408,18 +408,18 @@ curve (<code class="docutils literal notranslate"><span class="pre">calc_fan_pow
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_fan</strong> (<em>float</em>) – Current fan flow rate [m³/s].</p></li>
-<li><p><strong>dV_fan_rated</strong> (<em>float</em>) – Rated fan flow rate [m³/s].</p></li>
-<li><p><strong>A_cross</strong> (<em>float</em>) – Heat exchanger cross-sectional area [m²].</p></li>
-<li><p><strong>UA</strong> (<em>float</em>) – Rated UA value [W/K].</p></li>
-<li><p><strong>exponent</strong> (<em>float</em>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
+<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current fan flow rate [m³/s].</p></li>
+<li><p><strong>dV_fan_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated fan flow rate [m³/s].</p></li>
+<li><p><strong>A_cross</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Heat exchanger cross-sectional area [m²].</p></li>
+<li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated UA value [W/K].</p></li>
+<li><p><strong>exponent</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Scaled UA value [W/K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -438,17 +438,17 @@ Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_fan</strong> (<em>float</em>) – Current flow rate [m³/s].</p></li>
-<li><p><strong>fan_params</strong> (<em>dict</em>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
-<li><p><strong>vsd_coeffs</strong> (<em>dict</em>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
+<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current flow rate [m³/s].</p></li>
+<li><p><strong>fan_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
+<li><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Fan power [W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -508,11 +508,11 @@ analysis. Results are cached for performance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>t</strong> (<em>float</em>) – Time [s]</p></li>
-<li><p><strong>ks</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Time [s]</p></li>
+<li><p><strong>ks</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
 <li><p><strong>as</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
-<li><p><strong>rb</strong> (<em>float</em>) – Borehole radius [m]</p></li>
-<li><p><strong>H</strong> (<em>float</em>) – Borehole height [m]</p></li>
+<li><p><strong>rb</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole height [m]</p></li>
 <li><p><strong>as_</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
@@ -521,7 +521,7 @@ analysis. Results are cached for performance.</p>
 array for multiple time values.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float or array</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -536,23 +536,23 @@ Returns a callable <cite>interp1d</cite> object predicting the g-function [mK/W]
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>N_1</strong> (<em>int</em>) – Number of boreholes in x-direction.</p></li>
-<li><p><strong>N_2</strong> (<em>int</em>) – Number of boreholes in y-direction.</p></li>
-<li><p><strong>B</strong> (<em>float</em>) – Borehole spacing [m].</p></li>
-<li><p><strong>H_b</strong> (<em>float</em>) – Borehole depth/length [m].</p></li>
-<li><p><strong>D_b</strong> (<em>float</em>) – Buried depth [m].</p></li>
-<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m].</p></li>
-<li><p><strong>alpha_s</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s].</p></li>
-<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK].</p></li>
-<li><p><strong>t_max_s</strong> (<em>float</em>) – Maximum simulation time [s].</p></li>
-<li><p><strong>dt_s</strong> (<em>float</em>) – Simulation timestep [s].</p></li>
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of boreholes in x-direction.</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of boreholes in y-direction.</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole spacing [m].</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole depth/length [m].</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Buried depth [m].</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m].</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal diffusivity [m²/s].</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK].</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Maximum simulation time [s].</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Simulation timestep [s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Interpolator function mapping <cite>time [s]</cite> to <cite>g-function [mK/W]</cite>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>scipy.interpolate.interp1d</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">interp1d</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -572,23 +572,23 @@ to simulate borehole heat exchangers with groundwater advection”</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>times</strong> (<em>np.ndarray</em>) – Array of time values [s]</p></li>
-<li><p><strong>boreholes</strong> (<em>list</em>) – List of pygfunction Borehole objects</p></li>
-<li><p><strong>v_gw</strong> (<em>float</em>) – Darcy velocity of groundwater [m/s]</p></li>
-<li><p><strong>theta_gw</strong> (<em>float</em>) – Direction of groundwater flow [rad]</p></li>
-<li><p><strong>rho_w</strong> (<em>float</em>) – Density of groundwater [kg/m³]</p></li>
-<li><p><strong>c_w</strong> (<em>float</em>) – Specific heat capacity of groundwater [J/kgK]</p></li>
-<li><p><strong>alpha_s</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
-<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
-<li><p><strong>rho_s</strong> (<em>float</em>) – Density of ground [kg/m³]</p></li>
-<li><p><strong>c_s</strong> (<em>float</em>) – Specific heat capacity of ground [J/kgK]</p></li>
+<li><p><strong>times</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of time values [s]</p></li>
+<li><p><strong>boreholes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></span>) – List of pygfunction Borehole objects</p></li>
+<li><p><strong>v_gw</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Darcy velocity of groundwater [m/s]</p></li>
+<li><p><strong>theta_gw</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Direction of groundwater flow [rad]</p></li>
+<li><p><strong>rho_w</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Density of groundwater [kg/m³]</p></li>
+<li><p><strong>c_w</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Specific heat capacity of groundwater [J/kgK]</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal diffusivity [m²/s]</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>rho_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Density of ground [kg/m³]</p></li>
+<li><p><strong>c_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Specific heat capacity of ground [J/kgK]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dimensional g-values for the entire field over time [mK/W]</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>np.ndarray</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -671,18 +671,18 @@ to simulate borehole heat exchangers with groundwater advection”</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_g</strong> (<em>float</em>) – Grout thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_p</strong> (<em>float</em>) – Pipe thermal conductivity [W/mK]</p></li>
-<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m]</p></li>
-<li><p><strong>r_out</strong> (<em>float</em>) – Pipe outer radius [m]</p></li>
-<li><p><strong>r_in</strong> (<em>float</em>) – Pipe inner radius [m]</p></li>
-<li><p><strong>D_s</strong> (<em>float</em>) – Shank spacing (half distance between pipes) [m]</p></li>
-<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
-<li><p><strong>rho_f</strong> (<em>float</em>) – Fluid density [kg/m³]</p></li>
-<li><p><strong>mu_f</strong> (<em>float</em>) – Fluid dynamic viscosity [Pa·s]</p></li>
-<li><p><strong>cp_f</strong> (<em>float</em>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>k_f</strong> (<em>float</em>) – Fluid thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grout thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe thermal conductivity [W/mK]</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
+<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe outer radius [m]</p></li>
+<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe inner radius [m]</p></li>
+<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Shank spacing (half distance between pipes) [m]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid density [kg/m³]</p></li>
+<li><p><strong>mu_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>k_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid thermal conductivity [W/mK]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -691,7 +691,7 @@ R_b: Local borehole thermal resistance [mK/W].
 R_a: Internal thermal resistance between the two pipes [mK/W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[float, float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -703,12 +703,12 @@ R_a: Internal thermal resistance between the two pipes [mK/W].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>R_b</strong> (<em>float</em>) – Local borehole thermal resistance [mK/W]</p></li>
-<li><p><strong>R_a</strong> (<em>float</em>) – Internal thermal resistance between the two pipes [mK/W]</p></li>
-<li><p><strong>H</strong> (<em>float</em>) – Borehole depth [m]</p></li>
-<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
-<li><p><strong>cp_f</strong> (<em>float</em>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>boundary_condition</strong> (<em>str</em>) – Boundary condition for the calculation.
+<li><p><strong>R_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Local borehole thermal resistance [mK/W]</p></li>
+<li><p><strong>R_a</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal thermal resistance between the two pipes [mK/W]</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole depth [m]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Boundary condition for the calculation.
 Options: ‘uniform_temperature’ or ‘uniform_heat_flux’.</p></li>
 </ul>
 </dd>
@@ -716,7 +716,7 @@ Options: ‘uniform_temperature’ or ‘uniform_heat_flux’.</p></li>
 <dd class="field-even"><p>Effective borehole thermal resistance [mK/W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">References</p>
@@ -759,27 +759,27 @@ flow rate; m_flow_borehole is passed directly without division by 2.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>k_s</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_g</strong> (<em>float</em>) – Grout thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_p</strong> (<em>float</em>) – Pipe thermal conductivity [W/mK]</p></li>
-<li><p><strong>r_b</strong> (<em>float</em>) – Borehole radius [m]</p></li>
-<li><p><strong>r_out</strong> (<em>float</em>) – Pipe outer radius [m]</p></li>
-<li><p><strong>r_in</strong> (<em>float</em>) – Pipe inner radius [m]</p></li>
-<li><p><strong>D_s</strong> (<em>float</em>) – Distance from borehole centre to pipe centre [m]</p></li>
-<li><p><strong>H_b</strong> (<em>float</em>) – Borehole depth [m]</p></li>
-<li><p><strong>m_flow_borehole</strong> (<em>float</em>) – Total fluid mass flow rate into the borehole [kg/s].
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grout thermal conductivity [W/mK]</p></li>
+<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe thermal conductivity [W/mK]</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
+<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe outer radius [m]</p></li>
+<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe inner radius [m]</p></li>
+<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Distance from borehole centre to pipe centre [m]</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole depth [m]</p></li>
+<li><p><strong>m_flow_borehole</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Total fluid mass flow rate into the borehole [kg/s].
 For a Single U-tube (series), this equals the flow in each pipe leg.</p></li>
-<li><p><strong>rho_f</strong> (<em>float</em>) – Fluid density [kg/m³]</p></li>
-<li><p><strong>mu_f</strong> (<em>float</em>) – Fluid dynamic viscosity [Pa·s]</p></li>
-<li><p><strong>cp_f</strong> (<em>float</em>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>k_f</strong> (<em>float</em>) – Fluid thermal conductivity [W/mK]</p></li>
+<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid density [kg/m³]</p></li>
+<li><p><strong>mu_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>k_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid thermal conductivity [W/mK]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Effective borehole thermal resistance R_b* [mK/W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">References</p>
@@ -806,23 +806,23 @@ to the grout and ground.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>r_out</strong> (<em>float</em>) – Pipe outer radius [m]</p></li>
-<li><p><strong>r_in</strong> (<em>float</em>) – Pipe inner radius [m]</p></li>
-<li><p><strong>D_s</strong> (<em>float</em>) – Shank spacing (half distance between pipes) [m]</p></li>
-<li><p><strong>k_p</strong> (<em>float</em>) – Pipe thermal conductivity [W/mK]</p></li>
-<li><p><strong>m_flow_pipe</strong> (<em>float</em>) – Mass flow rate per pipe [kg/s]</p></li>
-<li><p><strong>rho_f</strong> (<em>float</em>) – Internal fluid density [kg/m³]</p></li>
-<li><p><strong>mu_f</strong> (<em>float</em>) – Internal fluid dynamic viscosity [Pa·s]</p></li>
-<li><p><strong>cp_f</strong> (<em>float</em>) – Internal fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>k_f</strong> (<em>float</em>) – Internal fluid thermal conductivity [W/mK]</p></li>
-<li><p><strong>v_river</strong> (<em>float</em>) – Velocity of the river water cross-flow [m/s]</p></li>
+<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe outer radius [m]</p></li>
+<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe inner radius [m]</p></li>
+<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Shank spacing (half distance between pipes) [m]</p></li>
+<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe thermal conductivity [W/mK]</p></li>
+<li><p><strong>m_flow_pipe</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mass flow rate per pipe [kg/s]</p></li>
+<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal fluid density [kg/m³]</p></li>
+<li><p><strong>mu_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal fluid dynamic viscosity [Pa·s]</p></li>
+<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal fluid specific heat capacity [J/kgK]</p></li>
+<li><p><strong>k_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal fluid thermal conductivity [W/mK]</p></li>
+<li><p><strong>v_river</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Velocity of the river water cross-flow [m/s]</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Thermal resistance of the submerged coil [mK/W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -865,7 +865,7 @@ meaning.)</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">GroundCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">GroundCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
 <p>Pluggable ground-response backend for BHE temporal superposition.</p>
 <dl class="py method">
@@ -875,8 +875,8 @@ meaning.)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n_steps</strong> (<em>int</em>) – Number of timesteps in the upcoming simulation.</p></li>
-<li><p><strong>time_arr</strong> (<em>np.ndarray</em>) – Absolute time of each step [s] (uniform grid). Backends that
+<li><p><strong>n_steps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of timesteps in the upcoming simulation.</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Absolute time of each step [s] (uniform grid). Backends that
 precompute a response matrix at fixed times use this.</p></li>
 </ul>
 </dd>
@@ -893,9 +893,9 @@ precompute a response matrix at fixed times use this.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>n</strong> (<em>int</em>) – Current step index (0-based).</p></li>
-<li><p><strong>time_arr</strong> (<em>np.ndarray</em>) – Absolute time of each step [s] (same array passed to <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset" title="tmhp.ground_coupling.GroundCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a>).</p></li>
-<li><p><strong>q_unit</strong> (<em>float</em>) – Per-length ground load at this step [W/m], extraction-positive.</p></li>
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Current step index (0-based).</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Absolute time of each step [s] (same array passed to <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset" title="tmhp.ground_coupling.GroundCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a>).</p></li>
+<li><p><strong>q_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Per-length ground load at this step [W/m], extraction-positive.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -913,7 +913,7 @@ precompute a response matrix at fixed times use this.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">AggregateGFunctionCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">AggregateGFunctionCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Single field-average g-function temporal superposition (legacy default).</p>
 <p>Reproduces the legacy <code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code> inner loop exactly:
@@ -924,7 +924,7 @@ a pulse is recorded whenever the per-length load changes by more than
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>g_interp</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em>) – Field-average g-function interpolator mapping lag time <code class="docutils literal notranslate"><span class="pre">tau</span></code> [s] to
 the dimensional response <code class="docutils literal notranslate"><span class="pre">g</span></code> [m·K/W].</p></li>
-<li><p><strong>pulse_tol</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum load change [W/m] that registers a new pulse (default 1e-6).</p></li>
+<li><p><strong>pulse_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Minimum load change [W/m] that registers a new pulse (default 1e-6).</p></li>
 </ul>
 </dd>
 </dl>
@@ -1023,8 +1023,8 @@ the dimensional response <code class="docutils literal notranslate"><span class=
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -1034,7 +1034,6 @@ the dimensional response <code class="docutils literal notranslate"><span class=
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

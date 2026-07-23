@@ -606,7 +606,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="428">            <span class="n">q</span> <span class="o">=</span> <span class="n">e_cmp</span> <span class="o">=</span> <span class="n">energy_j</span> <span class="o">=</span> <span class="mf">0.0</span>
 </span><span data-line="429">            <span class="n">t_out</span> <span class="o">=</span> <span class="n">t_in</span>
 </span><span data-line="430">
-</span><span data-line="431">        <span class="k">if</span> <span class="n">guard_trip</span><span class="p">:</span>
+</span><span data-line="431">        <span class="k">if</span> <span class="n">guard_trip</span> <span class="ow">and</span> <span class="n">reason</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span data-line="432">            <span class="bp">self</span><span class="o">.</span><span class="n">_warn_guard_trip</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">t_in</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">q_target</span><span class="p">)</span>
 </span><span data-line="433">
 </span><span data-line="434">        <span class="n">ex</span><span class="o">.</span><span class="n">set_actuator_value</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h</span><span class="p">[</span><span class="s2">&quot;t_out_act&quot;</span><span class="p">],</span> <span class="n">t_out</span><span class="p">)</span>
@@ -654,8 +654,8 @@ data-aria-dark="Switch to auto color mode">
   </div>
 </footer>
       <script src="../../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -665,7 +665,6 @@ data-aria-dark="Switch to auto color mode">
       <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
       <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
 

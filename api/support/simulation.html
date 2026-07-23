@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-07-17T08:24:34+00:00" />
+    <meta property="article:modified_time" content="2026-07-17T17:12:52+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -226,7 +226,7 @@ backbone of time-stepping heat-pump simulations.  Extracted from
 and future models can share the same infrastructure.</p>
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">ControlState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#ControlState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">ControlState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#ControlState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Heat-source control decisions for one timestep.</p>
 <p>Model-agnostic container: any boiler model populates
@@ -291,27 +291,27 @@ sentinel (inflow resolved inside residual).</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">is_on</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">is_on</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">Q_heat_source</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">Q_heat_source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">dV_tank_w_in_ctrl</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">dV_tank_w_in_ctrl</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">result</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">result</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -328,7 +328,7 @@ sentinel (inflow resolved inside residual).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls (#165 P0).</p>
 <p>This is exactly the state that <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> used to hold in
@@ -407,27 +407,27 @@ step’s refill decision.</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T_tank_w_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">T_tank_w_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">tank_level</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">tank_level</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">is_refilling</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">is_refilling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">hp_is_on_prev</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">hp_is_on_prev</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">dV_tank_w_out_prev</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">dV_tank_w_out_prev</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -450,7 +450,7 @@ step’s refill decision.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">StepContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_flags</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">288.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#StepContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">StepContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_time_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_flags</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_DN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I_dH</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">288.15</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#StepContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Per-timestep immutable context (time, environment, demand).</p>
 <dl class="py attribute">
@@ -619,67 +619,67 @@ An empty dict means no subsystem has a schedule constraint.</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">n</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">n</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">current_time_s</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">current_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">current_hour</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">current_hour</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">hour_of_day</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">hour_of_day</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T0</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">T0</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T0_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">T0_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">activation_flags</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">activation_flags</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T_tank_w_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">T_tank_w_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">tank_level</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">tank_level</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">I_DN</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em></dt>
+<span class="sig-name descname"><span class="pre">I_DN</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">I_dH</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em></dt>
+<span class="sig-name descname"><span class="pre">I_dH</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T_sup_w_K</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">288.15</span></em></dt>
+<span class="sig-name descname"><span class="pre">T_sup_w_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">288.15</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -710,7 +710,7 @@ An empty dict means no subsystem has a schedule constraint.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">Subsystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#Subsystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">Subsystem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#Subsystem"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Protocol</span></code></p>
 <p>Pluggable subsystem interface.</p>
 <p>Each subsystem computes its contribution for a single
@@ -724,10 +724,10 @@ this protocol and register with the boiler model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ctx</strong> (<em>StepContext</em>) – Current-step immutable context.</p></li>
-<li><p><strong>ctrl</strong> (<em>ControlState</em>) – Heat-source control decisions.</p></li>
-<li><p><strong>dt</strong> (<em>float</em>) – Time-step size [s].</p></li>
-<li><p><strong>T_tank_w_in_K</strong> (<em>float</em>) – Mains water inlet temperature [K].</p></li>
+<li><p><strong>ctx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepContext</span></code></span>) – Current-step immutable context.</p></li>
+<li><p><strong>ctrl</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ControlState</span></code></span>) – Heat-source control decisions.</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time-step size [s].</p></li>
+<li><p><strong>T_tank_w_in_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mains water inlet temperature [K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -743,7 +743,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -755,17 +755,17 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ctx</strong> (<em>StepContext</em>) – Current-step immutable context.</p></li>
-<li><p><strong>ctrl</strong> (<em>ControlState</em>) – HP control decisions.</p></li>
-<li><p><strong>step_state</strong> (<em>dict</em>) – Dict returned by <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p></li>
-<li><p><strong>T_solved_K</strong> (<em>float</em>) – Solved tank temperature [K].</p></li>
+<li><p><strong>ctx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepContext</span></code></span>) – Current-step immutable context.</p></li>
+<li><p><strong>ctrl</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ControlState</span></code></span>) – HP control decisions.</p></li>
+<li><p><strong>step_state</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – Dict returned by <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p></li>
+<li><p><strong>T_solved_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Solved tank temperature [K].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Keyed result entries for the output DataFrame.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -807,7 +807,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">SubsystemExergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_tot_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_in_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_out_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#SubsystemExergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">SubsystemExergy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_tot_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_in_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_out_tank_add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#SubsystemExergy"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Subsystem-specific exergy calculation results.</p>
 <p>Each subsystem’s <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code> returns this object
@@ -872,22 +872,22 @@ the result DataFrame and adjust system-level totals.</p>
 </dl>
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">columns</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></em></dt>
+<span class="sig-name descname"><span class="pre">columns</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">X_tot_add</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em></dt>
+<span class="sig-name descname"><span class="pre">X_tot_add</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">X_in_tank_add</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em></dt>
+<span class="sig-name descname"><span class="pre">X_in_tank_add</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">X_out_tank_add</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em></dt>
+<span class="sig-name descname"><span class="pre">X_out_tank_add</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">object</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -914,12 +914,12 @@ the result DataFrame and adjust system-level totals.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>hour</strong> (<em>float</em>) – Current time of day [h] (0.0–24.0).</p></li>
-<li><p><strong>hp_on_schedule</strong> (<em>list</em><em> of </em><em>tuple</em>) – List of <code class="docutils literal notranslate"><span class="pre">(start_hour,</span> <span class="pre">end_hour)</span></code> operating windows.</p></li>
+<li><p><strong>hour</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current time of day [h] (0.0–24.0).</p></li>
+<li><p><strong>hp_on_schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – List of <code class="docutils literal notranslate"><span class="pre">(start_hour,</span> <span class="pre">end_hour)</span></code> operating windows.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>bool</p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -931,19 +931,19 @@ the result DataFrame and adjust system-level totals.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>T_tank_w_C</strong> (<em>float</em>) – Current tank water temperature [°C].</p></li>
-<li><p><strong>T_lower</strong> (<em>float</em>) – Lower hysteresis bound [°C].</p></li>
-<li><p><strong>T_upper</strong> (<em>float</em>) – Upper hysteresis bound [°C].</p></li>
-<li><p><strong>is_on_prev</strong> (<em>bool</em>) – Heat-source state at the previous timestep.</p></li>
-<li><p><strong>hour_of_day</strong> (<em>float</em>) – Hour within the day (0–24).</p></li>
-<li><p><strong>on_schedule</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Active operating windows <code class="docutils literal notranslate"><span class="pre">(start_h,</span> <span class="pre">end_h)</span></code>.</p></li>
+<li><p><strong>T_tank_w_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current tank water temperature [°C].</p></li>
+<li><p><strong>T_lower</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Lower hysteresis bound [°C].</p></li>
+<li><p><strong>T_upper</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Upper hysteresis bound [°C].</p></li>
+<li><p><strong>is_on_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Heat-source state at the previous timestep.</p></li>
+<li><p><strong>hour_of_day</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hour within the day (0–24).</p></li>
+<li><p><strong>on_schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Active operating windows <code class="docutils literal notranslate"><span class="pre">(start_h,</span> <span class="pre">end_h)</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Whether the heat source should run this timestep.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -959,16 +959,16 @@ responsibility of the scenario class via
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dt</strong> (<em>float</em>) – Time-step size [s].</p></li>
-<li><p><strong>tank_level</strong> (<em>float</em>) – Current fractional tank level (0–1).</p></li>
-<li><p><strong>dV_tank_w_out</strong> (<em>float</em>) – Current outflow rate [m³/s].</p></li>
-<li><p><strong>V_tank_full</strong> (<em>float</em>) – Tank full volume [m³].</p></li>
-<li><p><strong>tank_always_full</strong> (<em>bool</em>) – Whether the tank is forced to stay full.</p></li>
-<li><p><strong>prevent_simultaneous_flow</strong> (<em>bool</em>) – Exclusive-flow mode flag.</p></li>
-<li><p><strong>tank_level_lower_bound</strong> (<em>float</em>) – Level lower bound for refill trigger.</p></li>
-<li><p><strong>tank_level_upper_bound</strong> (<em>float</em>) – Level upper bound for refill cut-off.</p></li>
-<li><p><strong>dV_tank_w_in_refill</strong> (<em>float</em>) – Refill flow rate [m³/s].</p></li>
-<li><p><strong>is_refilling</strong> (<em>bool</em>) – Whether we are currently in a refill cycle.</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time-step size [s].</p></li>
+<li><p><strong>tank_level</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current fractional tank level (0–1).</p></li>
+<li><p><strong>dV_tank_w_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current outflow rate [m³/s].</p></li>
+<li><p><strong>V_tank_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank full volume [m³].</p></li>
+<li><p><strong>tank_always_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether the tank is forced to stay full.</p></li>
+<li><p><strong>prevent_simultaneous_flow</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Exclusive-flow mode flag.</p></li>
+<li><p><strong>tank_level_lower_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Level lower bound for refill trigger.</p></li>
+<li><p><strong>tank_level_upper_bound</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Level upper bound for refill cut-off.</p></li>
+<li><p><strong>dV_tank_w_in_refill</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Refill flow rate [m³/s].</p></li>
+<li><p><strong>is_refilling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether we are currently in a refill cycle.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -976,7 +976,7 @@ responsibility of the scenario class via
 <code class="docutils literal notranslate"><span class="pre">None</span></code> means always-full sentinel (no PSF).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[float | None, bool]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -992,26 +992,26 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>list</em><em>[</em><em>float</em><em>]</em>) – <code class="docutils literal notranslate"><span class="pre">[T_next_K,</span> <span class="pre">level_next]</span></code>.</p></li>
-<li><p><strong>ctx</strong> (<em>StepContext</em>) – Current-step immutable context.</p></li>
-<li><p><strong>ctrl</strong> (<em>ControlState</em>) – Current-step HP control decisions.</p></li>
-<li><p><strong>dt</strong> (<em>float</em>) – Time-step size [s].</p></li>
-<li><p><strong>T_tank_w_in_K</strong> (<em>float</em>) – Mains water inlet temperature [K].</p></li>
-<li><p><strong>T_sup_w_K</strong> (<em>float</em>) – Mains water supply temperature [K] (for mixing valve).</p></li>
-<li><p><strong>T_mix_w_out_K</strong> (<em>float</em>) – Target mixing-valve outlet temperature [K].</p></li>
-<li><p><strong>C_tank</strong> (<em>float</em>) – Tank thermal capacitance [J/K].</p></li>
-<li><p><strong>UA_tank_wall</strong> (<em>float</em>) – Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</p></li>
-<li><p><strong>V_tank_full</strong> (<em>float</em>) – Tank full volume [m³].</p></li>
-<li><p><strong>subsystems</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>Subsystem</em><em>]</em>) – Registered subsystem instances.</p></li>
-<li><p><strong>sub_states</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em>) – Per-subsystem state dicts from <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p></li>
-<li><p><strong>T_sur_K</strong> (<em>float</em><em> | </em><em>None</em>) – Surrounding temperature [K]. If None, defaults to ctx.T0_K.</p></li>
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – <code class="docutils literal notranslate"><span class="pre">[T_next_K,</span> <span class="pre">level_next]</span></code>.</p></li>
+<li><p><strong>ctx</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">StepContext</span></code></span>) – Current-step immutable context.</p></li>
+<li><p><strong>ctrl</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ControlState</span></code></span>) – Current-step HP control decisions.</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time-step size [s].</p></li>
+<li><p><strong>T_tank_w_in_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mains water inlet temperature [K].</p></li>
+<li><p><strong>T_sup_w_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mains water supply temperature [K] (for mixing valve).</p></li>
+<li><p><strong>T_mix_w_out_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Target mixing-valve outlet temperature [K].</p></li>
+<li><p><strong>C_tank</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank thermal capacitance [J/K].</p></li>
+<li><p><strong>UA_tank_wall</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</p></li>
+<li><p><strong>V_tank_full</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank full volume [m³].</p></li>
+<li><p><strong>subsystems</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Subsystem</span></code>]</span>) – Registered subsystem instances.</p></li>
+<li><p><strong>sub_states</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span>) – Per-subsystem state dicts from <code class="docutils literal notranslate"><span class="pre">step()</span></code>.</p></li>
+<li><p><strong>T_sur_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Surrounding temperature [K]. If None, defaults to ctx.T0_K.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">[r_energy,</span> <span class="pre">r_mass]</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1146,8 +1146,8 @@ creating a gravitationally unstable condition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_mix_out</strong> (<em>float</em>) – Total requested service/mixed flow rate [m³/s].</p></li>
-<li><p><strong>alp</strong> (<em>float</em>) – Hot water mixing ratio [0-1].</p></li>
+<li><p><strong>dV_mix_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Total requested service/mixed flow rate [m³/s].</p></li>
+<li><p><strong>alp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hot water mixing ratio [0-1].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1157,7 +1157,7 @@ creating a gravitationally unstable condition.</p>
 - <cite>dV_mix_out</cite>: Total mixed flow rate [m³/s]</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1347,11 +1347,11 @@ analysis. Results are cached for performance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>t</strong> (<em>float</em>) – Time [s]</p></li>
-<li><p><strong>ks</strong> (<em>float</em>) – Ground thermal conductivity [W/mK]</p></li>
+<li><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Time [s]</p></li>
+<li><p><strong>ks</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
 <li><p><strong>as</strong> (<em>float</em>) – Ground thermal diffusivity [m²/s]</p></li>
-<li><p><strong>rb</strong> (<em>float</em>) – Borehole radius [m]</p></li>
-<li><p><strong>H</strong> (<em>float</em>) – Borehole height [m]</p></li>
+<li><p><strong>rb</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
+<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole height [m]</p></li>
 <li><p><strong>as_</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
@@ -1360,7 +1360,7 @@ analysis. Results are cached for performance.</p>
 array for multiple time values.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float or array</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1509,17 +1509,17 @@ array for multiple time values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_fan</strong> (<em>float</em>) – Current flow rate [m³/s].</p></li>
-<li><p><strong>fan_params</strong> (<em>dict</em>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
-<li><p><strong>vsd_coeffs</strong> (<em>dict</em>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
-<li><p><strong>is_active</strong> (<em>bool</em>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
+<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current flow rate [m³/s].</p></li>
+<li><p><strong>fan_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
+<li><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Fan power [W].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1579,12 +1579,12 @@ given refrigerant using CoolProp (vectorized via unique T0 values).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame containing pre-computed enthalpy <code class="docutils literal notranslate"><span class="pre">h_ref_*</span> <span class="pre">[J/kg]</span></code>,
 entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</span> <span class="pre">[J/(kg·K)]</span></code>, and mass-flow
 <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code> columns.</p></li>
-<li><p><strong>ref</strong> (<em>str</em>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
-<li><p><strong>T0_K</strong> (<em>pd.Series</em>) – Dead-state (environment) temperature per row [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
+<li><p><strong>ref</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – CoolProp refrigerant identifier (e.g. <code class="docutils literal notranslate"><span class="pre">'R410A'</span></code>).</p></li>
+<li><p><strong>T0_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span>) – Dead-state (environment) temperature per row [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead-state pressure [Pa] (default <code class="docutils literal notranslate"><span class="pre">101325</span></code>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1592,7 +1592,7 @@ entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</sp
 <code class="docutils literal notranslate"><span class="pre">x_ref_{name}</span> <span class="pre">[J/kg]</span></code>, <code class="docutils literal notranslate"><span class="pre">X_ref_{name}</span> <span class="pre">[W]</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -1610,18 +1610,18 @@ entropy <code class="docutils literal notranslate"><span class="pre">s_ref_*</sp
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_fan</strong> (<em>float</em>) – Current fan flow rate [m³/s].</p></li>
-<li><p><strong>dV_fan_rated</strong> (<em>float</em>) – Rated fan flow rate [m³/s].</p></li>
-<li><p><strong>A_cross</strong> (<em>float</em>) – Heat exchanger cross-sectional area [m²].</p></li>
-<li><p><strong>UA</strong> (<em>float</em>) – Rated UA value [W/K].</p></li>
-<li><p><strong>exponent</strong> (<em>float</em>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
+<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current fan flow rate [m³/s].</p></li>
+<li><p><strong>dV_fan_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated fan flow rate [m³/s].</p></li>
+<li><p><strong>A_cross</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Heat exchanger cross-sectional area [m²].</p></li>
+<li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated UA value [W/K].</p></li>
+<li><p><strong>exponent</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Scaled UA value [W/K].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
@@ -1641,18 +1641,18 @@ Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>radius_cm</strong> (<em>float</em>) – Tank radius (lamp-to-wall distance) [cm].</p></li>
-<li><p><strong>uvc_output_W</strong> (<em>float</em>) – UV-C output power of the lamp [W].</p></li>
-<li><p><strong>lamp_arc_length_cm</strong> (<em>float</em>) – Arc length of the lamp [cm].</p></li>
-<li><p><strong>target_dose_mj_cm2</strong> (<em>float</em>) – Target germicidal dose [mJ/cm²]. Default 186 (EPA 4-log virus).</p></li>
-<li><p><strong>turbidity_ntu</strong> (<em>float</em>) – Water turbidity [NTU].</p></li>
+<li><p><strong>radius_cm</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank radius (lamp-to-wall distance) [cm].</p></li>
+<li><p><strong>uvc_output_W</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – UV-C output power of the lamp [W].</p></li>
+<li><p><strong>lamp_arc_length_cm</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Arc length of the lamp [cm].</p></li>
+<li><p><strong>target_dose_mj_cm2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Target germicidal dose [mJ/cm²]. Default 186 (EPA 4-log virus).</p></li>
+<li><p><strong>turbidity_ntu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Water turbidity [NTU].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Required single-exposure time [min].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1666,18 +1666,18 @@ each activation lasting <code class="docutils literal notranslate"><span class="
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>current_time_s</strong> (<em>float</em>) – Current simulation time [s].</p></li>
-<li><p><strong>period_sec</strong> (<em>float</em>) – Switching period (e.g. 3 h → 10800 s).</p></li>
-<li><p><strong>num_switching</strong> (<em>int</em>) – Number of on-cycles per period.</p></li>
-<li><p><strong>exposure_sec</strong> (<em>float</em>) – Duration of each on-cycle [s].</p></li>
-<li><p><strong>lamp_watts</strong> (<em>float</em>) – Rated lamp power [W].</p></li>
+<li><p><strong>current_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current simulation time [s].</p></li>
+<li><p><strong>period_sec</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Switching period (e.g. 3 h → 10800 s).</p></li>
+<li><p><strong>num_switching</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of on-cycles per period.</p></li>
+<li><p><strong>exposure_sec</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Duration of each on-cycle [s].</p></li>
+<li><p><strong>lamp_watts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated lamp power [W].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Instantaneous lamp power [W] (0 or <code class="docutils literal notranslate"><span class="pre">lamp_watts</span></code>).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1714,13 +1714,13 @@ electricity-consumption columns.</p>
 <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> and creates corresponding <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
+<dd class="field-odd"><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame with <code class="docutils literal notranslate"><span class="pre">E_xxx</span> <span class="pre">[W]</span></code> columns.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">df</span></code> with <code class="docutils literal notranslate"><span class="pre">X_xxx</span> <span class="pre">[W]</span></code> columns added.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1749,20 +1749,20 @@ electricity-consumption columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>fluid</strong> (<em>str</em>) – Fluid name.</p></li>
-<li><p><strong>T</strong> (<em>float</em>) – Temperature [K].</p></li>
-<li><p><strong>P</strong> (<em>float</em>) – Pressure [Pa].</p></li>
-<li><p><strong>Q</strong> (<em>float</em>) – Quality (0 to 1).</p></li>
-<li><p><strong>T0</strong> (<em>float</em>) – Dead state temperature [K].</p></li>
-<li><p><strong>P0</strong> (<em>float</em>) – Dead state pressure [Pa].</p></li>
-<li><p><strong>phase</strong> (<em>Literal</em><em>[</em><em>'gas'</em><em>, </em><em>'liquid'</em><em>, </em><em>'twophase'</em><em>]</em><em>, </em><em>optional</em>) – Fluid phase. Default is ‘gas’.</p></li>
+<li><p><strong>fluid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Fluid name.</p></li>
+<li><p><strong>T</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Temperature [K].</p></li>
+<li><p><strong>P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pressure [Pa].</p></li>
+<li><p><strong>Q</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Quality (0 to 1).</p></li>
+<li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state temperature [K].</p></li>
+<li><p><strong>P0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Dead state pressure [Pa].</p></li>
+<li><p><strong>phase</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'gas'</span></code>, <code class="docutils literal notranslate"><span class="pre">'liquid'</span></code>, <code class="docutils literal notranslate"><span class="pre">'twophase'</span></code>]</span>) – Fluid phase. Default is ‘gas’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Entropy [J/kg-K], Enthalpy [J/kg], Exergy [J/kg].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[float, float, float]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1775,14 +1775,14 @@ electricity-consumption columns.</p>
 Absorbance, UV Intensity, and Exposure Time</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>turbidity_ntu</strong> (<em>float</em>) – Turbidity value [NTU].</p>
+<dd class="field-odd"><p><strong>turbidity_ntu</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Turbidity value [NTU].</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Keys: <code class="docutils literal notranslate"><span class="pre">uv_absorbance</span></code>, <code class="docutils literal notranslate"><span class="pre">uv_transmittance_percent</span></code>,
 <code class="docutils literal notranslate"><span class="pre">reference_intensity_mw_cm2</span></code>, <code class="docutils literal notranslate"><span class="pre">reference_exposure_time_sec</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1798,9 +1798,9 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – Simulation result DataFrame.</p></li>
-<li><p><strong>simulation_time_step</strong> (<em>int</em>) – Time step [s].</p></li>
-<li><p><strong>dV_ou_a_design</strong> (<em>float</em>) – Design airflow rate of outdoor unit [m3/s].</p></li>
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Simulation result DataFrame.</p></li>
+<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Time step [s].</p></li>
+<li><p><strong>dV_ou_a_design</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Design airflow rate of outdoor unit [m3/s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1859,8 +1859,8 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -1870,7 +1870,6 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

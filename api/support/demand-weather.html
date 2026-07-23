@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Domestic hot ..." />
 
-    <meta property="article:modified_time" content="2026-07-01T04:57:28+00:00" />
+    <meta property="article:modified_time" content="2026-07-01T13:57:28+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -202,22 +202,22 @@ consumed by the dynamic simulation entry points.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ghi</strong> (<em>np.ndarray</em><em> or </em><em>pd.Series</em>) – Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</p></li>
-<li><p><strong>latitude</strong> (<em>float</em>) – Location latitude.</p></li>
-<li><p><strong>longitude</strong> (<em>float</em>) – Location longitude.</p></li>
-<li><p><strong>tilt</strong> (<em>float</em>) – Surface tilt angle [deg].</p></li>
-<li><p><strong>azimuth</strong> (<em>float</em>) – Surface azimuth [deg]. 180 is South.</p></li>
-<li><p><strong>altitude</strong> (<em>float</em><em>, </em><em>optional</em>) – Location altitude [m]. Default is 0.</p></li>
-<li><p><strong>tz</strong> (<em>str</em><em>, </em><em>optional</em>) – Timezone. Default is ‘Asia/Seoul’.</p></li>
-<li><p><strong>decomposition</strong> (<em>str</em><em>, </em><em>optional</em>) – DNI/DHI decomposition model (‘erbs’, ‘dirint’, etc). Default is ‘erbs’.</p></li>
-<li><p><strong>transposition</strong> (<em>str</em><em>, </em><em>optional</em>) – POA transposition model (‘perez’, ‘isotropic’, etc). Default is ‘perez’.</p></li>
+<li><p><strong>ghi</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</p></li>
+<li><p><strong>latitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location latitude.</p></li>
+<li><p><strong>longitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location longitude.</p></li>
+<li><p><strong>tilt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface tilt angle [deg].</p></li>
+<li><p><strong>azimuth</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface azimuth [deg]. 180 is South.</p></li>
+<li><p><strong>altitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location altitude [m]. Default is 0.</p></li>
+<li><p><strong>tz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Timezone. Default is ‘Asia/Seoul’.</p></li>
+<li><p><strong>decomposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – DNI/DHI decomposition model (‘erbs’, ‘dirint’, etc). Default is ‘erbs’.</p></li>
+<li><p><strong>transposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – POA transposition model (‘perez’, ‘isotropic’, etc). Default is ‘perez’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with ‘poa_global’, ‘poa_direct’, ‘poa_diffuse’.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -229,15 +229,15 @@ consumed by the dynamic simulation entry points.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>csv_path</strong> (<em>str</em>) – Path to CSV file.</p></li>
-<li><p><strong>encoding</strong> (<em>str</em><em>, </em><em>optional</em>) – File encoding. Default is ‘euc-kr’.</p></li>
+<li><p><strong>csv_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to CSV file.</p></li>
+<li><p><strong>encoding</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – File encoding. Default is ‘euc-kr’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with datetime index, ‘T0_K’, and ‘ghi’ columns.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -250,15 +250,15 @@ cumulative solar irradiance CSV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>csv_path</strong> (<em>str</em>) – Path to CSV file.</p></li>
-<li><p><strong>encoding</strong> (<em>str</em><em>, </em><em>optional</em>) – File encoding. Default is ‘euc-kr’.</p></li>
+<li><p><strong>csv_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to CSV file.</p></li>
+<li><p><strong>encoding</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – File encoding. Default is ‘euc-kr’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame with datetime index and ‘ghi’ column [W/m2].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.DataFrame</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -274,15 +274,15 @@ cumulative solar irradiance CSV.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>entries</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Schedule entry list. Each item is (start_str, end_str, frac) format.</p></li>
-<li><p><strong>t_array</strong> (<em>np.ndarray</em>) – Array of time seconds from start of day.</p></li>
+<li><p><strong>entries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule entry list. Each item is (start_str, end_str, frac) format.</p></li>
+<li><p><strong>t_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of time seconds from start of day.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Array of fractions corresponding to <code class="docutils literal notranslate"><span class="pre">t_array</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>np.ndarray</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -300,15 +300,15 @@ National Renewable Energy Laboratory (NREL). <a class="reference external" href=
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – DataFrame with monthly average temperatures. Must have ‘month’ and ‘T_avg’ columns.</p></li>
-<li><p><strong>target_date_str</strong> (<em>str</em>) – Target date string in ‘YYYY-MM-DD’ format.</p></li>
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame with monthly average temperatures. Must have ‘month’ and ‘T_avg’ columns.</p></li>
+<li><p><strong>target_date_str</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target date string in ‘YYYY-MM-DD’ format.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Calculated cold water temperature [degC].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -320,17 +320,17 @@ National Renewable Energy Laboratory (NREL). <a class="reference external" href=
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>schedule</strong> (<em>list</em><em>[</em><em>tuple</em><em>[</em><em>str</em><em>, </em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – Schedule list. Each item is (start_str, end_str, ratio) format.</p></li>
-<li><p><strong>peak_load_m3s</strong> (<em>float</em>) – Peak load water flow rate [m3/s].</p></li>
-<li><p><strong>info</strong> (<em>bool</em><em>, </em><em>optional</em>) – Flag to print info. Default is True.</p></li>
-<li><p><strong>info_unit</strong> (<em>str</em><em>, </em><em>optional</em>) – Unit to print info. Default is ‘L’.</p></li>
+<li><p><strong>schedule</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>) – Schedule list. Each item is (start_str, end_str, ratio) format.</p></li>
+<li><p><strong>peak_load_m3s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Peak load water flow rate [m3/s].</p></li>
+<li><p><strong>info</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Flag to print info. Default is True.</p></li>
+<li><p><strong>info_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unit to print info. Default is ‘L’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Total daily water usage [m3].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -344,16 +344,16 @@ into a schedule list with specified time step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>flow_rate_array</strong> (<em>np.ndarray</em>) – Array of flow rates [L/min]. Data should represent 24 hours.</p></li>
-<li><p><strong>df_time_step</strong> (<em>int</em>) – Time step of the input <code class="docutils literal notranslate"><span class="pre">flow_rate_array</span></code> [min].</p></li>
-<li><p><strong>simulation_time_step</strong> (<em>int</em>) – Target time step for the simulation schedule [s].</p></li>
+<li><p><strong>flow_rate_array</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>) – Array of flow rates [L/min]. Data should represent 24 hours.</p></li>
+<li><p><strong>df_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Time step of the input <code class="docutils literal notranslate"><span class="pre">flow_rate_array</span></code> [min].</p></li>
+<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Target time step for the simulation schedule [s].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>List of tuples (start_time, end_time, fraction).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[tuple[str, str, float]]</p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -408,8 +408,8 @@ into a schedule list with specified time step.</p>
   </div>
 </footer>
       <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../../_static/copybutton.js?v=f281be69"></script>
       <script>let toggleHintShow = 'Click to show';</script>
@@ -419,7 +419,6 @@ into a schedule list with specified time step.</p>
       <script src="../../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../../_static/shibuya.js?v=cac61aee"></script>
-      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>

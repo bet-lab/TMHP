@@ -428,7 +428,7 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
             q = e_cmp = energy_j = 0.0
             t_out = t_in
 
-        if guard_trip:
+        if guard_trip and reason is not None:
             self._warn_guard_trip(state, reason, t_in, t0, q_target)
 
         ex.set_actuator_value(state, self.h["t_out_act"], t_out)

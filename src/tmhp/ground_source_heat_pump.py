@@ -11,6 +11,9 @@ over the evaporator and condenser approach temperature differences.
 
 Borehole thermal response is tracked with pygfunction-based multi-borehole
 g-functions, enabling robust long-term ground temperature drift modelling.
+The effective borehole thermal resistance ``R_b*`` linking the borehole wall to
+the circulating fluid is derived from the U-tube cross-section geometry unless it
+is supplied explicitly.
 
 Architecture mirrors ``GroundSourceHeatPumpBoiler`` for the BHE side
 and ``AirSourceHeatPump`` for the indoor-unit side.
@@ -30,7 +33,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from .compressor_envelope import check_pr_envelope
-from .constants import c_a, c_w, rho_a, rho_w
+from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
 from .enex_functions import (
     calc_exergy_flow,
     calc_fan_power_from_dV_fan,
@@ -74,7 +77,13 @@ class GroundSourceHeatPump:
         D_b: float = 0,
         H_b: float = 100,
         r_b: float = 0.08,
-        R_b: float = 0.108,
+        R_b: float | None = None,
+        k_g: float = 1.5,
+        k_p: float = 0.4,
+        r_out: float = 0.016,
+        r_in: float = 0.013,
+        D_s: float = 0.025,
+        boundary_condition: str = "uniform_temperature",
         dV_b_f_lpm: float = 20.04,
         k_s: float = 2.0,
         c_s: float = 800,
@@ -175,13 +184,53 @@ class GroundSourceHeatPump:
         self.D_b = D_b
         self.H_b = H_b
         self.r_b = r_b
-        self.R_b = R_b
         self.k_s = k_s
         self.c_s = c_s
         self.rho_s = rho_s
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp: float = E_pmp
         self.dV_b_f_m3s: float = dV_b_f_lpm * cu.L2m3 / cu.m2s
+
+        # Effective borehole thermal resistance R_b* [mK/W].
+        # Mirrors GroundSourceHeatPumpBoiler: when R_b is not given explicitly,
+        # derive it from the borehole cross-section (multipole method) and then
+        # apply the axial short-circuit correction, so T_bhe_f = T_bhe - q_b*R_b*
+        # reflects the actual U-tube geometry instead of a fixed literature value.
+        if R_b is None:
+            from .g_function import (
+                calc_effective_borehole_thermal_resistance,
+                calc_local_borehole_thermal_resistance,
+            )
+
+            n_boreholes = max(1, self.N_1 * self.N_2)
+            m_flow_pipe = self.dV_b_f_m3s * rho_w / n_boreholes
+
+            R_b_local, R_a = calc_local_borehole_thermal_resistance(
+                k_s=self.k_s,
+                k_g=k_g,
+                k_p=k_p,
+                r_b=self.r_b,
+                r_out=r_out,
+                r_in=r_in,
+                D_s=D_s,
+                m_flow_pipe=m_flow_pipe,
+                rho_f=rho_w,
+                mu_f=mu_w,
+                cp_f=c_w,
+                k_f=k_w,
+            )
+            self.R_b_local: float = R_b_local
+            self.R_a: float = R_a
+            self.R_b = calc_effective_borehole_thermal_resistance(
+                R_b=R_b_local,
+                R_a=R_a,
+                H=self.H_b,
+                m_flow_pipe=m_flow_pipe,
+                cp_f=c_w,
+                boundary_condition=boundary_condition,
+            )
+        else:
+            self.R_b = R_b
 
         self.Ts: float = Ts
         self.Ts_K: float = cu.C2K(Ts)

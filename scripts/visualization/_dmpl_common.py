@@ -20,6 +20,15 @@ from matplotlib.figure import Figure
 # without wasting headroom.
 DEFAULT_MARGIN = "2%"
 
+# ``dm.lw`` is a *relative* step on the active preset's base width, and under
+# "report" it goes non-positive fast: lw(-1) = 0.0 and lw(-2) = -1.0.
+# Matplotlib silently draws nothing for a non-positive width (and raises
+# outright on a dashed line, whose dash pattern is scaled by the width and
+# collapses to all zeros), so `linewidth=dm.lw(-2)` is not a thin line -- it is
+# an invisible one. Sub-preset hairlines are therefore absolute widths.
+HAIRLINE = 0.6  # marker edges, zero lines, reference rules
+GRIDLINE = 0.4  # background grids
+
 
 def finalize(
     fig: Figure,
@@ -142,6 +151,9 @@ def static_path(name: str) -> Path:
 COLORS = {
     "accent": "oc.indigo6",  # primary line / scatter
     "accent2": "oc.violet5",  # secondary series
+    "accent3": "oc.pink6",  # tertiary series -- kept clear of accent/accent2,
+    # which are both blue-violet (hue 228 deg / 256 deg) and read as the same
+    # colour once a categorical set needs more than four entries.
     "warm": "oc.orange6",  # ambient air / warm-side process
     "cool": "oc.blue5",  # sat. liquid / cold-side process
     "hot": "oc.red5",  # sat. vapour / discharge

@@ -42,7 +42,12 @@ DESCRIBED = {
         used_by="en328_inversion",
         url="https://www.gea.com/",
     ),
-    "catalogs/luve_air_cooled_condensers.pdf": dict(
+    "catalogs/alfalaval_acq504_condenser_spec.pdf": dict(
+    title="AlfaGreen air-cooled condensers AC / ACD / ACV", publisher="Alfa Laval",
+    doc_id="ECR00011EN (2003)",
+    rating="ENV 327 (R-404A, air 25 C, condensing 40 C, DT1 15 K), declared verbatim",
+    used_by="env327_inversion", url="https://www.alfalaval.com/"),
+ "catalogs/luve_air_cooled_condensers.pdf": dict(
         title="Air-Cooled Condensers",
         publisher="LU-VE",
         doc_id="-",

@@ -136,7 +136,7 @@ Fujitsu result was checked before being published rather than after.
 
     **Both are inside the measured band.** The component-catalogue population
     that :doc:`the default was derived from <defaults>` spans ``UA/Q`` from
-    0.114 to 0.240 at p10–p90, which is about ``Q/4`` to ``Q/9``. The band is
+    0.108 to 0.230 at p10–p90, which is about ``Q/4`` to ``Q/9``. The band is
     wide because real hardware is wide. A single vendor-neutral default lands
     somewhere in it and cannot be right for every machine in it.
 
@@ -172,12 +172,57 @@ fluids. It is worth being explicit that the offset above is *not* a refrigerant
 effect: the three R-410A air-to-water units are among the best fits in the
 whole set, at 4.7 to 7.9 % MAPE.
 
-**Two units in the air-to-water set stand out.** The 16 kW R32 unit runs
-optimistic with a consistent positive bias, which is unexplained. The Samsung
-high-temperature unit publishes no displacement and reaches 65 °C leaving water
-at −10 °C outdoor air — a pressure ratio around 16, which real machines achieve
-with vapour injection and TMHP does not model as a single-stage cycle. Both are
-stated rather than corrected for.
+**The one air-to-water outlier turns out to be the same story.** The 16 kW R32
+unit runs +11.7 % optimistic. Neither of its published inputs explains it:
+substituting its sibling's rated air flow, or dropping its published
+displacement in favour of the derived rule, moves the bias by about a point.
+What explains it is the catalogue itself. At every one of the fifteen
+conditions, the 16 kW machine's *published* COP is 8 to 22 % below the 9 kW
+machine's from the same product line:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 18 18 18 20
+
+    * - Condition
+      - 9 kW
+      - 12 kW
+      - 16 kW
+      - 16 kW / 9 kW
+    * - −7 °C / 45 °C
+      - 2.54
+      - 2.39
+      - 2.04
+      - 0.80
+    * - +2 °C / 55 °C
+      - 2.54
+      - 2.42
+      - 2.07
+      - 0.82
+    * - +25 °C / 45 °C
+      - 5.99
+      - 5.71
+      - 5.00
+      - 0.84
+
+Efficiency is not constant per kilowatt as you go up a product line, and a rule
+written per kilowatt cannot know that. The model treats the three units as
+near-identical machines at different sizes, which is what the rules say; the
+manufacturer's own data says the largest is about 16 % worse. The residual is
+that gap.
+
+This is the Fujitsu finding again at smaller scale and inside a single
+manufacturer's range, which is worth noticing: **the limitation is not one
+unusual product line, it is capacity-normalised scaling itself.** The defaults
+describe a typical machine of a given size; they do not know that a
+manufacturer's 16 kW model is built to a different cost target than its 9 kW
+model.
+
+**The Samsung high-temperature unit is genuinely outside the model boundary.**
+It publishes no displacement and reaches 65 °C leaving water at −10 °C outdoor
+air — a pressure ratio around 16, which real machines achieve with vapour
+injection and TMHP does not model as a single-stage cycle. Stated rather than
+corrected for.
 
 .. note::
 

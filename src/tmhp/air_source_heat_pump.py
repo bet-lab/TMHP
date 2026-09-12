@@ -227,17 +227,17 @@ class AirSourceHeatPump:
         # that is comparable across capacities by construction -- and for a
         # coil whose refrigerant side changes phase that inversion is an
         # identity, with no parameter fitted. Two rating standards written by
-        # different committees for different applications (EN 328 SC2 for
-        # unit coolers, 352 models; ENV 327 for air-cooled condensers, 774
-        # models) place their populations in the same band of UA per unit duty,
-        # 0.11-0.24 W/K per W, although the air flow per kilowatt they adopt
-        # differs by a factor of 2.5.
+        # different committees for different applications (EN 328 SC2 for unit
+        # coolers, 352 models across four manufacturers; ENV 327 for air-cooled
+        # condensers, 1,062 models across two) place their populations in the
+        # same band of UA per unit duty, 0.11-0.23 W/K per W, although the air
+        # flow per kilowatt they adopt differs by a factor of 2.4.
         #
         # Converting the condenser band to the nameplate basis needs the factor
         # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
         # while the outdoor coil rejects that duty plus the compressor work
         # (1.29-1.35 across the reference units). The result is
-        # UA/Q_cool = 0.20, i.e. `hp_capacity / 5`.
+        # UA/Q_cool = 0.19, i.e. `hp_capacity / 5`.
         #
         # An independent route -- computing the conductance straight from the
         # outdoor-coil geometry that Trane prints for twelve Precedent packaged

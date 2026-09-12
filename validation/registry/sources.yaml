@@ -22,6 +22,17 @@ documents:
     files: 2634
     bytes: 78663865
 
+  - path: catalogs/alfalaval_acq504_condenser_spec.pdf
+    title: "AlfaGreen air-cooled condensers AC / ACD / ACV"
+    publisher: "Alfa Laval"
+    document_id: "ECR00011EN (2003)"
+    rating_condition: "ENV 327 (R-404A, air 25 C, condensing 40 C, DT1 15 K), declared verbatim"
+    used_by: "env327_inversion"
+    obtain_from: "https://www.alfalaval.com/"
+    bytes: 3414057
+    pages: 24
+    sha256: "59a2559ae50950243e353f8378f9cf9e9abf9378f8ca05b7f88e1ee5a3279385"
+
   - path: catalogs/alfalaval_tyrva_airsock_unit_coolers.pdf
     title: "TYR-A air sock unit coolers"
     publisher: "Alfa Laval"
@@ -190,9 +201,6 @@ documents:
 # evidence tree stays auditable: a file with no reader is a file nobody
 # has checked.
 unused_archive:
-  - path: catalogs/alfalaval_acq504_condenser_spec.pdf
-    bytes: 3414057
-    sha256: "59a2559ae50950243e353f8378f9cf9e9abf9378f8ca05b7f88e1ee5a3279385"
   - path: catalogs/alfalaval_bhe_catalog_2022.pdf
     bytes: 1633594
     sha256: "d413be4fe7cc2e5a94c76fae8e4dadc2a33cdb194601768d5d72f261144f701d"

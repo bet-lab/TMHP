@@ -43,9 +43,9 @@ Summary
       - Reproduce
     * - Outdoor coil conductance (air-to-air)
       - ``UA_ou = hp_capacity / 5``
-      - 1,126 component coils across two rating standards, converted to the
-        nameplate basis; independently checked against 12 heat pumps' published
-        coil geometry
+      - 1,414 component coils across two rating standards and six
+        manufacturers, converted to the nameplate basis; independently checked
+        against 12 heat pumps' published coil geometry
       - ``ua_transfer_law``
     * - Indoor / outdoor conductance ratio
       - ``UA_iu = 0.8 × UA_ou``
@@ -148,14 +148,14 @@ What the catalogues say
       - 0.190
       - 5.28 K
     * - ENV 327 (condensers)
-      - 774
-      - LU-VE
-      - 234
-      - 0.153
-      - 6.55 K
+      - 1,062
+      - LU-VE · Alfa Laval
+      - 240
+      - 0.146
+      - 6.86 K
 
 Two standards written by different committees for different applications,
-adopting air flows per kilowatt that differ by a factor of 2.5, place their
+adopting air flows per kilowatt that differ by a factor of 2.4, place their
 product populations in the same band of conductance per unit duty. That
 agreement *between* the standards is the evidence. A regression *through* them
 would mean nothing: inside a single standard ``UA/Q`` and air flow are linked
@@ -179,7 +179,11 @@ The nameplate is the *indoor* coil's cooling duty; the outdoor coil rejects
 that duty plus the compressor work. A rule written against the nameplate has to
 carry ``1 + 1/EER`` explicitly — 1.29 to 1.35 across the reference units.
 Skipping it misses by about 30 %. Applying it to the condenser band gives
-``UA/Q_cool = 0.20``, that is ``hp_capacity / 5``.
+``UA/Q_cool = 0.19``, that is ``hp_capacity / 5``.
+
+Adding the second condenser manufacturer late in this work was a useful test of
+how settled that is: it moved the condenser median by 5 % and the rounded
+default not at all.
 
 The independent check
 ---------------------
@@ -208,8 +212,8 @@ to every quantity it had to declare rather than read.
 .. admonition:: How wide the band is, and what that costs you
     :class: warning
 
-    ``Q/5`` is a *median*. The population it came from spans ``UA/Q`` 0.114 to
-    0.240 at p10–p90 — about ``Q/4`` to ``Q/9`` — and that width is real
+    ``Q/5`` is a *median*. The population it came from spans ``UA/Q`` 0.108 to
+    0.230 at p10–p90 — about ``Q/4`` to ``Q/9`` — and that width is real
     hardware, not measurement noise. The validation set shows what it costs:
     backing the conductance out of each machine's own rating point, a
     high-efficiency Daikin split implies roughly ``Q/4.5`` and a budget Fujitsu

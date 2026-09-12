@@ -116,3 +116,8 @@ temp/
 # Playwright MCP screenshot cache (local browser-tool artefacts)
 # ===========================
 .playwright-mcp/
+
+# Evidence artefacts for validation. Page renders of copyrighted papers, publisher PDFs and
+# supplementary datasets are not redistributable, so the whole evidence tree stays local; the
+# tracked registry under validation/registry/ carries the provenance metadata that points at it.
+validation/evidence/

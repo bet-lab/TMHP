@@ -200,3 +200,53 @@ def test_en14825_trajectory_cop_rises_monotonically() -> None:
 
     for (lo_label, lo_cop), (hi_label, hi_cop) in zip(cops, cops[1:], strict=False):
         assert hi_cop > lo_cop, f"COP fell from point {lo_label} ({lo_cop:.2f}) to {hi_label} ({hi_cop:.2f})"
+
+
+def test_en14825_gradient_matches_the_certified_population() -> None:
+    """A→D gain must land inside what certified machines declare.
+
+    Monotonicity alone is weak: a trajectory that rises by 5 % from A to D
+    passes it and describes no real machine. The ratio ``COP(D)/COP(A)`` is the
+    part that separates a plausible part-load trend from a flat one, and the
+    Heat Pump Keymark declared rows give its distribution directly -- p10 2.02,
+    p90 3.13 over 9,062 low-temperature records (see
+    ``validation.analysis.en14825_trend``).
+    """
+    points = [("A", -7.0, 34.0, 0.88), ("D", 12.0, 24.0, 0.15)]
+    design_load = 6000.0
+    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32")
+
+    cop = {}
+    for label, t_outdoor, lwt, load_ratio in points:
+        result = model.analyze_steady(
+            T_tank_w=lwt - 2.5, T0=t_outdoor, Q_ref_tank=design_load * load_ratio, return_dict=True
+        )
+        assert isinstance(result, dict)
+        assert result.get("failure_reason", "none") == "none", label
+        cop[label] = float(result["cop_sys [-]"])
+
+    gradient = cop["D"] / cop["A"]
+    assert 2.02 <= gradient <= 3.13, f"COP(D)/COP(A) = {gradient:.2f}, outside the certified p10-p90 of 2.02-3.13"
+
+
+def test_outdoor_fan_turndown_bound_is_where_the_documentation_says() -> None:
+    """The part-load pages attribute the sub-floor drop to this one number.
+
+    ``calc_HX_perf_for_target_heat`` lets the outdoor fan turn down to 5 % of
+    rated flow, and below the compressor speed floor the model uses that range
+    as its capacity-modulation handle -- which is why the modelled curve below
+    roughly 30 % of nominal is documented as not validated. The bound carries no
+    source; this test exists so that raising it is a deliberate act with the
+    documentation updated alongside, rather than a silent change to a published
+    limitation.
+    """
+    import inspect
+
+    from tmhp.enex_functions import calc_HX_perf_for_target_heat
+
+    source = inspect.getsource(calc_HX_perf_for_target_heat)
+    assert "dV_fan_rated * 0.05" in source, (
+        "the outdoor-fan turndown bound moved; validation/part-load.rst and "
+        "validation/defaults.rst both quote 5 % of rated flow and the air-side "
+        "temperature drop it produces"
+    )

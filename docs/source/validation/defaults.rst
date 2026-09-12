@@ -395,6 +395,128 @@ No low-load cliff. See :doc:`part-load` for why inventing one would contradict
 the measurements, and for what TMHP does and does not model at light load.
 
 
+Does the coefficient set survive both tests?
+--------------------------------------------
+
+The three correlations were derived from compressor measurements, not from heat
+pumps. Whether that derivation was worth anything is a separate question, and it
+has two halves that a single number cannot answer:
+
+* **Shape.** EN 14825 lowers the required duty and the flow temperature together
+  across four test points, and Heat Pump Keymark publishes what real machines
+  declare at each of them. A coefficient set can be checked against the
+  certified *population*.
+* **Level.** A set can sit on the certified median and still miss every
+  individual machine. That is what the catalogue parity set answers.
+
+Four compressor descriptions were run through both, identically:
+
+.. figure:: ../_static/validation_en14825_verdict.svg
+    :alt: Three panels: EN 14825 trajectories for the low- and
+        medium-temperature applications against the Keymark band for four
+        compressor descriptions, and a plane placing each description against
+        catalogue parity error and distance from the certified median.
+    :align: center
+    :width: 100%
+
+    **(a, b)** The certified trajectory, low- and medium-temperature
+    application. **(c)** Both requirements at once. Lower is better on both
+    axes; neither axis alone picks a winner.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 30 16 14 14
+
+    * - Description
+      - What it is
+      - Parity MAPE
+      - Bias
+      - Distance from median
+
+    * - ``ideal``
+      - all three efficiencies pinned at 1.0 — what ASHP did before this work
+      - 47.8 %
+      - +47.8 %
+      - 52.5 %
+
+    * - ``constant``
+      - the same correlations frozen at their rated point, no speed dependence
+      - 12.1 %
+      - +6.8 %
+      - 15.2 %
+
+    * - ``absolute-speed``
+      - the measured shape anchored at absolute speed — the rejected variant
+      - 10.0 %
+      - +1.3 %
+      - 8.5 %
+
+    * - **``defaults``**
+      - **what TMHP ships**
+      - **7.4 %**
+      - **−1.8 %**
+      - **10.6 %**
+
+Parity figures are air-to-water, 153 points across eleven units; distance from
+median is the mean ``|COP / certified median − 1|`` over the eight declared test
+points.
+
+Three things to read off it.
+
+**The coefficients carry most of the model.** An ideal compressor is 48 % out on
+the catalogues and 52 % above the certified median. Removing only the speed
+dependence costs 4.7 points of MAPE. Neither of those is a small correction to a
+model that mostly works without them.
+
+**The shape passes, at every configuration.** Across fifteen combinations of
+capacity, refrigerant and sizing ratio, the modelled COP rises at every step A →
+D in all fifteen low-temperature runs, against 96.9 % of the 9,062 certified
+low-temperature records that do the same. The A-to-D gradient passes in all
+thirty runs: median 2.65 modelled against 2.63 certified.
+
+**The level sits about one decile high, and the sign is predicted.** Point by
+point on the low-temperature trajectory the model runs +14 %, +5 %, −2 % and
++15 % against the certified median. That direction is not a surprise and is not
+a coefficient error: certified COP is measured with defrost and, at the light
+points, with on/off cycling, and TMHP models neither. A model missing two losses
+that only ever reduce COP *should* sit above the certified median. What the
+comparison establishes is the size — single digits to fifteen percent, not tens.
+
+.. admonition:: Where ``absolute-speed`` looks better, and why it is still rejected
+    :class: note
+
+    The rejected variant sits closer to the certified median, 8.5 % against
+    10.6 %. It gets there by carrying an extra low-speed loss that has no source
+    — a loss which stands in for the defrost and cycling penalties TMHP does not
+    model. Against named machines measured at conditions where neither penalty
+    applies, the catalogue grids, the substitution shows: 10.0 % MAPE against
+    7.4 %.
+
+    Closer to a population centre for the wrong reason is not better. The
+    conclusion this page reports is the one the parity set supports.
+
+.. admonition:: One point on the medium-temperature trajectory is an artefact
+    :class: warning
+
+    At point C of the medium-temperature application the modelled COP drops to
+    77 % of the certified median while its neighbours sit at 104 % and 110 %.
+    **All four descriptions drop there together**, including the ideal
+    compressor, which is what says the drop belongs to none of them.
+
+    It is the outdoor-fan turndown described in :doc:`part-load`: the
+    compressor is at its speed floor, the model matches the remaining load by
+    starving the coil, and the fan reaches the unsourced 5 % bound in
+    :func:`tmhp.enex_functions.calc_HX_perf_for_target_heat`. That region is
+    recorded as not validated. It is excluded from the verdict above and does
+    not reach the catalogue parity set, where no evaluated point sits at the
+    minimum-speed clamp.
+
+Reproduce both halves with::
+
+    uv run python -m validation.analysis.en14825_trend
+    uv run python3 scripts/validation/en14825_verdict_figure.py
+
+
 Provenance
 ==========
 

@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-09-12T18:41:18.643617</dc:date>
+    <dc:date>2026-09-13T00:54:48.919456</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -328,13 +328,9 @@ L 222.476365 193.283406
 " style="fill: none; stroke: #000000; stroke-width: 0.3; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
    <g id="text_14">
-    <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; fill: #adb5bd" transform="translate(178.607408 175.50235)">compressor at</text>
-    <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; fill: #adb5bd" transform="translate(179.680846 182.19535)">its speed floor</text>
-   </g>
-   <g id="text_15">
     <text style="font-weight: 500; font-size: 11px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="17.066688" y="21.625955" transform="rotate(-0 17.066688 21.625955)">a</text>
    </g>
-   <g id="text_16">
+   <g id="text_15">
     <text style="font-size: 8px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="35.740295" y="22.794983" transform="rotate(-0 35.740295 22.794983)">Load falls, temperatures held</text>
    </g>
    <g id="line2d_26">
@@ -386,7 +382,7 @@ L 44.740295 34.194983
 L 50.740295 34.194983 
 " style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
     </g>
-    <g id="text_17">
+    <g id="text_16">
      <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="52.540295" y="36.294983" transform="rotate(-0 52.540295 36.294983)">air 7 °C, water 35 °C</text>
     </g>
     <g id="line2d_30">
@@ -395,7 +391,7 @@ L 44.740295 42.313733
 L 50.740295 42.313733 
 " style="fill: none; stroke: #fd7e14; stroke-width: 2; stroke-linecap: square"/>
     </g>
-    <g id="text_18">
+    <g id="text_17">
      <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="52.540295" y="44.413733" transform="rotate(-0 52.540295 44.413733)">air 7 °C, water 45 °C</text>
     </g>
     <g id="line2d_31">
@@ -404,13 +400,26 @@ L 44.740295 50.432483
 L 50.740295 50.432483 
 " style="fill: none; stroke: #339af0; stroke-width: 2; stroke-linecap: square"/>
     </g>
-    <g id="text_19">
+    <g id="text_18">
      <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="52.540295" y="52.532483" transform="rotate(-0 52.540295 52.532483)">air -7 °C, water 45 °C</text>
+    </g>
+    <g id="patch_6">
+     <path d="M 38.740295 67.910295 
+L 50.740295 67.910295 
+L 50.740295 63.710295 
+L 38.740295 63.710295 
+z
+" style="fill: #dee2e6; opacity: 0.35"/>
+    </g>
+    <g id="text_19">
+     <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif" transform="translate(52.540295 60.713108)">below the speed floor:</text>
+     <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif" transform="translate(52.540295 67.331858)">fan-turndown artefact,</text>
+     <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif" transform="translate(52.540295 73.950608)">not a part-load result</text>
     </g>
    </g>
   </g>
   <g id="axes_2">
-   <g id="patch_6">
+   <g id="patch_7">
     <path d="M 259.823579 193.283406 
 L 446.559649 193.283406 
 L 446.559649 28.794983 
@@ -653,12 +662,12 @@ L 347.377913 138.735304
 L 268.311582 171.492975 
 " clip-path="url(#pf6e750ed43)" style="fill: none; stroke-dasharray: 3,1.5; stroke-dashoffset: 0; stroke: #adb5bd"/>
    </g>
-   <g id="patch_7">
+   <g id="patch_8">
     <path d="M 259.823579 193.283406 
 L 259.823579 28.794983 
 " style="fill: none; stroke: #000000; stroke-width: 0.3; stroke-linejoin: miter; stroke-linecap: square"/>
    </g>
-   <g id="patch_8">
+   <g id="patch_9">
     <path d="M 259.823579 193.283406 
 L 446.559649 193.283406 
 " style="fill: none; stroke: #000000; stroke-width: 0.3; stroke-linejoin: miter; stroke-linecap: square"/>
@@ -689,7 +698,7 @@ L 438.071646 42.502351
 " clip-path="url(#pf6e750ed43)" style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
    </g>
    <g id="legend_2">
-    <g id="patch_9">
+    <g id="patch_10">
      <path d="M 262.823579 36.576233 
 L 274.823579 36.576233 
 L 274.823579 32.376233 
@@ -700,7 +709,7 @@ z
     <g id="text_40">
      <text style="font-weight: 300; font-size: 6px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="276.623579" y="36.576233" transform="rotate(-0 276.623579 36.576233)">Keymark p10–p90 (n = 9,062)</text>
     </g>
-    <g id="patch_10">
+    <g id="patch_11">
      <path d="M 262.823579 44.85342 
 L 274.823579 44.85342 
 L 274.823579 40.65342 

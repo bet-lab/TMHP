@@ -144,7 +144,7 @@ def main() -> None:
 
     axes[0].set_ylabel("Predicted COP [-]")
     out = static_path("validation_parity.svg").with_suffix("")
-    finalize(fig, out, mt="6%")
+    finalize(fig, out, mt="6%", formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")
     print(f"  {df.slug.nunique()} units, {len(df)} points, overall MAPE {df.abs_pct_error.mean():.1f} %")

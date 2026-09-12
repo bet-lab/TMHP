@@ -34,7 +34,13 @@ RESULTS_DIR = REPO_ROOT / "validation" / "results"
 SUMMARY_CSV = RESULTS_DIR / "summary.csv"
 
 
-def _build_model(catalog: Catalog):
+def _build_model(catalog: Catalog, overrides: dict | None = None):
+    """Build the model for a catalogue.
+
+    ``overrides`` exists for the coefficient ablation in
+    :mod:`validation.analysis.en14825_trend` and is empty on the shipped path,
+    so the published numbers are still produced with nothing touched.
+    """
     kwargs: dict = {
         "ref": catalog.refrigerant,
         "hp_capacity": catalog.nominal_capacity_kW * 1000.0,
@@ -46,12 +52,14 @@ def _build_model(catalog: Catalog):
     if catalog.model_class == "ASHPB":
         if published.get("rated_air_flow_m3_s"):
             kwargs["dV_fan_a_rated"] = float(published["rated_air_flow_m3_s"])
+        kwargs.update(overrides or {})
         return AirSourceHeatPumpBoiler(**kwargs)
 
     if published.get("rated_air_flow_m3_s"):
         kwargs["dV_ou_fan_a_rated"] = float(published["rated_air_flow_m3_s"])
     if published.get("rated_indoor_air_flow_m3_s"):
         kwargs["dV_iu_fan_a_rated"] = float(published["rated_indoor_air_flow_m3_s"])
+    kwargs.update(overrides or {})
     return AirSourceHeatPump(**kwargs)
 
 
@@ -79,8 +87,8 @@ def _run_point(model, catalog: Catalog, point: OperatingPoint) -> dict:
     return result
 
 
-def run_catalog(catalog: Catalog) -> pd.DataFrame:
-    model = _build_model(catalog)
+def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame:
+    model = _build_model(catalog, overrides)
     rows = []
     for point in catalog.points:
         result = _run_point(model, catalog, point)

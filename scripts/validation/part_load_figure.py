@@ -5,10 +5,19 @@ Two curves, because two different questions get confused with each other.
 **Panel (a) -- fixed temperatures.** Hold the source and sink where they are and
 take load away. COP rises, because the heat exchangers grow relative to the duty
 while the lift shrinks. It keeps rising until the compressor reaches its speed
-floor; below that the machine cannot follow the load any further and the curve
-turns over. That turnover is the minimum modulation limit, not the efficiency
-correlations -- the figure marks where the floor is reached so the reader can
-see which mechanism is acting.
+floor.
+
+Below that floor the curve falls away sharply, and the cause is *not* the
+efficiency correlations and not the speed floor on its own. Once the compressor
+can go no slower, the only handle the model has left for matching a smaller load
+is the outdoor fan, so it throttles the coil -- down to the 5 % of rated flow
+that ``calc_HX_perf_for_target_heat`` allows, which drives the air-side
+temperature drop to about 17 K and the evaporating temperature 20 K below
+ambient. No real outdoor fan turns down that far and no rated air coil runs that
+air-side drop: across the 1,414 catalogue coils inverted in
+``validation/extraction/`` the largest air-side drop observed is 7.7 K on the
+evaporator side. The region left of the shaded band is therefore a model
+artefact, flagged here rather than presented as a part-load result.
 
 **Panel (b) -- the certification trajectory.** EN 14825 lowers the flow
 temperature as it lowers the load, so its four test points are a different curve
@@ -154,18 +163,8 @@ def main() -> None:
         color=COLORS["band20"],
         alpha=0.35,
         linewidth=0,
-    )
-    # The x axis is inverted, so axes-fraction 0 is full load and 1 is zero
-    # load: the shaded floor region sits on the right-hand side.
-    ax.text(
-        0.97,
-        0.06,
-        "compressor at\nits speed floor",
-        transform=ax.transAxes,
-        fontsize=dm.fs(-2),
-        color=COLORS["muted"],
-        va="bottom",
-        ha="right",
+        edgecolor="none",
+        label="below the speed floor:\nfan-turndown artefact,\nnot a part-load result",
     )
     ax.set_xlabel("Part load of nominal capacity [-]")
     ax.set_ylabel("System COP [-]")
@@ -256,7 +255,7 @@ def main() -> None:
     panel_letter(ax, "b")
 
     out = static_path("validation_part_load.svg").with_suffix("")
-    finalize(fig, out, mt="6%")
+    finalize(fig, out, mt="6%", formats=("svg", "png"))
     plt.close(fig)
 
     print(f"wrote {out}.svg")

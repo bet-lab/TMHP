@@ -100,10 +100,39 @@ heat-exchanger reason alone. The low-speed compressor penalty eats into that
 rise but does not reverse it; the two roughly balance into a broad plateau
 between about 35 % and 50 % of nominal capacity.
 
-Below that the curve turns over — and it turns over because **the compressor
-has reached its speed floor**, not because of anything in the efficiency
-correlations. A test gates this claim: wherever the modelled COP falls
-materially below its peak, the compressor speed must equal ``rps_min``.
+Below that the curve turns over, and the efficiency correlations are not the
+cause: a test gates the claim that wherever the modelled COP falls materially
+below its peak, the compressor speed equals ``rps_min``.
+
+.. admonition:: The drop below the floor is a model artefact, not a part-load result
+    :class: warning
+
+    Reaching the speed floor is where the drop *starts*, but it is not what
+    makes it steep. Once the compressor can go no slower, the only handle the
+    model has left for matching a smaller load is the outdoor fan, and
+    :func:`tmhp.enex_functions.calc_HX_perf_for_target_heat` lets the fan turn
+    down to 5 % of rated flow. At air 7 °C and water 35 °C the model reaches
+    that limit at about 20 % of nominal capacity, running an air-side
+    temperature drop of 17.7 K and an evaporating temperature of −13 °C — a
+    20 K approach at a 7 °C ambient.
+
+    Neither number is physical. Across the 1,414 catalogue coils inverted in
+    ``validation/extraction/`` the largest air-side drop observed anywhere is
+    7.7 K on the evaporator side, and no outdoor fan on an inverter unit turns
+    down to a twentieth of its rated flow. The 5 % bound carries no source in
+    the code and none in this evidence base.
+
+    The consequence is bounded and stated rather than patched: **the modelled
+    part-load curve below roughly 30 % of nominal capacity is not validated**,
+    and the region is excluded from every claim on this page. It does not touch
+    the catalogue parity results — of 747 evaluated points not one sits at the
+    compressor's minimum-speed clamp — and it does not touch the EN 14825
+    low-temperature trajectory. It does reach the medium-temperature
+    trajectory at point C, which is shown and labelled in
+    :doc:`the coefficient verdict <defaults>`.
+
+    Fixing it needs a minimum fan turndown with evidence behind it, which this
+    evidence base does not yet contain. Recorded as open.
 
 Panel (b) — the certification trajectory
 ----------------------------------------

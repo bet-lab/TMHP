@@ -156,13 +156,17 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # Deliberately tiny UA so the inner HX optimisation cannot converge.
     # The model is expected to fall back to off-mode AND surface a
     # specific failure_reason so callers can branch on it.
-    # Tightened from 2000 to 200 W/K: with the capacity-derived default
-    # displacement the 2000 W/K case now converges, so it no longer exercises
-    # the fallback this test is about.
+    #
+    # The threshold is not arbitrary and should not be chased downward again
+    # (2000 -> 200 previously). A coil needs an approach of about Q/UA to move
+    # the heat, and the search offsets the saturation temperatures by at most
+    # ``dT_approach_bounds[1]`` = 20 K. So the case is genuinely unsolvable only
+    # once Q/UA exceeds that bound: measured, 200 W/K (15 K) converges and
+    # 120 W/K (25 K) does not. 50 W/K asks for 60 K, well clear of the boundary.
     ashp = AirSourceHeatPump(
         ref="R32",
-        UA_iu_rated=200.0,
-        UA_ou_rated=200.0,
+        UA_iu_rated=50.0,
+        UA_ou_rated=50.0,
         dV_iu_fan_a_design=0.5,
         dV_ou_fan_a_design=0.5,
         A_cross_iu=0.5,

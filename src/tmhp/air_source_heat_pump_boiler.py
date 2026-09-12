@@ -52,6 +52,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
+from .compressor_efficiency import eta_em_default, eta_isen_default, eta_vol_default
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -169,13 +170,11 @@ class AirSourceHeatPumpBoiler:
     ):
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
-        if eta_cmp is None:
-            eta_cmp = (
-                eta_cmp_electro_mech
-                if eta_cmp_electro_mech is not None
-                else lambda r_p, rps: 0.80 - 3.0e-5 * (rps - 55.0) ** 2
+            V_cmp_ref = (
+                V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref)
             )
+        if eta_cmp is None:
+            eta_cmp = eta_cmp_electro_mech if eta_cmp_electro_mech is not None else eta_em_default
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
         if UA_ou_rated is None:
@@ -206,17 +205,19 @@ class AirSourceHeatPumpBoiler:
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
 
-        # Isentropic Efficiency
+        # Compressor efficiencies. The three defaults and the evidence behind
+        # each live in `compressor_efficiency`; they are shared by every model
+        # so that the library default and the published validation script can
+        # no longer drift apart.
         if eta_cmp_isen is not None:
             self.eta_cmp_isen: float | Callable = eta_cmp_isen
         else:
-            self.eta_cmp_isen = lambda r_p: 0.90 - 0.02 * r_p
+            self.eta_cmp_isen = eta_isen_default
 
-        # Volumetric Efficiency
         if eta_cmp_vol is not None:
             self.eta_cmp_vol: float | Callable = eta_cmp_vol
         else:
-            self.eta_cmp_vol = lambda r_p: 1.0 - 0.020 * (r_p - 1.0)
+            self.eta_cmp_vol = eta_vol_default
 
         self.eta_cmp: float | Callable = eta_cmp
 
@@ -238,17 +239,35 @@ class AirSourceHeatPumpBoiler:
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
-        # If not explicitly provided, scale the condenser UA with rated heating capacity
-        # to give a 5 K condensing approach at the rated point. This is the common rule
-        # used by the validation manuscript and the Panasonic rule set in equipment_presets.py.
+        # Refrigerant-to-tank conductance per watt of rated heating capacity.
+        # `hp_capacity / 5` is a 5 K equivalent LMTD at the rating point, and
+        # the equality of the LMTD and effectiveness-NTU descriptions for a
+        # condensing coil means the same number applies whether the tank branch
+        # is running with flow (plate exchanger) or without (immersed coil).
+        #
+        # Deutz et al. (2018), doi:10.1016/j.ijrefrig.2018.05.022, publish a
+        # fitted tank-mantle conductance of 550 W/K for an air-source heat-pump
+        # water heater together with the compressor displacement, which puts
+        # that machine at UA/Q = 0.16-0.35 -- an equivalent LMTD of 2.9-6.2 K.
+        # The rule below sits inside that band.
+        #
+        # Known limitation: an immersed coil and an indirect plate exchanger
+        # currently share this one value even though their water-side film
+        # coefficients differ by nearly an order of magnitude.
         if UA_tank_hx is None:
             self.UA_tank_hx = hp_capacity / 5.0
         else:
             self.UA_tank_hx = UA_tank_hx
 
-        # The condenser rejects the evaporator load plus compressor work, so the
-        # evaporator load is approximately (1 - 1 / COP) times the condenser load.
-        # Across the COP range considered by the validation manuscript, this is about 0.7.
+        # The condenser rejects the evaporator duty plus the compressor work,
+        # so the duty ratio is `1 - 1/COP`, about 0.7 over the range the
+        # validation set covers (Jin & Spitler 2002 use the same component
+        # parameterisation). Strictly the conductance ratio is the duty ratio
+        # times the ratio of the two approach temperatures, so carrying the
+        # duty ratio across assumes the two are similar. The air-coil catalogue
+        # band measured in validation/extraction/ bears that out: the median
+        # equivalent LMTD of 352 EN 328 evaporator models is 5.3 K against the
+        # 5 K assumed on the tank side, which would correct 0.70 to 0.67.
         if UA_ou_rated is None:
             self.UA_ou_rated = self.UA_tank_hx * 0.7
         else:
@@ -257,9 +276,12 @@ class AirSourceHeatPumpBoiler:
         self.n_ou: float = n_ou
 
         # --- 3. Outdoor unit fan ---
-        # Default fan flow rate is scaled at 0.0002 m^3/s per W (or 720 CMH per kW),
-        # representing an optimal ratio of airflow volume to thermal capacity.
-        # This provides enough margin so that nominal optimization operates at ~80% fan ratio.
+        # 0.00015 m^3/s per W is 540 m^3/h per kW of rated heating capacity.
+        # The Panasonic Aquarea service manuals give 461 m^3/h per kW at the
+        # 9 kW size, so the default is that practice with margin, which keeps
+        # the nominal optimum near 80 % fan ratio rather than against the stop.
+        # (An earlier comment here claimed 0.0002; the code has always been
+        # 0.00015 and the code was right.)
         if dV_fan_a_rated is None:
             self.dV_fan_a_rated = hp_capacity * 0.00015
         else:

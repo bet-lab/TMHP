@@ -27,8 +27,13 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
+from .compressor_efficiency import eta_em_default, eta_isen_default, eta_vol_default
 from .compressor_envelope import check_pr_envelope
-from .compressor_speed import default_displacement, solve_compressor_speed
+from .compressor_speed import (
+    RATED_POINT_AIR_TO_AIR,
+    default_displacement,
+    solve_compressor_speed,
+)
 from .constants import c_a, rho_a
 from .enex_functions import (
     calc_fan_power_from_dV_fan,
@@ -108,9 +113,13 @@ class AirSourceHeatPump:
 
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            V_cmp_ref = (
+                V_disp_cmp
+                if V_disp_cmp is not None
+                else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
+            )
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else 0.855
+            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else eta_em_default
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -171,8 +180,17 @@ class AirSourceHeatPump:
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
-        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen
-        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol
+        # Until now these defaulted to None, which `_eval_eff` reads as 1.0 --
+        # an ideal compressor, with neither irreversible compression nor
+        # leakage. Every ASHP result produced that way was optimistic by the
+        # whole of both losses. They now default to the shared correlations in
+        # `compressor_efficiency`, the same ones the boiler models use.
+        self.eta_cmp_isen: float | Callable | None = (
+            eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
+        )
+        self.eta_cmp_vol: float | Callable | None = (
+            eta_cmp_vol if eta_cmp_vol is not None else eta_vol_default
+        )
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -189,11 +207,49 @@ class AirSourceHeatPump:
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
+        # Outdoor-coil conductance per watt of nameplate cooling capacity.
+        #
+        # Derived, not chosen. Air-coil catalogues rate an entire range at one
+        # declared condition, so inverting them gives conductance per unit duty
+        # that is comparable across capacities by construction -- and for a
+        # coil whose refrigerant side changes phase that inversion is an
+        # identity, with no parameter fitted. Two rating standards written by
+        # different committees for different applications (EN 328 SC2 for
+        # unit coolers, 352 models; ENV 327 for air-cooled condensers, 774
+        # models) place their populations in the same band of UA per unit duty,
+        # 0.11-0.24 W/K per W, although the air flow per kilowatt they adopt
+        # differs by a factor of 2.5.
+        #
+        # Converting the condenser band to the nameplate basis needs the factor
+        # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
+        # while the outdoor coil rejects that duty plus the compressor work
+        # (1.29-1.35 across the reference units). The result is
+        # UA/Q_cool = 0.20, i.e. `hp_capacity / 5`.
+        #
+        # An independent route -- computing the conductance straight from the
+        # outdoor-coil geometry that Trane prints for twelve Precedent packaged
+        # heat pumps, through the Wang/Chi/Chang (2000) plain-fin correlation
+        # and Schmidt fin efficiency -- gives Q/6.8 with a declared
+        # refrigerant-side film coefficient of 2500 W/(m^2 K) and Q/4.3 with
+        # that resistance removed, bracketing the value above. The two routes
+        # share neither inputs nor method.
+        #
+        # See validation/extraction/ua_transfer_law.py to regenerate all of it.
+        # Established for dry, round-tube-plate-fin coils; frosted operation,
+        # microchannel coils and residential mini-splits are outside the
+        # evidence and stated as such in the documentation.
         if UA_ou_rated is None:
-            self.UA_ou_rated = hp_capacity / 10.0
+            self.UA_ou_rated = hp_capacity / 5.0
         else:
             self.UA_ou_rated = UA_ou_rated
 
+        # Both faces are air coils sharing the same equivalent approach, so
+        # their conductance ratio is their duty ratio, `1 / (1 + 1/EER)`. That
+        # is 0.73-0.78 across the twelve reference units and 0.78-0.80 at the
+        # EER of current equipment, so 0.8 is derived rather than assumed.
+        # In cooling the indoor coil runs wet, which makes a sensible-basis UA
+        # an underestimate; the ratio rises above 0.8 when the latent load is
+        # large.
         if UA_iu_rated is None:
             self.UA_iu_rated = self.UA_ou_rated * 0.8
         else:
@@ -203,6 +259,11 @@ class AirSourceHeatPump:
         self.n_iu: float = n_iu
 
         # --- 3. Outdoor unit fan ---
+        # 0.0002 m^3/s per W is 720 m^3/h per kW of nameplate cooling capacity,
+        # which is the residential 1:1 split practice (Daikin RXM12WVJU9
+        # publishes 718). Packaged equipment moves roughly half that per
+        # kilowatt, so this default and the conductance rule above are anchored
+        # in different product classes -- see the documentation's defaults page.
         if dV_ou_fan_a_rated is None:
             self.dV_ou_fan_a_rated = hp_capacity * 0.0002
         else:

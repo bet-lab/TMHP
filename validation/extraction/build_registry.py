@@ -74,7 +74,39 @@ DESCRIBED = {
         used_by="cross-check",
         url="https://www.trane.com/",
     ),
-    "pdfs/elson_vehr_2006_icec1772.pdf": dict(
+    "catalogs/daikin_rxm_a_databook_eeden24.pdf": dict(
+    title="RXM-A engineering data book (pair application)", publisher="Daikin",
+    doc_id="EEDEN24-200",
+    rating="EN 14511; cooling and heating grids at nominal operating frequency",
+    used_by="daikin_grids -> validation/catalogs/daikin_rxm*.yaml",
+    url="https://www.daikin.eu/"),
+ "catalogs/fujitsu_asuh09lpas_dtm.pdf": dict(
+    title="ASUH/AOUH LPAS design & technical manual", publisher="Fujitsu General",
+    doc_id="-",
+    rating="capacity grids, SI blocks; heating grids at maximum capacity",
+    used_by="fujitsu_grids -> validation/catalogs/fujitsu_asuh*.yaml",
+    url="https://www.fujitsu-general.com/"),
+ "data/hplib/csv": dict(
+    title="Heat Pump Keymark declared performance records (hplib input/csv)",
+    publisher="Forschungszentrum Juelich (hplib), MIT licence",
+    doc_id="doi:10.5281/zenodo.5521597",
+    rating="EN 14825 average climate, test points A-D, low and medium application",
+    used_by="keymark_declared -> validation/data/keymark_en14825_summary.csv",
+    url="https://github.com/FZJ-IEK3-VSA/hplib"),
+ "pdfs/guth_atakan_2023_ijrefrig.pdf": dict(
+    title="Semi-empirical model of a variable speed scroll compressor for R-290",
+    publisher="Int. J. Refrigeration 146, 483-499", doc_id="doi:10.1016/j.ijrefrig.2022.10.024",
+    rating="-",
+    used_by="compressor_efficiency (Table A.3 electro-mechanical shape)",
+    url="https://doi.org/10.1016/j.ijrefrig.2022.10.024"),
+ "data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx": dict(
+    title="Inverter efficiency measurements, supplementary data mmc2",
+    publisher="Applied Thermal Engineering 233, 120725 (CC BY)",
+    doc_id="doi:10.1016/j.applthermaleng.2023.120725",
+    rating="drive efficiency vs output frequency, 15-110 Hz, three inverters",
+    used_by="compressor_speed_losses",
+    url="https://doi.org/10.1016/j.applthermaleng.2023.120725"),
+ "pdfs/elson_vehr_2006_icec1772.pdf": dict(
         title="Scroll compressor performance at low speed",
         publisher="Purdue ICEC",
         doc_id="ICEC 1772 (2006)",
@@ -99,6 +131,12 @@ DESCRIBED = {
         url="https://www.ehpa.org/",
     ),
 }
+
+
+# Bulk datasets are recorded as one aggregate row rather than one row per file.
+# The hplib export alone is 2,634 certificates; listing each would bury the
+# fifteen documents a reader actually needs to obtain.
+BULK_DIRS = {"data/hplib/csv": "Heat Pump Keymark certificates (hplib input/csv)"}
 
 
 def sha(p):
@@ -140,11 +178,32 @@ documents:
 
 lines = [header]
 described, undescribed = [], []
+bulk_counts: dict[str, tuple[int, int]] = {}
 for p in sorted(EV.rglob("*")):
     if not p.is_file():
         continue
     rel = str(p.relative_to(EV))
+    parent = next((d for d in BULK_DIRS if rel.startswith(d + "/")), None)
+    if parent:
+        count, size = bulk_counts.get(parent, (0, 0))
+        bulk_counts[parent] = (count + 1, size + p.stat().st_size)
+        continue
     (described if rel in DESCRIBED else undescribed).append((rel, p))
+
+for rel, d in ((r, DESCRIBED[r]) for r in DESCRIBED if r in BULK_DIRS):
+    count, size = bulk_counts.get(rel, (0, 0))
+    if not count:
+        continue
+    lines.append(f'  - path: {rel}/\n')
+    lines.append(f'    title: "{d["title"]}"\n')
+    lines.append(f'    publisher: "{d["publisher"]}"\n')
+    lines.append(f'    document_id: "{d["doc_id"]}"\n')
+    lines.append(f'    rating_condition: "{d["rating"]}"\n')
+    lines.append(f'    used_by: "{d["used_by"]}"\n')
+    lines.append(f'    obtain_from: "{d["obtain_from"] if "obtain_from" in d else d["url"]}"\n')
+    lines.append(f'    files: {count}\n')
+    lines.append(f'    bytes: {size}\n')
+    lines.append("\n")
 
 for rel, p in described:
     d = DESCRIBED[rel]

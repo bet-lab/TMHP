@@ -12,6 +12,16 @@
 # Regenerate with: uv run python -m validation.extraction.build_registry
 
 documents:
+  - path: data/hplib/csv/
+    title: "Heat Pump Keymark declared performance records (hplib input/csv)"
+    publisher: "Forschungszentrum Juelich (hplib), MIT licence"
+    document_id: "doi:10.5281/zenodo.5521597"
+    rating_condition: "EN 14825 average climate, test points A-D, low and medium application"
+    used_by: "keymark_declared -> validation/data/keymark_en14825_summary.csv"
+    obtain_from: "https://github.com/FZJ-IEK3-VSA/hplib"
+    files: 2634
+    bytes: 78663865
+
   - path: catalogs/alfalaval_tyrva_airsock_unit_coolers.pdf
     title: "TYR-A air sock unit coolers"
     publisher: "Alfa Laval"
@@ -22,6 +32,28 @@ documents:
     bytes: 1031982
     pages: 14
     sha256: "41dbfcdbdd5703c9dd4548b082af5bda9dab499f4027630e4bc9daf277074105"
+
+  - path: catalogs/daikin_rxm_a_databook_eeden24.pdf
+    title: "RXM-A engineering data book (pair application)"
+    publisher: "Daikin"
+    document_id: "EEDEN24-200"
+    rating_condition: "EN 14511; cooling and heating grids at nominal operating frequency"
+    used_by: "daikin_grids -> validation/catalogs/daikin_rxm*.yaml"
+    obtain_from: "https://www.daikin.eu/"
+    bytes: 3672544
+    pages: 48
+    sha256: "b5d85184f72d30aa57e85c7a7f9b47646ef8958ec7c35fceb556b777ad52bfd7"
+
+  - path: catalogs/fujitsu_asuh09lpas_dtm.pdf
+    title: "ASUH/AOUH LPAS design & technical manual"
+    publisher: "Fujitsu General"
+    document_id: "-"
+    rating_condition: "capacity grids, SI blocks; heating grids at maximum capacity"
+    used_by: "fujitsu_grids -> validation/catalogs/fujitsu_asuh*.yaml"
+    obtain_from: "https://www.fujitsu-general.com/"
+    bytes: 4046126
+    pages: 84
+    sha256: "48d4424a32cd31450abac288d35bbb5522f149955dba0a907446e1668ef3f4d2"
 
   - path: catalogs/gea_searle_coolers_condensing_units.pdf
     title: "Cooler and Condensing Unit Ranges"
@@ -100,6 +132,16 @@ documents:
     pages: 88
     sha256: "0b3acdaf9cb0e22dd6abab1f93bcf0a7bdf69ffdd5ba26674f2a43b071ea7f93"
 
+  - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx
+    title: "Inverter efficiency measurements, supplementary data mmc2"
+    publisher: "Applied Thermal Engineering 233, 120725 (CC BY)"
+    document_id: "doi:10.1016/j.applthermaleng.2023.120725"
+    rating_condition: "drive efficiency vs output frequency, 15-110 Hz, three inverters"
+    used_by: "compressor_speed_losses"
+    obtain_from: "https://doi.org/10.1016/j.applthermaleng.2023.120725"
+    bytes: 47698
+    sha256: "fcd5cf790dbfe30de4f6e94c8675397e0074e72204a618c82d46b47435748516"
+
   - path: pdfs/dk_energy_agency_scop_nef_en14825.pdf
     title: "SCOP / EN 14825 guidance"
     publisher: "Danish Energy Agency"
@@ -132,6 +174,17 @@ documents:
     bytes: 205732
     pages: 8
     sha256: "cb6204b73b672f415e6d9c8ecda054ced49bdd0a93a5e1997060c16502330a75"
+
+  - path: pdfs/guth_atakan_2023_ijrefrig.pdf
+    title: "Semi-empirical model of a variable speed scroll compressor for R-290"
+    publisher: "Int. J. Refrigeration 146, 483-499"
+    document_id: "doi:10.1016/j.ijrefrig.2022.10.024"
+    rating_condition: "-"
+    used_by: "compressor_efficiency (Table A.3 electro-mechanical shape)"
+    obtain_from: "https://doi.org/10.1016/j.ijrefrig.2022.10.024"
+    bytes: 2861417
+    pages: 17
+    sha256: "e0a8b09b764899f23651e020e6d418d87a6a817f3778ece2b8aa5b153e507b12"
 
 # Archived but not yet consumed by an extraction script. Listed so the
 # evidence tree stays auditable: a file with no reader is a file nobody
@@ -167,9 +220,6 @@ unused_archive:
   - path: catalogs/daikin_rxm18wvju9_spec.pdf
     bytes: 1969414
     sha256: "448dbccbda0ac5fdf647d64123315e83d75a6c538630f3b8afe1f951b2ef8bfe"
-  - path: catalogs/daikin_rxm_a_databook_eeden24.pdf
-    bytes: 3672544
-    sha256: "b5d85184f72d30aa57e85c7a7f9b47646ef8958ec7c35fceb556b777ad52bfd7"
   - path: catalogs/daikin_rxm_m_databook_eeden16.pdf
     bytes: 2732006
     sha256: "bcc42f3a6cd14f5f23806ec6ae2da67d1cf38a137906f3b0aec120c90cb7a410"
@@ -197,9 +247,6 @@ unused_archive:
   - path: catalogs/danfoss_vzh_gen3_088_117_170.pdf
     bytes: 4866322
     sha256: "7a4ee09960ab490c85348389d6ae91c68a6e585e21165a5a599db7c4b555d6df"
-  - path: catalogs/fujitsu_asuh09lpas_dtm.pdf
-    bytes: 4046126
-    sha256: "48d4424a32cd31450abac288d35bbb5522f149955dba0a907446e1668ef3f4d2"
   - path: catalogs/fujitsu_waterstage_superhp_dtm.pdf
     bytes: 6523777
     sha256: "d4a0010c409f9a60554d3adc2011816f6be1a72cde27b80e309da2a27a995831"
@@ -215,12 +262,12 @@ unused_archive:
   - path: data/aircoil_ua_alfalaval_tyra.csv
     bytes: 5279
     sha256: "df601ebf2f8543db25b5cae8df19e754949053dec1dde157d21ed9e1151e5cae"
+  - path: data/hplib/LICENSE
+    bytes: 1100
+    sha256: "ec1a20839361993ecae88db7ceb4dbd6588f7b8cd7304917137d5889a7900fe2"
   - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc1.xlsx
     bytes: 2113587
     sha256: "d95c69b8e45ebd66d531d1075d7a9706d812c29ac9a3b74af91b93c044aafae9"
-  - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx
-    bytes: 47698
-    sha256: "fcd5cf790dbfe30de4f6e94c8675397e0074e72204a618c82d46b47435748516"
   - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc3.xlsx
     bytes: 376163
     sha256: "8fb8229582a15f80a35f114b76f87101463451baa31e05f8eee682b931825978"

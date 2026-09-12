@@ -121,3 +121,8 @@ temp/
 # supplementary datasets are not redistributable, so the whole evidence tree stays local; the
 # tracked registry under validation/registry/ carries the provenance metadata that points at it.
 validation/evidence/
+
+# Regenerable intermediate: the per-model Keymark extraction (3+ MB). The
+# tracked summary beside it is what the documentation cites; rebuild this with
+# `uv run python -m validation.extraction.keymark_declared`.
+validation/data/keymark_en14825_declared.csv

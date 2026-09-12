@@ -1,0 +1,153 @@
+# ASUH12LPAS -- Fujitsu ASUH/AOUH LPAS, R-410A, 3.52 kW nominal cooling.
+#
+# One outdoor unit serving one indoor unit, which is the structure
+# `AirSourceHeatPump` models. This is the air-to-air set's second refrigerant:
+# without it that panel would be entirely R-32 and would say nothing about
+# whether the physics carries across working fluids.
+#
+# Parsed from the manual's SI tables rather than its imperial ones -- the same
+# numbers, with no unit conversion to get wrong.
+#
+# Heating points are taken at *maximum* capacity, as the manual states, so the
+# compressor sits near the top of its speed range throughout that half of the
+# grid. Cooling rows carry their sensible heat ratio; TMHP's indoor coil is a
+# dry sensible exchanger, so rows below SHR 0.95 ask it to carry a latent duty
+# it does not compute.
+#
+# No compressor displacement is published, so this unit exercises the derived
+# displacement rule rather than a specification input.
+slug: fujitsu_asuh12lpas
+name: ASUH12LPAS
+manufacturer: Fujitsu
+model_class: ASHP
+refrigerant: R410A
+nominal_capacity_kW: 3.52
+cop_definition: "TC / IP, total capacity over input power"
+source:
+  document: "Fujitsu General ASUH/AOUH LPAS design & technical manual (R-410A)"
+  table: "Section 4, capacity tables (SI blocks)"
+published_inputs:
+  rated_indoor_air_flow_m3_s: 0.2139
+points:
+  - {id: 1, t_source_C: -10.0, t_sink_C: 17.8, q_kW: 3.37, power_kW: 0.37, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 2, t_source_C: -10.0, t_sink_C: 21.1, q_kW: 3.69, power_kW: 0.38, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 3, t_source_C: -10.0, t_sink_C: 23.9, q_kW: 4.05, power_kW: 0.39, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 4, t_source_C: -10.0, t_sink_C: 26.7, q_kW: 4.17, power_kW: 0.39, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 5, t_source_C: -10.0, t_sink_C: 29.4, q_kW: 4.44, power_kW: 0.39, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 6, t_source_C: -10.0, t_sink_C: 32.2, q_kW: 4.74, power_kW: 0.40, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 7, t_source_C: -5.0, t_sink_C: 17.8, q_kW: 3.20, power_kW: 0.41, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 8, t_source_C: -5.0, t_sink_C: 21.1, q_kW: 3.50, power_kW: 0.42, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 9, t_source_C: -5.0, t_sink_C: 23.9, q_kW: 3.83, power_kW: 0.43, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 10, t_source_C: -5.0, t_sink_C: 26.7, q_kW: 3.95, power_kW: 0.43, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 11, t_source_C: -5.0, t_sink_C: 29.4, q_kW: 4.21, power_kW: 0.43, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 12, t_source_C: -5.0, t_sink_C: 32.2, q_kW: 4.49, power_kW: 0.44, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 13, t_source_C: 0.0, t_sink_C: 17.8, q_kW: 3.02, power_kW: 0.45, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 14, t_source_C: 0.0, t_sink_C: 21.1, q_kW: 3.31, power_kW: 0.46, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 15, t_source_C: 0.0, t_sink_C: 23.9, q_kW: 3.62, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 16, t_source_C: 0.0, t_sink_C: 26.7, q_kW: 3.73, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 17, t_source_C: 0.0, t_sink_C: 29.4, q_kW: 3.98, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 18, t_source_C: 0.0, t_sink_C: 32.2, q_kW: 4.24, power_kW: 0.48, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 19, t_source_C: 5.0, t_sink_C: 17.8, q_kW: 2.85, power_kW: 0.45, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 20, t_source_C: 5.0, t_sink_C: 21.1, q_kW: 3.11, power_kW: 0.46, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 21, t_source_C: 5.0, t_sink_C: 23.9, q_kW: 3.41, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 22, t_source_C: 5.0, t_sink_C: 26.7, q_kW: 3.52, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 23, t_source_C: 5.0, t_sink_C: 29.4, q_kW: 3.75, power_kW: 0.47, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 24, t_source_C: 5.0, t_sink_C: 32.2, q_kW: 4.00, power_kW: 0.48, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 25, t_source_C: 10.0, t_sink_C: 17.8, q_kW: 2.67, power_kW: 0.43, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 26, t_source_C: 10.0, t_sink_C: 21.1, q_kW: 2.92, power_kW: 0.44, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 27, t_source_C: 10.0, t_sink_C: 23.9, q_kW: 3.20, power_kW: 0.45, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 28, t_source_C: 10.0, t_sink_C: 26.7, q_kW: 3.30, power_kW: 0.45, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 29, t_source_C: 10.0, t_sink_C: 29.4, q_kW: 3.51, power_kW: 0.45, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 30, t_source_C: 10.0, t_sink_C: 32.2, q_kW: 3.75, power_kW: 0.46, mode: cooling, note: "SHR 0.69, wet coil"}
+  - {id: 31, t_source_C: 15.0, t_sink_C: 17.8, q_kW: 2.49, power_kW: 0.46, mode: cooling, note: "SHR 0.71, wet coil"}
+  - {id: 32, t_source_C: 15.0, t_sink_C: 21.1, q_kW: 2.73, power_kW: 0.47, mode: cooling, note: "SHR 0.71, wet coil"}
+  - {id: 33, t_source_C: 15.0, t_sink_C: 23.9, q_kW: 2.99, power_kW: 0.48, mode: cooling, note: "SHR 0.72, wet coil"}
+  - {id: 34, t_source_C: 15.0, t_sink_C: 26.7, q_kW: 3.08, power_kW: 0.48, mode: cooling, note: "SHR 0.71, wet coil"}
+  - {id: 35, t_source_C: 15.0, t_sink_C: 29.4, q_kW: 3.28, power_kW: 0.48, mode: cooling, note: "SHR 0.72, wet coil"}
+  - {id: 36, t_source_C: 15.0, t_sink_C: 32.2, q_kW: 3.50, power_kW: 0.49, mode: cooling, note: "SHR 0.71, wet coil"}
+  - {id: 37, t_source_C: 19.4, t_sink_C: 17.8, q_kW: 3.43, power_kW: 0.74, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 38, t_source_C: 19.4, t_sink_C: 21.1, q_kW: 3.75, power_kW: 0.75, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 39, t_source_C: 19.4, t_sink_C: 23.9, q_kW: 4.11, power_kW: 0.76, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 40, t_source_C: 19.4, t_sink_C: 26.7, q_kW: 4.24, power_kW: 0.77, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 41, t_source_C: 19.4, t_sink_C: 29.4, q_kW: 4.52, power_kW: 0.78, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 42, t_source_C: 19.4, t_sink_C: 32.2, q_kW: 4.82, power_kW: 0.79, mode: cooling, note: "SHR 0.61, wet coil"}
+  - {id: 43, t_source_C: 25.0, t_sink_C: 17.8, q_kW: 3.24, power_kW: 0.84, mode: cooling, note: "SHR 0.62, wet coil"}
+  - {id: 44, t_source_C: 25.0, t_sink_C: 21.1, q_kW: 3.54, power_kW: 0.85, mode: cooling, note: "SHR 0.62, wet coil"}
+  - {id: 45, t_source_C: 25.0, t_sink_C: 23.9, q_kW: 3.88, power_kW: 0.87, mode: cooling, note: "SHR 0.63, wet coil"}
+  - {id: 46, t_source_C: 25.0, t_sink_C: 26.7, q_kW: 4.00, power_kW: 0.88, mode: cooling, note: "SHR 0.62, wet coil"}
+  - {id: 47, t_source_C: 25.0, t_sink_C: 29.4, q_kW: 4.26, power_kW: 0.89, mode: cooling, note: "SHR 0.63, wet coil"}
+  - {id: 48, t_source_C: 25.0, t_sink_C: 32.2, q_kW: 4.54, power_kW: 0.89, mode: cooling, note: "SHR 0.63, wet coil"}
+  - {id: 49, t_source_C: 30.6, t_sink_C: 17.8, q_kW: 3.04, power_kW: 0.94, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 50, t_source_C: 30.6, t_sink_C: 21.1, q_kW: 3.33, power_kW: 0.95, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 51, t_source_C: 30.6, t_sink_C: 23.9, q_kW: 3.65, power_kW: 0.97, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 52, t_source_C: 30.6, t_sink_C: 26.7, q_kW: 3.76, power_kW: 0.98, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 53, t_source_C: 30.6, t_sink_C: 29.4, q_kW: 4.00, power_kW: 0.99, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 54, t_source_C: 30.6, t_sink_C: 32.2, q_kW: 4.27, power_kW: 1.00, mode: cooling, note: "SHR 0.64, wet coil"}
+  - {id: 55, t_source_C: 35.0, t_sink_C: 17.8, q_kW: 2.85, power_kW: 1.05, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 56, t_source_C: 35.0, t_sink_C: 21.1, q_kW: 3.11, power_kW: 1.06, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 57, t_source_C: 35.0, t_sink_C: 23.9, q_kW: 3.41, power_kW: 1.08, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 58, t_source_C: 35.0, t_sink_C: 26.7, q_kW: 3.52, power_kW: 1.09, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 59, t_source_C: 35.0, t_sink_C: 29.4, q_kW: 3.75, power_kW: 1.10, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 60, t_source_C: 35.0, t_sink_C: 32.2, q_kW: 4.00, power_kW: 1.11, mode: cooling, note: "SHR 0.66, wet coil"}
+  - {id: 61, t_source_C: 40.0, t_sink_C: 17.8, q_kW: 2.42, power_kW: 0.99, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 62, t_source_C: 40.0, t_sink_C: 21.1, q_kW: 2.65, power_kW: 1.00, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 63, t_source_C: 40.0, t_sink_C: 23.9, q_kW: 2.90, power_kW: 1.02, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 64, t_source_C: 40.0, t_sink_C: 26.7, q_kW: 2.99, power_kW: 1.03, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 65, t_source_C: 40.0, t_sink_C: 29.4, q_kW: 3.19, power_kW: 1.04, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 66, t_source_C: 40.0, t_sink_C: 32.2, q_kW: 3.40, power_kW: 1.05, mode: cooling, note: "SHR 0.74, wet coil"}
+  - {id: 67, t_source_C: 46.1, t_sink_C: 17.8, q_kW: 1.70, power_kW: 0.78, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 68, t_source_C: 46.1, t_sink_C: 21.1, q_kW: 1.86, power_kW: 0.79, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 69, t_source_C: 46.1, t_sink_C: 23.9, q_kW: 2.04, power_kW: 0.80, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 70, t_source_C: 46.1, t_sink_C: 26.7, q_kW: 2.10, power_kW: 0.81, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 71, t_source_C: 46.1, t_sink_C: 29.4, q_kW: 2.24, power_kW: 0.82, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 72, t_source_C: 46.1, t_sink_C: 32.2, q_kW: 2.39, power_kW: 0.83, mode: cooling, note: "SHR 0.85, wet coil"}
+  - {id: 73, t_source_C: -15.0, t_sink_C: 15.6, q_kW: 3.17, power_kW: 1.22, mode: heating, note: "maximum capacity"}
+  - {id: 74, t_source_C: -15.0, t_sink_C: 18.3, q_kW: 3.08, power_kW: 1.24, mode: heating, note: "maximum capacity"}
+  - {id: 75, t_source_C: -15.0, t_sink_C: 21.1, q_kW: 3.00, power_kW: 1.27, mode: heating, note: "maximum capacity"}
+  - {id: 76, t_source_C: -15.0, t_sink_C: 22.2, q_kW: 2.92, power_kW: 1.29, mode: heating, note: "maximum capacity"}
+  - {id: 77, t_source_C: -15.0, t_sink_C: 23.9, q_kW: 2.84, power_kW: 1.32, mode: heating, note: "maximum capacity"}
+  - {id: 78, t_source_C: -10.0, t_sink_C: 15.6, q_kW: 3.28, power_kW: 1.26, mode: heating, note: "maximum capacity"}
+  - {id: 79, t_source_C: -10.0, t_sink_C: 18.3, q_kW: 3.19, power_kW: 1.28, mode: heating, note: "maximum capacity"}
+  - {id: 80, t_source_C: -10.0, t_sink_C: 21.1, q_kW: 3.10, power_kW: 1.31, mode: heating, note: "maximum capacity"}
+  - {id: 81, t_source_C: -10.0, t_sink_C: 22.2, q_kW: 3.02, power_kW: 1.34, mode: heating, note: "maximum capacity"}
+  - {id: 82, t_source_C: -10.0, t_sink_C: 23.9, q_kW: 2.93, power_kW: 1.36, mode: heating, note: "maximum capacity"}
+  - {id: 83, t_source_C: -5.0, t_sink_C: 15.6, q_kW: 3.85, power_kW: 1.33, mode: heating, note: "maximum capacity"}
+  - {id: 84, t_source_C: -5.0, t_sink_C: 18.3, q_kW: 3.75, power_kW: 1.36, mode: heating, note: "maximum capacity"}
+  - {id: 85, t_source_C: -5.0, t_sink_C: 21.1, q_kW: 3.65, power_kW: 1.39, mode: heating, note: "maximum capacity"}
+  - {id: 86, t_source_C: -5.0, t_sink_C: 22.2, q_kW: 3.55, power_kW: 1.42, mode: heating, note: "maximum capacity"}
+  - {id: 87, t_source_C: -5.0, t_sink_C: 23.9, q_kW: 3.45, power_kW: 1.44, mode: heating, note: "maximum capacity"}
+  - {id: 88, t_source_C: 0.0, t_sink_C: 15.6, q_kW: 4.38, power_kW: 1.43, mode: heating, note: "maximum capacity"}
+  - {id: 89, t_source_C: 0.0, t_sink_C: 18.3, q_kW: 4.26, power_kW: 1.46, mode: heating, note: "maximum capacity"}
+  - {id: 90, t_source_C: 0.0, t_sink_C: 21.1, q_kW: 4.15, power_kW: 1.49, mode: heating, note: "maximum capacity"}
+  - {id: 91, t_source_C: 0.0, t_sink_C: 22.2, q_kW: 4.03, power_kW: 1.52, mode: heating, note: "maximum capacity"}
+  - {id: 92, t_source_C: 0.0, t_sink_C: 23.9, q_kW: 3.92, power_kW: 1.55, mode: heating, note: "maximum capacity"}
+  - {id: 93, t_source_C: 5.0, t_sink_C: 15.6, q_kW: 4.84, power_kW: 1.53, mode: heating, note: "maximum capacity"}
+  - {id: 94, t_source_C: 5.0, t_sink_C: 18.3, q_kW: 4.72, power_kW: 1.56, mode: heating, note: "maximum capacity"}
+  - {id: 95, t_source_C: 5.0, t_sink_C: 21.1, q_kW: 4.59, power_kW: 1.59, mode: heating, note: "maximum capacity"}
+  - {id: 96, t_source_C: 5.0, t_sink_C: 22.2, q_kW: 4.46, power_kW: 1.62, mode: heating, note: "maximum capacity"}
+  - {id: 97, t_source_C: 5.0, t_sink_C: 23.9, q_kW: 4.34, power_kW: 1.65, mode: heating, note: "maximum capacity"}
+  - {id: 98, t_source_C: 8.3, t_sink_C: 15.6, q_kW: 5.26, power_kW: 1.55, mode: heating, note: "maximum capacity"}
+  - {id: 99, t_source_C: 8.3, t_sink_C: 18.3, q_kW: 5.12, power_kW: 1.58, mode: heating, note: "maximum capacity"}
+  - {id: 100, t_source_C: 8.3, t_sink_C: 21.1, q_kW: 4.98, power_kW: 1.61, mode: heating, note: "maximum capacity"}
+  - {id: 101, t_source_C: 8.3, t_sink_C: 22.2, q_kW: 4.84, power_kW: 1.64, mode: heating, note: "maximum capacity"}
+  - {id: 102, t_source_C: 8.3, t_sink_C: 23.9, q_kW: 4.71, power_kW: 1.67, mode: heating, note: "maximum capacity"}
+  - {id: 103, t_source_C: 10.0, t_sink_C: 15.6, q_kW: 5.29, power_kW: 1.56, mode: heating, note: "maximum capacity"}
+  - {id: 104, t_source_C: 10.0, t_sink_C: 18.3, q_kW: 5.15, power_kW: 1.60, mode: heating, note: "maximum capacity"}
+  - {id: 105, t_source_C: 10.0, t_sink_C: 21.1, q_kW: 5.01, power_kW: 1.63, mode: heating, note: "maximum capacity"}
+  - {id: 106, t_source_C: 10.0, t_sink_C: 22.2, q_kW: 4.87, power_kW: 1.66, mode: heating, note: "maximum capacity"}
+  - {id: 107, t_source_C: 10.0, t_sink_C: 23.9, q_kW: 4.73, power_kW: 1.69, mode: heating, note: "maximum capacity"}
+  - {id: 108, t_source_C: 15.0, t_sink_C: 15.6, q_kW: 5.34, power_kW: 1.47, mode: heating, note: "maximum capacity"}
+  - {id: 109, t_source_C: 15.0, t_sink_C: 18.3, q_kW: 5.20, power_kW: 1.50, mode: heating, note: "maximum capacity"}
+  - {id: 110, t_source_C: 15.0, t_sink_C: 21.1, q_kW: 5.06, power_kW: 1.53, mode: heating, note: "maximum capacity"}
+  - {id: 111, t_source_C: 15.0, t_sink_C: 22.2, q_kW: 4.92, power_kW: 1.56, mode: heating, note: "maximum capacity"}
+  - {id: 112, t_source_C: 15.0, t_sink_C: 23.9, q_kW: 4.78, power_kW: 1.59, mode: heating, note: "maximum capacity"}
+  - {id: 113, t_source_C: 20.0, t_sink_C: 15.6, q_kW: 5.04, power_kW: 1.15, mode: heating, note: "maximum capacity"}
+  - {id: 114, t_source_C: 20.0, t_sink_C: 18.3, q_kW: 4.91, power_kW: 1.17, mode: heating, note: "maximum capacity"}
+  - {id: 115, t_source_C: 20.0, t_sink_C: 21.1, q_kW: 4.77, power_kW: 1.20, mode: heating, note: "maximum capacity"}
+  - {id: 116, t_source_C: 20.0, t_sink_C: 22.2, q_kW: 4.64, power_kW: 1.22, mode: heating, note: "maximum capacity"}
+  - {id: 117, t_source_C: 20.0, t_sink_C: 23.9, q_kW: 4.51, power_kW: 1.25, mode: heating, note: "maximum capacity"}
+  - {id: 118, t_source_C: 24.0, t_sink_C: 15.6, q_kW: 5.20, power_kW: 1.20, mode: heating, note: "maximum capacity"}
+  - {id: 119, t_source_C: 24.0, t_sink_C: 18.3, q_kW: 5.07, power_kW: 1.22, mode: heating, note: "maximum capacity"}
+  - {id: 120, t_source_C: 24.0, t_sink_C: 21.1, q_kW: 4.93, power_kW: 1.25, mode: heating, note: "maximum capacity"}
+  - {id: 121, t_source_C: 24.0, t_sink_C: 22.2, q_kW: 4.79, power_kW: 1.27, mode: heating, note: "maximum capacity"}
+  - {id: 122, t_source_C: 24.0, t_sink_C: 23.9, q_kW: 4.66, power_kW: 1.30, mode: heating, note: "maximum capacity"}

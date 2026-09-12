@@ -19,6 +19,7 @@ DATA_DIR = $(REPOROOT)/docs/source/_static/data
 WIDGET_DIR = $(REPOROOT)/docs/source/_static/widgets
 GLOSSARY_DATA_JSON = $(DATA_DIR)/glossary.json
 VALIDATION_DATA_JSON = $(DATA_DIR)/validation-points.json
+VALIDATION_SUMMARY_JSON = $(DATA_DIR)/validation-summary.json
 TIMESERIES_DATA_JSON = $(DATA_DIR)/timeseries-24h.json
 CYCLE_DATA_JSON = $(WIDGET_DIR)/cycle_data.json
 CYCLE_DATA_STAMP = $(WIDGET_DIR)/cycle_data.$(DOCS_DATA_PROFILE).stamp
@@ -26,10 +27,16 @@ DATA_TARGETS = \
 	$(GLOSSARY_DATA_JSON) \
 	$(CYCLE_DATA_JSON) \
 	$(VALIDATION_DATA_JSON) \
+	$(VALIDATION_SUMMARY_JSON) \
 	$(TIMESERIES_DATA_JSON)
 DATA_SCRIPT_SOURCES = $(wildcard $(REPOROOT)/scripts/data/*.py)
 TMHP_SOURCES = $(wildcard $(REPOROOT)/src/tmhp/*.py)
-VALIDATION_SOURCES = $(wildcard $(REPOROOT)/scripts/validation/*.py)
+# The site's validation data is now derived from the parity harness output
+# rather than recomputed here, so it depends on the results CSVs. Rerun
+# `uv run python -m validation.parity.run` after adding or editing a
+# catalogue; the docs build picks the new numbers up from validation/results/.
+VALIDATION_SOURCES = $(wildcard $(REPOROOT)/scripts/validation/*.py) \
+                     $(wildcard $(REPOROOT)/validation/results/*.csv)
 
 data: $(DATA_TARGETS)
 
@@ -48,6 +55,9 @@ $(CYCLE_DATA_STAMP): $(REPOROOT)/scripts/data/gen_refrigerant_data.py $(REPOROOT
 	cd "$(REPOROOT)" && $(PYTHON) -m scripts.data.gen_refrigerant_data --profile "$(DOCS_DATA_PROFILE)" "$@.tmp.json"
 	mv "$@.tmp.json" "$(CYCLE_DATA_JSON)"
 	touch "$@"
+
+$(VALIDATION_SUMMARY_JSON): $(VALIDATION_DATA_JSON)
+	@:
 
 $(VALIDATION_DATA_JSON): $(REPOROOT)/scripts/data/gen_validation_data.py $(REPOROOT)/scripts/data/_common.py $(VALIDATION_SOURCES) $(TMHP_SOURCES)
 	cd "$(REPOROOT)" && $(PYTHON) -m scripts.data.gen_validation_data

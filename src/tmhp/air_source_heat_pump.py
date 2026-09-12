@@ -20,6 +20,7 @@ import contextlib
 import inspect
 from collections.abc import Callable
 
+import CoolProp.CoolProp as CP
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
@@ -86,7 +87,15 @@ class AirSourceHeatPump:
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 5.0,
+        # 5.0 rejected ordinary cold-weather heating: a split unit lifting from
+        # -15 degC outdoor air to a 27 degC room runs at a pressure ratio near
+        # 7, and Daikin publishes performance down to -20 degC. The guard is a
+        # sanity bound, not a performance model, so it is set at the AC-scroll
+        # self-unload limit cited in `compressor_envelope` (~11:1) rather than
+        # below the equipment's own published envelope. The boiler models keep
+        # a looser 20 because high-temperature domestic hot water genuinely
+        # reaches that ratio through vapour injection.
+        PR_cycle_max: float = 11.0,
         # Compressor speed search bounds [rev/s]
         rps_min: float = 15.0,
         rps_max: float = 150.0,
@@ -418,6 +427,20 @@ class AirSourceHeatPump:
         # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
         # redundant and non-transferable across refrigerants/operating levels.
 
+        # The high end needs an explicit guard. A 2-D search over approach
+        # temperatures will probe the corners of its domain, and a condensing
+        # temperature at or above the refrigerant's critical point has no
+        # saturation state at all -- CoolProp raises rather than returning a
+        # number. R410A reaches that at 71.3 degC, which a wide condenser
+        # approach off a warm room clears easily. Report it as an infeasible
+        # operating point, which is what it is, so the optimiser sees the
+        # penalty sentinel and moves on instead of the whole run dying.
+        T_crit_K: float = CP.PropsSI("Tcrit", self.ref)
+        if T_cond_sat_K >= T_crit_K - self.dT_hx_min:
+            return None
+        if T_evap_sat_K >= T_cond_sat_K:
+            return None
+
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))
 
@@ -471,7 +494,6 @@ class AirSourceHeatPump:
             # Clamp: hold P_evap, project P_cond = PR_cycle_min * P_evap, invert
             # the saturation curve for the constrained condensing temperature,
             # then refresh the cycle state at the clamped condition.
-            import CoolProp.CoolProp as CP
 
             P_cond = self.PR_cycle_min * P_evap
             T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
@@ -494,7 +516,6 @@ class AirSourceHeatPump:
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
         try:
-            import CoolProp.CoolProp as CP
 
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
@@ -748,6 +769,18 @@ class AirSourceHeatPump:
             (5.0, 12.0),
             (12.0, 5.0),
             (10.0, 10.0),
+            # The grid has to span the bounds it is scanning. It previously
+            # stopped at 15 K while the optimiser was allowed out to 20 K, so
+            # any point whose only feasible basin needed a larger approach --
+            # a split unit asked for its maximum output, where the indoor coil
+            # runs a wide approach -- saw the sentinel at every candidate and
+            # had nowhere to descend from.
+            (18.0, 18.0),
+            (22.0, 15.0),
+            (15.0, 22.0),
+            (25.0, 20.0),
+            (20.0, 25.0),
+            (28.0, 28.0),
         ]
         best_x0 = [15.0, 15.0]
         best_val = 1e6
@@ -761,7 +794,14 @@ class AirSourceHeatPump:
         return minimize(
             _objective,
             x0=best_x0,
-            bounds=[(1.0, 20.0), (1.0, 20.0)],
+            # 20 K was too tight at the top. A room-air split unit evaporating
+            # at 5-8 degC into 27 degC air is running a 19-22 K approach at its
+            # rated point, and more than that at maximum output -- so the old
+            # ceiling cut off operating points the equipment publishes. This is
+            # the numerical search domain, not a physical parameter: the
+            # pressure-ratio envelope and `dT_hx_min` are what keep the
+            # solutions physical.
+            bounds=[(1.0, 30.0), (1.0, 30.0)],
             method="Nelder-Mead",
             options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
         )

@@ -163,13 +163,16 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # Deliberately tiny UA so the inner HX optimisation cannot converge.
     # The model is expected to fall back to off-mode AND surface a
     # specific failure_reason so callers can branch on it.
-    # Tightened from 2000 to 200 W/K: with the capacity-derived default
-    # displacement the 2000 W/K case now converges, so it no longer exercises
-    # the fallback this test is about.
+    # Tightened twice, both times because the model got better at finding a
+    # feasible point: 2000 -> 200 W/K when the displacement default became
+    # capacity-derived, then 200 -> 50 when the approach-temperature search
+    # domain was widened to cover what split units actually run. Each time the
+    # previous value started converging and stopped exercising the fallback
+    # this test is about.
     ashp = AirSourceHeatPump(
         ref="R32",
-        UA_iu_rated=200.0,
-        UA_ou_rated=200.0,
+        UA_iu_rated=50.0,
+        UA_ou_rated=50.0,
         dV_iu_fan_a_design=0.5,
         dV_ou_fan_a_design=0.5,
         A_cross_iu=0.5,
@@ -297,7 +300,12 @@ def test_ashp_custom_pr_and_rps():
 def test_ashp_default_pr_and_rps():
     ashp = AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0)
     assert ashp.PR_cycle_min == 1.5
-    assert ashp.PR_cycle_max == 5.0
+    # Raised from 5.0: a split unit lifting from -15 degC outdoor air to a warm
+    # room runs a pressure ratio near 7, and manufacturers publish performance
+    # down to -20 degC, so the old ceiling rejected ordinary cold-weather
+    # heating. 11 is the AC-scroll self-unload limit cited in
+    # `compressor_envelope`.
+    assert ashp.PR_cycle_max == 11.0
     assert ashp.rps_min == 15.0
     assert ashp.rps_max == 150.0
 

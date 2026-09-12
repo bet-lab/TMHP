@@ -1,0 +1,283 @@
+# Provenance registry for validation/evidence/
+#
+# The evidence tree itself is NOT tracked: publisher PDFs, page renders of
+# copyrighted papers and supplementary datasets are not redistributable. This
+# file is the tracked half -- it records what each document is, where to obtain
+# it, and the checksum of the copy the extraction scripts were run against.
+#
+# A reader who obtains the same document from the publisher and gets the same
+# sha256 is running on identical bytes, and every number under validation/data/
+# follows from those bytes by the scripts in validation/extraction/.
+#
+# Regenerate with: uv run python -m validation.extraction.build_registry
+
+documents:
+  - path: catalogs/alfalaval_tyrva_airsock_unit_coolers.pdf
+    title: "TYR-A air sock unit coolers"
+    publisher: "Alfa Laval"
+    document_id: "ERC00369EN-1112"
+    rating_condition: "EN 328 SC2 (R-404A, t0 -8 C, air 0 C, DT1 8 K, frosted)"
+    used_by: "en328_inversion"
+    obtain_from: "https://www.alfalaval.com/"
+    bytes: 1031982
+    pages: 14
+    sha256: "41dbfcdbdd5703c9dd4548b082af5bda9dab499f4027630e4bc9daf277074105"
+
+  - path: catalogs/gea_searle_coolers_condensing_units.pdf
+    title: "Cooler and Condensing Unit Ranges"
+    publisher: "GEA Searle"
+    document_id: "-"
+    rating_condition: "EN 328 SC2 (R-404A, t0 -8 C, air 0 C, DT1 8 K); series JG TEC NS KEC KMe KLe"
+    used_by: "en328_inversion"
+    obtain_from: "https://www.gea.com/"
+    bytes: 5947281
+    pages: 106
+    sha256: "fa970b5d1475ca38ce206ae8848f4c302fe9221ad54c7bff58b9947b33352f8c"
+
+  - path: catalogs/guntner_gacc_air_cooler_datasheet.pdf
+    title: "Cubic Compact GACC air coolers"
+    publisher: "Guentner"
+    document_id: "GACC"
+    rating_condition: "EN 328 SC2 (R-404A, t0 -8 C, DT1 8 K), 50 Hz and 60 Hz tables"
+    used_by: "en328_inversion"
+    obtain_from: "https://www.guentner.com/"
+    bytes: 728683
+    pages: 16
+    sha256: "461e68394d20d99afe90fb28ccfbbb1bb996e2dfc185c14bc7d2e0d358a545b0"
+
+  - path: catalogs/guntner_ghf_unit_coolers.pdf
+    title: "GHF.2 high-efficiency unit coolers"
+    publisher: "Guentner"
+    document_id: "GHF.2"
+    rating_condition: "EN 328 SC2 (R-404A, t0 -8 C, DT1 8 K)"
+    used_by: "en328_inversion"
+    obtain_from: "https://www.guentner.com/"
+    bytes: 910036
+    pages: 16
+    sha256: "82fe9596e090e1554d52c84b04f2a0d529456bddcac1b7e97553ffeb7ace1841"
+
+  - path: catalogs/luve_air_cooled_condensers.pdf
+    title: "Air-Cooled Condensers"
+    publisher: "LU-VE"
+    document_id: "-"
+    rating_condition: "ENV 327 (R-404A, air 25 C, condensing 40 C, DT1 15 K)"
+    used_by: "env327_inversion"
+    obtain_from: "https://www.luvegroup.com/"
+    bytes: 42492489
+    pages: 134
+    sha256: "8467eba6911bad8ce1766cc73bccb7100ba681f667c2a61f443ad5ebce9fc994"
+
+  - path: catalogs/trane_precedent_hp_2004_pkgp.pdf
+    title: "Packaged Heat Pumps (September 2004)"
+    publisher: "Trane"
+    document_id: "PKGP-PRC003-EN (09/04)"
+    rating_condition: "predecessor printing, cross-check only"
+    used_by: "cross-check"
+    obtain_from: "https://www.trane.com/"
+    bytes: 4027239
+    pages: 56
+    sha256: "47a94cc2ab17b783ed6e4d540503bc7edf68837ab32c5316d42a21a9913b1ec1"
+
+  - path: catalogs/trane_precedent_hp_pkgp_prc003.pdf
+    title: "Packaged Heat Pump Units Precedent 3-10 Tons"
+    publisher: "Trane"
+    document_id: "PKGP-PRC003-EN (05/06)"
+    rating_condition: "AHRI 210/240 or 340/360 cooling: 95 F ambient, 80/67 F entering; R-22"
+    used_by: "trane_geometry (Tables 1-3, outdoor coil geometry and fan flow)"
+    obtain_from: "https://www.trane.com/"
+    bytes: 3108986
+    pages: 60
+    sha256: "7ea492554de807054ba26ed3f1fdcaf39ab429451ddbad23e0927ff3670102dd"
+
+  - path: catalogs/trane_precedent_hp_wsc048_catalog.pdf
+    title: "Packaged Rooftop Air Conditioners Precedent - Heat Pump 3-10 Tons 60 Hz"
+    publisher: "Trane"
+    document_id: "PKGP-PRC013K-EN (02/16/2015)"
+    rating_condition: "AHRI cooling: 95 F ambient, 80/67 F entering; R-410A"
+    used_by: "trane_geometry (Tables 1-3, outdoor coil geometry and fan flow)"
+    obtain_from: "https://www.trane.com/"
+    bytes: 7174870
+    pages: 88
+    sha256: "0b3acdaf9cb0e22dd6abab1f93bcf0a7bdf69ffdd5ba26674f2a43b071ea7f93"
+
+  - path: pdfs/dk_energy_agency_scop_nef_en14825.pdf
+    title: "SCOP / EN 14825 guidance"
+    publisher: "Danish Energy Agency"
+    document_id: "-"
+    rating_condition: "EN 14825 test-point conditions (secondary source)"
+    used_by: "plr coordinate definition"
+    obtain_from: "https://ens.dk/"
+    bytes: 1161142
+    pages: 10
+    sha256: "00336af77ac006e6088c051824357e9983099d35b065578e14c8f24ff0e363cc"
+
+  - path: pdfs/ehpa_testreg_AA-HP_v1.3a_2021.pdf
+    title: "Heat Pump Keymark testing regulation, air-to-air"
+    publisher: "EHPA"
+    document_id: "TestReg AA-HP v1.3a (2021)"
+    rating_condition: "EN 14825 test-point conditions (secondary source)"
+    used_by: "plr coordinate definition"
+    obtain_from: "https://www.ehpa.org/"
+    bytes: 402704
+    pages: 12
+    sha256: "2d1f3075541df640de8030d5e95dabb4c1c8a8770f4743189df3a8fd009c5d00"
+
+  - path: pdfs/elson_vehr_2006_icec1772.pdf
+    title: "Scroll compressor performance at low speed"
+    publisher: "Purdue ICEC"
+    document_id: "ICEC 1772 (2006)"
+    rating_condition: "-"
+    used_by: "compressor efficiency evidence"
+    obtain_from: "https://docs.lib.purdue.edu/icec/"
+    bytes: 205732
+    pages: 8
+    sha256: "cb6204b73b672f415e6d9c8ecda054ced49bdd0a93a5e1997060c16502330a75"
+
+# Archived but not yet consumed by an extraction script. Listed so the
+# evidence tree stays auditable: a file with no reader is a file nobody
+# has checked.
+unused_archive:
+  - path: catalogs/alfalaval_acq504_condenser_spec.pdf
+    bytes: 3414057
+    sha256: "59a2559ae50950243e353f8378f9cf9e9abf9378f8ca05b7f88e1ee5a3279385"
+  - path: catalogs/alfalaval_bhe_catalog_2022.pdf
+    bytes: 1633594
+    sha256: "d413be4fe7cc2e5a94c76fae8e4dadc2a33cdb194601768d5d72f261144f701d"
+  - path: catalogs/alfalaval_bhe_catalog_2023.pdf
+    bytes: 1229015
+    sha256: "1ed814125103f6e4c26966b858a86b64dd84325eb90062ce44ad58644f4a5691"
+  - path: catalogs/alfalaval_selection_guide_air_liquid.pdf
+    bytes: 661374
+    sha256: "10ea7faa0eeba5e0447427962b40a35595d5eec58c7255d4f615d7332a9e9bbf"
+  - path: catalogs/bitzer_dv_dh_air_cooled_condenser.pdf
+    bytes: 409117
+    sha256: "5b84a5049f4f8f3b7b95fe819a37fa53b95d31cddf777ac5638188a1bc243d30"
+  - path: catalogs/carrier_50fffc_r454b_tds.pdf
+    bytes: 1602236
+    sha256: "e09ce732d1fcae957cc51dd8e131a640532d2ea465bbe54d803fa52c43952a72"
+  - path: catalogs/carrier_50hcq_03pd.pdf
+    bytes: 5629231
+    sha256: "72c09d2269bee08f068d30a65cc48cc830ce4da07d431d3b1a65cfbfbb31db40"
+  - path: catalogs/carrier_50hcq_product_data.pdf
+    bytes: 10795658
+    sha256: "859d4861924164e0c2b8cd1971d1c511365fd985efd61ccb2c7b498bbe13787a"
+  - path: catalogs/daikin_rxm12wvju9_spec.pdf
+    bytes: 1968624
+    sha256: "874444138e6d6073959f587ffd82dd24ec099b18f4066654f1b444091785cea0"
+  - path: catalogs/daikin_rxm18wvju9_spec.pdf
+    bytes: 1969414
+    sha256: "448dbccbda0ac5fdf647d64123315e83d75a6c538630f3b8afe1f951b2ef8bfe"
+  - path: catalogs/daikin_rxm_a_databook_eeden24.pdf
+    bytes: 3672544
+    sha256: "b5d85184f72d30aa57e85c7a7f9b47646ef8958ec7c35fceb556b777ad52bfd7"
+  - path: catalogs/daikin_rxm_m_databook_eeden16.pdf
+    bytes: 2732006
+    sha256: "bcc42f3a6cd14f5f23806ec6ae2da67d1cf38a137906f3b0aec120c90cb7a410"
+  - path: catalogs/daikin_rxm_w_edus042208a.pdf
+    bytes: 29760167
+    sha256: "37d99678b06e352e9782fba34d961ea3625fba0277c11ea0b51c81a8060645bb"
+  - path: catalogs/daikin_rzag_a_databook_eeden19b.pdf
+    bytes: 3294855
+    sha256: "8c70e3ef13468c06437e25ed6eb379831d317ca713663bd1264479f5f9d7dabb"
+  - path: catalogs/daikin_skyair_catalogue_professionals.pdf
+    bytes: 39131353
+    sha256: "95c1540c1f462034c2cb7bd13e507a21535f4f7ec2c49f775c3f48fc4ca53078"
+  - path: catalogs/daikin_sm_ctx_axvju_dama21003.pdf
+    bytes: 9630431
+    sha256: "3fe64f1196a726a75d3d3a1377f995b5cecb993ed508c683f06fcebdd1ba39b7"
+  - path: catalogs/daikin_sm_sl_series_r410a.pdf
+    bytes: 16732004
+    sha256: "e6e6a399789100209b2870ed67675e46426f406cf168eb749bfc147bfc57c4b5"
+  - path: catalogs/daikin_sm_vrv_rxq_aryfk.pdf
+    bytes: 20480079
+    sha256: "a0e5199a5b74df9fe6f035e1da8868158fb595e6c993f592e396cdd56999b5e8"
+  - path: catalogs/danfoss_vzh_028_035_044.pdf
+    bytes: 3698128
+    sha256: "f73427d3a7671227c4981d135c5a64b2ab1b4eee5ec7a91eb539fd6ae99408c0"
+  - path: catalogs/danfoss_vzh_gen3_088_117_170.pdf
+    bytes: 4866322
+    sha256: "7a4ee09960ab490c85348389d6ae91c68a6e585e21165a5a599db7c4b555d6df"
+  - path: catalogs/fujitsu_asuh09lpas_dtm.pdf
+    bytes: 4046126
+    sha256: "48d4424a32cd31450abac288d35bbb5522f149955dba0a907446e1668ef3f4d2"
+  - path: catalogs/fujitsu_waterstage_superhp_dtm.pdf
+    bytes: 6523777
+    sha256: "d4a0010c409f9a60554d3adc2011816f6be1a72cde27b80e309da2a27a995831"
+  - path: catalogs/guntner_adiabatic_air_coolers.pdf
+    bytes: 1023294
+    sha256: "acfc98caa644a727e9558a89058de221f18043d33e4f8a04a9f5996ebc8caf8a"
+  - path: catalogs/guntner_gacc_cx_040_selection_sheet.pdf
+    bytes: 8547745
+    sha256: "49c7ffdf5cccd8782190ce7e431621a8b64e46fd1fc80745487b0fa412eeee3b"
+  - path: catalogs/guntner_gvd_ggd_gfd_condenser.pdf
+    bytes: 1958835
+    sha256: "dbf5e05f828c0a0fe2a4099175dfcaa9fa6f0c84537bffa26d1e31d05cda3540"
+  - path: data/aircoil_ua_alfalaval_tyra.csv
+    bytes: 5279
+    sha256: "df601ebf2f8543db25b5cae8df19e754949053dec1dde157d21ed9e1151e5cae"
+  - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc1.xlsx
+    bytes: 2113587
+    sha256: "d95c69b8e45ebd66d531d1075d7a9706d812c29ac9a3b74af91b93c044aafae9"
+  - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx
+    bytes: 47698
+    sha256: "fcd5cf790dbfe30de4f6e94c8675397e0074e72204a618c82d46b47435748516"
+  - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc3.xlsx
+    bytes: 376163
+    sha256: "8fb8229582a15f80a35f114b76f87101463451baa31e05f8eee682b931825978"
+  - path: figures/aircoil_ua_scaling.png
+    bytes: 260379
+    sha256: "6aae17e0e212514921ad60a5a9bf3ebe45c821732c99e7cb0934ddd7a3634d1c"
+  - path: figures/aircoil_ua_scaling.svg
+    bytes: 73958
+    sha256: "f2cb97ce9699ac3ec992594797c6164e51550f98235ffa66fd8987fe68772390"
+  - path: screens/cuevas2009_p2_pumping_oil-02.png
+    bytes: 473805
+    sha256: "c3211353e8630b5ba10c3f5f107827a712145fa6209706efbc76de2b27279157"
+  - path: screens/cuevas2009_p5_lowspeed_leakage-05.png
+    bytes: 257320
+    sha256: "51674b2469488300c47808afee03d70074c4bc0c27f7f51bc1f39683af801879"
+  - path: screens/cuevas2009_p6_etav_75Hz_contrast-06.png
+    bytes: 241845
+    sha256: "7880e9054bc1fa0f1b613431bd5f9cc94a3669b75d42a9600db6f6888efc06fe"
+  - path: screens/elson2006_p3_speed_range-3.png
+    bytes: 357940
+    sha256: "a7305aa31cafb6395722ae0b7caf14c446ced1e93137cdfd6c88075ee81795a9"
+  - path: screens/elson2006_p6_fig4_5_etavol_vs_speed-7.png
+    bytes: 292111
+    sha256: "c7a781b2548cb86ddbaff572df13a8d09fb6be5b8be500a519651d103ca00a23"
+  - path: screens/en14825_dk_p4_partload_table-04.png
+    bytes: 291100
+    sha256: "8fb0de6f1f97282adda37b0ec2131251ce7c67090ddd77383f0ca2e27cde9c43"
+  - path: screens/en14825_dk_p9_annex1_testpoints-09.png
+    bytes: 202911
+    sha256: "0bcda35f8dc9939f2c91aefb5ecec52b1485b044ddde89fbff355ae04e80cd78"
+  - path: screens/en14825_ehpa_p6_table1_average-06.png
+    bytes: 243621
+    sha256: "ae35cf7904525071509902d2a4b8be89ea311a2aed90db131d98c1d7d3e2afb5"
+  - path: screens/guth2023_p488_eta_comp-06.png
+    bytes: 514702
+    sha256: "348a7fb85fe69c186d9329c5c7d18f6296d2a15d74b56e58d813942cf3bce478"
+  - path: screens/keymark_en14825_declared_cop_vs_plr.png
+    bytes: 335690
+    sha256: "cc4a2f9223b7bf4a56436ca2967c233c1182c5c588ad2fb51873b1dbc875e612"
+  - path: screens/lg_multiv_run060_cooling_combi_50-70.png
+    bytes: 773591
+    sha256: "7f259e42a895258fb0507d9eebe62c0da2218c457dcc7fc967cfc5ea6e3ea3c4"
+  - path: screens/lg_multiv_run060_cooling_combi_80-110.png
+    bytes: 743451
+    sha256: "1f407858d924b2d1eeaf4cc4e2921b7f2d9c7fd08b62b5b6fe0dfb4b438c736d"
+  - path: screens/ossorio2023_p1_abstract-01.png
+    bytes: 492109
+    sha256: "04e133bbe46558033712c4a04397ed19131e1f98cdfc215d321a1d33c0ac7f81"
+  - path: screens/ossorio2023_p3_test_matrix-03.png
+    bytes: 469063
+    sha256: "8cd8d622592dbf738d5b4ca3da4d6305df1e1148251f159d3c18c5701264d6a2"
+  - path: screens/ossorio2023_p4_lowspeed_lubrication-04.png
+    bytes: 488105
+    sha256: "676ec3ef7564c08237b2151f6884d4e1b2a4312fa05b4e1b296349e64c7cd9f8"
+  - path: screens/ossorio2023_p5_fig5_eta_vs_PR_speed-05.png
+    bytes: 354061
+    sha256: "54cc46546fe5d94abd907d217da877038d2a983f941c81445dbdfecf47e96305"
+  - path: screens/ossorio2023_p9_inverter_lowspeed-09.png
+    bytes: 412741
+    sha256: "a3641ab222d1994a9ef076688d2190887d6ef56dee7740a7b09c398131d71cd1"

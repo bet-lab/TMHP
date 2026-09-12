@@ -1,0 +1,171 @@
+"""L2/L3 (condenser side) -- invert ENV 327 air-cooled condenser catalogues.
+
+ENV 327 rates air-cooled condensers at R-404A, entering air 25 degC, condensing
+40 degC, hence ``DT1 = 15 K``. It is a different standard, written by a
+different committee for a different application than the EN 328 used on the
+evaporator side, and it adopts an air flow per kilowatt roughly 2.5 times
+smaller. If both populations nonetheless occupy the same band of conductance
+per unit duty, that band is a property of how air coils are built rather than
+an artefact of either rating rule.
+
+Why LU-VE
+---------
+LU-VE prints its ranges transposed -- one row per property, one column per
+model -- and the capacity row carries its own rating condition inline
+(``Capacity kW (DT 15K)``). The rating condition therefore sits directly above
+the data rather than in a distant footnote, which removes the column-drift
+failure mode that makes the row-per-model condenser tables risky to scrape.
+
+Run
+---
+``uv run python -m validation.extraction.env327_inversion``
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pandas as pd
+
+from ._inversion import invert
+from ._pdftext import EvidenceMissing, evidence_path, text_lines
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+OUT_CSV = REPO_ROOT / "validation" / "data" / "env327_condenser_inversion.csv"
+
+LUVE_PDF = "catalogs/luve_air_cooled_condensers.pdf"
+
+#: ENV 327 entering-air to condensing temperature difference.
+DT1_ENV327 = 15.0
+#: Entering air temperature at the ENV 327 point [degC].
+T_AIR_ENV327 = 25.0
+#: Air density at 25 degC, 101.325 kPa [kg/m^3].
+RHO_AIR_ENV327 = 1.1839
+
+_MODEL_ROW = re.compile(r"Modello\s+Type\s+(\S+)\s+(.*)$")
+_CAPACITY_ROW = re.compile(r"Capacity\s+kW\s*\(.?T\s*15\s*K\)\s*(.*)$")
+_FLOW_ROW = re.compile(r"Air\s+quantity\s+m3/h\s*(.*)$")
+_SURFACE_ROW = re.compile(r"External\s+surface\s+m2\s*(.*)$")
+
+_NUM = re.compile(r"^\d{1,3}(?:[.,]\d+)?$")
+
+
+def _numbers(blob: str) -> list[float]:
+    out = []
+    for tok in blob.split():
+        tok = tok.strip()
+        if re.fullmatch(r"\d+(?:[.,]\d+)?", tok):
+            out.append(float(tok.replace(",", ".")))
+    return out
+
+
+def parse_luve() -> list[dict]:
+    """Walk every page, pairing a model row with the rows that follow it."""
+    import pdfplumber
+
+    rows: list[dict] = []
+    anchored = False
+    with pdfplumber.open(evidence_path(LUVE_PDF)) as pdf:
+        n_pages = len(pdf.pages)
+    for page in range(n_pages):
+        lines = text_lines(LUVE_PDF, page)
+        family = None
+        models: list[str] = []
+        caps: list[float] = []
+        flows: list[float] = []
+        surfaces: list[float] = []
+        for line in lines:
+            m = _MODEL_ROW.search(line)
+            if m:
+                if family and models and caps and flows:
+                    rows.extend(_emit(family, models, caps, flows, surfaces))
+                    if family == "LMC3N" and models[:2] == ["1510", "1511"]:
+                        anchored = True
+                family, tail = m.group(1), m.group(2)
+                models = tail.split()
+                caps, flows, surfaces = [], [], []
+                continue
+            m = _CAPACITY_ROW.search(line)
+            if m and not caps:
+                caps = _numbers(m.group(1))
+                continue
+            m = _FLOW_ROW.search(line)
+            if m and not flows:
+                flows = [v for v in _numbers(m.group(1)) if v >= 500.0]
+                continue
+            m = _SURFACE_ROW.search(line)
+            if m and not surfaces:
+                surfaces = _numbers(m.group(1))
+        # Emit at end of page: the external-surface row is not printed for every
+        # range, so a block must not depend on it being present.
+        if family and models and caps and flows:
+            rows.extend(_emit(family, models, caps, flows, surfaces))
+            if family == "LMC3N" and models[:2] == ["1510", "1511"]:
+                anchored = True
+    assert anchored, "LU-VE anchor block not found: expected LMC3N 1510/1511 with 9,3/11 kW at 2700/2500 m3/h"
+    return rows
+
+
+def _emit(family: str, models: list[str], caps: list[float], flows: list[float], surfaces: list[float]) -> list[dict]:
+    n = min(len(models), len(caps), len(flows))
+    if n == 0:
+        return []
+    out = []
+    for i in range(n):
+        if not (1.0 <= caps[i] <= 3000.0 and 500.0 <= flows[i] <= 800000.0):
+            continue  # not a capacity/air-flow pair -- a stray number in the row
+        duty_w = caps[i] * 1000.0
+        flow_m3_s = flows[i] / 3600.0
+        surface = surfaces[i] if i < len(surfaces) else None
+        try:
+            inv = invert(duty_w, flow_m3_s, DT1_ENV327, rho=RHO_AIR_ENV327)
+        except ValueError:
+            continue  # effectiveness out of range -> column drift, drop the row
+        out.append(
+            {
+                "source": "LU-VE air-cooled condensers",
+                "series": family,
+                "model": f"{family} {models[i]}",
+                "Q_kW": caps[i],
+                "airflow_m3h": flows[i],
+                "surface_m2": surface,
+                "C_air_W_K": inv.c_air_w_k,
+                "eps": inv.eps,
+                "NTU": inv.ntu,
+                "UA_W_K": inv.ua_w_k,
+                "LMTD_K": inv.lmtd_k,
+                "UA_over_Q": inv.ua_over_q,
+                "airflow_m3h_per_kW": inv.flow_m3h_per_kw,
+                "U_W_m2K": (inv.ua_w_k / surface) if surface else None,
+            }
+        )
+    return out
+
+
+def main() -> None:
+    print("L2/L3 -- ENV 327 condenser practice (R-404A, air 25 degC, cond 40 degC, DT1 15 K)")
+    try:
+        rows = parse_luve()
+    except EvidenceMissing as exc:
+        print(f"  [skip] {exc}")
+        return
+    df = pd.DataFrame(rows).drop_duplicates(subset=["model", "Q_kW", "airflow_m3h"])
+    df.to_csv(OUT_CSV, index=False)
+    print(f"  LU-VE                    {len(df):4d} models ({df.series.nunique()} series)")
+    print()
+    print(f"  duty range       : {df.Q_kW.min():.1f} - {df.Q_kW.max():.1f} kW")
+    print(
+        f"  equivalent LMTD  : median {df.LMTD_K.median():.2f} K "
+        f"(p10 {df.LMTD_K.quantile(0.1):.2f}, p90 {df.LMTD_K.quantile(0.9):.2f})"
+    )
+    print(
+        f"  UA/Q             : median {df.UA_over_Q.median():.3f} "
+        f"(p10 {df.UA_over_Q.quantile(0.1):.3f}, p90 {df.UA_over_Q.quantile(0.9):.3f}) W/K per W"
+    )
+    print(f"  air flow per kW  : median {df.airflow_m3h_per_kW.median():.0f} m3/h")
+    print(f"  wrote {OUT_CSV.relative_to(REPO_ROOT)}")
+
+
+if __name__ == "__main__":
+    main()

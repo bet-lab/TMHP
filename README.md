@@ -331,7 +331,13 @@ Per-unit results, including every point the model could not evaluate and why, ar
 | Air-to-air, Daikin, 5 units | 9.1 % | +0.2 % | scatter, roughly centred |
 | Air-to-air, Fujitsu, 2 units | 33 % | **+33 %** | not scatter — a uniform offset |
 
-A bias equal to the error means a systematic cause, so it was chased down before publishing. The two air-to-air product lines are genuinely that far apart: nameplate cooling efficiency is **EER 5.21** for the Daikin FTXM25A and **EER 3.66** for the Fujitsu ASUH09LPAS — a 42 % gap between machines of the same size and era, confirmed against each manufacturer's own specification table. Backing the conductance out of each rating point, the Daikin implies about `Q/4.5` and the Fujitsu about `Q/7`, and **both sit inside the measured band** the default was derived from (`UA/Q` 0.108–0.230 at p10–p90, i.e. `Q/4` to `Q/9`).
+A bias equal to the error means a systematic cause, so it was chased down before publishing. It turned out to be **three** causes, and an earlier version of this README named only the first:
+
+1. **Residual hardware efficiency (~20 points).** At each machine's own nominal rating point Daikin lands 6–11 % low and Fujitsu 13–15 % high. Real, and the defaults' responsibility.
+2. **Dehumidification (cooling half).** TMHP's indoor coil is dry. A real machine removing moisture holds its coil below the dew point — far colder than a sensible-only coil needs — which costs lift and COP. The Fujitsu removes 34 % of its rating-point duty as latent heat (SHR 0.66) against the Daikin's 2 %.
+3. **Maximum-capacity tables (heating half).** Fujitsu publishes its heating grid at full compressor speed, where efficiency is worst; the model meets the same duty at half the speed range.
+
+Backing the conductance out of each rating point places them against the population the default came from — **`Q/3.3` to `Q/7.1`** at p10–p90 on the nameplate basis. All five Daikin units land inside (`Q/3.7`–`Q/6.0`); both Fujitsu units land just outside the low-conductance end (`Q/7.6`, `Q/8.5`), behaving like machines with less coil per kilowatt than 90 % of the component population.
 
 So the defaults describe a typical machine at the efficient end of current practice: within ~10 % on a high-efficiency unit, over-predicting by ~30 % on a budget product line. Modelling a specific machine whose efficiency you know? Pass `UA_ou_rated`.
 

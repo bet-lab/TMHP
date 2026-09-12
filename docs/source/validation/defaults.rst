@@ -212,17 +212,29 @@ to every quantity it had to declare rather than read.
 .. admonition:: How wide the band is, and what that costs you
     :class: warning
 
-    ``Q/5`` is a *median*. The population it came from spans ``UA/Q`` 0.108 to
-    0.230 at p10–p90 — about ``Q/4`` to ``Q/9`` — and that width is real
-    hardware, not measurement noise. The validation set shows what it costs:
-    backing the conductance out of each machine's own rating point, a
-    high-efficiency Daikin split implies roughly ``Q/4.5`` and a budget Fujitsu
-    split roughly ``Q/7``, and their nameplate efficiencies differ by 42 %.
+    ``Q/5`` is a *median*. On the nameplate basis the population it came from
+    spans **``Q/3.3`` to ``Q/7.1``** at p10–p90, and that width is real
+    hardware, not measurement noise.
+
+    The validation set shows what it costs. Backing the conductance out of each
+    machine's own rating point, the five Daikin splits imply ``Q/3.7`` to
+    ``Q/6.0`` — all inside — while the two Fujitsu splits imply ``Q/7.6`` and
+    ``Q/8.5``, just outside the low-conductance end. Their nameplate
+    efficiencies differ accordingly: EER 5.41 down to 3.23 across the seven.
 
     So a single vendor-neutral default describes a typical machine near the
     efficient end of current practice, and **will over-predict a
-    lower-efficiency product line by something like 30 %**. If you know the
-    machine, pass ``UA_ou_rated``. See :doc:`index` for the measured spread.
+    lower-efficiency product line**. If you know the machine, pass
+    ``UA_ou_rated``. :doc:`index` decomposes the rest of that residual, which
+    is not all conductance.
+
+    .. note::
+
+        Quote the band on the same basis as the rule. Component catalogues
+        report conductance per unit of *coil* duty (``UA/Q`` 0.108–0.230); the
+        rule is written against the *nameplate*, and the two differ by
+        ``1 + 1/EER`` = 1.307. An earlier version of this page carried the
+        median across but not the band.
 
 .. admonition:: Where this does not apply at all
     :class: warning

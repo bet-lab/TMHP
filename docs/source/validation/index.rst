@@ -116,35 +116,107 @@ distributed is the most useful thing on this page.
 A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.
 
-.. admonition:: The offset is real hardware, and it is the main limitation
+.. admonition:: The offset is three things, not one
     :class: important
 
-    The two air-to-air product lines are genuinely that far apart. Nameplate
-    cooling efficiency, from each manufacturer's own specification table:
+    An earlier version of this page attributed the whole gap to hardware
+    efficiency. That was one of three causes presented as the explanation, and
+    this is the correction. Comparing each machine at its own **nominal**
+    rating point -- no latent load, no forced maximum output, the cleanest
+    comparison available -- separates them.
 
-    - Daikin FTXM25A (2.5 kW): **EER 5.21 W/W**
-    - Fujitsu ASUH09LPAS (2.64 kW): **EER 3.66 W/W**
+    **① Residual hardware efficiency (~20 points).** At the nominal heating
+    rating point Daikin lands 6-11 % low and Fujitsu 13-15 % high. That part is
+    real and it is the defaults' responsibility: the two product lines are
+    built to different efficiency targets and a rule written per kilowatt
+    cannot tell which one it is looking at.
 
-    A 42 % difference between machines of the same size and the same era. The
-    Fujitsu capacity tables agree with its own nameplate, so this is the
-    equipment, not a transcription error.
+    **② Dehumidification, cooling half.** TMHP's indoor coil is a dry sensible
+    exchanger. A real machine removing moisture must hold its coil below the
+    dew point, far colder than a sensible-only coil needs to move the same
+    total heat — and a colder coil means more lift and less COP. At its rating
+    point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
+    against the Daikin's 2 % (SHR 0.98). Within the Daikin set alone, bias
+    correlates with sensible heat ratio at *r* = −0.52.
 
-    TMHP's default conductance predicts EER 4.78 for the Daikin (8 % low) and
-    4.50 for the Fujitsu (23 % high). Backing the conductance out of each
-    machine's rating point, the Daikin implies roughly ``Q/4.5`` and the
-    Fujitsu roughly ``Q/7``.
+    **③ Maximum-capacity tables, heating half.** Fujitsu's heating grid is
+    published at maximum capacity, with the compressor pinned at full speed
+    where its efficiency is worst. The harness asks for that same duty and the
+    model meets it at about half the available speed range. Different operating
+    point; the comparison flatters the model.
 
-    **Both are inside the measured band.** The component-catalogue population
-    that :doc:`the default was derived from <defaults>` spans ``UA/Q`` from
-    0.108 to 0.230 at p10–p90, which is about ``Q/4`` to ``Q/9``. The band is
-    wide because real hardware is wide. A single vendor-neutral default lands
-    somewhere in it and cannot be right for every machine in it.
+    Only ① is a property of the defaults. ② is a stated model boundary and ③ is
+    a property of the source document.
 
-    So: **the defaults describe a typical machine at the efficient end of
-    current practice.** On a high-efficiency unit they land within about
-    10 %; on a budget product line they will over-predict COP by something
-    like 30 %. If you are modelling a specific machine and its efficiency is
-    known, pass ``UA_ou_rated`` — that is what the argument is for.
+.. admonition:: Where each machine sits in the measured band
+    :class: note
+
+    Backing the conductance out of each machine's own rating point — "if the
+    whole residual were conductance, how much would it be?" — places each one
+    against the population the default came from.
+
+    .. list-table::
+        :header-rows: 1
+        :widths: 34 22 22 22
+
+        * - Unit
+          - Nameplate EER
+          - Implied rule
+          - In the band?
+        * - FTXM20A / RXM20A
+          - 5.41
+          - Q/3.7
+          - inside
+        * - FTXM25A / RXM25A
+          - 5.21
+          - Q/3.9
+          - inside
+        * - FTXM35A / RXM35A
+          - 4.61
+          - Q/4.2
+          - inside
+        * - FTXM42A / RXM42A
+          - 4.20
+          - Q/4.9
+          - inside
+        * - FTXM50A / RXM50A
+          - 3.68
+          - Q/6.0
+          - inside
+        * - ASUH09LPAS
+          - 3.67
+          - Q/7.6
+          - **outside**
+        * - ASUH12LPAS
+          - 3.23
+          - Q/8.5
+          - **outside**
+
+    The band is **Q/3.3 to Q/7.1** at p10–p90 of 1,414 component coils, on the
+    nameplate-capacity basis, and the default ``Q/5.0`` sits inside it. Every
+    Daikin unit is inside. Both Fujitsu units sit just outside the
+    low-conductance end: they behave like machines with less coil per kilowatt
+    than 90 % of the component population, which is exactly why a median
+    default over-predicts them.
+
+    .. note::
+
+        The band must be quoted on the same basis as the rule. Component
+        catalogues report conductance per unit of *coil* duty; the rule is
+        written against the *nameplate*, and the two differ by ``1 + 1/EER``
+        = 1.307. An earlier version of this page carried the median across but
+        not the band, which made the default look better placed in its own
+        population than it is.
+
+.. figure:: ../_static/validation_residuals.svg
+    :alt: Three panels: the conductance back-out per machine, those machines
+        placed against the 1,414-coil measured band, and model bias at each
+        machine's rating point sorted by nameplate EER.
+    :align: center
+    :width: 100%
+
+    Reproduce with ``uv run python -m validation.analysis.residual_decomposition``
+    and ``uv run python -m scripts.validation.residual_figure``.
 
 .. admonition:: Why the default was not moved
     :class: note

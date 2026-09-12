@@ -43,13 +43,13 @@ def test_ashpb_default_compressor_efficiencies():
     assert ashpb.eta_cmp_vol(4.0) == pytest.approx(0.94)
     assert ashpb.eta_cmp_isen(4.0) == pytest.approx(0.82)
     # Electro-mechanical efficiency now carries the measured speed shape of
-    # Guth & Atakan (2023) Table A.3 normalised at 50 rev/s, in place of the
-    # previous unsourced parabola `0.80 - 3e-5 (rps - 55)^2`. The declared
-    # level at the reference speed is unchanged at 0.80, and the shape peaks
-    # near 70 rev/s rather than 55.
-    assert ashpb.eta_cmp(4.0, 50.0) == pytest.approx(0.80)
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(0.8074141728436892)
-    assert ashpb.eta_cmp(4.0, 70.0) > ashpb.eta_cmp(4.0, 55.0)
+    # Guth & Atakan (2023) Table A.3 in place of the previous unsourced
+    # parabola `0.80 - 3e-5 (rps - 55)^2`. The shape is read in relative speed
+    # and peaks at the machine's own rated speed -- 40 rev/s for an
+    # air-to-water unit -- where the declared level is 0.80.
+    assert ashpb.eta_cmp(4.0, 40.0) == pytest.approx(0.80)
+    assert ashpb.eta_cmp(4.0, 20.0) < ashpb.eta_cmp(4.0, 40.0)
+    assert ashpb.eta_cmp(4.0, 80.0) < ashpb.eta_cmp(4.0, 40.0)
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():

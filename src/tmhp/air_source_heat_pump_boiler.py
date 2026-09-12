@@ -52,9 +52,13 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
-from .compressor_efficiency import eta_em_default, eta_isen_default, eta_vol_default
+from .compressor_efficiency import eta_isen_default, eta_vol_default, make_eta_em
 from .compressor_envelope import check_pr_envelope
-from .compressor_speed import default_displacement, solve_compressor_speed
+from .compressor_speed import (
+    RATED_POINT_AIR_TO_WATER,
+    default_displacement,
+    solve_compressor_speed,
+)
 from .constants import c_a, c_w, rho_a, rho_w
 from .dynamic_context import (
     ControlState,
@@ -174,7 +178,11 @@ class AirSourceHeatPumpBoiler:
                 V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref)
             )
         if eta_cmp is None:
-            eta_cmp = eta_cmp_electro_mech if eta_cmp_electro_mech is not None else eta_em_default
+            eta_cmp = (
+                eta_cmp_electro_mech
+                if eta_cmp_electro_mech is not None
+                else make_eta_em(RATED_POINT_AIR_TO_WATER.rps)
+            )
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
         if UA_ou_rated is None:

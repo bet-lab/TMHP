@@ -30,8 +30,8 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     # those numbers; it is the equality of the two branches that matters.
     baseline = {
         "Q_ref_tank [W]": 10000.0,
-        "E_cmp [W]": 3567.0998175392206,
-        "cop_ref [-]": 2.8033978614308985,
+        "E_cmp [W]": 3400.979416889858,
+        "cop_ref [-]": 2.940329468134459,
     }
     assert omitted["converged"] is True
     assert omitted["failure_reason"] == "none"

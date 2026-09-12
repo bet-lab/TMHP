@@ -57,8 +57,12 @@ Ossorio, R. & Navarro-Peris, E. (2023). The role of the inverter in the
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 __all__ = [
     "eta_isen_default",
+    "make_eta_em",
+    "relative_speed_shape_em",
     "eta_vol_default",
     "eta_em_default",
     "guth_eta_comp",
@@ -179,9 +183,14 @@ GUTH_PR_SHAPE = 2.5
 #: Evaporating temperature at which the shape is sampled [degC].
 GUTH_TEVAP_SHAPE = 0.0
 
-#: Electro-mechanical efficiency at :data:`RPS_REF`. Guth's own machine sits at
-#: 0.80-0.83 over the usable range, and the value the TMHP validation
-#: manuscript declares is 0.80, so the two agree without adjustment.
+#: Speed at which the Guth shape peaks [rev/s]. A drive and its motor are sized
+#: for the speed the machine is rated at, so the peak is read as *that*
+#: machine's design speed rather than as a universal constant.
+GUTH_PEAK_RPS = 70.0
+
+#: Electro-mechanical efficiency at the machine's own rated speed. Guth's
+#: compressor sits at 0.80-0.83 over its usable range, and the value the TMHP
+#: validation manuscript declares is 0.80, so the two agree without adjustment.
 ETA_EM_REF = 0.80
 
 
@@ -224,12 +233,46 @@ def speed_shape_em(rps: float) -> float:
     return numerator / denominator
 
 
-def eta_em_default(pressure_ratio: float, rps: float) -> float:
-    """Electro-mechanical efficiency at a pressure ratio and speed.
+def relative_speed_shape_em(speed_fraction: float) -> float:
+    """Electro-mechanical speed shape as a function of ``rps / rps_rated``.
 
-    The pressure ratio is accepted for signature compatibility with the other
-    correlations and is not used: the published speed dependence is taken at a
-    fixed representative lift, for the reason given on :data:`GUTH_PR_SHAPE`.
+    The measured shape peaks near 70 rev/s for the machine Guth & Atakan
+    tested. Carrying that peak across to another machine as an absolute speed
+    is the wrong transfer: a motor and its drive are wound and sized for the
+    speed the compressor is rated at, and the losses that make the shape --
+    fixed magnetising and friction losses below, flow and windage losses above
+    -- are smallest there. A 9 kW air-to-water unit rated near 40 rev/s would
+    otherwise sit permanently on the falling side of a curve drawn for a
+    machine rated near 70.
+
+    So the shape is read in relative speed and normalised to 1 at the rated
+    point. What transfers is the *curvature* -- how fast efficiency falls away
+    from the design speed -- which is the part a single machine's measurement
+    can reasonably be asked to supply.
     """
-    del pressure_ratio
-    return ETA_EM_REF * speed_shape_em(rps)
+    equivalent_rps = speed_fraction * GUTH_PEAK_RPS
+    clamped = min(max(equivalent_rps, RPS_FIT_MIN), RPS_FIT_MAX)
+    numerator = guth_eta_comp(GUTH_PR_SHAPE, clamped * 60.0, GUTH_TEVAP_SHAPE)
+    denominator = guth_eta_comp(GUTH_PR_SHAPE, GUTH_PEAK_RPS * 60.0, GUTH_TEVAP_SHAPE)
+    return numerator / denominator
+
+
+def make_eta_em(rps_rated: float) -> Callable[[float, float], float]:
+    """Electro-mechanical efficiency correlation for a machine rated at ``rps_rated``.
+
+    Returns ``eta(pressure_ratio, rps)``. The pressure ratio is accepted for
+    signature compatibility with the other correlations and is not used: the
+    published speed dependence is taken at a fixed representative lift, for the
+    reason given on :data:`GUTH_PR_SHAPE`.
+    """
+
+    def eta_em(pressure_ratio: float, rps: float) -> float:
+        del pressure_ratio
+        return ETA_EM_REF * relative_speed_shape_em(rps / rps_rated)
+
+    return eta_em
+
+
+#: Correlation for a machine rated at :data:`RPS_REF`, kept for callers that
+#: have no rated speed to hand.
+eta_em_default = make_eta_em(RPS_REF)

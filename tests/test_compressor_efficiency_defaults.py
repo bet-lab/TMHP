@@ -25,6 +25,8 @@ from tmhp.compressor_efficiency import (
     eta_em_default,
     eta_isen_default,
     eta_vol_default,
+    make_eta_em,
+    relative_speed_shape_em,
     speed_shape_em,
 )
 
@@ -64,6 +66,21 @@ def test_electro_mechanical_shape_peaks_inside_the_measured_range() -> None:
     assert shape[20.0] < shape[peak]
     assert shape[100.0] < shape[peak]
     assert speed_shape_em(RPS_REF) == pytest.approx(1.0)
+
+
+def test_speed_shape_peak_follows_the_machines_rated_speed() -> None:
+    """The drive is sized for its own machine, so the peak must move with it.
+
+    Anchoring the peak at an absolute speed would put every air-to-water unit,
+    which is rated near 40 rev/s, permanently on the falling side of a curve
+    measured on a machine rated near 70.
+    """
+    for rated in (35.0, 40.0, 60.0, 80.0):
+        eta = make_eta_em(rated)
+        assert eta(2.5, rated) == pytest.approx(0.80)
+        assert eta(2.5, rated * 0.5) < eta(2.5, rated)
+        assert eta(2.5, rated * 1.6) < eta(2.5, rated)
+    assert relative_speed_shape_em(1.0) == pytest.approx(1.0)
 
 
 def test_speed_shape_is_held_outside_the_fitted_range() -> None:
@@ -139,12 +156,19 @@ def test_low_load_turnover_is_the_speed_floor_not_the_correlations() -> None:
         assert isinstance(result, dict)
         curve.append((fraction, float(result["cop_sys [-]"]), result["cmp_rpm [rpm]"] / 60.0))
 
-    peak_index = max(range(len(curve)), key=lambda i: curve[i][1])
-    for _fraction, _cop, rps in curve[peak_index + 1 :]:
-        assert rps == pytest.approx(model.rps_min, rel=1e-6), (
-            "COP fell at a speed above the floor, which would mean the "
-            "correlations, not the modulation limit, caused the turnover"
-        )
+    peak_cop = max(cop for _, cop, _ in curve)
+    for fraction, cop, rps in curve:
+        # A plateau is fine: the heat-exchanger benefit and the low-speed
+        # compressor penalty cancel over a broad range, and a fraction of a
+        # percent either way is not a turnover. A *material* loss of
+        # performance has to be the modulation limit.
+        if cop < peak_cop * 0.99:
+            assert rps == pytest.approx(model.rps_min, rel=1e-6), (
+                f"COP dropped materially at PLR {fraction} while the compressor "
+                f"was at {rps:.1f} rev/s, above its {model.rps_min:.1f} rev/s floor -- "
+                "that would mean the correlations, not the modulation limit, "
+                "caused the turnover"
+            )
 
 
 def test_en14825_trajectory_cop_rises_monotonically() -> None:

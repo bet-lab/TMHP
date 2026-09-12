@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
-from .compressor_efficiency import eta_em_default, eta_isen_default, eta_vol_default
+from .compressor_efficiency import eta_isen_default, eta_vol_default, make_eta_em
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     RATED_POINT_AIR_TO_AIR,
@@ -119,7 +119,11 @@ class AirSourceHeatPump:
                 else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
             )
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else eta_em_default
+            eta_cmp = (
+                eta_cmp_mech
+                if eta_cmp_mech is not None
+                else make_eta_em(RATED_POINT_AIR_TO_AIR.rps)
+            )
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design

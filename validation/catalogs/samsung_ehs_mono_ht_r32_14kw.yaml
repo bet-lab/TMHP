@@ -1,0 +1,45 @@
+# Samsung EHS Mono HT Quiet R32 14 kW -- the unit the published validation
+# paper uses, kept here so the documented parity numbers come from the same
+# harness as every other unit.
+#
+# Two features of this machine matter when reading its errors. It is a
+# high-temperature unit that reaches 65 degC leaving water at -10 degC outdoor
+# air, which is a pressure ratio around 16 -- well past a single-stage
+# envelope, reached by vapour injection, which TMHP does not model. And no
+# compressor displacement is published for it, so this unit exercises the
+# derived displacement rule rather than a specification input. Both are
+# reasons to expect larger errors here than on the Panasonic units, and the
+# results are reported without adjusting for either.
+slug: samsung_ehs_mono_ht_r32_14kw
+name: Samsung EHS Mono HT Quiet R32 14 kW
+manufacturer: Samsung
+model_class: ASHPB
+refrigerant: R32
+nominal_capacity_kW: 14.0
+cop_definition: "Q_cond / (E_cmp + E_fan), heating"
+source:
+  document: "Samsung EHS Mono HT Quiet R32 Technical Data Book (2024)"
+  table: "Heating capacity and COP tables; reproduced as Table 1 of Jo & Choi, KJACR 2026"
+  url: "https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf"
+published_inputs: {}
+sink_offset_K: 2.5
+notes: >-
+  The paper applies a 2.5 K leaving-water-to-tank offset below 60 degC and
+  5 K above it. The harness carries a single offset, so the three 65 degC rows
+  are evaluated at 2.5 K, which makes them slightly harder rather than easier.
+points:
+  - {id: 1,  t_source_C: -10, t_sink_C: 40, q_kW: 13.45, cop: 2.30, mode: heating}
+  - {id: 2,  t_source_C: 2,   t_sink_C: 40, q_kW: 12.42, cop: 3.04, mode: heating}
+  - {id: 3,  t_source_C: 12,  t_sink_C: 40, q_kW: 14.65, cop: 5.07, mode: heating}
+  - {id: 4,  t_source_C: 20,  t_sink_C: 40, q_kW: 15.69, cop: 6.48, mode: heating}
+  - {id: 5,  t_source_C: 30,  t_sink_C: 40, q_kW: 16.98, cop: 7.68, mode: heating}
+  - {id: 6,  t_source_C: -10, t_sink_C: 50, q_kW: 13.89, cop: 2.00, mode: heating}
+  - {id: 7,  t_source_C: 2,   t_sink_C: 50, q_kW: 13.27, cop: 2.56, mode: heating}
+  - {id: 8,  t_source_C: 12,  t_sink_C: 50, q_kW: 14.76, cop: 3.86, mode: heating}
+  - {id: 9,  t_source_C: 20,  t_sink_C: 50, q_kW: 15.97, cop: 4.78, mode: heating}
+  - {id: 10, t_source_C: 30,  t_sink_C: 50, q_kW: 17.48, cop: 5.95, mode: heating}
+  - {id: 11, t_source_C: -10, t_sink_C: 65, q_kW: 13.97, cop: 1.73, mode: heating}
+  - {id: 12, t_source_C: 2,   t_sink_C: 65, q_kW: 13.71, cop: 2.04, mode: heating}
+  - {id: 13, t_source_C: 12,  t_sink_C: 65, q_kW: 16.38, cop: 2.84, mode: heating}
+  - {id: 14, t_source_C: 20,  t_sink_C: 65, q_kW: 17.48, cop: 3.34, mode: heating}
+  - {id: 15, t_source_C: 30,  t_sink_C: 65, q_kW: 18.84, cop: 4.04, mode: heating}

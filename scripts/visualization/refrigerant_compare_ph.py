@@ -23,7 +23,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
 
 REFRIGERANTS = ("R32", "R290", "R134a")
 T_TANK_W = 55.0
@@ -107,7 +107,7 @@ def main() -> None:
         ax.set_xlim(0, 750)
         ax.set_ylim(1e2, 1e4)
         ax.set_xlabel("Enthalpy [kJ/kg]")
-        ax.grid(True, which="both", alpha=0.25, linewidth=dm.lw(-2))
+        ax.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
 
     axes[0].set_ylabel("Pressure [kPa]")
 

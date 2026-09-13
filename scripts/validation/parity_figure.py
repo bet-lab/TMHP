@@ -23,7 +23,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
 
 RESULTS = REPO_ROOT / "validation" / "results"
 
@@ -78,7 +78,7 @@ def main() -> None:
                 s=_marker_size(group.nominal_kW),
                 color=REFRIGERANT_COLOR.get(refrigerant, COLORS["ink"]),
                 alpha=0.75,
-                linewidth=dm.lw(-2),
+                linewidth=HAIRLINE,
                 edgecolor="white",
                 zorder=4,
                 label=f"{refrigerant} ({group.nominal_kW.nunique()} sizes)",
@@ -100,9 +100,13 @@ def main() -> None:
             ax.annotate(
                 f"{' / '.join(names)}: {offset.mean():+.0f} %\n"
                 "a lower-efficiency product line,\nnot a refrigerant effect",
+                # Aim past the right edge of the text block. The old target sat
+                # underneath the annotation itself, so the arrow could only
+                # leave by crossing its own second line -- invisible while the
+                # width was dm.lw(-1) = 0, obvious once it was drawn.
                 xy=(
-                    float(worst.cop_target.quantile(0.55)),
-                    float(worst.cop_pred.quantile(0.75)),
+                    float(worst.cop_target.quantile(0.85)),
+                    float(worst.cop_pred.quantile(0.85)),
                 ),
                 xytext=(0.03, 0.74),
                 textcoords="axes fraction",
@@ -110,10 +114,14 @@ def main() -> None:
                 color=COLORS["ink"],
                 ha="left",
                 va="top",
+                # Without a patch to start from, the arrow is drawn from the
+                # text's centre and strikes through its own second line. An
+                # invisible box gives matplotlib something to shrink away from.
+                bbox={"boxstyle": "square,pad=0.35", "facecolor": "none", "edgecolor": "none"},
                 arrowprops={
                     "arrowstyle": "->",
                     "color": COLORS["muted"],
-                    "linewidth": dm.lw(-1),
+                    "linewidth": HAIRLINE,
                     "shrinkB": 6,
                 },
             )
@@ -137,7 +145,7 @@ def main() -> None:
         ax.set_ylim(lo, hi)
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlabel("Published COP [-]")
-        ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+        ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2), handletextpad=0.4)
         ax.set_title(title, loc="left", fontsize=dm.fs(0))
         panel_letter(ax, letter)

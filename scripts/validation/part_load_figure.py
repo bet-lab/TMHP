@@ -43,7 +43,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
 
 from tmhp import AirSourceHeatPumpBoiler  # noqa: E402
 
@@ -170,7 +170,7 @@ def main() -> None:
     ax.set_ylabel("System COP [-]")
     ax.set_xlim(0.0, 1.05)
     ax.invert_xaxis()
-    ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))
     ax.set_title("Load falls, temperatures held", loc="left", fontsize=dm.fs(0))
     panel_letter(ax, "a")
@@ -219,7 +219,7 @@ def main() -> None:
         color=COLORS["accent"],
         zorder=6,
         edgecolor="white",
-        linewidth=dm.lw(-2),
+        linewidth=HAIRLINE,
     )
     if not held.empty:
         # Open marker where the compressor is at its floor and the machine is
@@ -249,7 +249,7 @@ def main() -> None:
     ax.set_xlabel("Part load of design heating demand [-]")
     ax.set_ylabel("System COP [-]")
     ax.invert_xaxis()
-    ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))
     ax.set_title("Load and flow temperature fall together (EN 14825)", loc="left", fontsize=dm.fs(0))
     panel_letter(ax, "b")

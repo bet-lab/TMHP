@@ -23,7 +23,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
 
 REF = "R32"
 T_TANK_W = 60.0
@@ -126,7 +126,7 @@ def main() -> None:
     ax.set_ylim(-30, 160)
     ax.set_xlabel("Entropy [kJ/(kg·K)]")
     ax.set_ylabel("Temperature [°C]")
-    ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, ncol=3, fontsize=dm.fs(-1))
 
     out = static_path("mollier_ts_R32.svg").with_suffix("")

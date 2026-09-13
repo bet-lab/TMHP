@@ -25,7 +25,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60  # 1-minute step
@@ -153,7 +153,7 @@ def main() -> None:
     panel_letter(ax_c, "c", x=-0.06)
 
     for ax in (ax_t, ax_p, ax_c):
-        ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+        ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
 
     out = static_path("dynamic_24h_timeseries.svg").with_suffix("")
     finalize(fig, out, margin="3%")

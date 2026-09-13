@@ -34,8 +34,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
 from _dmpl_common import (  # noqa: E402
     COLORS,
-    GRIDLINE,
-    HAIRLINE,
     apply_style,
     finalize,
     static_path,
@@ -70,27 +68,17 @@ def main() -> None:
     ):
         q = frame.Q_kW.to_numpy(float)
         ua = frame.UA_W_K.to_numpy(float)
-        ax.scatter(q, ua, s=dm.fs(-2), c=colour, alpha=0.30, linewidths=0, label=f"{name} ({len(frame)})")
+        ax.scatter(q, ua, c=colour, alpha=0.30, linewidths=0, label=f"{name} ({len(frame)})")
         a, b, r2 = _fit(q, ua)
         span = np.array([q.min(), q.max()])
-        ax.plot(
-            span,
-            a * span**b,
-            "--",
-            color=colour,
-            lw=dm.lw(0.4),
-            zorder=4,
-            label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}",
-        )
+        ax.plot(span, a * span**b, "--", color=colour, zorder=4, label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}")
 
     ax.scatter(
         heatpump.Q_cond_kW,
         heatpump.UA_W_K,
-        s=dm.fs(6),
         c=COLORS["warm"],
         marker="D",
         edgecolors="white",
-        linewidths=HAIRLINE,
         zorder=6,
         label=f"Heat-pump outdoor coils · geometry ({len(heatpump)})",
     )
@@ -103,9 +91,8 @@ def main() -> None:
     ax.set_ylim(30.0, 6.0e5)
     ax.set_xticks([1.0, 1.0e1, 1.0e2, 1.0e3])
     ax.set_yticks([1.0e2, 1.0e3, 1.0e4, 1.0e5])
-    ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35, which="major")
-    ax.set_axisbelow(True)
-    ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-1.6), handletextpad=0.5, borderpad=0.2)
+    ax.grid(True)
+    ax.legend(loc="upper left")
 
     finalize(fig, static_path("ua_capacity_scaling.svg").with_suffix(""), formats=("svg", "png"))
 

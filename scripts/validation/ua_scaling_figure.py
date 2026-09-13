@@ -41,6 +41,19 @@ from _dmpl_common import (  # noqa: E402
 
 DATA = REPO_ROOT / "validation" / "data"
 
+#: A quarter of the preset's default marker area (``lines.markersize**2`` = 36).
+#: 1,414 points at the default size overlap into a solid mass and the spread
+#: inside each population stops being visible.
+MARKER_AREA = 9.0
+
+#: Outline weight for the hollow markers. The preset's ``lines.linewidth`` of
+#: 1.0 is a third of a 3 pt marker's diameter, which fills the ring back in.
+STROKE = 0.5
+
+#: Legend handles keep the original marker area, so the key stays readable at
+#: a size the data would not tolerate.
+LEGEND_MARKERSCALE = 2.0
+
 
 def _fit(q: np.ndarray, ua: np.ndarray) -> tuple[float, float, float]:
     """Least squares in log space: ``UA = a * Q**b``, with the R² of that fit."""
@@ -68,7 +81,15 @@ def main() -> None:
     ):
         q = frame.Q_kW.to_numpy(float)
         ua = frame.UA_W_K.to_numpy(float)
-        ax.scatter(q, ua, c=colour, alpha=0.30, linewidths=0, label=f"{name} ({len(frame)})")
+        ax.scatter(
+            q,
+            ua,
+            s=MARKER_AREA,
+            facecolors="none",
+            edgecolors=colour,
+            linewidths=STROKE,
+            label=f"{name} ({len(frame)})",
+        )
         a, b, r2 = _fit(q, ua)
         span = np.array([q.min(), q.max()])
         ax.plot(span, a * span**b, "--", color=colour, zorder=4, label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}")
@@ -76,9 +97,11 @@ def main() -> None:
     ax.scatter(
         heatpump.Q_cond_kW,
         heatpump.UA_W_K,
-        c=COLORS["warm"],
+        s=MARKER_AREA,
         marker="D",
-        edgecolors="white",
+        facecolors="none",
+        edgecolors=COLORS["warm"],
+        linewidths=STROKE,
         zorder=6,
         label=f"Heat-pump outdoor coils · geometry ({len(heatpump)})",
     )
@@ -92,7 +115,7 @@ def main() -> None:
     ax.set_xticks([1.0, 1.0e1, 1.0e2, 1.0e3])
     ax.set_yticks([1.0e2, 1.0e3, 1.0e4, 1.0e5])
     ax.grid(True)
-    ax.legend(loc="upper left")
+    ax.legend(loc="upper left", markerscale=LEGEND_MARKERSCALE)
 
     finalize(fig, static_path("ua_capacity_scaling.svg").with_suffix(""), formats=("svg", "png"))
 

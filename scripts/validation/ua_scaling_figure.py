@@ -5,12 +5,11 @@ that shape is only admissible if conductance is proportional to duty across
 the population. If the exponent were not one, every size would need its own
 number and no single divisor could exist.
 
-Three populations on one pair of axes: the two component rating standards the
-divisor was inverted from, and the twelve heat-pump outdoor coils computed
-from published geometry. Each catalogue population carries its own fit --
-pooling them tilts the exponent, because evaporators sit at low duty with a
-high conductance per kilowatt and condensers at high duty with a low one, so a
-single line through both measures the mixture rather than the scaling.
+Two populations on one pair of axes -- the component rating standards the
+divisor was inverted from. Each carries its own fit: pooling them tilts the
+exponent, because evaporators sit at low duty with a high conductance per
+kilowatt and condensers at high duty with a low one, so a single line through
+both measures the mixture rather than the scaling.
 
 Reading belongs in the caption; the axes carry the fit exponents because those
 are the quantity the panel exists to report.
@@ -33,7 +32,6 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
 from _dmpl_common import (  # noqa: E402
-    COLORS,
     apply_style,
     finalize,
     static_path,
@@ -54,6 +52,19 @@ STROKE = 0.5
 #: a size the data would not tolerate.
 LEGEND_MARKERSCALE = 2.0
 
+#: Semi-transparent rings, so that where they pile up the density itself
+#: becomes readable rather than the outline of whichever point drew last.
+POPULATION_ALPHA = 0.5
+
+#: ``(source, label, marker colour, fit colour)``. The two open-color steps
+#: either side of the shared token -- one lighter for the cloud, two darker
+#: for the line -- keep the fit legible against its own scatter without
+#: introducing a second hue per series.
+POPULATIONS = (
+    ("en328_evaporator_inversion.csv", "Unit coolers · EN 328", "oc.indigo5", "oc.indigo8"),
+    ("env327_condenser_inversion.csv", "Air-cooled condensers · ENV 327", "oc.teal5", "oc.teal8"),
+)
+
 
 def _fit(q: np.ndarray, ua: np.ndarray) -> tuple[float, float, float]:
     """Least squares in log space: ``UA = a * Q**b``, with the R² of that fit."""
@@ -68,17 +79,12 @@ def _fit(q: np.ndarray, ua: np.ndarray) -> tuple[float, float, float]:
 def main() -> None:
     apply_style("scientific", hashsalt="tmhp.validation.ua.scaling", svg_fonttype=None)
 
-    evaporator = pd.read_csv(DATA / "en328_evaporator_inversion.csv")
-    evaporator = evaporator[evaporator.is_primary]
-    condenser = pd.read_csv(DATA / "env327_condenser_inversion.csv")
-    heatpump = pd.read_csv(DATA / "hp_outdoor_coil_ua_geometry.csv")
-
     fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.70))
 
-    for frame, colour, name in (
-        (evaporator, COLORS["accent"], "Unit coolers · EN 328"),
-        (condenser, COLORS["ess"], "Air-cooled condensers · ENV 327"),
-    ):
+    for source, name, marker_colour, fit_colour in POPULATIONS:
+        frame = pd.read_csv(DATA / source)
+        if "is_primary" in frame:
+            frame = frame[frame.is_primary]
         q = frame.Q_kW.to_numpy(float)
         ua = frame.UA_W_K.to_numpy(float)
         ax.scatter(
@@ -86,25 +92,16 @@ def main() -> None:
             ua,
             s=MARKER_AREA,
             facecolors="none",
-            edgecolors=colour,
+            edgecolors=marker_colour,
             linewidths=STROKE,
+            alpha=POPULATION_ALPHA,
             label=f"{name} ({len(frame)})",
         )
         a, b, r2 = _fit(q, ua)
         span = np.array([q.min(), q.max()])
-        ax.plot(span, a * span**b, "--", color=colour, zorder=4, label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}")
-
-    ax.scatter(
-        heatpump.Q_cond_kW,
-        heatpump.UA_W_K,
-        s=MARKER_AREA,
-        marker="D",
-        facecolors="none",
-        edgecolors=COLORS["warm"],
-        linewidths=STROKE,
-        zorder=6,
-        label=f"Heat-pump outdoor coils · geometry ({len(heatpump)})",
-    )
+        ax.plot(
+            span, a * span**b, "--", color=fit_colour, zorder=4, label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}"
+        )
 
     ax.set_xscale("log")
     ax.set_yscale("log")

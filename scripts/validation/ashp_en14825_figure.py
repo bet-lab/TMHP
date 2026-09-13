@@ -25,7 +25,16 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    static_path,
+    ticks,
+)
 
 DATA = REPO_ROOT / "validation" / "data"
 DECLARED = DATA / "keymark_a2a_declared.csv"
@@ -40,11 +49,6 @@ PANELS = (
     ("cooling", "b", "Cooling, average climate"),
 )
 LABELS = ("A", "B", "C", "D")
-
-
-def _ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
-    """Ticks from an explicit minimum, maximum and interval."""
-    return np.arange(vmin, vmax + step * 0.5, step)
 
 
 def main() -> None:
@@ -98,7 +102,7 @@ def main() -> None:
 
         ax.set_xlabel("Part load of design duty [-]")
         ax.set_xlim(0.0, 1.08)
-        ax.set_xticks(_ticks(0.0, 1.0, 0.2))
+        ax.set_xticks(ticks(0.0, 1.0, 0.2))
         ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)
         ax.set_axisbelow(True)
         ax.legend(frameon=False, fontsize=dm.fs(-1.5), loc="upper right")
@@ -115,7 +119,7 @@ def main() -> None:
         step = 2.0 if highest <= 12.0 else 4.0
         top = float(np.ceil(highest / step) * step)
         ax.set_ylim(0.0, top)
-        ax.set_yticks(_ticks(0.0, top, step))
+        ax.set_yticks(ticks(0.0, top, step))
     axes[0].set_ylabel("COP [-]")
     axes[1].set_ylabel("EER [-]")
 

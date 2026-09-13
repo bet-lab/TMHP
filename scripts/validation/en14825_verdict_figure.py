@@ -28,11 +28,21 @@ from pathlib import Path
 
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    static_path,
+    ticks,
+)
 
 DATA = REPO_ROOT / "validation" / "data"
 POINTS = DATA / "en14825_trend_points.csv"
@@ -162,9 +172,11 @@ def main() -> None:
                     zorder=8,
                     label="outdoor-fan turndown artefact",
                 )
-        ax.yaxis.set_major_locator(plt.MaxNLocator(5))
+        ax.set_ylim(0.0, 12.0)
+        ax.set_yticks(ticks(0.0, 12.0, 3.0))
         ax.set_xlabel("Part load of design heating demand [-]")
         ax.set_xlim(0.05, 0.98)
+        ax.set_xticks(ticks(0.2, 0.8, 0.2))
         ax.invert_xaxis()
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.set_title(title, loc="left", fontsize=dm.fs(-1))
@@ -220,20 +232,13 @@ def main() -> None:
     ax.set_title("Both requirements at once", loc="left", fontsize=dm.fs(-1))
     lo_x, hi_x = ax.get_xlim()
     lo_y, hi_y = ax.get_ylim()
-    ax.set_xlim(-hi_x * 0.06, hi_x * 1.10)
-    ax.set_ylim(0.0, hi_y * 1.12)
-    ax.yaxis.set_major_locator(plt.MaxNLocator(5))
-    ax.xaxis.set_major_locator(plt.MaxNLocator(5))
-    ax.text(
-        0.97,
-        0.05,
-        "lower is better\non both axes",
-        transform=ax.transAxes,
-        fontsize=dm.fs(-2.5),
-        color=COLORS["muted"],
-        ha="right",
-        va="bottom",
-    )
+    # Declared ticks rather than a locator -- see scripts/visualization/_dmpl_common.ticks.
+    top_x = float(np.ceil(hi_x * 1.10 / 20.0) * 20.0)
+    top_y = float(np.ceil(hi_y * 1.12 / 20.0) * 20.0)
+    ax.set_xlim(-top_x * 0.06, top_x)
+    ax.set_ylim(0.0, top_y)
+    ax.set_xticks(ticks(0.0, top_x, 20.0))
+    ax.set_yticks(ticks(0.0, top_y, 20.0))
     panel_letter(ax, "c")
 
     out = static_path("validation_en14825_verdict.svg").with_suffix("")

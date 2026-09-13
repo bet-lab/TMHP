@@ -24,7 +24,7 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path, ticks  # noqa: E402
 
 SWEEP = REPO_ROOT / "validation" / "data" / "ashp_part_load_sweep.csv"
 
@@ -42,11 +42,6 @@ SERIES_COLOUR = {
     "heating": {-7.0: COLORS["cool"], 2.0: COLORS["accent"], 7.0: COLORS["warm"]},
     "cooling": {35.0: COLORS["hot"], 30.0: COLORS["warm"], 25.0: COLORS["accent"]},
 }
-
-
-def _ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
-    """Ticks from an explicit minimum, maximum and interval."""
-    return np.arange(vmin, vmax + step * 0.5, step)
 
 
 def main() -> None:
@@ -69,7 +64,7 @@ def main() -> None:
             )
         ax.set_xlabel("Part load of nameplate capacity [-]")
         ax.set_xlim(0.08, 1.02)
-        ax.set_xticks(_ticks(0.2, 1.0, 0.2))
+        ax.set_xticks(ticks(0.2, 1.0, 0.2))
         ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)
         ax.set_axisbelow(True)
         ax.legend(title="outdoor air", frameon=False, fontsize=dm.fs(-1.5), title_fontsize=dm.fs(-1.5))
@@ -79,7 +74,7 @@ def main() -> None:
     top = float(np.ceil(sweep.cop_sys.max()))
     for ax in axes:
         ax.set_ylim(0.0, top)
-        ax.set_yticks(_ticks(0.0, top, 2.0))
+        ax.set_yticks(ticks(0.0, top, 2.0))
     axes[0].set_ylabel("System COP [-]")
     axes[1].set_ylabel("System EER [-]")
 

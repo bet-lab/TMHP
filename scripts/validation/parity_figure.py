@@ -23,7 +23,16 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    static_path,
+    ticks,
+)
 
 RESULTS = REPO_ROOT / "validation" / "results"
 
@@ -84,47 +93,14 @@ def main() -> None:
                 label=f"{refrigerant} ({group.nominal_kW.nunique()} sizes)",
             )
 
-        # Name any unit the defaults systematically miss. Without this the
-        # air-to-air panel reads as "R-410A is predicted badly", which is the
-        # wrong conclusion -- the air-to-water R-410A units are among the best
-        # fits in the set. What separates the offset cluster is the product
-        # line's own efficiency, not its working fluid.
-        bias = sub.groupby(["slug", "unit"]).apply(
-            lambda g: ((g.cop_pred - g.cop_target) / g.cop_target).mean() * 100.0,
-            include_groups=False,
-        )
-        offset = bias[bias.abs() > 20.0]
-        if not offset.empty:
-            names = sorted({unit.split()[0] for _, unit in offset.index})
-            worst = sub[sub.slug.isin({slug for slug, _ in offset.index})]
-            ax.annotate(
-                f"{' / '.join(names)}: {offset.mean():+.0f} %\n"
-                "a lower-efficiency product line,\nnot a refrigerant effect",
-                # Aim past the right edge of the text block. The old target sat
-                # underneath the annotation itself, so the arrow could only
-                # leave by crossing its own second line -- invisible while the
-                # width was dm.lw(-1) = 0, obvious once it was drawn.
-                xy=(
-                    float(worst.cop_target.quantile(0.85)),
-                    float(worst.cop_pred.quantile(0.85)),
-                ),
-                xytext=(0.03, 0.74),
-                textcoords="axes fraction",
-                fontsize=dm.fs(-2),
-                color=COLORS["ink"],
-                ha="left",
-                va="top",
-                # Without a patch to start from, the arrow is drawn from the
-                # text's centre and strikes through its own second line. An
-                # invisible box gives matplotlib something to shrink away from.
-                bbox={"boxstyle": "square,pad=0.35", "facecolor": "none", "edgecolor": "none"},
-                arrowprops={
-                    "arrowstyle": "->",
-                    "color": COLORS["muted"],
-                    "linewidth": HAIRLINE,
-                    "shrinkB": 6,
-                },
-            )
+        # The offset cluster is deliberately left unlabelled here. Which units
+        # they are, and why they sit where they do, is a three-cause story that
+        # `validation.analysis.residual_decomposition` tells properly -- product
+        # efficiency, dehumidification and a maximum-capacity table, only the
+        # first of which is the defaults' doing. An arrow and two lines of text
+        # across the data can only carry the single-cause version of that, and
+        # the single-cause version is the one that turned out to be wrong. It
+        # belongs in the caption of whatever embeds this, not on the axes.
 
         mae = float(sub.abs_error.mean())
         mape = float(sub.abs_pct_error.mean())
@@ -143,6 +119,13 @@ def main() -> None:
         )
         ax.set_xlim(lo, hi)
         ax.set_ylim(lo, hi)
+        # Declared ticks, not an automatic locator: the two panels span
+        # different COP ranges and a locator would give them different
+        # intervals, which invites comparing grids that do not correspond.
+        step = 2.0 if hi - lo > 6.0 else 1.0
+        grid = ticks(float(np.ceil(lo / step) * step), float(np.floor(hi / step) * step), step)
+        ax.set_xticks(grid)
+        ax.set_yticks(grid)
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlabel("Published COP [-]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)

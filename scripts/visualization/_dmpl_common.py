@@ -12,6 +12,7 @@ from pathlib import Path
 
 import dartwork_mpl as dm
 import matplotlib as mpl
+import numpy as np
 from matplotlib.figure import Figure
 
 # Uniform buffer around the axes. ``margin=0`` (the dartwork default) snaps
@@ -94,6 +95,22 @@ def _assert_no_overflow(fig: Figure, tol_in: float = 1.0 / 144.0) -> None:
             f"Increase the corresponding side margin — e.g. pass "
             f'`{side_to_kw[worst_side]}="<larger %>"` to finalize().'
         )
+
+
+def ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
+    """Tick positions from an explicit minimum, maximum and interval.
+
+    Every axis in the figure set declares its own ticks through this rather
+    than leaving matplotlib's locator to choose. An automatic locator picks a
+    different count as the data moves, so the same plot regenerated after a
+    rerun can change its gridlines without any number changing -- which makes
+    figure diffs unreadable and invites the reader to compare two plots whose
+    grids do not line up.
+
+    Use a step that divides the range exactly. On a linear axis prefer an
+    integer step; a log axis should keep its decade locator and not call this.
+    """
+    return np.arange(vmin, vmax + step * 0.5, step)
 
 
 def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:

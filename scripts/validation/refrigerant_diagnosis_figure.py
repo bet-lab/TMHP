@@ -20,7 +20,16 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    static_path,
+    ticks,
+)
 
 DATA = REPO_ROOT / "validation" / "data"
 RESULTS = REPO_ROOT / "validation" / "results"
@@ -38,11 +47,6 @@ ROWS = (
     ("R32\nA2A · EN 14511", "ASHP", "R32"),
     ("R410A\nA2A · AHRI 210/240", "ASHP", "R410A"),
 )
-
-
-def _ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
-    """Ticks from an explicit minimum, maximum and interval."""
-    return np.arange(vmin, vmax + step * 0.5, step)
 
 
 def _parity() -> pd.DataFrame:
@@ -83,7 +87,7 @@ def main() -> None:
     ax.set_yticklabels([row[0] for row in ROWS][::-1], fontsize=dm.fs(-1.5), linespacing=1.25)
     ax.set_xlabel("COP error [%]")
     ax.set_xlim(-10.0, 40.0)
-    ax.set_xticks(_ticks(-10.0, 40.0, 10.0))
+    ax.set_xticks(ticks(-10.0, 40.0, 10.0))
     ax.set_ylim(-0.6, len(ROWS) - 0.4)
     ax.grid(axis="x", lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)
     ax.set_axisbelow(True)
@@ -122,7 +126,7 @@ def main() -> None:
     )
     ax.set_ylabel("COP [-]")
     ax.set_ylim(0.0, 6.0)
-    ax.set_yticks(_ticks(0.0, 6.0, 2.0))
+    ax.set_yticks(ticks(0.0, 6.0, 2.0))
     ax.grid(axis="y", lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)
     ax.set_axisbelow(True)
     ax.legend(loc="upper center", frameon=False, fontsize=dm.fs(-1.6), ncol=2, columnspacing=0.9)
@@ -154,10 +158,10 @@ def main() -> None:
     ax.set_xlabel("Nameplate multiplier [-]")
     ax.set_ylabel("COP MAPE [%]")
     ax.set_xlim(1.03, 0.57)
-    ax.set_xticks(_ticks(0.6, 1.0, 0.1))
+    ax.set_xticks(ticks(0.6, 1.0, 0.1))
     top = float(np.ceil(sweep.mape_pct.max() / 10.0) * 10.0)
     ax.set_ylim(0.0, top)
-    ax.set_yticks(_ticks(0.0, top, 10.0))
+    ax.set_yticks(ticks(0.0, top, 10.0))
     ax.grid(lw=GRIDLINE, color=COLORS["muted"], alpha=0.35)
     ax.set_axisbelow(True)
     ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-1.6))

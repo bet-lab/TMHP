@@ -43,7 +43,16 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
-from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    static_path,
+    ticks,
+)
 
 from tmhp import AirSourceHeatPumpBoiler  # noqa: E402
 
@@ -164,11 +173,14 @@ def main() -> None:
         alpha=0.35,
         linewidth=0,
         edgecolor="none",
-        label="below the speed floor:\nfan-turndown artefact,\nnot a part-load result",
+        label="below the speed floor",
     )
     ax.set_xlabel("Part load of nominal capacity [-]")
     ax.set_ylabel("System COP [-]")
     ax.set_xlim(0.0, 1.05)
+    ax.set_xticks(ticks(0.0, 1.0, 0.2))
+    ax.set_ylim(0.0, 8.0)
+    ax.set_yticks(ticks(0.0, 8.0, 2.0))
     ax.invert_xaxis()
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))
@@ -235,7 +247,7 @@ def main() -> None:
             zorder=6,
             edgecolor=COLORS["accent"],
             linewidth=dm.lw(1),
-            label="delivering more than\nthe point requires",
+            label="delivers more than requested",
         )
     for _, row in good.iterrows():
         ax.annotate(
@@ -248,6 +260,10 @@ def main() -> None:
         )
     ax.set_xlabel("Part load of design heating demand [-]")
     ax.set_ylabel("System COP [-]")
+    ax.set_xlim(0.0, 1.0)
+    ax.set_xticks(ticks(0.0, 1.0, 0.2))
+    ax.set_ylim(0.0, 12.0)
+    ax.set_yticks(ticks(0.0, 12.0, 3.0))
     ax.invert_xaxis()
     ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2))

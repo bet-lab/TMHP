@@ -118,21 +118,26 @@ def main() -> None:
         return
     df.to_csv(OUT_CSV, index=False)
 
-    print(f"  {len(df)} measured points, {df.frequency_hz.min():.0f}-{df.frequency_hz.max():.0f} Hz, "
-          f"{df.inverter.nunique()} drives")
+    print(
+        f"  {len(df)} measured points, {df.frequency_hz.min():.0f}-{df.frequency_hz.max():.0f} Hz, "
+        f"{df.inverter.nunique()} drives"
+    )
     print()
-    print(f"  {'drive':<8}{'n':>5}{'eta_max':>10}{'f0 [Hz]':>10}{'RMSE':>10}"
-          f"{'eta@15':>9}{'eta@30':>9}{'eta@50':>9}{'eta@90':>9}")
+    print(
+        f"  {'drive':<8}{'n':>5}{'eta_max':>10}{'f0 [Hz]':>10}{'RMSE':>10}"
+        f"{'eta@15':>9}{'eta@30':>9}{'eta@50':>9}{'eta@90':>9}"
+    )
     fits = {}
     for inv, g in df.groupby("inverter"):
-        popt, _ = curve_fit(saturating, g.frequency_hz.to_numpy(), g.eta_drive.to_numpy(),
-                            p0=[0.98, 3.0], maxfev=20000)
+        popt, _ = curve_fit(saturating, g.frequency_hz.to_numpy(), g.eta_drive.to_numpy(), p0=[0.98, 3.0], maxfev=20000)
         resid = g.eta_drive.to_numpy() - saturating(g.frequency_hz.to_numpy(), *popt)
         rmse = float(np.sqrt((resid**2).mean()))
         fits[inv] = {"eta_max": float(popt[0]), "f0_hz": float(popt[1]), "rmse": rmse, "n": int(len(g))}
         vals = [saturating(np.array([f]), *popt)[0] for f in (15, 30, 50, 90)]
-        print(f"  {inv:<8}{len(g):>5}{popt[0]:>10.4f}{popt[1]:>10.3f}{rmse:>10.5f}"
-              f"{vals[0]:>9.4f}{vals[1]:>9.4f}{vals[2]:>9.4f}{vals[3]:>9.4f}")
+        print(
+            f"  {inv:<8}{len(g):>5}{popt[0]:>10.4f}{popt[1]:>10.3f}{rmse:>10.5f}"
+            f"{vals[0]:>9.4f}{vals[1]:>9.4f}{vals[2]:>9.4f}{vals[3]:>9.4f}"
+        )
 
     f0_all = float(np.median([v["f0_hz"] for v in fits.values()]))
     print()

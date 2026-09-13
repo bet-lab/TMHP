@@ -101,18 +101,31 @@ class RatedPoint(NamedTuple):
 #: in the rule.
 RATED_POINT_AIR_TO_WATER = RatedPoint(T_evap_C=1.0, T_cond_C=40.0, rps=40.0, duty="heating", basis="EN 14511 A7/W35")
 
+#: How far below the critical temperature a rating point is pulled when the
+#: working fluid has no saturation state at the declared condition [K].
+CRITICAL_MARGIN_K = 5.0
+
 #: Air-to-air rating point, ISO 5151 T1 cooling: outdoor 35 degC, indoor 27/19
 #: degC. Rated speed from the Daikin SL-series service manual, which publishes
 #: rated compressor frequency in place of displacement (52 rev/s cooling for
 #: the 2.5 kW class, 72 for the 3.5 kW class).
 #:
-#: This is the weaker of the two rated points: two published speeds, no
-#: published displacement to check the result against. Treated accordingly in
-#: the documentation.
-#: How far below the critical temperature a rating point is pulled when the
-#: working fluid has no saturation state at the declared condition [K].
-CRITICAL_MARGIN_K = 5.0
-
+#: This is the weaker of the two rated points, in three separate ways, and the
+#: air-to-air documentation says so:
+#:
+#: * 60 rev/s is neither of the two published figures, nor their mean. It is a
+#:   round number inside the interval they span, and displacement is exactly
+#:   inversely proportional to it -- so the honest bracket is about +/-17 %.
+#: * The same number also sets the peak of the electro-mechanical efficiency
+#:   curve, through ``make_eta_em`` in :mod:`tmhp.compressor_efficiency`. An
+#:   error in it perturbs the displacement and the efficiency shape together.
+#: * ISO 5151 T1 declares *air* states. The saturation temperatures below are
+#:   that condition seen from the refrigerant side, but the approach
+#:   temperatures used to get there are not derived anywhere.
+#:
+#: Unlike the air-to-water point there is no published displacement to invert
+#: against: no air-to-air catalogue in the validation set prints one, so every
+#: air-to-air unit runs on the derived value with nothing closing the loop.
 RATED_POINT_AIR_TO_AIR = RatedPoint(T_evap_C=10.0, T_cond_C=50.0, rps=60.0, duty="cooling", basis="ISO 5151 T1")
 
 

@@ -174,14 +174,10 @@ class AirSourceHeatPumpBoiler:
     ):
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = (
-                V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref)
-            )
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref)
         if eta_cmp is None:
             eta_cmp = (
-                eta_cmp_electro_mech
-                if eta_cmp_electro_mech is not None
-                else make_eta_em(RATED_POINT_AIR_TO_WATER.rps)
+                eta_cmp_electro_mech if eta_cmp_electro_mech is not None else make_eta_em(RATED_POINT_AIR_TO_WATER.rps)
             )
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design

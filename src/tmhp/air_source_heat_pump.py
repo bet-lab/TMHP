@@ -123,16 +123,10 @@ class AirSourceHeatPump:
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = (
-                V_disp_cmp
-                if V_disp_cmp is not None
-                else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
+                V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
             )
         if eta_cmp is None:
-            eta_cmp = (
-                eta_cmp_mech
-                if eta_cmp_mech is not None
-                else make_eta_em(RATED_POINT_AIR_TO_AIR.rps)
-            )
+            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(RATED_POINT_AIR_TO_AIR.rps)
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -198,12 +192,8 @@ class AirSourceHeatPump:
         # leakage. Every ASHP result produced that way was optimistic by the
         # whole of both losses. They now default to the shared correlations in
         # `compressor_efficiency`, the same ones the boiler models use.
-        self.eta_cmp_isen: float | Callable | None = (
-            eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
-        )
-        self.eta_cmp_vol: float | Callable | None = (
-            eta_cmp_vol if eta_cmp_vol is not None else eta_vol_default
-        )
+        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
+        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol if eta_cmp_vol is not None else eta_vol_default
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -516,7 +506,6 @@ class AirSourceHeatPump:
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
         try:
-
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:

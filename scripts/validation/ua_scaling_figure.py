@@ -53,7 +53,7 @@ def _fit(q: np.ndarray, ua: np.ndarray) -> tuple[float, float, float]:
 
 
 def main() -> None:
-    apply_style("scientific", hashsalt="tmhp.validation.ua.scaling")
+    apply_style("scientific", hashsalt="tmhp.validation.ua.scaling", svg_fonttype=None)
 
     evaporator = pd.read_csv(DATA / "en328_evaporator_inversion.csv")
     evaporator = evaporator[evaporator.is_primary]

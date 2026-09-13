@@ -137,7 +137,12 @@ def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
     )
 
 
-def apply_style(preset: str = "report", *, hashsalt: str | None = None) -> None:
+def apply_style(
+    preset: str = "report",
+    *,
+    hashsalt: str | None = None,
+    svg_fonttype: str | None = "none",
+) -> None:
     """Activate a dartwork-mpl composite preset for figure scripts.
 
     ``preset`` defaults to ``"report"`` (larger body-text-matching type,
@@ -146,9 +151,19 @@ def apply_style(preset: str = "report", *, hashsalt: str | None = None) -> None:
     ``hashsalt`` pins matplotlib's SVG clip-path IDs so re-running a
     script produces byte-identical output — pass a unique string per
     figure.
+
+    ``svg_fonttype`` decides how text survives the trip out of matplotlib.
+    ``"none"`` (the default here) leaves glyphs as live text referencing a
+    font family by name, which keeps labels editable in Figma — but the
+    presets ask for Roboto Light, and a viewer without that face silently
+    substitutes its own, so the published figure stops matching the preset.
+    Pass ``None`` to keep whatever the preset declares (``"path"``, i.e.
+    glyphs converted to outlines) when the figure has to render identically
+    everywhere it is embedded.
     """
     dm.style.use(preset)
-    mpl.rcParams["svg.fonttype"] = "none"
+    if svg_fonttype is not None:
+        mpl.rcParams["svg.fonttype"] = svg_fonttype
     if hashsalt is not None:
         mpl.rcParams["svg.hashsalt"] = hashsalt
 

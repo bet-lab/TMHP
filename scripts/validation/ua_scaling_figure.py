@@ -32,6 +32,7 @@ import pandas as pd
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
 from _dmpl_common import (  # noqa: E402
+    COLORS,
     apply_style,
     finalize,
     static_path,
@@ -56,14 +57,24 @@ LEGEND_MARKERSCALE = 2.0
 #: becomes readable rather than the outline of whichever point drew last.
 POPULATION_ALPHA = 0.5
 
-#: ``(source, label, marker colour, fit colour)``. The two open-color steps
-#: either side of the shared token -- one lighter for the cloud, two darker
-#: for the line -- keep the fit legible against its own scatter without
-#: introducing a second hue per series.
+#: ``(source, label, subscript, marker colour, fit colour)``. The two
+#: open-color steps either side of the shared token -- one lighter for the
+#: cloud, two darker for the line -- keep the fit legible against its own
+#: scatter without introducing a second hue per series. The subscript says
+#: which side of the cycle each population was inverted from, because the two
+#: sit in different bands and the reason is the rating standard, not the
+#: hardware: EN 328 declares an 8 K approach, ENV 327 a 15 K one.
 POPULATIONS = (
-    ("en328_evaporator_inversion.csv", "Unit coolers · EN 328", "oc.indigo5", "oc.indigo8"),
-    ("env327_condenser_inversion.csv", "Air-cooled condensers · ENV 327", "oc.teal5", "oc.teal8"),
+    ("en328_evaporator_inversion.csv", "Unit coolers · EN 328", "evap", "oc.indigo5", "oc.indigo8"),
+    ("env327_condenser_inversion.csv", "Air-cooled condensers · ENV 327", "cond", "oc.teal5", "oc.teal8"),
 )
+
+#: The rule TMHP adopts, in W/K per kW of that coil's own duty. It is the
+#: geometric mean of the two population prefactors (159.7) and the median of
+#: their pooled band, i.e. the middle of the band the two standards agree on
+#: rather than a preference for either committee's approach temperature. As a
+#: divisor it reads as a 6.25 K equivalent LMTD.
+ADOPTED_SLOPE = 160.0
 
 
 def _fit(q: np.ndarray, ua: np.ndarray) -> tuple[float, float, float]:
@@ -81,7 +92,7 @@ def main() -> None:
 
     fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.70))
 
-    for source, name, marker_colour, fit_colour in POPULATIONS:
+    for source, name, sub, marker_colour, fit_colour in POPULATIONS:
         frame = pd.read_csv(DATA / source)
         if "is_primary" in frame:
             frame = frame[frame.is_primary]
@@ -100,13 +111,27 @@ def main() -> None:
         a, b, r2 = _fit(q, ua)
         span = np.array([q.min(), q.max()])
         ax.plot(
-            span, a * span**b, "--", color=fit_colour, zorder=4, label=f"$UA = {a:.0f}\\,Q^{{{b:.3f}}}$,  R² {r2:.3f}"
+            span,
+            a * span**b,
+            "--",
+            color=fit_colour,
+            zorder=4,
+            label=f"$UA_{{\\mathrm{{{sub}}}}} = {a:.0f}\\,Q_{{\\mathrm{{{sub}}}}}^{{{b:.3f}}}$,  R² {r2:.3f}",
         )
+
+    adopted = np.array([0.3, 2000.0])
+    ax.plot(
+        adopted,
+        ADOPTED_SLOPE * adopted,
+        color=COLORS["ink"],
+        zorder=5,
+        label=f"TMHP default  $UA = {ADOPTED_SLOPE:.0f}\\,Q$",
+    )
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel("Coil duty $Q$ [kW]")
-    ax.set_ylabel("Conductance $UA$ [W/K]")
+    ax.set_xlabel("Coil duty  $Q_\\mathrm{evap}$, $Q_\\mathrm{cond}$  [kW]")
+    ax.set_ylabel("Conductance  $UA_\\mathrm{evap}$, $UA_\\mathrm{cond}$  [W/K]")
     ax.set_xlim(0.25, 3000.0)
     ax.set_ylim(30.0, 6.0e5)
     ax.set_xticks([1.0, 1.0e1, 1.0e2, 1.0e3])

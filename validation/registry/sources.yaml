@@ -22,6 +22,16 @@ documents:
     files: 2634
     bytes: 78663865
 
+  - path: compressor_maps/copeland/opi/
+    title: "Copeland Online Product Information -- AHRI 540 coefficient sets of variable-speed scrolls (GetCCoefficients JSON + CSummary)"
+    publisher: "Copeland LP"
+    document_id: "webapps.copeland.com/online-product-information (accessed 2026-09-15)"
+    rating_condition: "dew-point rating, 20 degF constant superheat, 15 degF subcooling, power at drive input; one record per model x rated speed"
+    used_by: "compressor_maps.fetch.copeland_opi -> parse.copeland_opi -> validation/data/compressor_maps/points_copeland_opi.csv"
+    obtain_from: "https://webapps.copeland.com/online-product-information/"
+    files: 394
+    bytes: 10265170
+
   - path: catalogs/alfalaval_acq504_condenser_spec.pdf
     title: "AlfaGreen air-cooled condensers AC / ACD / ACV"
     publisher: "Alfa Laval"
@@ -142,6 +152,149 @@ documents:
     bytes: 7174870
     pages: 88
     sha256: "0b3acdaf9cb0e22dd6abab1f93bcf0a7bdf69ffdd5ba26674f2a43b071ea7f93"
+
+  - path: compressor_maps/copeland/ae1414_zpv066_zpv096.pdf
+    title: "AE-1414: ZPV066 & ZPV096 Copeland Scroll Variable Speed Compressors"
+    publisher: "Copeland LP"
+    document_id: "AE-1414"
+    rating_condition: "application bulletin (speed range, envelope); no performance table"
+    used_by: "compressor_maps context (speed range)"
+    obtain_from: "https://www.copeland.com/"
+    bytes: 1045292
+    pages: 23
+    sha256: "cf9b626fef2a83a51e93a24a625a63ef73b0b5cf4a9c4db4eb0dd8cc4a4d31f9"
+
+  - path: compressor_maps/copeland/aeb1402_zpv063.pdf
+    title: "AE bulletin: ZPV063 Copeland Scroll Variable Speed"
+    publisher: "Copeland LP"
+    document_id: "AEB 1402"
+    rating_condition: "-"
+    used_by: "compressor_maps context"
+    obtain_from: "https://www.copeland.com/"
+    bytes: 1317463
+    pages: 29
+    sha256: "11c3db404159c7bece8dffdd126fef1c44e6f8fb85ada2975f5a1adb77405409"
+
+  - path: compressor_maps/copeland/aeb1407_zpv021_041_zhv.pdf
+    title: "AE bulletin: ZPV021-041 / ZHV021-034 Copeland Scroll Variable Speed"
+    publisher: "Copeland LP"
+    document_id: "AEB 1407"
+    rating_condition: "-"
+    used_by: "compressor_maps context"
+    obtain_from: "https://www.copeland.com/"
+    bytes: 866615
+    pages: 25
+    sha256: "8ca953a494e1fef3b224969a7d793be083172ac6a3230a7325ade421def10a2b"
+
+  - path: compressor_maps/copeland/xpv_ypv_range.pdf
+    title: "Copeland XPV & ZPV variable speed scroll compressor ranges (GPC-EN-2024)"
+    publisher: "Copeland Europe"
+    document_id: "GPC-EN-2024 p.29"
+    rating_condition: "EN 12900 nominal (5/50 degC, SH 10 K, SC 0 K) at 5400 rpm; min/max capacity at Tc 50 degC"
+    used_by: "cross-check of OPI records (not parsed)"
+    obtain_from: "https://www.copeland.com/"
+    bytes: 69841
+    pages: 2
+    sha256: "42eb302d67d11e718970ddd8ae893b4b3b421b7bb14fce1ba65bdc961ea6a336"
+
+  - path: compressor_maps/danfoss_vzh_brochure.pdf
+    title: "Danfoss Inverter Scrolls VZH series brochure"
+    publisher: "Danfoss"
+    document_id: "AD166386436872en-001207"
+    rating_condition: "brochure; performance data only in Coolselector"
+    used_by: "screened, not used"
+    obtain_from: "https://www.danfoss.com/"
+    bytes: 1117606
+    pages: 6
+    sha256: "74bacd10e1ca88394b981fe968f1a62cee0bf8bcf0cfb0ea7f32c1885c7ad4cc"
+
+  - path: compressor_maps/gmcc/gmcc_rotary_catalog_v2024.pdf
+    title: "GMCC rotary compressor product catalogue V2024"
+    publisher: "GMCC (Midea)"
+    document_id: "-"
+    rating_condition: "rated point per model (GX / ARI), no speed stated"
+    used_by: "screened, not used (rated speed unknown)"
+    obtain_from: "https://gmcccompressors.com/"
+    bytes: 7395595
+    pages: 20
+    sha256: "0802230dd5391a8d58e0248b320e7f8b382efd0f2621bd6a410f48d8b375b93f"
+
+  - path: compressor_maps/highly/highly_catalogue_2024.pdf
+    title: "Highly rotary compressors catalogue 2024 (heat pump, water heater, R290 inverter)"
+    publisher: "Shanghai Highly / JOAP"
+    document_id: "-"
+    rating_condition: "ASHRAE/T rated point at 3600 rpm (R290 inverter tables, pp. 2-3)"
+    used_by: "compressor_maps.parse.highly2024 -> points_highly2024.csv"
+    obtain_from: "https://joap.dk/"
+    bytes: 19298444
+    pages: 20
+    sha256: "f9762fe65de085d1ed167bdef63054b5b1444a492f3d5599d1d74af89d666347"
+
+  - path: compressor_maps/highly/highly_rotary_r290.pdf
+    title: "Highly rotary R290 compressors (presentation)"
+    publisher: "Shanghai Highly / JOAP"
+    document_id: "-"
+    rating_condition: "rated points only"
+    used_by: "cross-check of highly_catalogue_2024"
+    obtain_from: "https://joap.dk/"
+    bytes: 291730
+    pages: 4
+    sha256: "05dc9eb5b54d7e476f62fc9c3a65f571f546673dffbeb74af3151a6e5094f68a"
+
+  - path: compressor_maps/lg/lg_rotary_catalogue.pdf
+    title: "LG rotary compressor catalogue"
+    publisher: "LG Electronics"
+    document_id: "-"
+    rating_condition: "rated point per model (ASHRAE/ARI/SET), no speed stated"
+    used_by: "screened, not used (rated speed unknown)"
+    obtain_from: "https://www.lg.com/global/business/compressor-motor"
+    bytes: 8526339
+    pages: 20
+    sha256: "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a"
+
+  - path: compressor_maps/mitsubishi/kvb_reference_guide.pdf
+    title: "Mitsubishi Electric SCI inverter rotary compressor line-up (KVB reference guide)"
+    publisher: "Mitsubishi Electric"
+    document_id: "-"
+    rating_condition: "line-up sheet, no performance data"
+    used_by: "screened, not used"
+    obtain_from: "https://mitsubishicompressors.com/"
+    bytes: 8058695
+    pages: 2
+    sha256: "51327cbf4af60af4097221ddc77b9e805a7310eee5c28b6093b5a24cd4dc44a1"
+
+  - path: compressor_maps/papers/cuevas_lebrun_2009_ate.pdf
+    title: "Testing and modelling of a variable speed scroll compressor"
+    publisher: "Applied Thermal Engineering 29(2-3), 469-478"
+    document_id: "doi:10.1016/j.applthermaleng.2008.03.016"
+    rating_condition: "calorimeter tests, Tables 2-3: 18 network-fed at 50 Hz + 30 inverter-fed 35-75 Hz, with discharge temperature"
+    used_by: "compressor_maps.parse.cuevas2009 -> points_cuevas2009.csv; eta_em anchor (ETA_EM_REF)"
+    obtain_from: "https://doi.org/10.1016/j.applthermaleng.2008.03.016"
+    bytes: 304548
+    pages: 10
+    sha256: "730ef78a78b85f8de38274d5478c9c5f872007b155239b76c9a31b7c7cb2d4d7"
+
+  - path: compressor_maps/papers/ossorio_navarroperis_2023_ate.pdf
+    title: "Testing of variable-speed scroll compressors and their inverters for the development of empirical correlations"
+    publisher: "Applied Thermal Engineering 230, 120725 (CC BY)"
+    document_id: "doi:10.1016/j.applthermaleng.2023.120725"
+    rating_condition: "Table 2 compressor set (A: R290 46 cm3 70 Hz nominal; B: R410A 44.5 cm3 60 Hz; C: Cuevas R134a 54.25 cm3 50 Hz)"
+    used_by: "compressor_maps documentation (speed conventions, E1 drive-loss form)"
+    obtain_from: "https://doi.org/10.1016/j.applthermaleng.2023.120725"
+    bytes: 3106180
+    pages: 11
+    sha256: "4e33822b42ebd17a665b0ac34b5eff90ab3e9164bc39c704d989fc1ee9af04da"
+
+  - path: compressor_maps/papers/purdue_icec_3807_rotary.pdf
+    title: "Modeling and Performance Evaluation of Rotary Compressor and Air-Conditioning System using Low GWP Refrigerants (ICEC 2022, paper 2748)"
+    publisher: "Purdue e-Pubs"
+    document_id: "ICEC 2748 (2022)"
+    rating_condition: "simulation study, 7.25 cc rotary at 60 rps; no tabulated map"
+    used_by: "screened, not used"
+    obtain_from: "https://docs.lib.purdue.edu/icec/2748"
+    bytes: 750234
+    pages: 10
+    sha256: "a72a9b5312ebe7b1d3b7c484c9e52455652bf65d9e96b6970a778e76ed2e7fad"
 
   - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx
     title: "Inverter efficiency measurements, supplementary data mmc2"

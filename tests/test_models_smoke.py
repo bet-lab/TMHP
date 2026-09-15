@@ -38,18 +38,21 @@ def test_ashpb_analyze_steady():
 
 
 def test_ashpb_default_compressor_efficiencies():
+    from tmhp.compressor_efficiency import ETA_EM_REF, eta_isen_default, eta_oi_product, make_eta_vol
+
     ashpb = AirSourceHeatPumpBoiler()
 
-    assert ashpb.eta_cmp_vol(4.0) == pytest.approx(0.94)
-    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(0.82)
-    # Electro-mechanical efficiency now carries the measured speed shape of
-    # Guth & Atakan (2023) Table A.3 in place of the previous unsourced
-    # parabola `0.80 - 3e-5 (rps - 55)^2`. The shape is read in relative speed
-    # and peaks at the machine's own rated speed -- 40 rev/s for an
-    # air-to-water unit -- where the declared level is 0.80.
-    assert ashpb.eta_cmp(4.0, 40.0) == pytest.approx(0.80)
+    # The defaults are the shared correlations of `compressor_efficiency`,
+    # bound to the air-to-water rated speed (40 rev/s): volumetric and
+    # electro-mechanical efficiency read speed relative to it, the isentropic
+    # efficiency depends on pressure ratio only.
+    assert ashpb.rps_rated == pytest.approx(40.0)
+    assert ashpb.eta_cmp_vol(4.0, 40.0) == pytest.approx(make_eta_vol(40.0)(4.0, 40.0))
+    assert ashpb.eta_cmp_vol(4.0, 20.0) < ashpb.eta_cmp_vol(4.0, 40.0)
+    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(eta_isen_default(4.0))
+    assert ashpb.eta_cmp(4.0, 40.0) == pytest.approx(ETA_EM_REF)
     assert ashpb.eta_cmp(4.0, 20.0) < ashpb.eta_cmp(4.0, 40.0)
-    assert ashpb.eta_cmp(4.0, 80.0) < ashpb.eta_cmp(4.0, 40.0)
+    assert ashpb.eta_cmp_isen(4.0) * ashpb.eta_cmp(4.0, 40.0) == pytest.approx(eta_oi_product(4.0, 1.0))
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():

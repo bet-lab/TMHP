@@ -24,14 +24,15 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     # Re-baselined whenever a compressor default changes -- a flat
     # 200 cm^3/rev displacement, then a capacity-linear one, then the
     # refrigerant-aware physical rule (58.9 cm^3/rev for 15 kW of R32), and
-    # now the measured speed shape in the electro-mechanical efficiency. The
+    # then the measured speed shape in the electro-mechanical efficiency, and
+    # now the standalone-compressor refit (coefficients v2026-09-15). The
     # duty is met by a different compressor at a different speed each time.
     # The epsilon-NTU-vs-fixed-UA identity this test guards depends on none of
     # those numbers; it is the equality of the two branches that matters.
     baseline = {
         "Q_ref_tank [W]": 10000.0,
-        "E_cmp [W]": 3400.979416889858,
-        "cop_ref [-]": 2.940329468134459,
+        "E_cmp [W]": 3196.9138628044207,
+        "cop_ref [-]": 3.128016715229144,
     }
     assert omitted["converged"] is True
     assert omitted["failure_reason"] == "none"

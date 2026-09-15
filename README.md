@@ -323,13 +323,13 @@ Every unit below is run with the **library defaults exactly as shipped**. Nothin
 
 Per-unit results, including every point the model could not evaluate and why, are in the sortable table on the [validation page](https://bet-lab.github.io/TMHP/validation/index.html). The raw output is committed under `validation/results/`.
 
-**Reading the residuals.** Across 747 evaluated points the COP MAPE is 16.5 %, and how that splits matters more than the number:
+**Reading the residuals.** Across 752 evaluated points the adopted catalogues come to a COP MAPE of 8.7 %; the set mixes two rating standards, so the split matters more than any pooled number:
 
 | Group | MAPE | Bias | What it is |
 | :-- | --: | --: | :-- |
-| Air-to-water, 10 units | 7.4 % | −2 % | scatter, roughly centred |
-| Air-to-air, Daikin, 5 units | 9.1 % | +0.2 % | scatter, roughly centred |
-| Air-to-air, Fujitsu, 2 units | 33 % | **+33 %** | not scatter — a uniform offset |
+| Air-to-water, 10 units | 8.4 % | +2.5 % | scatter, centred slightly high |
+| Air-to-air, Daikin, 5 units | 8.9 % | +1.7 % | scatter, roughly centred (EN 14511) |
+| Air-to-air, Fujitsu, 2 units (held) | 32.9 % | **+31.9 %** | not scatter — a uniform offset; AHRI 210/240, COP boundary not stated |
 
 A bias equal to the error means a systematic cause, so it was chased down before publishing. It turned out to be **three** causes, and an earlier version of this README named only the first:
 

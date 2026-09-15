@@ -138,6 +138,119 @@ DESCRIBED = {
         used_by="plr coordinate definition",
         url="https://ens.dk/",
     ),
+    # --- standalone-compressor maps (validation/compressor_maps, coefficients v2026-09-15) ---
+    "compressor_maps/copeland/opi": dict(
+        title="Copeland Online Product Information -- AHRI 540 coefficient sets of variable-speed scrolls (GetCCoefficients JSON + CSummary)",
+        publisher="Copeland LP",
+        doc_id="webapps.copeland.com/online-product-information (accessed 2026-09-15)",
+        rating="dew-point rating, 20 degF constant superheat, 15 degF subcooling, power at drive input; one record per model x rated speed",
+        used_by="compressor_maps.fetch.copeland_opi -> parse.copeland_opi -> validation/data/compressor_maps/points_copeland_opi.csv",
+        url="https://webapps.copeland.com/online-product-information/",
+    ),
+    "compressor_maps/copeland/ae1414_zpv066_zpv096.pdf": dict(
+        title="AE-1414: ZPV066 & ZPV096 Copeland Scroll Variable Speed Compressors",
+        publisher="Copeland LP",
+        doc_id="AE-1414",
+        rating="application bulletin (speed range, envelope); no performance table",
+        used_by="compressor_maps context (speed range)",
+        url="https://www.copeland.com/",
+    ),
+    "compressor_maps/copeland/aeb1402_zpv063.pdf": dict(
+        title="AE bulletin: ZPV063 Copeland Scroll Variable Speed",
+        publisher="Copeland LP",
+        doc_id="AEB 1402",
+        rating="-",
+        used_by="compressor_maps context",
+        url="https://www.copeland.com/",
+    ),
+    "compressor_maps/copeland/aeb1407_zpv021_041_zhv.pdf": dict(
+        title="AE bulletin: ZPV021-041 / ZHV021-034 Copeland Scroll Variable Speed",
+        publisher="Copeland LP",
+        doc_id="AEB 1407",
+        rating="-",
+        used_by="compressor_maps context",
+        url="https://www.copeland.com/",
+    ),
+    "compressor_maps/copeland/xpv_ypv_range.pdf": dict(
+        title="Copeland XPV & ZPV variable speed scroll compressor ranges (GPC-EN-2024)",
+        publisher="Copeland Europe",
+        doc_id="GPC-EN-2024 p.29",
+        rating="EN 12900 nominal (5/50 degC, SH 10 K, SC 0 K) at 5400 rpm; min/max capacity at Tc 50 degC",
+        used_by="cross-check of OPI records (not parsed)",
+        url="https://www.copeland.com/",
+    ),
+    "compressor_maps/papers/cuevas_lebrun_2009_ate.pdf": dict(
+        title="Testing and modelling of a variable speed scroll compressor",
+        publisher="Applied Thermal Engineering 29(2-3), 469-478",
+        doc_id="doi:10.1016/j.applthermaleng.2008.03.016",
+        rating="calorimeter tests, Tables 2-3: 18 network-fed at 50 Hz + 30 inverter-fed 35-75 Hz, with discharge temperature",
+        used_by="compressor_maps.parse.cuevas2009 -> points_cuevas2009.csv; eta_em anchor (ETA_EM_REF)",
+        url="https://doi.org/10.1016/j.applthermaleng.2008.03.016",
+    ),
+    "compressor_maps/papers/ossorio_navarroperis_2023_ate.pdf": dict(
+        title="Testing of variable-speed scroll compressors and their inverters for the development of empirical correlations",
+        publisher="Applied Thermal Engineering 230, 120725 (CC BY)",
+        doc_id="doi:10.1016/j.applthermaleng.2023.120725",
+        rating="Table 2 compressor set (A: R290 46 cm3 70 Hz nominal; B: R410A 44.5 cm3 60 Hz; C: Cuevas R134a 54.25 cm3 50 Hz)",
+        used_by="compressor_maps documentation (speed conventions, E1 drive-loss form)",
+        url="https://doi.org/10.1016/j.applthermaleng.2023.120725",
+    ),
+    "compressor_maps/papers/purdue_icec_3807_rotary.pdf": dict(
+        title="Modeling and Performance Evaluation of Rotary Compressor and Air-Conditioning System using Low GWP Refrigerants (ICEC 2022, paper 2748)",
+        publisher="Purdue e-Pubs",
+        doc_id="ICEC 2748 (2022)",
+        rating="simulation study, 7.25 cc rotary at 60 rps; no tabulated map",
+        used_by="screened, not used",
+        url="https://docs.lib.purdue.edu/icec/2748",
+    ),
+    "compressor_maps/highly/highly_catalogue_2024.pdf": dict(
+        title="Highly rotary compressors catalogue 2024 (heat pump, water heater, R290 inverter)",
+        publisher="Shanghai Highly / JOAP",
+        doc_id="-",
+        rating="ASHRAE/T rated point at 3600 rpm (R290 inverter tables, pp. 2-3)",
+        used_by="compressor_maps.parse.highly2024 -> points_highly2024.csv",
+        url="https://joap.dk/",
+    ),
+    "compressor_maps/highly/highly_rotary_r290.pdf": dict(
+        title="Highly rotary R290 compressors (presentation)",
+        publisher="Shanghai Highly / JOAP",
+        doc_id="-",
+        rating="rated points only",
+        used_by="cross-check of highly_catalogue_2024",
+        url="https://joap.dk/",
+    ),
+    "compressor_maps/gmcc/gmcc_rotary_catalog_v2024.pdf": dict(
+        title="GMCC rotary compressor product catalogue V2024",
+        publisher="GMCC (Midea)",
+        doc_id="-",
+        rating="rated point per model (GX / ARI), no speed stated",
+        used_by="screened, not used (rated speed unknown)",
+        url="https://gmcccompressors.com/",
+    ),
+    "compressor_maps/lg/lg_rotary_catalogue.pdf": dict(
+        title="LG rotary compressor catalogue",
+        publisher="LG Electronics",
+        doc_id="-",
+        rating="rated point per model (ASHRAE/ARI/SET), no speed stated",
+        used_by="screened, not used (rated speed unknown)",
+        url="https://www.lg.com/global/business/compressor-motor",
+    ),
+    "compressor_maps/mitsubishi/kvb_reference_guide.pdf": dict(
+        title="Mitsubishi Electric SCI inverter rotary compressor line-up (KVB reference guide)",
+        publisher="Mitsubishi Electric",
+        doc_id="-",
+        rating="line-up sheet, no performance data",
+        used_by="screened, not used",
+        url="https://mitsubishicompressors.com/",
+    ),
+    "compressor_maps/danfoss_vzh_brochure.pdf": dict(
+        title="Danfoss Inverter Scrolls VZH series brochure",
+        publisher="Danfoss",
+        doc_id="AD166386436872en-001207",
+        rating="brochure; performance data only in Coolselector",
+        used_by="screened, not used",
+        url="https://www.danfoss.com/",
+    ),
     "pdfs/ehpa_testreg_AA-HP_v1.3a_2021.pdf": dict(
         title="Heat Pump Keymark testing regulation, air-to-air",
         publisher="EHPA",
@@ -152,7 +265,10 @@ DESCRIBED = {
 # Bulk datasets are recorded as one aggregate row rather than one row per file.
 # The hplib export alone is 2,634 certificates; listing each would bury the
 # fifteen documents a reader actually needs to obtain.
-BULK_DIRS = {"data/hplib/csv": "Heat Pump Keymark certificates (hplib input/csv)"}
+BULK_DIRS = {
+    "data/hplib/csv": "Heat Pump Keymark certificates (hplib input/csv)",
+    "compressor_maps/copeland/opi": "Copeland OPI AHRI-540 coefficient records (JSON + index.csv)",
+}
 
 
 def sha(p):

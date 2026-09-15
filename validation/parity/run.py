@@ -20,12 +20,15 @@ anything if the numbers it produces are then used without adjustment.
 from __future__ import annotations
 
 import argparse
+import json
 import math
+import subprocess
 from pathlib import Path
 
 import pandas as pd
 
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
+from tmhp.compressor_efficiency import COEFFICIENT_VERSION
 
 from .spec import Catalog, OperatingPoint, load_all
 
@@ -34,12 +37,14 @@ RESULTS_DIR = REPO_ROOT / "validation" / "results"
 SUMMARY_CSV = RESULTS_DIR / "summary.csv"
 
 
-def _build_model(catalog: Catalog, overrides: dict | None = None):
+def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "cooling"):
     """Build the model for a catalogue.
 
     ``overrides`` exists for the coefficient ablation in
     :mod:`validation.analysis.en14825_trend` and is empty on the shipped path,
     so the published numbers are still produced with nothing touched.
+    ``mode`` selects the published indoor air flow when a manual prints a
+    different one for heating (``rated_indoor_air_flow_heating_m3_s``).
     """
     kwargs: dict = {
         "ref": catalog.refrigerant,
@@ -57,8 +62,11 @@ def _build_model(catalog: Catalog, overrides: dict | None = None):
 
     if published.get("rated_air_flow_m3_s"):
         kwargs["dV_ou_fan_a_rated"] = float(published["rated_air_flow_m3_s"])
-    if published.get("rated_indoor_air_flow_m3_s"):
-        kwargs["dV_iu_fan_a_rated"] = float(published["rated_indoor_air_flow_m3_s"])
+    indoor_key = "rated_indoor_air_flow_m3_s"
+    if mode == "heating" and published.get("rated_indoor_air_flow_heating_m3_s"):
+        indoor_key = "rated_indoor_air_flow_heating_m3_s"
+    if published.get(indoor_key):
+        kwargs["dV_iu_fan_a_rated"] = float(published[indoor_key])
     kwargs.update(overrides or {})
     return AirSourceHeatPump(**kwargs)
 
@@ -88,9 +96,12 @@ def _run_point(model, catalog: Catalog, point: OperatingPoint) -> dict:
 
 
 def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame:
-    model = _build_model(catalog, overrides)
+    models = {"cooling": _build_model(catalog, overrides, "cooling")}
+    if catalog.published_inputs.get("rated_indoor_air_flow_heating_m3_s"):
+        models["heating"] = _build_model(catalog, overrides, "heating")
     rows = []
     for point in catalog.points:
+        model = models.get(point.mode, models["cooling"])
         result = _run_point(model, catalog, point)
         failure = result.get("failure_reason", "none")
         cop_pred = float(result.get("cop_sys [-]", float("nan")))
@@ -104,6 +115,9 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "model_class": catalog.model_class,
                 "refrigerant": catalog.refrigerant,
                 "nominal_kW": catalog.nominal_capacity_kW,
+                "rating_standard": catalog.rating_standard,
+                "status": catalog.status,
+                "coefficient_version": COEFFICIENT_VERSION,
                 "point_id": point.id,
                 "mode": point.mode,
                 "t_source_C": point.t_source_C,
@@ -116,6 +130,11 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "power_target_kW": point.q_kW / cop_target,
                 "power_pred_kW": (point.q_kW / cop_pred) if usable else float("nan"),
                 "rps": (result.get("cmp_rpm [rpm]", float("nan")) or float("nan")) / 60.0,
+                "n_star": result.get("n_star [-]", float("nan")),
+                "pr_cmp": result.get("pr_cmp [-]", float("nan")),
+                "eta_cmp_vol": result.get("eta_cmp_vol [-]", float("nan")),
+                "eta_cmp_isen": result.get("eta_cmp_isen [-]", float("nan")),
+                "eta_cmp": result.get("eta_cmp [-]", float("nan")),
                 "capacity_clamped": result.get("capacity_clamped"),
                 "pr_clamped": result.get("pr_clamped"),
                 "failure_reason": failure,
@@ -139,6 +158,9 @@ def _summarise(df: pd.DataFrame) -> dict:
         "model_class": df.model_class.iat[0],
         "refrigerant": df.refrigerant.iat[0],
         "nominal_kW": df.nominal_kW.iat[0],
+        "rating_standard": df.rating_standard.iat[0],
+        "status": df.status.iat[0],
+        "coefficient_version": COEFFICIENT_VERSION,
         "points": len(df),
         "points_usable": int(len(good)),
         "cop_MAE": float(good.abs_error.mean()) if len(good) else float("nan"),
@@ -174,16 +196,52 @@ def main() -> None:
     summary = summary.sort_values(["model_class", "manufacturer", "nominal_kW"]).reset_index(drop=True)
     summary.to_csv(SUMMARY_CSV, index=False)
 
-    print("Catalogue parity -- library defaults applied unchanged")
+    print(f"Catalogue parity -- library defaults applied unchanged (coefficients {COEFFICIENT_VERSION})")
     print()
-    cols = ["unit", "refrigerant", "nominal_kW", "points", "points_usable", "cop_MAE", "cop_MAPE_pct", "cop_bias_pct"]
+    cols = [
+        "unit",
+        "refrigerant",
+        "rating_standard",
+        "status",
+        "points",
+        "points_usable",
+        "cop_MAE",
+        "cop_MAPE_pct",
+        "cop_bias_pct",
+    ]
     print(summary[cols].to_string(index=False, float_format=lambda v: f"{v:.2f}"))
     print()
-    usable = summary.points_usable.sum()
-    total = summary.points.sum()
-    weighted = (summary.cop_MAPE_pct * summary.points_usable).sum() / max(usable, 1)
-    print(f"  {len(summary)} units, {usable}/{total} points evaluated, point-weighted COP MAPE {weighted:.1f} %")
-    print(f"  wrote {SUMMARY_CSV.relative_to(REPO_ROOT)}")
+    # One headline per (model class, rating standard); held catalogues are diagnostics and
+    # never pooled into a headline -- different test standards define different COPs.
+    adopted = summary[summary.status == "adopted"]
+    for (model_class, standard), grp in adopted.groupby(["model_class", "rating_standard"]):
+        usable = grp.points_usable.sum()
+        weighted = (grp.cop_MAPE_pct * grp.points_usable).sum() / max(usable, 1)
+        bias = (grp.cop_bias_pct * grp.points_usable).sum() / max(usable, 1)
+        print(
+            f"  {model_class:5s} {standard:13s}: {len(grp)} units, {usable}/{grp.points.sum()} points, point-weighted COP MAPE {weighted:.1f} %, bias {bias:+.1f} %"
+        )
+    held = summary[summary.status == "hold"]
+    if len(held):
+        print(f"  held (diagnostic only, not in any headline): {', '.join(held.unit)}")
+    manifest = {
+        "coefficient_version": COEFFICIENT_VERSION,
+        "git_head": _git_head(),
+        "units": int(len(summary)),
+        "adopted_units": int(len(adopted)),
+        "held_units": sorted(held.slug.tolist()),
+    }
+    (RESULTS_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
+    print(f"  wrote {SUMMARY_CSV.relative_to(REPO_ROOT)} and results/manifest.json")
+
+
+def _git_head() -> str:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10
+        ).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 if __name__ == "__main__":

@@ -63,7 +63,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 747 evaluated
+      - 757 attempted, 752 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -88,9 +88,13 @@ Sort by any column, filter by unit, refrigerant or mode. The numbers come from
 Reading the residuals
 =====================
 
-The headline number across the whole set is a COP MAPE of 16.5 % over 747
-evaluated points. That number is not evenly distributed, and the way it is
-distributed is the most useful thing on this page.
+There is no single headline number: the set mixes two rating standards
+(EN 14511 and AHRI 210/240) that define COP differently, so the harness reports
+one figure per standard and pools nothing across them. Over 752 evaluated points
+the adopted catalogues come to a COP MAPE of 8.7 %; the two held catalogues are
+run and written but never enter a headline. The compressor coefficients are
+version ``v2026-09-15`` (:doc:`defaults`), fitted on standalone compressor data
+and applied here unchanged.
 
 .. list-table::
     :header-rows: 1
@@ -101,17 +105,17 @@ distributed is the most useful thing on this page.
       - Bias
       - What it is
     * - Air-to-water, 10 units
-      - 7.4 %
-      - −2 %
-      - Scatter, roughly centred
+      - 8.4 %
+      - +2.5 %
+      - Scatter, centred slightly high (rating standard not stated)
     * - Air-to-air, Daikin, 5 units
-      - 9.1 %
-      - +0.2 %
-      - Scatter, roughly centred
+      - 8.9 %
+      - +1.7 %
+      - Scatter, roughly centred (EN 14511)
     * - Air-to-air, Fujitsu, 2 units
-      - 33 %
-      - **+33 %**
-      - Not scatter — a uniform offset
+      - 32.9 %
+      - **+31.9 %**
+      - Held: AHRI 210/240, COP boundary not stated — a uniform offset
 
 A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.

@@ -59,10 +59,11 @@ def test_headline_counts_match_the_harness(summary: pd.DataFrame) -> None:
 
 
 def test_headline_mape_matches_the_harness(summary: pd.DataFrame) -> None:
-    overall = _weighted_mape(summary)
+    """The quoted figure is the adopted set only: held catalogues never enter a headline."""
+    overall = _weighted_mape(summary[summary.status == "adopted"])
     for relative, marker in (
-        ("docs/source/validation/index.rst", "The headline number across the whole set"),
-        ("README.md", "Across 747 evaluated points" if overall else ""),
+        ("docs/source/validation/index.rst", "the adopted catalogues come to a COP MAPE"),
+        ("README.md", "the adopted catalogues come to a COP MAPE"),
     ):
         text = _read(relative)
         quoted = _quoted_percents(text, marker)
@@ -112,7 +113,7 @@ def test_coverage_claims_match_the_catalogues(summary: pd.DataFrame) -> None:
 def test_defaults_page_states_the_shipped_rules() -> None:
     """The evidence page must describe the values the code actually uses."""
     from tmhp import AirSourceHeatPump
-    from tmhp.compressor_efficiency import ETA_EM_REF, ETA_VOL_CLEARANCE
+    from tmhp.compressor_efficiency import COEFFICIENT_VERSION, ETA_EM_REF, ETA_VOL_A
 
     text = _read("docs/source/validation/defaults.rst")
     model = AirSourceHeatPump(hp_capacity=5000.0, ref="R32")
@@ -121,5 +122,6 @@ def test_defaults_page_states_the_shipped_rules() -> None:
     assert f"hp_capacity / {divisor:.0f}" in text
     ratio = model.UA_iu_rated / model.UA_ou_rated
     assert f"UA_iu = {ratio:.1f} × UA_ou" in text
-    assert f"{ETA_EM_REF:.2f} ×" in text
-    assert f"{ETA_VOL_CLEARANCE:.3f}" in text
+    assert f"{ETA_EM_REF:.3f}" in text
+    assert f"{ETA_VOL_A:.4f}" in text
+    assert COEFFICIENT_VERSION in text

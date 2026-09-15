@@ -1,0 +1,64 @@
+{
+ "version": "v2026-09-15",
+ "eta_vol": {
+  "family": "V2",
+  "formula": "eta_vol = 1 - ETA_VOL_A*(PR-1) - ETA_VOL_B*max(0, 1/n* - 1)",
+  "ETA_VOL_A": 0.020506369116649728,
+  "ETA_VOL_B": 0.01773585644771913,
+  "floor": 0.5,
+  "fit_wrmse": 0.07452446740750672,
+  "fit_wmape_pct": 5.346410974146302,
+  "loco_wmape_pct": 5.411072525218349,
+  "legacy_loco_wmape_pct": 5.705735818233679
+ },
+ "eta_oi": {
+  "family": "I2xE1",
+  "formula": "eta_oi = (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0)",
+  "ETA_OI_A": 1.1740553788013248,
+  "ETA_OI_B": 0.08346144531226994,
+  "ETA_OI_C": 0.681574711464736,
+  "ETA_EM_N0": 0.033042215190186706,
+  "fit_wrmse": 0.07445765937636654,
+  "fit_wmape_pct": 8.838486840107752,
+  "loco_wmape_pct": 8.956112605351823,
+  "legacy_loco_wmape_pct": 9.96301271576478,
+  "tie_break": "I2xE3 (8.934 %) replaced by I2xE1 (8.956 %): within 0.05 pp, E1 has the Ossorio drive-loss precedent",
+  "extension_candidates_not_adopted": [
+   "I2xE1xX1"
+  ]
+ },
+ "split": {
+  "ETA_EM_REF": 0.9359685011793779,
+  "basis": "median measured eta_em at n*~1, inverter-fed, discharge-temperature split (Cuevas & Lebrun 2009 Table 3)",
+  "n": 6,
+  "p10": 0.9258592112369878,
+  "p90": 0.9423147101515168,
+  "eta_isen_formula": "eta_isen = max(ETA_ISEN_FLOOR, (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) / ETA_EM_REF)",
+  "eta_em_formula": "eta_em = ETA_EM_REF * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0)",
+  "ETA_ISEN_FLOOR": 0.3
+ },
+ "separability": {
+  "n": 3401,
+  "interaction_coef_(PR-3)lnn": 0.06111042225123689,
+  "se": 0.003582378530028998,
+  "t": 17.058616709257194,
+  "note": "effect of a 1-unit PR change on d ln eta_oi / d ln n*"
+ },
+ "spread_eta_vol": {
+  "between_machine_sd": 0.07931395903669441,
+  "between_machine_p10": -0.05391326475983996,
+  "between_machine_p90": 0.06207196997317577,
+  "within_machine_sd_median": 0.018615795521277276,
+  "machines": 71
+ },
+ "spread_eta_oi": {
+  "between_machine_sd": 0.06451139275915543,
+  "between_machine_p10": -0.0460666152469793,
+  "between_machine_p90": 0.045359178342560834,
+  "within_machine_sd_median": 0.03566771311555734,
+  "machines": 73
+ },
+ "n_rows": 5633,
+ "machines": 73,
+ "speed_records": 113
+}

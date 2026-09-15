@@ -23,10 +23,19 @@ model_class: ASHP
 refrigerant: R410A
 nominal_capacity_kW: 3.52
 cop_definition: "TC / IP, total capacity over input power"
+rating_standard: "AHRI 210/240"
+status: hold
+hold_reason: >-
+  The manual does not state what the IP column includes (indoor fan? crankcase heater?),
+  while the Daikin data book states net capacities with the indoor-fan heat deducted; a
+  COP whose boundary is unknown cannot be a validation reference (ledger U3). Also the
+  only AHRI 210/240-rated grids in the set, so the +33 % offset they show is confounded
+  with the rating standard. Run and written as a diagnostic, excluded from headlines.
 source:
   document: "Fujitsu General ASUH/AOUH LPAS design & technical manual (R-410A)"
   table: "Section 4, capacity tables (SI blocks)"
 published_inputs:
+  rated_indoor_air_flow_heating_m3_s: 0.2139
   rated_indoor_air_flow_m3_s: 0.2139
 points:
   - {id: 1, t_source_C: -10.0, t_sink_C: 17.8, q_kW: 3.37, power_kW: 0.37, mode: cooling, note: "SHR 0.69, wet coil"}

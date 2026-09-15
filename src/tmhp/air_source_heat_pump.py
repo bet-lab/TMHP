@@ -18,6 +18,7 @@ heat exchange at the indoor unit.
 
 import contextlib
 import inspect
+import math
 from collections.abc import Callable
 
 import CoolProp.CoolProp as CP
@@ -27,8 +28,8 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import safe_float_attr
-from .compressor_efficiency import eta_isen_default, eta_vol_default, make_eta_em
+from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
+from .compressor_efficiency import eta_isen_default, make_eta_em, make_eta_vol
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     RATED_POINT_AIR_TO_AIR,
@@ -99,6 +100,10 @@ class AirSourceHeatPump:
         # Compressor speed search bounds [rev/s]
         rps_min: float = 15.0,
         rps_max: float = 150.0,
+        # Rated compressor speed [rev/s]; the speed the efficiency correlations
+        # read `rps` relative to (n* = rps / rps_rated). Defaults to the
+        # air-to-air rating point.
+        rps_rated: float | None = None,
         # ASHRAE 90.1-2022 VSD coefficients
         vsd_coeffs_ou: dict | None = None,
         vsd_coeffs_iu: dict | None = None,
@@ -125,8 +130,10 @@ class AirSourceHeatPump:
             V_cmp_ref = (
                 V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
             )
+        if rps_rated is None:
+            rps_rated = RATED_POINT_AIR_TO_AIR.rps
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(RATED_POINT_AIR_TO_AIR.rps)
+            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(rps_rated)
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -192,8 +199,9 @@ class AirSourceHeatPump:
         # leakage. Every ASHP result produced that way was optimistic by the
         # whole of both losses. They now default to the shared correlations in
         # `compressor_efficiency`, the same ones the boiler models use.
+        self.rps_rated: float = rps_rated
         self.eta_cmp_isen: float | Callable | None = eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
-        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol if eta_cmp_vol is not None else eta_vol_default
+        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -682,6 +690,12 @@ class AirSourceHeatPump:
                 "v_iu_a [m/s]": v_iu_a,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                # Compressor internal state (the chain N -> m_dot -> lift -> PR -> W)
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pr_cmp [-]": ratio_P_cmp,
+                "eta_cmp_vol [-]": val_eta_vol,
+                "eta_cmp_isen [-]": val_eta_isen,
+                "eta_cmp [-]": val_eta_electro_mech,
                 # Energy rates [W]
                 "E_iu_fan [W]": E_iu_fan,
                 "E_ou_fan [W]": E_ou_fan,
@@ -734,13 +748,19 @@ class AirSourceHeatPump:
                 T_a_room=T_a_room,
             )
             if perf is None or not perf.get("converged", False):
-                return 1e6
+                return PENALTY
 
-            E_tot: float = float(perf.get("E_tot [W]", 1e6))
-            if E_tot <= 0 or np.isnan(E_tot):
-                return 1e6
-
-            return E_tot
+            # Specific energy over candidates that meet the request (see
+            # `_opt_utils`). At the compressor speed floor every candidate
+            # over-delivers; a room cannot store the surplus, but the choice
+            # *among* floor candidates is still made on cost per unit of heat
+            # delivered -- capping the credit at the request would reduce to
+            # raw E_tot and pick the starved coil again. The over-delivery is
+            # reported (capacity_clamped == "min", Q_ref_iu > request) so the
+            # caller can treat it as cycling capacity, as the strategy asks.
+            E_tot: float = float(perf.get("E_tot [W]", PENALTY))
+            delivered = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
+            return specific_energy_objective(E_tot, delivered, abs(Q_r_iu), math.inf)
 
         # Phase 1: coarse grid pre-scan to find a converging starting point.
         # A single fixed x0=(15,15) fails silently when the entire search space

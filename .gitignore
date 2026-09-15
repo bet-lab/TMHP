@@ -126,3 +126,10 @@ validation/evidence/
 # tracked summary beside it is what the documentation cites; rebuild this with
 # `uv run python -m validation.extraction.keymark_declared`.
 validation/data/keymark_en14825_declared.csv
+
+# Standalone-compressor point tables (4-5 MB each): regenerate with
+#   uv run python -m validation.compressor_maps.parse.copeland_opi && ... derive && ... prepare
+# from the harvested evidence under validation/evidence/compressor_maps/ (itself untracked).
+validation/data/compressor_maps/points_copeland_opi.csv
+validation/data/compressor_maps/points_derived.csv
+validation/data/compressor_maps/points_fit_ready.csv

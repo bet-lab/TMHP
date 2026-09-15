@@ -104,35 +104,30 @@ Below that the curve turns over, and the efficiency correlations are not the
 cause: a test gates the claim that wherever the modelled COP falls materially
 below its peak, the compressor speed equals ``rps_min``.
 
-.. admonition:: The drop below the floor is a model artefact, not a part-load result
-    :class: warning
+.. admonition:: Below the speed floor the model delivers its minimum capacity, and says so
+    :class: note
 
-    Reaching the speed floor is where the drop *starts*, but it is not what
-    makes it steep. Once the compressor can go no slower, the only handle the
-    model has left for matching a smaller load is the outdoor fan, and
-    :func:`tmhp.enex_functions.calc_HX_perf_for_target_heat` lets the fan turn
-    down to 5 % of rated flow. At air 7 °C and water 35 °C the model reaches
-    that limit at about 20 % of nominal capacity, running an air-side
-    temperature drop of 17.7 K and an evaporating temperature of −13 °C — a
-    20 K approach at a 7 °C ambient.
+    Once the compressor can go no slower the model cannot follow a smaller
+    request. Earlier versions matched it anyway by starving the outdoor coil --
+    the operating-point search minimised absolute electrical input, and among
+    candidates that all sat at the speed floor the one delivering *less* heat
+    also drew less power, so the outdoor fan was driven to its 5 % bound and the
+    air-side temperature drop reached 17 K against a catalogue maximum near 8 K.
+    That was a model artefact, and it has been removed: the search now compares
+    candidates on electrical input per unit of heat delivered and rejects any
+    that fall short of the request (:mod:`tmhp._opt_utils`). Below the floor the
+    model therefore reports ``capacity_clamped == "min"`` together with the heat
+    it actually delivers, which exceeds the request -- the *requested* part-load
+    ratio and the *actual* capacity ratio are two different numbers, and the
+    output carries both.
 
-    Neither number is physical. Across the 1,414 catalogue coils inverted in
-    ``validation/extraction/`` the largest air-side drop observed anywhere is
-    7.7 K on the evaporator side, and no outdoor fan on an inverter unit turns
-    down to a twentieth of its rated flow. The 5 % bound carries no source in
-    the code and none in this evidence base.
-
-    The consequence is bounded and stated rather than patched: **the modelled
-    part-load curve below roughly 30 % of nominal capacity is not validated**,
-    and the region is excluded from every claim on this page. It does not touch
-    the catalogue parity results — of 747 evaluated points not one sits at the
-    compressor's minimum-speed clamp — and it does not touch the EN 14825
-    low-temperature trajectory. It does reach the medium-temperature
-    trajectory at point C, which is shown and labelled in
-    :doc:`the coefficient verdict <defaults>`.
-
-    Fixing it needs a minimum fan turndown with evidence behind it, which this
-    evidence base does not yet contain. Recorded as open.
+    Under the same conditions as before (air 7 °C, water 42.5 °C, 9 kW R32) the
+    outdoor fan now stays above 44 % of rated flow over the whole sweep and the
+    air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
+    above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
+    TMHP still computes no cycling loss (see below), so the sub-floor rows are a
+    continuous-operation figure at the minimum capacity, not a part-load COP.
+    They are drawn hollow in the figures and excluded from every trend verdict.
 
 Panel (b) — the certification trajectory
 ----------------------------------------
@@ -233,6 +228,8 @@ Reproduce
 
     uv run python -m validation.extraction.keymark_declared     # the certified band
     uv run python -m scripts.validation.part_load_figure        # both panels
+    uv run python -m validation.fixed_boundary_plr.sweep        # internal-state sweep, both models
+    uv run python -m validation.fixed_boundary_plr.figure
 
 .. seealso::
 

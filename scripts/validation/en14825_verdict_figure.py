@@ -56,7 +56,7 @@ SHOWN = {"capacity_kW": 9.0, "refrigerant": "R32", "oversizing": 0.667}
 VARIANT_STYLE = {
     "ideal": ("no compressor losses", COLORS["load"], (0, (1, 1.2))),
     "constant": ("losses, no speed term", COLORS["warm"], (0, (4, 1.6))),
-    "absolute-speed": ("speed shape, absolute", COLORS["cool"], (0, (2.4, 1.4))),
+    "legacy-v1": ("pre-refit defaults (v1)", COLORS["cool"], (0, (2.4, 1.4))),
     "defaults": ("TMHP defaults", COLORS["accent"], "solid"),
 }
 
@@ -66,7 +66,7 @@ VARIANT_STYLE = {
 PANEL_C_LABEL = {
     "ideal": (-8, 6, "right"),
     "constant": (8, 4, "left"),
-    "absolute-speed": (8, 6, "left"),
+    "legacy-v1": (8, 6, "left"),
     "defaults": (8, -11, "left"),
 }
 
@@ -154,24 +154,6 @@ def main() -> None:
                 fontsize=dm.fs(-2),
                 color=COLORS["ink"],
             )
-        # Every one of the four descriptions drops together at medium C, which
-        # is what says the drop is not a property of any of them. It is the
-        # outdoor-fan turndown: below the compressor speed floor the model
-        # sheds capacity by starving the coil, and the evaporator approach runs
-        # out to the optimiser's bound. Marked rather than hidden.
-        if application == "medium":
-            artifact = sub[(sub.variant == "defaults") & (sub.point == "C")]
-            if not artifact.empty:
-                ax.scatter(
-                    artifact.plr,
-                    artifact.cop,
-                    s=dm.fs(11),
-                    facecolor="none",
-                    edgecolor=COLORS["ink"],
-                    linewidth=HAIRLINE * 1.6,
-                    zorder=8,
-                    label="outdoor-fan turndown artefact",
-                )
         ax.set_ylim(0.0, 12.0)
         ax.set_yticks(ticks(0.0, 12.0, 3.0))
         ax.set_xlabel("Part load of design heating demand [-]")
@@ -181,21 +163,8 @@ def main() -> None:
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         ax.set_title(title, loc="left", fontsize=dm.fs(-1))
         # The two panels share every series, so the full key is drawn once.
-        # Panel (b) keeps only the entry that is unique to it.
         if application == "low":
             ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-2.5), handletextpad=0.5, labelspacing=0.25)
-        else:
-            handles, labels = ax.get_legend_handles_labels()
-            keep = [(h, lbl) for h, lbl in zip(handles, labels, strict=True) if "artefact" in lbl]
-            if keep:
-                ax.legend(
-                    [h for h, _ in keep],
-                    [lbl for _, lbl in keep],
-                    loc="upper left",
-                    frameon=False,
-                    fontsize=dm.fs(-2.5),
-                    handletextpad=0.5,
-                )
         panel_letter(ax, letter)
     axes[0].set_ylabel("Declared COP [-]")
 

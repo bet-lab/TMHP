@@ -22,6 +22,7 @@ model_class: ASHP
 refrigerant: R32
 nominal_capacity_kW: 5.00
 cop_definition: "TC / PI, EN 14511 system power including the indoor fan"
+rating_standard: "EN 14511"
 source:
   document: "Daikin RXM-A engineering data book, EEDEN24-200 (R-32, pair application)"
   table: "Capacity tables, cooling and heating at nominal operating frequency"

@@ -33,11 +33,12 @@ compressor descriptions are therefore run through the identical trajectory:
 ``constant``
     The three correlations frozen at their rated-point values, so the machine
     has realistic losses but no speed dependence at all.
-``absolute-speed``
-    The measured Guth shape anchored at absolute speed instead of relative --
-    the variant this work rejected on physical grounds.
+``legacy-v1``
+    The correlations TMHP shipped before the standalone-compressor refit
+    (Guth shape, Cuevas leakage term, ``0.90 - 0.02 PR``), frozen under
+    ``validation/coefficients/v1-legacy/``.
 ``defaults``
-    What TMHP ships.
+    What TMHP ships now (``compressor_efficiency.COEFFICIENT_VERSION``).
 
 Run
 ---
@@ -46,20 +47,29 @@ Run
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
 
 from tmhp import AirSourceHeatPumpBoiler
-from tmhp.compressor_efficiency import (
-    ETA_EM_REF,
-    eta_isen_default,
-    eta_vol_default,
-    speed_shape_em,
-)
+from tmhp.compressor_efficiency import ETA_EM_REF, eta_isen_default, make_eta_vol
 from tmhp.compressor_speed import RATED_POINT_AIR_TO_WATER
+
+# The pre-refit correlations (Guth shape, Cuevas leakage term, 0.90 - 0.02 PR) are frozen
+# verbatim under validation/coefficients/v1-legacy/ so the ablation can still run them.
+_LEGACY_PATH = Path(__file__).resolve().parents[1] / "coefficients" / "v1-legacy" / "legacy_forms.py"
+
+
+def _load_legacy():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("tmhp_legacy_v1_forms", _LEGACY_PATH)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA = REPO_ROOT / "validation" / "data"
@@ -171,14 +181,14 @@ def _rated_constants() -> dict:
     pressure_ratio = 2.7
     return {
         "eta_cmp_isen": eta_isen_default(pressure_ratio),
-        "eta_cmp_vol": eta_vol_default(pressure_ratio, rated.rps),
+        "eta_cmp_vol": make_eta_vol(rated.rps)(pressure_ratio, rated.rps),
         "eta_cmp": ETA_EM_REF,
     }
 
 
 def variants() -> tuple[Variant, ...]:
     frozen = _rated_constants()
-    absolute: Callable[[float, float], float] = lambda pr, rps: ETA_EM_REF * speed_shape_em(rps)  # noqa: E731
+    legacy = _load_legacy()
     return (
         Variant(
             "ideal",
@@ -194,15 +204,19 @@ def variants() -> tuple[Variant, ...]:
             dict(frozen),
         ),
         Variant(
-            "absolute-speed",
-            "Guth shape at absolute speed",
-            "eta_em = 0.80 * speed_shape_em(rps); the rejected normalisation",
-            {"eta_cmp": absolute},
+            "legacy-v1",
+            "pre-refit defaults (v1)",
+            "0.90 - 0.02 PR; 1 - 0.020(PR-1) - 3.5(1/rps - 1/50); 0.80 x Guth shape in relative speed",
+            {
+                "eta_cmp_isen": legacy.eta_isen_default,
+                "eta_cmp_vol": legacy.eta_vol_default,
+                "eta_cmp": legacy.make_eta_em(RATED_POINT_AIR_TO_WATER.rps),
+            },
         ),
         Variant(
             "defaults",
             "TMHP defaults",
-            "eta_isen_default, eta_vol_default, make_eta_em(rps_rated)",
+            "eta_isen_default, make_eta_vol(rps_rated), make_eta_em(rps_rated) -- compressor_efficiency COEFFICIENT_VERSION",
             {},
         ),
     )

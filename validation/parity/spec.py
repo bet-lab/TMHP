@@ -48,7 +48,16 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_DIR = REPO_ROOT / "validation" / "catalogs"
 
-ALLOWED_PUBLISHED_INPUTS = frozenset({"displacement_cc", "rated_air_flow_m3_s", "rated_indoor_air_flow_m3_s"})
+ALLOWED_PUBLISHED_INPUTS = frozenset(
+    {"displacement_cc", "rated_air_flow_m3_s", "rated_indoor_air_flow_m3_s", "rated_indoor_air_flow_heating_m3_s"}
+)
+#: Rating standards a catalogue may declare. They define the test conditions
+#: and the COP boundary (net vs gross capacity, indoor fan heat), so results are
+#: never pooled across them -- ``run.py`` reports one headline per standard.
+RATING_STANDARDS = frozenset({"EN 14511", "AHRI 210/240", "ISO 5151", "unknown"})
+#: ``adopted`` catalogues form the validation set; ``hold`` catalogues are still
+#: run and written (they are diagnostics) but never enter a headline figure.
+CATALOG_STATUSES = frozenset({"adopted", "hold"})
 
 
 @dataclass(frozen=True)
@@ -84,10 +93,21 @@ class Catalog:
     sink_offset_K: float = 0.0
     cop_definition: str = ""
     notes: str = ""
+    #: Test standard the published grid was rated under (see RATING_STANDARDS).
+    rating_standard: str = "unknown"
+    #: ``adopted`` or ``hold`` (see CATALOG_STATUSES); ``hold_reason`` says why.
+    status: str = "adopted"
+    hold_reason: str = ""
 
     def __post_init__(self) -> None:
         if self.model_class not in ("ASHP", "ASHPB"):
             raise ValueError(f"{self.slug}: model_class must be ASHP or ASHPB")
+        if self.rating_standard not in RATING_STANDARDS:
+            raise ValueError(f"{self.slug}: rating_standard must be one of {sorted(RATING_STANDARDS)}")
+        if self.status not in CATALOG_STATUSES:
+            raise ValueError(f"{self.slug}: status must be one of {sorted(CATALOG_STATUSES)}")
+        if self.status == "hold" and not self.hold_reason:
+            raise ValueError(f"{self.slug}: a held catalogue must say why (hold_reason)")
         unknown = set(self.published_inputs) - ALLOWED_PUBLISHED_INPUTS
         if unknown:
             raise ValueError(
@@ -105,11 +125,14 @@ def load(path: Path) -> Catalog:
     return Catalog(points=points, **raw)
 
 
-def load_all(slug: str | None = None) -> list[Catalog]:
+def load_all(slug: str | None = None, *, include_hold: bool = True) -> list[Catalog]:
     paths = sorted(CATALOG_DIR.glob("*.yaml"))
     if slug:
         paths = [p for p in paths if p.stem == slug]
         if not paths:
             available = ", ".join(sorted(p.stem for p in CATALOG_DIR.glob("*.yaml")))
             raise SystemExit(f"no catalogue {slug!r}; available: {available or '(none)'}")
-    return [load(p) for p in paths]
+    catalogs = [load(p) for p in paths]
+    if not include_hold:
+        catalogs = [c for c in catalogs if c.status == "adopted"]
+    return catalogs

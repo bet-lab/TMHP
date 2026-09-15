@@ -1,0 +1,44 @@
+{
+ "eta_vol": {
+  "family": "V2",
+  "loco_wmape_pct": 5.411072525218349,
+  "legacy_loco_wmape_pct": 5.705735818233679,
+  "chain_accepted": [
+   "V1",
+   "V2"
+  ],
+  "extension_candidates": [],
+  "tie_break": ""
+ },
+ "eta_oi": {
+  "family": "I2xE1",
+  "loco_wmape_pct": 8.956112605351823,
+  "legacy_loco_wmape_pct": 9.96301271576478,
+  "chain_accepted": [
+   "I1xE0",
+   "I2xE0",
+   "I2xE1",
+   "I2xE3",
+   "I3xE0",
+   "I3xE1",
+   "I3xE2",
+   "I3xE3",
+   "I1xE1",
+   "I1xE3"
+  ],
+  "extension_candidates": [
+   "I2xE1xX1"
+  ],
+  "tie_break": "I2xE3 (8.934 %) replaced by I2xE1 (8.956 %): within 0.05 pp, E1 has the Ossorio drive-loss precedent"
+ },
+ "eta_em_anchor": {
+  "anchor": 0.9359685011793779,
+  "n": 6,
+  "p10": 0.9258592112369878,
+  "p90": 0.9423147101515168,
+  "source": [
+   "cuevas_lebrun_2009"
+  ]
+ },
+ "big_strata_min_machines": 3
+}

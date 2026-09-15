@@ -293,6 +293,44 @@ def fig_strata(out: Path) -> None:
     _save(fig, out, "F6_loco_strata", mt="4%")
 
 
+def fig_eta_overview(df: pd.DataFrame, out: Path) -> None:
+    """F13: the two fitted efficiencies against pressure ratio, side by side.
+
+    A condensed pairing of F2(a) and F3(a) for readers who want the two
+    pressure-ratio shapes in one view: the volumetric efficiency falls
+    monotonically with lift, the electrical-to-isentropic product peaks near
+    the built-in volume ratio.  Same data, same fits, one shared speed
+    colour scale.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44), gridspec_kw={"wspace": 0.42})
+    pr = np.linspace(1.0, 8.0, 100)
+    f_vol = make_eta_vol(1.0)
+    panels = (
+        (axes[0], df[~df.vdisp_suspect], "eta_vol", lambda x, ns: f_vol(x, ns), (0.6, 1.05), 0.1,
+         "Volumetric efficiency η_vol [-]", "lower left", "a"),
+        (axes[1], df, "eta_oi", eta_oi_product, (0.3, 0.9), 0.1,
+         "η_isen · η_em, electrical-to-isentropic [-]", "upper right", "b"),
+    )
+    sc = None
+    for ax, d, col, fit, (lo, hi), step, label, loc, letter in panels:
+        sc = ax.scatter(
+            d.PR, d[col], c=d.n_star, cmap="viridis", s=dm.fs(2), alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.5
+        )
+        for ns, ls in ((1.0, "solid"), (0.5, (0, (4, 1.6))), (0.27, (0, (1, 1.2)))):
+            ax.plot(pr, [fit(x, ns) for x in pr], color=COLORS["ink"], ls=ls, lw=dm.lw(0), label=f"fit, n* = {ns:g}")
+        _pr_axis(ax)
+        ax.set_ylim(lo, hi)
+        ax.set_yticks(ticks(lo, hi if col == "eta_oi" else 1.0, step))
+        ax.set_ylabel(label)
+        ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+        ax.legend(loc=loc, frameon=False, fontsize=dm.fs(-2.5))
+        panel_letter(ax, letter)
+    cb = fig.colorbar(sc, ax=axes[1], pad=0.03, fraction=0.05)
+    cb.set_label("Relative speed n* [-]")
+    cb.set_ticks(ticks(0.25, 1.5, 0.25))
+    _save(fig, out, "F13_eta_overview", mt="4%")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(REPO_ROOT / "validation" / "coefficients" / COEFFICIENT_VERSION / "figures"))
@@ -304,6 +342,7 @@ def main() -> None:
     fig_eta_vol(df, out)
     fig_eta_oi(df, out)
     fig_eta_isen(out)
+    fig_eta_overview(df, out)
     fig_loco(out)
     fig_strata(out)
     print(f"figures -> {out}")

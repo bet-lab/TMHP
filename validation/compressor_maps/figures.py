@@ -1,8 +1,9 @@
-"""Level-1 figures: coverage, fitted surfaces against the compressor data, LOCO per machine.
+"""Level-1 figures (dartwork-mpl ``scientific`` preset): coverage, fitted
+correlations against the compressor data, cross-validation by family and by
+stratum.  Writes SVG + PNG to ``--out`` (default: the coefficient archive).
 
-Writes PNG (300 dpi) + SVG to the directory given by ``--out`` (default: the
-coefficient archive ``figures/``).  Plain matplotlib so the script has no
-dependency beyond the library's own.
+Every axis declares its ticks; quantities are scaled so tick labels carry at
+most three significant digits.
 """
 
 from __future__ import annotations
@@ -11,16 +12,29 @@ import argparse
 import json
 from pathlib import Path
 
+import dartwork_mpl as dm
 import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from scripts.visualization._dmpl_common import (  # noqa: E402
+    COLORS,
+    GRIDLINE,
+    HAIRLINE,
+    apply_style,
+    finalize,
+    panel_letter,
+    ticks,
+)
 
 from tmhp.compressor_efficiency import (  # noqa: E402
     COEFFICIENT_VERSION,
     ETA_EM_REF,
+    ETA_OI_A,
+    ETA_OI_B,
+    ETA_OI_C,
     eta_isen_default,
     eta_oi_product,
     make_eta_vol,
@@ -28,195 +42,262 @@ from tmhp.compressor_efficiency import (  # noqa: E402
 )
 from validation.compressor_maps.schema import DATA_DIR, REPO_ROOT  # noqa: E402
 
-PALETTE = {
-    "copeland_opi": "#1f77b4",
-    "cuevas_lebrun_2009": "#d62728",
-    "guth_atakan_2023": "#2ca02c",
-    "highly_catalogue_2024": "#ff7f0e",
+SOURCE_STYLE = {
+    "copeland_opi": (COLORS["accent"], "Copeland OPI, scroll (AHRI 540 maps)"),
+    "shao_2004": (COLORS["warm"], "Shao 2004, rotary (Mitsubishi / SANYO / Hitachi maps)"),
+    "cuevas_lebrun_2009": (COLORS["hot"], "Cuevas & Lebrun 2009, scroll R134a (tests)"),
+    "guth_atakan_2023": (COLORS["ess"], "Guth & Atakan 2023, scroll R290 (published fit)"),
+    "highly_catalogue_2024": (COLORS["pv"], "Highly 2024, rotary R290 (rated points)"),
 }
-LABEL = {
-    "copeland_opi": "Copeland OPI (scroll, AHRI 540)",
-    "cuevas_lebrun_2009": "Cuevas & Lebrun 2009 (scroll R134a)",
-    "guth_atakan_2023": "Guth & Atakan 2023 (scroll R290, published fit)",
-    "highly_catalogue_2024": "Highly 2024 (rotary R290, rated)",
-}
-plt.rcParams.update({"font.size": 9, "axes.spines.top": False, "axes.spines.right": False, "figure.dpi": 110})
+LEGACY_LABEL = "pre-refit v1"
 
 
-def _load():
+def _load() -> pd.DataFrame:
     df = pd.read_csv(DATA_DIR / "points_fit_ready.csv", low_memory=False)
     return df[(~df.exclude_fixed) & df.point_ok].copy()
 
 
-def _save(fig, out: Path, name: str):
+def _save(fig, out: Path, name: str, **margins) -> None:
     out.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out / f"{name}.png", dpi=300, bbox_inches="tight")
-    fig.savefig(out / f"{name}.svg", bbox_inches="tight")
+    finalize(fig, out / name, formats=("svg", "png"), **margins)
     plt.close(fig)
 
 
-def fig_coverage(df, out):
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+def _pr_axis(ax) -> None:
+    ax.set_xlim(1.0, 8.0)
+    ax.set_xticks(ticks(1.0, 8.0, 1.0))
+    ax.set_xlabel("Pressure ratio [-]")
+
+
+def fig_coverage(df: pd.DataFrame, out: Path) -> None:
+    fig, ax = plt.subplots(figsize=dm.figsize("12cm", "standard"))
     for src, g in df.groupby("source_id"):
+        color, label = SOURCE_STYLE[src]
         ax.scatter(
             g.PR,
             g.n_star,
-            s=8,
+            s=dm.fs(2),
             alpha=0.35,
-            color=PALETTE[src],
-            label=f"{LABEL[src]} — {g.compressor_key.nunique()} machines",
+            color=color,
             edgecolors="none",
+            label=f"{label} – {g.compressor_key.nunique()} machine{'s' if g.compressor_key.nunique() > 1 else ''}",
         )
-    ax.set_xlabel("pressure ratio PR")
-    ax.set_ylabel("relative speed n* = N / N_rated")
-    ax.set_title("F1  Coverage of the standalone-compressor data used for the fit")
-    ax.axhline(1.0, color="k", lw=0.5, ls=":")
-    ax.legend(fontsize=7, loc="upper right")
+    ax.axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":")
+    _pr_axis(ax)
+    ax.set_ylim(0.0, 2.2)
+    ax.set_yticks(ticks(0.0, 2.0, 0.5))
+    ax.set_ylabel("Relative speed n* = N / N_rated [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-2.5), handletextpad=0.4, labelspacing=0.3)
     _save(fig, out, "F1_coverage")
 
 
-def fig_eta_vol(df, out):
+def fig_eta_vol(df: pd.DataFrame, out: Path) -> None:
     d = df[~df.vdisp_suspect]
-    fig, axes = plt.subplots(1, 2, figsize=(9.5, 4.0))
-    ax = axes[0]
-    sc = ax.scatter(d.PR, d.eta_vol, c=d.n_star, cmap="viridis", s=8, alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.3)
-    pr = np.linspace(1.5, 8, 100)
-    for ns, ls in ((1.0, "-"), (0.5, "--"), (0.27, ":")):
-        f = make_eta_vol(1.0)
-        ax.plot(pr, [f(x, ns) for x in pr], color="k", ls=ls, lw=1.2, label=f"fit, n* = {ns}")
-    ax.set_xlabel("pressure ratio PR")
-    ax.set_ylabel("volumetric efficiency η_vol")
-    ax.set_ylim(0.6, 1.05)
-    ax.legend(fontsize=7)
-    ax.set_title("(a) η_vol vs PR, colour = n*")
-    fig.colorbar(sc, ax=ax, label="n*")
-    ax = axes[1]
-    # speed dependence at PR 2.5-3.5
-    mid = d[d.PR.between(2.5, 3.5)]
-    for src, g in mid.groupby("source_id"):
-        ax.scatter(g.n_star, g.eta_vol, s=10, alpha=0.5, color=PALETTE[src], label=LABEL[src], edgecolors="none")
-    ns = np.linspace(0.2, 1.5, 100)
-    ax.plot(ns, [make_eta_vol(1.0)(3.0, x) for x in ns], color="k", lw=1.4, label="fit, PR = 3")
-    ax.set_xlabel("relative speed n*")
-    ax.set_ylabel("η_vol (PR 2.5–3.5)")
-    ax.set_ylim(0.7, 1.05)
-    ax.legend(fontsize=6.5)
-    ax.set_title("(b) speed dependence at mid lift")
-    fig.suptitle(f"F2  Volumetric efficiency — data and adopted correlation ({COEFFICIENT_VERSION})", y=1.02)
-    _save(fig, out, "F2_eta_vol")
-
-
-def fig_eta_oi(df, out):
-    fig, axes = plt.subplots(1, 2, figsize=(9.5, 4.0))
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42), gridspec_kw={"wspace": 0.5})
     ax = axes[0]
     sc = ax.scatter(
-        df.PR, df.eta_oi, c=df.n_star, cmap="viridis", s=8, alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.3
+        d.PR, d.eta_vol, c=d.n_star, cmap="viridis", s=dm.fs(2), alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.5
     )
-    pr = np.linspace(1.5, 8, 100)
-    for ns, ls in ((1.0, "-"), (0.5, "--"), (0.27, ":")):
-        ax.plot(pr, [eta_oi_product(x, ns) for x in pr], color="k", ls=ls, lw=1.2, label=f"fit, n* = {ns}")
-    ax.set_xlabel("pressure ratio PR")
-    ax.set_ylabel("η_isen · η_em (electrical → isentropic)")
-    ax.set_ylim(0.3, 0.85)
-    ax.legend(fontsize=7)
-    ax.set_title("(a) product vs PR, colour = n*")
-    fig.colorbar(sc, ax=ax, label="n*")
+    pr = np.linspace(1.0, 8.0, 100)
+    f = make_eta_vol(1.0)
+    for ns, ls in ((1.0, "solid"), (0.5, (0, (4, 1.6))), (0.27, (0, (1, 1.2)))):
+        ax.plot(pr, [f(x, ns) for x in pr], color=COLORS["ink"], ls=ls, lw=dm.lw(0), label=f"fit, n* = {ns:g}")
+    _pr_axis(ax)
+    ax.set_ylim(0.6, 1.05)
+    ax.set_yticks(ticks(0.6, 1.0, 0.1))
+    ax.set_ylabel("Volumetric efficiency η_vol [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-2.5))
+    cb = fig.colorbar(sc, ax=ax, pad=0.02, fraction=0.05)
+    cb.set_label("n* [-]")
+    cb.set_ticks(ticks(0.25, 1.5, 0.25))
+    panel_letter(ax, "a")
+
     ax = axes[1]
-    ns = np.linspace(0.2, 1.5, 100)
-    ax.plot(
-        ns, [ETA_EM_REF * speed_factor_em(x) for x in ns], color="k", lw=1.4, label=f"η_em = {ETA_EM_REF:.3f} · s(n*)"
+    mid = d[d.PR.between(2.5, 3.5)]
+    for src, g in mid.groupby("source_id"):
+        color, label = SOURCE_STYLE[src]
+        ax.scatter(
+            g.n_star, g.eta_vol, s=dm.fs(2.5), alpha=0.55, color=color, edgecolors="none", label=label.split(",")[0]
+        )
+    ns = np.linspace(0.2, 2.1, 100)
+    ax.plot(ns, [f(3.0, x) for x in ns], color=COLORS["ink"], lw=dm.lw(1), label="fit, PR = 3")
+    ax.set_xlim(0.0, 2.2)
+    ax.set_xticks(ticks(0.0, 2.0, 0.5))
+    ax.set_xlabel("Relative speed n* [-]")
+    ax.set_ylim(0.6, 1.05)
+    ax.set_yticks(ticks(0.6, 1.0, 0.1))
+    ax.set_ylabel("η_vol at PR 2.5–3.5 [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
+    panel_letter(ax, "b")
+    _save(fig, out, "F2_eta_vol", mt="4%")
+
+
+def fig_eta_oi(df: pd.DataFrame, out: Path) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.42), gridspec_kw={"wspace": 0.5})
+    ax = axes[0]
+    sc = ax.scatter(
+        df.PR, df.eta_oi, c=df.n_star, cmap="viridis", s=dm.fs(2), alpha=0.5, edgecolors="none", vmin=0.25, vmax=1.5
     )
+    pr = np.linspace(1.0, 8.0, 100)
+    for ns, ls in ((1.0, "solid"), (0.5, (0, (4, 1.6))), (0.27, (0, (1, 1.2)))):
+        ax.plot(
+            pr, [eta_oi_product(x, ns) for x in pr], color=COLORS["ink"], ls=ls, lw=dm.lw(0), label=f"fit, n* = {ns:g}"
+        )
+    _pr_axis(ax)
+    ax.set_ylim(0.3, 0.9)
+    ax.set_yticks(ticks(0.3, 0.9, 0.1))
+    ax.set_ylabel("η_isen · η_em, electrical-to-isentropic [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-2.5))
+    cb = fig.colorbar(sc, ax=ax, pad=0.02, fraction=0.05)
+    cb.set_label("n* [-]")
+    cb.set_ticks(ticks(0.25, 1.5, 0.25))
+    panel_letter(ax, "a")
+
+    ax = axes[1]
+    ns = np.linspace(0.2, 2.1, 100)
+    g_pr = lambda pr: ETA_OI_A - ETA_OI_B * pr - ETA_OI_C / pr  # noqa: E731
+    rec = (
+        df.assign(sf=df.eta_oi / df.PR.map(g_pr))
+        .groupby(["source_id", "compressor_key", "N_rps"], as_index=False)
+        .agg(n_star=("n_star", "median"), sf=("sf", "median"))
+    )
+    for src, gg in rec.groupby("source_id"):
+        color, label = SOURCE_STYLE[src]
+        ax.scatter(gg.n_star, gg.sf, s=dm.fs(2.5), alpha=0.6, color=color, edgecolors="none", label=label.split(",")[0])
+    ax.plot(ns, [speed_factor_em(x) for x in ns], color=COLORS["ink"], lw=dm.lw(1), label="fit s(n*)")
     cu = df[(df.source_id == "cuevas_lebrun_2009") & df.eta_em.notna()]
     ax.scatter(
         cu.n_star,
-        cu.eta_em,
-        s=18,
-        color=PALETTE["cuevas_lebrun_2009"],
-        label="Cuevas & Lebrun: measured η_em (T_dis split)",
-        zorder=3,
+        cu.eta_em / ETA_EM_REF,
+        s=dm.fs(3),
+        marker="D",
+        color=COLORS["hot"],
+        edgecolors="white",
+        linewidth=HAIRLINE,
+        zorder=5,
+        label="Cuevas & Lebrun: measured η_em / 0.936",
     )
-    gu = df[(df.source_id == "guth_atakan_2023")]
-    ax.scatter(
-        gu.n_star,
-        gu.eta_em,
-        s=10,
-        alpha=0.5,
-        color=PALETTE["guth_atakan_2023"],
-        label="Guth & Atakan: published η_comp (other split)",
-    )
-    ax.set_xlabel("relative speed n*")
-    ax.set_ylabel("electro-mechanical efficiency η_em")
-    ax.set_ylim(0.6, 1.0)
-    ax.legend(fontsize=6.5, loc="lower right")
-    ax.set_title("(b) speed factor and the measured split anchor")
-    fig.suptitle(f"F3  Electrical-to-isentropic product and its split ({COEFFICIENT_VERSION})", y=1.02)
-    _save(fig, out, "F3_eta_oi_split")
+    ax.set_xlim(0.0, 2.2)
+    ax.set_xticks(ticks(0.0, 2.0, 0.5))
+    ax.set_xlabel("Relative speed n* [-]")
+    ax.set_ylim(0.4, 1.4)
+    ax.set_yticks(ticks(0.4, 1.4, 0.2))
+    ax.set_ylabel("Speed factor η_oi / g(PR) [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-3), ncol=2, handletextpad=0.3, columnspacing=0.8)
+    panel_letter(ax, "b")
+    _save(fig, out, "F3_eta_oi_split", mt="4%")
 
 
-def fig_eta_isen(out):
-    fig, ax = plt.subplots(figsize=(6.0, 3.8))
-    pr = np.linspace(1.2, 12, 200)
+def fig_eta_isen(out: Path) -> None:
+    fig, ax = plt.subplots(figsize=dm.figsize("11cm", "standard"))
+    pr = np.linspace(1.2, 12.0, 200)
+    ax.axvspan(1.5, 8.0, color=COLORS["band10"], alpha=0.35, lw=0, label="data range, PR 1.5–8")
     ax.plot(
         pr,
         [eta_isen_default(x) for x in pr],
-        color="k",
-        lw=1.6,
-        label=f"adopted ({COEFFICIENT_VERSION}): (A − B·PR − C/PR)/η_em,ref",
+        color=COLORS["accent"],
+        lw=dm.lw(1),
+        label=f"adopted ({COEFFICIENT_VERSION})",
     )
-    ax.plot(pr, np.maximum(0.25, 0.90 - 0.02 * pr), color="grey", lw=1.2, ls="--", label="pre-refit v1: 0.90 − 0.02·PR")
-    ax.axvspan(1.5, 8.0, color="#1f77b4", alpha=0.06, label="data range (PR 1.5–8)")
-    ax.set_xlabel("pressure ratio PR")
-    ax.set_ylabel("isentropic efficiency η_isen")
+    ax.plot(
+        pr,
+        np.maximum(0.25, 0.90 - 0.02 * pr),
+        color=COLORS["muted"],
+        lw=dm.lw(0),
+        ls=(0, (4, 1.6)),
+        label=f"{LEGACY_LABEL}: 0.90 − 0.02·PR",
+    )
+    ax.set_xlim(1.0, 12.0)
+    ax.set_xticks(ticks(2.0, 12.0, 2.0))
+    ax.set_xlabel("Pressure ratio [-]")
     ax.set_ylim(0.2, 1.0)
-    ax.legend(fontsize=7)
-    ax.set_title("F4  Isentropic efficiency: adopted shape vs pre-refit")
+    ax.set_yticks(ticks(0.2, 1.0, 0.2))
+    ax.set_ylabel("Isentropic efficiency η_isen [-]")
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
+    ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-2.5))
     _save(fig, out, "F4_eta_isen")
 
 
-def fig_loco(out):
+def fig_loco(out: Path) -> None:
     pooled = pd.read_csv(DATA_DIR / "loco_pooled.csv")
     sel = json.loads((DATA_DIR / "selected.json").read_text())
-    fig, axes = plt.subplots(1, 2, figsize=(9.5, 3.8))
-    for ax, kind, title in zip(axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen·η_em"), strict=True):
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.45))
+    for ax, kind, title, letter in zip(
+        axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen · η_em"), ("a", "b"), strict=True
+    ):
         d = pooled[pooled.kind == kind].sort_values("loco_wmape_pct", ascending=False)
         colors = [
-            "#d62728" if f == "legacy" else ("#2ca02c" if f == sel[kind]["family"] else "#9ecae1") for f in d.family
+            COLORS["hot"] if f == "legacy" else (COLORS["accent"] if f == sel[kind]["family"] else COLORS["band20"])
+            for f in d.family
         ]
-        ax.barh(d.family, d.loco_wmape_pct, color=colors)
-        ax.set_xlabel("leave-one-compressor-out weighted MAPE [%]")
-        ax.set_title(f"{title}: candidate families (green = adopted, red = pre-refit)")
+        labels = [LEGACY_LABEL if f == "legacy" else f for f in d.family]
+        ax.barh(labels, d.loco_wmape_pct, color=colors, height=0.7)
+        xmax = float(np.ceil(d.loco_wmape_pct.max() + 1.0))
+        ax.set_xlim(0.0, xmax + 1.0)
+        ax.set_xticks(ticks(0.0, xmax, 2.0 if xmax > 8 else 1.0))
         for y, v in enumerate(d.loco_wmape_pct):
-            ax.text(v + 0.05, y, f"{v:.2f}", va="center", fontsize=7)
-    fig.suptitle("F5  Cross-validated error of every candidate family", y=1.02)
-    _save(fig, out, "F5_loco_families")
+            ax.text(v + 0.08, y, f"{v:.2f}", va="center", fontsize=dm.fs(-3), color=COLORS["ink"])
+        ax.set_xlabel("Leave-one-compressor-out MAPE [%]")
+        ax.set_title(f"{title}: candidate forms (blue = adopted, red = {LEGACY_LABEL})", loc="left", fontsize=dm.fs(-1))
+        ax.grid(True, axis="x", alpha=0.25, linewidth=GRIDLINE)
+        ax.tick_params(axis="y", labelsize=dm.fs(-2))
+        panel_letter(ax, letter, x=-0.22)
+    _save(fig, out, "F5_loco_families", mt="6%")
 
 
-def fig_strata(out):
+def fig_strata(out: Path) -> None:
     strata = pd.read_csv(DATA_DIR / "loco_strata.csv")
     sel = json.loads((DATA_DIR / "selected.json").read_text())
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
-    for ax, kind, title in zip(axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen·η_em"), strict=True):
+    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.5))
+    for ax, kind, title, letter in zip(
+        axes, ("eta_vol", "eta_oi"), ("η_vol", "η_isen · η_em"), ("a", "b"), strict=True
+    ):
         new = strata[(strata.kind == kind) & (strata.family == sel[kind]["family"])].set_index("stratum")
         old = strata[(strata.kind == kind) & (strata.family == "legacy")].set_index("stratum")
         idx = [s for s in new.index if not s.startswith("source=")] + [s for s in new.index if s.startswith("source=")]
         y = np.arange(len(idx))
-        ax.barh(y + 0.2, old.loc[idx].loco_wmape_pct, height=0.4, color="#d62728", label="pre-refit v1")
+        ax.barh(y + 0.2, old.loc[idx].loco_wmape_pct, height=0.4, color=COLORS["hot"], label=LEGACY_LABEL)
         ax.barh(
-            y - 0.2, new.loc[idx].loco_wmape_pct, height=0.4, color="#2ca02c", label=f"adopted {sel[kind]['family']}"
+            y - 0.2,
+            new.loc[idx].loco_wmape_pct,
+            height=0.4,
+            color=COLORS["accent"],
+            label=f"adopted {sel[kind]['family']}",
         )
         ax.set_yticks(y)
-        ax.set_yticklabels([s.replace("source=", "").replace("_", " ") for s in idx], fontsize=7)
-        ax.set_xlabel("LOCO weighted MAPE [%]")
-        ax.set_title(title)
-        ax.legend(fontsize=7)
-    fig.suptitle("F6  Error by stratum (refrigerant, type, speed, lift, source)", y=1.02)
-    _save(fig, out, "F6_loco_strata")
+        ax.set_yticklabels(
+            [
+                s.replace("source=", "")
+                .replace("_", " ")
+                .replace("nstar=", "n* ")
+                .replace("ref=", "")
+                .replace("type=", "")
+                .replace("PR=", "")
+                for s in idx
+            ],
+            fontsize=dm.fs(-2.5),
+        )
+        xmax = float(np.ceil(max(old.loc[idx].loco_wmape_pct.max(), new.loc[idx].loco_wmape_pct.max()) / 5.0) * 5.0)
+        ax.set_xlim(0.0, xmax)
+        ax.set_xticks(ticks(0.0, xmax, 5.0))
+        ax.set_xlabel("LOCO MAPE [%]")
+        ax.set_title(title, loc="left", fontsize=dm.fs(-1))
+        ax.grid(True, axis="x", alpha=0.25, linewidth=GRIDLINE)
+        ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2.5))
+        panel_letter(ax, letter, x=-0.30)
+    _save(fig, out, "F6_loco_strata", mt="4%")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(REPO_ROOT / "validation" / "coefficients" / COEFFICIENT_VERSION / "figures"))
     a = ap.parse_args()
+    apply_style("scientific")
     out = Path(a.out)
     df = _load()
     fig_coverage(df, out)

@@ -20,7 +20,9 @@ then frozen (``validation/compressor_maps``): Copeland variable-speed scroll
 AHRI-540 coefficient sets at two or three rated speeds per machine (Online
 Product Information), the 48 calorimeter tests of Cuevas & Lebrun (2009) with
 measured discharge temperature, the published efficiency functions of Guth &
-Atakan (2023) for an R-290 scroll, and rated points of Highly R-290 rotaries.
+Atakan (2023) for an R-290 scroll, rated points of Highly R-290 rotaries, and
+the manufacturer performance maps of three inverter rotary compressors at
+30-120 Hz published by Shao et al. (2004).
 Heat-pump catalogue COP is *not* used to fit them; it is used afterwards to
 check the assembled model (``validation/parity``).  The archived version with
 data list, fits and leave-one-compressor-out cross-validation is named by
@@ -44,6 +46,16 @@ Structure (what the data identify)
   speed term in ``eta_isen``.  It buys 0.15 pp of cross-validated error and
   is kept as a documented extension, not adopted -- the correlations only
   become more complex when the data demand it clearly.
+* Above rated speed the form allows a one-sided quadratic roll-off,
+  :data:`ETA_EM_D`, and this version sets it to zero.  The only maps that
+  reach twice rated speed are three 2004 rotaries whose whole level sits
+  27 % below the population; pooled, that level shift looks like a speed
+  effect (a fitted roll-off of 28 % at twice rated speed), but inside each
+  of those machines the trend is a tenth of that.  A speed term is adopted
+  only when the machines that identify it show it themselves (rule R4 in
+  ``validation/compressor_maps/cv.py``), so the roll-off waits for a second
+  high-speed source.  Should it be fitted, it is held at its ``n* = 2`` value
+  past the data (:data:`N_STAR_EM_MAX`) rather than followed.
 * Speed is read relative to the machine's rated speed.  A drive and motor are
   sized for the speed the compressor is rated at; a curve measured on a
   machine rated near 70 rev/s must not put a 40 rev/s machine permanently on
@@ -70,6 +82,10 @@ Ossorio, R. & Navarro-Peris, E. (2023). Testing of variable-speed scroll
     compressors and their inverters for the development of empirical
     correlations. *Applied Thermal Engineering* 230, 120725.
     doi:10.1016/j.applthermaleng.2023.120725
+Shao, S., Shi, W., Li, X. & Chen, H. (2004). Performance representation of
+    variable-speed compressor for inverter air conditioners based on
+    experimental data. *International Journal of Refrigeration* 27(8),
+    805-815. doi:10.1016/j.ijrefrig.2004.02.008
 Copeland LP. Online Product Information, AHRI 540 performance coefficients
     of ZPV/XPV/YPV/ZHV/YHV variable-speed scroll compressors (accessed
     2026-09-15).
@@ -97,8 +113,10 @@ __all__ = [
     "ETA_OI_B",
     "ETA_OI_C",
     "ETA_EM_N0",
+    "ETA_EM_D",
     "ETA_EM_REF",
     "ETA_ISEN_FLOOR",
+    "N_STAR_EM_MAX",
 ]
 
 #: Rated speed assumed when a caller has none to give [rev/s].  The module-
@@ -108,20 +126,22 @@ __all__ = [
 #: :data:`tmhp.compressor_speed.RATED_POINT_AIR_TO_AIR`, 60 rev/s).
 RPS_REF = 50.0
 
-# --- BEGIN GENERATED coefficients v2026-09-15 ---
+# --- BEGIN GENERATED coefficients v2026-09-15b ---
 #: Coefficient version; the archive with data list, fits and cross-validation
-#: lives in ``validation/coefficients/v2026-09-15/``.
-COEFFICIENT_VERSION = "v2026-09-15"
-#: Volumetric efficiency ``1 - A (PR - 1) - B max(0, 1/n* - 1)`` -- 73 machines,
-#: 113 speed records, LOCO MAPE 5.41 % (legacy 5.71 %).
-ETA_VOL_A = 0.02051
-ETA_VOL_B = 0.01774
-#: Electrical-to-isentropic product ``(A - B PR - C/PR) * n*(1+n0)/(n*+n0)`` --
-#: LOCO MAPE 8.96 % (legacy 9.96 %).
-ETA_OI_A = 1.17406
-ETA_OI_B = 0.08346
-ETA_OI_C = 0.68157
-ETA_EM_N0 = 0.03304
+#: lives in ``validation/coefficients/v2026-09-15b/``.
+COEFFICIENT_VERSION = "v2026-09-15b"
+#: Volumetric efficiency ``1 - A (PR - 1) - B max(0, 1/n* - 1)`` -- 76 machines,
+#: 131 speed records, LOCO MAPE 5.66 % (legacy 5.88 %).
+ETA_VOL_A = 0.02162
+ETA_VOL_B = 0.01765
+#: Electrical-to-isentropic product
+#: ``(A - B PR - C/PR) * n*(1+n0)/(n*+n0) * (1 - D max(0, n*-1)^2)`` --
+#: LOCO MAPE 12.16 % (legacy 12.21 %).
+ETA_OI_A = 1.08493
+ETA_OI_B = 0.07354
+ETA_OI_C = 0.57287
+ETA_EM_N0 = 0.02114
+ETA_EM_D = 0.00000
 #: Electro-mechanical efficiency at rated speed: the measured split of the
 #: product (Cuevas & Lebrun 2009, inverter-fed, n* ~ 1; p10-p90 0.926-0.942).
 ETA_EM_REF = 0.9360
@@ -131,6 +151,9 @@ ETA_EM_REF = 0.9360
 #: (PR up to 8, n* down to 0.27) and are held rather than followed.
 ETA_VOL_FLOOR = 0.50
 ETA_ISEN_FLOOR = 0.30
+#: A fitted high-speed roll-off (:data:`ETA_EM_D`, zero here) would rest on
+#: data up to twice rated speed; past that it is held rather than extrapolated.
+N_STAR_EM_MAX = 2.0
 
 
 def coefficients() -> dict[str, float | str]:
@@ -143,9 +166,11 @@ def coefficients() -> dict[str, float | str]:
         "ETA_OI_B": ETA_OI_B,
         "ETA_OI_C": ETA_OI_C,
         "ETA_EM_N0": ETA_EM_N0,
+        "ETA_EM_D": ETA_EM_D,
         "ETA_EM_REF": ETA_EM_REF,
         "ETA_VOL_FLOOR": ETA_VOL_FLOOR,
         "ETA_ISEN_FLOOR": ETA_ISEN_FLOOR,
+        "N_STAR_EM_MAX": N_STAR_EM_MAX,
     }
 
 
@@ -184,13 +209,20 @@ def make_eta_vol(rps_rated: float) -> Callable[[float, float], float]:
 def speed_factor_em(n_star: float) -> float:
     """Speed factor of the electro-mechanical efficiency, 1 at rated speed.
 
-    ``s(n*) = n* (1 + n0) / (n* + n0)``: the saturating shape of a drive whose
-    fixed switching and magnetising losses weigh more as the delivered power
-    falls -- the form Ossorio & Navarro-Peris fit to 185 inverter
-    measurements, here with ``n0`` fitted on the whole compressor set.
+    ``s(n*) = n* (1 + n0) / (n* + n0) * (1 - d max(0, n* - 1)^2)``.
+
+    The first factor is the saturating shape of a drive whose fixed switching
+    and magnetising losses weigh more as the delivered power falls -- the
+    form Ossorio & Navarro-Peris fit to 185 inverter measurements, here with
+    ``n0`` fitted on the whole compressor set.  The second is a one-sided
+    roll-off above rated speed; ``d`` (:data:`ETA_EM_D`) is zero in the
+    shipped version because the machines that would identify it do not show
+    it within themselves (see the module docstring), and when fitted it is
+    held at its ``n* = N_STAR_EM_MAX`` value beyond the data.
     """
     n = max(n_star, 1e-6)
-    return n * (1.0 + ETA_EM_N0) / (n + ETA_EM_N0)
+    over = max(0.0, min(n, N_STAR_EM_MAX) - 1.0)
+    return n * (1.0 + ETA_EM_N0) / (n + ETA_EM_N0) * (1.0 - ETA_EM_D * over * over)
 
 
 def eta_oi_product(pressure_ratio: float, n_star: float) -> float:

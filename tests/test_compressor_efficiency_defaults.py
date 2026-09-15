@@ -24,6 +24,7 @@ import pytest
 from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler
 from tmhp.compressor_efficiency import (
     COEFFICIENT_VERSION,
+    ETA_EM_N0,
     ETA_EM_REF,
     RPS_REF,
     coefficients,
@@ -48,7 +49,7 @@ def test_coefficient_block_matches_the_archive() -> None:
     assert archive["version"] == COEFFICIENT_VERSION
     assert c["ETA_VOL_A"] == pytest.approx(archive["eta_vol"]["ETA_VOL_A"], abs=5e-6)
     assert c["ETA_VOL_B"] == pytest.approx(archive["eta_vol"]["ETA_VOL_B"], abs=5e-6)
-    for k in ("ETA_OI_A", "ETA_OI_B", "ETA_OI_C", "ETA_EM_N0"):
+    for k in ("ETA_OI_A", "ETA_OI_B", "ETA_OI_C", "ETA_EM_N0", "ETA_EM_D"):
         assert c[k] == pytest.approx(archive["eta_oi"][k], abs=5e-6)
     assert c["ETA_EM_REF"] == pytest.approx(archive["split"]["ETA_EM_REF"], abs=5e-5)
 
@@ -77,10 +78,20 @@ def test_volumetric_speed_term_penalises_low_speed_only() -> None:
 
 def test_speed_factor_is_one_at_rated_and_saturating() -> None:
     assert speed_factor_em(1.0) == pytest.approx(1.0)
-    assert speed_factor_em(0.5) < speed_factor_em(0.8) < 1.0 < speed_factor_em(1.3)
+    assert speed_factor_em(0.5) < speed_factor_em(0.8) < 1.0
     # low-speed loss of the electro-mechanical efficiency: 5-15 % at a quarter of rated speed
     drop = 1.0 - speed_factor_em(0.25)
     assert 0.05 < drop < 0.15, drop
+
+
+def test_high_speed_roll_off_is_switched_off_in_this_version() -> None:
+    """The roll-off term exists in the form but is zero: the rotaries that reach 2x rated speed
+    do not show it within themselves (rule R4), so the factor keeps rising past rated speed."""
+    from tmhp.compressor_efficiency import ETA_EM_D, N_STAR_EM_MAX
+
+    assert ETA_EM_D == 0.0
+    assert 1.0 < speed_factor_em(1.3) < speed_factor_em(2.0) < 1.0 + ETA_EM_N0
+    assert N_STAR_EM_MAX == 2.0
 
 
 def test_electro_mechanical_level_follows_the_machines_rated_speed() -> None:

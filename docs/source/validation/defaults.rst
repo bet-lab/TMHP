@@ -68,18 +68,18 @@ Summary
         speed inverted from nine machines with published displacement
       - ``compressor_speed``
     * - Isentropic efficiency
-      - ``(1.1741 − 0.0835 · PR − 0.6816 / PR) / 0.936``
+      - ``(1.0849 − 0.0735 · PR − 0.5729 / PR) / 0.936``
       - Pressure-ratio shape of the electrical-to-isentropic product fitted on
-        standalone compressor data (73 machines, 113 speed records); divided by
+        standalone compressor data (76 machines, 131 speed records); divided by
         the measured electro-mechanical level so the product is reproduced
       - ``compressor_maps.fit``
     * - Volumetric efficiency
-      - ``1 − 0.0205 (PR − 1) − 0.0177 · max(0, 1/n* − 1)``
+      - ``1 − 0.0216 (PR − 1) − 0.0177 · max(0, 1/n* − 1)``
       - Clearance re-expansion plus the extra leakage fraction at low relative
-        speed ``n* = n / n_rated``; leave-one-compressor-out MAPE 5.4 %
+        speed ``n* = n / n_rated``; leave-one-compressor-out MAPE 5.7 %
       - ``compressor_maps.fit``
     * - Electro-mechanical efficiency
-      - ``0.936 × n*(1 + 0.033)/(n* + 0.033)``
+      - ``0.936 × n*(1 + 0.021)/(n* + 0.021)``
       - Saturating drive-loss shape fitted across the compressor set; level
         from the measured discharge-temperature split of Cuevas & Lebrun
       - ``compressor_maps.fit``
@@ -94,9 +94,9 @@ Every ``Reproduce`` entry is a module under ``validation/extraction/`` or
     uv run python -m validation.extraction.<name>
     uv run python -m validation.compressor_maps.<name>
 
-The compressor coefficients are frozen as version ``v2026-09-15``
+The compressor coefficients are frozen as version ``v2026-09-15b``
 (:data:`tmhp.compressor_efficiency.COEFFICIENT_VERSION`); the archive under
-``validation/coefficients/v2026-09-15/`` holds the data list, the fits, the
+``validation/coefficients/v2026-09-15b/`` holds the data list, the fits, the
 cross-validation and the selection table.
 
 
@@ -376,6 +376,13 @@ afterwards (:doc:`index`).
       - 1
       - R-290 inverter rotaries at their ASHRAE/T rated point, 3600 rpm — a
         level anchor for the rotary type, no speed information
+    * - `Shao et al. (2004) <https://doi.org/10.1016/j.ijrefrig.2004.02.008>`_
+      - 3
+      - 18
+      - Manufacturer map polynomials of three inverter rotaries (Mitsubishi,
+        SANYO, Hitachi; R-22 inferred) at 30–120 Hz, ``n*`` 0.4–2.0 — the
+        only rows above 1.5× rated speed; two of the three fail the
+        displacement check and enter the product fit only
 
 Every point is reduced to the same three quantities with CoolProp at the
 source's own rating convention: ``eta_vol = ṁ / (ρ_suc V n)``,
@@ -400,9 +407,22 @@ reported with the coefficient archive.
 The speed penalty measured across the Copeland set does grow with pressure
 ratio (the interaction term is statistically significant across 49 machines).
 Carrying it would need a speed term in the isentropic efficiency; it buys
-0.15 pp of cross-validated error and is kept as a documented extension, not
-adopted. The correlations only become more complex when the data demand it
-clearly, and 0.15 pp against a between-machine spread of 6.5 pp is not that.
+0.05 pp of cross-validated error once the rotary maps are in and is kept as a
+documented extension, not adopted. The correlations only become more complex
+when the data demand it clearly, and 0.05 pp against a between-machine spread
+of 7 pp is not that.
+
+A speed term must also be *identified* by the machines that carry it. The
+three 2004 rotaries are the only maps above 1.5× rated speed, and their whole
+level sits 27 % below the population; pooled, that level shift looks like a
+high-speed roll-off (a fitted 28 % at twice rated speed, and 0.8 pp of
+cross-validated gain). Inside each of those machines the trend is a tenth of
+the fitted magnitude. Rule R4 therefore compares every added speed term with
+the within-machine trend of the machines that see it and accepts the term only
+if they show at least two thirds of it; the roll-off fails (0.12), the low-speed
+drive loss passes (2.2 — the machines show it more strongly than the pooled fit
+does). The form keeps a zero-valued roll-off coefficient so a second
+high-speed source can switch it on.
 
 Selection
 ---------
@@ -412,8 +432,9 @@ leave-one-compressor-out cross-validation: refit without each machine, predict
 it, pool the error weighted so every compressor × speed record counts once.
 A family is accepted over its simpler parent only if each extra coefficient
 buys at least 0.1 pp of cross-validated MAPE, no stratum with three or more
-machines gets worse by more than 2 pp or 25 %, and the delivered duty
-``n · eta_vol`` stays monotonic in speed on the whole grid.
+machines gets worse by more than 2 pp or 25 %, the delivered duty
+``n · eta_vol`` stays monotonic in speed on the whole grid, and any added
+speed term is seen within the machines that identify it (above).
 
 .. list-table::
     :header-rows: 1
@@ -424,21 +445,24 @@ machines gets worse by more than 2 pp or 25 %, and the delivered duty
       - LOCO MAPE
       - Pre-refit (v1)
     * - Volumetric
-      - ``1 − 0.0205 (PR − 1) − 0.0177 max(0, 1/n* − 1)``
-      - 5.41 %
-      - 5.71 %
+      - ``1 − 0.0216 (PR − 1) − 0.0177 max(0, 1/n* − 1)``
+      - 5.66 %
+      - 5.88 %
     * - Product ``eta_isen · eta_em``
-      - ``(1.1741 − 0.0835 PR − 0.6816/PR) · n*(1.033)/(n* + 0.033)``
-      - 8.96 %
-      - 9.96 %
+      - ``(1.0849 − 0.0735 PR − 0.5729/PR) · n*(1.021)/(n* + 0.021)``
+      - 12.16 %
+      - 12.21 %
 
-The product's pressure-ratio shape peaks near ``PR = sqrt(C/B) ≈ 2.9`` — the
+The product's pressure-ratio shape peaks near ``PR = sqrt(C/B) ≈ 2.8`` — the
 built-in volume ratio of an air-conditioning scroll — and falls on both sides:
 under-compression below, over-compression and leakage above. Its speed factor
 is the saturating drive-loss form Ossorio & Navarro-Peris fit to 185 inverter
 measurements, here with the time constant fitted on the whole set; an
-exponential alternative scored within 0.02 pp and the form with the physical
-precedent was kept. The volumetric speed term is one-sided (no bonus above
+exponential alternative scored within 0.06 pp (inside the 0.1 pp resolution
+the acceptance rule itself uses) and the form with the physical precedent was
+kept. The pooled error of the product is dominated by the three R-22 rotaries
+(32 % in their stratum against 9 % for the scrolls): their level, not their
+shape, is what the population does not share. The volumetric speed term is one-sided (no bonus above
 rated speed): the Copeland set loses about 5 points of volumetric efficiency
 at a quarter of rated speed, a third of what the pre-refit leakage term had
 extrapolated from one machine.
@@ -455,8 +479,11 @@ What is deliberately absent
 No low-load cliff, and no refrigerant-specific coefficient set. The residuals
 were stratified by refrigerant, compressor type, source, speed and pressure
 ratio; no stratum with three or more machines asked for its own coefficients.
-The rotary type is represented only by rated points, so the speed terms are
-scroll-derived and the rotary case is an open item (see the report archive).
+The rotary type is represented by eight modern R-290 rated points and three
+2004 R-22 maps; the modern rotaries sit at the population level (7–9 % in
+their stratum), the 2004 machines 27 % below it, so the shape carries over and
+the level of an old induction-motor rotary does not. A modern multi-speed
+rotary map is still the first data gap (see the report archive).
 See :doc:`part-load` for why inventing a low-load roll-over would contradict
 the certified measurements.
 
@@ -503,8 +530,8 @@ Four compressor descriptions were run through both, identically:
 
     * - ``constant``
       - the adopted correlations frozen at their rated point, no speed dependence
-      - 16.7 %
-      - +14.5 %
+      - 15.4 %
+      - +12.2 %
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
@@ -513,9 +540,9 @@ Four compressor descriptions were run through both, identically:
       - -1.6 %
 
     * - **``defaults``**
-      - **what TMHP ships — coefficients ``v2026-09-15``**
-      - **8.4 %**
-      - **+2.5 %**
+      - **what TMHP ships — coefficients ``v2026-09-15b``**
+      - **8.1 %**
+      - **+1.1 %**
 
 Parity figures are the ten adopted air-to-water units (153 points); the held
 Fujitsu catalogues are excluded from every headline.
@@ -524,14 +551,14 @@ Three things to read off it.
 
 **The coefficients carry most of the model.** An ideal compressor is
 47.9 % out on the catalogues; removing only the speed dependence
-costs 8.3 points of MAPE.
+costs 7.3 points of MAPE.
 
 **The shape passes, at every configuration.** Across fifteen combinations of
 capacity, refrigerant and sizing ratio the modelled COP rises at every step
 A → D in all fifteen low-temperature runs (96.9 % of the 9,062 certified
 low-temperature records do the same), and the A-to-D gradient lands inside the
-certified p10–p90 in all thirty runs: median 2.41 modelled
-against 2.63 certified for the low-temperature application, 2.90
+certified p10–p90 in all thirty runs: median 2.48 modelled
+against 2.63 certified for the low-temperature application, 2.93
 against 2.86 for the medium-temperature one. The refit made the low-temperature
 gradient flatter than before (2.70): the fitted product falls
 below a pressure ratio of about 2.5 — under-compression in a scroll with a
@@ -539,11 +566,11 @@ fixed built-in volume ratio — and point D runs near ``PR = 1.6``.
 
 **The level sits above the median, and the sign is predicted.** Read as
 percentiles of the certified population, the low-temperature trajectory sits
-at the 94 / 93 / 70 / 82th percentile at points A / B / C / D and the medium-temperature
-one at 86 / 93 / 89 / 88. Certified COP is measured with defrost and, at the light
+at the 94 / 91 / 69 / 83th percentile at points A / B / C / D and the medium-temperature
+one at 85 / 93 / 88 / 89. Certified COP is measured with defrost and, at the light
 points, with on/off cycling; TMHP models neither, so a model above the median
 is the expected direction. Points A and B sit near the 90th percentile — one
-decile higher than the pre-refit set, the same signal as the +2.5 % air-to-water
+decile higher than the pre-refit set, the same signal as the +1.1 % air-to-water
 parity bias: the compressor population the coefficients come from is the
 efficient side of the heat-pump population. Neither result moves a coefficient;
 both are recorded (:doc:`index`).
@@ -557,7 +584,7 @@ both are recorded (:doc:`index`).
     outdoor coil below the compressor speed floor. That search now scores
     candidates by electrical input per unit of heat delivered
     (:mod:`tmhp._opt_utils`), and the point sits in line with its neighbours
-    (89th percentile). See :doc:`part-load`.
+    (88th percentile). See :doc:`part-load`.
 
 Reproduce both halves with::
 

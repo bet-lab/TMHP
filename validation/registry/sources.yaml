@@ -263,6 +263,28 @@ documents:
     pages: 2
     sha256: "51327cbf4af60af4097221ddc77b9e805a7310eee5c28b6093b5a24cd4dc44a1"
 
+  - path: compressor_maps/mitsubishi/mitsubishi_rotary_catalogue.pdf
+    title: "Mitsubishi Electric rotary compressor catalogue"
+    publisher: "Mitsubishi Electric"
+    document_id: "-"
+    rating_condition: "fixed-speed rated points and displacements only"
+    used_by: "displacement cross-check for the Shao 2004 RHV207FEM row; screened otherwise"
+    obtain_from: "https://mitsubishicompressors.com/"
+    bytes: 10495890
+    pages: 28
+    sha256: "85e2c806fac5bd1b3310ebc87c5e47125d19b2e085eddf9da44fd5adc7d20992"
+
+  - path: compressor_maps/mitsubishi/mitsubishi_rotary_catalogue_2023.pdf
+    title: "Mitsubishi Electric rotary compressor catalogue 2023"
+    publisher: "Mitsubishi Electric"
+    document_id: "-"
+    rating_condition: "fixed-speed rated points and displacements only"
+    used_by: "screened, not used"
+    obtain_from: "https://mitsubishicompressors.com/"
+    bytes: 26817814
+    pages: 28
+    sha256: "a69c48f5501f96cffe30f5c78cb2216e6515e8969ff0d54d5ac82b0430c6a20c"
+
   - path: compressor_maps/papers/cuevas_lebrun_2009_ate.pdf
     title: "Testing and modelling of a variable speed scroll compressor"
     publisher: "Applied Thermal Engineering 29(2-3), 469-478"
@@ -295,6 +317,39 @@ documents:
     bytes: 750234
     pages: 10
     sha256: "a72a9b5312ebe7b1d3b7c484c9e52455652bf65d9e96b6970a778e76ed2e7fad"
+
+  - path: compressor_maps/papers/shao_2004_ijr_rotary.pdf
+    title: "Performance representation of variable-speed compressor for inverter air conditioners based on experimental data"
+    publisher: "International Journal of Refrigeration 27(8), 805-815"
+    document_id: "doi:10.1016/j.ijrefrig.2004.02.008"
+    rating_condition: "manufacturer map polynomials (Eqs. 1-2, Table 1) and frequency corrections (Tables 2-3) of three inverter rotaries, 30-120 Hz; map 11 K superheat / 8.3 K subcooling; refrigerant R22 inferred"
+    used_by: "compressor_maps.parse.shao2004 -> points_shao2004.csv (eta_oi all three; eta_vol Mitsubishi only, the other two fail the displacement check)"
+    obtain_from: "https://doi.org/10.1016/j.ijrefrig.2004.02.008"
+    bytes: 528064
+    pages: 11
+    sha256: "dfa048774f392fe4c51c75e74295ce3ddc4579045c25c634d3a8075df805cb73"
+
+  - path: compressor_maps/toshiba/toshiba_review_2001_dc_twin_rotary.pdf
+    title: "Toshiba Review 2001: DC twin-rotary compressor"
+    publisher: "Toshiba"
+    document_id: "-"
+    rating_condition: "review article, efficiency curves as figures only"
+    used_by: "screened, not used"
+    obtain_from: "https://www.global.toshiba/"
+    bytes: 80179
+    pages: 4
+    sha256: "d42c3da6b073958845187d607acb948371c4d0dcdb591e4cb5df45c23d4657f1"
+
+  - path: compressor_maps/toshiba/toshiba_rotary_catalog.pdf
+    title: "Toshiba Carrier rotary compressor catalogue"
+    publisher: "Toshiba Carrier"
+    document_id: "-"
+    rating_condition: "capacity ranges per model, no map"
+    used_by: "screened, not used"
+    obtain_from: "https://www.toshiba-carrier.co.jp/"
+    bytes: 3482318
+    pages: 12
+    sha256: "f79a7c11f5104a7d27cc37c9d7cec1d1a6aacf12e2715fd493249e57e9a07b67"
 
   - path: data/ossorio2023/1-s2.0-S1359431123007548-mmc2.xlsx
     title: "Inverter efficiency measurements, supplementary data mmc2"

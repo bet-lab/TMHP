@@ -46,10 +46,11 @@ def build_coefficients(version: str) -> dict:
     g_key, s_key = sel["eta_oi"]["family"].split("x")[:2]
     oi = next(r for r in fit["eta_oi"] if r["g"] == g_key and r["s"] == s_key)
     anchor = sel["eta_em_anchor"]["anchor"]
-    if vol["family"] != "V2" or g_key != "I2" or s_key != "E1":
+    if vol["family"] != "V2" or g_key != "I2" or s_key not in ("E1", "E2"):
         raise SystemExit(
-            f"emit_coefficients encodes V2 / I2 x E1; selection is {vol['family']} / {g_key}x{s_key} -- extend the module first"
+            f"emit_coefficients encodes V2 / I2 x (E1|E2); selection is {vol['family']} / {g_key}x{s_key} -- extend the module first"
         )
+    d = float(oi["theta_s"].get("d", 0.0))  # E1 is E2 with no roll-off (ETA_EM_D = 0)
     return {
         "version": version,
         "eta_vol": {
@@ -64,18 +65,22 @@ def build_coefficients(version: str) -> dict:
             "legacy_loco_wmape_pct": sel["eta_vol"]["legacy_loco_wmape_pct"],
         },
         "eta_oi": {
-            "family": "I2xE1",
-            "formula": "eta_oi = (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0)",
+            "family": f"I2x{s_key}",
+            "formula": "eta_oi = (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0) * (1 - ETA_EM_D*max(0, min(n*, N_STAR_EM_MAX) - 1)^2)",
             "ETA_OI_A": oi["theta_g"]["A"],
             "ETA_OI_B": oi["theta_g"]["B"],
             "ETA_OI_C": oi["theta_g"]["C"],
             "ETA_EM_N0": oi["theta_s"]["n0"],
+            "ETA_EM_D": d,
+            "N_STAR_EM_MAX": 2.0,
             "fit_wrmse": oi["wrmse"],
             "fit_wmape_pct": oi["wmape_pct"],
             "loco_wmape_pct": sel["eta_oi"]["loco_wmape_pct"],
             "legacy_loco_wmape_pct": sel["eta_oi"]["legacy_loco_wmape_pct"],
             "tie_break": sel["eta_oi"].get("tie_break", ""),
             "extension_candidates_not_adopted": sel["eta_oi"].get("extension_candidates", []),
+            "rejected_by_R4_within_machine_identification": sel["eta_oi"].get("rejected_by_R4", []),
+            "R4_ratios": sel["eta_oi"].get("R4", {}),
         },
         "split": {
             "ETA_EM_REF": anchor,
@@ -84,7 +89,7 @@ def build_coefficients(version: str) -> dict:
             "p10": sel["eta_em_anchor"]["p10"],
             "p90": sel["eta_em_anchor"]["p90"],
             "eta_isen_formula": "eta_isen = max(ETA_ISEN_FLOOR, (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) / ETA_EM_REF)",
-            "eta_em_formula": "eta_em = ETA_EM_REF * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0)",
+            "eta_em_formula": "eta_em = ETA_EM_REF * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0) * (1 - ETA_EM_D*max(0, min(n*, N_STAR_EM_MAX) - 1)^2)",
             "ETA_ISEN_FLOOR": 0.30,
         },
         "separability": fit["separability"],
@@ -106,12 +111,14 @@ COEFFICIENT_VERSION = "{c["version"]}"
 #: {c["speed_records"]} speed records, LOCO MAPE {v["loco_wmape_pct"]:.2f} % (legacy {v["legacy_loco_wmape_pct"]:.2f} %).
 ETA_VOL_A = {v["ETA_VOL_A"]:.5f}
 ETA_VOL_B = {v["ETA_VOL_B"]:.5f}
-#: Electrical-to-isentropic product ``(A - B PR - C/PR) * n*(1+n0)/(n*+n0)`` --
+#: Electrical-to-isentropic product
+#: ``(A - B PR - C/PR) * n*(1+n0)/(n*+n0) * (1 - D max(0, n*-1)^2)`` --
 #: LOCO MAPE {o["loco_wmape_pct"]:.2f} % (legacy {o["legacy_loco_wmape_pct"]:.2f} %).
 ETA_OI_A = {o["ETA_OI_A"]:.5f}
 ETA_OI_B = {o["ETA_OI_B"]:.5f}
 ETA_OI_C = {o["ETA_OI_C"]:.5f}
 ETA_EM_N0 = {o["ETA_EM_N0"]:.5f}
+ETA_EM_D = {o["ETA_EM_D"]:.5f}
 #: Electro-mechanical efficiency at rated speed: the measured split of the
 #: product (Cuevas & Lebrun 2009, inverter-fed, n* ~ 1; p10-p90 {s["p10"]:.3f}-{s["p90"]:.3f}).
 ETA_EM_REF = {s["ETA_EM_REF"]:.4f}
@@ -145,7 +152,9 @@ def main() -> None:
         "git_branch": git("rev-parse", "--abbrev-ref", "HEAD"),
         "git_dirty": bool(git("status", "--porcelain", "--", "src", "validation")),
         "selection_rule": "sequential nesting: +1 coefficient must buy >= 0.1 pp LOCO MAPE; no stratum with >= 3 machines worse by > 2 pp or > 25 %; "
-        "constraints 0 < eta <= 1.02 and d(n* eta_vol)/dn* > 0 on PR 1.5-8, n* 0.15-2.5; PR x speed interaction kept as a documented extension only",
+        "constraints 0 < eta <= 1.02 and d(n* eta_vol)/dn* > 0 on PR 1.5-8, n* 0.15-2.5; a speed term must be seen within the machines that identify it "
+        "(median within-machine/fitted ratio >= 2/3, >= 3 machines from >= 2 sources); ties within 0.1 pp go to the form with a physical precedent; "
+        "PR x speed interaction kept as a documented extension only",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
     df = pd.read_csv(DATA_DIR / "points_fit_ready.csv", low_memory=False)

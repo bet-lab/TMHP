@@ -176,7 +176,7 @@ def main() -> None:
     out = DATA_DIR / "points_derived.csv"
     rows: list[dict] = []
     for p in sorted(DATA_DIR.glob("points_*.csv")):
-        if p.name == "points_derived.csv":
+        if p.name in ("points_derived.csv", "points_fit_ready.csv"):
             continue
         r = derive_file(p)
         print(f"{p.name}: {len(r)} rows")

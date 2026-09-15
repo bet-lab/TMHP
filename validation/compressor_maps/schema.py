@@ -9,7 +9,7 @@ conventions needed to reproduce the thermodynamic state.  Nothing derived
 from __future__ import annotations
 
 import csv
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import MISSING, asdict, dataclass, field, fields
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -103,11 +103,10 @@ def read_points(path: Path) -> list[CompressorPoint]:
                     continue
                 v = row.get(f.name, "")
                 if v == "" or v == "None":
-                    kw[f.name] = None if f.default is None or f.name in ("Q_evap_W", "P_el_W") else f.default
-                    if f.default is not None and f.default != "" and v == "":
-                        kw[f.name] = f.default
                     if f.name in ("V_disp_cm3", "N_rated_rps", "N_rps"):
                         raise ValueError(f"missing {f.name} in {path}")
+                    # optional numeric columns (Q_evap_W, P_el_W) have no default: blank means None
+                    kw[f.name] = None if f.default is MISSING else f.default
                 elif f.type in ("float", "float | None"):
                     kw[f.name] = float(v)
                 elif f.type in ("bool | None",):

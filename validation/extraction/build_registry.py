@@ -138,7 +138,7 @@ DESCRIBED = {
         used_by="plr coordinate definition",
         url="https://ens.dk/",
     ),
-    # --- standalone-compressor maps (validation/compressor_maps, coefficients v2026-09-15) ---
+    # --- standalone-compressor maps (validation/compressor_maps, coefficients v2026-09-15b) ---
     "compressor_maps/copeland/opi": dict(
         title="Copeland Online Product Information -- AHRI 540 coefficient sets of variable-speed scrolls (GetCCoefficients JSON + CSummary)",
         publisher="Copeland LP",
@@ -234,6 +234,46 @@ DESCRIBED = {
         rating="rated point per model (ASHRAE/ARI/SET), no speed stated",
         used_by="screened, not used (rated speed unknown)",
         url="https://www.lg.com/global/business/compressor-motor",
+    ),
+    "compressor_maps/papers/shao_2004_ijr_rotary.pdf": dict(
+        title="Performance representation of variable-speed compressor for inverter air conditioners based on experimental data",
+        publisher="International Journal of Refrigeration 27(8), 805-815",
+        doc_id="doi:10.1016/j.ijrefrig.2004.02.008",
+        rating="manufacturer map polynomials (Eqs. 1-2, Table 1) and frequency corrections (Tables 2-3) of three inverter rotaries, 30-120 Hz; map 11 K superheat / 8.3 K subcooling; refrigerant R22 inferred",
+        used_by="compressor_maps.parse.shao2004 -> points_shao2004.csv (eta_oi all three; eta_vol Mitsubishi only, the other two fail the displacement check)",
+        url="https://doi.org/10.1016/j.ijrefrig.2004.02.008",
+    ),
+    "compressor_maps/mitsubishi/mitsubishi_rotary_catalogue.pdf": dict(
+        title="Mitsubishi Electric rotary compressor catalogue",
+        publisher="Mitsubishi Electric",
+        doc_id="-",
+        rating="fixed-speed rated points and displacements only",
+        used_by="displacement cross-check for the Shao 2004 RHV207FEM row; screened otherwise",
+        url="https://mitsubishicompressors.com/",
+    ),
+    "compressor_maps/mitsubishi/mitsubishi_rotary_catalogue_2023.pdf": dict(
+        title="Mitsubishi Electric rotary compressor catalogue 2023",
+        publisher="Mitsubishi Electric",
+        doc_id="-",
+        rating="fixed-speed rated points and displacements only",
+        used_by="screened, not used",
+        url="https://mitsubishicompressors.com/",
+    ),
+    "compressor_maps/toshiba/toshiba_rotary_catalog.pdf": dict(
+        title="Toshiba Carrier rotary compressor catalogue",
+        publisher="Toshiba Carrier",
+        doc_id="-",
+        rating="capacity ranges per model, no map",
+        used_by="screened, not used",
+        url="https://www.toshiba-carrier.co.jp/",
+    ),
+    "compressor_maps/toshiba/toshiba_review_2001_dc_twin_rotary.pdf": dict(
+        title="Toshiba Review 2001: DC twin-rotary compressor",
+        publisher="Toshiba",
+        doc_id="-",
+        rating="review article, efficiency curves as figures only",
+        used_by="screened, not used",
+        url="https://www.global.toshiba/",
     ),
     "compressor_maps/mitsubishi/kvb_reference_guide.pdf": dict(
         title="Mitsubishi Electric SCI inverter rotary compressor line-up (KVB reference guide)",

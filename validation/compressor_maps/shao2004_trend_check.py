@@ -205,7 +205,7 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         handles=tc_handles, loc="lower left", frameon=False, fontsize=dm.fs(-3.5), labelspacing=0.2, handletextpad=0.4
     )
     out.mkdir(parents=True, exist_ok=True)
-    finalize(fig, out / "F9_shao2004_map_trend", formats=("svg", "png"), mt="5%")
+    finalize(fig, out / "F12_shao2004_map_trend", formats=("svg", "png"), mt="5%")
     plt.close(fig)
 
 

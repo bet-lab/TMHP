@@ -51,9 +51,14 @@ def _nice(vmin: float, vmax: float, n: int = 4) -> tuple[float, float, float]:
     return float(lo), float(hi), float(step)
 
 
+# The sweep puts ~25 points on each 25 mm axis, so full-size markers merge into a
+# band and hide the line they sit on. Half the diameter separates them again.
+MS_SCALE = 0.5
+
+
 def _series(ax, mod, flo, x, col, color, label=None, scale=1.0):
-    ax.plot(mod[x], mod[col] * scale, "o-", ms=dm.fs(-4), lw=dm.lw(0), color=color, label=label)
-    ax.plot(flo[x], flo[col] * scale, "o", ms=dm.fs(-3), mfc="none", mec=color, mew=HAIRLINE * 1.5)
+    ax.plot(mod[x], mod[col] * scale, "o-", ms=dm.fs(-4) * MS_SCALE, lw=dm.lw(0), color=color, label=label)
+    ax.plot(flo[x], flo[col] * scale, "o", ms=dm.fs(-3) * MS_SCALE, mfc="none", mec=color, mew=HAIRLINE * 1.5)
 
 
 def _plot_case(df: pd.DataFrame, title: str, out: Path, name: str) -> None:
@@ -99,7 +104,7 @@ def _plot_case(df: pd.DataFrame, title: str, out: Path, name: str) -> None:
                 df[x],
                 df["air_dT_K"],
                 "s",
-                ms=dm.fs(-4),
+                ms=dm.fs(-4) * MS_SCALE,
                 ls=(0, (2.4, 1.4)),
                 lw=dm.lw(0),
                 color=COLORS["warm"],

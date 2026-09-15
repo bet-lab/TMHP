@@ -18,11 +18,18 @@ and plots both on the paper's own axes::
 
 The paper fits no capacity polynomial -- its Fig. 1 is the fitted mass flow
 times the map-condition enthalpy difference -- so the same enthalpy difference
-is applied to the printed mass flow here, and the capacity deviation is by
-construction identical to the mass-flow one.  The bottom row is therefore mass
-flow, power and their ratio: it separates a *level* offset (the correlations
+is applied to the printed mass flow here.  That enthalpy difference is a pure
+CoolProp quantity at the map condition, identical for both curves, so the
+capacity deviation is by construction the mass-flow deviation: panels (d) and
+(e) coincide, and (d) is kept only so each deviation sits under the quantity it
+belongs to.  The bottom row separates a *level* offset (the correlations
 describe a different population of machines) from a *trend* error (they bend the
-wrong way in Te, Tc or speed).
+wrong way in Te, Tc or speed); the COP deviation, which is not a panel, is
+printed by ``main``.
+
+Line encoding, both rows: colour = supply frequency, solid = the manufacturer's
+map, dash-dot = TMHP.  One condensing temperature is drawn (50 degC, the middle
+of the paper's three); the printed statistics still run over all three.
 
 Run::
 
@@ -72,7 +79,15 @@ FREQ_STYLE = {
     90.0: (COLORS["warm"], "90 Hz  (n* 1.5)"),
     120.0: (COLORS["hot"], "120 Hz (n* 2.0)"),
 }
-TC_DASH = {40.0: "solid", 50.0: (0, (4.0, 1.6)), 60.0: (0, (1.2, 1.2))}
+# The deviation statistics run over the whole (Te, Tc, f) grid, but the figure
+# draws one condensing temperature only: with three of them the dash pattern had
+# to carry Tc, which left nothing to separate the manufacturer's curve from the
+# model's. At a single Tc the dash pattern is free to do that job -- solid for
+# the map, dash-dot for TMHP -- and colour still carries the supply frequency.
+TC_PLOT = 50.0
+PAPER_DASH = "solid"
+MODEL_DASH = (0, (5.0, 1.3, 1.0, 1.3))  # dash-dot
+LW = -0.5  # one relative width for every curve: manufacturer and model alike
 
 
 def tmhp_point(te_c: float, tc_c: float, rps: float) -> tuple[float, float, float]:
@@ -130,20 +145,22 @@ def build() -> pd.DataFrame:
     return df
 
 
+def _curve(df: pd.DataFrame, f: float) -> pd.DataFrame:
+    return df[(df.f_Hz == f) & (df.T_cond_C == TC_PLOT)].sort_values("T_evap_C")
+
+
 def _band(ax, df: pd.DataFrame, paper_col: str, model_col: str, scale: float) -> None:
     for f, (color, _label) in FREQ_STYLE.items():
-        for tc in TC_GRID:
-            d = df[(df.f_Hz == f) & (df.T_cond_C == tc)].sort_values("T_evap_C")
-            ax.plot(d.T_evap_C, d[paper_col] * scale, color=color, lw=dm.lw(0), alpha=0.9)
-            ax.plot(d.T_evap_C, d[model_col] * scale, color=color, lw=dm.lw(-0.5), ls=(0, (3.2, 1.6)))
+        d = _curve(df, f)
+        ax.plot(d.T_evap_C, d[paper_col] * scale, color=color, lw=dm.lw(LW), ls=PAPER_DASH, alpha=0.9)
+        ax.plot(d.T_evap_C, d[model_col] * scale, color=color, lw=dm.lw(LW), ls=MODEL_DASH, alpha=0.9)
 
 
 def _dev(ax, df: pd.DataFrame, col: str) -> None:
     ax.axhline(0.0, color=COLORS["ink"], lw=HAIRLINE)
     for f, (color, _label) in FREQ_STYLE.items():
-        for tc in TC_GRID:
-            d = df[(df.f_Hz == f) & (df.T_cond_C == tc)].sort_values("T_evap_C")
-            ax.plot(d.T_evap_C, d[col], color=color, lw=dm.lw(-0.5), ls=TC_DASH[tc])
+        d = _curve(df, f)
+        ax.plot(d.T_evap_C, d[col], color=color, lw=dm.lw(LW), ls=MODEL_DASH)
 
 
 def figure(df: pd.DataFrame, out: Path) -> None:
@@ -165,14 +182,27 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         panel_letter(ax, letter, x=-0.26)
 
+    # each deviation sits under the quantity it belongs to: (d)|(a), (e)|(b), (f)|(c)
     dev = (
-        ("dev_m_pct", "Mass-flow deviation [%]", "d"),
-        ("dev_P_pct", "Power deviation [%]", "e"),
-        ("dev_COP_pct", "COP deviation [%]", "f"),
+        ("dev_Q_pct", "Cooling-capacity deviation [%]", "d", "= (e) by construction"),
+        ("dev_m_pct", "Mass-flow deviation [%]", "e", ""),
+        ("dev_P_pct", "Power deviation [%]", "f", ""),
     )
-    for ax, (col, lab, letter) in zip(axes[1], dev, strict=True):
+    for ax, (col, lab, letter, note) in zip(axes[1], dev, strict=True):
         _dev(ax, df, col)
-        span = float(np.ceil(max(abs(df[col].min()), abs(df[col].max())) / 10.0) * 10.0)
+        if note:
+            ax.text(
+                0.5,
+                0.04,
+                note,
+                transform=ax.transAxes,
+                ha="center",
+                va="bottom",
+                fontsize=dm.fs(-3.5),
+                color=COLORS["ink"],
+            )
+        drawn = df[df.T_cond_C == TC_PLOT][col]
+        span = float(np.ceil(max(abs(drawn.min()), abs(drawn.max())) / 10.0) * 10.0)
         ax.set_ylim(-span, span)
         ax.set_yticks(ticks(-span, span, span / 2.0))
         ax.set_ylabel(lab)
@@ -182,30 +212,37 @@ def figure(df: pd.DataFrame, out: Path) -> None:
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         panel_letter(ax, letter, x=-0.26)
 
-    handles = [plt.Line2D([], [], color=c, lw=dm.lw(0), label=lab) for c, lab in FREQ_STYLE.values()]
+    # one legend for the whole figure: the encoding is shared by all six panels,
+    # so it sits above them rather than eating plot area in one of them. ncol=3
+    # fills column-major -- frequencies in the first two columns, source in the
+    # third -- which keeps the block two rows tall and narrower than the canvas.
+    handles = [plt.Line2D([], [], color=c, lw=dm.lw(LW), label=lab) for c, lab in FREQ_STYLE.values()]
     handles += [
-        plt.Line2D([], [], color=COLORS["ink"], lw=dm.lw(0), label="manufacturer map (paper)"),
+        plt.Line2D([], [], color=COLORS["ink"], lw=dm.lw(LW), ls=PAPER_DASH, label="manufacturer map (paper)"),
         plt.Line2D(
             [],
             [],
             color=COLORS["ink"],
-            lw=dm.lw(-0.5),
-            ls=(0, (3.2, 1.6)),
+            lw=dm.lw(LW),
+            ls=MODEL_DASH,
             label=f"TMHP defaults {COEFFICIENT_VERSION}",
         ),
     ]
-    axes[0][0].legend(
-        handles=handles, loc="upper left", frameon=False, fontsize=dm.fs(-3.5), labelspacing=0.2, handletextpad=0.4
-    )
-    tc_handles = [
-        plt.Line2D([], [], color=COLORS["ink"], lw=dm.lw(-0.5), ls=TC_DASH[tc], label=f"T_cond {tc:g} °C")
-        for tc in TC_GRID
-    ]
-    axes[1][0].legend(
-        handles=tc_handles, loc="lower left", frameon=False, fontsize=dm.fs(-3.5), labelspacing=0.2, handletextpad=0.4
+    fig.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.995),
+        ncol=3,
+        frameon=False,
+        fontsize=dm.fs(-3.5),
+        labelspacing=0.25,
+        columnspacing=1.6,
+        handletextpad=0.4,
+        title=f"condensing temperature {TC_PLOT:g} °C",
+        title_fontsize=dm.fs(-3.5),
     )
     out.mkdir(parents=True, exist_ok=True)
-    finalize(fig, out / "F12_shao2004_map_trend", formats=("svg", "png"), mt="5%")
+    finalize(fig, out / "F12_shao2004_map_trend", formats=("svg", "png"), mt="10%")
     plt.close(fig)
 
 

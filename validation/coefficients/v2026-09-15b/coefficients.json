@@ -1,0 +1,125 @@
+{
+ "version": "v2026-09-15b",
+ "eta_vol": {
+  "family": "V2",
+  "formula": "eta_vol = 1 - ETA_VOL_A*(PR-1) - ETA_VOL_B*max(0, 1/n* - 1)",
+  "ETA_VOL_A": 0.021616485580814648,
+  "ETA_VOL_B": 0.017645753715467033,
+  "floor": 0.5,
+  "fit_wrmse": 0.07556903696380603,
+  "fit_wmape_pct": 5.582947871822917,
+  "loco_wmape_pct": 5.6561937591425,
+  "legacy_loco_wmape_pct": 5.877562729778342
+ },
+ "eta_oi": {
+  "family": "I2xE1",
+  "formula": "eta_oi = (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0) * (1 - ETA_EM_D*max(0, min(n*, N_STAR_EM_MAX) - 1)^2)",
+  "ETA_OI_A": 1.0849320530438191,
+  "ETA_OI_B": 0.073535090124795,
+  "ETA_OI_C": 0.572874605459888,
+  "ETA_EM_N0": 0.021138756505461098,
+  "ETA_EM_D": 0.0,
+  "N_STAR_EM_MAX": 2.0,
+  "fit_wrmse": 0.08862787062288917,
+  "fit_wmape_pct": 11.883691389047918,
+  "loco_wmape_pct": 12.163574753995428,
+  "legacy_loco_wmape_pct": 12.210096142589814,
+  "tie_break": "I2xE3 (12.108 %) replaced by I2xE1 (12.164 %): within 0.1 pp (the R1 resolution), E1 has the Ossorio drive-loss precedent",
+  "extension_candidates_not_adopted": [],
+  "rejected_by_R4_within_machine_identification": [
+   "I2xE2",
+   "I3xE2",
+   "I1xE2"
+  ],
+  "R4_ratios": {
+   "I2xE1": {
+    "R4_ratio": 2.202,
+    "R4_machines": 19,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I2xE2": {
+    "R4_ratio": 0.123,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I2xE3": {
+    "R4_ratio": 2.004,
+    "R4_machines": 13,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I3xE1": {
+    "R4_ratio": 2.017,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I3xE2": {
+    "R4_ratio": 0.191,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I3xE3": {
+    "R4_ratio": 2.048,
+    "R4_machines": 13,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I1xE1": {
+    "R4_ratio": 1.748,
+    "R4_machines": 19,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I1xE2": {
+    "R4_ratio": 0.052,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I1xE3": {
+    "R4_ratio": 1.611,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   }
+  }
+ },
+ "split": {
+  "ETA_EM_REF": 0.9359685011793779,
+  "basis": "median measured eta_em at n*~1, inverter-fed, discharge-temperature split (Cuevas & Lebrun 2009 Table 3)",
+  "n": 6,
+  "p10": 0.9258592112369878,
+  "p90": 0.9423147101515168,
+  "eta_isen_formula": "eta_isen = max(ETA_ISEN_FLOOR, (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) / ETA_EM_REF)",
+  "eta_em_formula": "eta_em = ETA_EM_REF * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0) * (1 - ETA_EM_D*max(0, min(n*, N_STAR_EM_MAX) - 1)^2)",
+  "ETA_ISEN_FLOOR": 0.3
+ },
+ "separability": {
+  "n": 3679,
+  "interaction_coef_(PR-3)lnn": 0.04576311041039982,
+  "se": 0.004950187073809113,
+  "t": 9.24472342722709,
+  "note": "effect of a 1-unit PR change on d ln eta_oi / d ln n*"
+ },
+ "spread_eta_vol": {
+  "between_machine_sd": 0.07938138510259175,
+  "between_machine_p10": -0.051600419872185554,
+  "between_machine_p90": 0.06438550829790576,
+  "within_machine_sd_median": 0.019209352800300915,
+  "machines": 72
+ },
+ "spread_eta_oi": {
+  "between_machine_sd": 0.06989641783817074,
+  "between_machine_p10": -0.05314243031117746,
+  "between_machine_p90": 0.05766396540972614,
+  "within_machine_sd_median": 0.0361934244217769,
+  "machines": 76
+ },
+ "n_rows": 5911,
+ "machines": 76,
+ "speed_records": 131
+}

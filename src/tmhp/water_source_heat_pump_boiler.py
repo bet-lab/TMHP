@@ -155,7 +155,7 @@ class WaterSourceHeatPumpBoiler:
 
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref)
         # Common heat-pump-boiler default efficiencies (shared with ASHPB/GSHPB):
         # isentropic 0.80, volumetric 0.95 - 0.05*PR, electro-mechanical 0.855.
         # (eta_cmp_vol default is assigned at the attribute store below to keep

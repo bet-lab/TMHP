@@ -1,0 +1,137 @@
+# WH-UQ16HE8 -- Panasonic Aquarea, R410A, 16 kW nominal heating.
+#
+# Published heating-performance grid: leaving water temperature x outdoor air
+# temperature, with COP printed directly. Transcribed from the manufacturer
+# documentation named under `source` below.
+#
+# The compressor displacement is a published specification of this machine:
+# Panasonic's compressor division catalogues 5JD650XBA22 at 65.0 cm3/rev, and
+# the outdoor unit's service-manual parts list names that compressor. Rated
+# air flow is likewise read verbatim from the service manual. Both are inputs,
+# not tuning -- every efficiency coefficient and conductance comes from the
+# library defaults.
+slug: panasonic_wh_uq16he8
+name: WH-UQ16HE8
+manufacturer: Panasonic
+model_class: ASHPB
+refrigerant: R410A
+nominal_capacity_kW: 16.0
+cop_definition: "Q_cond / (E_cmp + E_fan), heating"
+source:
+  document: "Panasonic Aquarea WH-UQ series service manual / 2025 catalogue"
+  table: "references/Panasonic_R410A_9-12-16 kW.png (heating performance table)"
+published_inputs:
+  displacement_cc: 65.0
+  rated_air_flow_m3_s: 1.267
+# The catalogue's reference is leaving water temperature; the model's tank
+# temperature sits this far below it.
+sink_offset_K: 2.5
+points:
+  - id: 1
+    t_source_C: -15
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 1.98
+    mode: heating
+  - id: 2
+    t_source_C: -7
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 2.11
+    mode: heating
+  - id: 3
+    t_source_C: 2
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 2.54
+    mode: heating
+  - id: 4
+    t_source_C: 7
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 3.33
+    mode: heating
+  - id: 5
+    t_source_C: 16
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 3.75
+    mode: heating
+  - id: 6
+    t_source_C: 25
+    t_sink_C: 45
+    q_kW: 16.00
+    cop: 4.76
+    mode: heating
+  - id: 7
+    t_source_C: -15
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 1.89
+    mode: heating
+  - id: 8
+    t_source_C: -7
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 1.98
+    mode: heating
+  - id: 9
+    t_source_C: 2
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 2.32
+    mode: heating
+  - id: 10
+    t_source_C: 7
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 2.95
+    mode: heating
+  - id: 11
+    t_source_C: 16
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 3.29
+    mode: heating
+  - id: 12
+    t_source_C: 25
+    t_sink_C: 50
+    q_kW: 16.00
+    cop: 4.28
+    mode: heating
+  - id: 13
+    t_source_C: -15
+    t_sink_C: 55
+    q_kW: 15.20
+    cop: 1.70
+    mode: heating
+  - id: 14
+    t_source_C: -7
+    t_sink_C: 55
+    q_kW: 16.00
+    cop: 1.86
+    mode: heating
+  - id: 15
+    t_source_C: 2
+    t_sink_C: 55
+    q_kW: 16.00
+    cop: 2.13
+    mode: heating
+  - id: 16
+    t_source_C: 7
+    t_sink_C: 55
+    q_kW: 16.00
+    cop: 2.71
+    mode: heating
+  - id: 17
+    t_source_C: 16
+    t_sink_C: 55
+    q_kW: 16.00
+    cop: 3.07
+    mode: heating
+  - id: 18
+    t_source_C: 25
+    t_sink_C: 55
+    q_kW: 16.00
+    cop: 4.00
+    mode: heating

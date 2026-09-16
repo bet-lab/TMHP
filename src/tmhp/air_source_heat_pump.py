@@ -18,20 +18,24 @@ heat exchange at the indoor unit.
 
 import contextlib
 import inspect
+import math
 from collections.abc import Callable
 from typing import TypeGuard
 
+import CoolProp.CoolProp as CP
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import safe_float_attr
+from ._opt_utils import safe_float_attr, specific_energy_objective
+from .compressor_efficiency import eta_isen_default, make_eta_em, make_eta_vol
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
     CAPACITY_CLAMPED_MIN,
+    RATED_POINT_AIR_TO_AIR,
     default_displacement,
     solve_compressor_speed,
 )
@@ -112,10 +116,22 @@ class AirSourceHeatPump:
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 5.0,
+        # 5.0 rejected ordinary cold-weather heating: a split unit lifting from
+        # -15 degC outdoor air to a 27 degC room runs at a pressure ratio near
+        # 7, and Daikin publishes performance down to -20 degC. The guard is a
+        # sanity bound, not a performance model, so it is set at the AC-scroll
+        # self-unload limit cited in `compressor_envelope` (~11:1) rather than
+        # below the equipment's own published envelope. The boiler models keep
+        # a looser 20 because high-temperature domestic hot water genuinely
+        # reaches that ratio through vapour injection.
+        PR_cycle_max: float = 11.0,
         # Compressor speed search bounds [rev/s]
         rps_min: float = 15.0,
         rps_max: float = 150.0,
+        # Rated compressor speed [rev/s]; the speed the efficiency correlations
+        # read `rps` relative to (n* = rps / rps_rated). Defaults to the
+        # air-to-air rating point.
+        rps_rated: float | None = None,
         # Approach-temperature search bounds [K]: how far the refrigerant
         # saturation temperature may stand from the inlet air on either side.
         # The upper bound is a modelling limit, not a component limit, and it
@@ -145,9 +161,13 @@ class AirSourceHeatPump:
 
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
+            V_cmp_ref = (
+                V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity, ref, RATED_POINT_AIR_TO_AIR)
+            )
+        if rps_rated is None:
+            rps_rated = RATED_POINT_AIR_TO_AIR.rps
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else 0.855
+            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(rps_rated)
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -208,8 +228,14 @@ class AirSourceHeatPump:
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
-        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen
-        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol
+        # Until now these defaulted to None, which `_eval_eff` reads as 1.0 --
+        # an ideal compressor, with neither irreversible compression nor
+        # leakage. Every ASHP result produced that way was optimistic by the
+        # whole of both losses. They now default to the shared correlations in
+        # `compressor_efficiency`, the same ones the boiler models use.
+        self.rps_rated: float = rps_rated
+        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
+        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -230,11 +256,49 @@ class AirSourceHeatPump:
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
+        # Outdoor-coil conductance per watt of nameplate cooling capacity.
+        #
+        # Derived, not chosen. Air-coil catalogues rate an entire range at one
+        # declared condition, so inverting them gives conductance per unit duty
+        # that is comparable across capacities by construction -- and for a
+        # coil whose refrigerant side changes phase that inversion is an
+        # identity, with no parameter fitted. Two rating standards written by
+        # different committees for different applications (EN 328 SC2 for unit
+        # coolers, 352 models across four manufacturers; ENV 327 for air-cooled
+        # condensers, 1,062 models across two) place their populations in the
+        # same band of UA per unit duty, 0.11-0.23 W/K per W, although the air
+        # flow per kilowatt they adopt differs by a factor of 2.4.
+        #
+        # Converting the condenser band to the nameplate basis needs the factor
+        # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
+        # while the outdoor coil rejects that duty plus the compressor work
+        # (1.29-1.35 across the reference units). The result is
+        # UA/Q_cool = 0.19, i.e. `hp_capacity / 5`.
+        #
+        # An independent route -- computing the conductance straight from the
+        # outdoor-coil geometry that Trane prints for twelve Precedent packaged
+        # heat pumps, through the Wang/Chi/Chang (2000) plain-fin correlation
+        # and Schmidt fin efficiency -- gives Q/6.8 with a declared
+        # refrigerant-side film coefficient of 2500 W/(m^2 K) and Q/4.3 with
+        # that resistance removed, bracketing the value above. The two routes
+        # share neither inputs nor method.
+        #
+        # See validation/extraction/ua_transfer_law.py to regenerate all of it.
+        # Established for dry, round-tube-plate-fin coils; frosted operation,
+        # microchannel coils and residential mini-splits are outside the
+        # evidence and stated as such in the documentation.
         if UA_ou_rated is None:
-            self.UA_ou_rated = hp_capacity / 10.0
+            self.UA_ou_rated = hp_capacity / 5.0
         else:
             self.UA_ou_rated = UA_ou_rated
 
+        # Both faces are air coils sharing the same equivalent approach, so
+        # their conductance ratio is their duty ratio, `1 / (1 + 1/EER)`. That
+        # is 0.73-0.78 across the twelve reference units and 0.78-0.80 at the
+        # EER of current equipment, so 0.8 is derived rather than assumed.
+        # In cooling the indoor coil runs wet, which makes a sensible-basis UA
+        # an underestimate; the ratio rises above 0.8 when the latent load is
+        # large.
         if UA_iu_rated is None:
             self.UA_iu_rated = self.UA_ou_rated * 0.8
         else:
@@ -244,6 +308,11 @@ class AirSourceHeatPump:
         self.n_iu: float = n_iu
 
         # --- 3. Outdoor unit fan ---
+        # 0.0002 m^3/s per W is 720 m^3/h per kW of nameplate cooling capacity,
+        # which is the residential 1:1 split practice (Daikin RXM12WVJU9
+        # publishes 718). Packaged equipment moves roughly half that per
+        # kilowatt, so this default and the conductance rule above are anchored
+        # in different product classes -- see the documentation's defaults page.
         if dV_ou_fan_a_rated is None:
             self.dV_ou_fan_a_rated = hp_capacity * 0.0002
         else:
@@ -394,6 +463,20 @@ class AirSourceHeatPump:
         # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
         # redundant and non-transferable across refrigerants/operating levels.
 
+        # The high end needs an explicit guard. A 2-D search over approach
+        # temperatures will probe the corners of its domain, and a condensing
+        # temperature at or above the refrigerant's critical point has no
+        # saturation state at all -- CoolProp raises rather than returning a
+        # number. R410A reaches that at 71.3 degC, which a wide condenser
+        # approach off a warm room clears easily. Report it as an infeasible
+        # operating point, which is what it is, so the optimiser sees the
+        # penalty sentinel and moves on instead of the whole run dying.
+        T_crit_K: float = CP.PropsSI("Tcrit", self.ref)
+        if T_cond_sat_K >= T_crit_K - self.dT_hx_min:
+            return None
+        if T_evap_sat_K >= T_cond_sat_K:
+            return None
+
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))
 
@@ -447,7 +530,6 @@ class AirSourceHeatPump:
             # Clamp: hold P_evap, project P_cond = PR_cycle_min * P_evap, invert
             # the saturation curve for the constrained condensing temperature,
             # then refresh the cycle state at the clamped condition.
-            import CoolProp.CoolProp as CP
 
             P_cond = self.PR_cycle_min * P_evap
             T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
@@ -470,8 +552,6 @@ class AirSourceHeatPump:
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
         try:
-            import CoolProp.CoolProp as CP
-
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
@@ -648,6 +728,12 @@ class AirSourceHeatPump:
                 "v_iu_a [m/s]": v_iu_a,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                # Compressor internal state (the chain N -> m_dot -> lift -> PR -> W)
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pr_cmp [-]": ratio_P_cmp,
+                "eta_cmp_vol [-]": val_eta_vol,
+                "eta_cmp_isen [-]": val_eta_isen,
+                "eta_cmp [-]": val_eta_electro_mech,
                 # Energy rates [W]
                 "E_iu_fan [W]": E_iu_fan,
                 "E_ou_fan [W]": E_ou_fan,
@@ -720,6 +806,8 @@ class AirSourceHeatPump:
             if E_tot <= 0 or np.isnan(E_tot):
                 return OBJ_INFEASIBLE
 
+            delivered: float = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
+
             if perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
                 # The compressor is already at ``rps_max`` and still short of the
                 # request. Ranking these points by power would trade delivered
@@ -728,11 +816,35 @@ class AirSourceHeatPump:
                 # out. Rank by shortfall instead, so the reported operating point
                 # is the machine's maximum capacity at this condition -- the
                 # quantity a capacity-limited hour actually needs to report.
-                delivered: float = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
                 shortfall: float = max(abs(Q_r_iu) - delivered, 0.0)
                 return OBJ_CAPACITY_LIMITED + shortfall
 
-            return E_tot
+            # Everything below the capacity ceiling is ranked by specific energy
+            # rather than raw ``E_tot`` (see `_opt_utils`). At the *lower* clamp
+            # -- the compressor speed floor -- every candidate over-delivers, and
+            # raw power picks whichever starves the coil hardest: it delivers
+            # least, draws least, and looks best. Cost per unit of heat actually
+            # delivered does not have that hole. A room cannot store the surplus,
+            # but the choice *among* floor candidates is still made on that cost;
+            # capping the credit at the request would reduce the ranking to
+            # ``E_tot`` and pick the starved coil again. The over-delivery is
+            # reported (``capacity_clamped == "min"``, ``Q_ref_iu`` > request) so
+            # the caller can treat it as cycling capacity.
+            #
+            # ``penalty=OBJ_INFEASIBLE`` keeps this function inside the same
+            # three-band scale the rest of the search reads: ordinary points come
+            # back in watts, a capacity-limited point at ``OBJ_CAPACITY_LIMITED``,
+            # and anything the helper rejects at or above ``OBJ_INFEASIBLE``, so
+            # the lattice fallback and the warm-start guard still fire. Leaving
+            # the helper's own default here would return 1e6 for an unreachable
+            # point, which both guards would read as a perfectly good solution.
+            return specific_energy_objective(
+                E_tot,
+                delivered,
+                abs(Q_r_iu),
+                math.inf,
+                penalty=OBJ_INFEASIBLE,
+            )
 
         if x0 is not None:
             warm = (float(x0[0]), float(x0[1]))
@@ -761,8 +873,31 @@ class AirSourceHeatPump:
             (5.0, 12.0),
             (12.0, 5.0),
             (10.0, 10.0),
+            # The grid has to span the bounds it is scanning. It previously
+            # stopped at 15 K while the optimiser was allowed out to 20 K, so
+            # any point whose only feasible basin needed a larger approach --
+            # a split unit asked for its maximum output, where the indoor coil
+            # runs a wide approach -- saw the sentinel at every candidate and
+            # had nowhere to descend from.
+            (18.0, 18.0),
+            (22.0, 15.0),
+            (15.0, 22.0),
+            (25.0, 20.0),
+            (20.0, 25.0),
+            (28.0, 28.0),
         ]
-        best_x0 = [15.0, 15.0]
+        # ...and it must not overrun them either. The list above is written for
+        # the widest domain a caller might open up, so on the default one it
+        # reaches past the ceiling. Handing `minimize` an `x0` outside its own
+        # `bounds` is not an error -- SciPy warns and silently clips it -- so the
+        # search would start somewhere other than the point that scored best
+        # here. Drop the unreachable candidates instead; a domain wide enough to
+        # need them is also wide enough to admit them, and Phase 1b spans
+        # whatever the bounds actually are.
+        lo_b, hi_b = self.dT_approach_bounds
+        _candidates = [c for c in _candidates if lo_b <= c[0] <= hi_b and lo_b <= c[1] <= hi_b]
+
+        best_x0 = [min(max(15.0, lo_b), hi_b)] * 2
         best_val = OBJ_INFEASIBLE
         for cand in _candidates:
             val = _objective(cand)

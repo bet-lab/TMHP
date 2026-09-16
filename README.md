@@ -300,52 +300,68 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 
 ## Validation
 
-`AirSourceHeatPumpBoiler` has been benchmarked against the **Samsung EHS Mono HT Quiet R32 14 kW** unit ([Technical Data Book PDF](https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf)) across **15 operating points** — $T_{\mathrm{LWT}} \in \{40, 50, 65\}$ °C paired with outdoor air temperatures from −10 to 30 °C. The model tracks the catalogue COP to MAE 0.35 (MAPE 10.1 %) without any unit-specific calibration.
+Every unit below is run with the **library defaults exactly as shipped**. Nothing is fitted to anything here: the only per-unit inputs are values the manufacturer publishes about the machine itself — nameplate capacity, refrigerant, and, where published at all, compressor displacement and rated air flow. Where each default came from is documented separately, with the script that derives it.
 
 <div align="center">
 
-<img src="docs/source/_static/validation_parity.svg" alt="Parity plot: predicted vs target COP across 15 operating points" width="520">
+<img src="docs/source/_static/validation_parity.svg" alt="Parity plot: predicted vs published COP across every catalogue point, split by family and coloured by refrigerant" width="760">
 
 </div>
 
-<sub>Per-point comparison (catalogue conditions and target values follow Table 1 of the KJACR 2026 paper; predicted values come from re-running the released code via `scripts/validation/samsung_ehs_parity.py`):</sub>
+<sub>Colour is refrigerant, marker size is nominal capacity. A model quietly tuned to one unit would show one tight cluster on the diagonal and the rest scattered.</sub>
 
-| $\mathrm{ID}$  | $T_{\mathrm{LWT}}~[^\circ\mathrm{C}]$ | $T_0~[^\circ\mathrm{C}]$ | ${Q}_{\mathrm{ref,cond}}~[\mathrm{kW}]$ | $\mathrm{COP}_{\mathrm{target}}$ | $\mathrm{COP}_{\mathrm{pred}}$ | $\mathrm{AE}$ | $\mathrm{APE}$ |
-| :-: | :---------------------: | :--------: | :----------------------------: | :------------------------------: | :----------------------------: | :------: | :--------: |
-|  1  |           40            |    −10     |             13.45              |               2.30               |              2.37              |   0.07   |   3.0 %    |
-|  2  |           40            |     2      |             12.42              |               3.04               |              3.83              |   0.79   |   25.8 %   |
-|  3  |           40            |     12     |             14.65              |               5.07               |              4.67              |   0.40   |   7.9 %    |
-|  4  |           40            |     20     |             15.69              |               6.48               |              5.65              |   0.83   |   12.8 %   |
-|  5  |           40            |     30     |             16.98              |               7.68               |              7.43              |   0.25   |   3.2 %    |
-|  6  |           50            |    −10     |             13.89              |               2.00               |              1.84              |   0.16   |   7.8 %    |
-|  7  |           50            |     2      |             13.27              |               2.56               |              3.04              |   0.48   |   18.9 %   |
-|  8  |           50            |     12     |             14.76              |               3.86               |              3.71              |   0.15   |   3.9 %    |
-|  9  |           50            |     20     |             15.97              |               4.78               |              4.34              |   0.44   |   9.2 %    |
-| 10  |           50            |     30     |             17.48              |               5.95               |              5.37              |   0.58   |   9.8 %    |
-| 11  |           65            |    −10     |             13.97              |               1.73               |              1.42              |   0.31   |   17.7 %   |
-| 12  |           65            |     2      |             13.71              |               2.04               |              2.37              |   0.33   |   16.1 %   |
-| 13  |           65            |     12     |             16.38              |               2.84               |              2.73              |   0.11   |   3.7 %    |
-| 14  |           65            |     20     |             17.48              |               3.34               |              3.17              |   0.17   |   5.1 %    |
-| 15  |           65            |     30     |             18.84              |               4.04               |              3.79              |   0.25   |   6.1 %    |
-|     |                         |            |                                |                                  |            **Mean**            | **0.35** | **10.1 %** |
+**Coverage**
 
-**Notation**
+| Dimension | Span |
+| :-- | :-- |
+| Families | Air-to-water (`AirSourceHeatPumpBoiler`), air-to-air (`AirSourceHeatPump`) |
+| Refrigerants | R32, R410A, R290 |
+| Nominal capacity | 2.0 – 16.0 kW, a factor of eight |
+| Manufacturers | Panasonic, Samsung, Daikin, Fujitsu |
+| Modes | Heating and cooling |
+| Conditions | Source −20 to +40 °C, sink 15 to 65 °C |
 
-- <i>T</i><sub>LWT</sub> — Leaving Water Temperature, the manufacturer's catalogue reference. The model's tank water temperature is set 2.5 K below <i>T</i><sub>LWT</sub> for <i>T</i><sub>LWT</sub> ≤ 60 °C and 5 K below for <i>T</i><sub>LWT</sub> > 60 °C, per the paper's EWT/LWT offset.
-- <i>T</i><sub>0</sub> — outdoor (dead-state) air temperature.
-- <i>Q</i><sub>ref,cond</sub> — target condenser heat rate.
-- COP — system Coefficient of Performance, <i>Q</i><sub>ref,cond</sub> / (<i>E</i><sub>cmp</sub> + <i>E</i><sub>fan</sub>).
-- AE — Absolute Error, \|COP<sub>pred</sub> − COP<sub>target</sub>\|.
-- APE — Absolute Percentage Error, (AE / COP<sub>target</sub>) × 100 %.
-- MAE / MAPE — mean AE / APE across the 15 points.
+Per-unit results, including every point the model could not evaluate and why, are in the sortable table on the [validation page](https://bet-lab.github.io/TMHP/validation/index.html). The raw output is committed under `validation/results/`.
 
-The parity plot and the table above are regenerated by [`scripts/validation/samsung_ehs_parity.py`](scripts/validation/samsung_ehs_parity.py), so anyone can reproduce the comparison from source.
+**Reading the residuals.** Across 748 evaluated points the adopted catalogues come to a COP MAPE of 8.8 %; the set mixes two rating standards, so the split matters more than any pooled number:
 
-> **Scope.** Only `AirSourceHeatPumpBoiler` has been quantitatively validated against catalogue data. The other system classes (`GroundSourceHeatPumpBoiler`, `WaterSourceHeatPumpBoiler`, `AirSourceHeatPump`, `GroundSourceHeatPump`, and the subsystem-augmented variants) share the same refrigerant-cycle core and pass smoke tests on representative operating points, but they have not yet been benchmarked against unit-specific data.
+| Group | MAPE | Bias | What it is |
+| :-- | --: | --: | :-- |
+| Air-to-water, 10 units | 8.1 % | +1.1 % | scatter, centred |
+| Air-to-air, Daikin, 5 units | 9.1 % | −0.5 % | scatter, centred (EN 14511) |
+| Air-to-air, Fujitsu, 2 units (held) | 30.7 % | **+29.7 %** | not scatter — a uniform offset; AHRI 210/240, COP boundary not stated |
+
+A bias equal to the error means a systematic cause, so it was chased down before publishing. It turned out to be **three** causes, and an earlier version of this README named only the first:
+
+1. **Residual hardware efficiency (~20 points).** At each machine's own nominal rating point Daikin lands 6–11 % low and Fujitsu 13–15 % high. Real, and the defaults' responsibility.
+2. **Dehumidification (cooling half).** TMHP's indoor coil is dry. A real machine removing moisture holds its coil below the dew point — far colder than a sensible-only coil needs — which costs lift and COP. The Fujitsu removes 34 % of its rating-point duty as latent heat (SHR 0.66) against the Daikin's 2 %.
+3. **Maximum-capacity tables (heating half).** Fujitsu publishes its heating grid at full compressor speed, where efficiency is worst; the model meets the same duty at half the speed range.
+
+Backing the conductance out of each rating point places them against the population the default came from — **`Q/3.3` to `Q/7.1`** at p10–p90 on the nameplate basis. All five Daikin units land inside (`Q/3.7`–`Q/6.0`); both Fujitsu units land just outside the low-conductance end (`Q/7.6`, `Q/8.5`), behaving like machines with less coil per kilowatt than 90 % of the component population.
+
+So the defaults describe a typical machine at the efficient end of current practice: within ~10 % on a high-efficiency unit, over-predicting by ~30 % on a budget product line. Modelling a specific machine whose efficiency you know? Pass `UA_ou_rated`.
+
+Nudging the default from `Q/5` toward `Q/6` would have improved the aggregate. It was not done — the value was derived from the catalogue population before any parity result existed, and moving it afterwards to improve a parity plot is calibration wearing validation's clothes. The one air-to-water outlier turns out to be the same story at smaller scale: the 16 kW R32 unit runs +11.7 % optimistic, and neither of its published inputs explains it — but its *published* COP is 8–22 % below its own 9 kW sibling's at every one of fifteen conditions. Efficiency is not constant per kilowatt as you go up a product line, and a rule written per kilowatt cannot know that. **The limitation is not one unusual product line; it is capacity-normalised scaling itself.** The remaining outlier, the Samsung high-temperature unit, is genuinely outside the model boundary: no published displacement, and a pressure ratio around 16 that real machines achieve with vapour injection and TMHP does not model as a single-stage cycle.
+
+> **Note on an earlier figure.** This README previously reported MAE 0.35 / MAPE 10.1 % for the Samsung unit. That came from a parameter set written for that machine — its own displacement, conductances and efficiency coefficients — which had drifted away from the library defaults, so the published error was not the error a user of the library would have got. The number above is the shipped defaults applied without adjustment. Closing that gap is part of what this work did.
+
+**Part-load behaviour** is validated separately, against 18,106 certified Heat Pump Keymark records from 9,162 models: declared COP rises monotonically toward light load, and 97 % of certified machines report a higher COP at the lightest test point than at the next one up. TMHP reproduces that trend, and also reproduces — from its compressor speed floor alone — the certified signature that machines deliver *more* than the light test points ask for. See the [part-load page](https://bet-lab.github.io/TMHP/validation/part-load.html).
+
+**Reproduce**
+
+```bash
+uv sync --locked --group validation
+uv run python -m validation.parity.run             # every catalogue
+uv run python -m scripts.validation.parity_figure  # the figure above
+```
+
+Adding a machine is a transcription and nothing else — one YAML file under `validation/catalogs/`, then rerun the harness. The schema deliberately cannot express an efficiency coefficient or a conductance; if a unit cannot be matched without one, that is a finding to report, not a field to add.
+
+> **Scope.** `AirSourceHeatPumpBoiler` and `AirSourceHeatPump` are benchmarked against catalogue data. The ground-source and water-source families share the same refrigerant-cycle core and pass smoke tests on representative operating points, but have not been compared against unit-specific data — and the conductance rule derived here is for air coils, which does not transfer to a water- or brine-coupled face.
 
 > 📄 Jo, H. & Choi, W. _"Thermodynamic Modeling of Refrigerant Cycle in an Air-Source Heat Pump Boiler and Performance Validation"_, KJACR (2026, in press).
 >
-> 📘 Samsung Electronics, _EHS Mono HT Quiet R32 Technical Data Book_ (2024) — [PDF](https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf)
+> 📘 Samsung Electronics, _EHS Mono HT Quiet R32 Technical Data Book_ (2024) · Panasonic _Aquarea_ service manuals and compressor catalogues (2025) · Daikin _RXM-A engineering data book_, EEDEN24-200. Full provenance with checksums in `validation/registry/sources.yaml`.
 
 ---
 

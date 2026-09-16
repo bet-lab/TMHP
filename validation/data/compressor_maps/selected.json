@@ -1,0 +1,104 @@
+{
+ "eta_vol": {
+  "family": "V2",
+  "loco_wmape_pct": 5.6561937591425,
+  "legacy_loco_wmape_pct": 5.877562729778342,
+  "chain_accepted": [
+   "V1",
+   "V2"
+  ],
+  "extension_candidates": [],
+  "rejected_by_R4": [],
+  "R4": {},
+  "tie_break": ""
+ },
+ "eta_oi": {
+  "family": "I2xE1",
+  "loco_wmape_pct": 12.163574753995428,
+  "legacy_loco_wmape_pct": 12.210096142589814,
+  "chain_accepted": [
+   "I1xE0",
+   "I2xE0",
+   "I2xE1",
+   "I2xE3",
+   "I3xE0",
+   "I3xE1",
+   "I3xE3",
+   "I1xE1",
+   "I1xE3"
+  ],
+  "extension_candidates": [],
+  "rejected_by_R4": [
+   "I2xE2",
+   "I3xE2",
+   "I1xE2"
+  ],
+  "R4": {
+   "I2xE1": {
+    "R4_ratio": 2.202,
+    "R4_machines": 19,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I2xE2": {
+    "R4_ratio": 0.123,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I2xE3": {
+    "R4_ratio": 2.004,
+    "R4_machines": 13,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I3xE1": {
+    "R4_ratio": 2.017,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I3xE2": {
+    "R4_ratio": 0.191,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I3xE3": {
+    "R4_ratio": 2.048,
+    "R4_machines": 13,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I1xE1": {
+    "R4_ratio": 1.748,
+    "R4_machines": 19,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I1xE2": {
+    "R4_ratio": 0.052,
+    "R4_machines": 8,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I1xE3": {
+    "R4_ratio": 1.611,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   }
+  },
+  "tie_break": "I2xE3 (12.108 %) replaced by I2xE1 (12.164 %): within 0.1 pp (the R1 resolution), E1 has the Ossorio drive-loss precedent"
+ },
+ "eta_em_anchor": {
+  "anchor": 0.9359685011793779,
+  "n": 6,
+  "p10": 0.9258592112369878,
+  "p90": 0.9423147101515168,
+  "source": [
+   "cuevas_lebrun_2009"
+  ]
+ },
+ "big_strata_min_machines": 3
+}

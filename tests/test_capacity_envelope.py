@@ -112,9 +112,19 @@ def test_heating_ceiling_rises_with_outdoor_temperature(hp):
         cold = hp.max_capacity(T0=-15.0, T_a_room=T_ROOM_HEAT, mode="heating")
         mild = hp.max_capacity(T0=2.0, T_a_room=T_ROOM_HEAT, mode="heating")
     assert cold["Q_max [W]"] < mild["Q_max [W]"]
-    # The pair straddles nameplate, which is the whole reason a fixed cap is
-    # wrong in both directions: short of it in the cold, over it when mild.
-    assert cold["Q_max [W]"] < UNIT["hp_capacity"] < mild["Q_max [W]"]
+    # A fixed cap at nameplate would be wrong in both directions. The mild end
+    # still shows the "over it" half outright.
+    #
+    # The cold end no longer shows the other half on this unit, and that is a
+    # deliberate change rather than a regression: ``PR_cycle_max`` moved 5 -> 11
+    # (the AC-scroll self-unload limit quoted in ``compressor_envelope``), so the
+    # cycle guard no longer binds at -15 degC and the ceiling there is set by
+    # ``rps_max``. The straddle was an artefact of the old guard, so pinning it
+    # would pin the artefact. What stays pinned is the thing the test is named
+    # for: the ceiling moves, and moves a lot. A fixed cap would hold both ends
+    # at exactly 1.00.
+    assert mild["Q_max [W]"] > UNIT["hp_capacity"]
+    assert mild["Q_max [W]"] / cold["Q_max [W]"] > 1.3
 
 
 def test_cooling_ceiling_falls_with_outdoor_temperature(hp):

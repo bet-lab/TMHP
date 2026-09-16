@@ -12,6 +12,7 @@ from pathlib import Path
 
 import dartwork_mpl as dm
 import matplotlib as mpl
+import numpy as np
 from matplotlib.figure import Figure
 
 # Uniform buffer around the axes. ``margin=0`` (the dartwork default) snaps
@@ -19,6 +20,15 @@ from matplotlib.figure import Figure
 # narrow figures — 2 % leaves room for the ``"-10"`` / ``"160"`` extremes
 # without wasting headroom.
 DEFAULT_MARGIN = "2%"
+
+# ``dm.lw`` is a *relative* step on the active preset's base width, and under
+# "report" it goes non-positive fast: lw(-1) = 0.0 and lw(-2) = -1.0.
+# Matplotlib silently draws nothing for a non-positive width (and raises
+# outright on a dashed line, whose dash pattern is scaled by the width and
+# collapses to all zeros), so `linewidth=dm.lw(-2)` is not a thin line -- it is
+# an invisible one. Sub-preset hairlines are therefore absolute widths.
+HAIRLINE = 0.6  # marker edges, zero lines, reference rules
+GRIDLINE = 0.4  # background grids
 
 
 def finalize(
@@ -87,6 +97,22 @@ def _assert_no_overflow(fig: Figure, tol_in: float = 1.0 / 144.0) -> None:
         )
 
 
+def ticks(vmin: float, vmax: float, step: float) -> np.ndarray:
+    """Tick positions from an explicit minimum, maximum and interval.
+
+    Every axis in the figure set declares its own ticks through this rather
+    than leaving matplotlib's locator to choose. An automatic locator picks a
+    different count as the data moves, so the same plot regenerated after a
+    rerun can change its gridlines without any number changing -- which makes
+    figure diffs unreadable and invites the reader to compare two plots whose
+    grids do not line up.
+
+    Use a step that divides the range exactly. On a linear axis prefer an
+    integer step; a log axis should keep its decade locator and not call this.
+    """
+    return np.arange(vmin, vmax + step * 0.5, step)
+
+
 def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
     """Place a bold subplot index (e.g. ``"a"``) above ``ax``'s upper-left.
 
@@ -111,7 +137,12 @@ def panel_letter(ax, letter: str, *, x: float = -0.10, y: float = 1.03) -> None:
     )
 
 
-def apply_style(preset: str = "report", *, hashsalt: str | None = None) -> None:
+def apply_style(
+    preset: str = "report",
+    *,
+    hashsalt: str | None = None,
+    svg_fonttype: str | None = "none",
+) -> None:
     """Activate a dartwork-mpl composite preset for figure scripts.
 
     ``preset`` defaults to ``"report"`` (larger body-text-matching type,
@@ -120,9 +151,19 @@ def apply_style(preset: str = "report", *, hashsalt: str | None = None) -> None:
     ``hashsalt`` pins matplotlib's SVG clip-path IDs so re-running a
     script produces byte-identical output — pass a unique string per
     figure.
+
+    ``svg_fonttype`` decides how text survives the trip out of matplotlib.
+    ``"none"`` (the default here) leaves glyphs as live text referencing a
+    font family by name, which keeps labels editable in Figma — but the
+    presets ask for Roboto Light, and a viewer without that face silently
+    substitutes its own, so the published figure stops matching the preset.
+    Pass ``None`` to keep whatever the preset declares (``"path"``, i.e.
+    glyphs converted to outlines) when the figure has to render identically
+    everywhere it is embedded.
     """
     dm.style.use(preset)
-    mpl.rcParams["svg.fonttype"] = "none"
+    if svg_fonttype is not None:
+        mpl.rcParams["svg.fonttype"] = svg_fonttype
     if hashsalt is not None:
         mpl.rcParams["svg.hashsalt"] = hashsalt
 
@@ -142,6 +183,9 @@ def static_path(name: str) -> Path:
 COLORS = {
     "accent": "oc.indigo6",  # primary line / scatter
     "accent2": "oc.violet5",  # secondary series
+    "accent3": "oc.pink6",  # tertiary series -- kept clear of accent/accent2,
+    # which are both blue-violet (hue 228 deg / 256 deg) and read as the same
+    # colour once a categorical set needs more than four entries.
     "warm": "oc.orange6",  # ambient air / warm-side process
     "cool": "oc.blue5",  # sat. liquid / cold-side process
     "hot": "oc.red5",  # sat. vapour / discharge

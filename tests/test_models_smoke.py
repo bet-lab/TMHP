@@ -38,11 +38,21 @@ def test_ashpb_analyze_steady():
 
 
 def test_ashpb_default_compressor_efficiencies():
+    from tmhp.compressor_efficiency import ETA_EM_REF, eta_isen_default, eta_oi_product, make_eta_vol
+
     ashpb = AirSourceHeatPumpBoiler()
 
-    assert ashpb.eta_cmp_vol(4.0) == pytest.approx(0.94)
-    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(0.82)
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(0.80)
+    # The defaults are the shared correlations of `compressor_efficiency`,
+    # bound to the air-to-water rated speed (40 rev/s): volumetric and
+    # electro-mechanical efficiency read speed relative to it, the isentropic
+    # efficiency depends on pressure ratio only.
+    assert ashpb.rps_rated == pytest.approx(40.0)
+    assert ashpb.eta_cmp_vol(4.0, 40.0) == pytest.approx(make_eta_vol(40.0)(4.0, 40.0))
+    assert ashpb.eta_cmp_vol(4.0, 20.0) < ashpb.eta_cmp_vol(4.0, 40.0)
+    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(eta_isen_default(4.0))
+    assert ashpb.eta_cmp(4.0, 40.0) == pytest.approx(ETA_EM_REF)
+    assert ashpb.eta_cmp(4.0, 20.0) < ashpb.eta_cmp(4.0, 40.0)
+    assert ashpb.eta_cmp_isen(4.0) * ashpb.eta_cmp(4.0, 40.0) == pytest.approx(eta_oi_product(4.0, 1.0))
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
@@ -158,11 +168,13 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # specific failure_reason so callers can branch on it.
     #
     # The threshold is not arbitrary and should not be chased downward again
-    # (2000 -> 200 previously). A coil needs an approach of about Q/UA to move
-    # the heat, and the search offsets the saturation temperatures by at most
-    # ``dT_approach_bounds[1]`` = 20 K. So the case is genuinely unsolvable only
-    # once Q/UA exceeds that bound: measured, 200 W/K (15 K) converges and
-    # 120 W/K (25 K) does not. 50 W/K asks for 60 K, well clear of the boundary.
+    # (2000 -> 200 previously, when the displacement default became
+    # capacity-derived and 2000 W/K started converging). A coil needs an
+    # approach of about Q/UA to move the heat, and the search offsets the
+    # saturation temperatures by at most ``dT_approach_bounds[1]`` = 20 K. So
+    # the case is genuinely unsolvable only once Q/UA exceeds that bound:
+    # measured, 200 W/K (15 K) converges and 120 W/K (25 K) does not. 50 W/K
+    # asks for 60 K, well clear of the boundary.
     ashp = AirSourceHeatPump(
         ref="R32",
         UA_iu_rated=50.0,
@@ -294,7 +306,12 @@ def test_ashp_custom_pr_and_rps():
 def test_ashp_default_pr_and_rps():
     ashp = AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0)
     assert ashp.PR_cycle_min == 1.5
-    assert ashp.PR_cycle_max == 5.0
+    # Raised from 5.0: a split unit lifting from -15 degC outdoor air to a warm
+    # room runs a pressure ratio near 7, and manufacturers publish performance
+    # down to -20 degC, so the old ceiling rejected ordinary cold-weather
+    # heating. 11 is the AC-scroll self-unload limit cited in
+    # `compressor_envelope`.
+    assert ashp.PR_cycle_max == 11.0
     assert ashp.rps_min == 15.0
     assert ashp.rps_max == 150.0
 

@@ -1,0 +1,11 @@
+{
+ "version": "v2026-09-15b",
+ "created": "2026-09-15T11:00:55",
+ "tmhp": "0.1.0",
+ "coolprop": "7.2.0",
+ "python": "3.12.3",
+ "git_head": "f7805475464977f018de42328445720a04ebf405",
+ "git_branch": "feat/compressor-efficiency-defaults",
+ "git_dirty": true,
+ "selection_rule": "sequential nesting: +1 coefficient must buy >= 0.1 pp LOCO MAPE; no stratum with >= 3 machines worse by > 2 pp or > 25 %; constraints 0 < eta <= 1.02 and d(n* eta_vol)/dn* > 0 on PR 1.5-8, n* 0.15-2.5; a speed term must be seen within the machines that identify it (median within-machine/fitted ratio >= 2/3, >= 3 machines from >= 2 sources); ties within 0.1 pp go to the form with a physical precedent; PR x speed interaction kept as a documented extension only"
+}

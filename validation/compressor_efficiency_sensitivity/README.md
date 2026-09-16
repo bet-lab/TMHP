@@ -1,3 +1,7 @@
+> **Archived (2026-09-16).** Superseded by `validation/compressor_efficiency_sensitivity_simple/`,
+> which drops the reference-point / anchor construction and compares six cases against a
+> constant BASE. Kept unchanged for reference; the Notion page no longer uses it.
+
 # Compressor-efficiency sensitivity of the fixed-boundary PLR–COP curve
 
 Controlled test: **one efficiency at a time** (`eta_cmp_vol` / `eta_cmp_isen` /

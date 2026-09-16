@@ -32,6 +32,7 @@ from tmhp.compressor_speed import RATED_POINT_AIR_TO_AIR
 from .config import (
     A_N,
     A_P,
+    B_V,
     BOUNDARY,
     CAPACITY_W,
     CASE_ORDER,
@@ -39,12 +40,12 @@ from .config import (
     ETA_BASE,
     ETA_CLIP,
     N_STAR_C,
-    N_STAR_HOLD,
     OUT_DIR,
     PLR_GRID,
     PR_C,
     REF,
     REPO_ROOT,
+    SHAPE,
 )
 from .functions import clipped, constant, make_pr_case, make_speed_case
 
@@ -103,7 +104,10 @@ def case_kwargs(case: str, rps_rated: float) -> dict:
     if case == "BASE":
         return kwargs
     eff, driver = CASES[case]
-    kwargs[eff] = make_speed_case(ETA_BASE[eff], rps_rated) if driver == "n_star" else make_pr_case(ETA_BASE[eff])
+    shape = SHAPE[eff]
+    kwargs[eff] = (
+        make_speed_case(ETA_BASE[eff], rps_rated, shape) if driver == "n_star" else make_pr_case(ETA_BASE[eff], shape)
+    )
     return kwargs
 
 
@@ -129,12 +133,8 @@ def run_case(case: str, duty: str, model: AirSourceHeatPump) -> pd.DataFrame:
         for key, (col, scale) in STATE_KEYS.items():
             row[col] = _num(r, key) * scale
         row["modulating"] = row["capacity_clamped"] is None and row["failure_reason"] == "none"
-        # True when the reported efficiency is not the bare quadratic: the harness clip or the
-        # above-rated speed hold engaged at this operating point.
-        row["eta_clipped"] = bool(
-            eff
-            and (clipped(ETA_BASE[eff], row[driver], driver) or (driver == "n_star" and row["n_star"] > N_STAR_HOLD))
-        )
+        # True when the reported efficiency is not the bare function: the harness clip engaged here.
+        row["eta_clipped"] = bool(eff and clipped(ETA_BASE[eff], row[driver], driver, SHAPE[eff]))
         rows.append(row)
     return pd.DataFrame(rows)[list(COLUMNS)]
 
@@ -194,8 +194,9 @@ def run_duty(duty: str) -> pd.DataFrame:
             "a_n": A_N,
             "p_r_c": PR_C,
             "a_p": A_P,
+            "b_v": B_V,
+            "shape": SHAPE,
             "eta_clip": list(ETA_CLIP),
-            "n_star_hold": N_STAR_HOLD,
         },
         "sweep": {"plr_grid": list(PLR_GRID)},
         "clipped_rows": int(out.eta_clipped.sum()),

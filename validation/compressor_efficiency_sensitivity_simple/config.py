@@ -27,20 +27,20 @@ PLR_GRID = tuple(float(v) for v in np.round(np.arange(1.0, 0.0999, -0.025), 3))
 ETA_BASE: dict[str, float] = {"eta_cmp_vol": 0.95, "eta_cmp_isen": 0.70, "eta_cmp": 0.90}
 EFF_KEYS = tuple(ETA_BASE)
 
-#: relative quadratic multiplier  1 − a (x − x_c)²
+#: centres shared by both function shapes
 N_STAR_C = 0.60
-A_N = 0.60
 PR_C = 2.00
+#: ∩ quadratic multiplier  1 − a (x − x_c)²   -- isentropic and electromechanical efficiency
+A_N = 0.60
 A_P = 0.60
+#: linear multiplier  1 − b (x − x_c)   -- volumetric efficiency, falling with speed and with lift.
+#: With b = 0.10 the delivered flow ∝ n* (1 − b (n* − x_c)) keeps rising until n* = (1 + b x_c) / (2 b)
+#: = 5.3, well beyond the speed search's upper bracket (n* 2.5), so the search stays well posed.
+B_V = 0.10
+#: function shape per efficiency
+SHAPE: dict[str, str] = {"eta_cmp_vol": "linear", "eta_cmp_isen": "quadratic", "eta_cmp": "quadratic"}
 #: harness safety clip on every synthetic efficiency; a clipped *reported* row is flagged.
 ETA_CLIP = (0.1, 1.0)
-#: above n* = 1.15 the n* multiplier is held at its n* = 1.15 value. Every reported
-#: operating point lies below it (the sweep peaks at n* 1.13, N-V heating at PLR 1.0), and
-#: 1.15 sits just below n* ≈ 1.17 where η_v(n*)·n* -- i.e. refrigerant mass flow -- would start to
-#: fall with speed. The hold exists because the speed solver brackets rps up to rps_max
-#: (n* 2.5); with the bare quadratic capacity is non-monotonic in speed there and the
-#: bracket misses the real root (observed: N-V clamped to rps_max at every PLR).
-N_STAR_HOLD = 1.15
 
 #: case -> (varied efficiency, driver)
 CASES: dict[str, tuple[str, str]] = {

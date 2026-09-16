@@ -53,6 +53,7 @@ from .config import (  # noqa: E402
     N_STAR_C,
     OUT_DIR,
     PR_C,
+    SHAPE,
 )
 from .functions import multiplier  # noqa: E402
 from .metrics import load_all, summarise  # noqa: E402
@@ -64,13 +65,16 @@ EFF_COLOR = {"eta_cmp_vol": COLORS["accent"], "eta_cmp_isen": COLORS["warm"], "e
 DUTY_COLOR = {"heating": COLORS["warm"], "cooling": COLORS["cool"]}
 DUTY_TITLE = {"heating": "Heating, outdoor 7 °C / room 20 °C", "cooling": "Cooling, outdoor 35 °C / room 27 °C"}
 BASE_STYLE = {"color": COLORS["ink"], "ls": "-"}
+#: Figure 2 line styles: BASE solid, N-V dashed, P-V dotted (colour carries the duty)
+FIG2_LS = {"BASE": "-", "N-V": (0, (3.0, 1.6)), "P-V": (0, (1.2, 1.2))}
 X_LIM = (0.06, 1.04)
 X_TICKS = ticks(0.2, 1.0, 0.2)
 
 
-def case_title(case: str) -> str:
+def case_title(case: str, with_shape: bool = False) -> str:
     eff, drv = CASES[case]
-    return f"{case}: {EFF_LABEL[eff]} = f({DRIVER_LABEL[drv]})"
+    title = f"{case}: {EFF_LABEL[eff]} = f({DRIVER_LABEL[drv]})"
+    return f"{title} ({SHAPE[eff]})" if with_shape else title
 
 
 def _nice(vmin: float, vmax: float, n: int = 4) -> tuple[float, float, float]:
@@ -133,11 +137,17 @@ def fig1(frames: dict[str, pd.DataFrame]):
         ("p_r", np.linspace(1.40, 2.60, 300), PR_C, r"Pressure ratio $P_r = P_{dis} / P_{suc}$ [-]"),
     )
     for ax, (driver, x, xc, xlabel), letter in zip(axes, panels, "ab", strict=True):
-        m = np.array([multiplier(v, driver) for v in x])
         for duty, (lo, hi) in _base_range(frames, driver).items():
             ax.axvspan(lo, hi, color=DUTY_COLOR[duty], alpha=0.10, lw=0, label=f"BASE sweep range, {duty}")
         for eff, eta0 in ETA_BASE.items():
-            ax.plot(x, eta0 * m, lw=dm.lw(0.5), color=EFF_COLOR[eff], label=rf"{EFF_LABEL[eff]}, $\eta_0$ = {eta0:.2f}")
+            m = np.array([multiplier(v, driver, SHAPE[eff]) for v in x])
+            ax.plot(
+                x,
+                eta0 * m,
+                lw=dm.lw(0.5),
+                color=EFF_COLOR[eff],
+                label=rf"{EFF_LABEL[eff]}, $\eta_0$ = {eta0:.2f} ({SHAPE[eff]})",
+            )
         ax.axvline(xc, color=COLORS["muted"], lw=HAIRLINE, ls=(0, (2, 2)))
         ax.text(xc, 1.005, f"centre {xc:.2f}", ha="center", va="bottom", fontsize=dm.fs(-3), color=COLORS["muted"])
         ax.set_xlim(x[0], x[-1])
@@ -152,7 +162,8 @@ def fig1(frames: dict[str, pd.DataFrame]):
         handles, labels, loc="lower center", ncol=5, frameon=False, fontsize=dm.fs(-3), bbox_to_anchor=(0.5, 0.0)
     )
     fig.suptitle(
-        r"Assumed efficiency functions: $\eta_i = \eta_{i,0}\,[1 - 0.60\,(x - x_c)^2]$, same multiplier on every efficiency",
+        r"Assumed efficiency functions: $\eta_{is}, \eta_{em}$: $\eta_{i,0}\,[1 - 0.60\,(x - x_c)^2]$;  "
+        r"$\eta_v$: $\eta_{v,0}\,[1 - 0.10\,(x - x_c)]$;  centres $n^*_c$ 0.60, $P_{r,c}$ 2.00",
         fontsize=dm.fs(-1),
         x=0.02,
         ha="left",
@@ -161,27 +172,29 @@ def fig1(frames: dict[str, pd.DataFrame]):
 
 
 # ---------------------------------------------------------------------------
-# Figure 2 -- BASE operating state against PLR
+# Figure 2 -- operating state against PLR: BASE and the two eta_v cases
 # ---------------------------------------------------------------------------
 def fig2(frames: dict[str, pd.DataFrame]):
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.30})
     panels = (("n_star", r"$n^* = N / N_{rated}$ [-]", N_STAR_C), ("p_r", r"Pressure ratio $P_r$ [-]", PR_C))
     for ax, (col, ylabel, xc), letter in zip(axes, panels, "ab", strict=True):
-        allv = []
+        allv, shown = [], []
         for duty, df in frames.items():
-            base = df[df.case == "BASE"]
-            _series(ax, base, col, color=DUTY_COLOR[duty], label=f"BASE, {duty}")
-            allv.append(base[col])
+            for case, ls in FIG2_LS.items():
+                g = df[df.case == case]
+                _series(ax, g, col, color=DUTY_COLOR[duty], ls=ls, label=f"{case}, {duty}")
+                allv.append(g[col])
+                shown.append(g)
         ax.axhline(xc, color=COLORS["muted"], lw=HAIRLINE, ls=(0, (2, 2)), label=f"function centre {xc:.2f}")
-        _floor_band(ax, *[df[df.case == "BASE"] for df in frames.values()])
+        _floor_band(ax, *shown)
         v = pd.concat(allv)
         _yaxis(ax, min(v.min(), xc), max(v.max(), xc), 4)
         _xaxis(ax)
         ax.set_ylabel(ylabel)
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-3))
+        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4), ncol=2)
         panel_letter(ax, letter, x=-0.18, y=1.04)
     fig.suptitle(
-        "BASE operation (constant efficiencies) -- hollow: compressor at speed floor, band: floor region",
+        r"Operating point vs PLR: BASE and the two $\eta_v$ cases -- hollow: compressor at speed floor, band: floor region",
         fontsize=dm.fs(-1),
         x=0.02,
         ha="left",
@@ -207,11 +220,11 @@ def fig_cop(duty: str, df: pd.DataFrame, summary: pd.DataFrame):
         _yaxis(ax, ymin, ymax, 3)
         _xaxis(ax, label=i >= 3)
         ax.set_ylabel(r"$COP_{sys}$ [-]" if i % 3 == 0 else "")
-        note = f"ΔCOP @PLR {s.loc[case, 'plr_low']:.2f}: {s.loc[case, 'd_cop_low_pct']:+.1f} %"
+        note = f"ΔCOP @PLR {s.loc[case, 'plr_low']:g}: {s.loc[case, 'd_cop_low_pct']:+.1f} %"
         if bool(s.loc[case, "internal_max"]):
             note += f"\nCOP max inside range, PLR {s.loc[case, 'plr_cop_max']:.2f}"
         ax.text(0.97, 0.04, note, transform=ax.transAxes, ha="right", va="bottom", fontsize=dm.fs(-3))
-        ax.set_title(case_title(case), fontsize=dm.fs(-1), loc="left")
+        ax.set_title(case_title(case, with_shape=True), fontsize=dm.fs(-1), loc="left")
         panel_letter(ax, LETTERS[i], x=-0.22, y=1.04)
         if i == 0:
             ax.legend(loc="lower left", frameon=False, fontsize=dm.fs(-3))
@@ -238,7 +251,7 @@ def fig5(summaries: dict[str, pd.DataFrame]):
         vals = ss.d_cop_low_pct.to_numpy()
         allv.append(vals)
         bars = ax.bar(
-            x + (k - 0.5) * w, vals, w, color=DUTY_COLOR[duty], lw=0, label=f"{duty} (PLR {ss.plr_low.iloc[0]:.2f})"
+            x + (k - 0.5) * w, vals, w, color=DUTY_COLOR[duty], lw=0, label=f"{duty} (PLR {ss.plr_low.iloc[0]:g})"
         )
         span = max(abs(np.concatenate(allv)).max(), 1e-9)
         for b, v in zip(bars, vals, strict=True):

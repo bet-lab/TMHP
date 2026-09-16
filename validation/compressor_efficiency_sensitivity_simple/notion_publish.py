@@ -37,6 +37,7 @@ from ._notion import (
 from .config import (
     A_N,
     A_P,
+    B_V,
     CASES,
     DUTIES,
     ETA_BASE,
@@ -44,12 +45,14 @@ from .config import (
     FIG_DIR,
     N_STAR_C,
     PR_C,
+    SHAPE,
 )
 from .metrics import load_all, summarise
 
 PAGE_ID = "3dd6947d125d8003a73add07e6c7f4d4"
 DUTY_KR = {"heating": "난방", "cooling": "냉방"}
 ETA_TEX = {"eta_cmp_vol": "\\eta_v", "eta_cmp_isen": "\\eta_{is}", "eta_cmp": "\\eta_{em}"}
+SHAPE_KR = {"quadratic": "∩ 이차식", "linear": "선형 감소"}
 
 
 def observations() -> dict[str, list[str]]:
@@ -68,7 +71,7 @@ def f(v: float, nd: int = 2) -> str:
     return "—" if pd.isna(v) else f"{v:.{nd}f}"
 
 
-def common_table(params: dict[str, dict], max_n_star: float) -> dict:
+def common_table(params: dict[str, dict]) -> dict:
     ph, pc = params["heating"], params["cooling"]
     m = ph["model"]
     fn = ph["function"]
@@ -91,17 +94,20 @@ def common_table(params: dict[str, dict], max_n_star: float) -> dict:
         ["eta_cmp_vol", "Volumetric efficiency baseline $\\eta_{v,0}$", f"{ETA_BASE['eta_cmp_vol']:.2f}"],
         ["eta_cmp_isen", "Isentropic efficiency baseline $\\eta_{is,0}$", f"{ETA_BASE['eta_cmp_isen']:.2f}"],
         ["eta_cmp", "Electromechanical efficiency baseline $\\eta_{em,0}$", f"{ETA_BASE['eta_cmp']:.2f}"],
-        ["—", "$n^*$ sensitivity function", f"$1 - {fn['a_n']:.2f}\\,(n^* - {fn['n_star_c']:.2f})^2$"],
-        ["—", "$P_r$ sensitivity function", f"$1 - {fn['a_p']:.2f}\\,(P_r - {fn['p_r_c']:.2f})^2$"],
+        [
+            "—",
+            "$\\eta_{is}$, $\\eta_{em}$ multiplier (quadratic)",
+            f"$1 - {fn['a_n']:.2f}\\,(n^* - {fn['n_star_c']:.2f})^2$  /  $1 - {fn['a_p']:.2f}\\,(P_r - {fn['p_r_c']:.2f})^2$",
+        ],
+        [
+            "—",
+            "$\\eta_v$ multiplier (linear)",
+            f"$1 - {fn['b_v']:.2f}\\,(n^* - {fn['n_star_c']:.2f})$  /  $1 - {fn['b_v']:.2f}\\,(P_r - {fn['p_r_c']:.2f})$",
+        ],
         [
             "—",
             "Harness clip on synthetic $\\eta$",
             f"{fn['eta_clip'][0]:.1f} ≤ η ≤ {fn['eta_clip'][1]:.1f} (보고된 운전점에서 clipping 0행)",
-        ],
-        [
-            "—",
-            "$n^*$ multiplier hold (solver safety)",
-            f"$n^* > {fn['n_star_hold']:.2f}$에서 $n^* = {fn['n_star_hold']:.2f}$ 값 유지; 보고된 운전점 최대 $n^*$ = {max_n_star:.3f} (hold에 걸린 행 0)",
         ],
         ["Q_r_iu", "PLR sweep (requested load = ±hp_capacity × PLR)", "0.10 → 1.00, step 0.025 (37점)"],
         ["V_cmp_ref", "Compressor displacement [cm³/rev]", f"{m['V_cmp_ref'] * 1e6:.3f} (default_displacement)"],
@@ -124,11 +130,19 @@ def common_table(params: dict[str, dict], max_n_star: float) -> dict:
 
 
 def case_table() -> dict:
-    rows = [["BASE", "—", "없음", "$\\eta_v$ 0.95, $\\eta_{is}$ 0.70, $\\eta_{em}$ 0.90 (전 구간 상수)"]]
+    rows = [["BASE", "—", "없음", "—", "$\\eta_v$ 0.95, $\\eta_{is}$ 0.70, $\\eta_{em}$ 0.90 (전 구간 상수)"]]
     for case, (eff, drv) in CASES.items():
         others = ", ".join(f"${ETA_TEX[k]}$ {ETA_BASE[k]:.2f}" for k in ETA_BASE if k != eff)
-        rows.append([case, f"${'n^*' if drv == 'n_star' else 'P_r'}$", f"${ETA_TEX[eff]}$", others + " (상수)"])
-    return table(["Case", "독립변수", "함수로 변화시키는 효율", "나머지 두 효율"], rows)
+        rows.append(
+            [
+                case,
+                f"${'n^*' if drv == 'n_star' else 'P_r'}$",
+                f"${ETA_TEX[eff]}$",
+                SHAPE_KR[SHAPE[eff]],
+                others + " (상수)",
+            ]
+        )
+    return table(["Case", "독립변수", "함수로 변화시키는 효율", "함수형", "나머지 두 효율"], rows)
 
 
 def summary_table(summaries: dict[str, pd.DataFrame]) -> dict:
@@ -155,8 +169,8 @@ def summary_table(summaries: dict[str, pd.DataFrame]) -> dict:
         "Case",
         "Varied efficiency",
         "Driver",
-        f"ΔCOP at low PLR — Heating (PLR {sh.plr_low.iloc[0]:.2f})",
-        f"ΔCOP at low PLR — Cooling (PLR {sc.plr_low.iloc[0]:.2f})",
+        f"ΔCOP at low PLR — Heating (PLR {sh.plr_low.iloc[0]:g})",
+        f"ΔCOP at low PLR — Cooling (PLR {sc.plr_low.iloc[0]:g})",
         "Internal COP maximum",
     ]
     return table(header, rows)
@@ -166,7 +180,7 @@ def base_table(summaries: dict[str, pd.DataFrame]) -> dict:
     rows = []
     for d in DUTIES:
         s = summaries[d].set_index("case").loc["BASE"]
-        rows.append([DUTY_KR[d], f(s.cop_100, 3), f(s.cop_low, 3), f"{s.plr_low:.2f}", f"{s.plr_floor:.3f}"])
+        rows.append([DUTY_KR[d], f(s.cop_100, 3), f(s.cop_low, 3), f"{s.plr_low:g}", f"{s.plr_floor:.3f}"])
     return table(
         ["Duty", "BASE COP @PLR 1.00", "BASE COP @low PLR", "공통 저부하점 PLR", "BASE 속도 하한 도달 PLR"], rows
     )
@@ -179,16 +193,14 @@ def build(
     obs: dict[str, list[str]],
     head: str,
 ) -> list[dict]:
-    fn = params["heating"]["function"]
-    hold = float(fn["n_star_hold"])
-    hold_m = 1.0 - float(fn["a_n"]) * (hold - float(fn["n_star_c"])) ** 2
     max_n_star = float(max(df[df.modulating].n_star.max() for df in frames.values()))
     b: list[dict] = []
     b += [h(1, "1. 분석 목적")]
     b += [
         para(
             "TMHP 공기→공기 모델에서 경계온도를 고정하고 PLR을 내릴 때, 압축기 3효율($\\eta_v$, $\\eta_{is}$, $\\eta_{em}$) 중 어느 것의 함수형 변화가 PLR–COP 곡선을 가장 크게 바꾸는지 본다. "
-            "세 효율을 단순 상수로 고정한 BASE 위에, 한 번에 한 효율에만 동일한 ∩자형 이차 multiplier를 $n^*$ 또는 $P_r$의 함수로 얹어 6 case를 비교한다. "
+            "세 효율을 단순 상수로 고정한 BASE 위에, 한 번에 한 효율에만 relative multiplier를 $n^*$ 또는 $P_r$의 함수로 얹어 6 case를 비교한다. "
+            "$\\eta_{is}$·$\\eta_{em}$에는 ∩자형 이차식, $\\eta_v$에는 회전수·압력비가 커질수록 선형으로 감소하는 식을 쓴다(체적효율이 ∩형이면 질량유량이 속도에 비단조가 되어 속도 해법기가 해를 놓치기 때문). "
             "새 correlation을 만들거나 압축기 데이터를 fitting하는 작업이 아니며, `src/tmhp` 기본값은 건드리지 않고 validation override(효율 callable 인자)로만 실행했다."
         ),
         callout(
@@ -197,16 +209,25 @@ def build(
         ),
     ]
 
-    b += [h(1, "2. 공통 입력조건"), common_table(params, max_n_star)]
+    b += [h(1, "2. 공통 입력조건"), common_table(params)]
     b += [para("변수명은 `tmhp.AirSourceHeatPump` 생성자·속성의 실제 이름. 표에 없는 값은 모델 기본값 그대로.")]
 
     b += [h(1, "3. Case 정의"), case_table()]
 
     b += [h(1, "4. 효율 함수 가정")]
     b += [
-        para("세 효율에 같은 relative multiplier를 곱한다. 달라지는 것은 기본값 $\\eta_{i,0}$뿐이다."),
-        equation(f"\\eta_i(n^*) = \\eta_{{i,0}}\\left[1 - {A_N:.2f}\\,(n^* - {N_STAR_C:.2f})^2\\right]"),
-        equation(f"\\eta_i(P_r) = \\eta_{{i,0}}\\left[1 - {A_P:.2f}\\,(P_r - {PR_C:.2f})^2\\right]"),
+        para(
+            "중심은 두 함수형이 공유한다($n^*_c$ 0.60, $P_{r,c}$ 2.00). $\\eta_{is}$·$\\eta_{em}$($i \\in \\{is, em\\}$)에는 같은 ∩ 이차 multiplier를, "
+            "$\\eta_v$에는 선형 감소 multiplier를 곱한다. 그 외에 달라지는 것은 기본값 $\\eta_{i,0}$뿐이다."
+        ),
+        equation(
+            f"\\eta_i(n^*) = \\eta_{{i,0}}\\left[1 - {A_N:.2f}\\,(n^* - {N_STAR_C:.2f})^2\\right], \\qquad i \\in \\{{is, em\\}}"
+        ),
+        equation(
+            f"\\eta_i(P_r) = \\eta_{{i,0}}\\left[1 - {A_P:.2f}\\,(P_r - {PR_C:.2f})^2\\right], \\qquad i \\in \\{{is, em\\}}"
+        ),
+        equation(f"\\eta_v(n^*) = \\eta_{{v,0}}\\left[1 - {B_V:.2f}\\,(n^* - {N_STAR_C:.2f})\\right]"),
+        equation(f"\\eta_v(P_r) = \\eta_{{v,0}}\\left[1 - {B_V:.2f}\\,(P_r - {PR_C:.2f})\\right]"),
         equation(
             f"\\eta_{{v,0}} = {ETA_BASE['eta_cmp_vol']:.2f}, \\qquad \\eta_{{is,0}} = {ETA_BASE['eta_cmp_isen']:.2f}, \\qquad \\eta_{{em,0}} = {ETA_BASE['eta_cmp']:.2f}"
         ),
@@ -215,9 +236,8 @@ def build(
             "결과로 보고된 운전점에서 clip에 걸린 행은 없다(각 case CSV의 `eta_clipped` 열)."
         ),
         para(
-            f"$n^*$ 함수는 $n^* > {hold:.2f}$에서 $n^* = {hold:.2f}$ 값(multiplier {hold_m:.3f})으로 유지한다. 보고된 운전점의 최대 $n^*$는 {max_n_star:.3f}(N-V 난방, PLR 1.0)이라 결과 구간의 함수는 단일 이차식 그대로다. "
-            f"hold는 속도 해법기가 rps_max($n^*$ 2.5)까지 bracket할 때 감소하는 $\\eta_v(n^*)$가 용량을 속도의 비단조 함수로 만들어 해를 놓치는 것을 막는 안전장치다(hold 없이는 N-V 전 구간이 rps_max로 clamp됨). "
-            f"{hold:.2f}는 $\\eta_v(n^*)\\,n^*$(질량유량)가 감소로 돌아서는 $n^* \\approx 1.17$ 아래에 있다."
+            f"$\\eta_v$를 선형으로 두는 이유: 속도 해법기는 rps_min~rps_max($n^*$ 0.25~2.5) 양끝의 용량 부호만 보고 해를 찾는데, 질량유량 ∝ $\\eta_v\\,n^*$이므로 $\\eta_v$가 ∩형이면 이 곱이 $n^* \\approx 1.17$에서 정점을 찍고 감소해 해를 놓친다(실측: N-V 전 구간 rps_max clamp). "
+            f"선형 기울기 {B_V:.2f}이면 $n^*\\,[1 - {B_V:.2f}(n^* - {N_STAR_C:.2f})]$의 정점이 $n^*$ = 5.3으로 탐색 범위 밖이라 별도 hold 없이 잘 정의된다. 보고된 운전점의 최대 $n^*$는 {max_n_star:.3f}."
         ),
     ]
 
@@ -225,16 +245,16 @@ def build(
     b.append(
         image(
             FIG_DIR / "fig1_functions.png",
-            "Figure 1. (a) $n^*$ 함수, (b) $P_r$ 함수. 색 띠 = BASE 스윕이 실제로 지나간 $n^*$·$P_r$ 범위(난방 주황 / 냉방 파랑). 점선 = 함수 중심.",
+            "Figure 1. (a) $n^*$ 함수, (b) $P_r$ 함수 — $\\eta_v$ 선형(파랑), $\\eta_{is}$·$\\eta_{em}$ ∩ 이차식(주황·보라). 색 띠 = BASE 스윕이 실제로 지나간 $n^*$·$P_r$ 범위(난방 주황 / 냉방 파랑). 점선 = 함수 중심.",
         )
     )
     b += [bullet(t) for t in obs.get("fig1", [])]
 
-    b += [h(1, "6. BASE 운전에서 PLR에 따른 $n^*$, $P_r$ (Figure 2)")]
+    b += [h(1, "6. PLR에 따른 $n^*$, $P_r$ — BASE와 $\\eta_v$ case (Figure 2)")]
     b.append(
         image(
             FIG_DIR / "fig2_base_state.png",
-            "Figure 2. BASE(상수 효율) 운전점. (a) $n^*$, (b) $P_r$ vs PLR — 난방·냉방. 빈 마커 = 속도 하한, 회색 띠 = 하한 구간, 점선 = 함수 중심.",
+            "Figure 2. (a) $n^*$, (b) $P_r$ vs PLR — BASE(실선), N-V(파선), P-V(점선); 난방 주황 / 냉방 파랑. 빈 마커 = 속도 하한, 회색 띠 = 하한 구간, 수평 점선 = 함수 중심.",
         )
     )
     b += [bullet(t) for t in obs.get("fig2", [])]

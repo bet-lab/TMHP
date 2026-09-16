@@ -40,11 +40,16 @@
     "a_n": 0.6,
     "p_r_c": 2.0,
     "a_p": 0.6,
+    "b_v": 0.1,
+    "shape": {
+      "eta_cmp_vol": "linear",
+      "eta_cmp_isen": "quadratic",
+      "eta_cmp": "quadratic"
+    },
     "eta_clip": [
       0.1,
       1.0
-    ],
-    "n_star_hold": 1.15
+    ]
   },
   "sweep": {
     "plr_grid": [
@@ -89,5 +94,5 @@
   },
   "clipped_rows": 0,
   "library_coefficient_version": "v2026-09-15b",
-  "git_head": "c859753"
+  "git_head": "811205b"
 }

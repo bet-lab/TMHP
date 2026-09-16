@@ -1,9 +1,9 @@
 # Simplified compressor-efficiency sensitivity of the PLR–COP curve
 
 Seven cases per duty. **BASE** holds the three compressor efficiencies at
-representative constants; each sensitivity case gives **one** efficiency the
-**same** relative quadratic multiplier in **one** driver and keeps the other two
-at BASE.
+representative constants; each sensitivity case gives **one** efficiency a
+relative multiplier in **one** driver (∩ quadratic for η_is and η_em, linear
+decrease for η_v; shared centres) and keeps the other two at BASE.
 
 | Case | Driver | Varied | Others |
 | --- | --- | --- | --- |
@@ -12,9 +12,16 @@ at BASE.
 | `P-V` / `P-I` / `P-E` | `P_r = P_dis / P_suc` | η_v / η_is / η_em | BASE constants |
 
 ```
-η_i(n*) = η_{i,0} [1 − 0.60 (n* − 0.60)²]
-η_i(P_r) = η_{i,0} [1 − 0.60 (P_r − 2.00)²]
+η_is, η_em (∩ quadratic):  η_i(n*)  = η_{i,0} [1 − 0.60 (n* − 0.60)²]
+                           η_i(P_r) = η_{i,0} [1 − 0.60 (P_r − 2.00)²]
+η_v (linear):              η_v(n*)  = η_{v,0} [1 − 0.10 (n* − 0.60)]
+                           η_v(P_r) = η_{v,0} [1 − 0.10 (P_r − 2.00)]
 ```
+
+η_v is linear because the speed search reads the delivered flow ∝ η_v · n* and
+brackets n* up to 2.5: a ∩ η_v makes that product peak near n* 1.17 and the
+bracket clamps every point to `rps_max`. With slope 0.10 the product keeps
+rising until n* 5.3, so no hold is needed.
 
 Nothing is fitted, no reference efficiency is read from the shipped model, and
 no anchors are derived from a control run. The shipped correlations
@@ -34,10 +41,10 @@ hp_capacity / 5`, `UA_iu_rated = 0.8 × UA_ou_rated`, fans `hp_capacity ×
 
 ## Range and clipping
 
-The multiplier is only interpreted over the `n*` / `P_r` range the sweep
-traverses. Because the speed search brackets the whole envelope, the callables
-clip to `0.1 ≤ η ≤ 1.0`; a reported row that sits on the clip is flagged
-`eta_clipped` and drawn with a cross. None occur.
+The multipliers are only interpreted over the `n*` / `P_r` range the sweep
+traverses. The callables clip to `0.1 ≤ η ≤ 1.0` far outside it; a reported
+row that sits on the clip is flagged `eta_clipped` and drawn with a cross.
+None occur.
 
 ## Rows at the speed floor
 

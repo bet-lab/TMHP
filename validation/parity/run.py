@@ -60,6 +60,25 @@ def _build_model(catalog: Catalog, overrides: dict | None = None, mode: str = "c
         kwargs.update(overrides or {})
         return AirSourceHeatPumpBoiler(**kwargs)
 
+    # Widen the approach-temperature *search domain* for every air-to-air unit.
+    #
+    # This is the numerical box the operating-point search may look in, not a
+    # component limit and not a fitted quantity: the pressure-ratio envelope and
+    # ``dT_hx_min`` are what keep a solution physical. The model default is
+    # 20 K, which is right for :meth:`max_capacity`, but it cuts off catalogue
+    # rows at the top of the range -- a split unit asked for its maximum output
+    # runs a wide approach on the indoor coil. Measured across the adopted
+    # air-to-air set, 20 K leaves 38 published rows with no solution at all,
+    # almost all of them on the two largest units (RXM42A 70 -> 56, RXM50A
+    # 71 -> 46). Dropping rows because the search box was too small is not a
+    # result; it is a missing measurement.
+    #
+    # It is applied uniformly to every catalogue, before any result is seen, and
+    # it admits solutions rather than moving them: a row that solves under both
+    # settings returns the same COP. ``ALLOWED_PUBLISHED_INPUTS`` is untouched --
+    # this is a harness setting, not a manufacturer specification, and it is
+    # deliberately not per-unit.
+    kwargs["dT_approach_bounds"] = (1.0, 30.0)
     if published.get("rated_air_flow_m3_s"):
         kwargs["dV_ou_fan_a_rated"] = float(published["rated_air_flow_m3_s"])
     indoor_key = "rated_indoor_air_flow_m3_s"

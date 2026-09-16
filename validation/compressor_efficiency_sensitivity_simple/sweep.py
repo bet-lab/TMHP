@@ -46,6 +46,7 @@ from .config import (
     REF,
     REPO_ROOT,
     SHAPE,
+    UA_RATED,
 )
 from .functions import clipped, constant, make_pr_case, make_speed_case
 
@@ -96,7 +97,13 @@ def _num(result: dict, key: str) -> float:
 
 def build_model(**efficiencies) -> AirSourceHeatPump:
     """The shared machine; only the efficiency callables differ between cases."""
-    return AirSourceHeatPump(hp_capacity=CAPACITY_W, ref=REF, **efficiencies)
+    return AirSourceHeatPump(
+        hp_capacity=CAPACITY_W,
+        ref=REF,
+        UA_ou_rated=UA_RATED,
+        UA_iu_rated=UA_RATED,
+        **efficiencies,
+    )
 
 
 def case_kwargs(case: str, rps_rated: float) -> dict:

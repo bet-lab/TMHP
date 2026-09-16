@@ -17,6 +17,10 @@ FIG_DIR = OUT_DIR / "figures"
 
 CAPACITY_W = 3500.0
 REF = "R32"
+#: Both heat-exchanger conductances [W/K]. The model would otherwise put the indoor coil at
+#: 0.8 x the outdoor one; the two are held equal here so the duties differ only by the
+#: boundary air temperatures.
+UA_RATED = 700.0
 #: duty -> (outdoor air ``T0`` [°C], room air ``T_a_room`` [°C]); the fixed-boundary conditions.
 BOUNDARY: dict[str, tuple[float, float]] = {"heating": (7.0, 20.0), "cooling": (35.0, 27.0)}
 DUTIES = tuple(BOUNDARY)
@@ -24,18 +28,22 @@ DUTIES = tuple(BOUNDARY)
 PLR_GRID = tuple(float(v) for v in np.round(np.arange(1.0, 0.0999, -0.025), 3))
 
 #: BASE constants, keyed by the constructor keyword of :class:`tmhp.AirSourceHeatPump`.
-ETA_BASE: dict[str, float] = {"eta_cmp_vol": 0.95, "eta_cmp_isen": 0.70, "eta_cmp": 0.90}
+#: eta_v is 0.90 rather than 0.95 so that the linear multiplier, which rises below its
+#: n* = 1.00 centre, stays under the physical ceiling of 1 over the whole search bracket
+#: (its largest value, at n* -> 0, is 0.90 x 1.10 = 0.99).
+ETA_BASE: dict[str, float] = {"eta_cmp_vol": 0.90, "eta_cmp_isen": 0.70, "eta_cmp": 0.90}
 EFF_KEYS = tuple(ETA_BASE)
 
-#: centres shared by both function shapes
-N_STAR_C = 0.60
+#: centres shared by both function shapes: peak (quadratic) / unit multiplier (linear).
+#: The speed centre is the rated point itself, so every efficiency is best at n* = 1.
+N_STAR_C = 1.00
 PR_C = 2.00
 #: ∩ quadratic multiplier  1 − a (x − x_c)²   -- isentropic and electromechanical efficiency
 A_N = 0.60
 A_P = 0.60
 #: linear multiplier  1 − b (x − x_c)   -- volumetric efficiency, falling with speed and with lift.
 #: With b = 0.10 the delivered flow ∝ n* (1 − b (n* − x_c)) keeps rising until n* = (1 + b x_c) / (2 b)
-#: = 5.3, well beyond the speed search's upper bracket (n* 2.5), so the search stays well posed.
+#: = 5.5, well beyond the speed search's upper bracket (n* 2.5), so the search stays well posed.
 B_V = 0.10
 #: function shape per efficiency
 SHAPE: dict[str, str] = {"eta_cmp_vol": "linear", "eta_cmp_isen": "quadratic", "eta_cmp": "quadratic"}

@@ -1,10 +1,13 @@
-"""Figures 1–5 of the simplified sensitivity study (dartwork-mpl ``scientific``).
+"""Figures 1–4 of the simplified sensitivity study (dartwork-mpl ``scientific``).
 
 * ``fig1_functions``   -- the assumed efficiency functions, (a) against n*, (b) against P_r
-* ``fig2_base_state``  -- BASE operation: (a) n* and (b) P_r against PLR, both duties
-* ``fig3_cop_heating`` -- 2 × 3 PLR–COP panels, BASE + one case each
-* ``fig4_cop_cooling`` -- the same for cooling
-* ``fig5_summary``     -- ΔCOP [%] against BASE at the common low-load PLR, both duties
+* ``fig2_cop_heating`` -- 2 × 3 PLR–COP panels, BASE + one case each
+* ``fig3_cop_cooling`` -- the same for cooling
+* ``fig4_summary``     -- ΔCOP [%] against BASE at the common low-load PLR, both duties
+
+The numbering follows the published page.  An operating-state figure (n* and
+P_r against PLR) was produced earlier and dropped from the page; Figure 1
+already carries the swept ranges as shaded bands.
 
 PLR increases left → right on every axis.  Hollow markers are rows at the
 compressor speed floor (``capacity_clamped == "min"``); the shaded band is that
@@ -44,6 +47,8 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
 )
 
 from .config import (  # noqa: E402
+    A_N,
+    B_V,
     CASES,
     DRIVER_LABEL,
     DUTIES,
@@ -65,8 +70,6 @@ EFF_COLOR = {"eta_cmp_vol": COLORS["accent"], "eta_cmp_isen": COLORS["warm"], "e
 DUTY_COLOR = {"heating": COLORS["warm"], "cooling": COLORS["cool"]}
 DUTY_TITLE = {"heating": "Heating, outdoor 7 °C / room 20 °C", "cooling": "Cooling, outdoor 35 °C / room 27 °C"}
 BASE_STYLE = {"color": COLORS["ink"], "ls": "-"}
-#: Figure 2 line styles: BASE solid, N-V dashed, P-V dotted (colour carries the duty)
-FIG2_LS = {"BASE": "-", "N-V": (0, (3.0, 1.6)), "P-V": (0, (1.2, 1.2))}
 X_LIM = (0.06, 1.04)
 X_TICKS = ticks(0.2, 1.0, 0.2)
 
@@ -133,37 +136,50 @@ def _base_range(frames: dict[str, pd.DataFrame], col: str) -> dict[str, tuple[fl
 def fig1(frames: dict[str, pd.DataFrame]):
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.32})
     panels = (
-        ("n_star", np.linspace(0.20, 1.00, 300), N_STAR_C, r"Relative compressor speed $n^* = N / N_{rated}$ [-]"),
+        ("n_star", np.linspace(0.20, 1.20, 300), N_STAR_C, r"Relative compressor speed $n^* = N / N_{rated}$ [-]"),
         ("p_r", np.linspace(1.40, 2.60, 300), PR_C, r"Pressure ratio $P_r = P_{dis} / P_{suc}$ [-]"),
     )
+    ys: list[np.ndarray] = []
     for ax, (driver, x, xc, xlabel), letter in zip(axes, panels, "ab", strict=True):
         for duty, (lo, hi) in _base_range(frames, driver).items():
             ax.axvspan(lo, hi, color=DUTY_COLOR[duty], alpha=0.10, lw=0, label=f"BASE sweep range, {duty}")
         for eff, eta0 in ETA_BASE.items():
-            m = np.array([multiplier(v, driver, SHAPE[eff]) for v in x])
+            y = eta0 * np.array([multiplier(v, driver, SHAPE[eff]) for v in x])
+            ys.append(y)
             ax.plot(
                 x,
-                eta0 * m,
+                y,
                 lw=dm.lw(0.5),
                 color=EFF_COLOR[eff],
                 label=rf"{EFF_LABEL[eff]}, $\eta_0$ = {eta0:.2f} ({SHAPE[eff]})",
             )
         ax.axvline(xc, color=COLORS["muted"], lw=HAIRLINE, ls=(0, (2, 2)))
-        ax.text(xc, 1.005, f"centre {xc:.2f}", ha="center", va="bottom", fontsize=dm.fs(-3), color=COLORS["muted"])
         ax.set_xlim(x[0], x[-1])
-        ax.set_ylim(0.6, 1.0)
-        ax.set_yticks(ticks(0.6, 1.0, 0.1))
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Efficiency [-]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
         panel_letter(ax, letter, x=-0.18, y=1.08)
+    # One y range for both panels, so the two drivers are read at the same scale.
+    lo, hi, step = _nice(float(np.min(np.concatenate(ys))), 1.0, 3)
+    for ax, (_, _, xc, _) in zip(axes, panels, strict=True):
+        ax.set_ylim(lo, hi)
+        ax.set_yticks(ticks(lo, hi, step))
+        ax.text(
+            xc,
+            hi + 0.01 * (hi - lo),
+            f"centre {xc:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=dm.fs(-3),
+            color=COLORS["muted"],
+        )
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(
         handles, labels, loc="lower center", ncol=5, frameon=False, fontsize=dm.fs(-3), bbox_to_anchor=(0.5, 0.0)
     )
     fig.suptitle(
-        r"Assumed efficiency functions: $\eta_{is}, \eta_{em}$: $\eta_{i,0}\,[1 - 0.60\,(x - x_c)^2]$;  "
-        r"$\eta_v$: $\eta_{v,0}\,[1 - 0.10\,(x - x_c)]$;  centres $n^*_c$ 0.60, $P_{r,c}$ 2.00",
+        rf"Assumed efficiency functions: $\eta_{{is}}, \eta_{{em}}$: $\eta_{{i,0}}\,[1 - {A_N:.2f}\,(x - x_c)^2]$;  "
+        rf"$\eta_v$: $\eta_{{v,0}}\,[1 - {B_V:.2f}\,(x - x_c)]$;  centres $n^*_c$ {N_STAR_C:.2f}, $P_{{r,c}}$ {PR_C:.2f}",
         fontsize=dm.fs(-1),
         x=0.02,
         ha="left",
@@ -172,38 +188,7 @@ def fig1(frames: dict[str, pd.DataFrame]):
 
 
 # ---------------------------------------------------------------------------
-# Figure 2 -- operating state against PLR: BASE and the two eta_v cases
-# ---------------------------------------------------------------------------
-def fig2(frames: dict[str, pd.DataFrame]):
-    fig, axes = plt.subplots(1, 2, figsize=dm.figsize("15cm", 0.42), gridspec_kw={"wspace": 0.30})
-    panels = (("n_star", r"$n^* = N / N_{rated}$ [-]", N_STAR_C), ("p_r", r"Pressure ratio $P_r$ [-]", PR_C))
-    for ax, (col, ylabel, xc), letter in zip(axes, panels, "ab", strict=True):
-        allv, shown = [], []
-        for duty, df in frames.items():
-            for case, ls in FIG2_LS.items():
-                g = df[df.case == case]
-                _series(ax, g, col, color=DUTY_COLOR[duty], ls=ls, label=f"{case}, {duty}")
-                allv.append(g[col])
-                shown.append(g)
-        ax.axhline(xc, color=COLORS["muted"], lw=HAIRLINE, ls=(0, (2, 2)), label=f"function centre {xc:.2f}")
-        _floor_band(ax, *shown)
-        v = pd.concat(allv)
-        _yaxis(ax, min(v.min(), xc), max(v.max(), xc), 4)
-        _xaxis(ax)
-        ax.set_ylabel(ylabel)
-        ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4), ncol=2)
-        panel_letter(ax, letter, x=-0.18, y=1.04)
-    fig.suptitle(
-        r"Operating point vs PLR: BASE and the two $\eta_v$ cases -- hollow: compressor at speed floor, band: floor region",
-        fontsize=dm.fs(-1),
-        x=0.02,
-        ha="left",
-    )
-    return fig
-
-
-# ---------------------------------------------------------------------------
-# Figures 3 / 4 -- 2 x 3 PLR-COP panels for one duty
+# Figures 2 / 3 -- 2 x 3 PLR-COP panels for one duty
 # ---------------------------------------------------------------------------
 def fig_cop(duty: str, df: pd.DataFrame, summary: pd.DataFrame):
     fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.58), gridspec_kw={"wspace": 0.30, "hspace": 0.42})
@@ -220,9 +205,9 @@ def fig_cop(duty: str, df: pd.DataFrame, summary: pd.DataFrame):
         _yaxis(ax, ymin, ymax, 3)
         _xaxis(ax, label=i >= 3)
         ax.set_ylabel(r"$COP_{sys}$ [-]" if i % 3 == 0 else "")
-        note = f"ΔCOP @PLR {s.loc[case, 'plr_low']:g}: {s.loc[case, 'd_cop_low_pct']:+.1f} %"
+        note = f"ΔCOP = {s.loc[case, 'd_cop_low_pct']:+.1f} % at PLR {s.loc[case, 'plr_low']:g}"
         if bool(s.loc[case, "internal_max"]):
-            note += f"\nCOP max inside range, PLR {s.loc[case, 'plr_cop_max']:.2f}"
+            note += f"\nCOP peaks inside the range, at PLR {s.loc[case, 'plr_cop_max']:g}"
         ax.text(0.97, 0.04, note, transform=ax.transAxes, ha="right", va="bottom", fontsize=dm.fs(-3))
         ax.set_title(case_title(case, with_shape=True), fontsize=dm.fs(-1), loc="left")
         panel_letter(ax, LETTERS[i], x=-0.22, y=1.04)
@@ -238,9 +223,9 @@ def fig_cop(duty: str, df: pd.DataFrame, summary: pd.DataFrame):
 
 
 # ---------------------------------------------------------------------------
-# Figure 5 -- ΔCOP at the common low-load PLR
+# Figure 4 -- ΔCOP at the common low-load PLR
 # ---------------------------------------------------------------------------
-def fig5(summaries: dict[str, pd.DataFrame]):
+def fig_summary(summaries: dict[str, pd.DataFrame]):
     fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.55))
     cases = list(CASES)
     x = np.arange(len(cases))
@@ -302,10 +287,9 @@ def main() -> None:
         summaries[duty] = s
     outputs = {
         "fig1_functions": (fig1(frames), {"mt": "9%", "mb": "10%"}),
-        "fig2_base_state": (fig2(frames), {"mt": "6%", "mb": "4%"}),
-        "fig3_cop_heating": (fig_cop("heating", frames["heating"], summaries["heating"]), {"mt": "5%"}),
-        "fig4_cop_cooling": (fig_cop("cooling", frames["cooling"], summaries["cooling"]), {"mt": "5%"}),
-        "fig5_summary": (fig5(summaries), {"mt": "6%"}),
+        "fig2_cop_heating": (fig_cop("heating", frames["heating"], summaries["heating"]), {"mt": "5%"}),
+        "fig3_cop_cooling": (fig_cop("cooling", frames["cooling"], summaries["cooling"]), {"mt": "5%"}),
+        "fig4_summary": (fig_summary(summaries), {"mt": "6%"}),
     }
     for stem, (fig, margins) in outputs.items():
         finalize(fig, FIG_DIR / stem, formats=("svg", "png"), **margins)

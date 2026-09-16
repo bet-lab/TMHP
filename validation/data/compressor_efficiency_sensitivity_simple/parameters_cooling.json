@@ -13,7 +13,7 @@
     "rps_max": 150.0,
     "V_cmp_ref": 9.365415077969357e-06,
     "UA_ou_rated": 700.0,
-    "UA_iu_rated": 560.0,
+    "UA_iu_rated": 700.0,
     "dV_ou_fan_a_rated": 0.7000000000000001,
     "dV_iu_fan_a_rated": 0.7000000000000001,
     "dT_approach_bounds": [
@@ -31,12 +31,12 @@
     }
   },
   "eta_base": {
-    "eta_cmp_vol": 0.95,
+    "eta_cmp_vol": 0.9,
     "eta_cmp_isen": 0.7,
     "eta_cmp": 0.9
   },
   "function": {
-    "n_star_c": 0.6,
+    "n_star_c": 1.0,
     "a_n": 0.6,
     "p_r_c": 2.0,
     "a_p": 0.6,
@@ -94,5 +94,5 @@
   },
   "clipped_rows": 0,
   "library_coefficient_version": "v2026-09-15b",
-  "git_head": "811205b"
+  "git_head": "1bbca40"
 }

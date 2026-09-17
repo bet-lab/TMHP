@@ -2,7 +2,7 @@
 Refrigerant cycle calculations and optimization.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import CoolProp.CoolProp as CP
@@ -210,6 +210,44 @@ def calc_ref_state(
     }
 
     return result
+
+
+#: Solver-internal absolute-temperature entries of a cycle-state dict.
+#: Kelvin is the solver's working unit; the reporting boundary publishes the
+#: ``[°C]`` duplicates of these same state points instead.
+_INTERNAL_STATE_KEYS: frozenset[str] = frozenset(
+    {
+        "T_ref_cmp_in_K",
+        "T_ref_cmp_out_K",
+        "T_ref_exp_in_K",
+        "T_ref_exp_out_K",
+        "T_ref_evap_sat_K",
+        "T_ref_cond_sat_v_K",
+        "T_ref_cond_sat_l_K",
+    }
+)
+
+
+def reportable_state(cs: Mapping[str, Any]) -> dict[str, Any]:
+    """Copy a cycle state without its solver-internal Kelvin entries.
+
+    Models seed each result row from the cycle state returned by
+    ``calc_ref_state``. That dict carries every state-point temperature twice:
+    once in Kelvin for the solver and once in ``[°C]`` for reporting. Only the
+    ``[°C]`` form belongs in the result frame and the exported CSV.
+
+    Parameters
+    ----------
+    cs : Mapping
+        Cycle state as returned by :func:`calc_ref_state`.
+
+    Returns
+    -------
+    dict
+        Shallow copy of ``cs`` with the seven ``T_ref_*_K`` entries removed;
+        every other key keeps its original order and value.
+    """
+    return {k: v for k, v in cs.items() if k not in _INTERNAL_STATE_KEYS}
 
 
 def create_lmtd_constraints() -> tuple[Any, Any]:

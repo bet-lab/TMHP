@@ -65,7 +65,7 @@ from .enex_functions import (
 from .g_function import precompute_gfunction
 from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
 from .heat_transfer import calc_simple_tank_UA
-from .refrigerant import calc_ref_state
+from .refrigerant import calc_ref_state, reportable_state
 from .stratified_tank import StratifiedTank
 from .thermodynamics import calc_exergy_flow
 
@@ -432,7 +432,7 @@ class GroundSourceHeatPumpBoiler:
                 is_active=False,
             )
 
-            inactive_result = cs.copy()
+            inactive_result = reportable_state(cs)
             inactive_result.update(
                 {
                     "hp_is_on": False,
@@ -607,7 +607,7 @@ class GroundSourceHeatPumpBoiler:
         T_bhe = T_bhe_f + Q_bhe_unit * self.R_b
 
         # 6. Assemble
-        active_result: dict = cs.copy()
+        active_result: dict = reportable_state(cs)
         active_result.update(
             {
                 "hp_is_on": True,

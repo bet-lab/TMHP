@@ -42,6 +42,7 @@ from .enex_functions import (
 )
 from .refrigerant import (
     calc_ref_state,
+    reportable_state,
 )
 
 # Objective bands for the operating-point search in ``_optimize_operation``.
@@ -337,7 +338,7 @@ class AirSourceHeatPump:
                 dT_subcool=self.dT_subcool,
                 is_active=False,
             )
-            result = cs.copy()
+            result = reportable_state(cs)
             result.update(
                 {
                     "hp_is_on": False,
@@ -620,7 +621,7 @@ class AirSourceHeatPump:
 
         # Same name (`result`) is annotated up in the inactive branch (~L216);
         # plain assignment to avoid the mypy [no-redef] false positive.
-        result = cs.copy()
+        result = reportable_state(cs)
         result.update(
             {
                 "hp_is_on": True,

@@ -42,7 +42,7 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .heat_transfer import calc_simple_tank_UA
-from .refrigerant import calc_ref_state
+from .refrigerant import calc_ref_state, reportable_state
 from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
@@ -559,7 +559,7 @@ class WaterSourceHeatPumpBoiler:
         T_bhe = T_bhe_f + Q_bhe_unit * self.R_b
 
         # 6. Assemble
-        result: dict = cycle_states.copy()
+        result: dict = reportable_state(cycle_states)
         result.update(
             {
                 "hp_is_on": True,

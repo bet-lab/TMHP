@@ -164,7 +164,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="2"><span class="sd">Refrigerant cycle calculations and optimization.</span>
 </span><span data-line="3"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="4">
-</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
 </span><span data-line="6"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 </span><span data-line="7">
 </span><span data-line="8"><span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
@@ -377,112 +377,150 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="213">
 </span><span data-line="214">
+</span><span data-line="215"><span class="c1">#: Solver-internal absolute-temperature entries of a cycle-state dict.</span>
+</span><span data-line="216"><span class="c1">#: Kelvin is the solver&#39;s working unit; the reporting boundary publishes the</span>
+</span><span data-line="217"><span class="c1">#: ``[°C]`` duplicates of these same state points instead.</span>
+</span><span data-line="218"><span class="n">_INTERNAL_STATE_KEYS</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+</span><span data-line="219">    <span class="p">{</span>
+</span><span data-line="220">        <span class="s2">&quot;T_ref_cmp_in_K&quot;</span><span class="p">,</span>
+</span><span data-line="221">        <span class="s2">&quot;T_ref_cmp_out_K&quot;</span><span class="p">,</span>
+</span><span data-line="222">        <span class="s2">&quot;T_ref_exp_in_K&quot;</span><span class="p">,</span>
+</span><span data-line="223">        <span class="s2">&quot;T_ref_exp_out_K&quot;</span><span class="p">,</span>
+</span><span data-line="224">        <span class="s2">&quot;T_ref_evap_sat_K&quot;</span><span class="p">,</span>
+</span><span data-line="225">        <span class="s2">&quot;T_ref_cond_sat_v_K&quot;</span><span class="p">,</span>
+</span><span data-line="226">        <span class="s2">&quot;T_ref_cond_sat_l_K&quot;</span><span class="p">,</span>
+</span><span data-line="227">    <span class="p">}</span>
+</span><span data-line="228"><span class="p">)</span>
+</span><span data-line="229">
+</span><span data-line="230">
+</span><span data-line="231"><span class="k">def</span><span class="w"> </span><span class="nf">reportable_state</span><span class="p">(</span><span class="n">cs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="232"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy a cycle state without its solver-internal Kelvin entries.</span>
+</span><span data-line="233">
+</span><span data-line="234"><span class="sd">    Models seed each result row from the cycle state returned by</span>
+</span><span data-line="235"><span class="sd">    ``calc_ref_state``. That dict carries every state-point temperature twice:</span>
+</span><span data-line="236"><span class="sd">    once in Kelvin for the solver and once in ``[°C]`` for reporting. Only the</span>
+</span><span data-line="237"><span class="sd">    ``[°C]`` form belongs in the result frame and the exported CSV.</span>
+</span><span data-line="238">
+</span><span data-line="239"><span class="sd">    Parameters</span>
+</span><span data-line="240"><span class="sd">    ----------</span>
+</span><span data-line="241"><span class="sd">    cs : Mapping</span>
+</span><span data-line="242"><span class="sd">        Cycle state as returned by :func:`calc_ref_state`.</span>
+</span><span data-line="243">
+</span><span data-line="244"><span class="sd">    Returns</span>
+</span><span data-line="245"><span class="sd">    -------</span>
+</span><span data-line="246"><span class="sd">    dict</span>
+</span><span data-line="247"><span class="sd">        Shallow copy of ``cs`` with the seven ``T_ref_*_K`` entries removed;</span>
+</span><span data-line="248"><span class="sd">        every other key keeps its original order and value.</span>
+</span><span data-line="249"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="250">    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_INTERNAL_STATE_KEYS</span><span class="p">}</span>
+</span><span data-line="251">
+</span><span data-line="252">
 <div class="viewcode-block" id="create_lmtd_constraints">
 <a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.refrigerant.create_lmtd_constraints">[docs]</a>
-</span><span data-line="215"><span class="k">def</span><span class="w"> </span><span class="nf">create_lmtd_constraints</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="216"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create LMTD-based constraint functions for cycle optimization.</span>
-</span><span data-line="217">
-</span><span data-line="218"><span class="sd">    Optimization requires that the heat transfer calculated by LMTD matches</span>
-</span><span data-line="219"><span class="sd">    the heat transferred by the refrigerant cycle.</span>
-</span><span data-line="220">
-</span><span data-line="221"><span class="sd">    Returns</span>
-</span><span data-line="222"><span class="sd">    -------</span>
-</span><span data-line="223"><span class="sd">    tuple[Any, Any]</span>
-</span><span data-line="224"><span class="sd">        Tuple of constraint functions (constraint_tank, constraint_hx).</span>
-</span><span data-line="225"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="226">
-</span><span data-line="227">    <span class="k">def</span><span class="w"> </span><span class="nf">constraint_tank</span><span class="p">(</span><span class="n">perf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="228"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Condenser constraint: Q_LMTD_cond - Q_ref_cond = 0&quot;&quot;&quot;</span>
-</span><span data-line="229">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;Q_cond&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span> <span class="ow">or</span> <span class="s2">&quot;Q_cond_LMTD&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
-</span><span data-line="230">            <span class="k">return</span> <span class="mf">1e6</span>
-</span><span data-line="231">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_cond_LMTD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">])</span>
-</span><span data-line="232">
-</span><span data-line="233">    <span class="k">def</span><span class="w"> </span><span class="nf">constraint_hx</span><span class="p">(</span><span class="n">perf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="234"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaporator constraint: Q_LMTD_evap - Q_ref_evap = 0&quot;&quot;&quot;</span>
-</span><span data-line="235">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;Q_evap&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span> <span class="ow">or</span> <span class="s2">&quot;Q_evap_LMTD&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
-</span><span data-line="236">            <span class="k">return</span> <span class="mf">1e6</span>
-</span><span data-line="237">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_evap_LMTD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">])</span>
-</span><span data-line="238">
-</span><span data-line="239">    <span class="k">return</span> <span class="n">constraint_tank</span><span class="p">,</span> <span class="n">constraint_hx</span></div>
+</span><span data-line="253"><span class="k">def</span><span class="w"> </span><span class="nf">create_lmtd_constraints</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="254"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Create LMTD-based constraint functions for cycle optimization.</span>
+</span><span data-line="255">
+</span><span data-line="256"><span class="sd">    Optimization requires that the heat transfer calculated by LMTD matches</span>
+</span><span data-line="257"><span class="sd">    the heat transferred by the refrigerant cycle.</span>
+</span><span data-line="258">
+</span><span data-line="259"><span class="sd">    Returns</span>
+</span><span data-line="260"><span class="sd">    -------</span>
+</span><span data-line="261"><span class="sd">    tuple[Any, Any]</span>
+</span><span data-line="262"><span class="sd">        Tuple of constraint functions (constraint_tank, constraint_hx).</span>
+</span><span data-line="263"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="264">
+</span><span data-line="265">    <span class="k">def</span><span class="w"> </span><span class="nf">constraint_tank</span><span class="p">(</span><span class="n">perf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="266"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Condenser constraint: Q_LMTD_cond - Q_ref_cond = 0&quot;&quot;&quot;</span>
+</span><span data-line="267">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;Q_cond&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span> <span class="ow">or</span> <span class="s2">&quot;Q_cond_LMTD&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
+</span><span data-line="268">            <span class="k">return</span> <span class="mf">1e6</span>
+</span><span data-line="269">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_cond_LMTD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">])</span>
+</span><span data-line="270">
+</span><span data-line="271">    <span class="k">def</span><span class="w"> </span><span class="nf">constraint_hx</span><span class="p">(</span><span class="n">perf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="272"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaporator constraint: Q_LMTD_evap - Q_ref_evap = 0&quot;&quot;&quot;</span>
+</span><span data-line="273">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;Q_evap&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span> <span class="ow">or</span> <span class="s2">&quot;Q_evap_LMTD&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
+</span><span data-line="274">            <span class="k">return</span> <span class="mf">1e6</span>
+</span><span data-line="275">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_evap_LMTD&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">perf</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">])</span>
+</span><span data-line="276">
+</span><span data-line="277">    <span class="k">return</span> <span class="n">constraint_tank</span><span class="p">,</span> <span class="n">constraint_hx</span></div>
 
-</span><span data-line="240">
-</span><span data-line="241">
+</span><span data-line="278">
+</span><span data-line="279">
 <div class="viewcode-block" id="find_ref_loop_optimal_operation">
 <a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.refrigerant.find_ref_loop_optimal_operation">[docs]</a>
-</span><span data-line="242"><span class="k">def</span><span class="w"> </span><span class="nf">find_ref_loop_optimal_operation</span><span class="p">(</span>
-</span><span data-line="243">    <span class="n">simulator_func</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span data-line="244">    <span class="n">refrigerant</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="245">    <span class="n">load_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="246">    <span class="n">initial_guess</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-</span><span data-line="247">    <span class="n">bounds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
-</span><span data-line="248">    <span class="n">constraint_funcs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="249"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="250"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the optimal operation point for the refrigerant loop.</span>
-</span><span data-line="251">
-</span><span data-line="252"><span class="sd">    Minimizes compressor power while satisfying target load and LMTD constraints.</span>
-</span><span data-line="253">
-</span><span data-line="254"><span class="sd">    Parameters</span>
-</span><span data-line="255"><span class="sd">    ----------</span>
-</span><span data-line="256"><span class="sd">    simulator_func : callable</span>
-</span><span data-line="257"><span class="sd">        Function that takes `[dT_ref_HX, dT_ref_tank]` and returns a perf dict.</span>
-</span><span data-line="258"><span class="sd">    refrigerant : str</span>
-</span><span data-line="259"><span class="sd">        Refrigerant name.</span>
-</span><span data-line="260"><span class="sd">    load_W : float</span>
-</span><span data-line="261"><span class="sd">        Target heat load [W].</span>
-</span><span data-line="262"><span class="sd">    initial_guess : list[float]</span>
-</span><span data-line="263"><span class="sd">        Initial guess for `[dT_evap, dT_cond]`.</span>
-</span><span data-line="264"><span class="sd">    bounds : list[tuple[float, float]]</span>
-</span><span data-line="265"><span class="sd">        Bounds for `[dT_evap, dT_cond]`.</span>
-</span><span data-line="266"><span class="sd">    constraint_funcs : list[callable], optional</span>
-</span><span data-line="267"><span class="sd">        List of constraint functions. Each takes `perf` and returns a value</span>
-</span><span data-line="268"><span class="sd">        that should be 0.</span>
-</span><span data-line="269">
-</span><span data-line="270"><span class="sd">    Returns</span>
-</span><span data-line="271"><span class="sd">    -------</span>
-</span><span data-line="272"><span class="sd">    dict[str, Any] | None</span>
-</span><span data-line="273"><span class="sd">        Optimal performance dictionary, or None if optimization fails.</span>
-</span><span data-line="274"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="275">    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
-</span><span data-line="276">
-</span><span data-line="277">    <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="278">        <span class="n">perf</span> <span class="o">=</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span><span data-line="279">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;W_comp&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
-</span><span data-line="280">            <span class="k">return</span> <span class="mf">1e6</span>
-</span><span data-line="281">
-</span><span data-line="282">        <span class="c1"># Add penalty if load is not met</span>
-</span><span data-line="283">        <span class="n">load_diff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">perf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">load_W</span><span class="p">)</span>
-</span><span data-line="284">        <span class="n">penalty</span> <span class="o">=</span> <span class="p">(</span><span class="n">load_diff</span> <span class="o">/</span> <span class="n">load_W</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="mf">1e5</span> <span class="k">if</span> <span class="n">load_W</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
-</span><span data-line="285">
-</span><span data-line="286">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;W_comp&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">penalty</span><span class="p">)</span>
-</span><span data-line="287">
-</span><span data-line="288">    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span data-line="289">    <span class="k">if</span> <span class="n">constraint_funcs</span><span class="p">:</span>
-</span><span data-line="290">        <span class="k">for</span> <span class="n">cf</span> <span class="ow">in</span> <span class="n">constraint_funcs</span><span class="p">:</span>
+</span><span data-line="280"><span class="k">def</span><span class="w"> </span><span class="nf">find_ref_loop_optimal_operation</span><span class="p">(</span>
+</span><span data-line="281">    <span class="n">simulator_func</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="282">    <span class="n">refrigerant</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="283">    <span class="n">load_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="284">    <span class="n">initial_guess</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+</span><span data-line="285">    <span class="n">bounds</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+</span><span data-line="286">    <span class="n">constraint_funcs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="287"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="288"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the optimal operation point for the refrigerant loop.</span>
+</span><span data-line="289">
+</span><span data-line="290"><span class="sd">    Minimizes compressor power while satisfying target load and LMTD constraints.</span>
 </span><span data-line="291">
-</span><span data-line="292">            <span class="k">def</span><span class="w"> </span><span class="nf">make_constraint</span><span class="p">(</span><span class="n">c_func</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span data-line="293">                <span class="k">def</span><span class="w"> </span><span class="nf">constraint</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="294">                    <span class="n">perf</span> <span class="o">=</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-</span><span data-line="295">                    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">c_func</span><span class="p">(</span><span class="n">perf</span><span class="p">))</span>
-</span><span data-line="296">
-</span><span data-line="297">                <span class="k">return</span> <span class="n">constraint</span>
-</span><span data-line="298">
-</span><span data-line="299">            <span class="n">constraints</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span> <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="n">make_constraint</span><span class="p">(</span><span class="n">cf</span><span class="p">)})</span>
-</span><span data-line="300">
-</span><span data-line="301">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="302">        <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
-</span><span data-line="303">            <span class="n">objective</span><span class="p">,</span>
-</span><span data-line="304">            <span class="n">initial_guess</span><span class="p">,</span>
-</span><span data-line="305">            <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
-</span><span data-line="306">            <span class="n">constraints</span><span class="o">=</span><span class="n">constraints</span><span class="p">,</span>
-</span><span data-line="307">            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
-</span><span data-line="308">            <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;disp&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;ftol&quot;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s2">&quot;maxiter&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">},</span>
-</span><span data-line="309">        <span class="p">)</span>
-</span><span data-line="310">        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
-</span><span data-line="311">            <span class="k">return</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># type: ignore[no-any-return]</span>
-</span><span data-line="312">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-</span><span data-line="313">        <span class="k">pass</span>
+</span><span data-line="292"><span class="sd">    Parameters</span>
+</span><span data-line="293"><span class="sd">    ----------</span>
+</span><span data-line="294"><span class="sd">    simulator_func : callable</span>
+</span><span data-line="295"><span class="sd">        Function that takes `[dT_ref_HX, dT_ref_tank]` and returns a perf dict.</span>
+</span><span data-line="296"><span class="sd">    refrigerant : str</span>
+</span><span data-line="297"><span class="sd">        Refrigerant name.</span>
+</span><span data-line="298"><span class="sd">    load_W : float</span>
+</span><span data-line="299"><span class="sd">        Target heat load [W].</span>
+</span><span data-line="300"><span class="sd">    initial_guess : list[float]</span>
+</span><span data-line="301"><span class="sd">        Initial guess for `[dT_evap, dT_cond]`.</span>
+</span><span data-line="302"><span class="sd">    bounds : list[tuple[float, float]]</span>
+</span><span data-line="303"><span class="sd">        Bounds for `[dT_evap, dT_cond]`.</span>
+</span><span data-line="304"><span class="sd">    constraint_funcs : list[callable], optional</span>
+</span><span data-line="305"><span class="sd">        List of constraint functions. Each takes `perf` and returns a value</span>
+</span><span data-line="306"><span class="sd">        that should be 0.</span>
+</span><span data-line="307">
+</span><span data-line="308"><span class="sd">    Returns</span>
+</span><span data-line="309"><span class="sd">    -------</span>
+</span><span data-line="310"><span class="sd">    dict[str, Any] | None</span>
+</span><span data-line="311"><span class="sd">        Optimal performance dictionary, or None if optimization fails.</span>
+</span><span data-line="312"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="313">    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
 </span><span data-line="314">
-</span><span data-line="315">    <span class="k">return</span> <span class="kc">None</span></div>
+</span><span data-line="315">    <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="316">        <span class="n">perf</span> <span class="o">=</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span><span data-line="317">        <span class="k">if</span> <span class="n">perf</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;W_comp&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">perf</span><span class="p">:</span>
+</span><span data-line="318">            <span class="k">return</span> <span class="mf">1e6</span>
+</span><span data-line="319">
+</span><span data-line="320">        <span class="c1"># Add penalty if load is not met</span>
+</span><span data-line="321">        <span class="n">load_diff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">perf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">load_W</span><span class="p">)</span>
+</span><span data-line="322">        <span class="n">penalty</span> <span class="o">=</span> <span class="p">(</span><span class="n">load_diff</span> <span class="o">/</span> <span class="n">load_W</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="mf">1e5</span> <span class="k">if</span> <span class="n">load_W</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+</span><span data-line="323">
+</span><span data-line="324">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf</span><span class="p">[</span><span class="s2">&quot;W_comp&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">penalty</span><span class="p">)</span>
+</span><span data-line="325">
+</span><span data-line="326">    <span class="n">constraints</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="327">    <span class="k">if</span> <span class="n">constraint_funcs</span><span class="p">:</span>
+</span><span data-line="328">        <span class="k">for</span> <span class="n">cf</span> <span class="ow">in</span> <span class="n">constraint_funcs</span><span class="p">:</span>
+</span><span data-line="329">
+</span><span data-line="330">            <span class="k">def</span><span class="w"> </span><span class="nf">make_constraint</span><span class="p">(</span><span class="n">c_func</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="331">                <span class="k">def</span><span class="w"> </span><span class="nf">constraint</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="332">                    <span class="n">perf</span> <span class="o">=</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</span><span data-line="333">                    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">c_func</span><span class="p">(</span><span class="n">perf</span><span class="p">))</span>
+</span><span data-line="334">
+</span><span data-line="335">                <span class="k">return</span> <span class="n">constraint</span>
+</span><span data-line="336">
+</span><span data-line="337">            <span class="n">constraints</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;eq&quot;</span><span class="p">,</span> <span class="s2">&quot;fun&quot;</span><span class="p">:</span> <span class="n">make_constraint</span><span class="p">(</span><span class="n">cf</span><span class="p">)})</span>
+</span><span data-line="338">
+</span><span data-line="339">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="340">        <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+</span><span data-line="341">            <span class="n">objective</span><span class="p">,</span>
+</span><span data-line="342">            <span class="n">initial_guess</span><span class="p">,</span>
+</span><span data-line="343">            <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
+</span><span data-line="344">            <span class="n">constraints</span><span class="o">=</span><span class="n">constraints</span><span class="p">,</span>
+</span><span data-line="345">            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;SLSQP&quot;</span><span class="p">,</span>
+</span><span data-line="346">            <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;disp&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;ftol&quot;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s2">&quot;maxiter&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">},</span>
+</span><span data-line="347">        <span class="p">)</span>
+</span><span data-line="348">        <span class="k">if</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+</span><span data-line="349">            <span class="k">return</span> <span class="n">simulator_func</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># type: ignore[no-any-return]</span>
+</span><span data-line="350">    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+</span><span data-line="351">        <span class="k">pass</span>
+</span><span data-line="352">
+</span><span data-line="353">    <span class="k">return</span> <span class="kc">None</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

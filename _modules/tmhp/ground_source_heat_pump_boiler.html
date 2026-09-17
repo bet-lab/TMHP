@@ -227,7 +227,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="65"><span class="kn">from</span><span class="w"> </span><span class="nn">.g_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">precompute_gfunction</span>
 </span><span data-line="66"><span class="kn">from</span><span class="w"> </span><span class="nn">.ground_coupling</span><span class="w"> </span><span class="kn">import</span> <span class="n">AggregateGFunctionCoupler</span><span class="p">,</span> <span class="n">GroundCoupler</span>
 </span><span data-line="67"><span class="kn">from</span><span class="w"> </span><span class="nn">.heat_transfer</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_simple_tank_UA</span>
-</span><span data-line="68"><span class="kn">from</span><span class="w"> </span><span class="nn">.refrigerant</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_ref_state</span>
+</span><span data-line="68"><span class="kn">from</span><span class="w"> </span><span class="nn">.refrigerant</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_ref_state</span><span class="p">,</span> <span class="n">reportable_state</span>
 </span><span data-line="69"><span class="kn">from</span><span class="w"> </span><span class="nn">.stratified_tank</span><span class="w"> </span><span class="kn">import</span> <span class="n">StratifiedTank</span>
 </span><span data-line="70"><span class="kn">from</span><span class="w"> </span><span class="nn">.thermodynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_exergy_flow</span>
 </span><span data-line="71">
@@ -599,7 +599,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="432">                <span class="n">is_active</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 </span><span data-line="433">            <span class="p">)</span>
 </span><span data-line="434">
-</span><span data-line="435">            <span class="n">inactive_result</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="435">            <span class="n">inactive_result</span> <span class="o">=</span> <span class="n">reportable_state</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span>
 </span><span data-line="436">            <span class="n">inactive_result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
 </span><span data-line="437">                <span class="p">{</span>
 </span><span data-line="438">                    <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
@@ -774,7 +774,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="607">        <span class="n">T_bhe</span> <span class="o">=</span> <span class="n">T_bhe_f</span> <span class="o">+</span> <span class="n">Q_bhe_unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_b</span>
 </span><span data-line="608">
 </span><span data-line="609">        <span class="c1"># 6. Assemble</span>
-</span><span data-line="610">        <span class="n">active_result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">cs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span data-line="610">        <span class="n">active_result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">reportable_state</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span>
 </span><span data-line="611">        <span class="n">active_result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
 </span><span data-line="612">            <span class="p">{</span>
 </span><span data-line="613">                <span class="s2">&quot;hp_is_on&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>

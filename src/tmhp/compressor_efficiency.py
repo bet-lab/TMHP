@@ -30,45 +30,54 @@ data list, fits and leave-one-compressor-out cross-validation is named by
 
 Structure (what the data identify)
 ----------------------------------
-``eta_vol = f(PR, n*)``, ``eta_isen = f(PR)``, ``eta_em = f(n*)``, with
-``n* = rps / rps_rated`` the speed relative to the machine's rated speed.
+All three efficiencies depend on the pressure ratio ``PR`` and on the speed
+relative to the machine's rated speed, ``n* = rps / rps_rated``::
 
-* Power tables identify the *product* ``eta_isen * eta_em`` (the electrical-
-  to-isentropic efficiency).  With no speed term in ``eta_isen`` and no lift
-  term in ``eta_em`` the product is separable, ``g(PR) * s(n*)``, up to one
-  scale factor.  That factor -- how much of the loss ends up in the
-  refrigerant (``eta_isen``, via the discharge enthalpy) rather than leaving
-  through the shell or the drive (``eta_em``) -- is fixed by the only rows
-  with a measured discharge temperature under exactly TMHP's definition:
-  Cuevas & Lebrun's inverter-fed tests near rated speed, :data:`ETA_EM_REF`.
-* The speed penalty measured across the Copeland set grows with pressure
-  ratio (the fitted interaction is significant); carrying it would need a
-  speed term in ``eta_isen``.  It buys 0.15 pp of cross-validated error and
-  is kept as a documented extension, not adopted -- the correlations only
-  become more complex when the data demand it clearly.
-* Above rated speed the form allows a one-sided quadratic roll-off,
-  :data:`ETA_EM_D`, and this version sets it to zero.  The only maps that
-  reach twice rated speed are three 2004 rotaries whose whole level sits
-  27 % below the population; pooled, that level shift looks like a speed
-  effect (a fitted roll-off of 28 % at twice rated speed), but inside each
-  of those machines the trend is a tenth of that.  A speed term is adopted
-  only when the machines that identify it show it themselves (rule R4 in
-  ``validation/compressor_maps/cv.py``), so the roll-off waits for a second
-  high-speed source.  Should it be fitted, it is held at its ``n* = 2`` value
-  past the data (:data:`N_STAR_EM_MAX`) rather than followed.
-* Speed is read relative to the machine's rated speed.  A drive and motor are
-  sized for the speed the compressor is rated at; a curve measured on a
-  machine rated near 70 rev/s must not put a 40 rev/s machine permanently on
-  its falling side.
+    eta_vol  = 1 - A (PR-1) - B u - C (PR-1) u,           u = max(0, 1/n* - 1)
+    eta_em   = ETA_EM_REF * s(n*) * m(PR)
+    eta_isen = eta_oi / eta_em,   eta_oi = g(PR) [s(n*)] x(PR, n*) h(n*)
+
+with
+
+    g(PR)    = A_oi - B_oi PR - C_oi / PR        lift shape of the electrical-to-
+                                                 isentropic product, peak near the
+                                                 built-in volume ratio
+    s(n*)    = n* (1 + n0) / (n* + n0)           drive + motor fixed losses
+                                                 (saturating; Ossorio form)
+    m(PR)    = (PR-1)/(PR-1+p0) * (2+p0)/2       motor load: torque, hence motor
+                                                 efficiency, grows with lift
+    x(PR,n*) = 1 - c (PR-1) u_L                  internal leakage: the leaked
+                                                 fraction goes as the pressure
+                                                 difference over the speed
+    h(n*)    = 1 - d (n*^2 - 1)  (two-sided)     flow losses through the ports
+             = 1 - d max(0, n*-1)^2 (one-sided)  grow with the square of speed
+
+* Power tables identify eta_vol and the *product* ``eta_isen * eta_em``.  The
+  product is fitted as ``g * s * x * h`` on 76 machines; the speed shape is
+  identified from the change *within* each machine (fixed-effects estimator,
+  rule R4 of ``validation/compressor_maps/cv.py``), because two thirds of the
+  rows sit at rated speed and the between-machine level spread would
+  otherwise swamp every speed term.
+* The split of the product into ``eta_isen`` and ``eta_em`` is not identified
+  by power; it is set from the only rows measured with a discharge
+  temperature under TMHP's definition (Cuevas & Lebrun 2009, inverter-fed,
+  n* 0.7-1.5, PR 1.5-5.6): ``s(n*)`` and ``m(PR)`` are fitted there and held
+  fixed in the product fit, so whatever further speed dependence the 76
+  machines demand -- leakage ``x`` and flow loss ``h`` -- lands in
+  ``eta_isen`` by construction.  The drive-only efficiency measured by
+  Ossorio & Navarro-Peris (2023) on three inverters bounds ``n0`` from below.
+* A one-sided term (``max(0, ...)``) means the correlation does not award a
+  bonus where the data are thin; which terms are one-sided is decided by the
+  cross-validation and recorded in the coefficient archive.
 
 Low-load behaviour
 ------------------
-Certified declared COP (Heat Pump Keymark, 18,106 rows) rises monotonically
-toward the lightest EN 14825 test point; there is no low-load roll-over to
-reproduce.  These correlations therefore carry the low-speed loss the
-compressor data show -- a few points of volumetric and electro-mechanical
-efficiency at a quarter of rated speed -- and nothing else.  Cycling and the
-minimum-modulation limit are not modelled and are stated as limitations.
+At fixed boundary temperatures the assembled heat-pump model gains from the
+heat exchangers unloading as the load falls (lower lift) and loses from the
+compressor's low-speed terms (drive fixed losses, internal leakage).  The
+correlations carry only what the compressor data show; no COP shape is
+prescribed.  Cycling and the minimum-modulation limit are not modelled and are
+stated as limitations.
 
 References
 ----------
@@ -103,75 +112,110 @@ __all__ = [
     "eta_em_default",
     "eta_oi_product",
     "make_eta_vol",
+    "make_eta_isen",
     "make_eta_em",
     "speed_factor_em",
+    "load_factor_em",
+    "leakage_factor",
+    "flow_factor",
     "RPS_REF",
     "ETA_VOL_A",
     "ETA_VOL_B",
+    "ETA_VOL_C",
     "ETA_VOL_FLOOR",
     "ETA_OI_A",
     "ETA_OI_B",
     "ETA_OI_C",
+    "ETA_LEAK_C",
+    "ETA_LEAK_TWO_SIDED",
+    "ETA_FLOW_D",
+    "ETA_FLOW_TWO_SIDED",
+    "ETA_OI_HAS_DRIVE",
     "ETA_EM_N0",
-    "ETA_EM_D",
+    "ETA_EM_P0",
     "ETA_EM_REF",
     "ETA_ISEN_FLOOR",
-    "N_STAR_EM_MAX",
+    "N_STAR_MAX",
 ]
 
 #: Rated speed assumed when a caller has none to give [rev/s].  The module-
-#: level defaults :data:`eta_vol_default` and :data:`eta_em_default` are bound
-#: to it; the heat-pump models bind their own rated speed instead
-#: (:data:`tmhp.compressor_speed.RATED_POINT_AIR_TO_WATER`, 40 rev/s, and
-#: :data:`tmhp.compressor_speed.RATED_POINT_AIR_TO_AIR`, 60 rev/s).
+#: level defaults are bound to it; the heat-pump models bind their own rated
+#: speed instead (:data:`tmhp.compressor_speed.RATED_POINT_AIR_TO_WATER`,
+#: 40 rev/s, and :data:`tmhp.compressor_speed.RATED_POINT_AIR_TO_AIR`, 60 rev/s).
 RPS_REF = 50.0
 
-# --- BEGIN GENERATED coefficients v2026-09-15b ---
+# --- BEGIN GENERATED coefficients v2026-09-24 ---
 #: Coefficient version; the archive with data list, fits and cross-validation
-#: lives in ``validation/coefficients/v2026-09-15b/``.
-COEFFICIENT_VERSION = "v2026-09-15b"
-#: Volumetric efficiency ``1 - A (PR - 1) - B max(0, 1/n* - 1)`` -- 76 machines,
-#: 131 speed records, LOCO MAPE 5.66 % (legacy 5.88 %).
-ETA_VOL_A = 0.02162
-ETA_VOL_B = 0.01765
-#: Electrical-to-isentropic product
-#: ``(A - B PR - C/PR) * n*(1+n0)/(n*+n0) * (1 - D max(0, n*-1)^2)`` --
-#: LOCO MAPE 12.16 % (legacy 12.21 %).
-ETA_OI_A = 1.08493
-ETA_OI_B = 0.07354
-ETA_OI_C = 0.57287
-ETA_EM_N0 = 0.02114
-ETA_EM_D = 0.00000
-#: Electro-mechanical efficiency at rated speed: the measured split of the
-#: product (Cuevas & Lebrun 2009, inverter-fed, n* ~ 1; p10-p90 0.926-0.942).
-ETA_EM_REF = 0.9360
+#: lives in ``validation/coefficients/v2026-09-24/`` (fe estimator).
+COEFFICIENT_VERSION = "v2026-09-24"
+#: Volumetric efficiency ``1 - A (PR-1) - B u - C (PR-1) u``, ``u = max(0, 1/n* - 1)`` --
+#: family V2, 76 machines, 131 speed records,
+#: LOCO MAPE 5.95 % (legacy 5.88 %), speed transfer 2.88 %.
+ETA_VOL_A = 0.02596
+ETA_VOL_B = 0.02233
+ETA_VOL_C = 0.00000
+#: Lift shape of the electrical-to-isentropic product ``A - B PR - C/PR`` --
+#: family I2xE0xL1, LOCO MAPE 11.72 % (legacy 12.21 %), speed transfer 6.86 %.
+ETA_OI_A = 1.16595
+ETA_OI_B = 0.08318
+ETA_OI_C = 0.70174
+#: Leakage interaction ``1 - c (PR-1) u_L``; two-sided means ``u_L = 1/n* - 1``.
+ETA_LEAK_C = 0.02365
+ETA_LEAK_TWO_SIDED = False
+#: Flow-loss speed factor ``1 - d (n*^2 - 1)`` (two-sided) or ``1 - d max(0, n*-1)^2``.
+ETA_FLOW_D = 0.00000
+ETA_FLOW_TWO_SIDED = False
+#: Whether the fitted product carries the drive factor (family I2xE0xL1).
+ETA_OI_HAS_DRIVE = False
+#: Drive + motor: ``s(n*) = n*(1+n0)/(n*+n0)`` with ``n0`` from the drive anchor
+#: (total, Cuevas & Lebrun 2009: 0.0754; drive-only floor, Ossorio &
+#: Navarro-Peris 2023: 0.0256); motor load ``m(PR)`` with ``p0``;
+#: level at PR 3, n* 1 (Cuevas & Lebrun 2009 discharge-temperature split, 29 rows).
+ETA_EM_N0 = 0.02556
+ETA_EM_P0 = 0.02695
+ETA_EM_REF = 0.9411
 # --- END GENERATED coefficients ---
 
 #: Below these the correlations are extrapolating past the compressor data
 #: (PR up to 8, n* down to 0.27) and are held rather than followed.
 ETA_VOL_FLOOR = 0.50
 ETA_ISEN_FLOOR = 0.30
-#: A fitted high-speed roll-off (:data:`ETA_EM_D`, zero here) would rest on
-#: data up to twice rated speed; past that it is held rather than extrapolated.
-N_STAR_EM_MAX = 2.0
+#: The speed terms rest on data up to twice rated speed; past that the factors
+#: are held at their ``n* = N_STAR_MAX`` value rather than extrapolated.
+N_STAR_MAX = 2.0
+#: Motor-load factor is normalised at this pressure ratio.
+PR_REF_EM = 3.0
 
 
-def coefficients() -> dict[str, float | str]:
+def coefficients() -> dict[str, float | str | bool]:
     """The frozen coefficient set, for provenance columns in validation output."""
     return {
         "version": COEFFICIENT_VERSION,
         "ETA_VOL_A": ETA_VOL_A,
         "ETA_VOL_B": ETA_VOL_B,
+        "ETA_VOL_C": ETA_VOL_C,
         "ETA_OI_A": ETA_OI_A,
         "ETA_OI_B": ETA_OI_B,
         "ETA_OI_C": ETA_OI_C,
+        "ETA_LEAK_C": ETA_LEAK_C,
+        "ETA_LEAK_TWO_SIDED": ETA_LEAK_TWO_SIDED,
+        "ETA_FLOW_D": ETA_FLOW_D,
+        "ETA_FLOW_TWO_SIDED": ETA_FLOW_TWO_SIDED,
+        "ETA_OI_HAS_DRIVE": ETA_OI_HAS_DRIVE,
         "ETA_EM_N0": ETA_EM_N0,
-        "ETA_EM_D": ETA_EM_D,
+        "ETA_EM_P0": ETA_EM_P0,
         "ETA_EM_REF": ETA_EM_REF,
         "ETA_VOL_FLOOR": ETA_VOL_FLOOR,
         "ETA_ISEN_FLOOR": ETA_ISEN_FLOOR,
-        "N_STAR_EM_MAX": N_STAR_EM_MAX,
+        "N_STAR_MAX": N_STAR_MAX,
     }
+
+
+def _n_star(rps: float | None, rps_rated: float) -> float:
+    """Relative speed, clipped to the range the correlations are evaluated on; ``None`` means rated."""
+    if rps is None or rps <= 0.0:
+        return 1.0
+    return min(max(rps / rps_rated, 1e-6), N_STAR_MAX)
 
 
 # ---------------------------------------------------------------------------
@@ -182,85 +226,141 @@ def make_eta_vol(rps_rated: float) -> Callable[[float, float], float]:
 
     Returns ``eta(pressure_ratio, rps)`` with
 
-    ``eta_vol = 1 - ETA_VOL_A (PR - 1) - ETA_VOL_B max(0, 1/n* - 1)``.
+    ``eta_vol = 1 - A (PR-1) - B u - C (PR-1) u``, ``u = max(0, 1/n* - 1)``.
 
     The first term is clearance re-expansion and pressure-driven leakage
-    growing with lift; the second is the extra leakage fraction at low speed
-    (leakage is set by the pressure difference and barely by speed, the swept
-    flow is proportional to speed, so the *fraction* lost goes as ``1/n*``).
-    It is one-sided: no bonus above rated speed, where the data thin out and
-    an error would flatter the model.  The delivered duty ``rps * eta_vol``
-    stays monotonic in speed, which the speed search relies on.
+    growing with lift; the speed terms are the extra leakage *fraction* at low
+    speed -- leakage is set by the pressure difference and barely by speed,
+    the swept flow is proportional to speed, so the fraction lost goes as
+    ``1/n*`` (``B``) and, where the data ask for it, as ``(PR-1)/n*`` (``C``).
+    One-sided: no bonus above rated speed.  The delivered duty
+    ``rps * eta_vol`` stays monotonic in speed, which the speed search relies on.
     """
 
     def eta_vol(pressure_ratio: float, rps: float) -> float:
         eta = 1.0 - ETA_VOL_A * (pressure_ratio - 1.0)
-        if rps > 0.0:
-            n_star = rps / rps_rated
-            eta -= ETA_VOL_B * max(0.0, 1.0 / n_star - 1.0)
+        if rps is not None and rps > 0.0:
+            u = max(0.0, rps_rated / rps - 1.0)
+            eta -= (ETA_VOL_B + ETA_VOL_C * (pressure_ratio - 1.0)) * u
         return max(ETA_VOL_FLOOR, eta)
 
     return eta_vol
 
 
 # ---------------------------------------------------------------------------
-# Electrical-to-isentropic product, and its split
+# Factors shared by the product and its split
 # ---------------------------------------------------------------------------
 def speed_factor_em(n_star: float) -> float:
-    """Speed factor of the electro-mechanical efficiency, 1 at rated speed.
+    """Drive + motor speed factor ``s(n*) = n*(1+n0)/(n*+n0)``, 1 at rated speed.
 
-    ``s(n*) = n* (1 + n0) / (n* + n0) * (1 - d max(0, n* - 1)^2)``.
-
-    The first factor is the saturating shape of a drive whose fixed switching
-    and magnetising losses weigh more as the delivered power falls -- the
-    form Ossorio & Navarro-Peris fit to 185 inverter measurements, here with
-    ``n0`` fitted on the whole compressor set.  The second is a one-sided
-    roll-off above rated speed; ``d`` (:data:`ETA_EM_D`) is zero in the
-    shipped version because the machines that would identify it do not show
-    it within themselves (see the module docstring), and when fitted it is
-    held at its ``n* = N_STAR_EM_MAX`` value beyond the data.
+    The saturating shape of a drive whose fixed switching, magnetising and
+    friction losses weigh more as the delivered power falls -- the form
+    Ossorio & Navarro-Peris (2023) fit to 185 inverter measurements.  ``n0``
+    is fitted on the total electro-mechanical efficiency measured by Cuevas &
+    Lebrun (2009) and is at least the drive-only value of the three Ossorio
+    inverters.
     """
-    n = max(n_star, 1e-6)
-    over = max(0.0, min(n, N_STAR_EM_MAX) - 1.0)
-    return n * (1.0 + ETA_EM_N0) / (n + ETA_EM_N0) * (1.0 - ETA_EM_D * over * over)
+    n = min(max(n_star, 1e-6), N_STAR_MAX)
+    return n * (1.0 + ETA_EM_N0) / (n + ETA_EM_N0)
+
+
+def load_factor_em(pressure_ratio: float) -> float:
+    """Motor-load factor ``m(PR) = (PR-1)/(PR-1+p0) * (PR_ref-1+p0)/(PR_ref-1)``, 1 at PR 3.
+
+    Motor efficiency falls at light load; at a given speed the torque grows
+    with lift, so the factor rises with pressure ratio and saturates.  Zero
+    ``p0`` switches it off.
+    """
+    if ETA_EM_P0 <= 0.0:
+        return 1.0
+    x = max(pressure_ratio - 1.0, 0.05)
+    return x / (x + ETA_EM_P0) * (PR_REF_EM - 1.0 + ETA_EM_P0) / (PR_REF_EM - 1.0)
+
+
+def leakage_factor(pressure_ratio: float, n_star: float) -> float:
+    """Leakage interaction ``x = 1 - c (PR-1) u_L`` on the isentropic efficiency.
+
+    The gas leaking back across the flanks and tips at low speed has already
+    been compressed once, so the work spent on it is lost; the leaked fraction
+    grows with the pressure difference and with ``1/n*``.  One-sided
+    (``u_L = max(0, 1/n*-1)``) unless the archive says two-sided.
+    """
+    n = min(max(n_star, 1e-6), N_STAR_MAX)
+    u = 1.0 / n - 1.0
+    if not ETA_LEAK_TWO_SIDED:
+        u = max(0.0, u)
+    return max(0.0, 1.0 - ETA_LEAK_C * (pressure_ratio - 1.0) * u)
+
+
+def flow_factor(n_star: float) -> float:
+    """Flow-loss speed factor ``h(n*)``: ``1 - d (n*^2-1)`` two-sided, ``1 - d max(0, n*-1)^2`` one-sided.
+
+    Pressure losses through suction and discharge ports grow with the square
+    of speed; below rated speed the compression is slightly better, above it
+    worse.  Held at its ``n* = N_STAR_MAX`` value beyond the data.
+    """
+    n = min(max(n_star, 1e-6), N_STAR_MAX)
+    if ETA_FLOW_TWO_SIDED:
+        return max(0.0, 1.0 - ETA_FLOW_D * (n * n - 1.0))
+    over = max(0.0, n - 1.0)
+    return max(0.0, 1.0 - ETA_FLOW_D * over * over)
+
+
+def _g(pressure_ratio: float) -> float:
+    return ETA_OI_A - ETA_OI_B * pressure_ratio - ETA_OI_C / max(pressure_ratio, 1.0)
 
 
 def eta_oi_product(pressure_ratio: float, n_star: float) -> float:
     """Electrical-to-isentropic efficiency ``eta_isen * eta_em`` at ``(PR, n*)``.
 
     ``g(PR) = A - B PR - C/PR`` peaks near the built-in volume ratio of a
-    scroll (``PR = sqrt(C/B)``, about 2.9 here) and falls on both sides:
-    under-compression below it, over-compression and leakage above.
+    scroll (``PR = sqrt(C/B)``) and falls on both sides: under-compression
+    below it, over-compression and leakage above.  Multiplied by the drive
+    factor, the leakage interaction and the flow-loss factor.
     """
-    g = ETA_OI_A - ETA_OI_B * pressure_ratio - ETA_OI_C / max(pressure_ratio, 1.0)
-    return max(ETA_ISEN_FLOOR * ETA_EM_REF, g) * speed_factor_em(n_star)
+    g = max(ETA_ISEN_FLOOR * ETA_EM_REF, _g(pressure_ratio))
+    s = speed_factor_em(n_star) if ETA_OI_HAS_DRIVE else 1.0
+    return g * s * leakage_factor(pressure_ratio, n_star) * flow_factor(n_star)
 
 
-def eta_isen_default(pressure_ratio: float) -> float:
-    """Isentropic efficiency at a given pressure ratio; no speed term.
+# ---------------------------------------------------------------------------
+# The split: isentropic and electro-mechanical efficiency
+# ---------------------------------------------------------------------------
+def make_eta_isen(rps_rated: float) -> Callable[[float, float | None], float]:
+    """Isentropic efficiency correlation for a machine rated at ``rps_rated``.
 
-    ``eta_isen = g(PR) / ETA_EM_REF`` -- the fitted product divided by the
-    measured electro-mechanical level at rated speed, so that
-    ``eta_isen(PR) * eta_em(rps_rated)`` reproduces the fitted product.
-    Below :data:`ETA_ISEN_FLOOR` the correlation is extrapolating (the data
-    end near ``PR = 8``) and is held.
+    Returns ``eta(pressure_ratio, rps=None)`` with
+
+    ``eta_isen = eta_oi(PR, n*) / eta_em(PR, n*)``
+
+    -- the fitted product with the drive and motor factors divided out, so that
+    ``eta_isen * eta_em`` reproduces the product at every ``(PR, n*)``.  When the
+    fitted product carries no drive factor (:data:`ETA_OI_HAS_DRIVE` false) this
+    gives the compression a small low-speed bonus, ``1 / s(n*)``, where the
+    drive loses: the flow-loss reading of the within-machine data.  With
+    ``rps`` omitted the rated speed is assumed.  Below :data:`ETA_ISEN_FLOOR`
+    the correlation is extrapolating and is held.
     """
-    g = ETA_OI_A - ETA_OI_B * pressure_ratio - ETA_OI_C / max(pressure_ratio, 1.0)
-    return max(ETA_ISEN_FLOOR, g / ETA_EM_REF)
+
+    def eta_isen(pressure_ratio: float, rps: float | None = None) -> float:
+        n = _n_star(rps, rps_rated)
+        g = _g(pressure_ratio) * leakage_factor(pressure_ratio, n) * flow_factor(n)
+        if ETA_OI_HAS_DRIVE:
+            g *= speed_factor_em(n)
+        em = ETA_EM_REF * speed_factor_em(n) * load_factor_em(pressure_ratio)
+        return max(ETA_ISEN_FLOOR, g / em)
+
+    return eta_isen
 
 
 def make_eta_em(rps_rated: float) -> Callable[[float, float], float]:
     """Electro-mechanical efficiency correlation for a machine rated at ``rps_rated``.
 
-    Returns ``eta(pressure_ratio, rps) = ETA_EM_REF * s(rps / rps_rated)``.
-    The pressure ratio is accepted for signature compatibility with the other
-    correlations and not used: the fitted product is separable, and the lift
-    dependence lives in :func:`eta_isen_default`.
+    Returns ``eta(pressure_ratio, rps) = ETA_EM_REF s(rps / rps_rated) m(PR)``.
     """
 
     def eta_em(pressure_ratio: float, rps: float) -> float:
-        del pressure_ratio
-        return ETA_EM_REF * speed_factor_em(rps / rps_rated)
+        return ETA_EM_REF * speed_factor_em(_n_star(rps, rps_rated)) * load_factor_em(pressure_ratio)
 
     return eta_em
 
@@ -268,4 +368,5 @@ def make_eta_em(rps_rated: float) -> Callable[[float, float], float]:
 #: Correlations for a machine rated at :data:`RPS_REF`, for callers that have
 #: no rated speed to hand.
 eta_vol_default = make_eta_vol(RPS_REF)
+eta_isen_default = make_eta_isen(RPS_REF)
 eta_em_default = make_eta_em(RPS_REF)

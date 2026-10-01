@@ -30,7 +30,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
-from .compressor_efficiency import eta_isen_default, make_eta_em, make_eta_vol
+from .compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
@@ -234,7 +234,9 @@ class AirSourceHeatPump:
         # whole of both losses. They now default to the shared correlations in
         # `compressor_efficiency`, the same ones the boiler models use.
         self.rps_rated: float = rps_rated
-        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen if eta_cmp_isen is not None else eta_isen_default
+        self.eta_cmp_isen: float | Callable | None = (
+            eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
+        )
         self.eta_cmp_vol: float | Callable | None = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
@@ -745,8 +747,20 @@ class AirSourceHeatPump:
                 # the refrigerant-state keys T/P/h/s_ref_*_sat and in refrigerant.py).
                 "Q_ref_iu [W]": Q_ref_iu,
                 "Q_ref_ou [W]": Q_ref_ou,
+                "Q_ref_iu_request [W]": abs(Q_r_iu),
                 "E_cmp [W]": E_cmp,
                 "E_tot [W]": E_tot,
+                # Coil closure diagnostics. Both coils are solved for the heat
+                # the compressor actually delivers, so the part-load ratios
+                # below separate only where the speed envelope binds.
+                "UA_ou [W/K]": ou_hx.get("UA", np.nan),
+                "NTU_ou [-]": (ou_hx.get("UA", np.nan) / (c_a * rho_a * dV_ou_a) if dV_ou_a > 0 else np.nan),
+                "epsilon_ou [-]": ou_hx.get("epsilon", np.nan),
+                "UA_iu [W/K]": iu_hx.get("UA", np.nan),
+                "NTU_iu [-]": (iu_hx.get("UA", np.nan) / (c_a * rho_a * dV_iu_a) if dV_iu_a > 0 else np.nan),
+                "epsilon_iu [-]": iu_hx.get("epsilon", np.nan),
+                "PLR_request [-]": (abs(Q_r_iu) / self.hp_capacity if self.hp_capacity > 0 else np.nan),
+                "PLR_delivered [-]": (Q_ref_iu / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 # COP metrics (indoor-unit duty basis; == |Q_r_iu| at convergence)
                 "cop_ref [-]": (Q_ref_iu / E_cmp if E_cmp > 0 else np.nan),
                 "cop_sys [-]": (Q_ref_iu / E_tot if E_tot > 0 else np.nan),

@@ -293,16 +293,27 @@ def test_en14825_trajectory_cop_rises_monotonically() -> None:
         assert hi_cop > lo_cop, f"COP fell from point {lo_label} ({lo_cop:.2f}) to {hi_label} ({hi_cop:.2f})"
 
 
+#: Keymark declared values, extracted by the validation harness and kept out of
+#: the repository (see `.gitignore`). The band below is read from them rather
+#: than pinned, so the test states the certified population instead of a number
+#: that would drift from it silently.
+KEYMARK_DECLARED = REPO / "validation" / "data" / "keymark_en14825_declared.csv"
+
+
 def _certified_gradient_band() -> tuple[float, float]:
     """p10-p90 of COP(D)/COP(A) over the Keymark low-temperature records, read from the data file."""
     import pandas as pd
 
-    df = pd.read_csv(REPO / "validation" / "data" / "keymark_en14825_declared.csv")
+    df = pd.read_csv(KEYMARK_DECLARED)
     low = df[df.application == "low"].dropna(subset=["cop_A", "cop_D"])
     ratio = low.cop_D / low.cop_A
     return float(ratio.quantile(0.10)), float(ratio.quantile(0.90))
 
 
+@pytest.mark.skipif(
+    not KEYMARK_DECLARED.exists(),
+    reason="Keymark declared values have not been extracted in this checkout",
+)
 def test_en14825_gradient_matches_the_certified_population() -> None:
     """A→D gain must land inside what certified machines declare (p10-p90, read from the data)."""
     points = [("A", -7.0, 34.0, 0.88), ("D", 12.0, 24.0, 0.15)]

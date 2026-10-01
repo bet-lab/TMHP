@@ -5,5 +5,16 @@
   "gshp_module_sha256": "ef1ec436500be7cb5656af930d13fb9f6f1919cf66958bf15deb1b9c4dc71649",
   "study_script_sha256": "4b163ae480115cd0d230b4cd346222672490f055af1e3556754dd4e823cd1364",
   "objective": "E_tot [W] = E_cmp + E_pmp + E_iu_fan",
-  "sensitivity_script_sha256": "8382912e86dddb2784b341951c3c010f2e3615bdfea60072587a15544f357240"
+  "scalar_efficiencies": {
+    "eta_cmp_isen": 0.7,
+    "eta_cmp_vol": 0.9,
+    "eta_cmp": 0.8
+  },
+  "reference": {
+    "m_dot_ref_rated_kg_s": 0.042827520975365484,
+    "ground_UA_rated_W_K": 800,
+    "load_UA_rated_W_K": 1600
+  },
+  "comparison_script_sha256": "419cb47d633e1aa6a487c274b19969af264987ccad033996b9f95fe55d8ce1a4",
+  "interpretation": "Matched UA800/1600 case isolates efficiency change; historical UA1440/640 study is archived separately."
 }

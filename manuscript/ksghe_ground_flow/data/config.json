@@ -1,10 +1,9 @@
 {
-  "description": "Fixed 24 L/min water reference and constant setpoint; explicit 9.6\u201336 L/min variable-flow control interval.",
+  "description": "Fixed 24 L/min water reference and constant setpoint; explicit 9.6–36 L/min variable-flow control interval.",
   "model": {
     "ref": "R410A",
     "hp_capacity": 8000,
     "V_cmp_ref": 1.2e-05,
-    "eta_cmp_isen": 0.7,
     "T_a_room": 26,
     "N_1": 1,
     "N_2": 2,
@@ -39,16 +38,15 @@
     "dT_superheat": 5,
     "dT_subcool": 5,
     "t_max_s": 86400,
-    "eta_v": 0.9,
-    "eta_em": 0.8,
-    "ground_hx_ua_per_capacity": 0.18,
-    "UA_iu_rated": 640,
+    "UA_iu_rated": 1600,
     "ground_flow_ref_lpm": 24,
     "ground_flow_constant_lpm": 24,
     "ground_flow_min_lpm": 9.6,
     "ground_flow_max_lpm": 36,
     "indoor_approach_min_K": 1,
-    "indoor_approach_max_K": 25
+    "indoor_approach_max_K": 25,
+    "rps_rated": 60,
+    "UA_ground_rated": 800
   },
   "operating": {
     "T0": 26,
@@ -85,5 +83,7 @@
     1,
     1.2,
     1.5
-  ]
+  ],
+  "compressor_efficiency_model": "baseline-v2026-09-24",
+  "compressor_efficiency_source": "https://app.notion.com/p/3eb6947d125d814d9480db29404ebbd3"
 }

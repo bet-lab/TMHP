@@ -4,7 +4,10 @@
     "fig_1_part_load": [],
     "fig_total_power_objective": [],
     "fig_hx_feasibility": [],
-    "fig_flow_max_sensitivity": []
+    "fig_flow_max_sensitivity": [],
+    "fig_compressor_speed": [],
+    "fig_compressor_efficiencies": [],
+    "fig_compressor_pressure_ratio": []
   },
   "paper_figure": {
     "rows": 1,
@@ -12,24 +15,12 @@
     "width": "16.8cm",
     "height": "4.6cm"
   },
-  "axis_format": {
-    "physical_units": "square brackets",
-    "fan_y_label": "Fan power [W]",
-    "compressor_y_label": "Comp. power [kW]",
-    "PLR_ticks": [
-      0.4,
-      0.6,
-      0.8,
-      1.0
-    ],
-    "panel_labels": "letters without parentheses"
-  },
   "visual_inspection": {
     "fig_1_part_load": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
-      "png_sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a",
-      "pdf_sha256": "46109dc46f3fc0cdf78ace3c6e5f41171040520af0483039173dde80bd13af6e",
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "04f6f90f09be001d88cf7c3320632cc8f8498f7c15e469b1637323de75c23e92",
+      "pdf_sha256": "e8124df88ba50532d2d24571de003f35830a99f7a860ed6b081ef0daa7cd9cea",
       "size_px": [
         3968,
         1086
@@ -43,9 +34,9 @@
     },
     "fig_total_power_objective": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
-      "png_sha256": "af7c383689aa8eaa87776145e81e7242ee8e9e092e2d339d7c0d51e6499ab03d",
-      "pdf_sha256": "135c2c86fdad52cd3c43d125ae7d4b32ad74738ac05500cea79a958f3549d87a",
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "d1ec0720f1597dabdceeec55eea81add2d6444f805eb1eac61ca426fb6361429",
+      "pdf_sha256": "9b5b336db42c2a36a07d838ba17cda4161b5d7f6365ed91863b066f9ed551791",
       "size_px": [
         3070,
         1771
@@ -59,9 +50,9 @@
     },
     "fig_hx_feasibility": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
       "png_sha256": "23a262939f41f5a985a3d8882e9629d143e8b320b07ecc8e13e4ff9dd9264499",
-      "pdf_sha256": "07621a25ad5aac7a5e52ad1b29d38621c0bf37762756b23aa6ae1fe5cb6b3e50",
+      "pdf_sha256": "8f9a178cab47f2424cd23113e5ec8d181771fb625b0f76555597c28d7301b890",
       "size_px": [
         3070,
         1771
@@ -75,9 +66,9 @@
     },
     "fig_flow_max_sensitivity": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
-      "png_sha256": "addde657cabc5912dd383c85a96bf3cd664ab4ce80991486321a3a166df2716d",
-      "pdf_sha256": "900f7c465e061d9e1cfec8d73fc68172e071c1b73b061f8eb30f98bacb2fcfda",
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "1f506015d8ec27642fa8fc6262c69851a535fc917bb7fc2ad66c43b7196c032e",
+      "pdf_sha256": "c1f06b0cbfa4c6d539092de5483eccce4cd73e2c1a98df489310cdf06596ea00",
       "size_px": [
         3968,
         1771
@@ -88,6 +79,55 @@
         3923,
         1710
       ]
+    },
+    "fig_compressor_speed": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "dbee9cb8b65e04eb21782f1f354b7996b70e46248aa518790300b6a6b5df3db9",
+      "pdf_sha256": "9c1cf3b22a3d4983de0f1ff16523c1f9c247999d8695e15ac258eafac2b6bf2f",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        46,
+        33,
+        3026,
+        1710
+      ]
+    },
+    "fig_compressor_efficiencies": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "02955341179d20ceca541f31727e40733e0ba407c6c6b8463312949fc0a536c8",
+      "pdf_sha256": "279b32868b16e8f9534530dbf935a3cfb2ebdd682684828a6c2ad0d1bab5d0ac",
+      "size_px": [
+        3968,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        95,
+        33,
+        3924,
+        1710
+      ]
+    },
+    "fig_compressor_pressure_ratio": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "png_sha256": "776d8108c209371c08fef05a5191fce52ce6e3354f1233335405974c2bb8a34f",
+      "pdf_sha256": "0e083627f47f8fd6177d86aa62db8e73395c4ed6eb3290b0cbfd33a764411c10",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        47,
+        33,
+        3026,
+        1710
+      ]
     }
-  }
+  },
+  "paper_figure_pdf_raster_inspected": true
 }

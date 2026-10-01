@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-09-17T11:52:50+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T14:12:15+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -531,42 +531,47 @@ the difference is unmet load, not a solver failure.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity">
-<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.002</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">max_capacity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_room</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'heating'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rel_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.005</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump.html#AirSourceHeatPump.max_capacity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump.AirSourceHeatPump.max_capacity" title="Link to this definition">¶</a></dt>
 <dd><p>Largest duty the unit can actually deliver at this condition.</p>
-<p>The nameplate capacity is a label attached to one rating point; it is
-not a ceiling. A real unit delivers more than nameplate when the outdoor
-air is mild and less when it is severe, because the ceiling is set by
+<p>Nameplate capacity is a label attached to one rating point, not a
+ceiling. A real unit delivers more than nameplate when the outdoor air
+is mild and less when it is severe, because the limit is set by
 whichever of the compressor speed range, the pressure-ratio envelope and
 the air-side heat exchangers binds first. Clipping a load schedule at
-nameplate therefore errs in both directions at once. This method returns
-the ceiling the model itself implies, so a load schedule can be clipped
-against the machine rather than against its label, and the unmet part
-reported as a result.</p>
-<p>The search grows the requested duty from a feasible starting value,
-warm-starting each step from the previous solution, until the request
-can no longer be met, then bisects the last interval. The warm start is
-what makes this reliable: near the ceiling the feasible approach
-temperatures form a narrow band that a fixed pre-scan can miss entirely.</p>
+nameplate therefore errs in both directions at once. This returns the
+ceiling the model itself implies, so a schedule can be clipped against
+the machine rather than against its label and the shortfall reported as
+a result.</p>
+<p>A ladder of trial duties brackets the ceiling and a bisection closes on
+it, each duty tested against the whole approach-temperature grid so the
+answer does not depend on a search path.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The answer is only as trustworthy as the compressor correlations at
+the speeds it reaches. Those correlations are fits, and a validation
+carried out at part load does not cover the top of the speed range.
+Check that the returned <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> is credible before using the
+ceiling, and consider lowering <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> to the highest speed the
+validation actually reached.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>T0</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Outdoor air temperature [°C].</p></li>
 <li><p><strong>T_a_room</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Room air temperature [°C]. Uses the constructor default if None.</p></li>
 <li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – <code class="docutils literal notranslate"><span class="pre">&quot;heating&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cooling&quot;</span></code>.</p></li>
-<li><p><strong>q_start</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Initial duty probe [W], positive. Defaults to a quarter of the
-nameplate capacity, which is inside the modulation range of any
-sensibly-sized machine.</p></li>
-<li><p><strong>rel_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Bisection stops once the bracket is this narrow, relative to the
+<li><p><strong>grid_points</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Resolution of the approach-temperature sweep on each axis.</p></li>
+<li><p><strong>rel_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Bisection stops once the bracket is this narrow relative to the
 ceiling.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">Q_max</span> <span class="pre">[W]</span></code> (0.0 when the unit cannot run at all here), the
-approach temperatures at that point, the electrical input and
-system COP there, and <code class="docutils literal notranslate"><span class="pre">binding</span></code> naming what stopped it:
-<code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code> when the speed range ran out, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> when the
-pressure-ratio envelope or the air-side search rejected the state,
-and <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> when the unit was not limited within the probe range.</p>
+approach temperatures there, the electrical input and system COP at
+that point, and <code class="docutils literal notranslate"><span class="pre">binding</span></code> naming what stopped it: <code class="docutils literal notranslate"><span class="pre">&quot;compressor&quot;</span></code>
+when the speed range ran out, <code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code> when the pressure-ratio
+envelope or the air side did, and <code class="docutils literal notranslate"><span class="pre">&quot;unbounded&quot;</span></code> when the ladder
+never ran out, which makes the figure a lower bound.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
@@ -669,7 +674,7 @@ with adaptations for indoor-unit air exchange.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Sep 17, 2026
+  Last updated Oct 01, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

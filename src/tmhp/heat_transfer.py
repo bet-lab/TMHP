@@ -6,6 +6,8 @@ import math
 
 import numpy as np
 
+from .pump import darcy_friction_factor as darcy_friction_factor
+
 __all__ = [
     "TRIDIAG_MATRIX_ALGORITHM",
     "calc_LMTD_counter_flow",
@@ -15,36 +17,6 @@ __all__ = [
     "calc_simple_tank_UA",
     "darcy_friction_factor",
 ]
-
-
-def darcy_friction_factor(Re: float, e: float, d: float, is_active: bool = True) -> float:
-    """Calculate the Darcy friction factor.
-
-    Uses Haaland equation.
-
-    Parameters
-    ----------
-    Re : float
-        Reynolds number.
-    e : float
-        Surface roughness [m].
-    d : float
-        Diameter [m].
-    is_active : bool, optional
-        If False, returns np.nan.
-
-    Returns
-    -------
-    float
-        Friction factor.
-    """
-    if not is_active:
-        return np.nan
-
-    if Re < 2300:
-        return 64.0 / max(Re, 1e-10)
-
-    return 1.0 / (-1.8 * math.log10((e / d / 3.7) ** 1.11 + 6.9 / Re)) ** 2
 
 
 def calc_h_vertical_plate(

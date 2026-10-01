@@ -1,6 +1,9 @@
 """Borehole wall-to-fluid resistance; ground response lives in g_function."""
 
+from collections.abc import Callable
+
 import numpy as np
+from scipy.interpolate import PchipInterpolator
 
 try:
     import pygfunction as gt
@@ -8,6 +11,47 @@ try:
     HAS_PYGFUNCTION = True
 except ImportError:
     HAS_PYGFUNCTION = False
+
+
+def precompute_borehole_resistance(
+    m_flow_rated: float,
+    min_ratio: float,
+    max_ratio: float,
+    H: float,
+    cp_f: float,
+    boundary_condition: str = "uniform_temperature",
+    **geometry: float,
+) -> Callable[[float], float]:
+    """Precompute Rb* [m K/W] on a mass-flow grid, including the rated point.
+
+    Uses the legacy local-resistance/axial model at initialization only. PCHIP
+    interpolation preserves its shape; out-of-range flow is an input error,
+    never silently extrapolated. The flow is per borehole, not field total.
+    """
+    if not all(np.isfinite(v) and v > 0 for v in (m_flow_rated, min_ratio, max_ratio, H, cp_f)):
+        raise ValueError("Borehole flow, bounds, depth and heat capacity must be positive and finite")
+    if min_ratio >= max_ratio:
+        raise ValueError("min_ratio must be less than max_ratio")
+    ratios = np.linspace(min_ratio, max_ratio, 101)
+    if min_ratio <= 1 <= max_ratio:
+        ratios = np.unique(np.append(ratios, 1.0))
+    flows = ratios * m_flow_rated
+    resistances = []
+    for flow in flows:
+        local, internal = calc_local_borehole_thermal_resistance(m_flow_pipe=float(flow), cp_f=cp_f, **geometry)
+        resistances.append(
+            calc_effective_borehole_thermal_resistance(local, internal, H, float(flow), cp_f, boundary_condition)
+        )
+    if not np.all(np.isfinite(resistances)) or np.any(np.asarray(resistances) <= 0):
+        raise ValueError("Borehole resistance grid contains invalid values")
+    interp = PchipInterpolator(flows, resistances, extrapolate=False)
+
+    def evaluate(m_flow_borehole: float) -> float:
+        if not np.isfinite(m_flow_borehole) or not flows[0] <= m_flow_borehole <= flows[-1]:
+            raise ValueError("Borehole flow is outside the precomputed resistance grid")
+        return float(interp(m_flow_borehole))
+
+    return evaluate
 
 
 def calc_local_borehole_thermal_resistance(

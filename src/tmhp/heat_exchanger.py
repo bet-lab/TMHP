@@ -1,12 +1,82 @@
 """Heat-exchanger component models, separate from fans and correlations."""
 
 import math
+from collections.abc import Callable
 
 import numpy as np
 from scipy.optimize import root_scalar
 
 from . import calc_util as cu
 from .constants import c_a, rho_a
+
+
+def calc_UA_two_stream_scaled(
+    UA_rated: float,
+    m_dot_fluid: float,
+    m_dot_fluid_rated: float,
+    m_dot_ref: float,
+    m_dot_ref_rated: float,
+    fluid_fraction: float = 0.5,
+    refrigerant_fraction: float = 0.3,
+    constant_fraction: float = 0.2,
+    fluid_exponent: float = 0.8,
+    refrigerant_exponent: float = 0.8,
+) -> float:
+    """Scale rated UA through a series resistance network [W/K].
+
+    Fractions and exponents are modelling assumptions, not fitted universal
+    refrigerant correlations. All mass flows are positive; handle off states
+    separately. Rated flows reproduce UA_rated exactly.
+    """
+    positive = (UA_rated, m_dot_fluid, m_dot_fluid_rated, m_dot_ref, m_dot_ref_rated)
+    fractions = (fluid_fraction, refrigerant_fraction, constant_fraction)
+    exponents = (fluid_exponent, refrigerant_exponent)
+    if not all(math.isfinite(v) and v > 0 for v in positive):
+        raise ValueError("UA and mass flows must be finite and positive")
+    if not all(math.isfinite(v) and v >= 0 for v in (*fractions, *exponents)):
+        raise ValueError("Resistance fractions and exponents must be finite and nonnegative")
+    if not math.isclose(sum(fractions), 1.0, rel_tol=0, abs_tol=1e-10):
+        raise ValueError("Resistance fractions must sum to 1")
+    resistance_ratio = (
+        fluid_fraction * (m_dot_fluid / m_dot_fluid_rated) ** (-fluid_exponent)
+        + refrigerant_fraction * (m_dot_ref / m_dot_ref_rated) ** (-refrigerant_exponent)
+        + constant_fraction
+    )
+    return float(UA_rated / resistance_ratio)
+
+
+def solve_secondary_flow_for_target_heat(
+    Q_target: float,
+    UA: float | Callable[[float], float],
+    cp: float,
+    T_fluid_in: float,
+    T_ref_sat: float,
+    m_dot_min: float,
+    m_dot_max: float,
+) -> dict:
+    """Bracket a secondary-fluid mass flow [kg/s] for a positive duty [W].
+
+    A callable UA receives the candidate mass flow. Feasibility requires a
+    continuous capacity curve with a root inside the supplied flow interval.
+    """
+    if (
+        not all(math.isfinite(v) for v in (Q_target, m_dot_min, m_dot_max))
+        or Q_target < 0
+        or not 0 < m_dot_min < m_dot_max
+    ):
+        raise ValueError("Invalid target heat or secondary-flow bounds")
+
+    def residual(m_dot: float) -> float:
+        conductance = UA(m_dot) if callable(UA) else UA
+        return calc_phase_change_hx_capacity(conductance, m_dot, cp, T_fluid_in, T_ref_sat) - Q_target
+
+    if Q_target == 0:
+        return {"m_dot": 0.0, "Q_HX": 0.0, "converged": True}
+    low, high = residual(m_dot_min), residual(m_dot_max)
+    if low * high > 0:
+        return {"m_dot": math.nan, "Q_HX": math.nan, "converged": False}
+    root = root_scalar(residual, bracket=(m_dot_min, m_dot_max), method="brentq", xtol=1e-12)
+    return {"m_dot": root.root, "Q_HX": residual(root.root) + Q_target, "converged": bool(root.converged)}
 
 
 def calc_phase_change_hx_effectiveness(UA: float, m_dot: float, cp: float) -> float:

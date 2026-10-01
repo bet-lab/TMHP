@@ -378,10 +378,6 @@ class GroundSourceHeatPump:
         if Q_r_iu < 0:
             # Heating: BHE = evaporator (absorb from ground), IU = condenser (heat room)
             mode = "heating"
-            self.T_a_room = 27
-            self.dT_r_ghx = 3  # GHX refrigerant - GHX outlet water [K]
-            self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
-            self.T_r_iu = self.T_a_room + self.dT_r_iu  # Indoor unit refrigerant [°C]
             T_source_K = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             T_evap_sat_K = T_source_K - dT_ref_evap
             T_cond_sat_K = T_a_room_K + dT_ref_cond
@@ -389,14 +385,10 @@ class GroundSourceHeatPump:
         elif Q_r_iu > 0:
             # Cooling: IU = evaporator (cool room), BHE = condenser (reject to ground)
             mode = "cooling"
-            self.T_a_room = 21  # Room air temperature [°C]
-            self.dT_r_ghx = -3  # GHX refrigerant - GHX outlet water [K]
-            self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
             T_source_K = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             T_evap_sat_K = T_a_room_K - dT_ref_evap
             T_cond_sat_K = T_source_K + dT_ref_cond
             Q_ref_iu = Q_r_iu
-            self.T_r_iu = self.T_a_room + self.dT_r_iu  # Indoor unit refrigerant [°C]
         else:
             mode = "off"
             T_evap_sat_K = self.Ts_K
@@ -451,6 +443,15 @@ class GroundSourceHeatPump:
                     dT_subcool=actual_dT_subcool,
                     is_active=is_active,
                 )
+
+        if is_active:
+            # Diagnostic temperatures follow the same cycle and caller-supplied
+            # room temperature as the indoor HX, including pressure-ratio clamps.
+            indoor_sat_K = T_cond_sat_K if mode == "heating" else T_evap_sat_K
+            ground_sat_K = T_evap_sat_K if mode == "heating" else T_cond_sat_K
+            self.T_r_iu = cu.K2C(indoor_sat_K)
+            self.dT_r_iu = self.T_r_iu - T_a_room
+            self.dT_r_ghx = ground_sat_K - T_bhe_f_out_K
 
         h_cmp_out = cycle_states["h_ref_cmp_out [J/kg]"]
         h_cmp_in = cycle_states["h_ref_cmp_in [J/kg]"]

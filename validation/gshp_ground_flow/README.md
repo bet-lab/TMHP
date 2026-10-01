@@ -1,5 +1,11 @@
 # Ground-loop flow study (v7, issue #49)
 
+The recorded heating results are the historical v7 case, whose outer objective
+was compressor + pump power. Current TMHP flow control minimizes total power,
+including the indoor fan. The revised cooling study and its new results live in
+`enex-engine/01_active/gshp_ground_flow/` (bet-lab/enex-engine#38).
+Use the recorded source commit to reproduce the historical results below.
+
 This is an **illustrative numerical study**, not a fit to a manufacturer's
 catalogue or experimental/field validation. It checks the new coupled physics
 and demonstrates why compressor COP alone does not describe system performance.

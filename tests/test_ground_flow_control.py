@@ -76,7 +76,13 @@ def test_flow_optimizer_matches_independent_analytic_optimum_and_rejects_invalid
     def evaluate(f):
         if f < 0.4:
             return failed_ground_point("ground_hx_capacity_insufficient")
-        return {"converged": True, "hx_feasible": True, "ground_flow_ratio": f, "E_cmp_plus_pmp [W]": 1 / f + f * f}
+        return {
+            "converged": True,
+            "hx_feasible": True,
+            "ground_flow_ratio": f,
+            "E_tot [W]": 1 / f + f * f,
+            "E_cmp_plus_pmp [W]": 1 / f + f * f,
+        }
 
     settings = dict(control="optimal_power", min_ratio=0.2, max_ratio=1.2)
     result = select_ground_flow(evaluate, settings)
@@ -85,6 +91,57 @@ def test_flow_optimizer_matches_independent_analytic_optimum_and_rejects_invalid
     assert result["E_cmp_plus_pmp [W]"] <= evaluate(1)["E_cmp_plus_pmp [W]"]
     invalid = select_ground_flow(lambda _: failed_ground_point("ground_hx_capacity_insufficient"), settings)
     assert not invalid["converged"] and math.isnan(invalid["ground_flow_ratio"])
+
+
+def test_fan_power_changes_both_search_and_final_flow_selection():
+    # Compressor+pump has its minimum at 0.8; adding the fan moves it to 0.6.
+    def evaluate(f):
+        pair = 10 + (f - 0.8) ** 2
+        fan = 1 + (f - 0.4) ** 2
+        return {
+            "converged": True,
+            "hx_feasible": True,
+            "ground_flow_ratio": f,
+            "E_cmp_plus_pmp [W]": pair,
+            "E_iu_fan [W]": fan,
+            "E_tot [W]": pair + fan,
+        }
+
+    row = select_ground_flow(evaluate, dict(control="optimal_power", min_ratio=0.4, max_ratio=1.0))
+    assert row["ground_flow_ratio"] == pytest.approx(0.6, abs=1e-3)
+    assert row["E_tot [W]"] < evaluate(0.8)["E_tot [W]"]
+    assert row["E_cmp_plus_pmp [W]"] > evaluate(0.8)["E_cmp_plus_pmp [W]"]
+
+
+@pytest.mark.parametrize(
+    "cls,expected",
+    [
+        (GroundSourceHeatPump, (261.6148755000496, 91.50563034769912, 387.1576112468979)),
+        (GroundSourceHeatPumpBoiler, (655.3080480718354, 91.50563034769912, 746.8136784195345)),
+    ],
+)
+def test_constant_flow_regression_before_total_power_policy(cls, expected):
+    # Recorded from commit 4197de8 with this fixture's unchanged component physics.
+    row = _run(_model(cls))
+    assert row["converged"]
+    for key, value in zip(("E_cmp [W]", "E_pmp [W]", "E_tot [W]"), expected, strict=True):
+        assert row[key] == pytest.approx(value, rel=1e-8)
+    assert row["cop_sys [-]"] == pytest.approx(4000 / row["E_tot [W]"])
+
+
+@pytest.mark.parametrize("load,room,approach", [(4000, 26, -10), (-4000, 20, 10)])
+def test_room_temperature_is_shared_by_cycle_and_output_without_overwriting_default(load, room, approach):
+    model = _model(GroundSourceHeatPump, T_a_room=room)
+    row = model._calc_state(10, 10, load, 7, room)
+    assert row is not None
+    assert model.T_a_room == row["T_a_room [°C]"] == room
+    key = "T_ref_evap_sat [°C]" if load > 0 else "T_ref_cond_sat_l [°C]"
+    assert row[key] == pytest.approx(room + approach)
+    assert model.T_r_iu == pytest.approx(row[key])
+    override = model._calc_state(10, 10, load, 7, room + 1)
+    assert override is not None and override["T_a_room [°C]"] == room + 1
+    assert override[key] == pytest.approx(room + 1 + approach)
+    assert model.T_a_room == room
 
 
 def test_real_boiler_optimum_is_no_worse_than_same_physics_constant_flow():

@@ -1,76 +1,69 @@
-# KSGHE one-page paper (issue #50)
+# KSGHE compact cooling paper — TMHP #60
 
-Final native document: `GSHP_variable_flow.hwpx`; companion PDF and preview PNG
-use the same basename. `manuscript.json` is the editable text source. The paper
-replaces the previous boiler/exergy study with the v7 variable-flow GSHP study;
-authors, affiliations, contact information, conference heading, page dimensions,
-margins and text font sizes are retained. The grant acknowledgement contains
-only RS-2025-00512551, as requested by the plan.
+`manuscript.json` is the editable text source; `GSHP_variable_flow.hwpx`, `.pdf`
+and `.png` are the final native document, verified one-page PDF and preview.
+This revision follows `../../docs/plans/gshp-compact-cooling-revision.md` and uses
+the supplied genuine ZIP/XML `template_261001.hwpx`. Authors, all affiliations,
+conference heading, contact footer, page margins and text font sizes are retained.
+English title spacing and figure-table layout are adjusted to fit the full title,
+affiliations and a single four-panel figure. Acknowledgement is RS-2025-00512551 only.
+The previous `template_converted.hwpx` remains a historical v7 conversion asset;
+it is not the input to this revision.
 
-## Rebuild
+## Build and verify
 
-From the repository root:
+From this directory, with cached dependencies or normal network access:
 
 ```bash
-python3 manuscript/ksghe_ground_flow/build_hwpx.py \
-  manuscript/ksghe_ground_flow/template_converted.hwpx \
-  manuscript/ksghe_ground_flow/GSHP_variable_flow.hwpx
-uv run --no-project --with 'pyhwpxlib[all]==0.18.3' --with cairosvg==2.9.1 \
-  python manuscript/ksghe_ground_flow/render_pdf.py \
-  manuscript/ksghe_ground_flow/GSHP_variable_flow.hwpx \
-  manuscript/ksghe_ground_flow/GSHP_variable_flow
-python3 manuscript/ksghe_ground_flow/check_paper.py \
-  manuscript/ksghe_ground_flow/GSHP_variable_flow.hwpx \
-  manuscript/ksghe_ground_flow/GSHP_variable_flow.pdf
+python3 build_hwpx.py template_261001.hwpx GSHP_variable_flow.hwpx
+UV_CACHE_DIR=/tmp/uv-cache uv run --no-project --with 'pyhwpxlib[all]==0.18.3' \
+  --with cairosvg python render_pdf.py GSHP_variable_flow.hwpx GSHP_variable_flow
+python3 check_paper.py GSHP_variable_flow.hwpx GSHP_variable_flow.pdf
+UV_CACHE_DIR=/tmp/uv-cache uv run --no-project --with 'pyhwpxlib[all]==0.18.3' \
+  --with cairosvg pyhwpxlib validate GSHP_variable_flow.hwpx --mode both --json
 ```
 
-The renderer requires the system Noto Serif/Sans CJK and Liberation Serif font
-files listed in `render_pdf.py`. Native HWPX retains the original Korean font
-names and Times New Roman. The PDF substitutes available fonts and embeds them.
-**Rendering was checked with Linux pyhwpxlib/rhwp, not native Hancom Office.**
-Pagination in an editor with different fonts can differ; the supplied PDF is
-the verified one-page rendering.
+`render_pdf.py` uses the listed system Noto CJK and Liberation Serif fonts,
+embeds the substituted PDF fonts and refreshes the HWPX cover preview. HWPX
+retains the native font names. Rendering was checked with Linux pyhwpxlib/rhwp;
+Hancom Office was not used. The supplied PDF is the checked one-page rendering.
 
-## Original format and conversion
+## Numerical evidence
 
-The supplied `251021_KSGHE_HB.hwpx` was an HWP5 OLE binary despite its extension.
-It was preserved as `251021_KSGHE_HB.original.hwp` beside the user's original
-path, and converted with `pyhwpxlib.hwp2hwpx.convert` to the tracked
-`template_converted.hwpx`. The edited file at the original path is now genuine
-ZIP/XML HWPX, with a companion `251021_KSGHE_HB.pdf`.
+The active simulation is `enex-engine/01_active/gshp_ground_flow/`, with all old
+heating data frozen in its `archive/heating_v7/`. Paper-local `data/` and `figure/`
+are exact copies of the new cooling outputs, enabling checks independently of
+that separate repository. `validation_notes.md` records assumptions and residuals.
 
-The builder fixes conversion artefacts: both pictures originally referenced
-the same binary item, result paragraphs acquired forced page breaks, and the
-header was nested in a table cell. It also updates stale line positions, sizes
-the title cell to show every affiliation, equalizes figure columns, inserts
-explicit caption line breaks and removes an unused spacer. It does not reduce
-body font size to obtain one page. The original metadata/font table is retained
-except the documented layout fixes and updated title/author metadata.
+Conditions: R410A cooling 8 kW; room 26 °C; fixed ground wall 15 °C; compressor
+isentropic efficiency 0.70; two 100 m boreholes at 6 m spacing; rated total water
+flow 24 L/min; flow bounds 0.4–1.0; pump efficiency 0.60; PLR 0.3–1.0. Actual
+default rated ground/load UA is 800/640 W/K. Refrigerant reference flow is
+0.04352627260631659 kg/s, calculated from the constant-flow full-load baseline,
+not a prescribed surrogate. Common pipe losses are zero; pressure-ratio floor
+is 1.5. This is an uncalibrated steady example, not a measured or catalogue COP.
 
-## Evidence and checks
+Optimization and system COP both include compressor, ground-loop pump and
+indoor-fan power. The 16 selected points are feasible; the independent full scan
+has 172 feasible points out of 184. Flow is 56.8–100.0% of rated; pump savings
+reach 78.5%, with up to 14.1% higher fan power. Total savings are 0–3.46% and
+system COP gains 0–3.58%. PLR 0.7–1.0 selects the upper bound, matching constant
+flow, rather than representing an interior stationary optimum.
 
-All result claims are checked against
-`validation/gshp_ground_flow/results/operating_points.csv`. The final ranges are
-20.0–69.7% of rated flow, 62.8–98.7% lower pump power, and 3.4–47.7% higher system
-COP relative to constant flow. The paper explicitly describes an uncalibrated
-example with zero common pipe loss; these are not measured savings or
-manufacturer-rated COPs. It uses the two `fig_paper_*` outputs from the tracked
-CSV-based plotting script. The first figure normalizes to the constant-flow
-case at the same PLR, not to a different design point.
+The single Fig. 1 is 1×4: pump W, fan W, compressor kW, system COP. All active
+figures use Dartwork-mpl `scientific`. `figure/mcp_review.json` contains actual
+MCP lint and plot-data tool calls; `visual_validation.json` contains runtime
+layout checks. MCP data/code checking is separate from visual PDF inspection.
 
-`qa.json` records numerical cross-checks, two-figure/one-page checks, required
-authors/affiliations/acknowledgement, embedded PDF fonts, and artifact hashes.
-HWPX compatibility and strict structural checks passed with `pyhwpxlib validate`.
-Visual inspection checked complete author/affiliation lines, both figures,
-captions, results, acknowledgement and footer without clipping or overlap.
-No unresolved placeholders or old grant number remain.
+`qa.json` verifies every body and caption string in the PDF, numerical claims,
+total power/COP, required authors/affiliations, one figure/four panels, one page,
+embedded fonts and artifact hashes. `hwpx_validation.json` records both strict
+and compatibility checks. `diff/compact_revision_20261001.{pdf,diff}` provides a
+visual before/after comparison and native-text diff against the supplied source.
+Recreate it with `make_revision_diff.py <before_revision.pdf>`.
 
-The background's abbreviated reference is EnergyPlus, *Engineering Reference*,
-v24.2 (2024), §16.6, available from the
-[official PDF](https://energyplus.net/assets/nrel_custom/pdfs/pdfs_v24.2.0/EngineeringReference.pdf).
-It supports the distinction between equation fitting and component parameter
-models; it does not validate the present TMHP results.
-
-The broader model assumptions and reproducibility record are in
-`validation/gshp_ground_flow/README.md`. CI interpreter-label mismatch is tracked
-separately in issue #57; no unverified four-version compatibility claim is made.
+Issues: [model #59](https://github.com/bet-lab/TMHP/issues/59),
+[study enex-engine #38](https://github.com/bet-lab/enex-engine/issues/38),
+[paper #60](https://github.com/bet-lab/TMHP/issues/60).
+CI interpreter-label mismatch remains separately tracked in #57; no unverified
+four-version compatibility claim is made.

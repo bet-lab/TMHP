@@ -6,14 +6,17 @@ renderer check, not a Hancom Office automation claim.
 """
 
 import argparse
+import io
 import json
 import re
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 import cairocffi as cairo
 import cairosvg
 from cairosvg.parser import Tree
 from cairosvg.surface import PDFSurface
+from PIL import Image
 from pyhwpxlib.rhwp_bridge import RhwpEngine
 
 HERE = Path(__file__).resolve().parent
@@ -54,6 +57,17 @@ def main():
         surface.cairo.set_metadata(cairo.PDF_METADATA_KEYWORDS, content["keywords"].removeprefix("Key words: "))
         surface.finish()
     cairosvg.svg2png(bytestring=svg.encode(), write_to=str(args.output.with_suffix(".png")), scale=1.5)
+    # Replace the template's obsolete cover preview with the rendered revision.
+    thumbnail = Image.open(args.output.with_suffix(".png"))
+    thumbnail.thumbnail((420, 594))
+    preview = io.BytesIO()
+    thumbnail.save(preview, format="PNG")
+    with ZipFile(args.hwpx) as archive:
+        files = {name: archive.read(name) for name in archive.namelist()}
+    files["Preview/PrvImage.png"] = preview.getvalue()
+    with ZipFile(args.hwpx, "w") as archive:
+        for name, data in files.items():
+            archive.writestr(name, data, compress_type=ZIP_STORED if name == "mimetype" else ZIP_DEFLATED)
     print(json.dumps({"pages": doc.page_count, "pdf": str(pdf), "font_substitutions": FONT_MAP}, ensure_ascii=False))
 
 

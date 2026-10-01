@@ -1,14 +1,28 @@
 {
   "one_page": true,
-  "figures": 2,
+  "figures": 1,
+  "panels": 4,
+  "selected_points": 16,
   "claims_match_csv": {
-    "flow_percent": "20.0–69.7%",
-    "pump_saving_percent": "62.8–98.7%",
-    "system_COP_gain_percent": "3.4–47.7%"
+    "minimum_flow_percent": 56.770509831248425,
+    "maximum_pump_saving_percent": 78.48612353279985,
+    "maximum_fan_increase_percent": 14.098084116693531,
+    "maximum_total_power_saving_percent": 3.4595738229596495,
+    "maximum_system_COP_gain_percent": 3.5835493584991163,
+    "m_dot_ref_rated_kg_s": 0.04352627260631659
   },
+  "upper_bound_plrs": [
+    0.7,
+    0.8,
+    0.9,
+    1.0
+  ],
+  "total_power_and_COP_checked": true,
+  "all_manuscript_text_present_in_PDF": true,
   "authors_affiliations_acknowledgement_present": true,
   "pdf_fonts_embedded": true,
-  "hwpx_sha256": "26669254c7cedcb7ac81bb8abb418c543d4317302f1d77bf5db43a24f151af87",
-  "pdf_sha256": "25208a92fbae4be1e72ecbc790cb9a4af7850667489c19e75540c75f22bf3531",
+  "scientific_style_and_MCP_checks": true,
+  "hwpx_sha256": "696e410a68299b67eaa6bd9c5adb711130e68e3e26c3fed08162bfea42204520",
+  "pdf_sha256": "b74ef55b11cfc4de9be8b16aebdf87236a7341f2b167f2af90022c4626ba636f",
   "renderer_limit": "Linux pyhwpxlib/rhwp and font substitutes; not tested in Hancom Office"
 }

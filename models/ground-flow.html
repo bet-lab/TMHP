@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-01T19:58:38+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T21:26:23+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -213,7 +213,8 @@ or validated refrigerant correlations. Supply values appropriate to the case.</p
 <section id="control-and-boundaries">
 <h2>Control and boundaries<a class="headerlink" href="#control-and-boundaries" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;constant&quot;</span></code> evaluates rated water flow. <code class="docutils literal notranslate"><span class="pre">optimal_power</span></code>
-compares compressor plus pump power at the same requested load. It always uses
+compares total electrical power at the same requested load: compressor + pump
++ indoor fan for GSHP, and compressor + pump for GSHPB. It always uses
 hydraulic pump power, even if <code class="docutils literal notranslate"><span class="pre">hydraulic_pump</span></code> is not set. The convenience
 flag <code class="docutils literal notranslate"><span class="pre">variable_ground_flow=True</span></code> selects <code class="docutils literal notranslate"><span class="pre">optimal_power</span></code>. Variable UA and
 variable resistance are separate opt-ins. A fair control comparison enables
@@ -222,8 +223,12 @@ the same component physics in both constant and optimal cases.</p>
 within the configured bounds and skips the flow optimizer. This supports
 objective curves and independent optimum checks. GSHP’s inner solver minimizes
 compressor + pump + indoor-fan power over the indoor approach, subject to ground
-HX duty equality. Its outer solver compares <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_pmp</span></code> as specified by
-the flow policy. System COP still includes indoor-fan power.</p>
+HX duty equality. Its outer solver also compares <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>, including the
+indoor fan. <code class="docutils literal notranslate"><span class="pre">E_cmp_plus_pmp</span> <span class="pre">[W]</span></code> is retained only as a component diagnostic.
+System COP is delivered indoor heat/cooling duty divided by <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>.
+The room temperature supplied to <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> is used by both the cycle
+and the indoor HX and appears unchanged in the output. Omitting it uses the
+constructor’s <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>; candidate evaluations do not overwrite this setting.</p>
 <p>For GSHP, <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> fixes the wall temperature for the steady snapshot;
 its default is the model’s current wall temperature (initially <code class="docutils literal notranslate"><span class="pre">Ts</span></code>).
 For GSHPB, <code class="docutils literal notranslate"><span class="pre">T_source</span></code> retains its existing meaning as prescribed BHE outlet

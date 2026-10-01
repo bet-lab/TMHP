@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-01T21:26:23+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T22:46:47+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -139,6 +139,7 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#physical-hx-sizing-and-compressor-efficiencies">Physical HX sizing and compressor efficiencies</a></li>
 <li><a class="reference internal" href="#control-and-boundaries">Control and boundaries</a></li>
 <li><a class="reference internal" href="#module-boundaries-and-assumptions">Module boundaries and assumptions</a></li>
 <li><a class="reference internal" href="#feasibility-and-reporting">Feasibility and reporting</a></li>
@@ -189,7 +190,7 @@ This intentionally changes legacy multi-borehole temperatures.</p>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPump</span><span class="p">(</span>
 </span><span data-line="4">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="mi">8000</span><span class="p">,</span> <span class="n">V_cmp_ref</span><span class="o">=</span><span class="mf">1.2e-5</span><span class="p">,</span>
-</span><span data-line="5">    <span class="n">UA_cond</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">UA_evap</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+</span><span data-line="5">    <span class="n">UA_ground_rated</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">UA_iu_rated</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
 </span><span data-line="6">    <span class="n">N_1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">Ts</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
 </span><span data-line="7">    <span class="n">dV_b_f_lpm</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
 </span><span data-line="8">    <span class="n">ground_flow_control</span><span class="o">=</span><span class="s2">&quot;optimal_power&quot;</span><span class="p">,</span>
@@ -209,6 +210,32 @@ This intentionally changes legacy multi-borehole temperatures.</p>
 The default search bounds (0.2–1.2), UA resistance fractions (0.5/0.3/0.2) and
 flow exponents (0.8/0.8) are explicit modelling assumptions, not equipment limits
 or validated refrigerant correlations. Supply values appropriate to the case.</p>
+</section>
+<section id="physical-hx-sizing-and-compressor-efficiencies">
+<h2>Physical HX sizing and compressor efficiencies<a class="headerlink" href="#physical-hx-sizing-and-compressor-efficiencies" title="Link to this heading">¶</a></h2>
+<p>GSHP sizes its physical ground HX with
+<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span> <span class="pre">=</span> <span class="pre">ground_hx_ua_per_capacity</span> <span class="pre">*</span> <span class="pre">hp_capacity</span></code>. The default
+coefficient is 0.18 K^-1: an 8 kW unit therefore uses 1440 W/K. An explicit
+<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code> overrides this sizing rule. The independent air-side
+<code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span></code> defaults to 0.08 times rated capacity, or 640 W/K at 8 kW.
+Both physical UAs remain attached to the same hardware in cooling and heating.
+The deprecated <code class="docutils literal notranslate"><span class="pre">UA_cond</span></code>/<code class="docutils literal notranslate"><span class="pre">UA_evap</span></code> inputs retain their historical cycle-role
+mapping only when explicitly supplied; physical inputs take precedence.</p>
+<p>The 0.18 coefficient is a reduced-order engineering sizing assumption, not
+an empirical correlation from Longo (2009). Approximately 3 L/min/kW water
+flow, 1.2 times rated capacity as HX duty and a 4 K leaving approach give
+<code class="docutils literal notranslate"><span class="pre">UA</span> <span class="pre">=</span> <span class="pre">Cw</span> <span class="pre">*</span> <span class="pre">ln(1</span> <span class="pre">+</span> <span class="pre">Qhx</span> <span class="pre">/</span> <span class="pre">(Cw</span> <span class="pre">*</span> <span class="pre">approach))</span></code>, approximately 0.186 times
+rated capacity. The rounded default requires equipment-specific calibration.
+Longo’s DOI 10.1016/j.expthermflusci.2008.09.004 supports only qualitative
+mass-flux dependence of plate-HX condensation, not the capacity coefficient.</p>
+<p>GSHP now defaults to <code class="docutils literal notranslate"><span class="pre">eta_v=0.9</span></code> and <code class="docutils literal notranslate"><span class="pre">eta_em=0.8</span></code>. Volumetric efficiency
+sets speed through <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">=</span> <span class="pre">eta_v</span> <span class="pre">*</span> <span class="pre">displacement</span> <span class="pre">*</span> <span class="pre">speed</span> <span class="pre">*</span> <span class="pre">suction_density</span></code>.
+Electrical compressor input is <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">E_cmp_ref</span> <span class="pre">/</span> <span class="pre">eta_em</span></code>; refrigerant
+heat balances use the gas compression work <code class="docutils literal notranslate"><span class="pre">E_cmp_ref</span></code>. Motor losses
+<code class="docutils literal notranslate"><span class="pre">E_cmp_loss</span></code> are outside the refrigerant cycle. System COP and the flow
+objective include the electrical input. These defaults intentionally change
+previous results; explicitly set both efficiencies to 1 to reproduce the
+previous ideal-efficiency convention with otherwise identical parameters.</p>
 </section>
 <section id="control-and-boundaries">
 <h2>Control and boundaries<a class="headerlink" href="#control-and-boundaries" title="Link to this heading">¶</a></h2>

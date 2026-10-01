@@ -74,8 +74,8 @@ def test_deprecated_roles_preserve_explicit_legacy_mapping_and_physical_inputs_w
 
 @pytest.mark.parametrize("load", [4000, -4000])
 def test_efficiencies_correct_power_speed_and_refrigerant_energy_balance(load):
-    ideal = model(eta_v=1, eta_em=1)._calc_state(10, 10, load, 26, 26)
-    real = model()._calc_state(10, 10, load, 26, 26)
+    ideal = model(V_cmp_ref=1.2e-5, eta_cmp_isen=0.8, eta_cmp_vol=1, eta_cmp=1)._calc_state(10, 10, load, 26, 26)
+    real = model(V_cmp_ref=1.2e-5, eta_cmp_isen=0.8, eta_cmp_vol=0.9, eta_cmp=0.8)._calc_state(10, 10, load, 26, 26)
     assert ideal is not None and real is not None
     assert real["eta_v [-]"] == 0.9 and real["eta_em [-]"] == 0.8
     assert real["m_dot_ref [kg/s]"] == pytest.approx(ideal["m_dot_ref [kg/s]"])

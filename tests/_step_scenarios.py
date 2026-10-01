@@ -27,7 +27,13 @@ DATA_DIR: Path = Path(__file__).parent / "data"
 
 def make_model() -> AirSourceHeatPumpBoiler:
     """Fixed ASHPB configuration shared by golden generation and tests."""
-    return AirSourceHeatPumpBoiler(ref="R32")
+    # Freeze the pre-callable-baseline efficiencies used by the committed goldens.
+    return AirSourceHeatPumpBoiler(
+        ref="R32",
+        eta_cmp_isen=lambda pr: 0.90 - 0.02 * pr,
+        eta_cmp_vol=lambda pr: 1 - 0.020 * (pr - 1),
+        eta_cmp=lambda pr, rps: 0.80 - 3e-5 * (rps - 55) ** 2,
+    )
 
 
 def scenario_kwargs(name: str, dt_s: int) -> dict:

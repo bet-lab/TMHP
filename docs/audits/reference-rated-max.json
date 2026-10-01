@@ -3257,5 +3257,7 @@
       "category": "B",
       "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
     }
-  ]
+  ],
+  "snapshot_commit": "f698e3c84c87f5f987b614bad55e4b56643b68c2",
+  "snapshot_note": "Historical #67 inventory; compressor-callable changes are documented in compressor-efficiency-source.json and developer/reference-operating-limits.rst."
 }

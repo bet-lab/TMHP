@@ -100,3 +100,41 @@ WSHPB has fixed surface-water/tank UAs and explicit speed limits; it contains
 no fan solver or rated-flow ceiling to expand. Numerical regression tests retain
 old constructor behavior, and new tests verify identical component physics at
 an identical actual operating point across control strategies.
+
+Compressor efficiency baseline and speed
+----------------------------------------
+
+All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
+``eta_cmp`` set to ``None`` to the shared factories in
+:mod:`tmhp.compressor_efficiency` (frozen coefficients ``v2026-09-24``).
+These represent isentropic, volumetric and electro-mechanical efficiency,
+respectively. Each input also accepts a scalar, a ``function(PR)`` or a
+``function(PR, rps)``. Evaluation validates finite values in (0, 1] and
+preserves exceptions raised inside a user function.
+
+``rps_rated`` defines the normalization ``n_star = rps / rps_rated``:
+60 rev/s for ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB, matching the
+source baseline's air-to-air / air-to-water reference speeds. Specify the
+same rated speed when comparing model defaults at the same PR and rps.
+This reference does not change ``rps_min`` or ``rps_max``. Correlation factors
+held above ``n_star=2`` protect extrapolation; they do not impose a speed limit.
+
+GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``
+at each speed candidate, and evaluates isentropic efficiency before calculating
+heat duty. Refrigerant work includes isentropic losses; compressor electricity
+is refrigerant work divided by electro-mechanical efficiency exactly once.
+Electro-mechanical losses remain outside the refrigerant heat balance.
+The capacity clamp returned by the shared speed solver reports actual delivered
+duty. Coupled ground-flow operation rejects clamped points that cannot meet the
+requested duty. Its failed points retain unavailable COP/power semantics.
+
+GSHP's former fixed default displacement of 100 cm3/rev over-sized its 4 kW
+default capacity once speed bounds were enforced. An omitted displacement now
+uses the same capacity-based default as the other models; explicitly supplied
+displacement is unchanged. Deprecated GSHP ``eta_v`` / ``eta_em`` scalar inputs
+map to the new interface, with explicit new inputs taking precedence.
+
+The source module SHA, original checkout commit, Notion report and unchanged
+coefficient snapshot are recorded under ``docs/audits/compressor-efficiency-*``.
+The report's tuned low-speed penalties are not used. This baseline models
+compressor modulation, not cycling losses or on-off duty averaging.

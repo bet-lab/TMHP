@@ -193,7 +193,10 @@ def test_analyze_dynamic_bhe_matches_golden():
     dhw[[3, 4, 9, 10]] = 6.0e-5
     T0 = np.full(tN, 15.0)
 
-    gshpb = GroundSourceHeatPumpBoiler(t_max_s=200 * 3600)
+    # The golden characterizes BHE coupling under the original efficiency inputs.
+    gshpb = GroundSourceHeatPumpBoiler(
+        t_max_s=200 * 3600, eta_cmp_isen=0.80, eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr, eta_cmp=0.855
+    )
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
         df = gshpb.analyze_dynamic(

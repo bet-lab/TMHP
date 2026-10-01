@@ -31,7 +31,9 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
+from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
 from .compressor_envelope import check_pr_envelope
+from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
 from .enex_functions import (
     calc_exergy_flow,
@@ -74,7 +76,7 @@ class GroundSourceHeatPump:
         # 1. Refrigerant / cycle / compressor -----------
         ref: str = "R32",
         V_cmp_ref: float | None = None,
-        eta_cmp_isen: float | Callable = 0.80,
+        eta_cmp_isen: float | Callable | None = None,
         dT_superheat: float = 5.0,
         dT_subcool: float = 5.0,
         # 2. Heat exchanger UA ---------------------------
@@ -130,8 +132,11 @@ class GroundSourceHeatPump:
         UA_iu_rated: float | None = None,
         indoor_approach_min_K: float = 1.0,
         indoor_approach_max_K: float = 20.0,
-        eta_v: float = 0.9,
-        eta_em: float = 0.8,
+        eta_cmp_vol: float | Callable | None = None,
+        eta_cmp: float | Callable | None = None,
+        rps_rated: float = 60.0,
+        eta_v: float | None = None,
+        eta_em: float | None = None,
         ground_flow_ref_lpm: float | None = None,
         ground_flow_constant_lpm: float | None = None,
         ground_flow_min_lpm: float | None = None,
@@ -185,7 +190,7 @@ class GroundSourceHeatPump:
         self.indoor_approach_max_K = indoor_approach_max_K
         # Resolve deprecated mapping
         if V_cmp_ref is None:
-            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else 0.0001
+            V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if UA_cond is None:
             UA_cond = UA_cond_design
         if UA_evap is None:
@@ -209,7 +214,27 @@ class GroundSourceHeatPump:
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
-        self.eta_cmp_isen: float | Callable = eta_cmp_isen
+        if not np.isfinite(rps_rated) or rps_rated <= 0:
+            raise ValueError("rps_rated must be positive and finite")
+        self.rps_rated = rps_rated
+        for name, legacy in (("eta_v", eta_v), ("eta_em", eta_em)):
+            if legacy is not None:
+                _eval_eff(legacy, 3.0, rps_rated)
+                warnings.warn(
+                    f"{name} is deprecated; use eta_cmp_vol / eta_cmp. Explicit new inputs take precedence.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+        if eta_cmp_vol is None:
+            eta_cmp_vol = eta_v if eta_v is not None else make_eta_vol(rps_rated)
+        if eta_cmp is None:
+            eta_cmp = eta_em if eta_em is not None else make_eta_em(rps_rated)
+        self.eta_cmp_isen = eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
+        self.eta_cmp_vol = eta_cmp_vol
+        self.eta_cmp = eta_cmp
+        for efficiency in (self.eta_cmp_isen, self.eta_cmp_vol, self.eta_cmp):
+            if not callable(efficiency):
+                _eval_eff(efficiency, 3.0, rps_rated)
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
         self.dT_hx_min: float = dT_hx_min
@@ -231,9 +256,7 @@ class GroundSourceHeatPump:
         # Preserve the former cooling indoor-air default, independently of
         # ground-HX sizing. This is an air-HX assumption, not the BPHE rule.
         self.UA_iu_rated = 0.08 * hp_capacity if UA_iu_rated is None else UA_iu_rated
-        self.eta_v, self.eta_em = eta_v, eta_em
-        if not all(np.isfinite(v) and 0 < v <= 1 for v in (eta_v, eta_em)):
-            raise ValueError("eta_v and eta_em must be finite and in (0, 1]")
+        self.eta_v, self.eta_em = self.eta_cmp_vol, self.eta_cmp  # read-compatible aliases
         if not all(np.isfinite(v) and v > 0 for v in (self.UA_ground_rated, self.UA_iu_rated)):
             raise ValueError("Physical heat exchanger rated UA values must be positive and finite")
         legacy_ua = UA_cond is not None or UA_evap is not None
@@ -479,7 +502,7 @@ class GroundSourceHeatPump:
             T_evap_K=T_evap_sat_K,
             T_cond_K=T_cond_sat_K,
             refrigerant=self.ref,
-            eta_cmp_isen=self.eta_cmp_isen,
+            eta_cmp_isen=1.0,
             mode=mode,
             dT_superheat=actual_dT_superheat,
             dT_subcool=actual_dT_subcool,
@@ -509,7 +532,7 @@ class GroundSourceHeatPump:
                     T_evap_K=T_evap_sat_K,
                     T_cond_K=T_cond_sat_K,
                     refrigerant=self.ref,
-                    eta_cmp_isen=self.eta_cmp_isen,
+                    eta_cmp_isen=1.0,
                     mode=mode,
                     dT_superheat=actual_dT_superheat,
                     dT_subcool=actual_dT_subcool,
@@ -525,28 +548,61 @@ class GroundSourceHeatPump:
             self.dT_r_iu = self.T_r_iu - T_a_room
             self.dT_r_ghx = ground_sat_K - T_bhe_f_out_K
 
+        cmp_rps = 0.0
+        converged_rps = True
+        capacity_clamped = None
+        val_eta_isen = val_eta_vol = val_eta_em = np.nan
+        ratio_P_cmp = np.nan
+        if is_active:
+            # Unit isentropic state supplies pressure, suction density and work.
+            # Each speed candidate evaluates the efficiencies before predicting duty.
+            P_evap = cycle_states["P_ref_cmp_in [Pa]"]
+            P_cond = cycle_states["P_ref_cmp_out [Pa]"]
+            ratio_P_cmp = P_cond / P_evap
+            rho_suction = cycle_states["rho_ref_cmp_in [kg/m3]"]
+            h_in = cycle_states["h_ref_cmp_in [J/kg]"]
+            dh_isen = cycle_states["h_ref_cmp_out [J/kg]"] - h_in
+            h_liquid = cycle_states["h_ref_exp_in [J/kg]"]
+            h_expansion = cycle_states["h_ref_exp_out [J/kg]"]
+
+            def residual(rps: float) -> float:
+                eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, rps)
+                eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, rps)
+                # Validate the drive model on every candidate as well. It acts
+                # on input power only, not on the refrigerant heat duty.
+                _eval_eff(self.eta_cmp, ratio_P_cmp, rps)
+                m_dot = self.V_cmp_ref * rho_suction * eta_vol * rps
+                h_out = h_in + dh_isen / eta_isen
+                dh = h_in - h_expansion if mode == "cooling" else h_out - h_liquid
+                return float(m_dot * dh - Q_ref_iu)
+
+            cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(residual, self.rps_min, self.rps_max)
+            val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, cmp_rps)
+            val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, cmp_rps)
+            val_eta_em = _eval_eff(self.eta_cmp, ratio_P_cmp, cmp_rps)
+            cycle_states = calc_ref_state(
+                T_evap_K=T_evap_sat_K,
+                T_cond_K=T_cond_sat_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=val_eta_isen,
+                mode=mode,
+                dT_superheat=actual_dT_superheat,
+                dT_subcool=actual_dT_subcool,
+                is_active=True,
+            )
+            m_dot_ref = self.V_cmp_ref * rho_suction * val_eta_vol * cmp_rps
+        else:
+            m_dot_ref = 0.0
+
         h_cmp_out = cycle_states["h_ref_cmp_out [J/kg]"]
         h_cmp_in = cycle_states["h_ref_cmp_in [J/kg]"]
         h_exp_in = cycle_states["h_ref_exp_in [J/kg]"]
         h_exp_out = cycle_states["h_ref_exp_out [J/kg]"]
-
-        if mode == "cooling":
-            dh_evap = h_cmp_in - h_exp_out
-            m_dot_ref = Q_ref_iu / dh_evap if (is_active and abs(dh_evap) > 1e-3) else 0.0
-        elif mode == "heating":
-            dh_cond = h_cmp_out - h_exp_in
-            m_dot_ref = Q_ref_iu / dh_cond if (is_active and abs(dh_cond) > 1e-3) else 0.0
-        else:
-            m_dot_ref = 0.0
-
         Q_ref_cond = m_dot_ref * (h_cmp_out - h_exp_in) if is_active else 0.0
         Q_ref_evap = m_dot_ref * (h_cmp_in - h_exp_out) if is_active else 0.0
         E_cmp_ref = m_dot_ref * (h_cmp_out - h_cmp_in) if is_active else 0.0
-        E_cmp = E_cmp_ref / self.eta_em
+        E_cmp = E_cmp_ref / val_eta_em if is_active else 0.0
         E_cmp_loss = E_cmp - E_cmp_ref
-        cmp_rps = (
-            m_dot_ref / (self.eta_v * self.V_cmp_ref * cycle_states["rho_ref_cmp_in [kg/m3]"]) if is_active else 0.0
-        )
 
         if is_active and E_cmp <= 0:
             return None
@@ -640,7 +696,8 @@ class GroundSourceHeatPump:
                 "hp_is_on": is_active,
                 "mode": mode,
                 "converged": bool(iu_hx.get("converged", True)),
-                "converged_rps": True,
+                "converged_rps": converged_rps,
+                "capacity_clamped": capacity_clamped,
                 "iu_fan_flow_min_limit": iu_hx.get("min_limit", False),
                 "iu_fan_flow_max_limit": iu_hx.get("max_limit", False),
                 "err_Q_evap [W]": err_Q_evap,
@@ -661,6 +718,10 @@ class GroundSourceHeatPump:
                 "dV_bhe_f [m3/s]": loop["dV"] if is_active else 0.0,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                "cmp_rps [rev/s]": cmp_rps,
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pressure_ratio": ratio_P_cmp,
+                "pr_floor_active": self._last_pr_event is not None and self._last_pr_event[0] == "pr_below_min",
                 # Energy rates [W]
                 "E_iu_fan [W]": E_iu_fan,
                 "E_pmp [W]": E_pmp_active,
@@ -679,8 +740,9 @@ class GroundSourceHeatPump:
                 # duty includes refrigerant work, not those external losses.
                 "E_cmp_ref [W]": E_cmp_ref,
                 "E_cmp_loss [W]": E_cmp_loss,
-                "eta_v [-]": self.eta_v,
-                "eta_em [-]": self.eta_em,
+                "eta_is [-]": val_eta_isen,
+                "eta_v [-]": val_eta_vol,
+                "eta_em [-]": val_eta_em,
                 "UA_ground_rated [W/K]": UA_ground_rated,
                 "UA_iu_rated [W/K]": UA_iu_rated,
                 "E_tot [W]": E_tot,
@@ -705,10 +767,10 @@ class GroundSourceHeatPump:
         if (
             (self._ground_settings["active"] or source_temperature_K is not None)
             and is_active
-            and not self.rps_min <= cmp_rps <= self.rps_max
+            and (capacity_clamped is not None or not converged_rps)
         ):
             result["converged_rps"] = False
-            result["failure_reason"] = "compressor_min_speed" if cmp_rps < self.rps_min else "compressor_max_speed"
+            result["failure_reason"] = "compressor_min_speed" if capacity_clamped == "min" else "compressor_max_speed"
         return result
 
     def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:

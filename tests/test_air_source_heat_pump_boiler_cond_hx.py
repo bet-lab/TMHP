@@ -13,7 +13,14 @@ from tmhp import calc_util as cu
 
 @pytest.fixture
 def hp() -> AirSourceHeatPumpBoiler:
-    return AirSourceHeatPumpBoiler(ref="R32", hp_capacity=15000.0)
+    # Keep the fixed-UA characterization independent of a changed default map.
+    return AirSourceHeatPumpBoiler(
+        ref="R32",
+        eta_cmp_isen=lambda pr: 0.90 - 0.02 * pr,
+        eta_cmp_vol=lambda pr: 1 - 0.020 * (pr - 1),
+        eta_cmp=lambda pr, rps: 0.80 - 3e-5 * (rps - 55) ** 2,
+        hp_capacity=15000.0,
+    )
 
 
 def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):

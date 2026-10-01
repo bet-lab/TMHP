@@ -242,6 +242,8 @@ def test_expanded_ground_flow_can_close_low_load_with_explicit_indoor_approach_r
         hp_capacity=8000,
         V_cmp_ref=1.2e-5,
         eta_cmp_isen=0.70,
+        eta_cmp_vol=0.9,
+        eta_cmp=0.8,
         N_1=1,
         N_2=2,
         H_b=100,

@@ -122,7 +122,12 @@ def test_fan_power_changes_both_search_and_final_flow_selection():
 )
 def test_constant_flow_regression_before_total_power_policy(cls, expected):
     # Recorded from commit 4197de8 with this fixture's unchanged component physics.
-    row = _run(_model(cls))
+    legacy = (
+        {"eta_cmp_isen": 0.8}
+        if cls is GroundSourceHeatPump
+        else {"eta_cmp_isen": 0.8, "eta_cmp_vol": lambda pr: 0.95 - 0.05 * pr, "eta_cmp": 0.855}
+    )
+    row = _run(_model(cls, **legacy))
     assert row["converged"]
     for key, value in zip(("E_cmp [W]", "E_pmp [W]", "E_tot [W]"), expected, strict=True):
         assert row[key] == pytest.approx(value, rel=1e-8)

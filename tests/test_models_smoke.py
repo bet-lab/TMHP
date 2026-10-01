@@ -40,9 +40,12 @@ def test_ashpb_analyze_steady():
 def test_ashpb_default_compressor_efficiencies():
     ashpb = AirSourceHeatPumpBoiler()
 
-    assert ashpb.eta_cmp_vol(4.0) == pytest.approx(0.94)
-    assert ashpb.eta_cmp_isen(4.0) == pytest.approx(0.82)
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(0.80)
+    from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
+
+    assert ashpb.rps_rated == 40
+    assert ashpb.eta_cmp_vol(4.0, 55.0) == pytest.approx(make_eta_vol(40)(4.0, 55.0))
+    assert ashpb.eta_cmp_isen(4.0, 55.0) == pytest.approx(make_eta_isen(40)(4.0, 55.0))
+    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(40)(4.0, 55.0))
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
@@ -405,15 +408,13 @@ def test_wshpb_pr_ceiling_rejects():
 
 
 def test_non_air_source_boiler_common_eta_defaults():
-    # GSHPB and WSHPB retain the shared constant isentropic default. ASHPB uses
-    # its paper-validated callable, covered by the ASHPB-specific test above.
-    for cls in (
-        GroundSourceHeatPumpBoiler,
-        WaterSourceHeatPumpBoiler,
-    ):
+    from tmhp.compressor_efficiency import make_eta_isen
+
+    for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         m = cls(ref="R32")
-        assert m.eta_cmp_isen == 0.80
-        assert callable(m.eta_cmp_vol)
+        assert m.rps_rated == 40
+        assert m.eta_cmp_isen(3, 40) == pytest.approx(make_eta_isen(40)(3, 40))
+        assert callable(m.eta_cmp_vol) and callable(m.eta_cmp)
 
 
 def test_ashp_pr_floor_clamp_keeps_cycle():

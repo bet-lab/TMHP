@@ -1,0 +1,69 @@
+{
+  "transport": "FastMCP in-process MCP client/server",
+  "script_sha256": "5dbc327c55a3cfef8af5e0bd5c74911c04fe4e80cd075f067389bf922ec88889",
+  "calls": [
+    {
+      "tool": "lint_dartwork_mpl_code_json",
+      "result": []
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_1_part_load",
+      "panel": "E_pmp [W]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_1_part_load",
+      "panel": "E_iu_fan [W]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_1_part_load",
+      "panel": "E_cmp [W]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_1_part_load",
+      "panel": "cop_sys [-]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_total_power_objective",
+      "plr": 0.3,
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_total_power_objective",
+      "plr": 0.6,
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_total_power_objective",
+      "plr": 1.0,
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_hx_feasibility",
+      "result": "✅ Data structure valid for heatmap."
+    }
+  ],
+  "available_tools": [
+    "fetch_github_document",
+    "get_color_value",
+    "mix_colors",
+    "list_color_families",
+    "lint_dartwork_mpl_code",
+    "lint_dartwork_mpl_code_json",
+    "find_template",
+    "migrate_legacy_code",
+    "validate_plot_data",
+    "dartwork_mpl_info"
+  ]
+}

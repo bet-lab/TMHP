@@ -1,0 +1,25 @@
+{
+  "description": "Illustrative steady cooling case using TMHP default UA; not a manufacturer rating or field validation.",
+  "model": {
+    "ref": "R410A", "hp_capacity": 8000, "V_cmp_ref": 0.000012,
+    "eta_cmp_isen": 0.70, "T_a_room": 26,
+    "N_1": 1, "N_2": 2, "B": 6, "H_b": 100, "D_b": 0,
+    "r_b": 0.08, "r_out": 0.016, "r_in": 0.013, "D_s": 0.025,
+    "k_s": 2.0, "k_g": 1.5, "k_p": 0.4, "c_s": 800, "rho_s": 2000,
+    "Ts": 15, "dV_b_f_lpm": 24, "pump_efficiency": 0.60, "dp_common": 0,
+    "pipe_roughness": 0.000001, "hydraulic_pump": true,
+    "variable_Rb": true, "variable_ground_hx_UA": true,
+    "ground_hx_fluid_fraction": 0.5, "ground_hx_refrigerant_fraction": 0.3,
+    "ground_hx_constant_fraction": 0.2,
+    "ground_hx_fluid_exponent": 0.8, "ground_hx_refrigerant_exponent": 0.8,
+    "ground_flow_min_ratio": 0.4, "ground_flow_max_ratio": 1.0,
+    "rps_min": 15, "rps_max": 150, "PR_cycle_min": 1.5, "PR_cycle_max": 8,
+    "dT_superheat": 5, "dT_subcool": 5, "t_max_s": 86400
+  },
+  "operating": {"T0": 26, "T_a_room": 26, "T_bhe_wall": 15},
+  "plrs": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+  "objective_plrs": [0.3, 0.6, 1.0],
+  "flow_grid": {"min": 0.4, "max": 1.0, "count": 21},
+  "depths_m": [50, 100, 200],
+  "stress_ground_UA_W_K": 100
+}

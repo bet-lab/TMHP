@@ -1,0 +1,127 @@
+{
+  "archive_source_commit": "2d6124e15254bae2d2591130c14210e888105833",
+  "archive_files_byte_identical": [
+    {
+      "path": "archive/capacity_ua_max1p0/README.md",
+      "sha256": "56846208e72faa017fbc80c30c4c209a9f32091859da205195799faefd86bca6"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/capacity_ua_revision_plan.md",
+      "sha256": "9b2a7ba204a055f54a3a9b1399076a78055ab2bd58bdb73c2da88db540a95a15"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/code/plot/plot_ground_flow.py",
+      "sha256": "60c632121a1cadd010537db3682a8e2278c2b51114fe420f25b6a6a76b705186"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/code/plot/review_mcp.py",
+      "sha256": "fb54b5978ed58acf59ff4c6a4f4b93a8ed5d5230978d8d0e9eb42d2bada384d1"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/code/run_study.py",
+      "sha256": "409f1f3dd18445a2c4ca4300e2a9c5cae6a635028f6e16044c3ae94c18b6bdf5"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/code/stress_hx.py",
+      "sha256": "0b8055da325f5039a0f7498dfa044253a5807ef334b0e61635bf99936c033aaa"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/code/write_validation_notes.py",
+      "sha256": "8d0f9e0addfe6b0337f6b806a3afcead9f4d016d084f8bb9489434fe1a16662c"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/data/config.json",
+      "sha256": "3e323067f46e11736dd566df6a4a48917e6deaa5546a7349038642c4b0dcbd87"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_1_part_load.pdf",
+      "sha256": "4d16d510367a2cbbafe4f621d6403cbe3789330dbdd646bf8be96cf46e25f51c"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_1_part_load.png",
+      "sha256": "8d232d3f4b1297f062c080f7032a879b60fc89cdb05268f80d54c95487b0684c"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_hx_feasibility.pdf",
+      "sha256": "26d68684656d081d3c53b2f5d2c5b4603b614f04191a3a1489ba0eb8c33e37f9"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_hx_feasibility.png",
+      "sha256": "99e21d70126c81556d4dc84f8c5440e4134b97f8ad0e6efef0671c4b6896cf0d"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_total_power_objective.pdf",
+      "sha256": "0239b91e46442cbf87d0c63782c9df72f5214a7db52459e483bd2c6dcba90d77"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/fig_total_power_objective.png",
+      "sha256": "835e1eab9af123bcdf86510fb78b3b2148444b24df6b8e9609d846a8e9b3b954"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/mcp_review.json",
+      "sha256": "0124d2b37ba976b80851645f9f4f7d7b0a31c0d7a5fc75e1eff4ecdfd0a8d682"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/figure/visual_validation.json",
+      "sha256": "ffc851b657be41b97a61864c75d4699f45ac7815e0ea7bfaca28a2b76c1ae39e"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/case_fingerprint.json",
+      "sha256": "dd7aa0b40b2d53f5c1b88ea36fc1326857a56561c9207fcce9b55ad0dad686ff"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/comparison.csv",
+      "sha256": "daede18f45bfc9d0d6eca3a68da23243bcd9f50edaf73c299fd1ccaa2648d18b"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/components.csv",
+      "sha256": "50a1369fd1408c2c002b5d05920adb0552b4f55d8df6d89e90316ae3e7c10cf2"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/hx_stress.csv",
+      "sha256": "65abf28be6722344237d10c9c6e4ec910b7c6c1b13032324244fe5f326a0d7de"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/normalization.csv",
+      "sha256": "bf7fedc1f9e6633c39e2ca0440d2f14ba66980d0d769ae43556ee8fabd79fed9"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/operating_points.csv",
+      "sha256": "aeccb0ce1ca1388785e9cc2c099b75add6c8cef659740ed8df5dd587e49bda29"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/provenance_reconciliation.json",
+      "sha256": "5024073cead5b24eab9840ef7fcaae7a91b4da7318abfe9c85f22cbc46155a59"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/reference.json",
+      "sha256": "09dc636dcbd46c7361a8fd761c4d3cb6f8d17a3e3437a0e545b3b9176da4e97a"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/simulation_results.csv",
+      "sha256": "4a0984379cac9ca2b9f7c93409c4cb95893695dde0b8c8ce0f7a2b71e629adb9"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/ua_map.csv",
+      "sha256": "affd2b02d4f3f03c164f0764e481c5d9e64cbd98dd0a3cdcb85ce348d6f5c57e"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/results/verification.json",
+      "sha256": "4090ae2772e713cfe8f2df11d09d544696e7800247bf92dfa30139fc6e61db78"
+    },
+    {
+      "path": "archive/capacity_ua_max1p0/validation_notes.md",
+      "sha256": "7678d4e1dd15daa20343cfb9ca43d4030f96a021130fe93c8a538541462cec54"
+    }
+  ],
+  "execution_fingerprints_match_config_and_executed_scripts": true,
+  "execution_model_commit": "ebbfd46b6beba8ffdb46f43f8a3a2ddc655f7582",
+  "post_execution_model_change": "171531d explicitly passes the already-default empty borehole anchor tuple for mypy; no numerical formula change",
+  "MCP_code_and_all_four_plot_data_checks_passed": true,
+  "scientific_style_and_all_four_images_visually_inspected": true,
+  "main_points": 184,
+  "sensitivity_computed_points": 182,
+  "sensitivity_selected_points": 48,
+  "prescribed_fairness_points": 24,
+  "stress_rejected_points": 88
+}

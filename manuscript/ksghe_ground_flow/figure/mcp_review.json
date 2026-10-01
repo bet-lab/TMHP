@@ -1,6 +1,6 @@
 {
   "transport": "FastMCP in-process MCP client/server",
-  "script_sha256": "60c632121a1cadd010537db3682a8e2278c2b51114fe420f25b6a6a76b705186",
+  "script_sha256": "2e0909b371456ed6abc75c12d9e2c5d37d5a0905618221c038c65210989cefae",
   "calls": [
     {
       "tool": "lint_dartwork_mpl_code_json",
@@ -52,6 +52,18 @@
       "tool": "validate_plot_data",
       "figure": "fig_hx_feasibility",
       "result": "✅ Data structure valid for heatmap."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_flow_max_sensitivity",
+      "panel": "optimal_flow_ratio_to_ref",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_flow_max_sensitivity",
+      "panel": "system_COP",
+      "result": "✅ Data structure valid for line plot."
     }
   ],
   "available_tools": [

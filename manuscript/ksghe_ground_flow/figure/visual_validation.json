@@ -3,7 +3,8 @@
   "dartwork_mpl_render_checks": {
     "fig_1_part_load": [],
     "fig_total_power_objective": [],
-    "fig_hx_feasibility": []
+    "fig_hx_feasibility": [],
+    "fig_flow_max_sensitivity": []
   },
   "paper_figure": {
     "rows": 1,
@@ -12,8 +13,69 @@
     "height": "4.6cm"
   },
   "visual_inspection": {
-    "main": "All four panels, units, common legend and markers readable; no clipping or overlap.",
-    "objective": "Three load curves and selected optima readable; tick density corrected.",
-    "stress": "88 rejected cells; binary legend and labels readable."
+    "fig_1_part_load": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
+      "png_sha256": "ca97037188ef04bb127ad37732bf624fdc82223a3b73fd5f849aeb49aed294f5",
+      "pdf_sha256": "d8abbeb0f8a67cc05709effafdb86072a3825d9a31f0191c50ddd42ebfaef5cb",
+      "size_px": [
+        3968,
+        1086
+      ],
+      "nonwhite_bbox_px": [
+        61,
+        44,
+        3945,
+        1054
+      ]
+    },
+    "fig_total_power_objective": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
+      "png_sha256": "3f81acf5fde1bbbfa8601f0900e77dc7603122d8e8fa993818374ff4166de8e7",
+      "pdf_sha256": "71681647955ac60b413c7accbba259c807b9df62340e0e4af3ebbe2bd8e5b9ca",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        47,
+        46,
+        3026,
+        1716
+      ]
+    },
+    "fig_hx_feasibility": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
+      "png_sha256": "c62a1f94f9acdc110184e6ed553709bd4bea5ea7071538ca9c3b45d46aad4c38",
+      "pdf_sha256": "4fb338551643ea0bc9bbfa3333f3934dae344c2e5c4c04db49e2eb47a81e58a1",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        55,
+        48,
+        2729,
+        1716
+      ]
+    },
+    "fig_flow_max_sensitivity": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
+      "png_sha256": "896e550201ecc7a4910150f0d98c6314023fa7a75d862ef2a8140a62915120db",
+      "pdf_sha256": "2c973eb37a1255e151446ea8566c01a675c4e75944a5413ed564a9a34f55d875",
+      "size_px": [
+        3968,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        47,
+        33,
+        3923,
+        1710
+      ]
+    }
   }
 }

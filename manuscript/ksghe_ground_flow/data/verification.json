@@ -2,28 +2,30 @@
   "points": 184,
   "feasible_points": 184,
   "infeasible_reasons": {},
-  "hx_max_abs_residual_W": 0.03347284102346748,
-  "temperature_max_abs_residual_K": 8.545309242435906e-06,
+  "hx_max_abs_residual_W": 0.05464324118656805,
+  "temperature_max_abs_residual_K": 9.995150094255223e-06,
   "selected_bound_plrs": [
-    0.8,
-    0.9,
     1.0
   ],
-  "m_dot_ref_rated_kg_s": 0.04151110907913401,
+  "selected_lower_bound_plrs": [],
+  "selected_upper_bound_plrs": [
+    1.0
+  ],
+  "m_dot_ref_rated_kg_s": 0.04151109713044605,
   "ground_UA_rated_W_K": 1440.0,
   "load_UA_rated_W_K": 640,
   "total_active_borehole_length_m": 200,
   "COP_definition": "delivered cooling load / (compressor + pump + indoor fan power)",
   "optimizer_minus_independent_grid_W": [
-    -0.05490260676728553,
-    -0.012741245588244965,
+    -0.01176487564057993,
+    -0.042876283715713726,
     0.0
   ],
-  "config_sha256": "3e323067f46e11736dd566df6a4a48917e6deaa5546a7349038642c4b0dcbd87",
-  "source_commit": "1d92b8cdaa9d78a3630f21d4370825e6cf7543e8",
-  "study_script_sha256": "409f1f3dd18445a2c4ca4300e2a9c5cae6a635028f6e16044c3ae94c18b6bdf5",
+  "config_sha256": "2b5dc7805fe8c55efff19f2e5e8139aa982872ee1936a41e66dc397003b9b197",
+  "source_commit": "ebbfd46b6beba8ffdb46f43f8a3a2ddc655f7582",
+  "study_script_sha256": "f3b93ae71edf0438b9d28d093348729a3852adba46ab94b3c73b260edf24ecd5",
   "objective": "E_tot [W] = E_cmp + E_pmp + E_iu_fan",
-  "study_base_commit": "27f68111793f4a9135348f280a944d5fe9bc7428",
+  "study_base_commit": "2d6124e15254bae2d2591130c14210e888105833",
   "tmhp_module_path": "/home/habin/papers/TMHP/src/tmhp/__init__.py",
   "python": "3.12.3",
   "packages": {
@@ -39,6 +41,5 @@
     "mu_Pa_s": 0.001,
     "cp_J_kgK": 4186,
     "k_W_mK": 0.606
-  },
-  "completion_repository_commit": "9e85cbc4cc91922fcc7ba404b4168316639cd443"
+  }
 }

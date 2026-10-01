@@ -1,0 +1,76 @@
+{
+  "reference_L_min": 24,
+  "constant_L_min": 24,
+  "min_L_min": 9.6,
+  "max_ratios": [
+    1,
+    1.2,
+    1.5
+  ],
+  "selected_points": 48,
+  "prescribed_fairness_points": 24,
+  "all_selected_feasible": true,
+  "identical_actual_point_component_physics": true,
+  "independent_grid_gaps": [
+    {
+      "max_ratio": 1,
+      "plr": 0.3,
+      "optimizer_minus_grid_W": -0.05169233411021423
+    },
+    {
+      "max_ratio": 1,
+      "plr": 0.6,
+      "optimizer_minus_grid_W": -0.13702107199048896
+    },
+    {
+      "max_ratio": 1,
+      "plr": 1.0,
+      "optimizer_minus_grid_W": 0.0
+    },
+    {
+      "max_ratio": 1.2,
+      "plr": 0.3,
+      "optimizer_minus_grid_W": -0.08267947744226944
+    },
+    {
+      "max_ratio": 1.2,
+      "plr": 0.6,
+      "optimizer_minus_grid_W": -0.021955637297310204
+    },
+    {
+      "max_ratio": 1.2,
+      "plr": 1.0,
+      "optimizer_minus_grid_W": 0.0
+    },
+    {
+      "max_ratio": 1.5,
+      "plr": 0.3,
+      "optimizer_minus_grid_W": -0.011764875640608352
+    },
+    {
+      "max_ratio": 1.5,
+      "plr": 0.6,
+      "optimizer_minus_grid_W": -0.042876283715713726
+    },
+    {
+      "max_ratio": 1.5,
+      "plr": 1.0,
+      "optimizer_minus_grid_W": 0.0
+    }
+  ],
+  "upper_bound_plrs": {
+    "1": [
+      0.8,
+      0.9,
+      1.0
+    ],
+    "1.2": [
+      0.9,
+      1.0
+    ],
+    "1.5": [
+      1.0
+    ]
+  },
+  "interpretation": "Bound optima remain constrained by each stated hardware/control maximum; not proof of an unconstrained stationary optimum."
+}

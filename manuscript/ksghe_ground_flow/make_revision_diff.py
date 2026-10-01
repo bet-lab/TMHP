@@ -24,7 +24,7 @@ def main():
     parser.add_argument("before_pdf", type=Path)
     parser.add_argument("--before-hwpx", type=Path, default=HERE / "template_261001.hwpx")
     args = parser.parse_args()
-    target = HERE / "diff/capacity_ua_revision_20261001.pdf"
+    target = HERE / "diff/reference_flow_revision_20261001.pdf"
     target.parent.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="ksghe-diff-") as temp:
         before = Path(temp) / "before"
@@ -37,8 +37,8 @@ def main():
         context.set_font_size(10)
         for index, (label, path) in enumerate(
             (
-                ("Before: 800 W/K, ideal efficiencies", before.with_suffix(".png")),
-                ("After: 1440 W/K, eta_v=0.9, eta_em=0.8", HERE / "GSHP_variable_flow.png"),
+                ("Before: reference/constant/max = 24 L/min", before.with_suffix(".png")),
+                ("After: reference/constant = 24, max = 36 L/min", HERE / "GSHP_variable_flow.png"),
             )
         ):
             context.move_to(20 + 421 * index, 16)
@@ -55,8 +55,8 @@ def main():
     diff = difflib.unified_diff(
         text_of(args.before_hwpx),
         text_of(HERE / "GSHP_variable_flow.hwpx"),
-        fromfile="previous compact cooling native text",
-        tofile="capacity UA and efficiency revision native text",
+        fromfile="capacity UA, max24 native text",
+        tofile="fixed reference and max36 native text",
         n=0,
     )
     target.with_suffix(".diff").write_text("".join(diff))

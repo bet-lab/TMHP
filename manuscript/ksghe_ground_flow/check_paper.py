@@ -30,6 +30,11 @@ def main():
     assert hashlib.sha256((HERE / "data/config.json").read_bytes()).hexdigest() == fingerprint["config_sha256"]
     assert fingerprint["source_commit"] == verification["source_commit"]
     assert reference["ground_UA_rated_W_K"] == 1440 and reference["load_UA_rated_W_K"] == 640
+    config = json.loads((HERE / "data/config.json").read_text())
+    inputs = config["model"]
+    assert inputs["ground_flow_ref_lpm"] == inputs["ground_flow_constant_lpm"] == 24
+    assert inputs["ground_flow_min_lpm"] == 9.6 and inputs["ground_flow_max_lpm"] == 36
+    assert inputs["indoor_approach_max_K"] == 25
     with (HERE / "data/simulation_results.csv").open() as stream:
         rows = list(csv.DictReader(stream))
     assert len(rows) == 16
@@ -49,7 +54,8 @@ def main():
             float(row["Q_ref_ground [W]"]), float(row["Q_ref_iu [W]"]) + float(row["E_cmp_ref [W]"]), rel_tol=1e-10
         )
     calculated = {
-        "minimum_flow_percent": min(100 * float(r["ground_flow_ratio"]) for r in optimum.values()),
+        "minimum_flow_percent": min(100 * float(r["ground_flow_ref_ratio"]) for r in optimum.values()),
+        "maximum_flow_percent": max(100 * float(r["ground_flow_ref_ratio"]) for r in optimum.values()),
         "maximum_pump_saving_percent": max(
             100 * (1 - float(r["E_pmp [W]"]) / float(baseline[p]["E_pmp [W]"])) for p, r in optimum.items()
         ),
@@ -67,16 +73,20 @@ def main():
     for key, value in calculated.items():
         assert math.isclose(manuscript["claims"][key], value, abs_tol=1e-10), key
     bounds = sorted(p for p, r in optimum.items() if r["flow_bound_active"] == "True")
-    assert bounds == manuscript["claims"]["upper_bound_plrs"] == verification["selected_bound_plrs"]
+    assert bounds == manuscript["claims"]["upper_bound_plrs"] == verification["selected_upper_bound_plrs"]
     for p in bounds:
-        assert float(optimum[p]["ground_flow_ratio"]) == 1
-        assert math.isclose(float(optimum[p]["E_tot [W]"]), float(baseline[p]["E_tot [W]"]), rel_tol=1e-9)
+        assert math.isclose(
+            float(optimum[p]["ground_flow_ref_ratio"]),
+            inputs["ground_flow_max_lpm"] / inputs["ground_flow_ref_lpm"],
+            rel_tol=1e-12,
+        )
+        assert float(optimum[p]["E_tot [W]"]) <= float(baseline[p]["E_tot [W]"])
     assert len(manuscript["abstract"]) == 3 and len(manuscript["results"]) == 2
     result_text = "\n".join(manuscript["results"])
     for required in (
-        f"{calculated['minimum_flow_percent']:.1f}–100.0%",
-        f"0–{calculated['maximum_total_power_saving_percent']:.2f}%",
-        f"0–{calculated['maximum_system_COP_gain_percent']:.2f}%",
+        f"{calculated['minimum_flow_percent']:.1f}–{calculated['maximum_flow_percent']:.1f}%",
+        f"{calculated['maximum_total_power_saving_percent']:.2f}%",
+        f"{calculated['maximum_system_COP_gain_percent']:.2f}%",
         "16개",
     ):
         assert required in result_text
@@ -116,11 +126,26 @@ def main():
         assert line.split()[-5] == "yes", line
     mcp = json.loads((HERE / "figure/mcp_review.json").read_text())
     assert mcp["calls"][0]["result"] == []
-    assert all("valid" in call["result"] for call in mcp["calls"][1:])
+    assert len(mcp["calls"]) == 11
+    assert all(call["result"].startswith("✅ Data structure valid") for call in mcp["calls"][1:])
+    assert {call["figure"] for call in mcp["calls"][1:]} == {
+        "fig_1_part_load",
+        "fig_total_power_objective",
+        "fig_hx_feasibility",
+        "fig_flow_max_sensitivity",
+    }
     visual = json.loads((HERE / "figure/visual_validation.json").read_text())
     assert visual["style"] == "scientific" and all(
         not issues for issues in visual["dartwork_mpl_render_checks"].values()
     )
+    inspected = visual["visual_inspection"]["fig_1_part_load"]
+    for suffix in ("png", "pdf"):
+        assert (
+            inspected[f"{suffix}_sha256"]
+            == hashlib.sha256((HERE / f"figure/fig_1_part_load.{suffix}").read_bytes()).hexdigest()
+        )
+    sensitivity = json.loads((HERE / "data/flow_max_sensitivity_verification.json").read_text())
+    assert sensitivity["all_selected_feasible"] and sensitivity["identical_actual_point_component_physics"]
     report = {
         "one_page": True,
         "figures": 1,
@@ -129,6 +154,8 @@ def main():
         "claims_match_csv": calculated,
         "upper_bound_plrs": bounds,
         "total_power_and_COP_checked": True,
+        "fixed_reference_and_explicit_flow_bounds_checked": True,
+        "sensitivity_fairness_checked": True,
         "all_manuscript_text_present_in_PDF": True,
         "authors_affiliations_acknowledgement_present": True,
         "pdf_fonts_embedded": True,

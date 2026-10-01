@@ -16,7 +16,7 @@ HERE = Path(__file__).resolve().parent
 def text_of(path):
     with ZipFile(path) as archive:
         root = ET.fromstring(archive.read("Contents/section0.xml"))
-    return ["".join(t.itertext()) + "\n" for t in root.iter("{http://www.hancom.co.kr/hwpml/2011/paragraph}t")]
+    return ["".join(t.itertext()).rstrip() + "\n" for t in root.iter("{http://www.hancom.co.kr/hwpml/2011/paragraph}t")]
 
 
 def main():
@@ -56,6 +56,7 @@ def main():
         text_of(HERE / "GSHP_variable_flow.hwpx"),
         fromfile="supplied 261001 native text",
         tofile="compact cooling revision native text",
+        n=0,
     )
     target.with_suffix(".diff").write_text("".join(diff))
     print(target)

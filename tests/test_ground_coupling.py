@@ -108,92 +108,80 @@ def test_injected_coupler_overrides_default():
     assert gshpb._ground_coupler is spy
 
 
-# Golden for the BHE outputs of the default plant (config _gshpb(); tN=16;
-# DHW draws at steps 3,4,9,10; T_init=56°C; T0=15°C). Regenerated after 852383a
-# resolved GSHPB unspecified compressor efficiencies to the common boiler
-# defaults (isentropic 0.80, volumetric 0.95-0.05*PR) instead of the previous
-# ideal 1.0; these values reflect that corrected efficiency. Re-regenerated
-# after the _compute_bhe_superposition fix that syncs self.T_bhe_f_out_K, so in
-# multi-step analyze_dynamic the evaporator/COP follow the g-driven ground
-# temperature drift instead of freezing at the __init__ default (steps 6+ now
-# recover with the ground instead of staying depressed).
-# Re-regenerated again after the compressor speed-envelope clamp: a duty below
-# what the compressor delivers at rps_min (raised 10 -> 15 rev/s) is now solved
-# at that floor and reported as converged instead of being discarded, so the
-# default-parameter plant runs at its minimum capacity where it previously
-# returned an unusable state.
+# Single-borehole golden captured at ea02dc9 before the field normalization fix.
+# Multi-borehole behavior is checked against analytic balances in test_ground_loop.
 _GOLDEN = {
     "T_bhe [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        15.999999999416092,
-        13.897932928521518,
-        12.755870874960609,
-        13.824629178135417,
-        14.498339527830485,
-        14.85098932282796,
-        15.068724125306428,
-        13.490008839444386,
-        14.140229318235662,
-        14.63321338532625,
-        14.897230880452074,
-        15.067392318074162,
+        15.999999999709138,
+        14.952893967837952,
+        14.359900026538678,
+        14.899576456553033,
+        15.240836024030267,
+        15.419276268609517,
+        15.52938085956007,
+        14.772490299702099,
+        15.088046467474117,
+        15.327383954941867,
+        15.456058944079423,
+        15.539240307505013,
     ],
     "T_bhe_f [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        4.797975565992829,
-        4.286515602154907,
-        12.755870874960635,
-        13.82462917813541,
-        14.498339527830467,
-        14.850989322827957,
-        5.8655113110856405,
-        13.490008839444386,
-        14.14022931823564,
-        14.633213385326258,
-        14.89723088045207,
-        15.067392318074155,
+        10.473382101904576,
+        10.084959636017913,
+        14.359900026538696,
+        14.899576456553007,
+        15.240836024030273,
+        15.419276268609508,
+        11.138939105018892,
+        14.772490299702099,
+        15.0880464674741,
+        15.327383954941865,
+        15.456058944079416,
+        15.539240307504997,
     ],
     "T_bhe_f_in [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        2.781873412173809,
-        2.5566854908113896,
-        12.755870874960635,
-        13.82462917813541,
-        14.498339527830467,
-        14.850989322827957,
-        4.209148455685693,
-        13.490008839444386,
-        14.14022931823564,
-        14.633213385326258,
-        14.89723088045207,
-        15.067392318074155,
+        8.465654147940256,
+        8.31652041753307,
+        14.359900026538696,
+        14.899576456553007,
+        15.240836024030273,
+        15.419276268609508,
+        9.543964962814073,
+        14.772490299702099,
+        15.0880464674741,
+        15.327383954941865,
+        15.456058944079416,
+        15.539240307504997,
     ],
     "T_bhe_f_out [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        6.8140777198118485,
-        6.016345713498424,
-        12.755870874960635,
-        13.82462917813541,
-        14.498339527830467,
-        14.850989322827957,
-        7.521874166485588,
-        13.490008839444386,
-        14.14022931823564,
-        14.633213385326258,
-        14.89723088045207,
-        15.067392318074155,
+        12.481110055868896,
+        11.853398854502757,
+        14.359900026538696,
+        14.899576456553007,
+        15.240836024030273,
+        15.419276268609508,
+        12.733913247223711,
+        14.772490299702099,
+        15.0880464674741,
+        15.327383954941865,
+        15.456058944079416,
+        15.539240307504997,
     ],
 }
 
@@ -205,7 +193,7 @@ def test_analyze_dynamic_bhe_matches_golden():
     dhw[[3, 4, 9, 10]] = 6.0e-5
     T0 = np.full(tN, 15.0)
 
-    gshpb = _gshpb()
+    gshpb = GroundSourceHeatPumpBoiler(t_max_s=200 * 3600)
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
         df = gshpb.analyze_dynamic(

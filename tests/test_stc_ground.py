@@ -102,4 +102,15 @@ def test_solar_charges_and_warms_ground():
     T_base = base["T_bhe [°C]"].to_numpy()
     assert np.all(np.isfinite(T_sun))
     assert np.all(T_sun >= T_base - 1e-9)  # solar injection never cools the ground
-    assert T_sun.mean() > T_base.mean() + 0.5  # net warming
+    assert T_sun.mean() > T_base.mean()  # net warming, independent of field size
+    # Independent convolution of the reported field-total extraction/injection.
+    # A fixed 0.5 K threshold encoded the old factor-of-N normalization error.
+    for frame in (df_sun, base):
+        loads = frame["Q_bhe [W]"].to_numpy() / (2 * 100.0)
+        pulses = np.diff(loads, prepend=0.0)
+        time = np.arange(len(loads)) * 3600.0
+        expected = [
+            model.Ts - np.dot(pulses[: n + 1], model._gfunc_interp(np.maximum(time[n] - time[: n + 1], 1e-6)))
+            for n in range(len(loads))
+        ]
+        np.testing.assert_allclose(frame["T_bhe [°C]"], expected, atol=1e-10, rtol=0)

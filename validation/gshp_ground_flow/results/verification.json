@@ -1,0 +1,28 @@
+{
+  "hx_max_abs_residual_W": 3.5395126815274125e-05,
+  "temperature_max_abs_residual_K": 9.489604281043285e-06,
+  "points": 184,
+  "feasible_points": 184,
+  "infeasible_reasons": {},
+  "optimizer_minus_independent_grid_W": [
+    0.0,
+    -0.11133511470433177,
+    -0.0026007701829939833
+  ],
+  "water_properties": {
+    "rho_kg_m3": 1000,
+    "mu_Pa_s": 0.001,
+    "cp_J_kgK": 4186,
+    "k_W_mK": 0.606
+  },
+  "source_commit": "9eacf7d313fd0e5cd7ccf5ad6e4a6d4ae6b68034",
+  "config_sha256": "6b7efcafa33af177d30f0ac9c98988dd5a47464cda99d6828aa50aa8e771eb48",
+  "python": "3.12.3",
+  "packages": {
+    "numpy": "2.4.4",
+    "scipy": "1.17.1",
+    "pandas": "3.0.3",
+    "CoolProp": "7.2.0",
+    "pygfunction": "2.3.1"
+  }
+}

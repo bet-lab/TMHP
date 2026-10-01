@@ -16,7 +16,7 @@ Example
 
     model = GroundSourceHeatPump(
         ref="R410A", hp_capacity=8000, V_cmp_ref=1.2e-5,
-        UA_cond=2000, UA_evap=2000,
+        UA_ground_rated=2000, UA_iu_rated=2000,
         N_1=2, N_2=2, H_b=100, B=6, Ts=16,
         dV_b_f_lpm=80,
         ground_flow_control="optimal_power",
@@ -35,6 +35,35 @@ These are illustrative model inputs, not a calibrated manufacturer's product.
 The default search bounds (0.2–1.2), UA resistance fractions (0.5/0.3/0.2) and
 flow exponents (0.8/0.8) are explicit modelling assumptions, not equipment limits
 or validated refrigerant correlations. Supply values appropriate to the case.
+
+Physical HX sizing and compressor efficiencies
+----------------------------------------------
+
+GSHP sizes its physical ground HX with
+``UA_ground_rated = ground_hx_ua_per_capacity * hp_capacity``. The default
+coefficient is 0.18 K^-1: an 8 kW unit therefore uses 1440 W/K. An explicit
+``UA_ground_rated`` overrides this sizing rule. The independent air-side
+``UA_iu_rated`` defaults to 0.08 times rated capacity, or 640 W/K at 8 kW.
+Both physical UAs remain attached to the same hardware in cooling and heating.
+The deprecated ``UA_cond``/``UA_evap`` inputs retain their historical cycle-role
+mapping only when explicitly supplied; physical inputs take precedence.
+
+The 0.18 coefficient is a reduced-order engineering sizing assumption, not
+an empirical correlation from Longo (2009). Approximately 3 L/min/kW water
+flow, 1.2 times rated capacity as HX duty and a 4 K leaving approach give
+``UA = Cw * ln(1 + Qhx / (Cw * approach))``, approximately 0.186 times
+rated capacity. The rounded default requires equipment-specific calibration.
+Longo's DOI 10.1016/j.expthermflusci.2008.09.004 supports only qualitative
+mass-flux dependence of plate-HX condensation, not the capacity coefficient.
+
+GSHP now defaults to ``eta_v=0.9`` and ``eta_em=0.8``. Volumetric efficiency
+sets speed through ``m_dot = eta_v * displacement * speed * suction_density``.
+Electrical compressor input is ``E_cmp = E_cmp_ref / eta_em``; refrigerant
+heat balances use the gas compression work ``E_cmp_ref``. Motor losses
+``E_cmp_loss`` are outside the refrigerant cycle. System COP and the flow
+objective include the electrical input. These defaults intentionally change
+previous results; explicitly set both efficiencies to 1 to reproduce the
+previous ideal-efficiency convention with otherwise identical parameters.
 
 Control and boundaries
 ----------------------

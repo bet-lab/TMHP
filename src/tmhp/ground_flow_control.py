@@ -35,6 +35,8 @@ def failed_ground_point(reason: str, diagnostic: dict | None = None) -> dict:
         "Q_ref_ground [W]",
         "Q_bhe [W]",
         "E_cmp [W]",
+        "E_cmp_ref [W]",
+        "E_cmp_loss [W]",
         "E_pmp [W]",
         "E_iu_fan [W]",
         "E_tot [W]",

@@ -53,7 +53,7 @@ from .ground_loop import (
     ground_hx_UA,
     ground_result_diagnostics,
 )
-from .heat_exchanger import calc_phase_change_hx_effectiveness
+from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -124,6 +124,11 @@ class GroundSourceHeatPump:
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
         *,
+        UA_ground_rated: float | None = None,
+        ground_hx_ua_per_capacity: float = 0.18,
+        UA_iu_rated: float | None = None,
+        eta_v: float = 0.9,
+        eta_em: float = 0.8,
         ground_flow_control: str = "constant",
         variable_ground_flow: bool = False,
         variable_ground_hx_UA: bool = False,
@@ -181,16 +186,40 @@ class GroundSourceHeatPump:
         self.hp_capacity: float = hp_capacity
         self.rps_min, self.rps_max = rps_min, rps_max
 
-        # --- 2. Heat exchanger UA ---
-        if UA_cond is None:
-            self.UA_cond = hp_capacity / 10.0
+        # --- 2. Physical heat exchangers and compressor efficiencies ---
+        # Water HX sizing is independent of the air HX and of cycle mode.
+        self.UA_ground_rated = (
+            calc_ground_hx_UA_from_capacity(hp_capacity, ground_hx_ua_per_capacity)
+            if UA_ground_rated is None
+            else UA_ground_rated
+        )
+        self.ground_hx_ua_per_capacity = ground_hx_ua_per_capacity
+        # Preserve the former cooling indoor-air default, independently of
+        # ground-HX sizing. This is an air-HX assumption, not the BPHE rule.
+        self.UA_iu_rated = 0.08 * hp_capacity if UA_iu_rated is None else UA_iu_rated
+        self.eta_v, self.eta_em = eta_v, eta_em
+        if not all(np.isfinite(v) and 0 < v <= 1 for v in (eta_v, eta_em)):
+            raise ValueError("eta_v and eta_em must be finite and in (0, 1]")
+        if not all(np.isfinite(v) and v > 0 for v in (self.UA_ground_rated, self.UA_iu_rated)):
+            raise ValueError("Physical heat exchanger rated UA values must be positive and finite")
+        legacy_ua = UA_cond is not None or UA_evap is not None
+        self._legacy_ground_ua = legacy_ua and UA_ground_rated is None
+        self._legacy_indoor_ua = legacy_ua and UA_iu_rated is None
+        if legacy_ua:
+            warnings.warn(
+                "UA_cond/UA_evap (including *_design) are deprecated cycle-role inputs; "
+                "use UA_ground_rated and UA_iu_rated for mode-independent physical heat exchangers. "
+                "Explicit physical UA inputs take precedence.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Compatibility only: retain explicitly requested old role mapping.
+            self.UA_cond = hp_capacity / 10.0 if UA_cond is None else UA_cond
+            self.UA_evap = 0.8 * self.UA_cond if UA_evap is None else UA_evap
         else:
-            self.UA_cond = UA_cond
-
-        if UA_evap is None:
-            self.UA_evap = self.UA_cond * 0.8
-        else:
-            self.UA_evap = UA_evap
+            # Read-compatible cooling-role aliases; no cycle computation uses
+            # these aliases unless the caller explicitly used the legacy API.
+            self.UA_cond, self.UA_evap = self.UA_ground_rated, self.UA_iu_rated
 
         # --- 3. Indoor unit fan ---
         if dV_iu_fan_a_rated is None:
@@ -469,8 +498,12 @@ class GroundSourceHeatPump:
 
         Q_ref_cond = m_dot_ref * (h_cmp_out - h_exp_in) if is_active else 0.0
         Q_ref_evap = m_dot_ref * (h_cmp_in - h_exp_out) if is_active else 0.0
-        E_cmp = m_dot_ref * (h_cmp_out - h_cmp_in) if is_active else 0.0
-        cmp_rps = m_dot_ref / (self.V_cmp_ref * cycle_states["rho_ref_cmp_in [kg/m3]"]) if is_active else 0.0
+        E_cmp_ref = m_dot_ref * (h_cmp_out - h_cmp_in) if is_active else 0.0
+        E_cmp = E_cmp_ref / self.eta_em
+        E_cmp_loss = E_cmp - E_cmp_ref
+        cmp_rps = (
+            m_dot_ref / (self.eta_v * self.V_cmp_ref * cycle_states["rho_ref_cmp_in [kg/m3]"]) if is_active else 0.0
+        )
 
         if is_active and E_cmp <= 0:
             return None
@@ -490,6 +523,7 @@ class GroundSourceHeatPump:
         T_bhe_f = (cu.K2C(T_bhe_f_in_K) + cu.K2C(T_bhe_f_out_K)) / 2
         T_bhe = T_bhe_f + Q_bhe_unit * loop["R_b"]
 
+        UA_ground_rated, UA_iu_rated = self._rated_hx_UAs(mode)
         # ── Indoor unit HX ──
         if mode == "cooling":
             iu_hx = calc_HX_perf_for_target_heat(
@@ -497,7 +531,7 @@ class GroundSourceHeatPump:
                 T_a_in_C=T_a_room,
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_iu,
-                UA_rated=self.UA_evap,
+                UA_rated=UA_iu_rated,
                 dV_fan_rated=self.dV_iu_fan_a_rated,
                 is_active=is_active,
             )
@@ -507,7 +541,7 @@ class GroundSourceHeatPump:
                 T_a_in_C=T_a_room,
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_iu,
-                UA_rated=self.UA_cond,
+                UA_rated=UA_iu_rated,
                 dV_fan_rated=self.dV_iu_fan_a_rated,
                 is_active=is_active,
             )
@@ -531,9 +565,7 @@ class GroundSourceHeatPump:
         T_iu_a_out = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if is_active and dV_iu_a > 0 else T_a_room
         v_iu_a = dV_iu_a / self.A_cross_iu if is_active else 0.0
 
-        UA_ground_actual = ground_hx_UA(
-            self._ground_settings, self.UA_evap if mode == "heating" else self.UA_cond, ground_flow_ratio, m_dot_ref
-        )
+        UA_ground_actual = ground_hx_UA(self._ground_settings, UA_ground_rated, ground_flow_ratio, m_dot_ref)
         Q_ground_available = 0.0
         # BHE NTU check (heating: evaporator constraint)
         if mode == "heating" and is_active:
@@ -595,6 +627,15 @@ class GroundSourceHeatPump:
                 "Q_ref_ground [W]": Q_ref_evap if mode == "heating" else Q_ref_cond,
                 "Q_bhe [W]": Q_bhe,
                 "E_cmp [W]": E_cmp,
+                # Electro-mechanical losses are external to the refrigerant
+                # cycle, as in the other TMHP compressor models. Condenser
+                # duty includes refrigerant work, not those external losses.
+                "E_cmp_ref [W]": E_cmp_ref,
+                "E_cmp_loss [W]": E_cmp_loss,
+                "eta_v [-]": self.eta_v,
+                "eta_em [-]": self.eta_em,
+                "UA_ground_rated [W/K]": UA_ground_rated,
+                "UA_iu_rated [W/K]": UA_iu_rated,
                 "E_tot [W]": E_tot,
                 # COP (indoor-unit duty basis; == |Q_r_iu| at convergence)
                 "cop_ref [-]": (
@@ -622,6 +663,19 @@ class GroundSourceHeatPump:
             result["converged_rps"] = False
             result["failure_reason"] = "compressor_min_speed" if cmp_rps < self.rps_min else "compressor_max_speed"
         return result
+
+    def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:
+        """Return ground/IU physical UA; old explicit role inputs use an adapter.
+
+        Defaults and physical inputs remain identical in cooling and heating.
+        Only deprecated role-based inputs preserve the old mode swap.
+        """
+        ground, indoor = self.UA_ground_rated, self.UA_iu_rated
+        if self._legacy_ground_ua:
+            ground = self.UA_evap if mode == "heating" else self.UA_cond
+        if self._legacy_indoor_ua:
+            indoor = self.UA_cond if mode == "heating" else self.UA_evap
+        return ground, indoor
 
     # =============================================================
     # 2D Optimisation

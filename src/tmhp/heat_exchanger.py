@@ -10,6 +10,32 @@ from . import calc_util as cu
 from .constants import c_a, rho_a
 
 
+def calc_ground_hx_UA_from_capacity(rated_capacity: float, specific_UA: float = 0.18) -> float:
+    """Default ground refrigerant/water HX rated UA [W/K] from capacity [W].
+
+    ``UA_rated = specific_UA * rated_capacity`` is a TMHP reduced-order sizing
+    assumption, not a fitted refrigerant correlation. ``specific_UA`` has units
+    1/K. The default 0.18 represents approximate water flow 3 L/min per kW,
+    cooling HX duty 1.2 times rated load and a 4 K leaving-water approach.
+    For a phase-change HX, UA = Cw*log(1 + Q_HX/(Cw*approach_out)); scaling
+    flow and duty with capacity gives a proportional sizing rule. Its rounded
+    default coefficient must be calibrated when device data are available.
+
+    Reference for refrigerant-side BPHE heat-transfer behaviour only:
+    Longo, G.A. (2009), R410A condensation inside a commercial brazed plate
+    heat exchanger, Experimental Thermal and Fluid Science 33(2), 284-291.
+    DOI: 10.1016/j.expthermflusci.2008.09.004.
+    The paper reports mass-flux dependence in forced-convection condensation;
+    it does NOT propose UA = 0.18*capacity or determine this coefficient.
+    """
+    if not all(math.isfinite(v) and v > 0 for v in (rated_capacity, specific_UA)):
+        raise ValueError("Rated capacity and ground specific UA must be positive and finite")
+    value = specific_UA * rated_capacity
+    if not math.isfinite(value):
+        raise ValueError("Calculated ground rated UA must be finite")
+    return value
+
+
 def calc_UA_two_stream_scaled(
     UA_rated: float,
     m_dot_fluid: float,

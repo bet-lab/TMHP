@@ -246,3 +246,6 @@ API reference
     :members:
     :undoc-members:
     :show-inheritance:
+
+See :doc:`ground-flow` for opt-in flow-dependent component physics, optimal pump
+control, source boundaries, and feasibility diagnostics.

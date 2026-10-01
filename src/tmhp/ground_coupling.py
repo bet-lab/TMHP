@@ -98,6 +98,23 @@ class AggregateGFunctionCoupler:
         self._pulses = np.zeros(n_steps)
         self._q_old = 0.0
 
+    def preview_wall_temperature_rise(self, n: int, time_arr: np.ndarray, q_unit: float) -> float:
+        """Evaluate an uncommitted candidate without modifying load history.
+
+        Optional extension for coupled flow control; the original GroundCoupler
+        protocol remains unchanged for legacy external backends.
+        """
+        idx = np.flatnonzero(self._pulses[:n])
+        rise = (
+            float(np.dot(self._pulses[idx], self._g(np.maximum(time_arr[n] - time_arr[idx], 1e-6))))
+            if len(idx)
+            else 0.0
+        )
+        delta = q_unit - self._q_old
+        if abs(delta) > self._pulse_tol:
+            rise += float(delta * self._g(np.array([1e-6]))[0])
+        return rise
+
     def wall_temperature_rise(self, n: int, time_arr: np.ndarray, q_unit: float) -> float:
         if abs(q_unit - self._q_old) > self._pulse_tol:
             self._pulses[n] = q_unit - self._q_old

@@ -115,3 +115,4 @@ not one of the refrigerant-cycle-core families in the matrix above.
     wshpb
     ashp
     gshp
+    ground-flow

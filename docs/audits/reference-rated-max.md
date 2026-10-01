@@ -35,7 +35,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | air_source_heat_pump.py | `UA_iu_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | air_source_heat_pump.py | `UA_ou_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | air_source_heat_pump.py | `V_cmp_ref` | A | Swept displacement per revolution; speed bounds are rps_min/rps_max. |
-| air_source_heat_pump.py | `_optimize_operation` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
+| air_source_heat_pump.py | `_optimize_operation` | C/D | Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits. |
 | air_source_heat_pump.py | `calc_ref_state` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | air_source_heat_pump.py | `dP_iu_fan_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | air_source_heat_pump.py | `dP_iu_fan_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
@@ -77,7 +77,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | air_source_heat_pump_boiler.py | `UA_ou_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | air_source_heat_pump_boiler.py | `V_cmp_ref` | A | Swept displacement per revolution; speed bounds are rps_min/rps_max. |
 | air_source_heat_pump_boiler.py | `X_in_ref_ou` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
-| air_source_heat_pump_boiler.py | `_optimize_operation` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
+| air_source_heat_pump_boiler.py | `_optimize_operation` | C/D | Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits. |
 | air_source_heat_pump_boiler.py | `calc_ref_state` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | air_source_heat_pump_boiler.py | `dP_fan_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | air_source_heat_pump_boiler.py | `dP_ou_fan_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
@@ -113,7 +113,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | ground_source_heat_pump.py | `UA_ground_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump.py | `UA_iu_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump.py | `V_cmp_ref` | A | Swept displacement per revolution; speed bounds are rps_min/rps_max. |
-| ground_source_heat_pump.py | `_optimize_operation` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
+| ground_source_heat_pump.py | `_optimize_operation` | C/D | Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits. |
 | ground_source_heat_pump.py | `_rated_hx_UAs` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump.py | `calc_ref_state` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | ground_source_heat_pump.py | `dP_iu_fan_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
@@ -153,7 +153,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | ground_source_heat_pump_boiler.py | `UA_cond_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump_boiler.py | `UA_evap_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump_boiler.py | `V_cmp_ref` | A | Swept displacement per revolution; speed bounds are rps_min/rps_max. |
-| ground_source_heat_pump_boiler.py | `_optimize_operation` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
+| ground_source_heat_pump_boiler.py | `_optimize_operation` | C/D | Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits. |
 | ground_source_heat_pump_boiler.py | `calc_ref_state` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | ground_source_heat_pump_boiler.py | `dT_hx_min` | D | Explicit control/hardware, physical capacity, validity or time bound; independent of reference. |
 | ground_source_heat_pump_boiler.py | `dT_ref_ground` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
@@ -190,7 +190,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | water_source_heat_pump_boiler.py | `UA_cond_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | water_source_heat_pump_boiler.py | `UA_evap_design` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | water_source_heat_pump_boiler.py | `V_cmp_ref` | A | Swept displacement per revolution; speed bounds are rps_min/rps_max. |
-| water_source_heat_pump_boiler.py | `_optimize_operation` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
+| water_source_heat_pump_boiler.py | `_optimize_operation` | C/D | Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits. |
 | water_source_heat_pump_boiler.py | `calc_ref_state` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | water_source_heat_pump_boiler.py | `dT_hx_min` | D | Explicit control/hardware, physical capacity, validity or time bound; independent of reference. |
 | water_source_heat_pump_boiler.py | `dT_ref_tank` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |

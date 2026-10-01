@@ -234,8 +234,8 @@
       "lines": [
         1089
       ],
-      "category": "B",
-      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
     },
     {
       "file": "air_source_heat_pump.py",
@@ -790,8 +790,8 @@
         873,
         1084
       ],
-      "category": "B",
-      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
     },
     {
       "file": "air_source_heat_pump_boiler.py",
@@ -1255,8 +1255,8 @@
         962,
         1094
       ],
-      "category": "B",
-      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
     },
     {
       "file": "ground_source_heat_pump.py",
@@ -1772,8 +1772,8 @@
         916,
         1474
       ],
-      "category": "B",
-      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
     },
     {
       "file": "ground_source_heat_pump_boiler.py",
@@ -2251,8 +2251,8 @@
         680,
         1124
       ],
-      "category": "B",
-      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
     },
     {
       "file": "water_source_heat_pump_boiler.py",

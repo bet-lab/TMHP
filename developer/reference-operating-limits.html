@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-10-01T23:21:43+09:00" />
+    <meta property="article:modified_time" content="2026-10-02T00:11:44+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -144,6 +144,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#indoor-approach-search-domain">Indoor approach search domain</a></li>
 <li><a class="reference internal" href="#fan-api-and-migration">Fan API and migration</a></li>
 <li><a class="reference internal" href="#audit-and-validation">Audit and validation</a></li>
+<li><a class="reference internal" href="#compressor-efficiency-baseline-and-speed">Compressor efficiency baseline and speed</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -265,10 +266,43 @@ no fan solver or rated-flow ceiling to expand. Numerical regression tests retain
 old constructor behavior, and new tests verify identical component physics at
 an identical actual operating point across control strategies.</p>
 </section>
+<section id="compressor-efficiency-baseline-and-speed">
+<h2>Compressor efficiency baseline and speed<a class="headerlink" href="#compressor-efficiency-baseline-and-speed" title="Link to this heading">¶</a></h2>
+<p>All five heat-pump models resolve <code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_cmp_vol</span></code> and
+<code class="docutils literal notranslate"><span class="pre">eta_cmp</span></code> set to <code class="docutils literal notranslate"><span class="pre">None</span></code> to the shared factories in
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code> (frozen coefficients <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code>).
+These represent isentropic, volumetric and electro-mechanical efficiency,
+respectively. Each input also accepts a scalar, a <code class="docutils literal notranslate"><span class="pre">function(PR)</span></code> or a
+<code class="docutils literal notranslate"><span class="pre">function(PR,</span> <span class="pre">rps)</span></code>. Evaluation validates finite values in (0, 1] and
+preserves exceptions raised inside a user function.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> defines the normalization <code class="docutils literal notranslate"><span class="pre">n_star</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>:
+60 rev/s for ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB, matching the
+source baseline’s air-to-air / air-to-water reference speeds. Specify the
+same rated speed when comparing model defaults at the same PR and rps.
+This reference does not change <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> or <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. Correlation factors
+held above <code class="docutils literal notranslate"><span class="pre">n_star=2</span></code> protect extrapolation; they do not impose a speed limit.</p>
+<p>GSHP now solves speed using <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">=</span> <span class="pre">V_cmp_ref</span> <span class="pre">*</span> <span class="pre">rho_suction</span> <span class="pre">*</span> <span class="pre">eta_v</span> <span class="pre">*</span> <span class="pre">rps</span></code>
+at each speed candidate, and evaluates isentropic efficiency before calculating
+heat duty. Refrigerant work includes isentropic losses; compressor electricity
+is refrigerant work divided by electro-mechanical efficiency exactly once.
+Electro-mechanical losses remain outside the refrigerant heat balance.
+The capacity clamp returned by the shared speed solver reports actual delivered
+duty. Coupled ground-flow operation rejects clamped points that cannot meet the
+requested duty. Its failed points retain unavailable COP/power semantics.</p>
+<p>GSHP’s former fixed default displacement of 100 cm3/rev over-sized its 4 kW
+default capacity once speed bounds were enforced. An omitted displacement now
+uses the same capacity-based default as the other models; explicitly supplied
+displacement is unchanged. Deprecated GSHP <code class="docutils literal notranslate"><span class="pre">eta_v</span></code> / <code class="docutils literal notranslate"><span class="pre">eta_em</span></code> scalar inputs
+map to the new interface, with explicit new inputs taking precedence.</p>
+<p>The source module SHA, original checkout commit, Notion report and unchanged
+coefficient snapshot are recorded under <code class="docutils literal notranslate"><span class="pre">docs/audits/compressor-efficiency-*</span></code>.
+The report’s tuned low-speed penalties are not used. This baseline models
+compressor modulation, not cycling losses or on-off duty averaging.</p>
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 01, 2026
+  Last updated Oct 02, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

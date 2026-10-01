@@ -11,6 +11,7 @@ from tmhp.borehole import (
     precompute_borehole_resistance,
 )
 from tmhp.constants import c_w, k_w, mu_w, rho_w
+from tmhp.ground_loop import ground_flow_state
 from tmhp.heat_exchanger import calc_UA_two_stream_scaled, solve_secondary_flow_for_target_heat
 from tmhp.heat_transfer import darcy_friction_factor as old_friction
 from tmhp.pump import (
@@ -47,6 +48,41 @@ def test_pump_zero_flow_and_turbulent_trend():
     assert np.all(np.diff(powers) > 0)
     with pytest.raises(ValueError):
         calc_pump_power(1000, 0.001, 0)
+
+
+def test_resistance_interpolation_accepts_only_roundoff_at_both_endpoints():
+    interpolate = precompute_borehole_resistance(
+        0.2,
+        0.4,
+        1.0,
+        100,
+        c_w,
+        k_s=2,
+        k_g=1.5,
+        k_p=0.4,
+        r_b=0.08,
+        r_out=0.016,
+        r_in=0.013,
+        D_s=0.025,
+        rho_f=rho_w,
+        mu_f=mu_w,
+        k_f=k_w,
+    )
+    for endpoint in (0.4 * 0.2, 0.2):
+        for rounded in (np.nextafter(endpoint, -np.inf), np.nextafter(endpoint, np.inf)):
+            assert interpolate(rounded) == pytest.approx(interpolate(endpoint), rel=1e-14)
+    for outside in (0.08 - 1e-8, 0.2 + 1e-8):
+        with pytest.raises(ValueError):
+            interpolate(outside)
+    settings = dict(
+        volume_flow_rated=24 / 60000,
+        n_boreholes=2,
+        rb_interp=interpolate,
+        variable_Rb=True,
+        hydraulic_pump=False,
+        pump_power=0,
+    )
+    assert ground_flow_state(settings, 0.4)["R_b"] == pytest.approx(interpolate(0.08))
 
 
 def test_two_stream_resistance_network():

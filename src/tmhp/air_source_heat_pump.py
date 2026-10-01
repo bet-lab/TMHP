@@ -38,6 +38,7 @@ from .enex_functions import (
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
+from .heat_exchanger import resolve_fan_flow_limits
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -139,9 +140,20 @@ class AirSourceHeatPump:
         dV_iu_fan_a_design: float | None = None,
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
+        *,
+        dV_ou_fan_a_ref: float | None = None,
+        dV_ou_fan_a_min: float | None = None,
+        dV_ou_fan_a_max: float | None = None,
+        dV_iu_fan_a_ref: float | None = None,
+        dV_iu_fan_a_min: float | None = None,
+        dV_iu_fan_a_max: float | None = None,
     ):
         import warnings
 
+        if dV_ou_fan_a_ref is not None:
+            dV_ou_fan_a_rated = dV_ou_fan_a_ref
+        if dV_iu_fan_a_ref is not None:
+            dV_iu_fan_a_rated = dV_iu_fan_a_ref
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
@@ -254,6 +266,12 @@ class AirSourceHeatPump:
         else:
             self.dV_ou_fan_a_rated = dV_ou_fan_a_rated
 
+        self.dV_ou_fan_a_ref = self.dV_ou_fan_a_rated
+        self.dV_ou_fan_a_min, self.dV_ou_fan_a_max = resolve_fan_flow_limits(
+            self.dV_ou_fan_a_ref,
+            dV_ou_fan_a_min,
+            dV_ou_fan_a_max,
+        )
         self.dP_ou_fan_rated: float = dP_ou_fan_rated
         self.eta_ou_fan_rated: float = eta_ou_fan_rated
 
@@ -265,7 +283,9 @@ class AirSourceHeatPump:
         self.E_ou_fan_rated: float = self.dV_ou_fan_a_rated * self.dP_ou_fan_rated / self.eta_ou_fan_rated
         self.vsd_coeffs_ou: dict = vsd_coeffs_ou
         self.fan_params_ou: dict = {
+            "fan_ref_flow_rate": self.dV_ou_fan_a_rated,
             "fan_rated_flow_rate": self.dV_ou_fan_a_rated,
+            "fan_ref_power": self.E_ou_fan_rated,
             "fan_rated_power": self.E_ou_fan_rated,
         }
 
@@ -275,6 +295,12 @@ class AirSourceHeatPump:
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
+        self.dV_iu_fan_a_ref = self.dV_iu_fan_a_rated
+        self.dV_iu_fan_a_min, self.dV_iu_fan_a_max = resolve_fan_flow_limits(
+            self.dV_iu_fan_a_ref,
+            dV_iu_fan_a_min,
+            dV_iu_fan_a_max,
+        )
         self.dP_iu_fan_rated: float = dP_iu_fan_rated
         self.eta_iu_fan_rated: float = eta_iu_fan_rated
 
@@ -286,7 +312,9 @@ class AirSourceHeatPump:
         self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
+            "fan_ref_flow_rate": self.dV_iu_fan_a_rated,
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
+            "fan_ref_power": self.E_iu_fan_rated,
             "fan_rated_power": self.E_iu_fan_rated,
         }
 
@@ -548,7 +576,9 @@ class AirSourceHeatPump:
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_ou,
                 UA_rated=self.UA_ou_rated,
-                dV_fan_rated=self.dV_ou_fan_a_rated,
+                dV_fan_ref=self.dV_ou_fan_a_ref,
+                dV_fan_min=self.dV_ou_fan_a_min,
+                dV_fan_max=self.dV_ou_fan_a_max,
                 is_active=True,
                 exponent=self.n_ou,
             )
@@ -560,7 +590,9 @@ class AirSourceHeatPump:
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_ou,
                 UA_rated=self.UA_ou_rated,
-                dV_fan_rated=self.dV_ou_fan_a_rated,
+                dV_fan_ref=self.dV_ou_fan_a_ref,
+                dV_fan_min=self.dV_ou_fan_a_min,
+                dV_fan_max=self.dV_ou_fan_a_max,
                 is_active=True,
                 exponent=self.n_ou,
             )
@@ -586,7 +618,9 @@ class AirSourceHeatPump:
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_iu,
                 UA_rated=self.UA_iu_rated,
-                dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_ref=self.dV_iu_fan_a_ref,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
                 is_active=True,
                 exponent=self.n_iu,
             )
@@ -598,7 +632,9 @@ class AirSourceHeatPump:
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_iu,
                 UA_rated=self.UA_iu_rated,
-                dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_ref=self.dV_iu_fan_a_ref,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
                 is_active=True,
                 exponent=self.n_iu,
             )

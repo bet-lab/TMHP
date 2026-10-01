@@ -114,6 +114,7 @@ curve fits and no per-unit recalibration.
    integrations/index
    api/index
    validation/index
+   developer/reference-operating-limits
 
 .. toctree::
    :maxdepth: 1

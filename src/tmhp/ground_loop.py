@@ -5,6 +5,35 @@ borehole resistance is a per-length quantity [m K/W], never a field resistance.
 """
 
 import math
+import warnings
+
+
+def resolve_ground_flow_rates(
+    *,
+    default_ref_lpm: float,
+    legacy_ref_lpm: float | None,
+    min_ratio: float | None,
+    max_ratio: float | None,
+    ref_lpm: float | None,
+    constant_lpm: float | None,
+    min_lpm: float | None,
+    max_lpm: float | None,
+) -> dict[str, float]:
+    """Resolve independent reference, constant setpoint and control limits [L/min]."""
+    if legacy_ref_lpm is not None or min_ratio is not None or max_ratio is not None:
+        warnings.warn(
+            "dV_b_f_lpm/ground_flow_min_ratio/ground_flow_max_ratio are deprecated; "
+            "use ground_flow_ref_lpm/constant_lpm/min_lpm/max_lpm. Explicit absolute inputs take precedence.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+    ref = ref_lpm if ref_lpm is not None else (legacy_ref_lpm if legacy_ref_lpm is not None else default_ref_lpm)
+    constant = ref if constant_lpm is None else constant_lpm
+    low = ref * (0.2 if min_ratio is None else min_ratio) if min_lpm is None else min_lpm
+    high = ref * (1.2 if max_ratio is None else max_ratio) if max_lpm is None else max_lpm
+    if not all(math.isfinite(v) and v > 0 for v in (ref, constant, low, high)) or low >= high:
+        raise ValueError("Ground reference/setpoint/limits must be finite and positive, with min < max")
+    return dict(ref_lpm=ref, constant_lpm=constant, min_lpm=low, max_lpm=high)
 
 
 def calc_borehole_count(N_1: int, N_2: int) -> int:
@@ -71,9 +100,13 @@ def configure_ground_flow(
     variable_UA: bool,
     variable_Rb: bool,
     hydraulic_pump: bool,
-    min_ratio: float,
-    max_ratio: float,
-    volume_flow_rated: float,
+    min_ratio: float | None = None,
+    max_ratio: float | None = None,
+    volume_flow_rated: float | None = None,
+    volume_flow_ref: float | None = None,
+    volume_flow_constant: float | None = None,
+    volume_flow_min: float | None = None,
+    volume_flow_max: float | None = None,
     n_boreholes: int,
     H_b: float,
     R_b: float,
@@ -95,7 +128,7 @@ def configure_ground_flow(
     alias for optimal_power; hydraulic power is mandatory in that control mode.
     Fixed Rb supplied by a user cannot simultaneously specify variable geometry.
     """
-    from .borehole import precompute_borehole_resistance
+    from .borehole import precompute_borehole_resistance_from_flow
     from .constants import c_w, rho_w
     from .heat_exchanger import calc_UA_two_stream_scaled
     from .pump import calc_parallel_borefield_pressure_drop, calc_pump_power
@@ -104,10 +137,28 @@ def configure_ground_flow(
         raise ValueError("ground_flow_control must be 'constant' or 'optimal_power'")
     if variable_ground_flow:
         control = "optimal_power"
-    if not all(math.isfinite(v) for v in (min_ratio, max_ratio)) or not 0 < min_ratio < max_ratio:
-        raise ValueError("Require finite 0 < ground_flow_min_ratio < ground_flow_max_ratio")
-    if not math.isfinite(volume_flow_rated) or volume_flow_rated <= 0 or not math.isfinite(R_b) or R_b <= 0:
-        raise ValueError("Rated ground flow and R_b must be finite and positive")
+    if volume_flow_ref is None:
+        warnings.warn(
+            "volume_flow_rated and ratio limits are deprecated; use independent absolute flow inputs.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        volume_flow_ref = volume_flow_rated
+    if volume_flow_ref is None or not math.isfinite(volume_flow_ref) or volume_flow_ref <= 0:
+        raise ValueError("Ground reference flow must be finite and positive")
+    volume_flow_constant = volume_flow_ref if volume_flow_constant is None else volume_flow_constant
+    volume_flow_min = (
+        volume_flow_ref * (0.2 if min_ratio is None else min_ratio) if volume_flow_min is None else volume_flow_min
+    )
+    volume_flow_max = (
+        volume_flow_ref * (1.2 if max_ratio is None else max_ratio) if volume_flow_max is None else volume_flow_max
+    )
+    if (
+        not all(math.isfinite(v) and v > 0 for v in (volume_flow_constant, volume_flow_min, volume_flow_max, R_b))
+        or volume_flow_min >= volume_flow_max
+    ):
+        raise ValueError("Require positive finite setpoint/R_b and 0 < ground_flow_min < ground_flow_max")
+    min_ratio, max_ratio = volume_flow_min / volume_flow_ref, volume_flow_max / volume_flow_ref
     if not math.isfinite(pump_power) or pump_power < 0:
         raise ValueError("E_pmp must be finite and nonnegative")
     calc_total_borehole_length(n_boreholes, H_b)
@@ -126,24 +177,32 @@ def configure_ground_flow(
         raise ValueError("variable_Rb requires borehole geometry; omit the fixed R_b override")
     interp = None
     if variable_Rb:
-        interp = precompute_borehole_resistance(
-            volume_flow_rated * rho_w / n_boreholes,
-            min(min_ratio, 1.0),
-            max(max_ratio, 1.0),
+        interp = precompute_borehole_resistance_from_flow(
+            min(volume_flow_min, volume_flow_ref, volume_flow_constant) * rho_w / n_boreholes,
+            max(volume_flow_max, volume_flow_ref, volume_flow_constant) * rho_w / n_boreholes,
             H_b,
             c_w,
             boundary_condition,
+            anchor_flows=(volume_flow_ref * rho_w / n_boreholes, volume_flow_constant * rho_w / n_boreholes),
             **geometry,
         )
     return dict(
-        active=control == "optimal_power" or variable_UA or variable_Rb or hydraulic_pump,
+        active=control == "optimal_power"
+        or variable_UA
+        or variable_Rb
+        or hydraulic_pump
+        or volume_flow_constant != volume_flow_ref,
         control=control,
         variable_UA=variable_UA,
         variable_Rb=variable_Rb,
         hydraulic_pump=hydraulic_pump or control == "optimal_power",
         min_ratio=min_ratio,
         max_ratio=max_ratio,
-        volume_flow_rated=volume_flow_rated,
+        volume_flow_ref=volume_flow_ref,
+        volume_flow_constant=volume_flow_constant,
+        volume_flow_min=volume_flow_min,
+        volume_flow_max=volume_flow_max,
+        volume_flow_rated=volume_flow_ref,  # compatibility alias; never an upper limit
         n_boreholes=n_boreholes,
         H_b=H_b,
         R_b=R_b,
@@ -159,14 +218,18 @@ def configure_ground_flow(
     )
 
 
-def ground_flow_state(settings: dict, ratio: float) -> dict:
+def ground_flow_state(settings: dict, ratio: float | None = None, *, volume_flow: float | None = None) -> dict:
     """Evaluate pump, branch flow and Rb* at the same field flow ratio."""
     from .constants import mu_w, rho_w
     from .pump import calc_parallel_borefield_pressure_drop, calc_pump_power
 
-    if not math.isfinite(ratio) or ratio <= 0:
+    if ratio is not None and volume_flow is not None:
+        raise ValueError("Supply ratio or actual volume_flow, not both")
+    if volume_flow is None:
+        volume_flow = settings["volume_flow_ref"] * (1.0 if ratio is None else ratio)
+    if not math.isfinite(volume_flow) or volume_flow <= 0:
         raise ValueError("Ground flow ratio must be positive and finite")
-    volume = settings["volume_flow_rated"] * ratio
+    volume = volume_flow
     mass = volume * rho_w
     branch = calc_borehole_mass_flow(mass, settings["n_boreholes"])
     rb = settings["rb_interp"](branch) if settings["variable_Rb"] else settings["R_b"]
@@ -216,6 +279,14 @@ def ground_result_diagnostics(
         {
             "ground_flow_control": settings["control"],
             "ground_flow_ratio": ratio if active else 0.0,
+            "ground_flow_ref_ratio": ratio if active else 0.0,
+            "ground_flow [m3/s]": loop["dV"] if active else 0.0,
+            "ground_flow_at_min": bool(
+                active and abs(loop["dV"] - settings["volume_flow_min"]) < 2e-3 * settings["volume_flow_ref"]
+            ),
+            "ground_flow_at_max": bool(
+                active and abs(loop["dV"] - settings["volume_flow_max"]) < 2e-3 * settings["volume_flow_ref"]
+            ),
             "m_dot_borehole [kg/s]": loop["m_dot_borehole"] if active else 0.0,
             "R_b_eff [mK/W]": loop["R_b"],
             "UA_ground [W/K]": UA,

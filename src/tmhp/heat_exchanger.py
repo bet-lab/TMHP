@@ -1,6 +1,7 @@
 """Heat-exchanger component models, separate from fans and correlations."""
 
 import math
+import warnings
 from collections.abc import Callable
 
 import numpy as np
@@ -122,12 +123,29 @@ def calc_phase_change_hx_capacity(UA: float, m_dot: float, cp: float, T_fluid_in
     return calc_phase_change_hx_effectiveness(UA, m_dot, cp) * m_dot * cp * abs(T_fluid_in - T_ref_sat)
 
 
+def resolve_fan_flow_limits(
+    reference: float, minimum: float | None = None, maximum: float | None = None
+) -> tuple[float, float]:
+    """Validate independent air-flow reference and solver bounds [m3/s].
+
+    Historical defaults (5% to 100% of reference) are compatibility defaults,
+    not a statement that the rated/reference point is a hardware maximum.
+    """
+    minimum = 0.05 * reference if minimum is None else minimum
+    maximum = reference if maximum is None else maximum
+    if not all(math.isfinite(v) for v in (reference, minimum, maximum)) or reference <= 0 or not 0 <= minimum < maximum:
+        raise ValueError("Fan reference must be positive and finite; require finite 0 <= min < max")
+    return minimum, maximum
+
+
 def calc_UA_from_dV_fan(
     dV_fan: float,
-    dV_fan_rated: float,
-    A_cross: float,
-    UA: float,
+    dV_fan_rated: float | None = None,
+    A_cross: float | None = None,
+    UA: float | None = None,
     exponent: float = 0.71,
+    *,
+    dV_fan_ref: float | None = None,
 ) -> float:
     """Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).
 
@@ -158,9 +176,19 @@ def calc_UA_from_dV_fan(
     use exponents between 0.5 and 0.8 depending on configuration.
     Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6
     """
-    v = dV_fan / A_cross if A_cross > 0 else 0
-    v_rated = dV_fan_rated / A_cross if A_cross > 0 else 0
-    return float(UA * (v / v_rated) ** exponent)
+    reference = dV_fan_ref if dV_fan_ref is not None else dV_fan_rated
+    if reference is None or UA is None or A_cross is None:
+        raise ValueError("Fan reference, UA and cross-sectional area are required")
+    if (
+        not all(math.isfinite(v) for v in (reference, dV_fan, A_cross, UA, exponent))
+        or reference <= 0
+        or A_cross <= 0
+        or dV_fan < 0
+        or UA <= 0
+        or exponent < 0
+    ):
+        raise ValueError("Invalid fan/UA scaling input")
+    return float(UA * (dV_fan / reference) ** exponent)
 
 
 def calc_HX_perf_for_target_heat(
@@ -178,6 +206,10 @@ def calc_HX_perf_for_target_heat(
     T_ref_cond_sat_l_K=None,
     UA_design=None,
     dV_fan_design=None,
+    *,
+    dV_fan_ref=None,
+    dV_fan_min=None,
+    dV_fan_max=None,
 ):
     """Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.
 
@@ -236,6 +268,12 @@ def calc_HX_perf_for_target_heat(
         UA_rated = UA_design
     if dV_fan_rated is None:
         dV_fan_rated = dV_fan_design
+    if dV_fan_design is not None:
+        warnings.warn(
+            "dV_fan_design is deprecated; use dV_fan_ref with independent min/max.", DeprecationWarning, stacklevel=2
+        )
+    if dV_fan_ref is None:
+        dV_fan_ref = dV_fan_rated
 
     if not is_active or T_a_in_C is None or T_ref_sat_K is None:
         return {
@@ -251,6 +289,9 @@ def calc_HX_perf_for_target_heat(
         }
 
     T_a_in_K = cu.C2K(T_a_in_C)
+    if dV_fan_ref is None:
+        raise ValueError("Fan reference flow is required")
+    dV_min, dV_max = resolve_fan_flow_limits(dV_fan_ref, dV_fan_min, dV_fan_max)
 
     if abs(Q_ref_target) < 1e-6:
         return {
@@ -268,16 +309,14 @@ def calc_HX_perf_for_target_heat(
     def _error_function(dV_fan):
         if dV_fan <= 0:
             return -Q_ref_target
-        UA = calc_UA_from_dV_fan(dV_fan, dV_fan_rated, A_cross, UA_rated, exponent)
+        UA = calc_UA_from_dV_fan(dV_fan, dV_fan_ref, A_cross, UA_rated, exponent)
         C_air = c_a * rho_a * dV_fan
         epsilon = 1 - np.exp(-UA / C_air)
         # Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)
         Q_air = C_air * epsilon * abs(T_a_in_K - T_ref_sat_K)
         return Q_air - Q_ref_target
 
-    # Search range: 5% to 100% of rated flow
-    dV_min = dV_fan_rated * 0.05
-    dV_max = dV_fan_rated
+    # Physical solver bounds are independent of the fixed UA normalization.
 
     try:
         sol = root_scalar(_error_function, bracket=[dV_min, dV_max], method="bisect")
@@ -301,7 +340,7 @@ def calc_HX_perf_for_target_heat(
         }
 
     # Final calculations at solved point
-    UA_sol = calc_UA_from_dV_fan(dV_sol, dV_fan_rated, A_cross, UA_rated, exponent)
+    UA_sol = calc_UA_from_dV_fan(dV_sol, dV_fan_ref, A_cross, UA_rated, exponent)
     C_air_sol = c_a * rho_a * dV_sol
     eps_sol = 1 - np.exp(-UA_sol / C_air_sol) if dV_sol > 0 else 0.0
 
@@ -319,6 +358,7 @@ def calc_HX_perf_for_target_heat(
         "epsilon": eps_sol,
         "min_limit": False,
         "max_limit": False,
+        "fan_flow_ratio_to_ref": dV_sol / dV_fan_ref,
         # Legacy keys
         "T_ou_a_mid": T_a_mid_C,
         "Q_ou_air": Q_air_sol,

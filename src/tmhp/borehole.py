@@ -35,7 +35,39 @@ def precompute_borehole_resistance(
     ratios = np.linspace(min_ratio, max_ratio, 101)
     if min_ratio <= 1 <= max_ratio:
         ratios = np.unique(np.append(ratios, 1.0))
-    flows = ratios * m_flow_rated
+    return precompute_borehole_resistance_from_flow(
+        min_ratio * m_flow_rated,
+        max_ratio * m_flow_rated,
+        H,
+        cp_f,
+        boundary_condition,
+        _sample_flows=tuple(ratios * m_flow_rated),
+        **geometry,
+    )
+
+
+def precompute_borehole_resistance_from_flow(
+    m_flow_min: float,
+    m_flow_max: float,
+    H: float,
+    cp_f: float,
+    boundary_condition: str = "uniform_temperature",
+    *,
+    anchor_flows: tuple[float, ...] = (),
+    _sample_flows: tuple[float, ...] | None = None,
+    **geometry: float,
+) -> Callable[[float], float]:
+    """Interpolate Rb* using actual branch mass flow [kg/s], with no normalization.
+
+    Reference/setpoint anchors reproduce their physical resistance exactly;
+    changing the upper limit does not redefine any reference operating point.
+    """
+    if not all(np.isfinite(v) and v > 0 for v in (m_flow_min, m_flow_max, H, cp_f)) or m_flow_min >= m_flow_max:
+        raise ValueError("Require positive finite mass flows with min < max, depth and heat capacity")
+    if any(not np.isfinite(v) or not m_flow_min <= v <= m_flow_max for v in anchor_flows):
+        raise ValueError("Borehole anchor flows must lie inside the actual flow bounds")
+    samples = np.linspace(m_flow_min, m_flow_max, 101) if _sample_flows is None else _sample_flows
+    flows = np.unique(np.append(samples, anchor_flows))
     resistances = []
     for flow in flows:
         local, internal = calc_local_borehole_thermal_resistance(m_flow_pipe=float(flow), cp_f=cp_f, **geometry)

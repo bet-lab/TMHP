@@ -1,0 +1,17 @@
+{
+  "title_ko": "변유량 지열히트펌프의 물리 기반 부분부하 모델링",
+  "title_en": "Physics-Based Part-Load Model of a Variable-Flow Ground Source Heat Pump",
+  "abstract": [
+    "회귀모델의 내부 상태 해석 한계와 상세 모델의 입력 부담(EnergyPlus Engineering Reference, 2024, §16.6)을 보완하고자, 카탈로그 입력을 지향하는 축약 물리모델 TMHP(Thermodynamic Models for Heat Pumps)를 변유량 지열 모델로 확장하였다. 제조사 보정 전의 부분부하 거동을 검토하였다.",
+    "냉매 사이클, ε–NTU 열교환기, g-function과 유량별 유효 보어홀 열저항(Rb*)을 결합하였다. 지중 총열량을 보어홀 수×깊이로 정규화하고, 병렬 U관의 펌프 동력과 물·냉매 유량별 열전달 컨덕턴스(UA)을 계산하였다. 열수지·압축기 제약하에서 압축기·펌프 동력 합을 최소화하였다.",
+    "R410A, 기준용량 8 kW, 2×2 보어홀(깊이 100 m, 간격 6 m), 지중·벽면 16 °C, 지중 열전도율 2 W/(m·K), 실내 20 °C의 정상 난방을 계산하였다. 정격 총유량 80 L/min, 유량범위 0.2–1.2배, 펌프효율 0.6, 압축기 등엔트로피효율 0.8, 응축기·지중측 정격 UA 2 kW/K와 냉매유량 0.04 kg/s에서 부하율(PLR) 0.3–1.0을 비교하였다. Fig. 1의 정유량 대비 물리량 및 Fig. 2의 COP(난방열량/소비동력)를 비교하되, 시스템 COP에는 펌프·실내팬을 포함하였다."
+  ],
+  "keywords": "Key words: Ground source heat pump, Variable flow, Reduced physics model, Part-load performance",
+  "caption_1": "Fig. 1 Optimal-flow behavior\n(a) Flow/pump; (b) UA/Rb*.\nRatios to constant flow at each PLR.",
+  "caption_2": "Fig. 2 COP by flow strategy\n(a) Compressor; (b) System.\nSystem includes pump and indoor fan.",
+  "results": [
+    "최적 유량은 정격의 20.0–69.7%였고 펌프 동력은 62.8–98.7% 감소하였다. 저유량에서 UA 감소와 Rb* 증가가 함께 나타나며, PLR 0.3에서는 유량 하한이 활성화되었다.",
+    "시스템 COP는 정유량 대비 3.4–47.7% 높았다. PLR 0.6 이상에서는 압축기 COP가 낮아져도 펌프 절감으로 시스템 COP가 개선되었다. 공통 배관손실을 제외한 미보정 예시로, 실측 검증과 장기 열이력 평가는 후속 과제이다."
+  ],
+  "acknowledgement": "이 성과는 정부(과학기술정보통신부)의 재원으로 한국연구재단의 지원을 받아 수행된 연구임(No. RS-2025-00512551)."
+}

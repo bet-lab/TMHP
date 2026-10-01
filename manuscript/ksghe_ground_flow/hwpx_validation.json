@@ -1,0 +1,118 @@
+{
+  "command": "validate",
+  "ok": true,
+  "file": "manuscript/ksghe_ground_flow/GSHP_variable_flow.hwpx",
+  "mode": "both",
+  "compat": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "zip_open",
+        "ok": true,
+        "detail": "11 files"
+      },
+      {
+        "name": "file_mimetype",
+        "ok": true,
+        "detail": "present"
+      },
+      {
+        "name": "file_header.xml",
+        "ok": true,
+        "detail": "present"
+      },
+      {
+        "name": "file_section0.xml",
+        "ok": true,
+        "detail": "present"
+      },
+      {
+        "name": "file_content.hpf",
+        "ok": true,
+        "detail": "present"
+      },
+      {
+        "name": "mimetype_value",
+        "ok": true,
+        "detail": "application/hwp+zip"
+      },
+      {
+        "name": "xml_parse_header.xml",
+        "ok": true,
+        "detail": "60,271 bytes"
+      },
+      {
+        "name": "xml_parse_section0.xml",
+        "ok": true,
+        "detail": "19,549 bytes"
+      }
+    ]
+  },
+  "strict": {
+    "ok": true,
+    "checks": [
+      {
+        "name": "lineseg_textpos_consistency",
+        "ok": true,
+        "detail": "all lineseg textpos within text bounds"
+      },
+      {
+        "name": "hp_t_form",
+        "ok": true,
+        "detail": "paired=40, self_closing=10"
+      },
+      {
+        "name": "namespace_hp",
+        "ok": true,
+        "detail": "hp namespace declared"
+      },
+      {
+        "name": "first_paragraph_ordering",
+        "ok": true,
+        "detail": "first paragraph valid"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "name": "zip_open",
+      "ok": true,
+      "detail": "11 files"
+    },
+    {
+      "name": "file_mimetype",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "file_header.xml",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "file_section0.xml",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "file_content.hpf",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "mimetype_value",
+      "ok": true,
+      "detail": "application/hwp+zip"
+    },
+    {
+      "name": "xml_parse_header.xml",
+      "ok": true,
+      "detail": "60,271 bytes"
+    },
+    {
+      "name": "xml_parse_section0.xml",
+      "ok": true,
+      "detail": "19,549 bytes"
+    }
+  ]
+}

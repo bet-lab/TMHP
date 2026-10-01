@@ -10,3 +10,5 @@
 - The one-page manuscript includes only the four-panel performance figure. All four study figures use scientific style and actual Dartwork-mpl MCP review plus visual inspection.
 - Native HWPX text, PDF text, numerical claims, figure bytes, authors, affiliations, acknowledgement and embedded fonts pass QA. The before/after PDF and native-text diff were inspected.
 - Linux font substitutes produce the supplied checked PDF; Hancom Office validation was not performed.
+
+- Requested axis/letter format is applied in all four active figures, rechecked via MCP and visual inspection, and embedded in the rebuilt HWPX/PDF.

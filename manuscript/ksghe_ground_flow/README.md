@@ -68,3 +68,5 @@ Issues: [model #67](https://github.com/bet-lab/TMHP/issues/67),
 [paper #68](https://github.com/bet-lab/TMHP/issues/68). Merge completion is recorded
 in those issues and linked PRs. CI interpreter-label mismatch is tracked in #57;
 no unverified four-version compatibility claim is made.
+
+Requested figure format: physical units in square brackets, `Fan power [W]` and `Comp. power [kW]`, PLR ticks 0.4/0.6/0.8/1.0, and panel letters a–d without parentheses.

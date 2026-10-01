@@ -123,5 +123,17 @@
   "sensitivity_computed_points": 182,
   "sensitivity_selected_points": 48,
   "prescribed_fairness_points": 24,
-  "stress_rejected_points": 88
+  "stress_rejected_points": 88,
+  "graph_axis_format_verified": {
+    "physical_units": "square brackets",
+    "fan_y_label": "Fan power [W]",
+    "compressor_y_label": "Comp. power [kW]",
+    "PLR_ticks": [
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "panel_labels": "letters without parentheses"
+  }
 }

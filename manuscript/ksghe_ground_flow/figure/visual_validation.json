@@ -12,12 +12,24 @@
     "width": "16.8cm",
     "height": "4.6cm"
   },
+  "axis_format": {
+    "physical_units": "square brackets",
+    "fan_y_label": "Fan power [W]",
+    "compressor_y_label": "Comp. power [kW]",
+    "PLR_ticks": [
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "panel_labels": "letters without parentheses"
+  },
   "visual_inspection": {
     "fig_1_part_load": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
-      "png_sha256": "ca97037188ef04bb127ad37732bf624fdc82223a3b73fd5f849aeb49aed294f5",
-      "pdf_sha256": "d8abbeb0f8a67cc05709effafdb86072a3825d9a31f0191c50ddd42ebfaef5cb",
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a",
+      "pdf_sha256": "46109dc46f3fc0cdf78ace3c6e5f41171040520af0483039173dde80bd13af6e",
       "size_px": [
         3968,
         1086
@@ -31,9 +43,9 @@
     },
     "fig_total_power_objective": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
-      "png_sha256": "3f81acf5fde1bbbfa8601f0900e77dc7603122d8e8fa993818374ff4166de8e7",
-      "pdf_sha256": "71681647955ac60b413c7accbba259c807b9df62340e0e4af3ebbe2bd8e5b9ca",
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "af7c383689aa8eaa87776145e81e7242ee8e9e092e2d339d7c0d51e6499ab03d",
+      "pdf_sha256": "135c2c86fdad52cd3c43d125ae7d4b32ad74738ac05500cea79a958f3549d87a",
       "size_px": [
         3070,
         1771
@@ -47,9 +59,9 @@
     },
     "fig_hx_feasibility": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
-      "png_sha256": "c62a1f94f9acdc110184e6ed553709bd4bea5ea7071538ca9c3b45d46aad4c38",
-      "pdf_sha256": "4fb338551643ea0bc9bbfa3333f3934dae344c2e5c4c04db49e2eb47a81e58a1",
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "23a262939f41f5a985a3d8882e9629d143e8b320b07ecc8e13e4ff9dd9264499",
+      "pdf_sha256": "07621a25ad5aac7a5e52ad1b29d38621c0bf37762756b23aa6ae1fe5cb6b3e50",
       "size_px": [
         3070,
         1771
@@ -63,9 +75,9 @@
     },
     "fig_flow_max_sensitivity": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Readable and consistent with CSV; no overlaps or clipping observed",
-      "png_sha256": "896e550201ecc7a4910150f0d98c6314023fa7a75d862ef2a8140a62915120db",
-      "pdf_sha256": "2c973eb37a1255e151446ea8566c01a675c4e75944a5413ed564a9a34f55d875",
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "addde657cabc5912dd383c85a96bf3cd664ab4ce80991486321a3a166df2716d",
+      "pdf_sha256": "900f7c465e061d9e1cfec8d73fc68172e071c1b73b061f8eb30f98bacb2fcfda",
       "size_px": [
         3968,
         1771

@@ -234,3 +234,37 @@ def test_legacy_ground_inputs_warn_and_map_to_the_same_fixed_reference():
             t_max_s=3600,
         )
     assert physical.ground_flow_ref_lpm == 24
+
+
+def test_expanded_ground_flow_can_close_low_load_with_explicit_indoor_approach_range():
+    common = dict(
+        ref="R410A",
+        hp_capacity=8000,
+        V_cmp_ref=1.2e-5,
+        eta_cmp_isen=0.70,
+        N_1=1,
+        N_2=2,
+        H_b=100,
+        B=6,
+        Ts=15,
+        T_a_room=26,
+        ground_flow_ref_lpm=24,
+        ground_flow_constant_lpm=24,
+        ground_flow_min_lpm=9.6,
+        ground_flow_max_lpm=36,
+        hydraulic_pump=True,
+        variable_Rb=True,
+        variable_ground_hx_UA=True,
+        m_dot_ref_rated=0.04151110907913401,
+        PR_cycle_max=8,
+        t_max_s=3600,
+    )
+    expanded = GroundSourceHeatPump(**common, indoor_approach_max_K=25)
+    row = expanded.analyze_steady(Q_r_iu=2400, T0=26, T_a_room=26, T_bhe_wall=15, ground_flow_lpm=36)
+    assert row["converged"] and row["hx_feasible"]
+    assert row["ground_flow_ref_ratio"] == pytest.approx(1.5)
+    assert row["Q_ref_iu [W]"] == pytest.approx(2400)
+    assert row["Q_HX_available [W]"] == pytest.approx(row["Q_ref_required [W]"], abs=0.1)
+    assert row["T_ref_evap_sat [°C]"] > 0
+    assert row["T_ref_evap_sat [°C]"] < 6  # needs more than the historical 20 K approach
+    assert row["E_cmp_ref [W]"] == pytest.approx(0.8 * row["E_cmp [W]"])

@@ -54,6 +54,19 @@ physics. Grid bounds cover the control interval and compatibility anchors.
 Ground UA uses fixed water/refrigerant reference flows and permits UA above its
 reference value. No ratio-to-reference clamp at one is applied.
 
+Indoor approach search domain
+-----------------------------
+
+GSHP exposes ``indoor_approach_min_K`` / ``indoor_approach_max_K`` separately
+from airflow limits. Defaults remain 1–20 K. An expanded water-flow interval can
+require an indoor approach above 20 K to close the HX while respecting the
+compressor pressure-ratio floor. The current 26 °C cooling study explicitly
+uses 1–25 K (minimum evaporating temperature 1 °C). These are numerical cycle
+search limits, not fan or reference limits; they must be declared alongside
+the control envelope. A regression demonstrates a feasible PLR 0.3 / 36 L/min
+point above 20 K rather than labelling the previous truncated search as a
+physical HX capacity failure.
+
 Fan API and migration
 ---------------------
 

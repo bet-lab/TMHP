@@ -128,6 +128,8 @@ class GroundSourceHeatPump:
         UA_ground_rated: float | None = None,
         ground_hx_ua_per_capacity: float = 0.18,
         UA_iu_rated: float | None = None,
+        indoor_approach_min_K: float = 1.0,
+        indoor_approach_max_K: float = 20.0,
         eta_v: float = 0.9,
         eta_em: float = 0.8,
         ground_flow_ref_lpm: float | None = None,
@@ -174,6 +176,13 @@ class GroundSourceHeatPump:
         dV_b_f_lpm = self.ground_flow_ref_lpm
         if dV_iu_fan_a_ref is not None:
             dV_iu_fan_a_rated = dV_iu_fan_a_ref
+        if (
+            not all(np.isfinite(v) for v in (indoor_approach_min_K, indoor_approach_max_K))
+            or not 0 < indoor_approach_min_K < indoor_approach_max_K
+        ):
+            raise ValueError("Require finite 0 < indoor_approach_min_K < indoor_approach_max_K")
+        self.indoor_approach_min_K = indoor_approach_min_K
+        self.indoor_approach_max_K = indoor_approach_max_K
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else 0.0001
@@ -750,7 +759,7 @@ class GroundSourceHeatPump:
             row = evaluate_load_approach(float(x))
             return float(row["E_tot [W]"]) if row.get("converged", False) else 1e30
 
-        grid = np.linspace(1, 20, 7)
+        grid = np.linspace(self.indoor_approach_min_K, self.indoor_approach_max_K, 7)
         powers = [objective(float(x)) for x in grid]
         feasible = [i for i, power in enumerate(powers) if power < 1e30]
         if not feasible:
@@ -820,7 +829,10 @@ class GroundSourceHeatPump:
         return minimize(
             _objective,
             x0=[x0_dt, x0_dt],
-            bounds=[(1.0, 20.0), (1.0, 20.0)],
+            bounds=[
+                (1.0, 20.0) if Q_r_iu < 0 else (self.indoor_approach_min_K, self.indoor_approach_max_K),
+                (self.indoor_approach_min_K, self.indoor_approach_max_K) if Q_r_iu < 0 else (1.0, 20.0),
+            ],
             method="Nelder-Mead",
             options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
         )

@@ -226,7 +226,10 @@ def ground_flow_state(settings: dict, ratio: float | None = None, *, volume_flow
     if ratio is not None and volume_flow is not None:
         raise ValueError("Supply ratio or actual volume_flow, not both")
     if volume_flow is None:
-        volume_flow = settings["volume_flow_ref"] * (1.0 if ratio is None else ratio)
+        reference = settings.get("volume_flow_ref", settings.get("volume_flow_rated"))
+        if reference is None:
+            raise ValueError("Ground reference flow is required")
+        volume_flow = reference * (1.0 if ratio is None else ratio)
     if not math.isfinite(volume_flow) or volume_flow <= 0:
         raise ValueError("Ground flow ratio must be positive and finite")
     volume = volume_flow

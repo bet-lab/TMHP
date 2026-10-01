@@ -135,6 +135,8 @@ Line references and source hashes are in `reference-rated-max.json`.
 | ground_source_heat_pump.py | `ground_flow_ratio` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
 | ground_source_heat_pump.py | `ground_flow_ref_lpm` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump.py | `hp_capacity` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
+| ground_source_heat_pump.py | `indoor_approach_max_K` | D | Explicit numerical indoor cycle search boundary; defaults preserved at 1–20 K. Not a reference or fan-flow ceiling. |
+| ground_source_heat_pump.py | `indoor_approach_min_K` | D | Explicit numerical indoor cycle search boundary; defaults preserved at 1–20 K. Not a reference or fan-flow ceiling. |
 | ground_source_heat_pump.py | `m_dot_ref` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
 | ground_source_heat_pump.py | `m_dot_ref_rated` | A/B | Fixed physical reference; normalization where used in UA/fan scaling. Not a limit. |
 | ground_source_heat_pump.py | `maximum` | D | Explicit control/hardware, physical capacity, validity or time bound; independent of reference. |
@@ -248,6 +250,7 @@ Line references and source hashes are in `reference-rated-max.json`.
 | ground_loop.py | `min_ratio` | D (legacy) | Deprecated control-bound adapter; new internals use independent absolute flow limits. |
 | ground_loop.py | `ratio` | B | Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits. |
 | ground_loop.py | `ref` | A | Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization. |
+| ground_loop.py | `reference` | B | Fixed reference flow; legacy volume_flow_rated dictionary alias accepted. |
 | ground_loop.py | `volume_flow_constant` | C | Actual control command/target; never a denominator. |
 | ground_loop.py | `volume_flow_max` | D | Explicit control/hardware, physical capacity, validity or time bound; independent of reference. |
 | ground_loop.py | `volume_flow_min` | D | Explicit control/hardware, physical capacity, validity or time bound; independent of reference. |

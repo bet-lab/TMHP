@@ -26,7 +26,7 @@ def _model(cls, **overrides):
         t_max_s=86400,
     )
     kw.update(
-        dict(UA_cond=2000, UA_evap=2000, PR_cycle_max=8)
+        dict(UA_cond=2000, UA_evap=2000, eta_v=1, eta_em=1, PR_cycle_max=8)
         if cls is GroundSourceHeatPump
         else dict(UA_tank_hx=2000, UA_ground=2000)
     )

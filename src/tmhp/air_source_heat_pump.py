@@ -20,7 +20,6 @@ import contextlib
 import inspect
 import math
 from collections.abc import Callable
-from typing import TypeGuard
 
 import CoolProp.CoolProp as CP
 import numpy as np
@@ -34,7 +33,6 @@ from .compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
-    CAPACITY_CLAMPED_MIN,
     RATED_POINT_AIR_TO_AIR,
     default_displacement,
     solve_compressor_speed,
@@ -46,6 +44,7 @@ from .enex_functions import (
 )
 from .refrigerant import (
     calc_ref_state,
+    reportable_state,
 )
 
 # Objective bands for the operating-point search in ``_optimize_operation``.
@@ -227,6 +226,12 @@ class AirSourceHeatPump:
 
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
+        import CoolProp.CoolProp as CP
+
+        #: Critical temperature of the refrigerant [K]. The cycle this model
+        #: solves is subcritical, so it bounds every saturation temperature the
+        #: operating-point search may propose.
+        self._T_crit_K: float = float(CP.PropsSI("Tcrit", ref))
         self.V_cmp_ref: float = V_cmp_ref
         # Until now these defaulted to None, which `_eval_eff` reads as 1.0 --
         # an ideal compressor, with neither irreversible compression nor
@@ -408,7 +413,7 @@ class AirSourceHeatPump:
                 dT_subcool=self.dT_subcool,
                 is_active=False,
             )
-            result = cs.copy()
+            result = reportable_state(cs)
             result.update(
                 {
                     "hp_is_on": False,
@@ -460,6 +465,15 @@ class AirSourceHeatPump:
             mode = "heating"
             T_evap_sat_K = T0_K - dT_ref_evap  # evap below outdoor
             T_cond_sat_K = T_a_room_K + dT_ref_cond  # cond above room
+
+        # A saturation temperature at or above the critical point has no
+        # saturation pressure, so the subcritical cycle this model solves does
+        # not exist there. Reject it as an infeasible candidate rather than
+        # letting the property call raise: the search probes approach
+        # temperatures freely, and a wide enough upper bound will reach the
+        # critical temperature on a hot day (R410A: 71.3 degC).
+        if T_cond_sat_K >= self._T_crit_K or T_evap_sat_K >= self._T_crit_K:
+            return None
 
         # Low-lift feasibility is enforced downstream by the compressor
         # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
@@ -702,7 +716,7 @@ class AirSourceHeatPump:
 
         # Same name (`result`) is annotated up in the inactive branch (~L216);
         # plain assignment to avoid the mypy [no-redef] false positive.
-        result = cs.copy()
+        result = reportable_state(cs)
         result.update(
             {
                 "hp_is_on": True,
@@ -773,7 +787,6 @@ class AirSourceHeatPump:
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        x0: tuple[float, float] | None = None,
     ):
         """Find the operating point the unit would run at (2-D bounded search).
 
@@ -791,13 +804,6 @@ class AirSourceHeatPump:
             Dead-state temperature [°C].
         T_a_room : float
             Room air temperature [°C].
-        x0 : tuple[float, float] | None
-            Warm start ``(dT_ref_evap, dT_ref_cond)``. When it is feasible the
-            pre-scan is skipped, which matters for a duty near the ceiling: the
-            feasible set there is a narrow band that a fixed pre-scan lattice
-            can miss, while the solution of a slightly smaller duty always sits
-            next to it. Falls back to the pre-scan when the warm start is not
-            feasible.
 
         Returns
         -------
@@ -859,17 +865,6 @@ class AirSourceHeatPump:
                 math.inf,
                 penalty=OBJ_INFEASIBLE,
             )
-
-        if x0 is not None:
-            warm = (float(x0[0]), float(x0[1]))
-            if _objective(warm) < OBJ_INFEASIBLE:
-                return minimize(
-                    _objective,
-                    x0=list(warm),
-                    bounds=[self.dT_approach_bounds, self.dT_approach_bounds],
-                    method="Nelder-Mead",
-                    options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
-                )
 
         # Phase 1: coarse grid pre-scan to find a converging starting point.
         # A single fixed x0=(15,15) fails silently when the entire search space
@@ -955,58 +950,55 @@ class AirSourceHeatPump:
     # Capacity envelope
     # =============================================================
 
-    def _solve_at(
+    def _duty_is_deliverable(
         self,
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        x0: tuple[float, float] | None = None,
-    ) -> tuple[dict | None, tuple[float, float]]:
-        """Optimise and evaluate one duty request, returning ``(state, x)``."""
-        opt = self._optimize_operation(Q_r_iu=Q_r_iu, T0=T0, T_a_room=T_a_room, x0=x0)
-        x = (float(opt.x[0]), float(opt.x[1]))
-        perf: dict | None = None
-        with contextlib.suppress(Exception):
+        grid,
+        seed: tuple[float, float] | None = None,
+    ) -> tuple[tuple[float, float] | None, dict | None]:
+        """Is there an approach pair at which the unit meets this duty exactly?
+
+        The ceiling is set by whichever of the compressor and the coils runs out
+        first, and the two bind in different places: at large approach
+        temperatures the compressor saturates, at small ones the airflow search
+        hits its rated limit. Testing a duty rather than pinning the compressor
+        at ``rps_max`` keeps both branches in play.
+
+        The whole grid is swept rather than a local search because the feasible
+        set is neither convex nor necessarily connected -- the survivors form a
+        narrow curved band, and a local method walks into one piece of it and
+        stops. Measured on the exergy paper's unit, a warm-started local walk
+        reported a *higher* ceiling under a *lower* speed limit, and a heating
+        ceiling that fell as the outdoor air warmed; both are impossible, and
+        both came from the search rather than from the physics. ``seed`` is
+        tried first so that a duty known to be deliverable usually costs one
+        evaluation instead of a sweep.
+        """
+        candidates: list[tuple[float, float]] = []
+        if seed is not None:
+            candidates.append(seed)
+        candidates.extend((float(de), float(dc)) for de in grid for dc in grid)
+
+        for de, dc in candidates:
             perf = self._calc_state(
-                dT_ref_evap=x[0],
-                dT_ref_cond=x[1],
+                dT_ref_evap=de,
+                dT_ref_cond=dc,
                 Q_r_iu=Q_r_iu,
                 T0=T0,
                 T_a_room=T_a_room,
             )
-        return perf, x
-
-    def _solve_best_of(
-        self,
-        Q_r_iu: float,
-        T0: float,
-        T_a_room: float,
-        x0: tuple[float, float] | None,
-    ) -> tuple[dict | None, tuple[float, float]]:
-        """Try the warm start, and fall back to the full pre-scan if it fails.
-
-        A warm start is fast and usually right, but it commits the search to the
-        basin around the previous solution. Near the ceiling a slightly larger
-        duty can be feasible in a *different* basin, and stopping at the first
-        warm-started failure would report that as the ceiling — making the
-        envelope depend on the search path rather than on the machine. Retrying
-        cold costs one pre-scan and only on steps that failed.
-        """
-        if x0 is not None:
-            perf, x = self._solve_at(Q_r_iu, T0, T_a_room, x0=x0)
-            if self._meets(perf, Q_r_iu):
-                return perf, x
-        return self._solve_at(Q_r_iu, T0, T_a_room)
-
-    @staticmethod
-    def _meets(perf: dict | None, Q_r_iu: float) -> TypeGuard[dict]:
-        """True when the state delivers the duty that was asked of it."""
-        if perf is None or not perf.get("converged", False):
-            return False
-        if perf.get("capacity_clamped") is not None:
-            return False
-        delivered = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
-        return delivered >= 0.99 * abs(Q_r_iu)
+            if perf is None or not perf.get("converged", False):
+                continue
+            # Clamped at either bound means the delivered duty is not the one
+            # asked for, so this point does not demonstrate the duty.
+            if perf.get("capacity_clamped") is not None:
+                continue
+            if abs(float(perf.get("Q_ref_iu [W]", 0.0))) < 0.99 * abs(Q_r_iu):
+                continue
+            return (de, dc), perf
+        return None, None
 
     def max_capacity(
         self,
@@ -1014,26 +1006,33 @@ class AirSourceHeatPump:
         T_a_room: float | None = None,
         *,
         mode: str = "heating",
-        q_start: float | None = None,
-        rel_tol: float = 2e-3,
+        grid_points: int = 13,
+        rel_tol: float = 5e-3,
     ) -> dict:
         """Largest duty the unit can actually deliver at this condition.
 
-        The nameplate capacity is a label attached to one rating point; it is
-        not a ceiling. A real unit delivers more than nameplate when the outdoor
-        air is mild and less when it is severe, because the ceiling is set by
+        Nameplate capacity is a label attached to one rating point, not a
+        ceiling. A real unit delivers more than nameplate when the outdoor air
+        is mild and less when it is severe, because the limit is set by
         whichever of the compressor speed range, the pressure-ratio envelope and
         the air-side heat exchangers binds first. Clipping a load schedule at
-        nameplate therefore errs in both directions at once. This method returns
-        the ceiling the model itself implies, so a load schedule can be clipped
-        against the machine rather than against its label, and the unmet part
-        reported as a result.
+        nameplate therefore errs in both directions at once. This returns the
+        ceiling the model itself implies, so a schedule can be clipped against
+        the machine rather than against its label and the shortfall reported as
+        a result.
 
-        The search grows the requested duty from a feasible starting value,
-        warm-starting each step from the previous solution, until the request
-        can no longer be met, then bisects the last interval. The warm start is
-        what makes this reliable: near the ceiling the feasible approach
-        temperatures form a narrow band that a fixed pre-scan can miss entirely.
+        A ladder of trial duties brackets the ceiling and a bisection closes on
+        it, each duty tested against the whole approach-temperature grid so the
+        answer does not depend on a search path.
+
+        .. warning::
+
+            The answer is only as trustworthy as the compressor correlations at
+            the speeds it reaches. Those correlations are fits, and a validation
+            carried out at part load does not cover the top of the speed range.
+            Check that the returned ``cop_sys [-]`` is credible before using the
+            ceiling, and consider lowering ``rps_max`` to the highest speed the
+            validation actually reached.
 
         Parameters
         ----------
@@ -1043,31 +1042,27 @@ class AirSourceHeatPump:
             Room air temperature [°C]. Uses the constructor default if None.
         mode : str
             ``"heating"`` or ``"cooling"``.
-        q_start : float | None
-            Initial duty probe [W], positive. Defaults to a quarter of the
-            nameplate capacity, which is inside the modulation range of any
-            sensibly-sized machine.
+        grid_points : int
+            Resolution of the approach-temperature sweep on each axis.
         rel_tol : float
-            Bisection stops once the bracket is this narrow, relative to the
+            Bisection stops once the bracket is this narrow relative to the
             ceiling.
 
         Returns
         -------
         dict
             ``Q_max [W]`` (0.0 when the unit cannot run at all here), the
-            approach temperatures at that point, the electrical input and
-            system COP there, and ``binding`` naming what stopped it:
-            ``"compressor"`` when the speed range ran out, ``"cycle"`` when the
-            pressure-ratio envelope or the air-side search rejected the state,
-            and ``"none"`` when the unit was not limited within the probe range.
+            approach temperatures there, the electrical input and system COP at
+            that point, and ``binding`` naming what stopped it: ``"compressor"``
+            when the speed range ran out, ``"cycle"`` when the pressure-ratio
+            envelope or the air side did, and ``"unbounded"`` when the ladder
+            never ran out, which makes the figure a lower bound.
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
         if T_a_room is None:
             T_a_room = self.T_a_room
 
-        sign = 1.0 if mode == "cooling" else -1.0
-        probe = float(q_start) if q_start is not None else 0.25 * self.hp_capacity
         empty = {
             "Q_max [W]": 0.0,
             "dT_ref_evap [K]": float("nan"),
@@ -1080,67 +1075,62 @@ class AirSourceHeatPump:
             "T_a_room [°C]": T_a_room,
         }
 
-        # --- 1. find a duty the unit can actually meet ------------------------
-        lo_perf: dict | None = None
-        lo_x: tuple[float, float] | None = None
+        sign = 1.0 if mode == "cooling" else -1.0
+        lo_b, hi_b = self.dT_approach_bounds
+        grid = np.linspace(lo_b, hi_b, grid_points)
+
+        # --- 1. ladder: bracket the ceiling between a duty that works and one
+        #        that does not. The rungs span well below the modulation floor
+        #        to well above any credible ceiling, so neither end is assumed.
+        rungs = [f * self.hp_capacity for f in (0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)]
         lo_q = 0.0
-        for _ in range(16):
-            perf, x = self._solve_at(sign * probe, T0, T_a_room)
-            if self._meets(perf, probe):
-                lo_perf, lo_x, lo_q = perf, x, probe
+        lo_x: tuple[float, float] | None = None
+        lo_perf: dict | None = None
+        hi_q: float | None = None
+        for q in rungs:
+            x, perf = self._duty_is_deliverable(sign * q, T0, T_a_room, grid, seed=lo_x)
+            if x is not None and perf is not None:
+                lo_q, lo_x, lo_perf = q, x, perf
+            elif lo_x is not None:
+                # Already had a working duty, and this one fails: bracketed.
+                hi_q = q
                 break
-            if perf is not None and perf.get("capacity_clamped") == CAPACITY_CLAMPED_MIN:
-                # Below the modulation floor: the machine delivers more than
-                # asked. Mild conditions put that floor well above a quarter of
-                # nameplate, so the probe has to move up, not down.
-                probe *= 2.0
-            else:
-                probe *= 0.5
-        if lo_perf is None or lo_x is None:
+        if lo_x is None or lo_perf is None:
             return empty
 
-        # --- 2. grow until it cannot, warm-starting each step ----------------
-        hi_q = None
-        binding = "none"
-        q = lo_q
-        for _ in range(30):
-            q *= 1.2
-            perf, x = self._solve_best_of(sign * q, T0, T_a_room, lo_x)
-            if self._meets(perf, q):
-                lo_perf, lo_x, lo_q = perf, x, q
-                continue
-            hi_q = q
-            binding = "compressor" if perf is not None and perf.get("capacity_clamped") is not None else "cycle"
-            break
+        # --- 2. close on the ceiling -----------------------------------------
+        binding = "unbounded"
+        if hi_q is not None:
+            while (hi_q - lo_q) > rel_tol * hi_q:
+                mid = 0.5 * (lo_q + hi_q)
+                x, perf = self._duty_is_deliverable(sign * mid, T0, T_a_room, grid, seed=lo_x)
+                if x is not None and perf is not None:
+                    lo_q, lo_x, lo_perf = mid, x, perf
+                else:
+                    hi_q = mid
+            # Just past the ceiling, what does the machine say stopped it?
+            probe = self._calc_state(
+                dT_ref_evap=lo_x[0],
+                dT_ref_cond=lo_x[1],
+                Q_r_iu=sign * lo_q * 1.05,
+                T0=T0,
+                T_a_room=T_a_room,
+            )
+            binding = (
+                "compressor" if probe is not None and probe.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else "cycle"
+            )
 
-        def report(perf: dict, x: tuple[float, float], q: float) -> dict:
-            return {
-                "Q_max [W]": q,
-                "dT_ref_evap [K]": x[0],
-                "dT_ref_cond [K]": x[1],
-                "E_tot [W]": float(perf.get("E_tot [W]", float("nan"))),
-                "cop_sys [-]": float(perf.get("cop_sys [-]", float("nan"))),
-                "binding": binding,
-                "mode": mode,
-                "T0 [°C]": T0,
-                "T_a_room [°C]": T_a_room,
-            }
-
-        if hi_q is None:
-            # Never ran out of capacity within the probe range, so the number
-            # below is a lower bound on the ceiling, not the ceiling itself.
-            return report(lo_perf, lo_x, lo_q)
-
-        # --- 3. bisect the last interval -------------------------------------
-        while (hi_q - lo_q) > rel_tol * hi_q:
-            mid = 0.5 * (lo_q + hi_q)
-            perf, x = self._solve_best_of(sign * mid, T0, T_a_room, lo_x)
-            if self._meets(perf, mid):
-                lo_perf, lo_x, lo_q = perf, x, mid
-            else:
-                hi_q = mid
-
-        return report(lo_perf, lo_x, lo_q)
+        return {
+            "Q_max [W]": lo_q,
+            "dT_ref_evap [K]": lo_x[0],
+            "dT_ref_cond [K]": lo_x[1],
+            "E_tot [W]": float(lo_perf.get("E_tot [W]", float("nan"))),
+            "cop_sys [-]": float(lo_perf.get("cop_sys [-]", float("nan"))),
+            "binding": binding,
+            "mode": mode,
+            "T0 [°C]": T0,
+            "T_a_room [°C]": T_a_room,
+        }
 
     # =============================================================
     # Steady-state analysis

@@ -75,7 +75,7 @@ from .enex_functions import (
 )
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import calc_fan_power_from_dV_fan
-from .refrigerant import calc_ref_state
+from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
 from .thermodynamics import calc_energy_flow
 
@@ -481,7 +481,7 @@ class AirSourceHeatPumpBoiler:
                 rps=0.0,
             )
 
-            result: dict = cs.copy()
+            result: dict = reportable_state(cs)
             result.update(
                 {
                     "hp_is_on": False,
@@ -836,7 +836,7 @@ class AirSourceHeatPumpBoiler:
         Q_mix_sup_w_in = calc_energy_flow(G=c_w * rho_w * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=T0_K)
         Q_mix_w_out = calc_energy_flow(G=c_w * rho_w * dV_mix_w_out_val, T=T_mix_w_out_val_K, T0=T0_K)
 
-        result = cs.copy()
+        result = reportable_state(cs)
 
         result.update(
             {

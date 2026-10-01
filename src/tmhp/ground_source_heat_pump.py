@@ -42,6 +42,7 @@ from .enex_functions import (
 from .g_function import precompute_gfunction
 from .refrigerant import (
     calc_ref_state,
+    reportable_state,
 )
 
 
@@ -472,7 +473,7 @@ class GroundSourceHeatPump:
         E_pmp_active = self.E_pmp if is_active else 0.0
         E_tot = E_cmp + E_pmp_active + E_iu_fan
 
-        result = cycle_states.copy()
+        result = reportable_state(cycle_states)
         result.update(
             {
                 "hp_is_on": is_active,

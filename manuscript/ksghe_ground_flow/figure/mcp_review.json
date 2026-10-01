@@ -1,6 +1,6 @@
 {
   "transport": "FastMCP in-process MCP client/server",
-  "script_sha256": "1564ec06281246a6cc54c9a784e488560769ef7067f1ea1c9638986da94ef817",
+  "script_sha256": "6600cbaf1eba5e5d89b0044059f4f783df461638d6e6fcc444a70efd6ceab054",
   "calls": [
     {
       "tool": "lint_dartwork_mpl_code_json",
@@ -63,6 +63,36 @@
       "tool": "validate_plot_data",
       "figure": "fig_flow_max_sensitivity",
       "panel": "system_COP",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_compressor_speed",
+      "panel": "cmp_rps [rev/s]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_compressor_efficiencies",
+      "panel": "eta_v [-]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_compressor_efficiencies",
+      "panel": "eta_is [-]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_compressor_efficiencies",
+      "panel": "eta_em [-]",
+      "result": "✅ Data structure valid for line plot."
+    },
+    {
+      "tool": "validate_plot_data",
+      "figure": "fig_compressor_pressure_ratio",
+      "panel": "pressure_ratio",
       "result": "✅ Data structure valid for line plot."
     }
   ],

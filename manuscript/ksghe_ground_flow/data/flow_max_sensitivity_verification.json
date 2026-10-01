@@ -15,12 +15,12 @@
     {
       "max_ratio": 1,
       "plr": 0.3,
-      "optimizer_minus_grid_W": -0.05169233411021423
+      "optimizer_minus_grid_W": -0.0038165647623031873
     },
     {
       "max_ratio": 1,
       "plr": 0.6,
-      "optimizer_minus_grid_W": -0.13702107199048896
+      "optimizer_minus_grid_W": -0.010085636675569276
     },
     {
       "max_ratio": 1,
@@ -30,12 +30,12 @@
     {
       "max_ratio": 1.2,
       "plr": 0.3,
-      "optimizer_minus_grid_W": -0.08267947744226944
+      "optimizer_minus_grid_W": -0.015195573430020204
     },
     {
       "max_ratio": 1.2,
       "plr": 0.6,
-      "optimizer_minus_grid_W": -0.021955637297310204
+      "optimizer_minus_grid_W": -0.016031213150483836
     },
     {
       "max_ratio": 1.2,
@@ -45,17 +45,17 @@
     {
       "max_ratio": 1.5,
       "plr": 0.3,
-      "optimizer_minus_grid_W": -0.011764875640608352
+      "optimizer_minus_grid_W": -0.02365955693386468
     },
     {
       "max_ratio": 1.5,
       "plr": 0.6,
-      "optimizer_minus_grid_W": -0.042876283715713726
+      "optimizer_minus_grid_W": -0.031604757859440724
     },
     {
       "max_ratio": 1.5,
       "plr": 1.0,
-      "optimizer_minus_grid_W": 0.0
+      "optimizer_minus_grid_W": -0.043037757715183034
     }
   ],
   "upper_bound_plrs": {
@@ -68,9 +68,7 @@
       0.9,
       1.0
     ],
-    "1.5": [
-      1.0
-    ]
+    "1.5": []
   },
   "interpretation": "Bound optima remain constrained by each stated hardware/control maximum; not proof of an unconstrained stationary optimum."
 }

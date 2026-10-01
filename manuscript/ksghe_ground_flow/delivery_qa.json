@@ -2,45 +2,58 @@
   "copied_files": [
     {
       "name": "261001_KSGHE_HB.hwpx",
-      "sha256": "e1c3d8ccd547c6b0b3cbaeed670c349e0eb1fef415522a5ad618d08954305fcb"
+      "sha256": "6ea1b821a333259948a7dca9c995af7a540ff527f7d8e5a2ba83d53389694bef"
     },
     {
       "name": "261001_KSGHE_HB.pdf",
-      "sha256": "f686e82b7542744db44a256e7f64da9aded17562c90fa1b071d2569c5d497b0a"
+      "sha256": "d1d6c6533f14f6160da6f198feccae722794c959a0c877494b0905d192a0618d"
     },
     {
       "name": "261001_KSGHE_HB.png",
-      "sha256": "fde7388319c5883b1309e9b28b1ecf794b6300c3115f4bb21744b414faf99db1"
+      "sha256": "f802274c29d377e499dfddbe600ae86721f1f1eab23458a29ea8baba8a827659"
     },
     {
       "name": "261001_KSGHE_HB_fig1.png",
-      "sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a"
+      "sha256": "04f6f90f09be001d88cf7c3320632cc8f8498f7c15e469b1637323de75c23e92"
     },
     {
       "name": "261001_KSGHE_HB_simulation_results.csv",
-      "sha256": "73220b0828d59302fed37807ce6402fa22029666ac93fb102e3cf48a7b2840e7"
+      "sha256": "bd1cf41ef25a36d447158c901c308d9dcb7a489deee0903116e0129cf8e3f6f1"
     },
     {
       "name": "261001_KSGHE_HB_flow_max_sensitivity.csv",
-      "sha256": "deff24398fa1445aea04e35fd7351ff912f29a4a2ca914d5c4f5a8ad6d7c8609"
+      "sha256": "97472f46c21a4751cfbd50f717a7919a4a4bea19667037b67d4862ee641f1fab"
+    },
+    {
+      "name": "261001_KSGHE_HB_compressor_efficiency_comparison.csv",
+      "sha256": "aea3163b41c61a4b83c28b63d6ea645e4fa6d8da850f4feac36b4cdf52954c26"
     },
     {
       "name": "261001_KSGHE_HB_validation_notes.md",
-      "sha256": "0474dbdefc5b1e5bc0f53723e399955633bda63fa663eaa0fb94736cc6c97ef8"
+      "sha256": "62d81e80f0bf18041ea493dd31c81267481029bff6884d28a9cf5e582100463f"
     },
     {
-      "name": "261001_KSGHE_HB_reference_flow_revision_diff.pdf",
-      "sha256": "4f5fb62fff17d728503e4d6f244b271c60447561bff968f7e14de8537f4bc9f8"
+      "name": "261001_KSGHE_HB_compressor_efficiency_validation.md",
+      "sha256": "9eb981b1024f09bf0eba76ec7d91bc467a54bf81762596a3a074ca8adc549292"
     },
     {
-      "name": "261001_KSGHE_HB_reference_flow_revision.diff",
-      "sha256": "6c8325fb675f0f2292ff5daae01fbd58c1ca34805535e858b6964593fdd4171e"
+      "name": "261001_KSGHE_HB_compressor_efficiency_revision_diff.pdf",
+      "sha256": "97824ec628139c9ed431f7cdb4a28ac826da9c3559ace9715417733876beac55"
+    },
+    {
+      "name": "261001_KSGHE_HB_compressor_efficiency_revision.diff",
+      "sha256": "617f5b1ed96bbe2a22a451d1e6dd92e445912bb54e5994f5ab988e49406da3f7"
     }
   ],
+  "user_copy_byte_identical_to_validated_artifacts": true,
   "visual_review": {
-    "paper": "All authors/affiliations visible; no overflow, clipping or overlaps; one 1x4 scientific figure; acknowledgement and footer clear",
-    "diff": "Before/after page layout and native-text changes inspected",
-    "requested_graph_format": "Physical units in square brackets; Fan/Comp. labels; PLR 0.4/0.6/0.8/1.0; panel letters without parentheses. All four graphs rechecked through MCP/runtime and visual inspection."
-  },
-  "user_copy_byte_identical_to_validated_artifacts": true
+    "paper": "Final one-page paper visually inspected: all authors/affiliations/acknowledgement/footer visible, no clipping or overlap",
+    "diff": "Visual before/after and native-text differences inspected",
+    "requested_graph_format": "Constant-flow / Variable-flow; bracket units, Fan/Comp. labels, PLR .4/.6/.8/1, letters without parentheses",
+    "title": "Both titles omit \ubb3c\ub9ac \uae30\ubc18 / Physics-Based",
+    "rated_UAs_W_K": {
+      "ground": 800,
+      "indoor": 1600
+    }
+  }
 }

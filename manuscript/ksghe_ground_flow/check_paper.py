@@ -29,12 +29,23 @@ def main():
     fingerprint = json.loads((HERE / "data/case_fingerprint.json").read_text())
     assert hashlib.sha256((HERE / "data/config.json").read_bytes()).hexdigest() == fingerprint["config_sha256"]
     assert fingerprint["source_commit"] == verification["source_commit"]
-    assert reference["ground_UA_rated_W_K"] == 1440 and reference["load_UA_rated_W_K"] == 640
+    assert reference["ground_UA_rated_W_K"] == 800 and reference["load_UA_rated_W_K"] == 1600
     config = json.loads((HERE / "data/config.json").read_text())
     inputs = config["model"]
     assert inputs["ground_flow_ref_lpm"] == inputs["ground_flow_constant_lpm"] == 24
     assert inputs["ground_flow_min_lpm"] == 9.6 and inputs["ground_flow_max_lpm"] == 36
     assert inputs["indoor_approach_max_K"] == 25
+    assert config["compressor_efficiency_model"] == "baseline-v2026-09-24"
+    assert not any(k in inputs for k in ("eta_cmp_isen", "eta_cmp_vol", "eta_cmp", "eta_v", "eta_em"))
+    efficiency_check = json.loads((HERE / "data/compressor_efficiency_verification.json").read_text())
+    assert efficiency_check["all_selected_baseline_parity"] and efficiency_check["selected_points"] == 16
+    assert efficiency_check["model_source_commit"] == verification["source_commit"]
+    assert efficiency_check["efficiency_module_sha256"] == fingerprint["efficiency_module_sha256"]
+    assert (
+        hashlib.sha256((HERE / "data/compressor_efficiency_comparison.csv").read_bytes()).hexdigest()
+        == efficiency_check["comparison_sha256"]
+    )
+    assert verification["efficiency_and_mass_flow_checks"]
     with (HERE / "data/simulation_results.csv").open() as stream:
         rows = list(csv.DictReader(stream))
     assert len(rows) == 16
@@ -48,8 +59,17 @@ def main():
         assert math.isclose(total, float(row["E_tot [W]"]), rel_tol=1e-10)
         assert math.isclose(float(row["cop_sys [-]"]), float(row["Q_ref_iu [W]"]) / total, rel_tol=1e-10)
         assert math.isclose(float(row["Q_ref_iu [W]"]), 8000 * float(row["plr"]), rel_tol=1e-9)
-        assert math.isclose(float(row["E_cmp_ref [W]"]), 0.8 * float(row["E_cmp [W]"]), rel_tol=1e-10)
-        assert float(row["eta_v [-]"]) == 0.9 and float(row["eta_em [-]"]) == 0.8
+        assert math.isclose(
+            float(row["E_cmp_ref [W]"]), float(row["eta_em [-]"]) * float(row["E_cmp [W]"]), rel_tol=1e-10
+        )
+        assert all(0 < float(row[k]) <= 1 for k in ("eta_is [-]", "eta_v [-]", "eta_em [-]"))
+        rps = float(row["cmp_rps [rev/s]"])
+        assert math.isclose(float(row["n_star [-]"]), rps / inputs["rps_rated"], rel_tol=1e-10)
+        assert math.isclose(
+            float(row["m_dot_ref [kg/s]"]),
+            inputs["V_cmp_ref"] * float(row["rho_ref_cmp_in [kg/m3]"]) * float(row["eta_v [-]"]) * rps,
+            rel_tol=1e-10,
+        )
         assert math.isclose(
             float(row["Q_ref_ground [W]"]), float(row["Q_ref_iu [W]"]) + float(row["E_cmp_ref [W]"]), rel_tol=1e-10
         )
@@ -72,8 +92,10 @@ def main():
     }
     for key, value in calculated.items():
         assert math.isclose(manuscript["claims"][key], value, abs_tol=1e-10), key
-    bounds = sorted(p for p, r in optimum.items() if r["flow_bound_active"] == "True")
+    bounds = sorted(p for p, r in optimum.items() if r["ground_flow_at_max"] == "True")
     assert bounds == manuscript["claims"]["upper_bound_plrs"] == verification["selected_upper_bound_plrs"]
+    lower_bounds = sorted(p for p, r in optimum.items() if r["ground_flow_at_min"] == "True")
+    assert lower_bounds == manuscript["claims"]["lower_bound_plrs"] == verification["selected_lower_bound_plrs"]
     for p in bounds:
         assert math.isclose(
             float(optimum[p]["ground_flow_ref_ratio"]),
@@ -126,13 +148,16 @@ def main():
         assert line.split()[-5] == "yes", line
     mcp = json.loads((HERE / "figure/mcp_review.json").read_text())
     assert mcp["calls"][0]["result"] == []
-    assert len(mcp["calls"]) == 11
+    assert len(mcp["calls"]) == 16
     assert all(call["result"].startswith("✅ Data structure valid") for call in mcp["calls"][1:])
     assert {call["figure"] for call in mcp["calls"][1:]} == {
         "fig_1_part_load",
         "fig_total_power_objective",
         "fig_hx_feasibility",
         "fig_flow_max_sensitivity",
+        "fig_compressor_speed",
+        "fig_compressor_efficiencies",
+        "fig_compressor_pressure_ratio",
     }
     visual = json.loads((HERE / "figure/visual_validation.json").read_text())
     assert visual["style"] == "scientific" and all(
@@ -153,7 +178,9 @@ def main():
         "selected_points": len(rows),
         "claims_match_csv": calculated,
         "upper_bound_plrs": bounds,
+        "lower_bound_plrs": lower_bounds,
         "total_power_and_COP_checked": True,
+        "callable_baseline_and_mass_flow_checked": True,
         "fixed_reference_and_explicit_flow_bounds_checked": True,
         "sensitivity_fairness_checked": True,
         "all_manuscript_text_present_in_PDF": True,

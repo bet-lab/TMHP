@@ -41,6 +41,7 @@ def precompute_borehole_resistance(
         H,
         cp_f,
         boundary_condition,
+        anchor_flows=(),
         _sample_flows=tuple(ratios * m_flow_rated),
         **geometry,
     )

@@ -36,7 +36,7 @@
     "ground_loop.py": "0a1417f604256ae24aa9bc9fdca23aa5174ef1f4ddcde5600ca872193c61bea0",
     "ground_flow_control.py": "43abb35bdafb48581c2bb4acd46eb57d0e2c5a04e1fdbe9967ab6b62a4a63ef3",
     "compressor_speed.py": "54be4e4dd6d1bc5b43ad0203788eb7b78504655183299bea824c37227056bf4e",
-    "borehole.py": "7d4b46de09f22c8b544809606b8e97fd6bb8b073c0a9a4e82443aa14be718598"
+    "borehole.py": "f39337e769b322e88a8a2087f690f42dc29b49a8f4c46dc09169f20f45c60d82"
   },
   "identifiers": [
     {
@@ -3185,10 +3185,10 @@
       "file": "borehole.py",
       "identifier": "m_flow_max",
       "lines": [
-        51,
-        65,
-        67,
-        69
+        52,
+        66,
+        68,
+        70
       ],
       "category": "D",
       "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
@@ -3197,10 +3197,10 @@
       "file": "borehole.py",
       "identifier": "m_flow_min",
       "lines": [
-        50,
-        65,
-        67,
-        69
+        51,
+        66,
+        68,
+        70
       ],
       "category": "D",
       "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."

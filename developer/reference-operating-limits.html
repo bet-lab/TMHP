@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-10-02T00:11:44+09:00" />
+    <meta property="article:modified_time" content="2026-10-02T01:22:26+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -298,6 +298,12 @@ map to the new interface, with explicit new inputs taking precedence.</p>
 coefficient snapshot are recorded under <code class="docutils literal notranslate"><span class="pre">docs/audits/compressor-efficiency-*</span></code>.
 The report’s tuned low-speed penalties are not used. This baseline models
 compressor modulation, not cycling losses or on-off duty averaging.</p>
+<p>At the pressure-ratio floor, GSHP recomputes permitted subcooling from the
+projected condenser temperature and its physical sink approach. Rejected trial
+approaches therefore cannot change the refrigerant liquid state at identical
+projected conditions. Coupled optimization explicitly includes the ground-HX
+duty-equality boundary at the PR floor; the shipped efficiency coefficients and
+existing HX, load and optimization verification tolerances remain unchanged.</p>
 </section>
 </section>
 

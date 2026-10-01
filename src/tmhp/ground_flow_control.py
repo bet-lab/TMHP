@@ -170,7 +170,7 @@ def solve_ground_approach(
 def select_ground_flow(
     evaluate: Callable[[float], dict], settings: dict, prescribed_ratio: float | None = None
 ) -> dict:
-    """Compare bounded flow candidates, endpoints and rated flow by Ecmp+Epmp."""
+    """Compare feasible flow candidates by total electrical input, including fans."""
     lo, hi = settings["min_ratio"], settings["max_ratio"]
     if prescribed_ratio is not None and (not np.isfinite(prescribed_ratio) or not lo <= prescribed_ratio <= hi):
         raise ValueError("Prescribed ground_flow_ratio is outside the configured bounds")
@@ -185,7 +185,7 @@ def select_ground_flow(
         if ratio not in cache:
             cache[ratio] = evaluate(ratio)
         row = cache[ratio]
-        power = row.get("E_cmp_plus_pmp [W]", np.inf)
+        power = row.get("E_tot [W]", np.inf)
         return (
             float(power)
             if row.get("converged", False) and row.get("hx_feasible", False) and np.isfinite(power) and power > 0
@@ -219,10 +219,10 @@ def select_ground_flow(
             for r in cache.values()
             if r.get("converged", False)
             and r.get("hx_feasible", False)
-            and np.isfinite(r.get("E_cmp_plus_pmp [W]", np.inf))
-            and r.get("E_cmp_plus_pmp [W]", 0) > 0
+            and np.isfinite(r.get("E_tot [W]", np.inf))
+            and r.get("E_tot [W]", 0) > 0
         ),
-        key=lambda r: r["E_cmp_plus_pmp [W]"],
+        key=lambda r: r["E_tot [W]"],
     )
     chosen.update(
         {

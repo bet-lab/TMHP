@@ -45,11 +45,19 @@ def precompute_borehole_resistance(
     if not np.all(np.isfinite(resistances)) or np.any(np.asarray(resistances) <= 0):
         raise ValueError("Borehole resistance grid contains invalid values")
     interp = PchipInterpolator(flows, resistances, extrapolate=False)
+    # The caller computes rated_volume * ratio * rho / N, whereas this grid
+    # computes ratio * (rated_volume * rho / N). Their endpoints can differ by
+    # a few ULPs. Accept only that rounding tolerance, then evaluate the endpoint
+    # itself; genuine out-of-range flow still must not extrapolate.
+    endpoint_tolerance = 8 * np.finfo(float).eps * max(abs(flows[0]), abs(flows[-1]))
 
     def evaluate(m_flow_borehole: float) -> float:
-        if not np.isfinite(m_flow_borehole) or not flows[0] <= m_flow_borehole <= flows[-1]:
+        if (
+            not np.isfinite(m_flow_borehole)
+            or not flows[0] - endpoint_tolerance <= m_flow_borehole <= flows[-1] + endpoint_tolerance
+        ):
             raise ValueError("Borehole flow is outside the precomputed resistance grid")
-        return float(interp(m_flow_borehole))
+        return float(interp(np.clip(m_flow_borehole, flows[0], flows[-1])))
 
     return evaluate
 

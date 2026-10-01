@@ -40,7 +40,8 @@ Control and boundaries
 ----------------------
 
 ``ground_flow_control="constant"`` evaluates rated water flow. ``optimal_power``
-compares compressor plus pump power at the same requested load. It always uses
+compares total electrical power at the same requested load: compressor + pump
++ indoor fan for GSHP, and compressor + pump for GSHPB. It always uses
 hydraulic pump power, even if ``hydraulic_pump`` is not set. The convenience
 flag ``variable_ground_flow=True`` selects ``optimal_power``. Variable UA and
 variable resistance are separate opt-ins. A fair control comparison enables
@@ -50,8 +51,12 @@ the same component physics in both constant and optimal cases.
 within the configured bounds and skips the flow optimizer. This supports
 objective curves and independent optimum checks. GSHP's inner solver minimizes
 compressor + pump + indoor-fan power over the indoor approach, subject to ground
-HX duty equality. Its outer solver compares ``E_cmp + E_pmp`` as specified by
-the flow policy. System COP still includes indoor-fan power.
+HX duty equality. Its outer solver also compares ``E_tot [W]``, including the
+indoor fan. ``E_cmp_plus_pmp [W]`` is retained only as a component diagnostic.
+System COP is delivered indoor heat/cooling duty divided by ``E_tot [W]``.
+The room temperature supplied to ``analyze_steady`` is used by both the cycle
+and the indoor HX and appears unchanged in the output. Omitting it uses the
+constructor's ``T_a_room``; candidate evaluations do not overwrite this setting.
 
 For GSHP, ``T_bhe_wall`` fixes the wall temperature for the steady snapshot;
 its default is the model's current wall temperature (initially ``Ts``).

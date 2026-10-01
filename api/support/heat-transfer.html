@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-08-12T20:40:22+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T17:23:31+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -148,7 +148,6 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.hx_fan">Air-side fan &amp; heat exchanger</a><ul>
-<li><a class="reference internal" href="#tmhp.hx_fan.calc_UA_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
 </ul>
 </li>
@@ -162,9 +161,6 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.g_function.precompute_gfunction_mls"><code class="docutils literal notranslate"><span class="pre">precompute_gfunction_mls()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.air_dynamic_viscosity"><code class="docutils literal notranslate"><span class="pre">air_dynamic_viscosity()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.air_prandtl_number"><code class="docutils literal notranslate"><span class="pre">air_prandtl_number()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.g_function.calc_local_borehole_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_local_borehole_thermal_resistance()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.g_function.calc_effective_borehole_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_effective_borehole_thermal_resistance()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.g_function.calc_borehole_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_borehole_thermal_resistance()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.calc_submerged_coil_thermal_resistance"><code class="docutils literal notranslate"><span class="pre">calc_submerged_coil_thermal_resistance()</span></code></a></li>
 </ul>
 </li>
@@ -401,36 +397,6 @@ abstractions used by GSHP/GSHPB.</p>
 velocity-dependent UA scaling law (<code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan</span></code>) and a fan power
 curve (<code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan</span></code>). HX performance solving lives in
 <code class="docutils literal notranslate"><span class="pre">enex_functions</span></code> and HP schedule checking in <code class="docutils literal notranslate"><span class="pre">dynamic_context</span></code>.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="tmhp.hx_fan.calc_UA_from_dV_fan">
-<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_UA_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_fan_rated</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A_cross</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.71</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_UA_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_UA_from_dV_fan" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current fan flow rate [m³/s].</p></li>
-<li><p><strong>dV_fan_rated</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated fan flow rate [m³/s].</p></li>
-<li><p><strong>A_cross</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Heat exchanger cross-sectional area [m²].</p></li>
-<li><p><strong>UA</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Rated UA value [W/K].</p></li>
-<li><p><strong>exponent</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Scaled UA value [W/K].</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<p>Instead of the Dittus-Boelter tube-side exponent (0.8), this uses
-a simplified lumped exponent (default 0.71). This derivation assumes a 1-row
-plain fin-and-tube configuration (N=1) where the Colburn j-factor
-is proportional to Re^-0.29, leading to h ∝ V^0.71. Multi-row coils may
-use exponents between 0.5 and 0.8 depending on configuration.
-Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</p>
-</dd></dl>
-
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.hx_fan.calc_fan_power_from_dV_fan">
 <span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
@@ -688,137 +654,6 @@ to simulate borehole heat exchangers with groundwater advection”</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="tmhp.g_function.calc_local_borehole_thermal_resistance">
-<span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_local_borehole_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#calc_local_borehole_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.calc_local_borehole_thermal_resistance" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate the local borehole thermal resistance and internal thermal resistance [mK/W] using pygfunction multipole method.</p>
-<p>Assumes a Single U-tube configuration.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grout thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe thermal conductivity [W/mK]</p></li>
-<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
-<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe outer radius [m]</p></li>
-<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe inner radius [m]</p></li>
-<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Shank spacing (half distance between pipes) [m]</p></li>
-<li><p><strong>m_flow_pipe</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mass flow rate per pipe [kg/s]</p></li>
-<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid density [kg/m³]</p></li>
-<li><p><strong>mu_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid dynamic viscosity [Pa·s]</p></li>
-<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>k_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid thermal conductivity [W/mK]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>(R_b, R_a)
-R_b: Local borehole thermal resistance [mK/W].
-R_a: Internal thermal resistance between the two pipes [mK/W].</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="tmhp.g_function.calc_effective_borehole_thermal_resistance">
-<span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_effective_borehole_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform_temperature'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#calc_effective_borehole_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.calc_effective_borehole_thermal_resistance" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate the effective borehole thermal resistance [mK/W].</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>R_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Local borehole thermal resistance [mK/W]</p></li>
-<li><p><strong>R_a</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Internal thermal resistance between the two pipes [mK/W]</p></li>
-<li><p><strong>H</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole depth [m]</p></li>
-<li><p><strong>m_flow_pipe</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mass flow rate per pipe [kg/s]</p></li>
-<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Boundary condition for the calculation.
-Options: ‘uniform_temperature’ or ‘uniform_heat_flux’.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Effective borehole thermal resistance [mK/W].</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
-</dd>
-</dl>
-<p class="rubric">References</p>
-<ol class="arabic simple">
-<li><p>Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct Storage Systems
-(Ph.D. thesis). University of Lund, Sweden.</p></li>
-<li><p>Lamarche, L., Kajl, S., &amp; Beauchamp, B. (2010). A review of methods to evaluate
-borehole thermal resistances in geothermal heat-pump systems. Geothermics, 39(2), 187-200.
-DOI: 10.1016/j.geothermics.2010.03.003</p></li>
-<li><p>Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal resistance
-calculation methods for grouted single U-tube ground heat exchangers.
-Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054</p></li>
-</ol>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="tmhp.g_function.calc_borehole_thermal_resistance">
-<span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_borehole_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_borehole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_f</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#calc_borehole_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.calc_borehole_thermal_resistance" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate the effective borehole thermal resistance R_b* [mK/W] for a Single U-tube.</p>
-<p>Implements the full three-stage calculation in a single call:</p>
-<dl class="simple">
-<dt>Stage 1 — Fluid-to-pipe resistance (R_fp):</dt><dd><p>R_fp = R_conv + R_cond
-R_conv: convective resistance inside the pipe (Gnielinski correlation).
-R_cond: conductive resistance through the pipe wall (ln(r_out/r_in)/(2πk_p)).</p>
-</dd>
-<dt>Stage 2 — 2D cross-section (Local R_b via multipole method):</dt><dd><p>SingleUTube solves the steady-state 2D Laplace equation in the grout
-cross-section using Hellström’s multipole expansion (default order
-J=10); see Javed and Spitler (2016) for an accuracy benchmark of this
-method.
-Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.
-Outputs: Local R_b (fluid → borehole wall, cross-section only).</p>
-</dd>
-<dt>Stage 3 — Axial short-circuit correction (Effective R_b*):</dt><dd><p>pipe.effective_borehole_thermal_resistance() applies the Cimmino /
-Hellström analytical solution for axial fluid temperature variation and
-thermal short-circuiting between the two U-tube legs.</p>
-</dd>
-</dl>
-<p>For a Single U-tube (series flow), each pipe leg carries the full borehole
-flow rate; m_flow_borehole is passed directly without division by 2.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Grout thermal conductivity [W/mK]</p></li>
-<li><p><strong>k_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe thermal conductivity [W/mK]</p></li>
-<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m]</p></li>
-<li><p><strong>r_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe outer radius [m]</p></li>
-<li><p><strong>r_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Pipe inner radius [m]</p></li>
-<li><p><strong>D_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Distance from borehole centre to pipe centre [m]</p></li>
-<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole depth [m]</p></li>
-<li><p><strong>m_flow_borehole</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Total fluid mass flow rate into the borehole [kg/s].
-For a Single U-tube (series), this equals the flow in each pipe leg.</p></li>
-<li><p><strong>rho_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid density [kg/m³]</p></li>
-<li><p><strong>mu_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid dynamic viscosity [Pa·s]</p></li>
-<li><p><strong>cp_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid specific heat capacity [J/kgK]</p></li>
-<li><p><strong>k_f</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Fluid thermal conductivity [W/mK]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Effective borehole thermal resistance R_b* [mK/W].</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
-</dd>
-</dl>
-<p class="rubric">References</p>
-<p>Hellström, G. (1991). Ground Heat Storage: Thermal Analyses of Duct
-Storage Systems (Ph.D. thesis). University of Lund, Sweden.</p>
-<p>Claesson, J., &amp; Hellström, G. (2011). Multipole method to calculate
-borehole thermal resistances in a borehole heat exchanger. HVAC&amp;R
-Research, 17(6), 895-911. DOI: 10.1080/10789669.2011.609927</p>
-<p>Javed, S., &amp; Spitler, J. D. (2016). Accuracy of borehole thermal
-resistance calculation methods for grouted single U-tube ground heat
-exchangers. Applied Energy, 182, 161-176. DOI:
-10.1016/j.apenergy.2016.08.054</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="tmhp.g_function.calc_submerged_coil_thermal_resistance">
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">calc_submerged_coil_thermal_resistance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_flow_pipe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_river</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#calc_submerged_coil_thermal_resistance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.calc_submerged_coil_thermal_resistance" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</p>
@@ -1001,7 +836,7 @@ the dimensional response <code class="docutils literal notranslate"><span class=
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Aug 12, 2026
+  Last updated Oct 01, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

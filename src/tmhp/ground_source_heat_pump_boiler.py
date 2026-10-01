@@ -64,7 +64,20 @@ from .enex_functions import (
 )
 from .g_function import precompute_gfunction
 from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
-from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
+from .ground_flow_control import (
+    close_ground_temperature,
+    select_ground_flow,
+    solve_ground_approach,
+)
+from .ground_loop import (
+    calc_borefield_linear_load,
+    calc_borehole_count,
+    calc_total_borehole_length,
+    configure_ground_flow,
+    ground_flow_state,
+    ground_hx_UA,
+    ground_result_diagnostics,
+)
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .refrigerant import calc_ref_state, reportable_state
@@ -179,6 +192,23 @@ class GroundSourceHeatPumpBoiler:
         UA_tank: float | None = None,  # deprecated alias for UA_tank_hx
         UA_cond_design: float | None = None,
         UA_evap_design: float | None = None,
+        ground_flow_control: str = "constant",
+        variable_ground_flow: bool = False,
+        variable_ground_hx_UA: bool = False,
+        variable_Rb: bool = False,
+        hydraulic_pump: bool = False,
+        pump_efficiency: float = 0.6,
+        pipe_inner_diameter: float | None = None,
+        pipe_roughness: float = 1e-6,
+        dp_common: float = 0.0,
+        ground_flow_min_ratio: float = 0.2,
+        ground_flow_max_ratio: float = 1.2,
+        m_dot_ref_rated: float | None = None,
+        ground_hx_fluid_fraction: float = 0.5,
+        ground_hx_refrigerant_fraction: float = 0.3,
+        ground_hx_constant_fraction: float = 0.2,
+        ground_hx_fluid_exponent: float = 0.8,
+        ground_hx_refrigerant_exponent: float = 0.8,
     ) -> None:
         if refrigerant is not None:
             import warnings
@@ -309,6 +339,38 @@ class GroundSourceHeatPumpBoiler:
         else:
             self.R_b = R_b
 
+        if not all(np.isfinite(v) and v > 0 for v in (self.UA_tank_hx, self.UA_ground)):
+            raise ValueError("Heat exchanger UA values must be positive and finite")
+        if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
+            raise ValueError("Require finite 0 < rps_min < rps_max")
+        self._ground_settings = configure_ground_flow(
+            control=ground_flow_control,
+            variable_ground_flow=variable_ground_flow,
+            variable_UA=variable_ground_hx_UA,
+            variable_Rb=variable_Rb,
+            hydraulic_pump=hydraulic_pump,
+            min_ratio=ground_flow_min_ratio,
+            max_ratio=ground_flow_max_ratio,
+            volume_flow_rated=self.dV_b_f_m3s,
+            n_boreholes=self.n_boreholes,
+            H_b=self.H_b,
+            R_b=self.R_b,
+            R_b_supplied=R_b is not None,
+            pump_power=self.E_pmp,
+            pump_efficiency=pump_efficiency,
+            pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
+            pipe_roughness=pipe_roughness,
+            dp_common=dp_common,
+            m_dot_ref_rated=m_dot_ref_rated,
+            ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
+            ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
+            boundary_condition=boundary_condition,
+            geometry=dict(
+                k_s=k_s, k_g=k_g, k_p=k_p, r_b=r_b, r_out=r_out, r_in=r_in, D_s=D_s, rho_f=rho_w, mu_f=mu_w, k_f=k_w
+            ),
+        )
+        self.ground_flow_control = self._ground_settings["control"]
+
         # Subsystems
         self.stc = stc
         self.pv = pv
@@ -394,8 +456,18 @@ class GroundSourceHeatPumpBoiler:
         }
 
     def _calc_state(
-        self, dT_ref_ground: float, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict
+        self,
+        dT_ref_ground: float,
+        T_tank_w: float,
+        Q_tank_load: float,
+        T0: float,
+        *,
+        flow_state: dict,
+        ground_flow_ratio: float = 1.0,
+        source_temperature_K: float | None = None,
     ) -> dict | None:
+        self._last_pr_event = None
+        loop = ground_flow_state(self._ground_settings, ground_flow_ratio)
         is_active = Q_tank_load > 0
 
         # 1. Analytical Condenser Approach Temperature
@@ -403,8 +475,10 @@ class GroundSourceHeatPumpBoiler:
         T_tank_w_K = cu.C2K(T_tank_w)
         _t_bhe = getattr(self, "T_bhe_f_out_K", None)
         T_b_out_K = float(_t_bhe) if _t_bhe is not None else cu.C2K(15.0)
-        m_dot_cp_b = self.dV_b_f_m3s * rho_w * c_w
-        T_ground_in_K = T_b_out_K + (self.E_pmp / m_dot_cp_b)
+        if source_temperature_K is not None:
+            T_b_out_K = source_temperature_K
+        m_dot_cp_b = loop["dV"] * rho_w * c_w
+        T_ground_in_K = T_b_out_K + (loop["E_pmp"] / m_dot_cp_b)
         T_ground_sat_K = T_ground_in_K - dT_ref_ground
         T_tank_sat_K = T_tank_w_K + dT_ref_tank
 
@@ -461,7 +535,7 @@ class GroundSourceHeatPumpBoiler:
                     "dV_tank_w_out [m3/s]": (dV_tank_w_out if dV_tank_w_out > 0 else np.nan),
                     "dV_tank_w_in [m3/s]": (dV_tank_w_in if dV_tank_w_in > 0 else np.nan),
                     "dV_mix_sup_w_in [m3/s]": (dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan),
-                    "dV_bhe_f [m3/s]": self.dV_b_f_m3s,
+                    "dV_bhe_f [m3/s]": loop["dV"],
                     "m_dot_ref [kg/s]": 0.0,
                     "cmp_rpm [rpm]": 0.0,
                     # Energy rates [W]
@@ -477,6 +551,7 @@ class GroundSourceHeatPumpBoiler:
                     "cop_sys [-]": np.nan,
                 }
             )
+            ground_result_diagnostics(inactive_result, self._ground_settings, loop, 0.0, self.UA_ground, 0.0, 0.0)
             return inactive_result
 
         # Low-lift feasibility is enforced downstream by the compressor
@@ -589,8 +664,10 @@ class GroundSourceHeatPumpBoiler:
         Q_ref_ground = m_dot_ref * (h_ref_cmp_in - h_ref_exp_out)
         E_cmp = (m_dot_ref * (h_ref_cmp_out - h_ref_cmp_in)) / val_eta_electro_mech
 
+        UA_ground_actual = ground_hx_UA(self._ground_settings, self.UA_ground, ground_flow_ratio, m_dot_ref)
+
         # 4. NTU Evaporator Analysis
-        eps = calc_phase_change_hx_effectiveness(self.UA_ground, self.dV_b_f_m3s * rho_w, c_w)
+        eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
         Q_ground_actual = eps * m_dot_cp_b * (T_ground_in_K - T_ground_sat_K)
 
         # Penalize if cycle evap load exceeds physics limit
@@ -599,7 +676,7 @@ class GroundSourceHeatPumpBoiler:
             penalty = 1e4 * (Q_ref_ground - Q_ground_actual) ** 2
 
         # 5. BHE state
-        Q_bhe = Q_ref_ground - self.E_pmp
+        Q_bhe = Q_ref_ground - loop["E_pmp"]
         Q_bhe_unit = calc_borefield_linear_load(Q_bhe, self.n_boreholes, self.H_b)
 
         # Fluid enters BHE at T_bhe_f_in_K
@@ -607,7 +684,7 @@ class GroundSourceHeatPumpBoiler:
         T_bhe_f_out_K = T_b_out_K
 
         T_bhe_f = (cu.K2C(T_bhe_f_in_K) + cu.K2C(T_bhe_f_out_K)) / 2
-        T_bhe = T_bhe_f + Q_bhe_unit * self.R_b
+        T_bhe = T_bhe_f + Q_bhe_unit * loop["R_b"]
 
         # 6. Assemble
         active_result: dict = reportable_state(cs)
@@ -636,7 +713,7 @@ class GroundSourceHeatPumpBoiler:
                 "T_bhe_f [°C]": T_bhe_f,
                 "T_bhe_f_in [°C]": cu.K2C(T_bhe_f_in_K),
                 "T_bhe_f_out [°C]": cu.K2C(T_bhe_f_out_K),
-                "dV_bhe_f [m3/s]": self.dV_b_f_m3s,
+                "dV_bhe_f [m3/s]": loop["dV"],
                 "dV_mix_w_out [m3/s]": flow_state.get("dV_mix_w_out", 0.0),
                 "dV_tank_w_in [m3/s]": flow_state.get("dV_tank_w_in", 0.0),
                 "dV_tank_w_out [m3/s]": flow_state.get("dV_tank_w_out", 0.0),
@@ -653,13 +730,91 @@ class GroundSourceHeatPumpBoiler:
                 "Q_ref_ground [W]": Q_ref_ground,
                 "Q_bhe [W]": Q_bhe,
                 "E_cmp [W]": E_cmp,
-                "E_pmp [W]": self.E_pmp,
-                "E_tot [W]": E_cmp + self.E_pmp,
+                "E_pmp [W]": loop["E_pmp"],
+                "E_tot [W]": E_cmp + loop["E_pmp"],
                 "cop_ref [-]": (Q_ref_tank / E_cmp) if E_cmp > 0 else np.nan,
-                "cop_sys [-]": (Q_ref_tank / (E_cmp + self.E_pmp)) if (E_cmp + self.E_pmp) > 0 else np.nan,
+                "cop_sys [-]": (Q_ref_tank / (E_cmp + loop["E_pmp"])) if (E_cmp + loop["E_pmp"]) > 0 else np.nan,
             }
         )
+        ground_result_diagnostics(
+            active_result,
+            self._ground_settings,
+            loop,
+            ground_flow_ratio,
+            UA_ground_actual,
+            Q_ground_actual,
+            Q_ref_ground,
+        )
+        if self._ground_settings["active"]:
+            active_result["err_Q_ground [W]"] = Q_ref_ground - Q_ground_actual
         return active_result
+
+    def _solve_ground_flow_point(
+        self,
+        ratio: float,
+        T_tank_w: float,
+        Q_tank_load: float,
+        T0: float,
+        flow_state: dict,
+        wall_K: float | Callable[[float], float] | None,
+    ) -> dict:
+        def evaluate(approach: float) -> dict | None:
+            if wall_K is None:
+                try:
+                    return self._calc_state(
+                        approach, T_tank_w, Q_tank_load, T0, flow_state=flow_state, ground_flow_ratio=ratio
+                    )
+                except (ValueError, OverflowError, ZeroDivisionError):
+                    return None
+            return close_ground_temperature(
+                lambda temperature: self._calc_state(
+                    approach,
+                    T_tank_w,
+                    Q_tank_load,
+                    T0,
+                    flow_state=flow_state,
+                    ground_flow_ratio=ratio,
+                    source_temperature_K=temperature,
+                ),
+                wall_K,
+                self.n_boreholes,
+                self.H_b,
+            )
+
+        result = solve_ground_approach(evaluate, "Q_ref_tank [W]", Q_tank_load)
+        if result.get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
+            result["failure_reason"] = "pressure_ratio_limit"
+        return result
+
+    def _solve_ground_flow(
+        self,
+        T_tank_w: float,
+        Q_tank_load: float,
+        T0: float,
+        *,
+        flow_state: dict,
+        ground_flow_ratio: float | None = None,
+        T_bhe_wall: float | None = None,
+        wall_response: Callable[[float], float] | None = None,
+    ) -> dict:
+        if Q_tank_load <= 0:
+            row = self._calc_state(5, T_tank_w, 0, T0, flow_state=flow_state)
+            assert row is not None
+            row.update({"failure_reason": "none", "hx_feasible": True})
+            return row
+        wall_K = (
+            wall_response if wall_response is not None else (cu.C2K(T_bhe_wall) if T_bhe_wall is not None else None)
+        )
+        selected = select_ground_flow(
+            lambda ratio: self._solve_ground_flow_point(ratio, T_tank_w, Q_tank_load, T0, flow_state, wall_K),
+            self._ground_settings,
+            ground_flow_ratio,
+        )
+        if "h_ref_cmp_in [J/kg]" not in selected:
+            off = self._calc_state(5, T_tank_w, 0, T0, flow_state=flow_state) or {}
+            off.update(selected)
+            selected = off
+        return selected
 
     def _optimize_operation(self, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict):
         from scipy.optimize import brentq
@@ -717,6 +872,20 @@ class GroundSourceHeatPumpBoiler:
             T_tank_w_in_K=self.T_tank_w_in_K,
             T_mix_w_out_K=self.T_mix_w_out_K,
         )
+
+        if self._ground_settings["active"]:
+            preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
+            if preview is None:
+                raise ValueError("Coupled ground flow requires a coupler with preview_wall_temperature_rise")
+
+            def wall_response(q_total):
+                return self.Ts_K - preview(ctx.n, self.time, q_total / self.total_borehole_length)
+
+            perf = self._solve_ground_flow(
+                T_tank_w, Q_tank_load, cu.K2C(ctx.T0_K), flow_state=flow_state, wall_response=wall_response
+            )
+            active = bool(perf.get("hp_is_on", False))
+            return active, perf, float(perf.get("Q_ref_tank [W]", 0.0))
 
         if Q_tank_load <= self.Q_tank_LOAD_OFF_TOL:
             # OFF
@@ -874,10 +1043,10 @@ class GroundSourceHeatPumpBoiler:
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit * self.R_b
+        T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = c_w * rho_w * self.dV_b_f_m3s
+        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
 
         # Assume symmetrical temperature approach around average BHE fluid temperature
         dT_bhe_f_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
@@ -1190,6 +1359,8 @@ class GroundSourceHeatPumpBoiler:
         T0: float = 0.0,
         *,
         return_dict: bool = True,
+        ground_flow_ratio: float | None = None,
+        T_bhe_wall: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
@@ -1244,6 +1415,18 @@ class GroundSourceHeatPumpBoiler:
 
         # Override T_bhe_f_out_K so that _calc_state uses T_source correctly
         self.T_bhe_f_out_K = cu.C2K(T_source)
+
+        if self._ground_settings["active"] or ground_flow_ratio is not None:
+            result = self._solve_ground_flow(
+                T_tank_w,
+                Q_ref_tank,
+                T0,
+                flow_state=flow_state,
+                ground_flow_ratio=ground_flow_ratio,
+                T_bhe_wall=T_bhe_wall,
+            )
+            result.update({"Q_tank_loss [W]": 0.0, "tank_level [-]": 1.0})
+            return result if return_dict else pd.DataFrame([result])
 
         if Q_ref_tank <= 0:
             result = self._calc_state(

@@ -39,7 +39,20 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import precompute_gfunction
-from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
+from .ground_flow_control import (
+    close_ground_temperature,
+    select_ground_flow,
+    solve_ground_approach,
+)
+from .ground_loop import (
+    calc_borefield_linear_load,
+    calc_borehole_count,
+    calc_total_borehole_length,
+    configure_ground_flow,
+    ground_flow_state,
+    ground_hx_UA,
+    ground_result_diagnostics,
+)
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .refrigerant import (
     calc_ref_state,
@@ -110,6 +123,26 @@ class GroundSourceHeatPump:
         dV_iu_fan_a_design: float | None = None,
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
+        *,
+        ground_flow_control: str = "constant",
+        variable_ground_flow: bool = False,
+        variable_ground_hx_UA: bool = False,
+        variable_Rb: bool = False,
+        hydraulic_pump: bool = False,
+        pump_efficiency: float = 0.6,
+        pipe_inner_diameter: float | None = None,
+        pipe_roughness: float = 1e-6,
+        dp_common: float = 0.0,
+        ground_flow_min_ratio: float = 0.2,
+        ground_flow_max_ratio: float = 1.2,
+        m_dot_ref_rated: float | None = None,
+        ground_hx_fluid_fraction: float = 0.5,
+        ground_hx_refrigerant_fraction: float = 0.3,
+        ground_hx_constant_fraction: float = 0.2,
+        ground_hx_fluid_exponent: float = 0.8,
+        ground_hx_refrigerant_exponent: float = 0.8,
+        rps_min: float = 15.0,
+        rps_max: float = 150.0,
     ):
         # Resolve deprecated mapping
         if V_cmp_ref is None:
@@ -146,6 +179,7 @@ class GroundSourceHeatPump:
         self.PR_cycle_max: float = PR_cycle_max
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
+        self.rps_min, self.rps_max = rps_min, rps_max
 
         # --- 2. Heat exchanger UA ---
         if UA_cond is None:
@@ -236,6 +270,38 @@ class GroundSourceHeatPump:
         else:
             self.R_b = R_b
 
+        if not all(np.isfinite(v) and v > 0 for v in (self.UA_cond, self.UA_evap)):
+            raise ValueError("Heat exchanger UA values must be positive and finite")
+        if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
+            raise ValueError("Require finite 0 < rps_min < rps_max")
+        self._ground_settings = configure_ground_flow(
+            control=ground_flow_control,
+            variable_ground_flow=variable_ground_flow,
+            variable_UA=variable_ground_hx_UA,
+            variable_Rb=variable_Rb,
+            hydraulic_pump=hydraulic_pump,
+            min_ratio=ground_flow_min_ratio,
+            max_ratio=ground_flow_max_ratio,
+            volume_flow_rated=self.dV_b_f_m3s,
+            n_boreholes=self.n_boreholes,
+            H_b=self.H_b,
+            R_b=self.R_b,
+            R_b_supplied=R_b is not None,
+            pump_power=self.E_pmp,
+            pump_efficiency=pump_efficiency,
+            pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
+            pipe_roughness=pipe_roughness,
+            dp_common=dp_common,
+            m_dot_ref_rated=m_dot_ref_rated,
+            ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
+            ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
+            boundary_condition=boundary_condition,
+            geometry=dict(
+                k_s=k_s, k_g=k_g, k_p=k_p, r_b=r_b, r_out=r_out, r_in=r_in, D_s=D_s, rho_f=rho_w, mu_f=mu_w, k_f=k_w
+            ),
+        )
+        self.ground_flow_control = self._ground_settings["control"]
+
         self.Ts: float = Ts
         self.Ts_K: float = cu.C2K(Ts)
 
@@ -281,6 +347,9 @@ class GroundSourceHeatPump:
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
+        *,
+        ground_flow_ratio: float = 1.0,
+        source_temperature_K: float | None = None,
     ) -> dict | None:
         """Evaluate refrigerant cycle at a given operating point.
 
@@ -295,11 +364,16 @@ class GroundSourceHeatPump:
         T_a_room : float
             Room air temperature [°C].
         """
+        self._last_pr_event = None
+        loop = ground_flow_state(self._ground_settings, ground_flow_ratio)
         T_a_room_K = cu.C2K(T_a_room)
         T_bhe_f_out_K = float(getattr(self, "T_bhe_f_out_K", self.Ts_K))
 
+        if source_temperature_K is not None:
+            T_bhe_f_out_K = source_temperature_K
+
         is_active = Q_r_iu != 0.0
-        m_dot_cp_b = self.dV_b_f_m3s * rho_w * c_w
+        m_dot_cp_b = loop["dV"] * rho_w * c_w
 
         if Q_r_iu < 0:
             # Heating: BHE = evaporator (absorb from ground), IU = condenser (heat room)
@@ -308,7 +382,7 @@ class GroundSourceHeatPump:
             self.dT_r_ghx = 3  # GHX refrigerant - GHX outlet water [K]
             self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
             self.T_r_iu = self.T_a_room + self.dT_r_iu  # Indoor unit refrigerant [°C]
-            T_source_K = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
+            T_source_K = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             T_evap_sat_K = T_source_K - dT_ref_evap
             T_cond_sat_K = T_a_room_K + dT_ref_cond
             Q_ref_iu = abs(Q_r_iu)
@@ -318,7 +392,7 @@ class GroundSourceHeatPump:
             self.T_a_room = 21  # Room air temperature [°C]
             self.dT_r_ghx = -3  # GHX refrigerant - GHX outlet water [K]
             self.dT_r_iu = 15  # Indoor unit refrigerant - Indoor unit inlet air [K]
-            T_source_K = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
+            T_source_K = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             T_evap_sat_K = T_a_room_K - dT_ref_evap
             T_cond_sat_K = T_source_K + dT_ref_cond
             Q_ref_iu = Q_r_iu
@@ -402,10 +476,10 @@ class GroundSourceHeatPump:
 
         # ── BHE energy balance ──
         if mode == "heating":
-            Q_bhe = Q_ref_evap - self.E_pmp
+            Q_bhe = Q_ref_evap - loop["E_pmp"]
             T_bhe_f_in_K = T_source_K - Q_ref_evap / m_dot_cp_b
         elif mode == "cooling":
-            Q_bhe = -(Q_ref_cond + self.E_pmp)  # negative = heat into ground
+            Q_bhe = -(Q_ref_cond + loop["E_pmp"])  # negative = heat into ground
             T_bhe_f_in_K = T_source_K + Q_ref_cond / m_dot_cp_b
         else:
             Q_bhe = 0.0
@@ -413,7 +487,7 @@ class GroundSourceHeatPump:
 
         Q_bhe_unit = calc_borefield_linear_load(Q_bhe, self.n_boreholes, self.H_b) if is_active else 0.0
         T_bhe_f = (cu.K2C(T_bhe_f_in_K) + cu.K2C(T_bhe_f_out_K)) / 2
-        T_bhe = T_bhe_f + Q_bhe_unit * self.R_b
+        T_bhe = T_bhe_f + Q_bhe_unit * loop["R_b"]
 
         # ── Indoor unit HX ──
         if mode == "cooling":
@@ -456,22 +530,28 @@ class GroundSourceHeatPump:
         T_iu_a_out = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if is_active and dV_iu_a > 0 else T_a_room
         v_iu_a = dV_iu_a / self.A_cross_iu if is_active else 0.0
 
+        UA_ground_actual = ground_hx_UA(
+            self._ground_settings, self.UA_evap if mode == "heating" else self.UA_cond, ground_flow_ratio, m_dot_ref
+        )
+        Q_ground_available = 0.0
         # BHE NTU check (heating: evaporator constraint)
         if mode == "heating" and is_active:
-            eps = calc_phase_change_hx_effectiveness(self.UA_evap, self.dV_b_f_m3s * rho_w, c_w)
-            T_source_K_local = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
+            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
+            T_source_K_local = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             Q_evap_max = eps * m_dot_cp_b * (T_source_K_local - T_evap_sat_K)
+            Q_ground_available = Q_evap_max
             err_Q_evap = Q_ref_evap - Q_evap_max
         elif mode == "cooling" and is_active:
-            eps = calc_phase_change_hx_effectiveness(self.UA_cond, self.dV_b_f_m3s * rho_w, c_w)
-            T_source_K_local = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
+            eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
+            T_source_K_local = T_bhe_f_out_K + (loop["E_pmp"] / m_dot_cp_b)
             Q_cond_max = eps * m_dot_cp_b * (T_cond_sat_K - T_source_K_local)
+            Q_ground_available = Q_cond_max
             err_Q_evap = Q_ref_cond - Q_cond_max
         else:
             err_Q_evap = 0.0
 
         # Total electrical input
-        E_pmp_active = self.E_pmp if is_active else 0.0
+        E_pmp_active = loop["E_pmp"] if is_active else 0.0
         E_tot = E_cmp + E_pmp_active + E_iu_fan
 
         result = reportable_state(cycle_states)
@@ -498,7 +578,7 @@ class GroundSourceHeatPump:
                 # Volume flow rates
                 "dV_iu_a [m3/s]": dV_iu_a,
                 "v_iu_a [m/s]": v_iu_a,
-                "dV_bhe_f [m3/s]": self.dV_b_f_m3s if is_active else 0.0,
+                "dV_bhe_f [m3/s]": loop["dV"] if is_active else 0.0,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
                 # Energy rates [W]
@@ -524,11 +604,104 @@ class GroundSourceHeatPump:
                 ),
             }
         )
+        ground_result_diagnostics(
+            result,
+            self._ground_settings,
+            loop,
+            ground_flow_ratio,
+            UA_ground_actual,
+            Q_ground_available,
+            result["Q_ref_ground [W]"],
+        )
+        if (
+            (self._ground_settings["active"] or source_temperature_K is not None)
+            and is_active
+            and not self.rps_min <= cmp_rps <= self.rps_max
+        ):
+            result["converged_rps"] = False
+            result["failure_reason"] = "compressor_min_speed" if cmp_rps < self.rps_min else "compressor_max_speed"
         return result
 
     # =============================================================
     # 2D Optimisation
     # =============================================================
+
+    def _solve_ground_flow_point(
+        self, ratio: float, Q_r_iu: float, T0: float, T_a_room: float, wall_K: float | Callable[[float], float]
+    ) -> dict:
+        """At fixed flow, close the ground HX and optimize the indoor approach."""
+        from scipy.optimize import minimize_scalar
+
+        cache: dict[float, dict] = {}
+
+        def evaluate_load_approach(load_approach: float) -> dict:
+            if load_approach not in cache:
+
+                def evaluate_ground(ground_approach: float) -> dict | None:
+                    evap, cond = (ground_approach, load_approach) if Q_r_iu < 0 else (load_approach, ground_approach)
+                    return close_ground_temperature(
+                        lambda temperature: self._calc_state(
+                            evap, cond, Q_r_iu, T0, T_a_room, ground_flow_ratio=ratio, source_temperature_K=temperature
+                        ),
+                        wall_K,
+                        self.n_boreholes,
+                        self.H_b,
+                    )
+
+                cache[load_approach] = solve_ground_approach(evaluate_ground, "Q_ref_iu [W]", abs(Q_r_iu))
+                if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
+                    cache[load_approach]["failure_reason"] = "pressure_ratio_limit"
+            return cache[load_approach]
+
+        def objective(x: float) -> float:
+            row = evaluate_load_approach(float(x))
+            return float(row["E_tot [W]"]) if row.get("converged", False) else 1e30
+
+        grid = np.linspace(1, 20, 7)
+        powers = [objective(float(x)) for x in grid]
+        feasible = [i for i, power in enumerate(powers) if power < 1e30]
+        if not feasible:
+            rows = list(cache.values())
+            return next((r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"), rows[0])
+        best = min(feasible, key=lambda i: powers[i])
+        optimum = minimize_scalar(
+            objective,
+            bounds=(float(grid[max(0, best - 1)]), float(grid[min(len(grid) - 1, best + 1)])),
+            method="bounded",
+            options={"xatol": 1e-3, "maxiter": 30},
+        )
+        objective(float(optimum.x))
+        return min((r for r in cache.values() if r.get("converged", False)), key=lambda r: r["E_tot [W]"])
+
+    def _solve_ground_flow(
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        *,
+        ground_flow_ratio: float | None = None,
+        T_bhe_wall: float | None = None,
+        wall_response: Callable[[float], float] | None = None,
+    ) -> dict:
+        if Q_r_iu == 0:
+            result = self._calc_state(5, 5, 0, T0, T_a_room)
+            assert result is not None
+            result.update({"failure_reason": "none", "hx_feasible": True})
+            result["E_iu_fan [W]"] = result["E_tot [W]"] = 0.0
+            return result
+        wall_K = (
+            wall_response if wall_response is not None else cu.C2K(self.T_bhe if T_bhe_wall is None else T_bhe_wall)
+        )
+        selected = select_ground_flow(
+            lambda ratio: self._solve_ground_flow_point(ratio, Q_r_iu, T0, T_a_room, wall_K),
+            self._ground_settings,
+            ground_flow_ratio,
+        )
+        if "h_ref_cmp_in [J/kg]" not in selected:
+            off = self._calc_state(5, 5, 0, T0, T_a_room) or {}
+            off.update(selected)
+            selected = off
+        return selected
 
     def _optimize_operation(self, Q_r_iu: float, T0: float, T_a_room: float):
         """Find min-power point: E_cmp + E_pmp + E_iu_fan."""
@@ -593,10 +766,10 @@ class GroundSourceHeatPump:
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit * self.R_b
+        T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = c_w * rho_w * self.dV_b_f_m3s
+        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
 
         dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_half
@@ -622,6 +795,8 @@ class GroundSourceHeatPump:
         T_a_room: float | None = None,
         *,
         return_dict: bool = True,
+        ground_flow_ratio: float | None = None,
+        T_bhe_wall: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
@@ -644,6 +819,12 @@ class GroundSourceHeatPump:
         """
         if T_a_room is None:
             T_a_room = self.T_a_room
+
+        if self._ground_settings["active"] or ground_flow_ratio is not None:
+            result = self._solve_ground_flow(
+                Q_r_iu, T0, T_a_room, ground_flow_ratio=ground_flow_ratio, T_bhe_wall=T_bhe_wall
+            )
+            return result if return_dict else pd.DataFrame([result])
 
         if Q_r_iu == 0:
             result = self._calc_state(5.0, 5.0, 0.0, T0, T_a_room)
@@ -772,13 +953,30 @@ class GroundSourceHeatPump:
             T0_n = T0_schedule[n]
             T_a_room_n = T_a_room_arr[n]
 
-            if Q_r_iu_n == 0:
+            if self._ground_settings["active"]:
+                # Preview the current-time wall for each candidate, without recording pulses.
+                def wall_response(q_total, step=n, previous_q=Q_bhe_unit_old):
+                    idx = np.flatnonzero(Q_bhe_unit_pulse[:step])
+                    rise = (
+                        float(
+                            np.dot(Q_bhe_unit_pulse[idx], self._gfunc_interp(np.maximum(time[step] - time[idx], 1e-6)))
+                        )
+                        if len(idx)
+                        else 0.0
+                    )
+                    delta = q_total / self.total_borehole_length - previous_q
+                    if abs(delta) > 1e-6:
+                        rise += float(delta * self._gfunc_interp(np.array([1e-6]))[0])
+                    return self.Ts_K - rise
+
+                hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
+            elif Q_r_iu_n == 0:
                 hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
             else:
                 opt = self._optimize_operation(Q_r_iu_n, T0_n, T_a_room_n)
                 hp_result = self._calc_state(opt.x[0], opt.x[1], Q_r_iu_n, T0_n, T_a_room_n)
 
-            if hp_result is None or not hp_result.get("converged", False):
+            if not self._ground_settings["active"] and (hp_result is None or not hp_result.get("converged", False)):
                 hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
                 if hp_result is None:
                     # Off-mode cycle itself failed — fall back to an inert
@@ -792,6 +990,7 @@ class GroundSourceHeatPump:
                 else:
                     hp_result["converged"] = False
 
+            assert hp_result is not None
             hp_is_on = bool(hp_result.get("hp_is_on", False))
 
             # BHE superposition

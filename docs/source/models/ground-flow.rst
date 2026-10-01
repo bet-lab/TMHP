@@ -37,7 +37,7 @@ flow exponents (0.8/0.8) are explicit modelling assumptions, not equipment limit
 or validated refrigerant correlations. Supply values appropriate to the case.
 
 Physical HX sizing and compressor efficiencies
----------------------------------------------
+----------------------------------------------
 
 GSHP sizes its physical ground HX with
 ``UA_ground_rated = ground_hx_ua_per_capacity * hp_capacity``. The default

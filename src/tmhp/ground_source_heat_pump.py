@@ -528,6 +528,11 @@ class GroundSourceHeatPump:
 
                 P_cond = self.PR_cycle_min * P_evap
                 T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
+                # Projection changes the condenser's physical approach. Its
+                # available subcooling must follow that projected temperature,
+                # not the pre-projection trial approach used by the HX search.
+                sink_K = cu.C2K(T_a_room) if mode == "heating" else T_source_K
+                actual_dT_subcool = min(self.dT_subcool, max(0.0, T_cond_sat_K - sink_K - self.dT_hx_min))
                 cycle_states = calc_ref_state(
                     T_evap_K=T_evap_sat_K,
                     T_cond_K=T_cond_sat_K,
@@ -794,25 +799,27 @@ class GroundSourceHeatPump:
         self, ratio: float, Q_r_iu: float, T0: float, T_a_room: float, wall_K: float | Callable[[float], float]
     ) -> dict:
         """At fixed flow, close the ground HX and optimize the indoor approach."""
-        from scipy.optimize import minimize_scalar
+        from scipy.optimize import brentq, minimize_scalar
 
         cache: dict[float, dict] = {}
+        minimum_ground_cache: dict[float, dict | None] = {}
+
+        def evaluate_ground(load_approach: float, ground_approach: float) -> dict | None:
+            evap, cond = (ground_approach, load_approach) if Q_r_iu < 0 else (load_approach, ground_approach)
+            return close_ground_temperature(
+                lambda temperature: self._calc_state(
+                    evap, cond, Q_r_iu, T0, T_a_room, ground_flow_ratio=ratio, source_temperature_K=temperature
+                ),
+                wall_K,
+                self.n_boreholes,
+                self.H_b,
+            )
 
         def evaluate_load_approach(load_approach: float) -> dict:
             if load_approach not in cache:
-
-                def evaluate_ground(ground_approach: float) -> dict | None:
-                    evap, cond = (ground_approach, load_approach) if Q_r_iu < 0 else (load_approach, ground_approach)
-                    return close_ground_temperature(
-                        lambda temperature: self._calc_state(
-                            evap, cond, Q_r_iu, T0, T_a_room, ground_flow_ratio=ratio, source_temperature_K=temperature
-                        ),
-                        wall_K,
-                        self.n_boreholes,
-                        self.H_b,
-                    )
-
-                cache[load_approach] = solve_ground_approach(evaluate_ground, "Q_ref_iu [W]", abs(Q_r_iu))
+                cache[load_approach] = solve_ground_approach(
+                    lambda ground: evaluate_ground(load_approach, ground), "Q_ref_iu [W]", abs(Q_r_iu)
+                )
                 if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
                     cache[load_approach]["failure_reason"] = "pressure_ratio_limit"
             return cache[load_approach]
@@ -823,8 +830,39 @@ class GroundSourceHeatPump:
 
         grid = np.linspace(self.indoor_approach_min_K, self.indoor_approach_max_K, 7)
         powers = [objective(float(x)) for x in grid]
+
+        # PR-floor projection makes the ground-HX duty residual flat in ground
+        # approach, creating a narrow feasible boundary in indoor approach.
+        # Resolve that physical equality explicitly: a bounded smooth search
+        # can otherwise miss it and return a higher-power point just above PRmin.
+        def minimum_ground_residual(load_approach: float) -> float:
+            if load_approach not in minimum_ground_cache:
+                minimum_ground_cache[load_approach] = evaluate_ground(load_approach, 1.0)
+            row = minimum_ground_cache[load_approach]
+            if row is None:
+                raise ValueError("Invalid cycle at minimum ground approach")
+            return float(row["Q_ref_required [W]"] - row["Q_HX_available [W]"])
+
+        previous = None
+        for x in grid:
+            x = float(x)
+            try:
+                residual = minimum_ground_residual(x)
+            except ValueError:
+                previous = None
+                continue
+            if previous is not None and previous[1] * residual <= 0:
+                with contextlib.suppress(ValueError, RuntimeError):
+                    root = float(brentq(minimum_ground_residual, previous[0], x, xtol=1e-10))
+                    row = minimum_ground_cache[root]
+                    if row is not None and row.get("pr_floor_active", False):
+                        objective(root)
+            previous = (x, residual)
         feasible = [i for i, power in enumerate(powers) if power < 1e30]
         if not feasible:
+            boundary = [r for r in cache.values() if r.get("converged", False)]
+            if boundary:
+                return min(boundary, key=lambda r: r["E_tot [W]"])
             rows = list(cache.values())
             return next((r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"), rows[0])
         best = min(feasible, key=lambda i: powers[i])

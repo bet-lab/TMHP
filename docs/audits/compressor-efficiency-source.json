@@ -1,0 +1,18 @@
+{
+  "source_module": "/home/habin/papers/TMHP-feat-compressor-efficiency-defaults/src/tmhp/compressor_efficiency.py",
+  "source_sha256": "22699a79c8b7bbf05e30c4c3006012b083fcbb4e9ec80c824b586f98907ac60d",
+  "source_commit": "d9fa2f3646df66493f499308723a63e49fbb91d6",
+  "notion_url": "https://app.notion.com/p/3eb6947d125d814d9480db29404ebbd3",
+  "coefficient_version": "v2026-09-24",
+  "default_rps_space_conditioning": 60,
+  "default_rps_boiler": 40,
+  "tuned": false,
+  "current_source_sha256": {
+    "src/tmhp/air_source_heat_pump.py": "b1544db0316b56581496613cc8619495864de3a71c8b91a5d17d3311897b9aec",
+    "src/tmhp/air_source_heat_pump_boiler.py": "fda50bf749d6949edd43a19183c9682203358ad3a7aa98725d16317957882dff",
+    "src/tmhp/ground_source_heat_pump.py": "0fc30f0cf3fe67cc947cad56d67f2cc7e1ee40a3875bcec174f90f29a8659460",
+    "src/tmhp/ground_source_heat_pump_boiler.py": "419912f465bee794f98f7c49d1b8ee42ea1cbc1da4d876bfb41f38a004960d32",
+    "src/tmhp/water_source_heat_pump_boiler.py": "d0d3fbfb9692e54dca96b3b781a531d8474215b1403155df28a73f0a0e7b94dc",
+    "src/tmhp/compressor_efficiency.py": "4a596b3870e90dadb653589e957a266566cee3c27609b2d81cb2db99ede4e68a"
+  }
+}

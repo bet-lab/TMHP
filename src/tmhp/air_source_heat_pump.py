@@ -17,7 +17,6 @@ heat exchange at the indoor unit.
 """
 
 import contextlib
-import inspect
 from collections.abc import Callable
 
 import numpy as np
@@ -27,6 +26,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
+from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
@@ -141,6 +141,7 @@ class AirSourceHeatPump:
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
         *,
+        rps_rated: float = 60.0,
         dV_ou_fan_a_ref: float | None = None,
         dV_ou_fan_a_min: float | None = None,
         dV_ou_fan_a_max: float | None = None,
@@ -154,11 +155,14 @@ class AirSourceHeatPump:
             dV_ou_fan_a_rated = dV_ou_fan_a_ref
         if dV_iu_fan_a_ref is not None:
             dV_iu_fan_a_rated = dV_iu_fan_a_ref
+        if not np.isfinite(rps_rated) or rps_rated <= 0:
+            raise ValueError("rps_rated must be positive and finite")
+        self.rps_rated = rps_rated
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else 0.855
+            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(rps_rated)
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -225,8 +229,8 @@ class AirSourceHeatPump:
         #: operating-point search may propose.
         self._T_crit_K: float = float(CP.PropsSI("Tcrit", ref))
         self.V_cmp_ref: float = V_cmp_ref
-        self.eta_cmp_isen: float | Callable | None = eta_cmp_isen
-        self.eta_cmp_vol: float | Callable | None = eta_cmp_vol
+        self.eta_cmp_isen: float | Callable = eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
+        self.eta_cmp_vol: float | Callable = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
         self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -364,7 +368,7 @@ class AirSourceHeatPump:
                 T_evap_K=T0_K,
                 T_cond_K=T0_K,
                 refrigerant=self.ref,
-                eta_cmp_isen=self.eta_cmp_isen if self.eta_cmp_isen is not None else 1.0,
+                eta_cmp_isen=1.0,
                 mode="off",
                 dT_superheat=self.dT_superheat,
                 dT_subcool=self.dT_subcool,
@@ -438,16 +442,6 @@ class AirSourceHeatPump:
 
         actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_cond - self.dT_hx_min))
         actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_evap - self.dT_hx_min))
-
-        def _eval_eff(eff, r_p, rps) -> float:
-            if eff is None:
-                return 1.0
-            if callable(eff):
-                sig = inspect.signature(eff)
-                if len(sig.parameters) == 2:
-                    return float(eff(r_p, rps))
-                return float(eff(r_p))
-            return float(eff)
 
         # Same name (`cs`) is annotated up in the inactive branch (~L206);
         # re-annotating here triggers mypy [no-redef] even though the

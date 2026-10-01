@@ -5,7 +5,7 @@ All identifiers matching ref/rated/design/ratio/min/max in the requested 10 modu
 plus the actual-flow borehole helper, are inventoried from the Python AST. Thermodynamic
 `ref` names denote refrigerant, while flow `*_ref` inputs denote fixed normalization.
 This inventory records those existing naming exceptions rather than silently reinterpreting them.
-Line references and source hashes are in `reference-rated-max.json`.
+Line references and source hashes are a historical snapshot of commit `f698e3c84c87f5f987b614bad55e4b56643b68c2` in `reference-rated-max.json`. The subsequent callable-efficiency change is described in `compressor-efficiency-source.json` and the developer guide; this inventory is not a current-line-number map.
 
 ## Reviewed behavior
 

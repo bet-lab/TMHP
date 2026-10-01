@@ -163,7 +163,7 @@ For resistance units and flow conventions, see the
 `pygfunction pipe documentation <https://pygfunction.readthedocs.io/en/stable/modules/pipes.html>`_.
 
 Reference flow is independent of limits
---------------------------------------
+---------------------------------------
 
 The new API separates ``ground_flow_ref_lpm`` (fixed normalization),
 ``ground_flow_constant_lpm`` (constant command) and ``ground_flow_min_lpm`` /

@@ -52,8 +52,9 @@ from .ground_loop import (
     ground_flow_state,
     ground_hx_UA,
     ground_result_diagnostics,
+    resolve_ground_flow_rates,
 )
-from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness
+from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness, resolve_fan_flow_limits
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -99,7 +100,7 @@ class GroundSourceHeatPump:
         r_in: float = 0.013,
         D_s: float = 0.025,
         boundary_condition: str = "uniform_temperature",
-        dV_b_f_lpm: float = 20.04,
+        dV_b_f_lpm: float | None = None,
         k_s: float = 2.0,
         c_s: float = 800,
         rho_s: float = 2000,
@@ -127,8 +128,14 @@ class GroundSourceHeatPump:
         UA_ground_rated: float | None = None,
         ground_hx_ua_per_capacity: float = 0.18,
         UA_iu_rated: float | None = None,
+        indoor_approach_min_K: float = 1.0,
+        indoor_approach_max_K: float = 20.0,
         eta_v: float = 0.9,
         eta_em: float = 0.8,
+        ground_flow_ref_lpm: float | None = None,
+        ground_flow_constant_lpm: float | None = None,
+        ground_flow_min_lpm: float | None = None,
+        ground_flow_max_lpm: float | None = None,
         ground_flow_control: str = "constant",
         variable_ground_flow: bool = False,
         variable_ground_hx_UA: bool = False,
@@ -138,8 +145,8 @@ class GroundSourceHeatPump:
         pipe_inner_diameter: float | None = None,
         pipe_roughness: float = 1e-6,
         dp_common: float = 0.0,
-        ground_flow_min_ratio: float = 0.2,
-        ground_flow_max_ratio: float = 1.2,
+        ground_flow_min_ratio: float | None = None,
+        ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
         ground_hx_fluid_fraction: float = 0.5,
         ground_hx_refrigerant_fraction: float = 0.3,
@@ -148,7 +155,34 @@ class GroundSourceHeatPump:
         ground_hx_refrigerant_exponent: float = 0.8,
         rps_min: float = 15.0,
         rps_max: float = 150.0,
+        dV_iu_fan_a_ref: float | None = None,
+        dV_iu_fan_a_min: float | None = None,
+        dV_iu_fan_a_max: float | None = None,
     ):
+        ground_rates = resolve_ground_flow_rates(
+            default_ref_lpm=20.04,
+            legacy_ref_lpm=dV_b_f_lpm,
+            min_ratio=ground_flow_min_ratio,
+            max_ratio=ground_flow_max_ratio,
+            ref_lpm=ground_flow_ref_lpm,
+            constant_lpm=ground_flow_constant_lpm,
+            min_lpm=ground_flow_min_lpm,
+            max_lpm=ground_flow_max_lpm,
+        )
+        self.ground_flow_ref_lpm = ground_rates["ref_lpm"]
+        self.ground_flow_constant_lpm = ground_rates["constant_lpm"]
+        self.ground_flow_min_lpm = ground_rates["min_lpm"]
+        self.ground_flow_max_lpm = ground_rates["max_lpm"]
+        dV_b_f_lpm = self.ground_flow_ref_lpm
+        if dV_iu_fan_a_ref is not None:
+            dV_iu_fan_a_rated = dV_iu_fan_a_ref
+        if (
+            not all(np.isfinite(v) for v in (indoor_approach_min_K, indoor_approach_max_K))
+            or not 0 < indoor_approach_min_K < indoor_approach_max_K
+        ):
+            raise ValueError("Require finite 0 < indoor_approach_min_K < indoor_approach_max_K")
+        self.indoor_approach_min_K = indoor_approach_min_K
+        self.indoor_approach_max_K = indoor_approach_max_K
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else 0.0001
@@ -227,6 +261,12 @@ class GroundSourceHeatPump:
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
+        self.dV_iu_fan_a_ref = self.dV_iu_fan_a_rated
+        self.dV_iu_fan_a_min, self.dV_iu_fan_a_max = resolve_fan_flow_limits(
+            self.dV_iu_fan_a_ref,
+            dV_iu_fan_a_min,
+            dV_iu_fan_a_max,
+        )
         self.dP_iu_fan_rated: float = dP_iu_fan_rated
         self.eta_iu_fan_rated: float = eta_iu_fan_rated
 
@@ -238,7 +278,9 @@ class GroundSourceHeatPump:
         self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
+            "fan_ref_flow_rate": self.dV_iu_fan_a_rated,
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
+            "fan_ref_power": self.E_iu_fan_rated,
             "fan_rated_power": self.E_iu_fan_rated,
         }
 
@@ -256,7 +298,7 @@ class GroundSourceHeatPump:
         self.rho_s = rho_s
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp: float = E_pmp
-        self.dV_b_f_m3s: float = dV_b_f_lpm * cu.L2m3 / cu.m2s
+        self.dV_b_f_m3s: float = dV_b_f_lpm / 60000
 
         # Effective borehole thermal resistance R_b* [mK/W].
         # Mirrors GroundSourceHeatPumpBoiler: when R_b is not given explicitly,
@@ -309,9 +351,10 @@ class GroundSourceHeatPump:
             variable_UA=variable_ground_hx_UA,
             variable_Rb=variable_Rb,
             hydraulic_pump=hydraulic_pump,
-            min_ratio=ground_flow_min_ratio,
-            max_ratio=ground_flow_max_ratio,
-            volume_flow_rated=self.dV_b_f_m3s,
+            volume_flow_ref=self.dV_b_f_m3s,
+            volume_flow_constant=self.ground_flow_constant_lpm / 60000,
+            volume_flow_min=self.ground_flow_min_lpm / 60000,
+            volume_flow_max=self.ground_flow_max_lpm / 60000,
             n_boreholes=self.n_boreholes,
             H_b=self.H_b,
             R_b=self.R_b,
@@ -532,7 +575,9 @@ class GroundSourceHeatPump:
                 T_ref_sat_K=T_evap_sat_K,
                 A_cross=self.A_cross_iu,
                 UA_rated=UA_iu_rated,
-                dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_ref=self.dV_iu_fan_a_ref,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
                 is_active=is_active,
             )
         elif mode == "heating":
@@ -542,7 +587,9 @@ class GroundSourceHeatPump:
                 T_ref_sat_K=T_cond_sat_K,
                 A_cross=self.A_cross_iu,
                 UA_rated=UA_iu_rated,
-                dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_ref=self.dV_iu_fan_a_ref,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
                 is_active=is_active,
             )
         else:
@@ -712,7 +759,7 @@ class GroundSourceHeatPump:
             row = evaluate_load_approach(float(x))
             return float(row["E_tot [W]"]) if row.get("converged", False) else 1e30
 
-        grid = np.linspace(1, 20, 7)
+        grid = np.linspace(self.indoor_approach_min_K, self.indoor_approach_max_K, 7)
         powers = [objective(float(x)) for x in grid]
         feasible = [i for i, power in enumerate(powers) if power < 1e30]
         if not feasible:
@@ -782,7 +829,10 @@ class GroundSourceHeatPump:
         return minimize(
             _objective,
             x0=[x0_dt, x0_dt],
-            bounds=[(1.0, 20.0), (1.0, 20.0)],
+            bounds=[
+                (1.0, 20.0) if Q_r_iu < 0 else (self.indoor_approach_min_K, self.indoor_approach_max_K),
+                (self.indoor_approach_min_K, self.indoor_approach_max_K) if Q_r_iu < 0 else (1.0, 20.0),
+            ],
             method="Nelder-Mead",
             options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
         )
@@ -851,6 +901,7 @@ class GroundSourceHeatPump:
         *,
         return_dict: bool = True,
         ground_flow_ratio: float | None = None,
+        ground_flow_lpm: float | None = None,
         T_bhe_wall: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
@@ -875,6 +926,18 @@ class GroundSourceHeatPump:
         if T_a_room is None:
             T_a_room = self.T_a_room
 
+        if ground_flow_ratio is not None and ground_flow_lpm is not None:
+            raise ValueError("Supply ground_flow_lpm or deprecated ground_flow_ratio, not both")
+        if ground_flow_lpm is not None:
+            ground_flow_ratio = ground_flow_lpm / self.ground_flow_ref_lpm
+        elif ground_flow_ratio is not None:
+            import warnings
+
+            warnings.warn(
+                "ground_flow_ratio is deprecated; use ground_flow_lpm (ratio is always to reference).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if self._ground_settings["active"] or ground_flow_ratio is not None:
             result = self._solve_ground_flow(
                 Q_r_iu, T0, T_a_room, ground_flow_ratio=ground_flow_ratio, T_bhe_wall=T_bhe_wall
@@ -927,7 +990,7 @@ class GroundSourceHeatPump:
                     f"opt_success={opt_success}, "
                     f"opt_x=({opt.x[0]:.2f}, {opt.x[1]:.2f}), "
                     f"opt_fun={float(getattr(opt, 'fun', float('nan'))):.3g}). "
-                    "Consider increasing UA_rated or fan-flow rated.",
+                    "Consider calibrating UA_rated or increasing the explicit fan-flow maximum.",
                     RuntimeWarning,
                     stacklevel=2,
                 )

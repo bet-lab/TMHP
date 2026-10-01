@@ -77,6 +77,7 @@ from .ground_loop import (
     ground_flow_state,
     ground_hx_UA,
     ground_result_diagnostics,
+    resolve_ground_flow_rates,
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
@@ -143,7 +144,7 @@ class GroundSourceHeatPumpBoiler:
         r_out: float = 0.016,
         r_in: float = 0.013,
         D_s: float = 0.025,
-        dV_b_f_lpm: float = 24,
+        dV_b_f_lpm: float | None = None,
         k_s: float = 2.0,
         c_s: float = 800,
         rho_s: float = 2000,
@@ -192,6 +193,10 @@ class GroundSourceHeatPumpBoiler:
         UA_tank: float | None = None,  # deprecated alias for UA_tank_hx
         UA_cond_design: float | None = None,
         UA_evap_design: float | None = None,
+        ground_flow_ref_lpm: float | None = None,
+        ground_flow_constant_lpm: float | None = None,
+        ground_flow_min_lpm: float | None = None,
+        ground_flow_max_lpm: float | None = None,
         ground_flow_control: str = "constant",
         variable_ground_flow: bool = False,
         variable_ground_hx_UA: bool = False,
@@ -201,8 +206,8 @@ class GroundSourceHeatPumpBoiler:
         pipe_inner_diameter: float | None = None,
         pipe_roughness: float = 1e-6,
         dp_common: float = 0.0,
-        ground_flow_min_ratio: float = 0.2,
-        ground_flow_max_ratio: float = 1.2,
+        ground_flow_min_ratio: float | None = None,
+        ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
         ground_hx_fluid_fraction: float = 0.5,
         ground_hx_refrigerant_fraction: float = 0.3,
@@ -210,6 +215,21 @@ class GroundSourceHeatPumpBoiler:
         ground_hx_fluid_exponent: float = 0.8,
         ground_hx_refrigerant_exponent: float = 0.8,
     ) -> None:
+        ground_rates = resolve_ground_flow_rates(
+            default_ref_lpm=24,
+            legacy_ref_lpm=dV_b_f_lpm,
+            min_ratio=ground_flow_min_ratio,
+            max_ratio=ground_flow_max_ratio,
+            ref_lpm=ground_flow_ref_lpm,
+            constant_lpm=ground_flow_constant_lpm,
+            min_lpm=ground_flow_min_lpm,
+            max_lpm=ground_flow_max_lpm,
+        )
+        self.ground_flow_ref_lpm = ground_rates["ref_lpm"]
+        self.ground_flow_constant_lpm = ground_rates["constant_lpm"]
+        self.ground_flow_min_lpm = ground_rates["min_lpm"]
+        self.ground_flow_max_lpm = ground_rates["max_lpm"]
+        dV_b_f_lpm = self.ground_flow_ref_lpm
         if refrigerant is not None:
             import warnings
 
@@ -305,7 +325,7 @@ class GroundSourceHeatPumpBoiler:
         self.rho_s = rho_s
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp = E_pmp
-        self.dV_b_f_m3s = dV_b_f_lpm * cu.L2m3 / cu.m2s
+        self.dV_b_f_m3s = dV_b_f_lpm / 60000
 
         if R_b is None:
             from .borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
@@ -349,9 +369,10 @@ class GroundSourceHeatPumpBoiler:
             variable_UA=variable_ground_hx_UA,
             variable_Rb=variable_Rb,
             hydraulic_pump=hydraulic_pump,
-            min_ratio=ground_flow_min_ratio,
-            max_ratio=ground_flow_max_ratio,
-            volume_flow_rated=self.dV_b_f_m3s,
+            volume_flow_ref=self.dV_b_f_m3s,
+            volume_flow_constant=self.ground_flow_constant_lpm / 60000,
+            volume_flow_min=self.ground_flow_min_lpm / 60000,
+            volume_flow_max=self.ground_flow_max_lpm / 60000,
             n_boreholes=self.n_boreholes,
             H_b=self.H_b,
             R_b=self.R_b,
@@ -1360,6 +1381,7 @@ class GroundSourceHeatPumpBoiler:
         *,
         return_dict: bool = True,
         ground_flow_ratio: float | None = None,
+        ground_flow_lpm: float | None = None,
         T_bhe_wall: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
@@ -1416,6 +1438,18 @@ class GroundSourceHeatPumpBoiler:
         # Override T_bhe_f_out_K so that _calc_state uses T_source correctly
         self.T_bhe_f_out_K = cu.C2K(T_source)
 
+        if ground_flow_ratio is not None and ground_flow_lpm is not None:
+            raise ValueError("Supply ground_flow_lpm or deprecated ground_flow_ratio, not both")
+        if ground_flow_lpm is not None:
+            ground_flow_ratio = ground_flow_lpm / self.ground_flow_ref_lpm
+        elif ground_flow_ratio is not None:
+            import warnings
+
+            warnings.warn(
+                "ground_flow_ratio is deprecated; use ground_flow_lpm (ratio is always to reference).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if self._ground_settings["active"] or ground_flow_ratio is not None:
             result = self._solve_ground_flow(
                 T_tank_w,

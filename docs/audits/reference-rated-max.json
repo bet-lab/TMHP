@@ -1,0 +1,3261 @@
+{
+  "scope": [
+    "air_source_heat_pump.py",
+    "air_source_heat_pump_boiler.py",
+    "ground_source_heat_pump.py",
+    "ground_source_heat_pump_boiler.py",
+    "water_source_heat_pump_boiler.py",
+    "hx_fan.py",
+    "heat_exchanger.py",
+    "ground_loop.py",
+    "ground_flow_control.py",
+    "compressor_speed.py",
+    "borehole.py"
+  ],
+  "classes": {
+    "A": "Physical state/reference/rated equipment quantity",
+    "B": "Normalization denominator or explicitly named ratio",
+    "C": "Actual command/setpoint/target",
+    "D": "Physical/control/validity limit"
+  },
+  "review": {
+    "ground": "reference and constant setpoint separated; actual-volume optimizer, actual branch-flow Rb; fixed water/refrigerant UA references",
+    "fan": "former rated-flow upper bound separated into reference/min/max in common solver and all three air-side models",
+    "compressor": "displacement does not supply speed bounds; speed solver brackets explicit rps_min/rps_max; no normalized-speed upper clamp",
+    "WSHPB": "fixed source-water/tank UAs, no fan/rated-flow ceiling; existing source flow and explicit speed/mixing limits retain meanings",
+    "clamps": "No UA-to-rated or ratio-to-one clamp found. Nonnegative fan-power protection and ULP endpoint clamping retained."
+  },
+  "source_sha256": {
+    "air_source_heat_pump.py": "3c9a68c65022f90ffd3c3f5edeba12e24940cd8c8dc652f1a20698876eacd9de",
+    "air_source_heat_pump_boiler.py": "208c2f8dd0ee6598d8024c05d592709eadf01d20e770b7da6b3e65463f6b010e",
+    "ground_source_heat_pump.py": "a24971835692ab1912ed81f770e064c3da5b5b94b1cfdf7e68d00dd5eba38542",
+    "ground_source_heat_pump_boiler.py": "7a907bcd3f1ce7ad8dd123a054c4587601fa3fe6f4fa833cbe33da2d32f3cde7",
+    "water_source_heat_pump_boiler.py": "ee96ad199af89de1e605ca60dab623becdc422efddc6cff67f2e68a3a137b69e",
+    "hx_fan.py": "fe0bb9572b3486f9bb071717fc58284681da375247dd861cf6e115a79e275459",
+    "heat_exchanger.py": "780f97e615fad5197efeacdf5fa5ddc1166475845afc51c31b9b5f161a4cd5ae",
+    "ground_loop.py": "0a1417f604256ae24aa9bc9fdca23aa5174ef1f4ddcde5600ca872193c61bea0",
+    "ground_flow_control.py": "43abb35bdafb48581c2bb4acd46eb57d0e2c5a04e1fdbe9967ab6b62a4a63ef3",
+    "compressor_speed.py": "54be4e4dd6d1bc5b43ad0203788eb7b78504655183299bea824c37227056bf4e",
+    "borehole.py": "f39337e769b322e88a8a2087f690f42dc29b49a8f4c46dc09169f20f45c60d82"
+  },
+  "identifiers": [
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "E_iu_fan_rated",
+      "lines": [
+        312,
+        317,
+        318
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "E_ou_fan_rated",
+      "lines": [
+        283,
+        288,
+        289
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "PR_cycle_max",
+      "lines": [
+        115,
+        236,
+        483,
+        485
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "PR_cycle_min",
+      "lines": [
+        114,
+        235,
+        483,
+        488,
+        494,
+        512
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "Q_ref_cond",
+      "lines": [
+        555,
+        559,
+        560,
+        574,
+        630
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "Q_ref_evap",
+      "lines": [
+        556,
+        559,
+        560,
+        588,
+        616
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "Q_ref_iu",
+      "lines": [
+        559,
+        710,
+        715,
+        716
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "Q_ref_ou",
+      "lines": [
+        560,
+        711
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_cond_design",
+      "lines": [
+        135,
+        164
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_cond_rated",
+      "lines": [
+        131,
+        163,
+        164,
+        168,
+        176
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_evap_design",
+      "lines": [
+        136,
+        166
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_evap_rated",
+      "lines": [
+        132,
+        165,
+        166,
+        168,
+        178
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_iu_rated",
+      "lines": [
+        95,
+        177,
+        178,
+        255,
+        256,
+        258,
+        620,
+        634
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "UA_ou_rated",
+      "lines": [
+        94,
+        175,
+        176,
+        250,
+        251,
+        253,
+        256,
+        578,
+        592
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "V_cmp_ref",
+      "lines": [
+        87,
+        158,
+        159,
+        227,
+        530,
+        554
+      ],
+      "category": "A",
+      "interpretation": "Swept displacement per revolution; speed bounds are rps_min/rps_max."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "_optimize_operation",
+      "lines": [
+        1089
+      ],
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "calc_ref_state",
+      "lines": [
+        363,
+        455,
+        496,
+        542
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dP_iu_fan_design",
+      "lines": [
+        141,
+        198
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dP_iu_fan_rated",
+      "lines": [
+        105,
+        197,
+        198,
+        304,
+        312
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dP_ou_fan_design",
+      "lines": [
+        138,
+        192
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dP_ou_fan_rated",
+      "lines": [
+        100,
+        191,
+        192,
+        275,
+        283
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dT_hx_min",
+      "lines": [
+        112,
+        233,
+        439,
+        440
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dT_ref_cond",
+      "lines": [
+        331,
+        419,
+        424,
+        439,
+        750,
+        753
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dT_ref_evap",
+      "lines": [
+        330,
+        418,
+        423,
+        440,
+        750,
+        752
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_design",
+      "lines": [
+        140,
+        196
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_max",
+      "lines": [
+        149,
+        299,
+        302,
+        623,
+        637
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_min",
+      "lines": [
+        148,
+        299,
+        301,
+        622,
+        636
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_rated",
+      "lines": [
+        104,
+        156,
+        195,
+        196,
+        293,
+        294,
+        296,
+        298,
+        308,
+        312,
+        315,
+        316
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_ref",
+      "lines": [
+        147,
+        155,
+        156,
+        298,
+        300,
+        621,
+        635
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_ou_fan_a_design",
+      "lines": [
+        137,
+        190
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_ou_fan_a_max",
+      "lines": [
+        146,
+        270,
+        273,
+        581,
+        595
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_ou_fan_a_min",
+      "lines": [
+        145,
+        270,
+        272,
+        580,
+        594
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_ou_fan_a_rated",
+      "lines": [
+        99,
+        154,
+        189,
+        190,
+        264,
+        265,
+        267,
+        269,
+        279,
+        283,
+        286,
+        287
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "dV_ou_fan_a_ref",
+      "lines": [
+        144,
+        153,
+        154,
+        269,
+        271,
+        579,
+        593
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "eta_iu_fan_design",
+      "lines": [
+        142,
+        200
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "eta_iu_fan_rated",
+      "lines": [
+        107,
+        199,
+        200,
+        305,
+        312
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "eta_ou_fan_design",
+      "lines": [
+        139,
+        194
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "eta_ou_fan_rated",
+      "lines": [
+        102,
+        193,
+        194,
+        276,
+        283
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "h_ref_cmp_out_isen",
+      "lines": [
+        518,
+        520,
+        525
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        109,
+        159,
+        247,
+        251,
+        265,
+        294,
+        972
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        554,
+        555,
+        556,
+        561,
+        699
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "ratio_P_cmp",
+      "lines": [
+        473,
+        483,
+        485,
+        488,
+        512,
+        523,
+        524,
+        538,
+        539,
+        540
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "ref",
+      "lines": [
+        86,
+        220,
+        226,
+        366,
+        458,
+        495,
+        499,
+        518,
+        545,
+        1310
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "rps_max",
+      "lines": [
+        118,
+        239,
+        536
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump.py",
+      "identifier": "rps_min",
+      "lines": [
+        117,
+        238,
+        536
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "E_fan_rated",
+      "lines": [
+        293,
+        298,
+        299
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_max",
+      "lines": [
+        155,
+        235,
+        539,
+        542
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_min",
+      "lines": [
+        154,
+        234,
+        539,
+        545,
+        549,
+        563
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_cond",
+      "lines": [
+        1387,
+        1404
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_ou",
+      "lines": [
+        616,
+        620,
+        718,
+        1684,
+        1691,
+        1692
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_tank",
+      "lines": [
+        364,
+        402,
+        405,
+        413,
+        593,
+        695,
+        738,
+        768,
+        797,
+        863,
+        875,
+        886,
+        902,
+        908,
+        935,
+        1065,
+        1075,
+        1086,
+        1093,
+        1683,
+        1686,
+        1687,
+        1740
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_tank_calc",
+      "lines": [
+        615,
+        721,
+        728,
+        729
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "UA_cond_design",
+      "lines": [
+        163,
+        187
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "UA_evap_design",
+      "lines": [
+        164,
+        189
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "UA_ou_rated",
+      "lines": [
+        109,
+        188,
+        189,
+        259,
+        260,
+        262,
+        625
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "V_cmp_ref",
+      "lines": [
+        101,
+        178,
+        179,
+        214,
+        592,
+        614
+      ],
+      "category": "A",
+      "interpretation": "Swept displacement per revolution; speed bounds are rps_min/rps_max."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "X_in_ref_ou",
+      "lines": [
+        1782,
+        1783
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "_optimize_operation",
+      "lines": [
+        873,
+        1084
+      ],
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "calc_ref_state",
+      "lines": [
+        440,
+        519,
+        551,
+        602
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dP_fan_rated",
+      "lines": [
+        113,
+        192,
+        193,
+        281,
+        293
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dP_ou_fan_design",
+      "lines": [
+        166,
+        193
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dT_hx_min",
+      "lines": [
+        148,
+        232,
+        503,
+        504
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_ou",
+      "lines": [
+        362,
+        410,
+        504,
+        764,
+        766
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_tank",
+      "lines": [
+        402,
+        405,
+        411,
+        503
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_fan_a_max",
+      "lines": [
+        173,
+        276,
+        279,
+        628
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_fan_a_min",
+      "lines": [
+        172,
+        276,
+        278,
+        627
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_fan_a_rated",
+      "lines": [
+        112,
+        176,
+        190,
+        191,
+        270,
+        271,
+        273,
+        275,
+        289,
+        293,
+        296,
+        297
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_fan_a_ref",
+      "lines": [
+        171,
+        175,
+        176,
+        275,
+        277,
+        626
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_mix_w_out_max",
+      "lines": [
+        122,
+        319
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "dV_ou_fan_a_design",
+      "lines": [
+        165,
+        191
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "eta_fan_rated",
+      "lines": [
+        115,
+        196,
+        197,
+        282,
+        293
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "eta_ou_fan_design",
+      "lines": [
+        168,
+        197
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_out_isen",
+      "lines": [
+        581,
+        583,
+        589
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        121,
+        179,
+        245,
+        252,
+        271,
+        1065
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        614,
+        615,
+        616,
+        617,
+        714
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "ratio_P_cmp",
+      "lines": [
+        531,
+        539,
+        542,
+        545,
+        562,
+        586,
+        587,
+        597,
+        598,
+        599
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "ref",
+      "lines": [
+        100,
+        213,
+        443,
+        522,
+        550,
+        554,
+        581,
+        605,
+        1667
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "rps_max",
+      "lines": [
+        158,
+        238,
+        595
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "air_source_heat_pump_boiler.py",
+      "identifier": "rps_min",
+      "lines": [
+        157,
+        237,
+        595
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "E_cmp_ref",
+      "lines": [
+        544,
+        545,
+        546,
+        680
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "E_iu_fan_rated",
+      "lines": [
+        278,
+        283,
+        284
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "PR_cycle_max",
+      "lines": [
+        116,
+        218,
+        498,
+        500
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "PR_cycle_min",
+      "lines": [
+        115,
+        217,
+        498,
+        503,
+        506
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "Q_cond_max",
+      "lines": [
+        627,
+        628,
+        629
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "Q_evap_max",
+      "lines": [
+        621,
+        622,
+        623
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "Q_ref_cond",
+      "lines": [
+        542,
+        559,
+        560,
+        585,
+        629,
+        673,
+        674,
+        689,
+        692
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "Q_ref_evap",
+      "lines": [
+        543,
+        556,
+        557,
+        573,
+        623,
+        673,
+        674,
+        689,
+        692
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "Q_ref_iu",
+      "lines": [
+        456,
+        463,
+        468,
+        535,
+        538
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "UA_cond_design",
+      "lines": [
+        122,
+        190
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "UA_evap_design",
+      "lines": [
+        123,
+        192
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "UA_ground_rated",
+      "lines": [
+        128,
+        225,
+        227,
+        228,
+        237,
+        240,
+        256,
+        569,
+        615,
+        684,
+        720
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "UA_iu_rated",
+      "lines": [
+        130,
+        233,
+        237,
+        241,
+        256,
+        569,
+        577,
+        589,
+        685,
+        720
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "V_cmp_ref",
+      "lines": [
+        76,
+        187,
+        188,
+        211,
+        548
+      ],
+      "category": "A",
+      "interpretation": "Swept displacement per revolution; speed bounds are rps_min/rps_max."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "_optimize_operation",
+      "lines": [
+        962,
+        1094
+      ],
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "_rated_hx_UAs",
+      "lines": [
+        569
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "calc_ref_state",
+      "lines": [
+        478,
+        508
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dP_iu_fan_design",
+      "lines": [
+        125,
+        196
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dP_iu_fan_rated",
+      "lines": [
+        85,
+        195,
+        196,
+        270,
+        278
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dT_hx_min",
+      "lines": [
+        113,
+        215,
+        474,
+        475
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dT_ref_cond",
+      "lines": [
+        418,
+        455,
+        462,
+        474
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dT_ref_evap",
+      "lines": [
+        417,
+        454,
+        461,
+        475
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_design",
+      "lines": [
+        124,
+        194
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_max",
+      "lines": [
+        160,
+        265,
+        268,
+        580,
+        592
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_min",
+      "lines": [
+        159,
+        265,
+        267,
+        579,
+        591
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_rated",
+      "lines": [
+        84,
+        178,
+        193,
+        194,
+        259,
+        260,
+        262,
+        264,
+        274,
+        278,
+        281,
+        282
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "dV_iu_fan_a_ref",
+      "lines": [
+        158,
+        177,
+        178,
+        264,
+        266,
+        578,
+        590
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "eta_iu_fan_design",
+      "lines": [
+        126,
+        198
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "eta_iu_fan_rated",
+      "lines": [
+        87,
+        197,
+        198,
+        271,
+        278
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_max_lpm",
+      "lines": [
+        138,
+        170,
+        175,
+        357
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_max_ratio",
+      "lines": [
+        149,
+        166
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_min_lpm",
+      "lines": [
+        137,
+        169,
+        174,
+        356
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_min_ratio",
+      "lines": [
+        148,
+        165
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_ratio",
+      "lines": [
+        423,
+        440,
+        615,
+        700,
+        784,
+        800,
+        903,
+        929,
+        932,
+        933,
+        941,
+        943
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ground_flow_ref_lpm",
+      "lines": [
+        135,
+        167,
+        172,
+        176,
+        932
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        110,
+        220,
+        226,
+        233,
+        251,
+        260
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "indoor_approach_max_K",
+      "lines": [
+        132,
+        180,
+        181,
+        185,
+        762,
+        833,
+        834
+      ],
+      "category": "D",
+      "interpretation": "Explicit numerical indoor cycle search boundary; defaults preserved at 1\u201320 K. Not a reference or fan-flow ceiling."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "indoor_approach_min_K",
+      "lines": [
+        131,
+        180,
+        181,
+        184,
+        762,
+        833,
+        834
+      ],
+      "category": "D",
+      "interpretation": "Explicit numerical indoor cycle search boundary; defaults preserved at 1\u201320 K. Not a reference or fan-flow ceiling."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        535,
+        538,
+        540,
+        542,
+        543,
+        544,
+        548,
+        615,
+        662
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "m_dot_ref_rated",
+      "lines": [
+        150,
+        367
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "maximum",
+      "lines": [
+        866,
+        1080
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ratio",
+      "lines": [
+        732,
+        746,
+        798
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ratio_P_cmp",
+      "lines": [
+        497,
+        498,
+        500,
+        503
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "ref",
+      "lines": [
+        75,
+        210,
+        481,
+        507,
+        511,
+        1154
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "rps_max",
+      "lines": [
+        157,
+        221,
+        346,
+        708
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "rps_min",
+      "lines": [
+        156,
+        221,
+        346,
+        708,
+        711
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump.py",
+      "identifier": "t_max_s",
+      "lines": [
+        118,
+        394
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_max",
+      "lines": [
+        184,
+        306,
+        621,
+        623
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_min",
+      "lines": [
+        183,
+        305,
+        621,
+        626,
+        627,
+        645
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_ground",
+      "lines": [
+        685,
+        696,
+        697,
+        700,
+        704,
+        751,
+        767,
+        770,
+        1617,
+        1624,
+        1625
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_tank",
+      "lines": [
+        684,
+        750,
+        756,
+        757,
+        1299,
+        1324,
+        1379,
+        1456,
+        1465,
+        1476,
+        1486,
+        1501,
+        1507,
+        1529,
+        1616,
+        1619,
+        1620,
+        1670
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "UA_cond_design",
+      "lines": [
+        194,
+        249
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "UA_evap_design",
+      "lines": [
+        195,
+        251
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "V_cmp_ref",
+      "lines": [
+        105,
+        244,
+        245,
+        268,
+        662,
+        683
+      ],
+      "category": "A",
+      "interpretation": "Swept displacement per revolution; speed bounds are rps_min/rps_max."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "_optimize_operation",
+      "lines": [
+        916,
+        1474
+      ],
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "calc_ref_state",
+      "lines": [
+        523,
+        596,
+        629,
+        671
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "dT_hx_min",
+      "lines": [
+        177,
+        303,
+        581
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_ground",
+      "lines": [
+        481,
+        503
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_tank",
+      "lines": [
+        495,
+        504,
+        581
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "dV_mix_w_out_max",
+      "lines": [
+        120,
+        287
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_max_lpm",
+      "lines": [
+        199,
+        226,
+        231,
+        375
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_max_ratio",
+      "lines": [
+        210,
+        222
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_min_lpm",
+      "lines": [
+        198,
+        225,
+        230,
+        374
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_min_ratio",
+      "lines": [
+        209,
+        221
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_ratio",
+      "lines": [
+        487,
+        491,
+        688,
+        764,
+        817,
+        832,
+        1383,
+        1441,
+        1444,
+        1445,
+        1453,
+        1459
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ground_flow_ref_lpm",
+      "lines": [
+        196,
+        223,
+        228,
+        232,
+        1444
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_in",
+      "lines": [
+        607,
+        639,
+        647,
+        654,
+        660,
+        685,
+        686
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_out",
+      "lines": [
+        682,
+        684,
+        686
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_out_isen",
+      "lines": [
+        652,
+        654,
+        660
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "h_ref_exp_in",
+      "lines": [
+        608,
+        640,
+        647,
+        661,
+        684,
+        748
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "h_ref_exp_out",
+      "lines": [
+        609,
+        641,
+        685
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        119,
+        245,
+        285,
+        888
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        683,
+        684,
+        685,
+        686,
+        688,
+        744
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "m_dot_ref_rated",
+      "lines": [
+        211,
+        385
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ratio",
+      "lines": [
+        775,
+        786,
+        797,
+        830
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ratio_P_cmp",
+      "lines": [
+        613,
+        621,
+        623,
+        626,
+        645,
+        658,
+        659,
+        667,
+        668,
+        669
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "ref",
+      "lines": [
+        104,
+        241,
+        267,
+        526,
+        599,
+        628,
+        632,
+        652,
+        674,
+        746,
+        747,
+        1597
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "rho_ref_cmp_in",
+      "lines": [
+        610,
+        642,
+        662,
+        683
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "rps_max",
+      "lines": [
+        187,
+        309,
+        364,
+        665
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "rps_min",
+      "lines": [
+        186,
+        308,
+        364,
+        665
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_source_heat_pump_boiler.py",
+      "identifier": "t_max_s",
+      "lines": [
+        168,
+        436
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_max",
+      "lines": [
+        135,
+        223,
+        460,
+        462
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "PR_cycle_min",
+      "lines": [
+        134,
+        222,
+        460,
+        465,
+        466,
+        485
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "P_ref_cond_sat",
+      "lines": [
+        329,
+        330,
+        331,
+        361,
+        362,
+        365,
+        366
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "P_ref_evap_sat",
+      "lines": [
+        325,
+        326,
+        327,
+        360,
+        363,
+        364
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_tank",
+      "lines": [
+        536,
+        605,
+        611,
+        612,
+        925,
+        950,
+        1058,
+        1117,
+        1126,
+        1136,
+        1161,
+        1211,
+        1218,
+        1263,
+        1266,
+        1267,
+        1317
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_tank_actual",
+      "lines": [
+        694,
+        695,
+        696,
+        697
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "Q_ref_water",
+      "lines": [
+        537,
+        543,
+        547,
+        548,
+        551,
+        555,
+        606,
+        1264,
+        1271,
+        1272
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "UA_cond_design",
+      "lines": [
+        144,
+        169
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "UA_evap_design",
+      "lines": [
+        145,
+        171
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "V_cmp_ref",
+      "lines": [
+        66,
+        158,
+        159,
+        188,
+        503,
+        535
+      ],
+      "category": "A",
+      "interpretation": "Swept displacement per revolution; speed bounds are rps_min/rps_max."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "_optimize_operation",
+      "lines": [
+        680,
+        1124
+      ],
+      "category": "C/D",
+      "interpretation": "Operation optimizer method, not a ratio variable (substring match); consumes actual commands and explicit operating limits."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "calc_ref_state",
+      "lines": [
+        435,
+        469,
+        514
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "dT_hx_min",
+      "lines": [
+        128,
+        220,
+        418
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_tank",
+      "lines": [
+        402,
+        413,
+        418
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "dT_ref_water",
+      "lines": [
+        396,
+        412
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "dV_mix_w_out_max",
+      "lines": [
+        81,
+        204
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_in",
+      "lines": [
+        447,
+        480,
+        487,
+        494,
+        501,
+        526,
+        537,
+        538
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_out",
+      "lines": [
+        527,
+        531,
+        536,
+        538
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cmp_out_isen",
+      "lines": [
+        492,
+        494,
+        501
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_cond_sat_l",
+      "lines": [
+        330,
+        369,
+        370,
+        373
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_evap_sat",
+      "lines": [
+        326,
+        367,
+        368,
+        371,
+        372
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_exp_in",
+      "lines": [
+        448,
+        481,
+        487,
+        502,
+        528,
+        531,
+        536,
+        603
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "h_ref_exp_out",
+      "lines": [
+        449,
+        482,
+        529,
+        537
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        80,
+        159,
+        202,
+        665
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        535,
+        536,
+        537,
+        538,
+        595
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "ratio_P_cmp",
+      "lines": [
+        452,
+        460,
+        462,
+        465,
+        485,
+        499,
+        500,
+        508,
+        509,
+        510
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "ref",
+      "lines": [
+        65,
+        155,
+        187,
+        325,
+        326,
+        327,
+        329,
+        330,
+        331,
+        438,
+        467,
+        472,
+        492,
+        517,
+        598,
+        601,
+        1244
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "rho_ref_cmp_in",
+      "lines": [
+        446,
+        479,
+        503,
+        525,
+        535
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "rps_max",
+      "lines": [
+        138,
+        226,
+        506
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "rps_min",
+      "lines": [
+        137,
+        225,
+        506
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "s_ref_cond_sat_l",
+      "lines": [
+        331,
+        376,
+        377
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "s_ref_evap_sat",
+      "lines": [
+        327,
+        374,
+        375
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "water_source_heat_pump_boiler.py",
+      "identifier": "t_max_s",
+      "lines": [
+        125
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "hx_fan.py",
+      "identifier": "fan_design_flow_rate",
+      "lines": [
+        47,
+        54,
+        63,
+        64,
+        76
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "hx_fan.py",
+      "identifier": "fan_design_power",
+      "lines": [
+        50,
+        54,
+        65,
+        66,
+        80
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "Q_ref_target",
+      "lines": [
+        195,
+        296,
+        311,
+        317
+      ],
+      "category": "C",
+      "interpretation": "Actual control command/target; never a denominator."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "T_ref_cond_sat_l_K",
+      "lines": [
+        206
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "T_ref_evap_sat_K",
+      "lines": [
+        205,
+        266
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "T_ref_sat",
+      "lines": [
+        80,
+        98,
+        119,
+        121,
+        123
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "T_ref_sat_K",
+      "lines": [
+        197,
+        265,
+        266,
+        278,
+        316,
+        348
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "UA_design",
+      "lines": [
+        207,
+        268
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "UA_rated",
+      "lines": [
+        41,
+        58,
+        72,
+        199,
+        267,
+        268,
+        312,
+        343
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_fan_design",
+      "lines": [
+        208,
+        270,
+        271
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_fan_max",
+      "lines": [
+        212,
+        294
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_fan_min",
+      "lines": [
+        211,
+        294
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_fan_rated",
+      "lines": [
+        143,
+        179,
+        200,
+        269,
+        270,
+        276
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_fan_ref",
+      "lines": [
+        148,
+        179,
+        210,
+        275,
+        276,
+        292,
+        294,
+        312,
+        343,
+        361
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_max",
+      "lines": [
+        294,
+        322,
+        327
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "dV_min",
+      "lines": [
+        294,
+        322,
+        326
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "err_max",
+      "lines": [
+        327,
+        337
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "err_min",
+      "lines": [
+        326,
+        336
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "m_dot_fluid_rated",
+      "lines": [
+        43,
+        58,
+        68
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "m_dot_max",
+      "lines": [
+        82,
+        90,
+        92,
+        102,
+        105
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "m_dot_min",
+      "lines": [
+        81,
+        90,
+        92,
+        102,
+        105
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        44,
+        58,
+        69
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "m_dot_ref_rated",
+      "lines": [
+        45,
+        58,
+        69
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "maximum",
+      "lines": [
+        127,
+        135,
+        136,
+        138
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "minimum",
+      "lines": [
+        127,
+        134,
+        136,
+        138
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "rated_capacity",
+      "lines": [
+        14,
+        32,
+        34
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "reference",
+      "lines": [
+        127,
+        134,
+        135,
+        136,
+        179,
+        180,
+        183,
+        184,
+        191
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "heat_exchanger.py",
+      "identifier": "resistance_ratio",
+      "lines": [
+        67,
+        72
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "UA_rated",
+      "lines": [
+        256,
+        261,
+        263
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "default_ref_lpm",
+      "lines": [
+        13,
+        30
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "legacy_ref_lpm",
+      "lines": [
+        14,
+        23,
+        30
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "m_dot_ref",
+      "lines": [
+        256,
+        260,
+        266
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "m_dot_ref_rated",
+      "lines": [
+        119,
+        171,
+        174,
+        214
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "max_ratio",
+      "lines": [
+        16,
+        23,
+        33,
+        104,
+        154,
+        161,
+        200
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "min_ratio",
+      "lines": [
+        15,
+        23,
+        32,
+        103,
+        151,
+        161,
+        199
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "ratio",
+      "lines": [
+        221,
+        226,
+        232,
+        256,
+        264,
+        274,
+        284,
+        285
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "ref",
+      "lines": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        36
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "reference",
+      "lines": [
+        229,
+        230,
+        232
+      ],
+      "category": "B",
+      "interpretation": "Fixed reference flow; legacy volume_flow_rated dictionary alias accepted."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "volume_flow_constant",
+      "lines": [
+        107,
+        149,
+        157,
+        181,
+        182,
+        186,
+        194,
+        202
+      ],
+      "category": "C",
+      "interpretation": "Actual control command/target; never a denominator."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "volume_flow_max",
+      "lines": [
+        109,
+        153,
+        154,
+        157,
+        158,
+        161,
+        182,
+        204
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "volume_flow_min",
+      "lines": [
+        108,
+        150,
+        151,
+        157,
+        158,
+        161,
+        181,
+        203
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "volume_flow_rated",
+      "lines": [
+        105,
+        146
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_loop.py",
+      "identifier": "volume_flow_ref",
+      "lines": [
+        106,
+        140,
+        146,
+        147,
+        149,
+        151,
+        154,
+        161,
+        181,
+        182,
+        186,
+        194,
+        201,
+        205
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "ground_flow_control.py",
+      "identifier": "prescribed_ratio",
+      "lines": [
+        177,
+        187,
+        188,
+        192,
+        193,
+        194
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_flow_control.py",
+      "identifier": "ratio",
+      "lines": [
+        194,
+        195
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    },
+    {
+      "file": "ground_flow_control.py",
+      "identifier": "ref",
+      "lines": [
+        184,
+        185,
+        186,
+        188,
+        192,
+        194,
+        202,
+        211,
+        212,
+        230,
+        250,
+        252
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "compressor_speed.py",
+      "identifier": "hp_capacity",
+      "lines": [
+        65,
+        67
+      ],
+      "category": "A",
+      "interpretation": "Physical thermodynamic/refrigerant state or equipment quantity; ref in refrigerant names is not normalization."
+    },
+    {
+      "file": "compressor_speed.py",
+      "identifier": "res_max",
+      "lines": [
+        104,
+        105,
+        107,
+        115
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "compressor_speed.py",
+      "identifier": "res_min",
+      "lines": [
+        98,
+        99,
+        101,
+        115
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "compressor_speed.py",
+      "identifier": "rps_max",
+      "lines": [
+        73,
+        104,
+        106,
+        108,
+        111,
+        115
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "compressor_speed.py",
+      "identifier": "rps_min",
+      "lines": [
+        72,
+        98,
+        100,
+        102,
+        111,
+        115
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "m_flow_max",
+      "lines": [
+        52,
+        66,
+        68,
+        70
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "m_flow_min",
+      "lines": [
+        51,
+        66,
+        68,
+        70
+      ],
+      "category": "D",
+      "interpretation": "Explicit control/hardware, physical capacity, validity or time bound; independent of reference."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "m_flow_rated",
+      "lines": [
+        17,
+        31,
+        39,
+        40,
+        44
+      ],
+      "category": "A/B",
+      "interpretation": "Fixed physical reference; normalization where used in UA/fan scaling. Not a limit."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "max_ratio",
+      "lines": [
+        19,
+        31,
+        33,
+        35,
+        36,
+        40
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "min_ratio",
+      "lines": [
+        18,
+        31,
+        33,
+        35,
+        36,
+        39
+      ],
+      "category": "D (legacy)",
+      "interpretation": "Deprecated control-bound adapter; new internals use independent absolute flow limits."
+    },
+    {
+      "file": "borehole.py",
+      "identifier": "ratios",
+      "lines": [
+        35,
+        37,
+        44
+      ],
+      "category": "B",
+      "interpretation": "Ratio has fixed physical denominator; no automatic upper clamp at one. Legacy ground ratio bounds map to absolute limits."
+    }
+  ]
+}

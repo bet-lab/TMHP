@@ -18,12 +18,12 @@ Example
         ref="R410A", hp_capacity=8000, V_cmp_ref=1.2e-5,
         UA_ground_rated=2000, UA_iu_rated=2000,
         N_1=2, N_2=2, H_b=100, B=6, Ts=16,
-        dV_b_f_lpm=80,
+        ground_flow_ref_lpm=80, ground_flow_constant_lpm=80,
+        ground_flow_min_lpm=16, ground_flow_max_lpm=96,
         ground_flow_control="optimal_power",
         hydraulic_pump=True, pump_efficiency=0.6,
         variable_Rb=True, variable_ground_hx_UA=True,
         m_dot_ref_rated=0.04,
-        ground_flow_min_ratio=0.2, ground_flow_max_ratio=1.2,
     )
     row = model.analyze_steady(
         Q_r_iu=-4000, T0=7, T_a_room=20, T_bhe_wall=16,
@@ -76,8 +76,8 @@ flag ``variable_ground_flow=True`` selects ``optimal_power``. Variable UA and
 variable resistance are separate opt-ins. A fair control comparison enables
 the same component physics in both constant and optimal cases.
 
-``analyze_steady(..., ground_flow_ratio=f)`` evaluates a prescribed candidate
-within the configured bounds and skips the flow optimizer. This supports
+``analyze_steady(..., ground_flow_lpm=actual_lpm)`` evaluates a prescribed candidate
+within the explicit actual-flow bounds and skips the flow optimizer. This supports
 objective curves and independent optimum checks. GSHP's inner solver minimizes
 compressor + pump + indoor-fan power over the indoor approach, subject to ground
 HX duty equality. Its outer solver also compares ``E_tot [W]``, including the
@@ -161,3 +161,13 @@ means optimization was not run in constant/prescribed-flow mode.
 
 For resistance units and flow conventions, see the
 `pygfunction pipe documentation <https://pygfunction.readthedocs.io/en/stable/modules/pipes.html>`_.
+
+Reference flow is independent of limits
+---------------------------------------
+
+The new API separates ``ground_flow_ref_lpm`` (fixed normalization),
+``ground_flow_constant_lpm`` (constant command) and ``ground_flow_min_lpm`` /
+``ground_flow_max_lpm`` (search limits). Increasing the maximum never changes
+the water denominator, reference UA or reference/setpoint Rb* anchors. UA and
+fan power may exceed reference values. See :doc:`../developer/reference-operating-limits`
+for full migration, fan limits and compatibility defaults.

@@ -68,6 +68,7 @@ from .enex_functions import (
     calc_mixing_valve_flows,
     calc_mixing_valve_temp,
 )
+from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import calc_fan_power_from_dV_fan
 from .refrigerant import calc_ref_state, reportable_state
@@ -166,7 +167,13 @@ class AirSourceHeatPumpBoiler:
         A_cross_ou: float | None = None,
         eta_ou_fan_design: float | None = None,
         vsd_coeffs_ou: dict | None = None,
+        *,
+        dV_fan_a_ref: float | None = None,
+        dV_fan_a_min: float | None = None,
+        dV_fan_a_max: float | None = None,
     ):
+        if dV_fan_a_ref is not None:
+            dV_fan_a_rated = dV_fan_a_ref
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
@@ -265,6 +272,12 @@ class AirSourceHeatPumpBoiler:
         else:
             self.dV_fan_a_rated = dV_fan_a_rated
 
+        self.dV_fan_a_ref = self.dV_fan_a_rated
+        self.dV_fan_a_min, self.dV_fan_a_max = resolve_fan_flow_limits(
+            self.dV_fan_a_ref,
+            dV_fan_a_min,
+            dV_fan_a_max,
+        )
         self.dP_fan_rated: float = dP_fan_rated
         self.eta_fan_rated: float = eta_fan_rated
 
@@ -273,14 +286,16 @@ class AirSourceHeatPumpBoiler:
         # within optimal ranges for typical plain fin-and-tube configurations.
         # Ref: Heat transfer and friction characteristics of plain fin-and-tube heat exchangers, part II (Wang et al., 2000, DOI: 10.1016/S0017-9310(99)00333-6)
         if A_cross is None:
-            self.A_cross = self.dV_fan_a_rated / 2.0  # Capped at 2.0 m/s face velocity
+            self.A_cross = self.dV_fan_a_rated / 2.0  # Reference face velocity 2.0 m/s; not a maximum
         else:
             self.A_cross = A_cross
 
         self.E_fan_rated: float = self.dV_fan_a_rated * self.dP_fan_rated / self.eta_fan_rated
         self.vsd_coeffs: dict = vsd_coeffs
         self.fan_params: dict = {
+            "fan_ref_flow_rate": self.dV_fan_a_rated,
             "fan_rated_flow_rate": self.dV_fan_a_rated,
+            "fan_ref_power": self.E_fan_rated,
             "fan_rated_power": self.E_fan_rated,
         }
 
@@ -608,7 +623,9 @@ class AirSourceHeatPumpBoiler:
             T_ref_cond_sat_l_K=cs["T_ref_cond_sat_l_K"],
             A_cross=self.A_cross,
             UA_rated=self.UA_ou_rated,
-            dV_fan_rated=self.dV_fan_a_rated,
+            dV_fan_ref=self.dV_fan_a_ref,
+            dV_fan_min=self.dV_fan_a_min,
+            dV_fan_max=self.dV_fan_a_max,
             is_active=True,
             exponent=self.n_ou,
         )
@@ -919,7 +936,7 @@ class AirSourceHeatPumpBoiler:
                     f"opt_success={opt_success}, "
                     f"opt_x={safe_float_attr(opt_result, 'x', float('nan')):.2f}, "
                     f"opt_fun={safe_float_attr(opt_result, 'fun', float('nan')):.3g}). "
-                    "Consider increasing UA_rated or fan-flow rated.",
+                    "Consider calibrating UA_rated or increasing the explicit fan-flow maximum.",
                     RuntimeWarning,
                     stacklevel=2,
                 )

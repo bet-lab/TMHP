@@ -20,6 +20,9 @@ def failed_ground_point(reason: str, diagnostic: dict | None = None) -> dict:
         {
             "candidate_ground_flow_ratio": result.get("ground_flow_ratio", np.nan),
             "ground_flow_ratio": np.nan,
+            "ground_flow_ref_ratio": np.nan,
+            "ground_flow_at_min": False,
+            "ground_flow_at_max": False,
             "converged": False,
             "hp_is_on": False,
             "failure_reason": reason,
@@ -42,6 +45,7 @@ def failed_ground_point(reason: str, diagnostic: dict | None = None) -> dict:
         "E_tot [W]",
         "E_cmp_plus_pmp [W]",
         "dV_bhe_f [m3/s]",
+        "ground_flow [m3/s]",
         "m_dot_borehole [kg/s]",
         "m_dot_ref [kg/s]",
         "cmp_rpm [rpm]",
@@ -172,21 +176,31 @@ def solve_ground_approach(
 def select_ground_flow(
     evaluate: Callable[[float], dict], settings: dict, prescribed_ratio: float | None = None
 ) -> dict:
-    """Compare feasible flow candidates by total electrical input, including fans."""
-    lo, hi = settings["min_ratio"], settings["max_ratio"]
-    if prescribed_ratio is not None and (not np.isfinite(prescribed_ratio) or not lo <= prescribed_ratio <= hi):
-        raise ValueError("Prescribed ground_flow_ratio is outside the configured bounds")
+    """Optimize actual volume flow [m3/s] with a fixed normalization reference.
+
+    The callback accepts ratio-to-reference for compatibility with cycle models;
+    this ratio never supplies the optimizer's physical limits.
+    """
+    ref = settings.get("volume_flow_ref", 1.0)
+    lo = settings.get("volume_flow_min", settings["min_ratio"] * ref)
+    hi = settings.get("volume_flow_max", settings["max_ratio"] * ref)
+    if prescribed_ratio is not None:
+        volume = prescribed_ratio * ref
+        tolerance = 8 * np.finfo(float).eps * max(abs(lo), abs(hi))
+        if not np.isfinite(volume) or not lo - tolerance <= volume <= hi + tolerance:
+            raise ValueError("Prescribed ground flow is outside the configured bounds")
+        prescribed_ratio = min(max(volume, lo), hi) / ref
     if prescribed_ratio is not None or settings["control"] == "constant":
-        ratio = prescribed_ratio if prescribed_ratio is not None else 1.0
+        ratio = prescribed_ratio if prescribed_ratio is not None else settings.get("volume_flow_constant", ref) / ref
         row = evaluate(ratio)
         row.update({"flow_optimizer_nfev": 0, "flow_optimizer_success": False, "flow_bound_active": False})
         return row
     cache: dict[float, dict] = {}
 
-    def objective(ratio: float) -> float:
-        if ratio not in cache:
-            cache[ratio] = evaluate(ratio)
-        row = cache[ratio]
+    def objective(volume: float) -> float:
+        if volume not in cache:
+            cache[volume] = evaluate(volume / ref)
+        row = cache[volume]
         power = row.get("E_tot [W]", np.inf)
         return (
             float(power)
@@ -194,7 +208,8 @@ def select_ground_flow(
             else np.inf
         )
 
-    grid = sorted(set(np.linspace(lo, hi, 9).tolist() + ([1.0] if lo <= 1 <= hi else [])))
+    fixed = settings.get("volume_flow_constant", ref)
+    grid = sorted(set(np.linspace(lo, hi, 9).tolist() + [v for v in (ref, fixed) if lo <= v <= hi]))
     powers = [objective(x) for x in grid]
     feasible = [i for i, p in enumerate(powers) if np.isfinite(p)]
     if not feasible:
@@ -212,7 +227,7 @@ def select_ground_flow(
         lambda x: min(objective(float(x)), 1e30),
         bounds=(left, right),
         method="bounded",
-        options={"xatol": 1e-3, "maxiter": 30},
+        options={"xatol": 1e-3 * ref, "maxiter": 30},
     )
     objective(float(optimum.x))
     chosen = min(
@@ -231,8 +246,10 @@ def select_ground_flow(
             "flow_optimizer_success": bool(optimum.success),
             "flow_optimizer_nfev": len(cache),
             "flow_optimizer_method": "bounded" if optimum.success else "grid_fallback",
-            "flow_bound_active": min(abs(chosen["ground_flow_ratio"] - lo), abs(chosen["ground_flow_ratio"] - hi))
-            < 2e-3,
+            "flow_bound_active": min(
+                abs(chosen["ground_flow_ratio"] * ref - lo), abs(chosen["ground_flow_ratio"] * ref - hi)
+            )
+            < 2e-3 * ref,
         }
     )
     return chosen

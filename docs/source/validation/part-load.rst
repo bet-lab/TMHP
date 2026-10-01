@@ -96,9 +96,15 @@ Panel (a) — fixed temperatures
 ------------------------------
 
 Hold the source and sink where they are and take load away. COP rises, for the
-heat-exchanger reason alone. The low-speed compressor penalty eats into that
-rise but does not reverse it; the two roughly balance into a broad plateau
-between about 35 % and 50 % of nominal capacity.
+heat-exchanger reason alone: with the three efficiencies frozen at their rated
+values the 9 kW air-to-water model gains about 11 % between full load and the
+speed floor at 40 %. The low-speed compressor loss eats into that rise -- with
+the ``v2026-09-24`` correlations, whose leakage term grows with pressure ratio,
+it takes back about half of it at 7/42.5 °C (net +5 to +6 %) and all of it at
+high lift (−7/32.5 °C: a plateau from 40 % load down to the floor). The
+air-to-air model at pressure ratios near 2 keeps most of the heat-exchanger
+gain (+20 to +24 % at the floor). None of these shapes is prescribed; they are
+the balance of the two effects (``validation/fixed_boundary_plr/decompose``).
 
 Below that the curve turns over, and the efficiency correlations are not the
 cause: a test gates the claim that wherever the modelled COP falls materially
@@ -108,7 +114,14 @@ below its peak, the compressor speed equals ``rps_min``.
     :class: note
 
     Once the compressor can go no slower the model cannot follow a smaller
-    request. Earlier versions matched it anyway by starving the outdoor coil --
+    request. The tank-side condenser is closed on the heat the machine actually
+    delivers at that speed rather than on the heat that was asked for, so every
+    request below the floor resolves to the same operating point: same speed,
+    same delivered capacity, same condensing temperature, same COP. (Closing it
+    on the request instead made the condensing temperature follow a request the
+    machine could not meet, and the reported COP rose as the request fell.)
+
+    Earlier versions matched a sub-floor request anyway by starving the outdoor coil --
     the operating-point search minimised absolute electrical input, and among
     candidates that all sat at the speed floor the one delivering *less* heat
     also drew less power, so the outdoor fan was driven to its 5 % bound and the
@@ -122,7 +135,7 @@ below its peak, the compressor speed equals ``rps_min``.
     output carries both.
 
     Under the same conditions as before (air 7 °C, water 42.5 °C, 9 kW R32) the
-    outdoor fan now stays above 44 % of rated flow over the whole sweep and the
+    outdoor fan now stays above 45 % of rated flow over the whole sweep and the
     air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
     above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
     TMHP still computes no cycling loss (see below), so the sub-floor rows are a
@@ -149,29 +162,30 @@ monotonically A → D and sits inside the certified band.
       - −7 °C / 34 °C
       - 5.28 kW
       - 5.28 kW
-      - 3.41
+      - 3.53
       - 2.99 (2.61–3.35)
     * - B
       - +2 °C / 30 °C
       - 3.24 kW
       - 3.24 kW
-      - 4.74
+      - 4.99
       - 4.53 (4.13–5.01)
     * - C
       - +7 °C / 27 °C
       - 2.10 kW
-      - 2.84 kW
-      - 6.03
+      - 3.50 kW
+      - 6.24
       - 6.16 (5.37–6.82)
     * - D
       - +12 °C / 24 °C
       - 0.90 kW
-      - 3.35 kW
-      - 9.05
+      - 4.00 kW
+      - 8.08
       - 7.88 (6.40–8.97)
 
-The model runs optimistic at the two ends — above the 90th percentile at A and
-at D — and sits on the median in the middle. That is reported as it stands; no
+The model runs optimistic at the cold end — above the 90th percentile at A —
+and sits inside the band elsewhere: between the 75th and 90th percentiles at B,
+between the median and the 75th at C and D. That is reported as it stands; no
 coefficient is adjusted to move it.
 
 .. admonition:: One result nobody put in by hand
@@ -179,7 +193,7 @@ coefficient is adjusted to move it.
 
     Look at the *delivered* column. At points C and D the modelled machine
     cannot modulate down to the required load and delivers more than the test
-    point asks for — 3.35 kW where 0.90 kW is required.
+    point asks for — 4.00 kW where 0.90 kW is required.
 
     Certified machines do the same thing. 55 % of Keymark records declare a
     *higher* heat output at point D than at point C, which is the signature of

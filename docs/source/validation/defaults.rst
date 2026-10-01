@@ -68,20 +68,23 @@ Summary
         speed inverted from nine machines with published displacement
       - ``compressor_speed``
     * - Isentropic efficiency
-      - ``(1.0849 − 0.0735 · PR − 0.5729 / PR) / 0.936``
-      - Pressure-ratio shape of the electrical-to-isentropic product fitted on
-        standalone compressor data (76 machines, 131 speed records); divided by
-        the measured electro-mechanical level so the product is reproduced
+      - ``(1.1660 − 0.0832 · PR − 0.7017 / PR) · (1 − 0.0237 (PR − 1) · max(0, 1/n* − 1)) / eta_em``
+      - Pressure-ratio shape of the electrical-to-isentropic product and its
+        low-speed leakage interaction, fitted within machines on standalone
+        compressor data (76 machines, 131 speed records); divided by the
+        electro-mechanical efficiency so the product is reproduced
       - ``compressor_maps.fit``
     * - Volumetric efficiency
-      - ``1 − 0.0216 (PR − 1) − 0.0177 · max(0, 1/n* − 1)``
+      - ``1 − 0.0260 (PR − 1) − 0.0223 · max(0, 1/n* − 1)``
       - Clearance re-expansion plus the extra leakage fraction at low relative
-        speed ``n* = n / n_rated``; leave-one-compressor-out MAPE 5.7 %
+        speed ``n* = n / n_rated``; leave-one-compressor-out MAPE 5.9 %
       - ``compressor_maps.fit``
     * - Electro-mechanical efficiency
-      - ``0.936 × n*(1 + 0.021)/(n* + 0.021)``
-      - Saturating drive-loss shape fitted across the compressor set; level
-        from the measured discharge-temperature split of Cuevas & Lebrun
+      - ``0.941 × n*(1 + 0.026)/(n* + 0.026) × m(PR)``
+      - Saturating drive-loss shape at the drive-only floor measured by
+        Ossorio & Navarro-Peris on three inverters, a motor-load factor
+        ``m(PR)`` and the level from the measured discharge-temperature split
+        of Cuevas & Lebrun (PR 3, n* 1)
       - ``compressor_maps.fit``
     * - Rated outdoor air flow
       - 720 m³/h per kW (air-to-air), 540 (air-to-water)
@@ -94,10 +97,12 @@ Every ``Reproduce`` entry is a module under ``validation/extraction/`` or
     uv run python -m validation.extraction.<name>
     uv run python -m validation.compressor_maps.<name>
 
-The compressor coefficients are frozen as version ``v2026-09-15b``
+The compressor coefficients are frozen as version ``v2026-09-24``
 (:data:`tmhp.compressor_efficiency.COEFFICIENT_VERSION`); the archive under
-``validation/coefficients/v2026-09-15b/`` holds the data list, the fits, the
-cross-validation and the selection table.
+``validation/coefficients/v2026-09-24/`` holds the data list, the fits, the
+cross-validation, the selection table and the isentropic/electro-mechanical
+split.  The previous version ``v2026-09-15b`` is kept alongside for the
+before/after comparison.
 
 
 Heat-exchanger conductance
@@ -396,13 +401,21 @@ What the data identify
 ----------------------
 
 Power tables identify the *product* ``eta_isen · eta_em``, not its factors.
-With no speed term in the isentropic efficiency and no lift term in the
-electro-mechanical one the product is separable, ``g(PR) · s(n*)``, up to one
-scale factor: how much of the electrical loss shows up as refrigerant enthalpy
-rather than leaving through the shell and the drive. That factor is fixed by
-the Cuevas & Lebrun rows with measured discharge temperature near rated speed,
-``eta_em(n* = 1) = 0.936`` (p10–p90 0.926–0.942), and its ±0.03 sensitivity is
-reported with the coefficient archive.
+Within each machine the low-speed loss of the product grows with the pressure
+ratio -- about −9 % at PR 2 and −30 % at PR 4.5 at a quarter of rated speed
+across the Copeland set -- the signature of internal leakage, whose fraction
+goes as the pressure difference over the speed. The product is therefore
+fitted as ``g(PR) · (1 − c (PR − 1) max(0, 1/n* − 1))`` with the shape
+identified from within-machine contrasts (fixed-effects estimator), because two
+thirds of the rows sit at rated speed and the between-machine level spread
+would otherwise dilute every speed term. The split into the two factors is set
+from the Cuevas & Lebrun rows with measured discharge temperature (29
+inverter-fed rows, n* 0.7–1.5): ``eta_em = 0.941 · s(n*) · m(PR)`` at PR 3 and
+n* 1, where the drive term ``s`` is anchored on the drive-only floor of the
+three Ossorio & Navarro-Peris inverters (``n0 = 0.026``; the one-machine total
+of 0.075 over-states the population's low-speed loss by a factor 2.7 in the
+within-machine check) and ``m(PR)`` is the motor-load term. Whatever the
+product demands beyond that lands in the isentropic efficiency.
 
 The speed penalty measured across the Copeland set does grow with pressure
 ratio (the interaction term is statistically significant across 49 machines).
@@ -445,12 +458,12 @@ speed term is seen within the machines that identify it (above).
       - LOCO MAPE
       - Pre-refit (v1)
     * - Volumetric
-      - ``1 − 0.0216 (PR − 1) − 0.0177 max(0, 1/n* − 1)``
-      - 5.66 %
+      - ``1 − 0.0260 (PR − 1) − 0.0223 max(0, 1/n* − 1)``
+      - 5.95 %
       - 5.88 %
     * - Product ``eta_isen · eta_em``
-      - ``(1.0849 − 0.0735 PR − 0.5729/PR) · n*(1.021)/(n* + 0.021)``
-      - 12.16 %
+      - ``(1.1660 − 0.0832 PR − 0.7017/PR) · (1 − 0.0237 (PR − 1) max(0, 1/n* − 1))``
+      - 11.72 %
       - 12.21 %
 
 The product's pressure-ratio shape peaks near ``PR = sqrt(C/B) ≈ 2.8`` — the
@@ -540,9 +553,9 @@ Four compressor descriptions were run through both, identically:
       - -1.6 %
 
     * - **``defaults``**
-      - **what TMHP ships — coefficients ``v2026-09-15b``**
-      - **8.1 %**
-      - **+1.1 %**
+      - **what TMHP ships — coefficients ``v2026-09-24``**
+      - **8.2 %**
+      - **+1.5 %**
 
 Parity figures are the ten adopted air-to-water units (153 points); the held
 Fujitsu catalogues are excluded from every headline.

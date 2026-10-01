@@ -7,17 +7,21 @@ take load away. COP rises, because the heat exchangers grow relative to the duty
 while the lift shrinks. It keeps rising until the compressor reaches its speed
 floor.
 
-Below that floor the curve falls away sharply, and the cause is *not* the
-efficiency correlations and not the speed floor on its own. Once the compressor
-can go no slower, the only handle the model has left for matching a smaller load
-is the outdoor fan, so it throttles the coil -- down to the 5 % of rated flow
-that ``calc_HX_perf_for_target_heat`` allows, which drives the air-side
-temperature drop to about 17 K and the evaporating temperature 20 K below
-ambient. No real outdoor fan turns down that far and no rated air coil runs that
-air-side drop: across the 1,414 catalogue coils inverted in
-``validation/extraction/`` the largest air-side drop observed is 7.7 K on the
-evaporator side. The region left of the shaded band is therefore a model
-artefact, flagged here rather than presented as a part-load result.
+Below that floor the curve is flat, and that is the honest answer rather than a
+part-load result: the machine cannot follow a smaller request, so it runs at its
+minimum capacity and every request below the floor resolves to the same
+operating point -- same speed, same delivered heat, same condensing temperature,
+same COP. The shaded band marks that region. (Two earlier artefacts used to live
+there. The operating-point search once minimised absolute electrical input and
+therefore starved the outdoor coil to its 5 % flow bound, pushing the air-side
+drop to about 17 K against a catalogue maximum of 7.7 K across the 1,414 coils
+inverted in ``validation/extraction/``; and the tank-side condenser was closed on
+the *requested* duty, so the condensing temperature kept falling as the request
+did. Both are gone -- see ``tmhp._opt_utils`` and
+``AirSourceHeatPumpBoiler._calc_state``.)
+
+A real machine cycles below its modulation floor, and TMHP models no cycling
+loss, so these rows are a continuous-operation figure at minimum capacity.
 
 **Panel (b) -- the certification trajectory.** EN 14825 lowers the flow
 temperature as it lowers the load, so its four test points are a different curve

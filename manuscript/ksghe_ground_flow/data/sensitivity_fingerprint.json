@@ -2,5 +2,6 @@
   "config_sha256": "2b5dc7805fe8c55efff19f2e5e8139aa982872ee1936a41e66dc397003b9b197",
   "source_commit": "ebbfd46b6beba8ffdb46f43f8a3a2ddc655f7582",
   "study_script_sha256": "f3b93ae71edf0438b9d28d093348729a3852adba46ab94b3c73b260edf24ecd5",
-  "objective": "E_tot [W] = E_cmp + E_pmp + E_iu_fan"
+  "objective": "E_tot [W] = E_cmp + E_pmp + E_iu_fan",
+  "sensitivity_script_sha256": "8382912e86dddb2784b341951c3c010f2e3615bdfea60072587a15544f357240"
 }

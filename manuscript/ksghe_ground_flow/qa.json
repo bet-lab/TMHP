@@ -4,24 +4,25 @@
   "panels": 4,
   "selected_points": 16,
   "claims_match_csv": {
-    "minimum_flow_percent": 45.34545237081456,
-    "maximum_pump_saving_percent": 88.26276966651515,
-    "maximum_fan_increase_percent": 14.09995053473585,
-    "maximum_total_power_saving_percent": 4.151814957865351,
-    "maximum_system_COP_gain_percent": 4.331657355890695,
-    "m_dot_ref_rated_kg_s": 0.04151110907913401
+    "minimum_flow_percent": 45.25203265468893,
+    "maximum_flow_percent": 149.99999999999997,
+    "maximum_pump_saving_percent": 88.32773143825273,
+    "maximum_fan_increase_percent": 14.164523526438044,
+    "maximum_total_power_saving_percent": 5.495404439630636,
+    "maximum_system_COP_gain_percent": 5.814960010193548,
+    "m_dot_ref_rated_kg_s": 0.04151109713044605
   },
   "upper_bound_plrs": [
-    0.8,
-    0.9,
     1.0
   ],
   "total_power_and_COP_checked": true,
+  "fixed_reference_and_explicit_flow_bounds_checked": true,
+  "sensitivity_fairness_checked": true,
   "all_manuscript_text_present_in_PDF": true,
   "authors_affiliations_acknowledgement_present": true,
   "pdf_fonts_embedded": true,
   "scientific_style_and_MCP_checks": true,
-  "hwpx_sha256": "f3e0f3b1c0cede6d9a8995e98ae23812c9bffbe77b1836dd36ef760757f76d1b",
-  "pdf_sha256": "e13baf3419db688274be0b124e0bf0afad563532db9bbff9555ab01d3e277e5e",
+  "hwpx_sha256": "e1c3d8ccd547c6b0b3cbaeed670c349e0eb1fef415522a5ad618d08954305fcb",
+  "pdf_sha256": "f686e82b7542744db44a256e7f64da9aded17562c90fa1b071d2569c5d497b0a",
   "renderer_limit": "Linux pyhwpxlib/rhwp and font substitutes; not tested in Hancom Office"
 }

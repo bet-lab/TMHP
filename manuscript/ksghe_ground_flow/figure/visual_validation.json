@@ -3,7 +3,8 @@
   "dartwork_mpl_render_checks": {
     "fig_1_part_load": [],
     "fig_total_power_objective": [],
-    "fig_hx_feasibility": []
+    "fig_hx_feasibility": [],
+    "fig_flow_max_sensitivity": []
   },
   "paper_figure": {
     "rows": 1,
@@ -11,9 +12,82 @@
     "width": "16.8cm",
     "height": "4.6cm"
   },
+  "axis_format": {
+    "physical_units": "square brackets",
+    "fan_y_label": "Fan power [W]",
+    "compressor_y_label": "Comp. power [kW]",
+    "PLR_ticks": [
+      0.4,
+      0.6,
+      0.8,
+      1.0
+    ],
+    "panel_labels": "letters without parentheses"
+  },
   "visual_inspection": {
-    "main": "All four panels, units, common legend and markers readable; no clipping or overlap.",
-    "objective": "Three load curves and selected optima readable; tick density corrected.",
-    "stress": "88 rejected cells; binary legend and labels readable."
+    "fig_1_part_load": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a",
+      "pdf_sha256": "46109dc46f3fc0cdf78ace3c6e5f41171040520af0483039173dde80bd13af6e",
+      "size_px": [
+        3968,
+        1086
+      ],
+      "nonwhite_bbox_px": [
+        61,
+        44,
+        3945,
+        1054
+      ]
+    },
+    "fig_total_power_objective": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "af7c383689aa8eaa87776145e81e7242ee8e9e092e2d339d7c0d51e6499ab03d",
+      "pdf_sha256": "135c2c86fdad52cd3c43d125ae7d4b32ad74738ac05500cea79a958f3549d87a",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        47,
+        46,
+        3026,
+        1716
+      ]
+    },
+    "fig_hx_feasibility": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "23a262939f41f5a985a3d8882e9629d143e8b320b07ecc8e13e4ff9dd9264499",
+      "pdf_sha256": "07621a25ad5aac7a5e52ad1b29d38621c0bf37762756b23aa6ae1fe5cb6b3e50",
+      "size_px": [
+        3070,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        55,
+        48,
+        2729,
+        1716
+      ]
+    },
+    "fig_flow_max_sensitivity": {
+      "checked": true,
+      "labels_legends_units_and_marker_positions": "Updated bracket units, shortened Fan/Comp. labels, unparenthesized panel letters and requested PLR ticks checked; no overlap or clipping",
+      "png_sha256": "addde657cabc5912dd383c85a96bf3cd664ab4ce80991486321a3a166df2716d",
+      "pdf_sha256": "900f7c465e061d9e1cfec8d73fc68172e071c1b73b061f8eb30f98bacb2fcfda",
+      "size_px": [
+        3968,
+        1771
+      ],
+      "nonwhite_bbox_px": [
+        47,
+        33,
+        3923,
+        1710
+      ]
+    }
   }
 }

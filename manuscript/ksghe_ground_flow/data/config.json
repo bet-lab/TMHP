@@ -1,5 +1,5 @@
 {
-  "description": "Capacity-based physical ground HX and compressor efficiencies; illustrative steady cooling, not equipment calibration.",
+  "description": "Fixed 24 L/min water reference and constant setpoint; explicit 9.6\u201336 L/min variable-flow control interval.",
   "model": {
     "ref": "R410A",
     "hp_capacity": 8000,
@@ -21,7 +21,6 @@
     "c_s": 800,
     "rho_s": 2000,
     "Ts": 15,
-    "dV_b_f_lpm": 24,
     "pump_efficiency": 0.6,
     "dp_common": 0,
     "pipe_roughness": 1e-06,
@@ -33,8 +32,6 @@
     "ground_hx_constant_fraction": 0.2,
     "ground_hx_fluid_exponent": 0.8,
     "ground_hx_refrigerant_exponent": 0.8,
-    "ground_flow_min_ratio": 0.4,
-    "ground_flow_max_ratio": 1.0,
     "rps_min": 15,
     "rps_max": 150,
     "PR_cycle_min": 1.5,
@@ -45,7 +42,13 @@
     "eta_v": 0.9,
     "eta_em": 0.8,
     "ground_hx_ua_per_capacity": 0.18,
-    "UA_iu_rated": 640
+    "UA_iu_rated": 640,
+    "ground_flow_ref_lpm": 24,
+    "ground_flow_constant_lpm": 24,
+    "ground_flow_min_lpm": 9.6,
+    "ground_flow_max_lpm": 36,
+    "indoor_approach_min_K": 1,
+    "indoor_approach_max_K": 25
   },
   "operating": {
     "T0": 26,
@@ -69,7 +72,7 @@
   ],
   "flow_grid": {
     "min": 0.4,
-    "max": 1.0,
+    "max": 1.5,
     "count": 21
   },
   "depths_m": [
@@ -77,5 +80,10 @@
     100,
     200
   ],
-  "stress_ground_UA_W_K": 100
+  "stress_ground_UA_W_K": 100,
+  "flow_max_sensitivity_ratios": [
+    1,
+    1.2,
+    1.5
+  ]
 }

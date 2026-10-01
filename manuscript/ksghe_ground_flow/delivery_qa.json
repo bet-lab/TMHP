@@ -1,0 +1,46 @@
+{
+  "copied_files": [
+    {
+      "name": "261001_KSGHE_HB.hwpx",
+      "sha256": "e1c3d8ccd547c6b0b3cbaeed670c349e0eb1fef415522a5ad618d08954305fcb"
+    },
+    {
+      "name": "261001_KSGHE_HB.pdf",
+      "sha256": "f686e82b7542744db44a256e7f64da9aded17562c90fa1b071d2569c5d497b0a"
+    },
+    {
+      "name": "261001_KSGHE_HB.png",
+      "sha256": "fde7388319c5883b1309e9b28b1ecf794b6300c3115f4bb21744b414faf99db1"
+    },
+    {
+      "name": "261001_KSGHE_HB_fig1.png",
+      "sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a"
+    },
+    {
+      "name": "261001_KSGHE_HB_simulation_results.csv",
+      "sha256": "73220b0828d59302fed37807ce6402fa22029666ac93fb102e3cf48a7b2840e7"
+    },
+    {
+      "name": "261001_KSGHE_HB_flow_max_sensitivity.csv",
+      "sha256": "deff24398fa1445aea04e35fd7351ff912f29a4a2ca914d5c4f5a8ad6d7c8609"
+    },
+    {
+      "name": "261001_KSGHE_HB_validation_notes.md",
+      "sha256": "0474dbdefc5b1e5bc0f53723e399955633bda63fa663eaa0fb94736cc6c97ef8"
+    },
+    {
+      "name": "261001_KSGHE_HB_reference_flow_revision_diff.pdf",
+      "sha256": "4f5fb62fff17d728503e4d6f244b271c60447561bff968f7e14de8537f4bc9f8"
+    },
+    {
+      "name": "261001_KSGHE_HB_reference_flow_revision.diff",
+      "sha256": "6c8325fb675f0f2292ff5daae01fbd58c1ca34805535e858b6964593fdd4171e"
+    }
+  ],
+  "visual_review": {
+    "paper": "All authors/affiliations visible; no overflow, clipping or overlaps; one 1x4 scientific figure; acknowledgement and footer clear",
+    "diff": "Before/after page layout and native-text changes inspected",
+    "requested_graph_format": "Physical units in square brackets; Fan/Comp. labels; PLR 0.4/0.6/0.8/1.0; panel letters without parentheses. All four graphs rechecked through MCP/runtime and visual inspection."
+  },
+  "user_copy_byte_identical_to_validated_artifacts": true
+}

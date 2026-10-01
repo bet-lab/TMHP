@@ -40,6 +40,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import precompute_gfunction
+from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -179,6 +180,8 @@ class GroundSourceHeatPump:
         }
 
         # --- 4. BHE ---
+        self.n_boreholes = calc_borehole_count(N_1, N_2)
+        self.total_borehole_length = calc_total_borehole_length(self.n_boreholes, H_b)
         self.N_1 = N_1
         self.N_2 = N_2
         self.B = B
@@ -408,7 +411,7 @@ class GroundSourceHeatPump:
             Q_bhe = 0.0
             T_bhe_f_in_K = self.T_bhe_f_in_K
 
-        Q_bhe_unit = Q_bhe / self.H_b if is_active else 0.0
+        Q_bhe_unit = calc_borefield_linear_load(Q_bhe, self.n_boreholes, self.H_b) if is_active else 0.0
         T_bhe_f = (cu.K2C(T_bhe_f_in_K) + cu.K2C(T_bhe_f_out_K)) / 2
         T_bhe = T_bhe_f + Q_bhe_unit * self.R_b
 
@@ -572,7 +575,9 @@ class GroundSourceHeatPump:
         hp_is_on: bool,
     ) -> float:
         """Temporal superposition for BHE — from GSHPB."""
-        Q_bhe_unit = hp_result.get("Q_bhe [W]", 0.0) / self.H_b if hp_is_on else 0.0
+        Q_bhe_unit = (
+            calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
+        )
 
         if abs(Q_bhe_unit - Q_bhe_unit_old) > 1e-6:
             Q_bhe_unit_pulse[n] = Q_bhe_unit - Q_bhe_unit_old
@@ -592,7 +597,7 @@ class GroundSourceHeatPump:
         T_bhe_K = cu.C2K(self.T_bhe)
         T_bhe_f_K = T_bhe_K - Q_bhe_unit * self.R_b
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
-        self.Q_bhe = Q_bhe_unit * self.H_b
+        self.Q_bhe = Q_bhe_unit * self.total_borehole_length
         m_cp_b = c_w * rho_w * self.dV_b_f_m3s
 
         dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0

@@ -64,6 +64,7 @@ from .enex_functions import (
 )
 from .g_function import precompute_gfunction
 from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
+from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
 from .heat_transfer import calc_simple_tank_UA
 from .refrigerant import calc_ref_state, reportable_state
 from .stratified_tank import StratifiedTank
@@ -260,6 +261,8 @@ class GroundSourceHeatPumpBoiler:
         self._last_pr_event: tuple[str, float, float] | None = None
 
         # BHE properties
+        self.n_boreholes = calc_borehole_count(N_1, N_2)
+        self.total_borehole_length = calc_total_borehole_length(self.n_boreholes, H_b)
         self.N_1 = N_1
         self.N_2 = N_2
         self.B = B
@@ -597,7 +600,7 @@ class GroundSourceHeatPumpBoiler:
 
         # 5. BHE state
         Q_bhe = Q_ref_ground - self.E_pmp
-        Q_bhe_unit = Q_bhe / self.H_b
+        Q_bhe_unit = calc_borefield_linear_load(Q_bhe, self.n_boreholes, self.H_b)
 
         # Fluid enters BHE at T_bhe_f_in_K
         T_bhe_f_in_K = T_ground_in_K - Q_ref_ground / m_dot_cp_b
@@ -858,7 +861,9 @@ class GroundSourceHeatPumpBoiler:
         hp_result: dict,
         hp_is_on: bool,
     ) -> None:
-        Q_bhe_unit = hp_result.get("Q_bhe [W]", 0.0) / self.H_b if hp_is_on else 0.0
+        Q_bhe_unit = (
+            calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
+        )
 
         # Ground thermal response (pulse-history temporal superposition) is
         # delegated to the swappable ground coupler; the default reproduces the
@@ -871,7 +876,7 @@ class GroundSourceHeatPumpBoiler:
         T_bhe_K = cu.C2K(self.T_bhe)
         T_bhe_f_K = T_bhe_K - Q_bhe_unit * self.R_b
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
-        self.Q_bhe = Q_bhe_unit * self.H_b
+        self.Q_bhe = Q_bhe_unit * self.total_borehole_length
         m_cp_b = c_w * rho_w * self.dV_b_f_m3s
 
         # Assume symmetrical temperature approach around average BHE fluid temperature

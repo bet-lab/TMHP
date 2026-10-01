@@ -29,7 +29,7 @@ def main():
     fingerprint = json.loads((HERE / "data/case_fingerprint.json").read_text())
     assert hashlib.sha256((HERE / "data/config.json").read_bytes()).hexdigest() == fingerprint["config_sha256"]
     assert fingerprint["source_commit"] == verification["source_commit"]
-    assert reference["ground_UA_rated_W_K"] == 800 and reference["load_UA_rated_W_K"] == 640
+    assert reference["ground_UA_rated_W_K"] == 1440 and reference["load_UA_rated_W_K"] == 640
     with (HERE / "data/simulation_results.csv").open() as stream:
         rows = list(csv.DictReader(stream))
     assert len(rows) == 16
@@ -43,6 +43,11 @@ def main():
         assert math.isclose(total, float(row["E_tot [W]"]), rel_tol=1e-10)
         assert math.isclose(float(row["cop_sys [-]"]), float(row["Q_ref_iu [W]"]) / total, rel_tol=1e-10)
         assert math.isclose(float(row["Q_ref_iu [W]"]), 8000 * float(row["plr"]), rel_tol=1e-9)
+        assert math.isclose(float(row["E_cmp_ref [W]"]), 0.8 * float(row["E_cmp [W]"]), rel_tol=1e-10)
+        assert float(row["eta_v [-]"]) == 0.9 and float(row["eta_em [-]"]) == 0.8
+        assert math.isclose(
+            float(row["Q_ref_ground [W]"]), float(row["Q_ref_iu [W]"]) + float(row["E_cmp_ref [W]"]), rel_tol=1e-10
+        )
     calculated = {
         "minimum_flow_percent": min(100 * float(r["ground_flow_ratio"]) for r in optimum.values()),
         "maximum_pump_saving_percent": max(
@@ -68,7 +73,12 @@ def main():
         assert math.isclose(float(optimum[p]["E_tot [W]"]), float(baseline[p]["E_tot [W]"]), rel_tol=1e-9)
     assert len(manuscript["abstract"]) == 3 and len(manuscript["results"]) == 2
     result_text = "\n".join(manuscript["results"])
-    for required in ("56.8–100.0%", "78.5%", "14.1%", "0–3.46%", "0–3.58%", "PLR 0.7–1.0", "16개"):
+    for required in (
+        f"{calculated['minimum_flow_percent']:.1f}–100.0%",
+        f"0–{calculated['maximum_total_power_saving_percent']:.2f}%",
+        f"0–{calculated['maximum_system_COP_gain_percent']:.2f}%",
+        "16개",
+    ):
         assert required in result_text
     required_text = [manuscript[key] for key in ("title_ko", "title_en", "caption_1", "acknowledgement")]
     required_text += manuscript["abstract"] + manuscript["results"]

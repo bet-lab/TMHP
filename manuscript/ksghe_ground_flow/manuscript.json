@@ -3,26 +3,25 @@
   "title_en": "Physics-Based Modeling of a Ground Source Heat Pump with Constant- and Optimal-Flow Control",
   "abstract": [
     "회귀모델의 내부 물리 거동 해석 한계와 상세 물리모델의 과도한 입력 부담을 줄이고자, 카탈로그 수준의 입력과 축약 물리를 결합한 TMHP(Thermodynamic Models for Heat Pumps) 지열히트펌프 모델을 개발하였다.",
-    "냉매 사이클과 ε–NTU 열교환기를 결합하고, 병렬 보어홀의 분지유량으로 펌프 동력, 유효 열저항 Rb*, 물·냉매 유량별 UA를 계산하였다. 지중 총열량은 보어홀 수×깊이로 정규화하였다. 열수지·압축기·HX 용량 제약하에서 압축기·펌프·실내팬의 총전력 Etot를 최소화하고, COPsys=냉방열량/Etot로 비교하였다(Fig. 1).",
-    "R410A 냉방 8 kW, 실내 26 °C, 지중·고정 벽면 15 °C, 등엔트로피효율 0.70, 1×2 보어홀(깊이 100 m, 간격 6 m; 총 200 m), 정격 총유량 24 L/min, 유량범위 0.4–1.0배, 펌프 종합효율 0.60, PLR 0.3–1.0을 적용하였다. 기본 UA는 지중측 800 W/K·부하측 640 W/K이고, 냉매 기준유량 0.04353 kg/s는 정유량·전부하에서 산출하였다. 공통 배관손실 0, 압축기 압력비 하한 1.5의 미보정 정상 예시이다."
+    "냉매 사이클과 ε–NTU 열교환기를 결합하고, 병렬 보어홀 분지유량으로 펌프 동력, 유효 열저항 Rb*, 물·냉매 유량별 UA를 계산하였다. 지중 총열량은 보어홀 수×깊이로 정규화하였다. 전기 입력은 냉매 압축일/전기기계효율로 계산하며, 제약하에서 압축기·펌프·실내팬의 총전력 Etot를 최소화하고 COPsys=냉방열량/Etot로 비교하였다(Fig. 1).",
+    "R410A 냉방 8 kW, 실내 26 °C, 지중·고정 벽면 15 °C, 등엔트로피·체적·전기기계효율 0.70·0.90·0.80, 1×2 보어홀(깊이 100 m, 간격 6 m; 총 200 m), 정격 총유량 24 L/min, 유량범위 0.4–1.0배, 펌프 효율 0.60, PLR 0.3–1.0을 적용하였다. 지중측 UA는 0.18×정격 용량인 1440 W/K로 산정하고 실내측은 640 W/K이다. 냉매 기준유량 0.04151 kg/s는 정유량·전부하에서 도출하였다. 공통손실 0, 압력비 하한 1.5의 미보정 정상 예시이다."
   ],
   "keywords": "Key words: Ground source heat pump, Optimal flow, Reduced-order physics, Total electrical power",
   "caption_1": "Fig. 1. Part-load performance of the GSHP under constant- and optimal-flow control: (a) ground-loop pump power; (b) indoor-fan power; (c) compressor power; and (d) system COP.",
   "results": [
-    "최적 유량은 정격의 56.8–100.0%였다. PLR 0.3–0.6에서 펌프 전력은 최대 78.5% 감소했으나 실내팬 전력은 최대 14.1% 증가했고, PLR 0.3–0.4에서는 압축기 전력도 증가하여 세 구성요소의 상충관계가 나타났다.",
-    "총전력은 0–3.46% 감소하고 시스템 COP는 0–3.58% 증가하였다. PLR 0.7–1.0에서는 유량 상한(정격)이 선택되어 두 전략의 결과가 같았다. 비교 운전점 16개는 모두 HX 용량·열수지 제약을 만족하였다."
+    "최적 유량은 정격의 45.3–100.0%였다. PLR 0.3–0.7에서 펌프 전력은 최대 88.3% 감소했으나 실내팬 전력은 최대 14.1% 증가했고, PLR 0.5–0.6에서는 압축기 전력도 증가하여 구성요소의 상충관계가 나타났다.",
+    "총전력은 0–4.15% 감소하고 시스템 COP는 0–4.33% 증가하였다. PLR 0.8–1.0에서는 유량 상한(정격)이 선택되어 두 전략의 결과가 같았다. 비교 운전점 16개는 모두 HX 용량·열수지 제약을 만족하였다."
   ],
   "acknowledgement": "이 성과는 정부(과학기술정보통신부)의 재원으로 한국연구재단의 지원을 받아 수행된 연구임(No. RS-2025-00512551).",
   "claims": {
-    "minimum_flow_percent": 56.770509831248425,
-    "maximum_pump_saving_percent": 78.48612353279985,
-    "maximum_fan_increase_percent": 14.098084116693531,
-    "maximum_total_power_saving_percent": 3.459573822959649,
-    "maximum_system_COP_gain_percent": 3.5835493584991163,
-    "m_dot_ref_rated_kg_s": 0.04352627260631659,
+    "minimum_flow_percent": 45.34545237081456,
+    "maximum_pump_saving_percent": 88.26276966651515,
+    "maximum_fan_increase_percent": 14.09995053473585,
+    "maximum_total_power_saving_percent": 4.151814957865351,
+    "maximum_system_COP_gain_percent": 4.331657355890695,
+    "m_dot_ref_rated_kg_s": 0.04151110907913401,
     "selected_points": 16,
     "upper_bound_plrs": [
-      0.7,
       0.8,
       0.9,
       1.0

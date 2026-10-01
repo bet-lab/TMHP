@@ -10,5 +10,10 @@
     "columns": 4,
     "width": "16.8cm",
     "height": "4.6cm"
+  },
+  "visual_inspection": {
+    "main": "All four panels, units, common legend and markers readable; no clipping or overlap.",
+    "objective": "Three load curves and selected optima readable; tick density corrected.",
+    "stress": "88 rejected cells; binary legend and labels readable."
   }
 }

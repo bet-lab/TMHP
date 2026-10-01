@@ -1,24 +1,11 @@
-# Compact revision review — 2026-10-01
+# Capacity-based UA and compressor-loss review
 
-- Scope: user-supplied compact revision plan; current 261001 document and cooling
-  study. The older 251021 manuscript is not overwritten by this revision.
-- Title and abstract: recommended Korean/English titles; three short paragraphs
-  introducing reduced physics, model/objective, and full cooling conditions.
-- Methods: actual default UA (800/640 W/K), reference refrigerant flow calculated
-  from the full-load baseline, total-power objective including fan, and consistent
-  user-supplied room temperature. Ground total heat is normalized by two × 100 m.
-- Figure: replace two prior figures with one new 1×4 scientific-style figure.
-  Actual Dartwork-mpl MCP checks cover all active plots; runtime layout checks
-  have no findings. HWPX picture crop bounds, table margins, caption break and
-  English title line spacing were corrected without shrinking text fonts.
-- Results: two bullets from the new 16-point comparison only. Report component
-  tradeoffs, 0–3.46% total savings, 0–3.58% COP gain and the PLR≥0.7 upper bound.
-- Acknowledgement: retain only RS-2025-00512551; authors, affiliations and footer
-  are present in both native XML and extracted PDF text.
-- Evidence: QA checks all body/caption strings against rendered PDF and all
-  quantitative claims against CSV. Strict and compatibility HWPX checks pass.
-  Visual review found no clipped labels, captions, affiliations or overlap.
-- Comparison: diff/compact_revision_20261001.pdf (visual before/after) and .diff
-  (native text comparison). Verified PDF is one page with embedded fonts.
-- Limits: steady fixed-wall, uncalibrated example with no common pipe loss;
-  Linux font-substituted PDF rendering, not Hancom Office testing.
+- Ground UA is 0.18 × rated capacity, 1440 W/K at 8 kW; independent indoor UA is 640 W/K.
+- Coefficient 0.18 K⁻¹ is an engineering sizing assumption requiring calibration. Longo supports qualitative mass-flux dependence only.
+- eta_v=0.9 sets speed; electrical input is gas work/eta_em with eta_em=0.8. Motor losses are outside the refrigerant cycle.
+- Electrical total and COP include compressor, pump and indoor fan. Refrigerant heat balances use gas work.
+- Old 800 W/K and ideal-efficiency results are archived in the simulation repository. New differences combine UA and efficiency changes.
+- All 184 main operating points are feasible. All 88 undersized-HX stress points fail with NaN COP.
+- Regenerated CSV claims: flow 45.3–100%, total savings up to 4.15%, COP gain up to 4.33%; PLR 0.8–1.0 selects the upper bound.
+- All active graphs use scientific style and actual Dartwork-mpl MCP review, followed by visual inspection.
+- Native HWPX and one-page PDF retain authors, affiliations and acknowledgement. Linux font substitution is not Hancom Office validation.

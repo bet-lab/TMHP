@@ -133,3 +133,13 @@ validation/data/keymark_en14825_declared.csv
 validation/data/compressor_maps/points_copeland_opi.csv
 validation/data/compressor_maps/points_derived.csv
 validation/data/compressor_maps/points_fit_ready.csv
+
+# Random operating-point sample, one CSV per compressor-efficiency case
+# (tens of MB each, no exergy columns). The seed in
+# validation/operating_point_sample/config.py fixes the draw, so these rebuild
+# bit-for-bit in ~60-70 min (all 7 cases) with
+#   uv run python -m validation.operating_point_sample.sample
+# The tracked <stem>.parameters.json beside each CSV records the sampling
+# spec, the case's efficiency function and the outcome counts.
+validation/data/operating_point_sample/uniform_*_points_*.csv
+validation/data/operating_point_sample/points.csv

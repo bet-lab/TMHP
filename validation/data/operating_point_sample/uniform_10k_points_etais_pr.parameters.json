@@ -1,0 +1,87 @@
+{
+  "study": "random operating-point sample",
+  "case": "P-I",
+  "model_class": "AirSourceHeatPump",
+  "postprocess": "exergy skipped (analyze_steady(postprocess=False))",
+  "sampling": {
+    "n_points": 10000,
+    "seed": 20260917,
+    "distribution": "independent uniform",
+    "plr_range": [
+      0.1,
+      1.5
+    ],
+    "T_ou_range_C": [
+      -20.0,
+      40.0
+    ],
+    "T_iu_range_C": [
+      15.0,
+      30.0
+    ],
+    "plr_reference": "fixed nameplate hp_capacity",
+    "duty_rule": "heating when T_ou < T_iu, cooling otherwise"
+  },
+  "model": {
+    "ref": "R32",
+    "hp_capacity": 3500.0,
+    "rps_rated": 60.0,
+    "rps_min": 15.0,
+    "rps_max": 150.0,
+    "V_cmp_ref": 9.365415077969357e-06,
+    "UA_ou_rated": 700.0,
+    "UA_iu_rated": 700.0,
+    "dV_ou_fan_a_rated": 0.7000000000000001,
+    "dV_iu_fan_a_rated": 0.7000000000000001,
+    "dT_approach_bounds": [
+      1.0,
+      20.0
+    ],
+    "PR_cycle_min": 1.5,
+    "PR_cycle_max": 11.0,
+    "rated_point": {
+      "T_evap_C": 10.0,
+      "T_cond_C": 50.0,
+      "rps": 60.0,
+      "duty": "cooling",
+      "basis": "ISO 5151 T1"
+    }
+  },
+  "eta_base": {
+    "eta_cmp_vol": 0.9,
+    "eta_cmp_isen": 0.7,
+    "eta_cmp": 0.9
+  },
+  "case_function": {
+    "varied_efficiency": "eta_cmp_isen",
+    "driver": "p_r",
+    "shape": "quadratic",
+    "n_star_c": 1.0,
+    "p_r_c": 2.0,
+    "a_n": 0.6,
+    "a_p": 0.6,
+    "b_v": 0.1,
+    "eta_clip": [
+      0.1,
+      1.0
+    ]
+  },
+  "outcome": {
+    "modulating": 8277,
+    "capacity_clamped": {
+      "none": 8484,
+      "min": 1516
+    },
+    "failure_reason": {
+      "none": 9793,
+      "hx_not_converged": 181,
+      "optimizer_failed": 26
+    }
+  },
+  "run": {
+    "workers": 30,
+    "wall_seconds": 702.3
+  },
+  "library_coefficient_version": "v2026-09-15b",
+  "git_head": "4093362"
+}

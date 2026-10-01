@@ -10,9 +10,10 @@
   "current_source_sha256": {
     "src/tmhp/air_source_heat_pump.py": "b1544db0316b56581496613cc8619495864de3a71c8b91a5d17d3311897b9aec",
     "src/tmhp/air_source_heat_pump_boiler.py": "fda50bf749d6949edd43a19183c9682203358ad3a7aa98725d16317957882dff",
-    "src/tmhp/ground_source_heat_pump.py": "0fc30f0cf3fe67cc947cad56d67f2cc7e1ee40a3875bcec174f90f29a8659460",
+    "src/tmhp/ground_source_heat_pump.py": "ef1ec436500be7cb5656af930d13fb9f6f1919cf66958bf15deb1b9c4dc71649",
     "src/tmhp/ground_source_heat_pump_boiler.py": "419912f465bee794f98f7c49d1b8ee42ea1cbc1da4d876bfb41f38a004960d32",
     "src/tmhp/water_source_heat_pump_boiler.py": "d0d3fbfb9692e54dca96b3b781a531d8474215b1403155df28a73f0a0e7b94dc",
     "src/tmhp/compressor_efficiency.py": "4a596b3870e90dadb653589e957a266566cee3c27609b2d81cb2db99ede4e68a"
-  }
+  },
+  "pressure_floor_search": "Projected condenser temperature determines permitted subcooling before evaluating speed; GSHP explicitly brackets ground-HX duty equality at PR-floor boundary. Coefficients and verification tolerances are unchanged."
 }

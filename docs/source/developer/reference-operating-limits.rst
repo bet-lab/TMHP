@@ -138,3 +138,10 @@ The source module SHA, original checkout commit, Notion report and unchanged
 coefficient snapshot are recorded under ``docs/audits/compressor-efficiency-*``.
 The report's tuned low-speed penalties are not used. This baseline models
 compressor modulation, not cycling losses or on-off duty averaging.
+
+At the pressure-ratio floor, GSHP recomputes permitted subcooling from the
+projected condenser temperature and its physical sink approach. Rejected trial
+approaches therefore cannot change the refrigerant liquid state at identical
+projected conditions. Coupled optimization explicitly includes the ground-HX
+duty-equality boundary at the PR floor; the shipped efficiency coefficients and
+existing HX, load and optimization verification tolerances remain unchanged.

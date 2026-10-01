@@ -696,7 +696,7 @@ class AirSourceHeatPumpBoiler:
                 st = _cycle(dT, rps_fixed=rps_bound)
                 if st is None:
                     return float("nan")
-                return st["Q_tank"] - K_tank_hx * st["dT_tank"]
+                return float(st["Q_tank"] - K_tank_hx * st["dT_tank"])
 
             lo = hi = dT_ref_tank
             r0 = state0["Q_tank"] - K_tank_hx * state0["dT_tank"]

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Coupled ground-loop flow - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Tutorials" href="../tutorials/index.html" /><link rel="prev" title="Ground-source heat pump (GSHP — space conditioning)" href="gshp.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/models/ground-flow.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Coupled ground-loop flow" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/TMHP/models/ground-flow.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
+<meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
+
+    <meta property="article:modified_time" content="2026-10-01T19:58:38+09:00" />
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Start</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../integrations/index.html">Integrations</a></li><li class="link"><a href="../api/index.html">API</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Models</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Coupled ground-loop flow</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#example">Example</a></li>
+<li><a class="reference internal" href="#control-and-boundaries">Control and boundaries</a></li>
+<li><a class="reference internal" href="#module-boundaries-and-assumptions">Module boundaries and assumptions</a></li>
+<li><a class="reference internal" href="#feasibility-and-reporting">Feasibility and reporting</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Models</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Coupled ground-loop flow</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="coupled-ground-loop-flow">
+<h1>Coupled ground-loop flow<a class="headerlink" href="#coupled-ground-loop-flow" title="Link to this heading">¶</a></h1>
+<p>GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant
+flow, prescribed pump power, fixed UA and fixed effective borehole resistance.
+Multi-borehole normalization is corrected in <strong>all</strong> modes: the signed
+field-total extraction is divided by total active length, <code class="docutils literal notranslate"><span class="pre">N_1</span> <span class="pre">*</span> <span class="pre">N_2</span> <span class="pre">*</span> <span class="pre">H_b</span></code>.
+This intentionally changes legacy multi-borehole temperatures.</p>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPump</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPump</span><span class="p">(</span>
+</span><span data-line="4">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="mi">8000</span><span class="p">,</span> <span class="n">V_cmp_ref</span><span class="o">=</span><span class="mf">1.2e-5</span><span class="p">,</span>
+</span><span data-line="5">    <span class="n">UA_cond</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">UA_evap</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">N_1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">Ts</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">dV_b_f_lpm</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">ground_flow_control</span><span class="o">=</span><span class="s2">&quot;optimal_power&quot;</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">hydraulic_pump</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">pump_efficiency</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">variable_Rb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">variable_ground_hx_UA</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">m_dot_ref_rated</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
+</span><span data-line="12">    <span class="n">ground_flow_min_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">ground_flow_max_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+</span><span data-line="13"><span class="p">)</span>
+</span><span data-line="14"><span class="n">row</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
+</span><span data-line="15">    <span class="n">Q_r_iu</span><span class="o">=-</span><span class="mi">4000</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">T_bhe_wall</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+</span><span data-line="16"><span class="p">)</span>
+</span><span data-line="17"><span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;converged&quot;</span><span class="p">]:</span>
+</span><span data-line="18">    <span class="nb">print</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ground_flow_ratio&quot;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">])</span>
+</span></pre></div>
+</div>
+<p>These are illustrative model inputs, not a calibrated manufacturer’s product.
+The default search bounds (0.2–1.2), UA resistance fractions (0.5/0.3/0.2) and
+flow exponents (0.8/0.8) are explicit modelling assumptions, not equipment limits
+or validated refrigerant correlations. Supply values appropriate to the case.</p>
+</section>
+<section id="control-and-boundaries">
+<h2>Control and boundaries<a class="headerlink" href="#control-and-boundaries" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;constant&quot;</span></code> evaluates rated water flow. <code class="docutils literal notranslate"><span class="pre">optimal_power</span></code>
+compares compressor plus pump power at the same requested load. It always uses
+hydraulic pump power, even if <code class="docutils literal notranslate"><span class="pre">hydraulic_pump</span></code> is not set. The convenience
+flag <code class="docutils literal notranslate"><span class="pre">variable_ground_flow=True</span></code> selects <code class="docutils literal notranslate"><span class="pre">optimal_power</span></code>. Variable UA and
+variable resistance are separate opt-ins. A fair control comparison enables
+the same component physics in both constant and optimal cases.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_ratio=f)</span></code> evaluates a prescribed candidate
+within the configured bounds and skips the flow optimizer. This supports
+objective curves and independent optimum checks. GSHP’s inner solver minimizes
+compressor + pump + indoor-fan power over the indoor approach, subject to ground
+HX duty equality. Its outer solver compares <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_pmp</span></code> as specified by
+the flow policy. System COP still includes indoor-fan power.</p>
+<p>For GSHP, <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> fixes the wall temperature for the steady snapshot;
+its default is the model’s current wall temperature (initially <code class="docutils literal notranslate"><span class="pre">Ts</span></code>).
+For GSHPB, <code class="docutils literal notranslate"><span class="pre">T_source</span></code> retains its existing meaning as prescribed BHE outlet
+fluid temperature. Supply <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> to close the borehole wall/fluid balance
+and make flow-dependent Rb* affect the cycle. Without it, the fixed source-fluid
+boundary is retained, and Rb* affects the inferred wall temperature only.</p>
+<p>In dynamic simulations, each candidate uses the current-time ground response
+without committing a load pulse. Only the selected operating point updates
+history. An external GSHPB ground coupler must provide the optional
+<code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise(n,</span> <span class="pre">time_arr,</span> <span class="pre">q_unit)</span></code> method to use the new
+coupled flow mode; legacy couplers still work with the default model.</p>
+</section>
+<section id="module-boundaries-and-assumptions">
+<h2>Module boundaries and assumptions<a class="headerlink" href="#module-boundaries-and-assumptions" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">g_function</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_coupling</span></code> describe ground-to-wall response.
+Loads are extraction-positive W/m; cooling heat rejection is negative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borehole</span></code> describes wall-to-fluid resistance in m K/W. The existing
+local-resistance and axial-correction model is preserved. <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code>
+precomputes 101 flow-grid values, including rated flow, and uses PCHIP with
+no extrapolation. A fixed user <code class="docutils literal notranslate"><span class="pre">R_b</span></code> override cannot be combined with it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pump</span></code> uses Darcy–Weisbach with laminar/Haaland friction. Identical U-tubes
+are in parallel: branch flow is total flow / borehole count; pipe length is
+2H. Branch pressure losses are not added in series. <code class="docutils literal notranslate"><span class="pre">dp_common=0</span></code> excludes
+header/manifold/minor losses. A nonzero value is a prescribed pressure loss
+at the evaluated point, not a resolved pipe network. Constant pump efficiency
+is assumed; pump electrical input heats the water as in the legacy model.
+<code class="docutils literal notranslate"><span class="pre">pipe_inner_diameter</span></code> defaults to 2*r_in and must match it if supplied.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">heat_exchanger</span></code> uses a constant-temperature refrigerant-side approximation:
+effectiveness = 1 - exp(-UA/(m cp)). UA is the inverse sum of water-side,
+refrigerant-side and constant rated resistances. <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> is required
+for variable UA; it must come from a documented reference cycle or rating.
+More flow can increase conductance while reducing effectiveness.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ground_loop</span></code> owns field units and component settings. <code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code>
+provides the ground-specific closure, root and flow search. System classes
+retain the cycle, load-side control and tank orchestration.</p></li>
+</ul>
+<p>The thermophysical water properties remain the library’s constant values.
+Detailed HX geometry, header networks, compressor-model refactoring and field
+measurement validation are outside this change. Existing public functions in
+<code class="docutils literal notranslate"><span class="pre">enex_functions</span></code>, <code class="docutils literal notranslate"><span class="pre">hx_fan</span></code>, <code class="docutils literal notranslate"><span class="pre">g_function</span></code> and <code class="docutils literal notranslate"><span class="pre">heat_transfer</span></code> remain imports
+of the corresponding implementations.</p>
+</section>
+<section id="feasibility-and-reporting">
+<h2>Feasibility and reporting<a class="headerlink" href="#feasibility-and-reporting" title="Link to this heading">¶</a></h2>
+<p>The coupled solver requires ground HX duty equality (absolute tolerance 0.01 W
+or relative tolerance 1e-5), source temperature closure (1e-5 K), valid cycle
+states, compressor speed/pressure limits and delivery of the requested load.
+The ground approach is searched over the existing 1–20 K interval. Valid
+neighbouring samples bracket a root; invalid cycle points are never treated
+as valid residuals. Flow selection compares a coarse grid, the bounds, rated
+flow if in range, and a bounded scalar refinement. This numerical search is
+checked against explicit flow sweeps; it is not a proof of a global minimum
+for arbitrary disconnected feasible domains.</p>
+<p>Inspect <code class="docutils literal notranslate"><span class="pre">converged</span></code>, <code class="docutils literal notranslate"><span class="pre">hx_feasible</span></code> and <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>. In the new mode,
+all-infeasible cases return zero delivered heat and operating power, NaN COP
+and NaN selected flow. Diagnostics retain attempted HX available/required
+heat and capacity ratio. Compressor load limits are distinguished from
+<code class="docutils literal notranslate"><span class="pre">ground_hx_capacity_insufficient</span></code>. This stricter behavior is opt-in; old
+legacy diagnostic behavior is unchanged.</p>
+<p>Results include <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_bhe_f</span> <span class="pre">[m3/s]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">m_dot_borehole</span> <span class="pre">[kg/s]</span></code>, <code class="docutils literal notranslate"><span class="pre">R_b_eff</span> <span class="pre">[mK/W]</span></code>, <code class="docutils literal notranslate"><span class="pre">UA_ground</span> <span class="pre">[W/K]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">E_cmp_plus_pmp</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">flow_optimizer_success</span></code>, <code class="docutils literal notranslate"><span class="pre">flow_optimizer_nfev</span></code>,
+<code class="docutils literal notranslate"><span class="pre">flow_bound_active</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_HX_available</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_required</span> <span class="pre">[W]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">hx_capacity_margin</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">hx_capacity_ratio</span></code>, <code class="docutils literal notranslate"><span class="pre">approach_solver_success</span></code>
+and <code class="docutils literal notranslate"><span class="pre">approach_at_bound</span></code>. <code class="docutils literal notranslate"><span class="pre">flow_optimizer_success=False</span></code> with zero evaluations
+means optimization was not run in constant/prescribed-flow mode.</p>
+<p>For resistance units and flow conventions, see the
+<a class="reference external" href="https://pygfunction.readthedocs.io/en/stable/modules/pipes.html">pygfunction pipe documentation</a>.</p>
+</section>
+</section>
+
+<div class="git-last-updated" role="contentinfo">
+  Last updated Oct 01, 2026
+</div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="gshp.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Ground-source heat pump (GSHP — space conditioning)</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="../tutorials/index.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Tutorials</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-10-01T17:23:31+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T19:58:38+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -93,6 +93,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
@@ -176,6 +177,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler"><code class="docutils literal notranslate"><span class="pre">AggregateGFunctionCoupler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise"><code class="docutils literal notranslate">preview_wall_temperature_rise()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
 </ul>
 </li>
@@ -368,7 +370,7 @@ abstractions used by GSHP/GSHPB.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.heat_transfer.darcy_friction_factor">
-<span class="sig-prename descclassname"><span class="pre">tmhp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">darcy_friction_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/heat_transfer.html#darcy_friction_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.heat_transfer.darcy_friction_factor" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">tmhp.heat_transfer.</span></span><span class="sig-name descname"><span class="pre">darcy_friction_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/pump.html#darcy_friction_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.heat_transfer.darcy_friction_factor" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the Darcy friction factor.</p>
 <p>Uses Haaland equation.</p>
 <dl class="field-list simple">
@@ -809,6 +811,26 @@ the dimensional response <code class="docutils literal notranslate"><span class=
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise">
+<span class="sig-name descname"><span class="pre">preview_wall_temperature_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_unit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.preview_wall_temperature_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate an uncommitted candidate without modifying load history.</p>
+<p>Optional extension for coupled flow control; the original GroundCoupler
+protocol remains unchanged for legacy external backends.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>q_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

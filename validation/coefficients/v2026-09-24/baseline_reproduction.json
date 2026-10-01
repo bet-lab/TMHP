@@ -1,0 +1,54 @@
+{
+ "baseline_version": "v2026-09-15b",
+ "date": "2026-09-24",
+ "rows": [
+  {
+   "item": "fit: eta_vol V2 (a, b)",
+   "archived": "0.021616 / 0.017646",
+   "rerun": "0.021616 / 0.017646",
+   "match": "✓"
+  },
+  {
+   "item": "fit: product I2xE1 (A, B, C, n0)",
+   "archived": "1.08493 / 0.07354 / 0.57287 / 0.02114",
+   "rerun": "1.08493 / 0.07354 / 0.57287 / 0.02114",
+   "match": "✓"
+  },
+  {
+   "item": "LOCO MAPE eta_vol / product",
+   "archived": "5.656 % / 12.164 %",
+   "rerun": "5.656 % / 12.164 %",
+   "match": "✓"
+  },
+  {
+   "item": "catalogue parity, air-to-water (10 units, 153 pts)",
+   "archived": "MAPE 8.1 %, bias +1.1 %",
+   "rerun": "MAPE 8.1 %, bias +1.1 % (17 units identical to 1e-12)",
+   "match": "✓"
+  },
+  {
+   "item": "catalogue parity, air-to-air Daikin (5 units, 356 pts)",
+   "archived": "MAPE 9.1 %, bias −0.5 %",
+   "rerun": "MAPE 9.1 %, bias −0.5 %",
+   "match": "✓"
+  },
+  {
+   "item": "rated points within ±10 % (adopted)",
+   "archived": "—",
+   "rerun": "17/19 (FTXM20A −13.3 %, FTXM25A −11.4 %)",
+   "match": "baseline value"
+  },
+  {
+   "item": "fixed-boundary PLR sweep (6 cases, 138 rows)",
+   "archived": "ashp_sweep.csv / ashpb_sweep.csv",
+   "rerun": "byte-identical",
+   "match": "✓"
+  },
+  {
+   "item": "PLR-COP shape, all 6 cases",
+   "archived": "—",
+   "rerun": "monotonic rise down to the speed floor (n* 0.25 / 0.375)",
+   "match": "baseline value"
+  }
+ ]
+}

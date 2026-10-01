@@ -1,39 +1,58 @@
-"""Pooled fit of the three compressor efficiencies on standalone-compressor data.
+"""Pooled and within-machine fits of the three compressor efficiencies on
+standalone-compressor data.
 
-Structure (decision D-B, judgement.md): eta_vol = f(PR, n*), eta_isen = f(PR),
-eta_em = f(n*), n* = N / N_rated.  Catalogue heat-pump data never enter here.
+Structure (decision D-B, judgement.md; extended 2026-09-24 by plan v3):
+eta_vol = f(PR, n*), eta_isen = f(PR, n*), eta_em = f(PR, n*), n* = N / N_rated.
+Catalogue heat-pump data never enter here.
 
 What the data identify
 ----------------------
 * eta_vol directly (mass flow, suction density, displacement, speed).
-* eta_oi = eta_isen * eta_em directly (power).  Because eta_isen carries no
-  speed term and eta_em no PR term, the product is *separable*:
-  eta_oi(PR, n*) = g(PR) * s(n*) with s(1) = 1 identified up to one scale
-  factor.  That factor -- how much of the electrical loss shows up as
-  refrigerant enthalpy (eta_isen) versus leaves the shell or is lost in the
-  drive (eta_em) -- is set by the only rows with a measured discharge
-  temperature under the TMHP definition (Cuevas & Lebrun 2009, inverter-fed,
-  n* ~ 1): ``ETA_EM_ANCHOR`` = median eta_em there.  Sensitivity +/-0.03 is
-  reported.  Guth & Atakan's published split uses a different definition of
-  the isentropic efficiency and is used for eta_vol and the product only.
+* eta_oi = eta_isen * eta_em directly (power).  The product is modelled as
+  ``g(PR) * s(n*) * x(PR, n*)``: a lift shape, a pure speed factor and a
+  lift x speed interaction.  Which factor belongs to ``eta_isen`` and which
+  to ``eta_em`` is *not* identified by power tables; it is set afterwards
+  from the only rows with a measured discharge temperature under TMHP's
+  definition (Cuevas & Lebrun 2009, inverter-fed) -- see ``split.py``.
+
+Two estimators
+--------------
+``pooled``
+    One least-squares fit over every row (robust soft-L1, weights so that
+    each compressor x speed record counts once).  This is what v2026-09-15b
+    used.  Its speed terms are diluted: 67 % of the rows sit at n* = 1 and
+    the between-machine level spread (sd 0.07) is larger than any speed
+    effect, so a term that is clearly visible *inside* each machine can look
+    negligible in the pooled residual.
+``fe`` (fixed effects)
+    The same shape parameters, but every machine carries its own log-level
+    ``lambda_k``, so the shape is identified from within-machine contrasts
+    only -- the estimator behind rule R4 in ``cv.py``.  The generic default
+    level is the record-weighted mean of the machine levels (each machine
+    counts once), so the shipped curve still passes through the population.
 
 Candidate families
 ------------------
 eta_vol: V1  1 - a(PR-1)
-         V2  1 - a(PR-1) - b*max(0, 1/n* - 1)            (one-sided, legacy shape in n*)
+         V2  1 - a(PR-1) - b*max(0, 1/n* - 1)            (one-sided, adopted in v2026-09-15b)
          V3  c - a(PR-1) - b/n*                          (V_disp-free intercept)
          V4  c - a(PR-1) - b*exp(-n*/nc)
          V5  c - a(PR-1) - b*max(0, 1/n* - 1)
+         V6  1 - a(PR-1) - b*(PR-1)*max(0, 1/n* - 1)     (leakage scales with the pressure difference)
+         V7  1 - a(PR-1) - b*max(0,1/n*-1) - c*(PR-1)*max(0,1/n*-1)
 g(PR):   I1  A - B*PR
          I2  A - B*PR - C/PR                             (under-compression peak)
          I3  A + B*PR + C*PR^2
 s(n*):   E0  1                                           (no speed effect)
-         E1  ((1+n0)/(n*+n0)) * n*                       (saturating, s(1)=1)
+         E1  ((1+n0)/(n*+n0)) * n*                       (saturating drive loss, s(1)=1)
          E2  E1 * (1 - d*max(0, n*-1)^2)                 (high-speed roll-off)
          E3  (1-exp(-n*/nc)) / (1-exp(-1/nc))
-Fits: scipy least_squares, loss='soft_l1', weights sqrt(w_record) so every
-compressor x speed record counts once.  Selection by leave-one-compressor-out
-CV (``cv.py``) against the acceptance rules of the strategy document.
+x(PR,n*):X0  1
+         X1  exp(k (PR-3) ln n*)                         (log-linear interaction, v2026-09-15 extension)
+         L1  1 - c*(PR-1)*max(0, 1/n*-1)                 (leakage: pressure difference over speed, one-sided)
+         L2  1 - c*(PR-1)*(1/n*-1)                       (leakage, two-sided)
+Fits: scipy least_squares, loss='soft_l1', weights sqrt(w_record).  Selection
+by leave-one-compressor-out CV and the speed-transfer error (``cv.py``).
 """
 
 from __future__ import annotations
@@ -104,6 +123,24 @@ VOL_FAMILIES = [
         (0.2, 0.5, 1.2),
         ("a", "b", "c"),
     ),
+    Family(
+        "V6",
+        "1 - a(PR-1) - b (PR-1) max(0,1/n*-1)",
+        lambda t, pr, n: 1 - t[0] * (pr - 1) - t[1] * (pr - 1) * _pos(1 / n - 1),
+        (0.02, 0.01),
+        (0, 0),
+        (0.2, 0.3),
+        ("a", "b"),
+    ),
+    Family(
+        "V7",
+        "1 - a(PR-1) - b max(0,1/n*-1) - c (PR-1) max(0,1/n*-1)",
+        lambda t, pr, n: 1 - t[0] * (pr - 1) - t[1] * _pos(1 / n - 1) - t[2] * (pr - 1) * _pos(1 / n - 1),
+        (0.02, 0.01, 0.01),
+        (0, 0, 0),
+        (0.2, 0.5, 0.3),
+        ("a", "b", "c"),
+    ),
 ]
 G_FAMILIES = [
     Family("I1", "A - B PR", lambda t, pr, n: t[0] - t[1] * pr, (0.8, 0.02), (0.3, -0.2), (1.2, 0.3), ("A", "B")),
@@ -149,11 +186,13 @@ S_FAMILIES = [
     ),
 ]
 
-
-# Extension candidate: the separability test shows the speed penalty grows with PR (leakage at
-# low speed and high lift, Cuevas & Lebrun 2009 Sec. 3).  Kept as a *candidate* the CV must earn:
-# eta_oi = g(PR) * s(n*) * exp(k (PR-3) ln n*) -- k>0 means low speed hurts more at high PR.
+# Lift x speed interaction factors.  X1 is the v2026-09-15 extension candidate
+# (log-linear).  L1/L2 are the leakage reading of Cuevas & Lebrun 2009 Sec. 3:
+# leakage flow is set by the pressure difference and hardly by speed, the swept
+# flow is proportional to speed, so the *fraction* re-compressed goes as
+# (PR-1)/n*.  L1 is one-sided (no bonus above rated speed), L2 two-sided.
 X_FAMILIES = [
+    Family("X0", "1", lambda t, pr, n: np.ones_like(n), (), (), (), ()),
     Family(
         "X1",
         "exp(k (PR-3) ln n*)",
@@ -163,7 +202,111 @@ X_FAMILIES = [
         (0.5,),
         ("k",),
     ),
+    Family(
+        "L1",
+        "1 - c (PR-1) max(0,1/n*-1)",
+        lambda t, pr, n: 1 - t[0] * (pr - 1) * _pos(1 / n - 1),
+        (0.02,),
+        (0.0,),
+        (0.3,),
+        ("c",),
+    ),
+    Family(
+        "L2",
+        "1 - c (PR-1)(1/n*-1)",
+        lambda t, pr, n: 1 - t[0] * (pr - 1) * (1 / n - 1),
+        (0.02,),
+        (0.0,),
+        (0.3,),
+        ("c",),
+    ),
 ]
+
+
+def _split_n0() -> float:
+    """Drive + motor n0 measured on the discharge-temperature split rows (``split.py``)."""
+    path = DATA_DIR / "split.json"
+    if not path.exists():
+        raise SystemExit("run validation.compressor_maps.split first: split.json is missing")
+    return float(json.loads(path.read_text())["ETA_EM_N0"])
+
+
+N0_EM = _split_n0()
+
+
+def _split_n0_drive() -> float:
+    """Drive-only n0 (median of the three Ossorio & Navarro-Peris inverters) -- the floor of the drive term."""
+    d = json.loads((DATA_DIR / "split.json").read_text()).get("ossorio_drive_only", {})
+    return float(d.get("n0_drive_median", N0_EM))
+
+
+N0_DRIVE = _split_n0_drive()
+
+
+def _s_fixed(n):
+    return n * (1 + N0_EM) / (n + N0_EM)
+
+
+def _s_drive_floor(n):
+    return n * (1 + N0_DRIVE) / (n + N0_DRIVE)
+
+
+# Speed factors with the drive term *anchored* on the measured electro-mechanical
+# efficiency (n0 = N0_EM, no free coefficient).  Every further speed term the
+# product then needs is, by construction, assigned to eta_isen:
+#   F0  anchored drive loss only
+#   F2  + two-sided flow loss  1 - d (n*^2 - 1): pressure losses through the
+#       ports grow with the square of speed, so below rated speed the
+#       compression is *better*, above it worse
+#   F3  + one-sided roll-off above rated speed (the E2 shape)
+S_FAMILIES += [
+    Family("F0", f"n*(1+n0)/(n*+n0), n0={N0_EM:.4f} fixed", lambda t, pr, n: _s_fixed(n), (), (), (), ()),
+    Family(
+        "F2",
+        "F0 (1 - d (n*^2-1))",
+        lambda t, pr, n: _s_fixed(n) * (1 - t[0] * (n * n - 1)),
+        (0.02,),
+        (0.0,),
+        (0.3,),
+        ("d",),
+    ),
+    Family(
+        "F3",
+        "F0 (1 - d max(0,n*-1)^2)",
+        lambda t, pr, n: _s_fixed(n) * (1 - t[0] * _pos(n - 1) ** 2),
+        (0.05,),
+        (0.0,),
+        (2.0,),
+        ("d",),
+    ),
+    # sensitivity of the anchor: the drive-only floor (inverter alone, no motor) instead of the total
+    Family("G0", f"n*(1+n0)/(n*+n0), n0={N0_DRIVE:.4f} fixed", lambda t, pr, n: _s_drive_floor(n), (), (), (), ()),
+    Family(
+        "G2",
+        "G0 (1 - d (n*^2-1))",
+        lambda t, pr, n: _s_drive_floor(n) * (1 - t[0] * (n * n - 1)),
+        (0.02,),
+        (0.0,),
+        (0.3,),
+        ("d",),
+    ),
+]
+FAMILY = {f.key: f for f in VOL_FAMILIES + G_FAMILIES + S_FAMILIES + X_FAMILIES}
+
+#: Product grid.  The pooled fit runs the whole grid; the fixed-effects fit
+#: the physically nested subset that the selection walks (cv.py NEST).
+OI_GRID = [(g, s, x) for g in G_FAMILIES for s in S_FAMILIES for x in X_FAMILIES]
+
+
+def oi_key(g: Family, s: Family, x: Family) -> str:
+    return f"{g.key}x{s.key}x{x.key}"
+
+
+def split_key(key: str) -> tuple[str, str, str]:
+    parts = key.split("x")
+    if len(parts) == 2:  # v2026-09-15 naming ("I2xE1") = identity interaction
+        parts.append("X0")
+    return parts[0], parts[1], parts[2]
 
 
 def product3_fn(gf: Family, sf: Family, xf: Family):
@@ -175,27 +318,136 @@ def product3_fn(gf: Family, sf: Family, xf: Family):
     return fn
 
 
-def fit_oi_x(df: pd.DataFrame, gf: Family, sf: Family, xf: Family) -> dict:
-    pr, n, y, w = df.PR.to_numpy(), df.n_star.to_numpy(), df.eta_oi.to_numpy(), np.sqrt(df.w_record.to_numpy())
-    fn = product3_fn(gf, sf, xf)
+def product_fn(gf: Family, sf: Family):
+    """Two-factor product (kept for callers written before the interaction axis)."""
+    return product3_fn(gf, sf, FAMILY["X0"])
+
+
+def product_bounds(gf: Family, sf: Family, xf: Family):
     t0 = tuple(gf.theta0) + tuple(sf.theta0) + tuple(xf.theta0)
     lo = tuple(gf.lower) + tuple(sf.lower) + tuple(xf.lower)
     hi = tuple(gf.upper) + tuple(sf.upper) + tuple(xf.upper)
-    res = least_squares(lambda t: w * (fn(t, pr, n) - y), t0, bounds=(lo, hi), loss="soft_l1", f_scale=0.03)
-    pred = fn(res.x, pr, n)
+    return t0, lo, hi
+
+
+def unpack_theta(theta, gf: Family, sf: Family, xf: Family) -> dict:
     ng, ns = len(gf.theta0), len(sf.theta0)
+    return {
+        "theta_g": dict(zip(gf.names, map(float, theta[:ng]), strict=True)),
+        "theta_s": dict(zip(sf.names, map(float, theta[ng : ng + ns]), strict=True)),
+        "theta_x": dict(zip(xf.names, map(float, theta[ng + ns :]), strict=True)),
+    }
+
+
+def pack_theta(rec: dict, gf: Family, sf: Family, xf: Family) -> np.ndarray:
+    return np.array(
+        [rec["theta_g"][k] for k in gf.names]
+        + [rec["theta_s"][k] for k in sf.names]
+        + [rec.get("theta_x", {}).get(k, 0.0) for k in xf.names]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Estimators
+# ---------------------------------------------------------------------------
+def fit_pooled(fn, t0, lo, hi, pr, n, y, w, f_scale: float) -> np.ndarray:
+    return least_squares(lambda t: w * (fn(t, pr, n) - y), t0, bounds=(lo, hi), loss="soft_l1", f_scale=f_scale).x
+
+
+def fit_fe(
+    fn, t0, lo, hi, pr, n, y, w, keys, f_scale: float, warm: tuple[np.ndarray, dict[str, float]] | None = None
+) -> tuple[np.ndarray, dict[str, float], float]:
+    """Fixed-effects fit in log space: ln y = ln fn(theta) + lambda_k.
+
+    Returns the shape parameters, the per-machine log-levels and the
+    population level (mean of lambda_k, one weight per machine).  The mean
+    of the machine levels is pinned to zero inside the fit so that the level
+    lives in ``theta`` (the g(PR) scale), not in the offsets.
+    """
+    uniq, idx = np.unique(keys, return_inverse=True)
+    nk, npar = len(uniq), len(t0)
+    ly = np.log(y)
+    root_n = np.sqrt(len(y))
+
+    def resid(p):
+        th, lam = p[:npar], p[npar:]
+        pred = fn(th, pr, n)
+        r = w * (np.log(np.maximum(pred, 1e-6)) + lam[idx] - ly)
+        return np.concatenate([r, [root_n * lam.mean()]])
+
+    lam0 = np.zeros(nk)
+    th0 = np.asarray(t0, float)
+    if warm is not None:  # start from a previous solution (LOCO refits differ by one machine)
+        th0 = np.clip(np.asarray(warm[0], float), lo, hi)
+        lam0 = np.array([warm[1].get(k, 0.0) for k in uniq.tolist()])
+        lam0 -= lam0.mean()
+    p0 = np.concatenate([th0, lam0])
+    plo = np.concatenate([np.asarray(lo, float), np.full(nk, -1.5)])
+    phi = np.concatenate([np.asarray(hi, float), np.full(nk, 1.5)])
+    res = least_squares(resid, p0, bounds=(plo, phi), loss="soft_l1", f_scale=f_scale)
+    th, lam = res.x[:npar], res.x[npar:]
+    return th, dict(zip(uniq.tolist(), map(float, lam), strict=True)), float(lam.mean())
+
+
+def load_ok() -> pd.DataFrame:
+    df = pd.read_csv(FIT_READY, low_memory=False)
+    return df[(~df.exclude_fixed) & df.point_ok].copy()
+
+
+def _metrics(pred, y, w) -> dict:
+    return {
+        "wrmse": float(np.sqrt(np.average((pred - y) ** 2, weights=w**2))),
+        "wmape_pct": float(100 * np.average(np.abs(pred - y) / y, weights=w**2)),
+    }
+
+
+def fit_vol(df: pd.DataFrame, fam: Family, mode: str = "pooled") -> dict:
+    d = df[~df.vdisp_suspect]
+    pr, n, y, w = d.PR.to_numpy(), d.n_star.to_numpy(), d.eta_vol.to_numpy(), np.sqrt(d.w_record.to_numpy())
+    if mode == "pooled":
+        th = fit_pooled(fam.fn, fam.theta0, fam.lower, fam.upper, pr, n, y, w, 0.02)
+        levels: dict[str, float] = {}
+    else:
+        th, levels, _ = fit_fe(fam.fn, fam.theta0, fam.lower, fam.upper, pr, n, y, w, d.compressor_key.to_numpy(), 0.02)
+    pred = fam.fn(th, pr, n)
+    return {
+        "family": fam.key,
+        "mode": mode,
+        "label": fam.label,
+        "theta": dict(zip(fam.names, map(float, th), strict=True)),
+        "n": len(d),
+        **_metrics(pred, y, w),
+        "machine_levels": levels,
+    }
+
+
+def fit_oi(df: pd.DataFrame, gf: Family, sf: Family, xf: Family | None = None, mode: str = "pooled") -> dict:
+    xf = xf or FAMILY["X0"]
+    pr, n, y, w = df.PR.to_numpy(), df.n_star.to_numpy(), df.eta_oi.to_numpy(), np.sqrt(df.w_record.to_numpy())
+    fn = product3_fn(gf, sf, xf)
+    t0, lo, hi = product_bounds(gf, sf, xf)
+    if mode == "pooled":
+        th = fit_pooled(fn, t0, lo, hi, pr, n, y, w, 0.03)
+        levels: dict[str, float] = {}
+    else:
+        th, levels, _ = fit_fe(fn, t0, lo, hi, pr, n, y, w, df.compressor_key.to_numpy(), 0.03)
+    pred = fn(th, pr, n)
     return {
         "g": gf.key,
         "s": sf.key,
         "x": xf.key,
-        "label": f"({gf.label}) x ({sf.label}) x {xf.label}",
-        "theta_g": dict(zip(gf.names, map(float, res.x[:ng]), strict=True)),
-        "theta_s": dict(zip(sf.names, map(float, res.x[ng : ng + ns]), strict=True)),
-        "theta_x": dict(zip(xf.names, map(float, res.x[ng + ns :]), strict=True)),
+        "key": oi_key(gf, sf, xf),
+        "mode": mode,
+        "label": f"({gf.label}) x ({sf.label}) x ({xf.label})",
+        **unpack_theta(th, gf, sf, xf),
         "n": len(df),
-        "wrmse": float(np.sqrt(np.average((pred - y) ** 2, weights=w**2))),
-        "wmape_pct": float(100 * np.average(np.abs(pred - y) / y, weights=w**2)),
+        **_metrics(pred, y, w),
+        "machine_levels": levels,
     }
+
+
+def fit_oi_x(df: pd.DataFrame, gf: Family, sf: Family, xf: Family) -> dict:
+    return fit_oi(df, gf, sf, xf, "pooled")
 
 
 def machine_level_spread(df: pd.DataFrame, pred: np.ndarray, col: str) -> dict:
@@ -211,57 +463,6 @@ def machine_level_spread(df: pd.DataFrame, pred: np.ndarray, col: str) -> dict:
         "between_machine_p90": float(per.quantile(0.9)),
         "within_machine_sd_median": float(within.median()),
         "machines": int(len(per)),
-    }
-
-
-def load_ok() -> pd.DataFrame:
-    df = pd.read_csv(FIT_READY, low_memory=False)
-    return df[(~df.exclude_fixed) & df.point_ok].copy()
-
-
-def fit_vol(df: pd.DataFrame, fam: Family) -> dict:
-    d = df[~df.vdisp_suspect]
-    pr, n, y, w = d.PR.to_numpy(), d.n_star.to_numpy(), d.eta_vol.to_numpy(), np.sqrt(d.w_record.to_numpy())
-    res = least_squares(
-        lambda t: w * (fam.fn(t, pr, n) - y), fam.theta0, bounds=(fam.lower, fam.upper), loss="soft_l1", f_scale=0.02
-    )
-    pred = fam.fn(res.x, pr, n)
-    return {
-        "family": fam.key,
-        "label": fam.label,
-        "theta": dict(zip(fam.names, map(float, res.x), strict=True)),
-        "n": len(d),
-        "wrmse": float(np.sqrt(np.average((pred - y) ** 2, weights=w**2))),
-        "wmape_pct": float(100 * np.average(np.abs(pred - y) / y, weights=w**2)),
-    }
-
-
-def product_fn(gf: Family, sf: Family):
-    ng = len(gf.theta0)
-
-    def fn(t, pr, n):
-        return gf.fn(t[:ng], pr, n) * sf.fn(t[ng:], pr, n)
-
-    return fn
-
-
-def fit_oi(df: pd.DataFrame, gf: Family, sf: Family) -> dict:
-    pr, n, y, w = df.PR.to_numpy(), df.n_star.to_numpy(), df.eta_oi.to_numpy(), np.sqrt(df.w_record.to_numpy())
-    fn = product_fn(gf, sf)
-    t0 = tuple(gf.theta0) + tuple(sf.theta0)
-    lo, hi = tuple(gf.lower) + tuple(sf.lower), tuple(gf.upper) + tuple(sf.upper)
-    res = least_squares(lambda t: w * (fn(t, pr, n) - y), t0, bounds=(lo, hi), loss="soft_l1", f_scale=0.03)
-    pred = fn(res.x, pr, n)
-    ng = len(gf.theta0)
-    return {
-        "g": gf.key,
-        "s": sf.key,
-        "label": f"({gf.label}) x ({sf.label})",
-        "theta_g": dict(zip(gf.names, map(float, res.x[:ng]), strict=True)),
-        "theta_s": dict(zip(sf.names, map(float, res.x[ng:]), strict=True)),
-        "n": len(df),
-        "wrmse": float(np.sqrt(np.average((pred - y) ** 2, weights=w**2))),
-        "wmape_pct": float(100 * np.average(np.abs(pred - y) / y, weights=w**2)),
     }
 
 
@@ -303,6 +504,40 @@ def separability_check(df: pd.DataFrame) -> dict:
     }
 
 
+def within_machine_contrasts(df: pd.DataFrame) -> pd.DataFrame:
+    """Row-level within-machine speed contrasts: ln(eta / eta at the machine's rated-speed record) at matched (T_evap, T_cond).
+
+    This is the evidence the speed terms rest on, laid out so a reader can
+    see it without a model: one row per (machine, off-rated speed record,
+    operating point), with the pressure ratio of the point.
+    """
+    rows = []
+    for k, m in df.groupby("compressor_key"):
+        if m.N_rps.nunique() < 2:
+            continue
+        ref_n = m.N_rps.iloc[int((m.n_star - 1).abs().argmin())]
+        ref = m[m.N_rps == ref_n]
+        for n, g in m.groupby("N_rps"):
+            if n == ref_n:
+                continue
+            mg = g.merge(ref, on=["T_evap_C", "T_cond_C"], suffixes=("", "_r"))
+            if len(mg) < 3:
+                continue
+            for _, r in mg.iterrows():
+                rows.append(
+                    {
+                        "compressor_key": k,
+                        "source_id": k.split("::")[0],
+                        "n_star": r.n_star,
+                        "n_star_ref": r.n_star_r,
+                        "PR": r.PR,
+                        "d_ln_eta_oi": np.log(r.eta_oi / r.eta_oi_r),
+                        "d_ln_eta_vol": np.log(r.eta_vol / r.eta_vol_r) if not r.vdisp_suspect else np.nan,
+                    }
+                )
+    return pd.DataFrame(rows)
+
+
 def main() -> None:
     all_rows = pd.read_csv(FIT_READY, low_memory=False)
     df = load_ok()
@@ -314,22 +549,26 @@ def main() -> None:
     out["eta_em_anchor"] = eta_em_anchor(all_rows)
     out["separability"] = separability_check(df)
     out["eta_vol"] = [fit_vol(df, f) for f in VOL_FAMILIES]
+    out["eta_vol_fe"] = [fit_vol(df, f, "fe") for f in VOL_FAMILIES]
+    # v2026-09-15 compatibility: two-factor records keyed "g"/"s" (x = X0)
     out["eta_oi"] = [fit_oi(df, g, s) for g in G_FAMILIES for s in S_FAMILIES]
-    out["eta_oi_x"] = [fit_oi_x(df, g, s, x) for g in G_FAMILIES[1:2] for s in S_FAMILIES[1:3] for x in X_FAMILIES]
+    out["eta_oi_x"] = [fit_oi(df, g, s, x) for g, s, x in OI_GRID if x.key != "X0"]
+    out["eta_oi_fe"] = [fit_oi(df, g, s, x, "fe") for g, s, x in OI_GRID]
+    out["N0_EM"] = N0_EM
     best_v = min(out["eta_vol"], key=lambda r: r["wrmse"])
-    fam_v = next(f for f in VOL_FAMILIES if f.key == best_v["family"])
+    fam_v = FAMILY[best_v["family"]]
     dv = df[~df.vdisp_suspect]
     out["spread_eta_vol"] = machine_level_spread(
         dv, fam_v.fn(np.array(list(best_v["theta"].values())), dv.PR.to_numpy(), dv.n_star.to_numpy()), "eta_vol"
     )
     best_o = min(out["eta_oi"], key=lambda r: r["wrmse"])
-    gf = next(f for f in G_FAMILIES if f.key == best_o["g"])
-    sf = next(f for f in S_FAMILIES if f.key == best_o["s"])
-    th = np.array(list(best_o["theta_g"].values()) + list(best_o["theta_s"].values()))
+    gf, sf = FAMILY[best_o["g"]], FAMILY[best_o["s"]]
+    th = pack_theta(best_o, gf, sf, FAMILY["X0"])
     out["spread_eta_oi"] = machine_level_spread(
         df, product_fn(gf, sf)(th, df.PR.to_numpy(), df.n_star.to_numpy()), "eta_oi"
     )
     (DATA_DIR / "fit_results.json").write_text(json.dumps(out, indent=1))
+    within_machine_contrasts(df).to_csv(DATA_DIR / "within_machine_contrasts.csv", index=False)
     print(
         json.dumps(
             {
@@ -347,18 +586,19 @@ def main() -> None:
             indent=1,
         )
     )
-    print("\neta_vol families (weighted RMSE / MAPE %):")
-    for r in out["eta_vol"]:
-        print(f"  {r['family']:3s} {r['label']:36s} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  {r['theta']}")
-    print("\neta_oi families:")
-    for r in sorted(out["eta_oi"], key=lambda r: r["wrmse"]):
+    for mode, key in (("pooled", "eta_vol"), ("fixed-effects", "eta_vol_fe")):
+        print(f"\neta_vol families, {mode} (weighted RMSE / MAPE %):")
+        for r in out[key]:
+            print(f"  {r['family']:3s} {r['label']:52s} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  {r['theta']}")
+    print("\neta_oi families, pooled:")
+    for r in sorted(out["eta_oi"] + out["eta_oi_x"], key=lambda r: r["wrmse"]):
         print(
-            f"  {r['g']}x{r['s']} {r['label']:60s} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  g={r['theta_g']} s={r['theta_s']}"
+            f"  {r['key']:12s} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  g={r['theta_g']} s={r['theta_s']} x={r['theta_x']}"
         )
-    print("\neta_oi with PR x speed interaction (extension candidates):")
-    for r in out["eta_oi_x"]:
+    print("\neta_oi families, fixed effects (I2 only):")
+    for r in sorted(out["eta_oi_fe"], key=lambda r: r["wrmse"]):
         print(
-            f"  {r['g']}x{r['s']}x{r['x']} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  g={r['theta_g']} s={r['theta_s']} x={r['theta_x']}"
+            f"  {r['key']:12s} rmse={r['wrmse']:.4f} mape={r['wmape_pct']:.2f}  g={r['theta_g']} s={r['theta_s']} x={r['theta_x']}"
         )
 
 

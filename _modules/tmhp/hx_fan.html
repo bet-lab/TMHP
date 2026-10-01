@@ -112,6 +112,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
@@ -204,29 +205,45 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="39"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="40">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
 </span><span data-line="41">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="42">
-</span><span data-line="43">    <span class="n">fan_design_flow_rate</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">))</span>
-</span><span data-line="44">    <span class="n">fan_design_power</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_power&quot;</span><span class="p">))</span>
-</span><span data-line="45">
-</span><span data-line="46">    <span class="k">if</span> <span class="n">fan_design_flow_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="47">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="48">            <span class="s2">&quot;fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params&quot;</span>
-</span><span data-line="49">        <span class="p">)</span>
-</span><span data-line="50">
-</span><span data-line="51">    <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="52">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan flow rate must be greater than 0&quot;</span><span class="p">)</span>
+</span><span data-line="42">    <span class="c1"># A failed HX candidate reports NaN airflow; preserve that diagnostic so</span>
+</span><span data-line="43">    <span class="c1"># the cycle optimizer can reject it without raising an input exception.</span>
+</span><span data-line="44">    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
+</span><span data-line="45">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="46">
+</span><span data-line="47">    <span class="n">fan_design_flow_rate</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+</span><span data-line="48">        <span class="s2">&quot;fan_ref_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">))</span>
+</span><span data-line="49">    <span class="p">)</span>
+</span><span data-line="50">    <span class="n">fan_design_power</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+</span><span data-line="51">        <span class="s2">&quot;fan_ref_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_power&quot;</span><span class="p">))</span>
+</span><span data-line="52">    <span class="p">)</span>
 </span><span data-line="53">
-</span><span data-line="54">    <span class="n">c1</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="mf">0.0013</span><span class="p">)</span>
-</span><span data-line="55">    <span class="n">c2</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c2&quot;</span><span class="p">,</span> <span class="mf">0.1470</span><span class="p">)</span>
-</span><span data-line="56">    <span class="n">c3</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c3&quot;</span><span class="p">,</span> <span class="mf">0.9506</span><span class="p">)</span>
-</span><span data-line="57">    <span class="n">c4</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c4&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0998</span><span class="p">)</span>
-</span><span data-line="58">    <span class="n">c5</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c5&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="59">
-</span><span data-line="60">    <span class="n">x</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">fan_design_flow_rate</span>
-</span><span data-line="61">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
-</span><span data-line="62">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
-</span><span data-line="63">
-</span><span data-line="64">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">)</span></div>
+</span><span data-line="54">    <span class="k">if</span> <span class="n">fan_design_flow_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="55">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="56">            <span class="s2">&quot;fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params&quot;</span>
+</span><span data-line="57">        <span class="p">)</span>
+</span><span data-line="58">
+</span><span data-line="59">    <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="60">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan flow rate must be greater than 0&quot;</span><span class="p">)</span>
+</span><span data-line="61">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="62">        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">)</span>
+</span><span data-line="63">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_flow_rate</span><span class="p">)</span>
+</span><span data-line="64">        <span class="ow">or</span> <span class="n">fan_design_flow_rate</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="65">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_power</span><span class="p">)</span>
+</span><span data-line="66">        <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="o">&lt;</span> <span class="mi">0</span>
+</span><span data-line="67">    <span class="p">):</span>
+</span><span data-line="68">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan flow/reference must be finite and reference positive; reference power nonnegative&quot;</span><span class="p">)</span>
+</span><span data-line="69">
+</span><span data-line="70">    <span class="n">c1</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="mf">0.0013</span><span class="p">)</span>
+</span><span data-line="71">    <span class="n">c2</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c2&quot;</span><span class="p">,</span> <span class="mf">0.1470</span><span class="p">)</span>
+</span><span data-line="72">    <span class="n">c3</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c3&quot;</span><span class="p">,</span> <span class="mf">0.9506</span><span class="p">)</span>
+</span><span data-line="73">    <span class="n">c4</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c4&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0998</span><span class="p">)</span>
+</span><span data-line="74">    <span class="n">c5</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c5&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="75">
+</span><span data-line="76">    <span class="n">x</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">fan_design_flow_rate</span>  <span class="c1"># x &gt; 1 is allowed; reference is not a ceiling</span>
+</span><span data-line="77">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
+</span><span data-line="78">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
+</span><span data-line="79">
+</span><span data-line="80">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

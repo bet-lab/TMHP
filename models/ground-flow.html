@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-01T22:46:47+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T23:32:43+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -122,6 +122,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
 <ul>
@@ -143,6 +144,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#control-and-boundaries">Control and boundaries</a></li>
 <li><a class="reference internal" href="#module-boundaries-and-assumptions">Module boundaries and assumptions</a></li>
 <li><a class="reference internal" href="#feasibility-and-reporting">Feasibility and reporting</a></li>
+<li><a class="reference internal" href="#reference-flow-is-independent-of-limits">Reference flow is independent of limits</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -192,12 +194,12 @@ This intentionally changes legacy multi-borehole temperatures.</p>
 </span><span data-line="4">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">,</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="mi">8000</span><span class="p">,</span> <span class="n">V_cmp_ref</span><span class="o">=</span><span class="mf">1.2e-5</span><span class="p">,</span>
 </span><span data-line="5">    <span class="n">UA_ground_rated</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">UA_iu_rated</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
 </span><span data-line="6">    <span class="n">N_1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">Ts</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">dV_b_f_lpm</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
-</span><span data-line="8">    <span class="n">ground_flow_control</span><span class="o">=</span><span class="s2">&quot;optimal_power&quot;</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">hydraulic_pump</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">pump_efficiency</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
-</span><span data-line="10">    <span class="n">variable_Rb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">variable_ground_hx_UA</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="11">    <span class="n">m_dot_ref_rated</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
-</span><span data-line="12">    <span class="n">ground_flow_min_ratio</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">ground_flow_max_ratio</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">ground_flow_ref_lpm</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">ground_flow_constant_lpm</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">ground_flow_min_lpm</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">ground_flow_max_lpm</span><span class="o">=</span><span class="mi">96</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">ground_flow_control</span><span class="o">=</span><span class="s2">&quot;optimal_power&quot;</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">hydraulic_pump</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">pump_efficiency</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">variable_Rb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">variable_ground_hx_UA</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="12">    <span class="n">m_dot_ref_rated</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
 </span><span data-line="13"><span class="p">)</span>
 </span><span data-line="14"><span class="n">row</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
 </span><span data-line="15">    <span class="n">Q_r_iu</span><span class="o">=-</span><span class="mi">4000</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">T_bhe_wall</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
@@ -246,8 +248,8 @@ hydraulic pump power, even if <code class="docutils literal notranslate"><span c
 flag <code class="docutils literal notranslate"><span class="pre">variable_ground_flow=True</span></code> selects <code class="docutils literal notranslate"><span class="pre">optimal_power</span></code>. Variable UA and
 variable resistance are separate opt-ins. A fair control comparison enables
 the same component physics in both constant and optimal cases.</p>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_ratio=f)</span></code> evaluates a prescribed candidate
-within the configured bounds and skips the flow optimizer. This supports
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_lpm=actual_lpm)</span></code> evaluates a prescribed candidate
+within the explicit actual-flow bounds and skips the flow optimizer. This supports
 objective curves and independent optimum checks. GSHP’s inner solver minimizes
 compressor + pump + indoor-fan power over the indoor approach, subject to ground
 HX duty equality. Its outer solver also compares <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>, including the
@@ -325,6 +327,15 @@ and <code class="docutils literal notranslate"><span class="pre">approach_at_bou
 means optimization was not run in constant/prescribed-flow mode.</p>
 <p>For resistance units and flow conventions, see the
 <a class="reference external" href="https://pygfunction.readthedocs.io/en/stable/modules/pipes.html">pygfunction pipe documentation</a>.</p>
+</section>
+<section id="reference-flow-is-independent-of-limits">
+<h2>Reference flow is independent of limits<a class="headerlink" href="#reference-flow-is-independent-of-limits" title="Link to this heading">¶</a></h2>
+<p>The new API separates <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_lpm</span></code> (fixed normalization),
+<code class="docutils literal notranslate"><span class="pre">ground_flow_constant_lpm</span></code> (constant command) and <code class="docutils literal notranslate"><span class="pre">ground_flow_min_lpm</span></code> /
+<code class="docutils literal notranslate"><span class="pre">ground_flow_max_lpm</span></code> (search limits). Increasing the maximum never changes
+the water denominator, reference UA or reference/setpoint Rb* anchors. UA and
+fan power may exceed reference values. See <a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>
+for full migration, fan limits and compatibility defaults.</p>
 </section>
 </section>
 

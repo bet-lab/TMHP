@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Reference points and operating limits - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="prev" title="Validation" href="../validation/index.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/developer/reference-operating-limits.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Reference points and operating limits" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/TMHP/developer/reference-operating-limits.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
+<meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
+
+    <meta property="article:modified_time" content="2026-10-01T23:21:43+09:00" />
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../getting-started/index.html">Start</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../integrations/index.html">Integrations</a></li><li class="link"><a href="../api/index.html">API</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 _expand"><a class="reference internal" href="../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ground-flow.html">Coupled ground-loop flow</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#developer-naming-rules">Developer naming rules</a></li>
+<li><a class="reference internal" href="#ground-loop-api-and-migration">Ground-loop API and migration</a></li>
+<li><a class="reference internal" href="#indoor-approach-search-domain">Indoor approach search domain</a></li>
+<li><a class="reference internal" href="#fan-api-and-migration">Fan API and migration</a></li>
+<li><a class="reference internal" href="#audit-and-validation">Audit and validation</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Reference points and operating limits</strong>
+        <meta itemprop="position" content="2" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="reference-points-and-operating-limits">
+<h1>Reference points and operating limits<a class="headerlink" href="#reference-points-and-operating-limits" title="Link to this heading">¶</a></h1>
+<section id="developer-naming-rules">
+<h2>Developer naming rules<a class="headerlink" href="#developer-naming-rules" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rated</span></code> means a manufacturer/design reference operating point, not a
+maximum operating limit. <code class="docutils literal notranslate"><span class="pre">ref</span></code> denotes a fixed normalization point in flow
+scaling APIs. Physical/control limits use explicit <code class="docutils literal notranslate"><span class="pre">_min</span></code>/<code class="docutils literal notranslate"><span class="pre">_max</span></code> names;
+fixed operating commands use <code class="docutils literal notranslate"><span class="pre">_constant</span></code> or <code class="docutils literal notranslate"><span class="pre">_setpoint</span></code>. Ratios state their
+denominator, for example <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_ratio</span></code> or <code class="docutils literal notranslate"><span class="pre">fan_flow_ratio_to_ref</span></code>.
+Never change a normalization denominator when expanding an operating range.</p>
+<p>Existing thermodynamic identifiers containing <code class="docutils literal notranslate"><span class="pre">ref</span></code> (refrigerant), such as
+<code class="docutils literal notranslate"><span class="pre">T_ref_sat_K</span></code> and actual <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span></code>, are thermodynamic states, not scaling
+references. <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> is the fixed refrigerant mass-flow reference
+for ground-HX scaling. <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> is swept displacement per revolution;
+it does not define speed limits. Compressor limits remain <code class="docutils literal notranslate"><span class="pre">rps_min/rps_max</span></code>.</p>
+</section>
+<section id="ground-loop-api-and-migration">
+<h2>Ground-loop API and migration<a class="headerlink" href="#ground-loop-api-and-migration" title="Link to this heading">¶</a></h2>
+<p>GSHP and GSHPB accept independent field-total values in L/min:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ground_flow_ref_lpm</span></code>: fixed water normalization reference.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ground_flow_constant_lpm</span></code>: actual constant-flow setpoint (defaults to ref).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ground_flow_min_lpm</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_flow_max_lpm</span></code>: variable-flow limits.</p></li>
+</ul>
+<p>For the current paper, these are 24, 24, 9.6 and 36 L/min. A 36 L/min candidate
+has ratio 1.5 to the unchanged 24 L/min reference. The constant strategy always
+uses 24 L/min. Constant setpoints are independent of the variable strategy’s
+search interval; reference and constant points are included as interpolation
+anchors even if outside that interval. Do not infer an additional hardware
+cap from the reference. Prescribed variable candidates must lie inside the
+explicit interval; only floating-point endpoint rounding is tolerated.</p>
+<p>The previous <code class="docutils literal notranslate"><span class="pre">dV_b_f_lpm</span></code> and ratio-limit constructor inputs remain adapters,
+with <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code> on explicit use. New absolute inputs take precedence.
+Omitting all new inputs preserves historical defaults (GSHP 20.04 L/min,
+GSHPB 24 L/min; ratio interval 0.2–1.2). <code class="docutils literal notranslate"><span class="pre">dV_b_f_m3s</span></code> remains a reference-flow
+attribute for compatibility, never the final candidate’s mutable state.</p>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady(...,</span> <span class="pre">ground_flow_lpm=24)</span></code> forces an actual candidate; the
+previous <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> argument remains a deprecated ratio-to-reference
+adapter. Results expose <code class="docutils literal notranslate"><span class="pre">ground_flow</span> <span class="pre">[m3/s]</span></code>, <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_ratio</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ground_flow_at_min</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_flow_at_max</span></code>. Historical result keys
+<code class="docutils literal notranslate"><span class="pre">dV_bhe_f</span> <span class="pre">[m3/s]</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_flow_ratio</span></code> remain aliases. A failed candidate
+reports zero delivered flow and NaN ratio/COP, while retaining candidate diagnostics.</p>
+<p>Internally, the optimizer varies actual volume flow [m3/s]. Pump pressure drop
+uses actual flow. Rb* interpolation uses branch mass flow [kg/s] and pins the
+reference/setpoint resistances; no normalization denominator enters the Rb*
+physics. Grid bounds cover the control interval and compatibility anchors.
+Ground UA uses fixed water/refrigerant reference flows and permits UA above its
+reference value. No ratio-to-reference clamp at one is applied.</p>
+</section>
+<section id="indoor-approach-search-domain">
+<h2>Indoor approach search domain<a class="headerlink" href="#indoor-approach-search-domain" title="Link to this heading">¶</a></h2>
+<p>GSHP exposes <code class="docutils literal notranslate"><span class="pre">indoor_approach_min_K</span></code> / <code class="docutils literal notranslate"><span class="pre">indoor_approach_max_K</span></code> separately
+from airflow limits. Defaults remain 1–20 K. An expanded water-flow interval can
+require an indoor approach above 20 K to close the HX while respecting the
+compressor pressure-ratio floor. The current 26 °C cooling study explicitly
+uses 1–25 K (minimum evaporating temperature 1 °C). These are numerical cycle
+search limits, not fan or reference limits; they must be declared alongside
+the control envelope. A regression demonstrates a feasible PLR 0.3 / 36 L/min
+point above 20 K rather than labelling the previous truncated search as a
+physical HX capacity failure.</p>
+</section>
+<section id="fan-api-and-migration">
+<h2>Fan API and migration<a class="headerlink" href="#fan-api-and-migration" title="Link to this heading">¶</a></h2>
+<p>ASHP accepts <code class="docutils literal notranslate"><span class="pre">dV_ou_fan_a_ref/min/max</span></code> and <code class="docutils literal notranslate"><span class="pre">dV_iu_fan_a_ref/min/max</span></code>;
+GSHP accepts the indoor trio; ASHPB accepts <code class="docutils literal notranslate"><span class="pre">dV_fan_a_ref/min/max</span></code> [m3/s].
+Existing <code class="docutils literal notranslate"><span class="pre">*_rated</span></code> inputs remain supported reference aliases; an explicit
+<code class="docutils literal notranslate"><span class="pre">*_ref</span></code> takes precedence. Cross-sectional area and reference fan power are
+computed at that fixed reference, independently of the solver limits.</p>
+<p>The common HX solver accepts <code class="docutils literal notranslate"><span class="pre">dV_fan_ref/min/max</span></code>. For compatibility,
+omitted limits resolve to 0.05 times reference and reference, respectively.
+These are defaults, not an implicit definition of rated as maximum. Set max
+explicitly to exceed reference. UA scales with actual/reference airflow and
+the fan VSD polynomial evaluates ratios above one without an upper clamp.
+Coefficients and their validity require equipment calibration; expanded control
+limits do not extend a correlation’s proven validity. Polynomial nonnegative
+power protection remains independent of any flow reference.</p>
+<p><code class="docutils literal notranslate"><span class="pre">calc_UA_from_dV_fan</span></code> supports the new <code class="docutils literal notranslate"><span class="pre">dV_fan_ref</span></code> keyword and its existing
+rated positional argument. Fan-power dictionaries accept <code class="docutils literal notranslate"><span class="pre">fan_ref_flow_rate</span></code>
+and <code class="docutils literal notranslate"><span class="pre">fan_ref_power</span></code> first, then their historical rated/design aliases.
+HX failures still propagate NaN airflow/power to the cycle optimizer.</p>
+</section>
+<section id="audit-and-validation">
+<h2>Audit and validation<a class="headerlink" href="#audit-and-validation" title="Link to this heading">¶</a></h2>
+<p>The repository audit is in <code class="docutils literal notranslate"><span class="pre">docs/audits/reference-rated-max.md</span></code>. It inventories
+reference/rated/design/ratio/max identifiers in all five released heat-pump
+families, common HX/fan and ground helpers, and compressor speed handling.
+WSHPB has fixed surface-water/tank UAs and explicit speed limits; it contains
+no fan solver or rated-flow ceiling to expand. Numerical regression tests retain
+old constructor behavior, and new tests verify identical component physics at
+an identical actual operating point across control strategies.</p>
+</section>
+</section>
+
+<div class="git-last-updated" role="contentinfo">
+  Last updated Oct 01, 2026
+</div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="../validation/index.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Validation</div></div>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

@@ -65,6 +65,7 @@ from .enex_functions import (
 from .g_function import precompute_gfunction
 from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
 from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
+from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .refrigerant import calc_ref_state, reportable_state
 from .stratified_tank import StratifiedTank
@@ -277,7 +278,7 @@ class GroundSourceHeatPumpBoiler:
         self.dV_b_f_m3s = dV_b_f_lpm * cu.L2m3 / cu.m2s
 
         if R_b is None:
-            from .g_function import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
+            from .borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
 
             n_boreholes = max(1, self.N_1 * self.N_2)
             m_flow_total = self.dV_b_f_m3s * rho_w
@@ -589,8 +590,7 @@ class GroundSourceHeatPumpBoiler:
         E_cmp = (m_dot_ref * (h_ref_cmp_out - h_ref_cmp_in)) / val_eta_electro_mech
 
         # 4. NTU Evaporator Analysis
-        NTU_ground = self.UA_ground / m_dot_cp_b
-        eps = 1.0 - math.exp(-NTU_ground)
+        eps = calc_phase_change_hx_effectiveness(self.UA_ground, self.dV_b_f_m3s * rho_w, c_w)
         Q_ground_actual = eps * m_dot_cp_b * (T_ground_in_K - T_ground_sat_K)
 
         # Penalize if cycle evap load exceeds physics limit

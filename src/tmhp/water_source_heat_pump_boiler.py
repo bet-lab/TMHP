@@ -41,6 +41,7 @@ from .enex_functions import (
     calc_mixing_valve_flows,
     calc_mixing_valve_temp,
 )
+from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .refrigerant import calc_ref_state, reportable_state
 from .thermodynamics import calc_exergy_flow
@@ -537,8 +538,7 @@ class WaterSourceHeatPumpBoiler:
         E_cmp = (m_dot_ref * (h_ref_cmp_out - h_ref_cmp_in)) / val_eta_electro_mech
 
         # 4. NTU Evaporator Analysis
-        NTU_water = self.UA_water / m_dot_cp_b
-        eps = 1.0 - math.exp(-NTU_water)
+        eps = calc_phase_change_hx_effectiveness(self.UA_water, self.dV_b_f_m3s * rho_w, c_w)
         Q_water_actual = eps * m_dot_cp_b * (T_water_in_K - T_water_sat_K)
         err = Q_ref_water - Q_water_actual
 

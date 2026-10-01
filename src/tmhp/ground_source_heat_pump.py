@@ -22,7 +22,6 @@ and ``AirSourceHeatPump`` for the indoor-unit side.
 from __future__ import annotations
 
 import contextlib
-import math
 import warnings
 from collections.abc import Callable
 
@@ -41,6 +40,7 @@ from .enex_functions import (
 )
 from .g_function import precompute_gfunction
 from .ground_loop import calc_borefield_linear_load, calc_borehole_count, calc_total_borehole_length
+from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -201,7 +201,7 @@ class GroundSourceHeatPump:
         # apply the axial short-circuit correction, so T_bhe_f = T_bhe - q_b*R_b*
         # reflects the actual U-tube geometry instead of a fixed literature value.
         if R_b is None:
-            from .g_function import (
+            from .borehole import (
                 calc_effective_borehole_thermal_resistance,
                 calc_local_borehole_thermal_resistance,
             )
@@ -458,14 +458,12 @@ class GroundSourceHeatPump:
 
         # BHE NTU check (heating: evaporator constraint)
         if mode == "heating" and is_active:
-            NTU_evap = self.UA_evap / m_dot_cp_b
-            eps = 1.0 - math.exp(-NTU_evap)
+            eps = calc_phase_change_hx_effectiveness(self.UA_evap, self.dV_b_f_m3s * rho_w, c_w)
             T_source_K_local = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
             Q_evap_max = eps * m_dot_cp_b * (T_source_K_local - T_evap_sat_K)
             err_Q_evap = Q_ref_evap - Q_evap_max
         elif mode == "cooling" and is_active:
-            NTU_cond = self.UA_cond / m_dot_cp_b
-            eps = 1.0 - math.exp(-NTU_cond)
+            eps = calc_phase_change_hx_effectiveness(self.UA_cond, self.dV_b_f_m3s * rho_w, c_w)
             T_source_K_local = T_bhe_f_out_K + (self.E_pmp / m_dot_cp_b)
             Q_cond_max = eps * m_dot_cp_b * (T_cond_sat_K - T_source_K_local)
             err_Q_evap = Q_ref_cond - Q_cond_max

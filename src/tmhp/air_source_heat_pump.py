@@ -17,6 +17,7 @@ heat exchange at the indoor unit.
 """
 
 import contextlib
+import math
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -26,7 +27,7 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import safe_float_attr
+from ._opt_utils import safe_float_attr, specific_energy_objective
 from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
@@ -774,6 +775,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if E_tot <= 0 or np.isnan(E_tot):
                 return OBJ_INFEASIBLE
 
+            delivered: float = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
+
             if perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
                 # The compressor is already at ``rps_max`` and still short of the
                 # request. Ranking these points by power would trade delivered
@@ -782,11 +785,35 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 # out. Rank by shortfall instead, so the reported operating point
                 # is the machine's maximum capacity at this condition -- the
                 # quantity a capacity-limited hour actually needs to report.
-                delivered: float = abs(float(perf.get("Q_ref_iu [W]", 0.0)))
                 shortfall: float = max(abs(Q_r_iu) - delivered, 0.0)
                 return OBJ_CAPACITY_LIMITED + shortfall
 
-            return E_tot
+            # Everything below the capacity ceiling is ranked by specific energy
+            # rather than raw ``E_tot`` (see `_opt_utils`). At the *lower* clamp
+            # -- the compressor speed floor -- every candidate over-delivers, and
+            # raw power picks whichever starves the coil hardest: it delivers
+            # least, draws least, and looks best. Cost per unit of heat actually
+            # delivered does not have that hole. A room cannot store the surplus,
+            # but the choice *among* floor candidates is still made on that cost;
+            # capping the credit at the request would reduce the ranking to
+            # ``E_tot`` and pick the starved coil again. The over-delivery is
+            # reported (``capacity_clamped == "min"``, ``Q_ref_iu`` > request) so
+            # the caller can treat it as cycling capacity.
+            #
+            # ``penalty=OBJ_INFEASIBLE`` keeps this function inside the same
+            # three-band scale the rest of the search reads: ordinary points come
+            # back in watts, a capacity-limited point at ``OBJ_CAPACITY_LIMITED``,
+            # and anything the helper rejects at or above ``OBJ_INFEASIBLE``, so
+            # the lattice fallback and the warm-start guard still fire. Leaving
+            # the helper's own default here would return 1e6 for an unreachable
+            # point, which both guards would read as a perfectly good solution.
+            return specific_energy_objective(
+                E_tot,
+                delivered,
+                abs(Q_r_iu),
+                math.inf,
+                penalty=OBJ_INFEASIBLE,
+            )
 
         # Phase 1: coarse grid pre-scan to find a converging starting point.
         # A single fixed x0=(15,15) fails silently when the entire search space

@@ -32,11 +32,14 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     # nominal capacity (42.0 cm^3/rev per 9 kW) instead of the previous
     # oversized 200 cm^3/rev: the same duty is now met by a smaller compressor
     # turning faster, which is more efficient here. The ε-NTU-vs-fixed-UA
-    # identity this test guards is unaffected.
+    # identity this test guards is unaffected. Re-baselined again (relative
+    # change 1e-8) when the evaporator-approach search switched to the
+    # specific-energy objective: the bounded optimiser stops at a marginally
+    # different approach although the modulating point is physically the same.
     baseline = {
         "Q_ref_tank [W]": 10000.0,
-        "E_cmp [W]": 3460.873254367047,
-        "cop_ref [-]": 2.889444156148065,
+        "E_cmp [W]": 3460.8732881861606,
+        "cop_ref [-]": 2.889444127912868,
     }
     assert omitted["converged"] is True
     assert omitted["failure_reason"] == "none"

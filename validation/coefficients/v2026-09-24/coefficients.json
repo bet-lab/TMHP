@@ -1,0 +1,322 @@
+{
+ "version": "v2026-09-24",
+ "estimator": "fe",
+ "decision_note": "Product family I2xE0xL1 (fixed-effects estimator): best leave-one-compressor-out speed-transfer error (6.86 %) and LOCO (11.72 %) of every family that carries a lift x speed term; its R4 identification ratio is 0.66 (33 machines, 4 sources), at the 2/3 line -- the two-sided variant L2 (the automatic pick) passes (0.70) but transfers speed worse (7.12 %). The drive factor of eta_em is anchored on the drive-only floor of Ossorio & Navarro-Peris 2023 (n0 0.0256): the total electro-mechanical n0 measured by Cuevas & Lebrun 2009 (0.0754) over-states the population's low-speed loss (R4 0.37 for F0), the drive-only floor under-states it (R4 1.9 for G0); the remainder is the leakage term in eta_isen. E2/F3 high-speed roll-offs fail R4 (2-4 machines); the X1 log-linear interaction fails R1 and R4. eta_vol: V2 (fixed effects); V6/V7 within 0.1 pp.",
+ "eta_vol": {
+  "family": "V2",
+  "formula": "eta_vol = 1 - ETA_VOL_A*(PR-1) - ETA_VOL_B*u - ETA_VOL_C*(PR-1)*u, u = max(0, 1/n* - 1)",
+  "ETA_VOL_A": 0.02595760004738823,
+  "ETA_VOL_B": 0.022328859702768232,
+  "ETA_VOL_C": 0.0,
+  "floor": 0.5,
+  "fit_wrmse": 0.07541008874115619,
+  "fit_wmape_pct": 5.8698655653073954,
+  "loco_wmape_pct": 5.946607426038525,
+  "st_wmape_pct": 2.882571823702855,
+  "legacy_loco_wmape_pct": 5.877562729778342,
+  "automatic_selection": "V6"
+ },
+ "eta_oi": {
+  "family": "I2xE0xL1",
+  "formula": "eta_oi = (ETA_OI_A - ETA_OI_B*PR - ETA_OI_C/PR) * s(n*) * (1 - ETA_LEAK_C*(PR-1)*u_L) * h(n*)",
+  "ETA_OI_A": 1.16594732456619,
+  "ETA_OI_B": 0.08317716828712755,
+  "ETA_OI_C": 0.7017429436563071,
+  "ETA_LEAK_C": 0.02365296972261345,
+  "ETA_LEAK_TWO_SIDED": false,
+  "ETA_FLOW_D": 0.0,
+  "ETA_FLOW_TWO_SIDED": false,
+  "ETA_OI_HAS_DRIVE": false,
+  "N_STAR_MAX": 2.0,
+  "fit_wrmse": 0.08790452435530968,
+  "fit_wmape_pct": 11.574070788044995,
+  "loco_wmape_pct": 11.718230902433367,
+  "st_wmape_pct": 6.8550826928181054,
+  "legacy_loco_wmape_pct": 12.210096142589814,
+  "automatic_selection": "I2xE0xL2",
+  "tie_break": "",
+  "chain_accepted": [
+   "I1xE0xX0",
+   "I2xE0xX0",
+   "I3xE0xX0",
+   "I2xE1xX0",
+   "I2xE3xX0",
+   "I3xE1xX0",
+   "I3xE3xX0",
+   "I1xE1xX0",
+   "I1xE3xX0",
+   "I2xE0xL2",
+   "I2xG0xX0"
+  ],
+  "rejected_by_R4_within_machine_identification": [
+   "I2xE0xL1",
+   "I2xF0xX0",
+   "I2xG0xL1"
+  ],
+  "R4_ratios": {
+   "I2xE1xX0": {
+    "R4_ratio": 1.231,
+    "R4_machines": 20,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I2xE2xX0": {
+    "R4_ratio": 1.911,
+    "R4_machines": 2,
+    "R4_sources": 1,
+    "R4_pass": false
+   },
+   "I2xE3xX0": {
+    "R4_ratio": 1.17,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I3xE1xX0": {
+    "R4_ratio": 1.1,
+    "R4_machines": 20,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I3xE2xX0": {
+    "R4_ratio": 1.932,
+    "R4_machines": 2,
+    "R4_sources": 1,
+    "R4_pass": false
+   },
+   "I3xE3xX0": {
+    "R4_ratio": 1.045,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I1xE1xX0": {
+    "R4_ratio": 0.828,
+    "R4_machines": 32,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I1xE2xX0": {
+    "R4_ratio": 1.88,
+    "R4_machines": 2,
+    "R4_sources": 1,
+    "R4_pass": false
+   },
+   "I1xE3xX0": {
+    "R4_ratio": 0.957,
+    "R4_machines": 16,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I2xE0xL1": {
+    "R4_ratio": 0.661,
+    "R4_machines": 33,
+    "R4_sources": 4,
+    "R4_pass": false
+   },
+   "I2xE0xL2": {
+    "R4_ratio": 0.698,
+    "R4_machines": 33,
+    "R4_sources": 4,
+    "R4_pass": true
+   },
+   "I2xE1xL1": {
+    "R4_ratio": NaN,
+    "R4_machines": 0,
+    "R4_sources": 0,
+    "R4_pass": false
+   },
+   "I2xE1xL2": {
+    "R4_ratio": NaN,
+    "R4_machines": 0,
+    "R4_sources": 0,
+    "R4_pass": false
+   },
+   "I2xE2xL1": {
+    "R4_ratio": 2.015,
+    "R4_machines": 2,
+    "R4_sources": 1,
+    "R4_pass": false
+   },
+   "I2xE2xL2": {
+    "R4_ratio": 2.425,
+    "R4_machines": 4,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I2xE1xX1": {
+    "R4_ratio": 0.662,
+    "R4_machines": 31,
+    "R4_sources": 4,
+    "R4_pass": false
+   },
+   "I2xE2xX1": {
+    "R4_ratio": 0.725,
+    "R4_machines": 32,
+    "R4_sources": 4,
+    "R4_pass": true
+   },
+   "I2xF0xX0": {
+    "R4_ratio": 0.374,
+    "R4_machines": 33,
+    "R4_sources": 4,
+    "R4_pass": false
+   },
+   "I2xF0xL1": {
+    "R4_ratio": NaN,
+    "R4_machines": 0,
+    "R4_sources": 0,
+    "R4_pass": false
+   },
+   "I2xF0xL2": {
+    "R4_ratio": NaN,
+    "R4_machines": 0,
+    "R4_sources": 0,
+    "R4_pass": false
+   },
+   "I2xF2xL1": {
+    "R4_ratio": 1.615,
+    "R4_machines": 33,
+    "R4_sources": 4,
+    "R4_pass": true
+   },
+   "I2xF3xL1": {
+    "R4_ratio": 2.061,
+    "R4_machines": 4,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I2xF2xL2": {
+    "R4_ratio": 1.736,
+    "R4_machines": 33,
+    "R4_sources": 4,
+    "R4_pass": true
+   },
+   "I2xF3xL2": {
+    "R4_ratio": 2.061,
+    "R4_machines": 4,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I2xF2xX0": {
+    "R4_ratio": 1.439,
+    "R4_machines": 21,
+    "R4_sources": 4,
+    "R4_pass": true
+   },
+   "I2xF3xX0": {
+    "R4_ratio": 2.061,
+    "R4_machines": 4,
+    "R4_sources": 2,
+    "R4_pass": true
+   },
+   "I2xG0xX0": {
+    "R4_ratio": 1.903,
+    "R4_machines": 20,
+    "R4_sources": 3,
+    "R4_pass": true
+   },
+   "I2xG0xL1": {
+    "R4_ratio": 0.525,
+    "R4_machines": 31,
+    "R4_sources": 3,
+    "R4_pass": false
+   },
+   "I2xG2xX0": {
+    "R4_ratio": NaN,
+    "R4_machines": 0,
+    "R4_sources": 0,
+    "R4_pass": false
+   },
+   "I2xG2xL1": {
+    "R4_ratio": 1.167,
+    "R4_machines": 19,
+    "R4_sources": 4,
+    "R4_pass": true
+   }
+  }
+ },
+ "split": {
+  "ETA_EM_REF": 0.9410769187066861,
+  "ETA_EM_N0": 0.0255632911218118,
+  "ETA_EM_N0_anchor": "drive",
+  "ETA_EM_N0_total_cuevas": 0.07536018066302513,
+  "ETA_EM_N0_drive_ossorio": 0.0255632911218118,
+  "ETA_EM_P0": 0.02695456524197121,
+  "basis": "Cuevas & Lebrun 2009, doi:10.1016/j.applthermaleng.2008.03.016, Tables 2-3, inverter-fed rows",
+  "selected_model": "M1",
+  "n_rows": 29,
+  "models": {
+   "M0": {
+    "label": "R s(n*)",
+    "theta": {
+     "R": 0.9354479411836273,
+     "n0": 0.06911218640204884
+    },
+    "rmse": 0.014005987703744982,
+    "loro_mape_pct": 1.3169208512527237
+   },
+   "M1": {
+    "label": "R s(n*) m(PR)",
+    "theta": {
+     "R": 0.9410769187066861,
+     "n0": 0.07536018066302513,
+     "p0": 0.02695456524197121
+    },
+    "rmse": 0.00792183207360474,
+    "loro_mape_pct": 0.9200877843991037
+   }
+  },
+  "ossorio_drive_only": {
+   "source": "Ossorio & Navarro-Peris 2023, doi:10.1016/j.applthermaleng.2023.120725, mmc2",
+   "drives": {
+    "A": {
+     "f0_hz": 2.7873196074327504,
+     "f_rated_hz": 70.0,
+     "n0_drive": 0.03981885153475358
+    },
+    "B": {
+     "f0_hz": 1.3141927489746899,
+     "f_rated_hz": 60.0,
+     "n0_drive": 0.021903212482911497
+    },
+    "C": {
+     "f0_hz": 1.2781645560905899,
+     "f_rated_hz": 50.0,
+     "n0_drive": 0.0255632911218118
+    }
+   },
+   "n0_drive_median": 0.0255632911218118,
+   "n0_drive_max": 0.03981885153475358,
+   "consistent": true,
+   "note": "total (motor + drive) n0 must be at least the drive-only n0; motor losses add to it"
+  },
+  "eta_em_formula": "eta_em = ETA_EM_REF * n*(1+ETA_EM_N0)/(n*+ETA_EM_N0) * m(PR; ETA_EM_P0)",
+  "eta_isen_formula": "eta_isen = max(ETA_ISEN_FLOOR, eta_oi / eta_em)",
+  "ETA_ISEN_FLOOR": 0.3
+ },
+ "separability": {
+  "n": 3679,
+  "interaction_coef_(PR-3)lnn": 0.04576311041039982,
+  "se": 0.004950187073809113,
+  "t": 9.24472342722709,
+  "note": "effect of a 1-unit PR change on d ln eta_oi / d ln n*"
+ },
+ "spread_eta_vol": {
+  "between_machine_sd": 0.07938138510259175,
+  "between_machine_p10": -0.051600419872185554,
+  "between_machine_p90": 0.06438550829790576,
+  "within_machine_sd_median": 0.019209352800300915,
+  "machines": 72
+ },
+ "spread_eta_oi": {
+  "between_machine_sd": 0.06784718283441725,
+  "between_machine_p10": -0.048941920605129766,
+  "between_machine_p90": 0.06528490046458196,
+  "within_machine_sd_median": 0.03812259633145944,
+  "machines": 76
+ },
+ "n_rows": 5911,
+ "machines": 76,
+ "speed_records": 131
+}

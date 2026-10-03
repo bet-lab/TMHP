@@ -153,15 +153,17 @@ def test_fan_flow_above_reference_scales_ua_and_power_without_clamp():
     capacity = rho_a * c_a * flow * (1 - math.exp(-ua / (rho_a * c_a * flow))) * 10
     kwargs = dict(Q_ref_target=capacity, T_a_in_C=20, T_ref_sat_K=283.15, A_cross=0.5, UA_rated=1000)
     limited = calc_HX_perf_for_target_heat(**kwargs, dV_fan_rated=1)
-    expanded = calc_HX_perf_for_target_heat(**kwargs, dV_fan_ref=1, dV_fan_min=0.05, dV_fan_max=1.2)
+    expanded = calc_HX_perf_for_target_heat(
+        **kwargs, dV_fan_ref=1, dV_fan_min=0.05, dV_fan_max=1.2, custom_fan_curve=True
+    )
     assert not limited["converged"] and limited["max_limit"]
     assert expanded["converged"] and expanded["dV_fan"] == pytest.approx(flow)
     assert expanded["fan_flow_ratio_to_ref"] == pytest.approx(1.2)
     assert expanded["UA"] == pytest.approx(ua)
     coefficients = dict(c1=0, c2=0, c3=0, c4=1, c5=0)
-    params = dict(fan_ref_flow_rate=1, fan_ref_power=100)
+    params = dict(fan_ref_flow_rate=1, fan_ref_power=100, fan_min_flow_rate=0.05, fan_max_flow_rate=1.2)
     assert calc_fan_power_from_dV_fan(flow, params, coefficients) == pytest.approx(100 * 1.2**3)
-    old = dict(fan_rated_flow_rate=1, fan_rated_power=100)
+    old = dict(fan_rated_flow_rate=1, fan_rated_power=100, fan_min_flow_rate=0.05, fan_max_flow_rate=1.2)
     assert calc_fan_power_from_dV_fan(flow, old, coefficients) == pytest.approx(100 * 1.2**3)
     assert math.isnan(calc_fan_power_from_dV_fan(math.nan, params, coefficients))
 
@@ -172,7 +174,9 @@ def test_fan_flow_above_reference_scales_ua_and_power_without_clamp():
 )
 def test_each_air_side_model_exposes_independent_reference_and_max(cls, unit, monkeypatch):
     prefix = f"dV_{unit}_fan_a" if unit else "dV_fan_a"
-    kwargs = {prefix + "_ref": 1, prefix + "_max": 1.2}
+    custom_coeffs = dict(c1=0, c2=0, c3=0, c4=1, c5=0)
+    coeff_name = f"vsd_coeffs_{unit}" if unit else "vsd_coeffs"
+    kwargs = {prefix + "_ref": 1, prefix + "_min": 0.05, prefix + "_max": 1.2, coeff_name: custom_coeffs}
     if cls is GroundSourceHeatPump:
         kwargs["R_b"] = 0.2
         kwargs["t_max_s"] = 3600
@@ -259,6 +263,10 @@ def test_expanded_ground_flow_can_close_low_load_with_explicit_indoor_approach_r
         variable_ground_hx_UA=True,
         m_dot_ref_rated=0.04151110907913401,
         PR_cycle_max=8,
+        # Freeze the historical 5% curve domain for this search-limit
+        # regression. Generic 15% feasibility has separate coverage.
+        vsd_coeffs_iu={"curve_type": "custom"},
+        dV_iu_fan_a_min=0.05 * 1.6,
         t_max_s=3600,
     )
     expanded = GroundSourceHeatPump(**common, indoor_approach_max_K=25)

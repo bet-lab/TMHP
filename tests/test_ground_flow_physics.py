@@ -32,9 +32,9 @@ def test_pipe_laminar_analytic_and_parallel_topology():
     assert parallel == pytest.approx(branch)  # no factor-of-four serial pressure drop
     assert calc_pump_power(parallel, 4 * mass / rho, 0.6) == pytest.approx(4 * calc_pump_power(branch, mass / rho, 0.6))
     assert calc_parallel_borefield_pressure_drop(mass, 1, 200, diameter, rho, mu) == pytest.approx(2 * branch)
-    assert calc_parallel_borefield_pressure_drop(mass, 1, 100, diameter, rho, mu, dp_common=500) == pytest.approx(
-        branch + 500
-    )
+    assert calc_parallel_borefield_pressure_drop(
+        mass, 1, 100, diameter, rho, mu, dp_common=500, volume_flow_ref=mass / rho
+    ) == pytest.approx(branch + 500)
     assert old_friction is darcy_friction_factor
 
 

@@ -33,6 +33,9 @@ def make_model() -> AirSourceHeatPumpBoiler:
         eta_cmp_isen=lambda pr: 0.90 - 0.02 * pr,
         eta_cmp_vol=lambda pr: 1 - 0.020 * (pr - 1),
         eta_cmp=lambda pr, rps: 0.80 - 3e-5 * (rps - 55) ** 2,
+        # Historical 5% correlation domain, frozen for this characterization.
+        vsd_coeffs={"curve_type": "custom"},
+        dV_fan_a_min=0.05 * 15000 * 0.00015,
     )
 
 

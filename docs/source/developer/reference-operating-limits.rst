@@ -29,9 +29,8 @@ GSHP and GSHPB accept independent field-total values in L/min:
 
 For the current paper, these are 24, 24, 9.6 and 36 L/min. A 36 L/min candidate
 has ratio 1.5 to the unchanged 24 L/min reference. The constant strategy always
-uses 24 L/min. Constant setpoints are independent of the variable strategy's
-search interval; reference and constant points are included as interpolation
-anchors even if outside that interval. Do not infer an additional hardware
+uses 24 L/min. Constant setpoints must lie within the declared control interval; the
+reference remains a normalization and interpolation anchor. Do not infer an additional hardware
 cap from the reference. Prescribed variable candidates must lie inside the
 explicit interval; only floating-point endpoint rounding is tolerated.
 
@@ -64,9 +63,11 @@ require an indoor approach above 20 K to close the HX while respecting the
 compressor pressure-ratio floor. The current 26 °C cooling study explicitly
 uses 1–25 K (minimum evaporating temperature 1 °C). These are numerical cycle
 search limits, not fan or reference limits; they must be declared alongside
-the control envelope. A regression demonstrates a feasible PLR 0.3 / 36 L/min
-point above 20 K rather than labelling the previous truncated search as a
-physical HX capacity failure.
+the control envelope. A custom-curve regression demonstrates a feasible PLR 0.3 / 36 L/min
+point above 20 K. With the new generic fan minimum of 15%, the current
+paper has no steady solution at PLR 0.3; its unchanged pressure-ratio floor
+and both HX duties cannot be satisfied together. This is recorded as an
+infeasible requested point, with no cycling model or constraint relaxation.
 
 Fan API and migration
 ---------------------
@@ -77,19 +78,52 @@ Existing ``*_rated`` inputs remain supported reference aliases; an explicit
 ``*_ref`` takes precedence. Cross-sectional area and reference fan power are
 computed at that fixed reference, independently of the solver limits.
 
-The common HX solver accepts ``dV_fan_ref/min/max``. For compatibility,
-omitted limits resolve to 0.05 times reference and reference, respectively.
-These are defaults, not an implicit definition of rated as maximum. Set max
-explicitly to exceed reference. UA scales with actual/reference airflow and
-the fan VSD polynomial evaluates ratios above one without an upper clamp.
-Coefficients and their validity require equipment calibration; expanded control
-limits do not extend a correlation's proven validity. Polynomial nonnegative
-power protection remains independent of any flow reference.
+The common HX solver accepts ``dV_fan_ref/min/max`` plus
+``custom_fan_curve``. The generic ASHRAE Appendix G Method 2 correlation is
+used only over 0.15--1.0 of reference airflow. Requested limits below/above
+that range are intersected with it; incompatible limits raise ``ValueError``.
+``calc_fan_operating_point`` exposes actual flow, power and
+``fan_flow_min_limit`` / ``fan_flow_max_limit``. A nondefault user polynomial
+or explicit ``curve_type="custom"`` marks a custom model whose validity and
+limits are the caller's responsibility; that model may allow max > ref.
+Reference and hardware maximum remain independent inputs.
+
+The unchanged empirical equation is
+
+.. math::
+
+   P^* = 0.0013 + 0.1470x + 0.9506x^2 - 0.0998x^3,\quad
+   x=\dot V_{actual}/\dot V_{ref}.
+
+Source: ANSI/ASHRAE/IES Standard 90.1-2016 Appendix G,
+`Table G3.1.3.15 Method 2 <https://ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90.1-2016/90_1_2016_be_bm_bn_bo_bp_br_bs_bu_bv_cf_cl_cm_cq_ct_cu_cv_cw_cy_20210324.pdf>`_.
+Method 1's rounded table gives approximately 0.03, 0.30 and 1.00 power at
+0.1, 0.5 and 1.0 airflow. Raw table parity is separate from operating bounds.
+`ASHRAE 2025 Fundamentals Chapter 19 <https://handbook.ashrae.org/Handbooks/F25/IP/F25_Ch19/F25_Ch19_ip.aspx>`_
+describes measured/regressed fan curves and cautions against extrapolation
+below a minimum ratio, with 0.15 as an example. This motivates the generic
+control assumption; it is not universal heat-pump hardware data.
+`90.1-2022 Addendum u <https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90_1_2022_u_20241231.pdf>`_
+adds supporting 15% turndown evidence for multizone VAV. The informative
+foreword discusses 16% power at 15% airflow; this is not a normative 16%
+requirement. Amended Section 6.5.3.2.1(b) deletes the old 30% power sentence
+without inserting a 16% sentence. Its minimum-airflow provision includes
+the design minimum outdoor-air rate and is an upper limit on the selectable
+minimum, not a universal command to clamp every fan to at least 15%.
+Single-zone VAV is outside the foreword's described change. No universal
+heat-pump electrical floor is inferred or added. Original Windows Chrome
+PDF/HTML highlights and capture metadata are archived in
+``references/fan_model/``. The generic 0.15--1.0 envelope remains a TMHP
+modeling choice. Direct equation values at x=0.10/0.15/0.50/1.00 are
+0.0254062/0.044401675/0.299975/0.9991, without renormalizing coefficients.
 
 ``calc_UA_from_dV_fan`` supports the new ``dV_fan_ref`` keyword and its existing
-rated positional argument. Fan-power dictionaries accept ``fan_ref_flow_rate``
-and ``fan_ref_power`` first, then their historical rated/design aliases.
-HX failures still propagate NaN airflow/power to the cycle optimizer.
+rated positional argument. UA scaling stays independent of fan power bounds
+and permits ratios above one for custom curves. Fan-power dictionaries accept
+``fan_ref_flow_rate`` / ``fan_ref_power`` plus historical rated/design aliases,
+and optional ``fan_min_flow_rate`` / ``fan_max_flow_rate``. HX solvers report
+bounded actual airflow and signed duty residuals. A clamp with unmatched heat
+remains infeasible and cannot enter a finite optimization objective.
 
 Audit and validation
 --------------------

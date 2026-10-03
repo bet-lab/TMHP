@@ -58,6 +58,7 @@ from .ground_loop import (
     resolve_ground_flow_rates,
 )
 from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness, resolve_fan_flow_limits
+from .hx_fan import is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -154,7 +155,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         pump_efficiency: float = 0.6,
         pipe_inner_diameter: float | None = None,
         pipe_roughness: float = 1e-6,
-        dp_common: float = 0.0,
+        dp_common: float | None = None,
+        dp_aux_ref: float = 0.0,
+        dp_aux_exponent: float = 2.0,
         ground_flow_min_ratio: float | None = None,
         ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
@@ -291,6 +294,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             self.dV_iu_fan_a_ref,
             dV_iu_fan_a_min,
             dV_iu_fan_a_max,
+            custom_curve=not is_generic_fan_curve(vsd_coeffs_iu),
         )
         self.dP_iu_fan_rated: float = dP_iu_fan_rated
         self.eta_iu_fan_rated: float = eta_iu_fan_rated
@@ -303,6 +307,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
+            "fan_min_flow_rate": self.dV_iu_fan_a_min,
+            "fan_max_flow_rate": self.dV_iu_fan_a_max,
             "fan_ref_flow_rate": self.dV_iu_fan_a_rated,
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
             "fan_ref_power": self.E_iu_fan_rated,
@@ -401,6 +407,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
             pipe_roughness=pipe_roughness,
             dp_common=dp_common,
+            dp_aux_ref=dp_aux_ref,
+            dp_aux_exponent=dp_aux_exponent,
             m_dot_ref_rated=self.m_dot_ref_rated,
             ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
             ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
@@ -653,6 +661,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 dV_fan_ref=self.dV_iu_fan_a_ref,
                 dV_fan_min=self.dV_iu_fan_a_min,
                 dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
             )
         elif mode == "heating":
@@ -665,6 +674,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 dV_fan_ref=self.dV_iu_fan_a_ref,
                 dV_fan_min=self.dV_iu_fan_a_min,
                 dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
             )
         else:
@@ -715,6 +725,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "hp_is_on": is_active,
                 "mode": mode,
                 "converged": bool(iu_hx.get("converged", True)),
+                "Q_iu_HX_available [W]": iu_hx.get("Q_air", 0.0),
+                "Q_iu_ref_required [W]": Q_ref_evap if mode == "cooling" else Q_ref_cond,
+                "iu_hx_capacity_margin [W]": iu_hx.get("capacity_margin_W", 0.0),
+                "iu_hx_min_flow_margin [W]": iu_hx.get("min_flow_capacity_margin_W", 0.0),
+                "iu_hx_max_flow_margin [W]": iu_hx.get("max_flow_capacity_margin_W", 0.0),
                 "converged_rps": converged_rps,
                 "capacity_clamped": capacity_clamped,
                 "iu_fan_flow_min_limit": iu_hx.get("min_limit", False),
@@ -879,13 +894,39 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     if row is not None and row.get("pr_floor_active", False):
                         objective(root)
             previous = (x, residual)
+        # A clamped fan can satisfy both HX duties only on the airflow
+        # boundary. Solve its signed capacity margin, avoiding the zero
+        # plateau of the already solved indoor duty.
+        for margin_key in ("iu_hx_min_flow_margin [W]", "iu_hx_max_flow_margin [W]"):
+            previous_fan = None
+            for x in grid:
+                x = float(x)
+                margin = evaluate_load_approach(x).get(margin_key, np.nan)
+                if not np.isfinite(margin):
+                    previous_fan = None
+                    continue
+                if previous_fan is not None and previous_fan[1] * margin < 0:
+                    with contextlib.suppress(ValueError, RuntimeError):
+                        root = float(
+                            brentq(
+                                lambda approach, key=margin_key: evaluate_load_approach(float(approach))[key],
+                                previous_fan[0],
+                                x,
+                                xtol=1e-10,
+                            )
+                        )
+                        objective(root)
+                previous_fan = (x, margin)
         feasible = [i for i, power in enumerate(powers) if power < 1e30]
         if not feasible:
             boundary = [r for r in cache.values() if r.get("converged", False)]
             if boundary:
                 return min(boundary, key=lambda r: r["E_tot [W]"])
             rows = list(cache.values())
-            return next((r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"), rows[0])
+            return next(
+                (r for r in rows if r["failure_reason"] == "load_hx_capacity_insufficient"),
+                next((r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"), rows[0]),
+            )
         best = min(feasible, key=lambda i: powers[i])
         optimum = minimize_scalar(
             objective,

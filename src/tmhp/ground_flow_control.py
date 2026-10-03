@@ -46,6 +46,10 @@ def failed_ground_point(reason: str, diagnostic: dict | None = None) -> dict:
         "E_cmp_plus_pmp [W]",
         "dV_bhe_f [m3/s]",
         "ground_flow [m3/s]",
+        "ground_pressure_drop [Pa]",
+        "ground_pressure_drop_bhe [Pa]",
+        "ground_pressure_drop_aux [Pa]",
+        "ground_pressure_drop_total [Pa]",
         "m_dot_borehole [kg/s]",
         "m_dot_ref [kg/s]",
         "cmp_rpm [rpm]",
@@ -168,7 +172,11 @@ def solve_ground_approach(
         )
         return row
     valid = [r for r in cache.values() if r is not None]
-    diagnostic = max(valid, key=lambda r: r["hx_capacity_ratio"], default={})
+    diagnostic = (
+        min((row for _, row in candidates), key=lambda r: abs(r["Q_ref_required [W]"] - r["Q_HX_available [W]"]))
+        if candidates
+        else max(valid, key=lambda r: r["hx_capacity_ratio"], default={})
+    )
     reason = failures[0] if failures else ("ground_hx_capacity_insufficient" if valid else "cycle_invalid")
     return failed_ground_point(reason, diagnostic)
 
@@ -192,6 +200,10 @@ def select_ground_flow(
         prescribed_ratio = min(max(volume, lo), hi) / ref
     if prescribed_ratio is not None or settings["control"] == "constant":
         ratio = prescribed_ratio if prescribed_ratio is not None else settings.get("volume_flow_constant", ref) / ref
+        actual = ratio * ref
+        tolerance = 8 * np.finfo(float).eps * max(abs(lo), abs(hi))
+        if not np.isfinite(actual) or not lo - tolerance <= actual <= hi + tolerance:
+            raise ValueError("Constant ground flow is outside the configured bounds")
         row = evaluate(ratio)
         row.update({"flow_optimizer_nfev": 0, "flow_optimizer_success": False, "flow_bound_active": False})
         return row

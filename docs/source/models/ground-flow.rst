@@ -111,9 +111,13 @@ Module boundaries and assumptions
   no extrapolation. A fixed user ``R_b`` override cannot be combined with it.
 * ``pump`` uses Darcy–Weisbach with laminar/Haaland friction. Identical U-tubes
   are in parallel: branch flow is total flow / borehole count; pipe length is
-  2H. Branch pressure losses are not added in series. ``dp_common=0`` excludes
-  header/manifold/minor losses. A nonzero value is a prescribed pressure loss
-  at the evaluated point, not a resolved pipe network. Constant pump efficiency
+  2H. Branch pressure losses are not added in series. Auxiliary HX, header,
+  valve, strainer and common-pipe loss is specified by ``dp_aux_ref`` [Pa] at
+  ``ground_flow_ref_lpm`` and scales with flow ratio to ``dp_aux_exponent``
+  (default 2.0). Zero reference loss preserves BHE-only behavior.
+  ``dp_common`` is a deprecated reference-loss alias, with a migration warning;
+  it is never an absolute operating-point constant. Low-level pump calls with
+  nonzero auxiliary loss require ``volume_flow_ref`` [m³/s]. Constant pump efficiency
   is assumed; pump electrical input heats the water as in the legacy model.
   ``pipe_inner_diameter`` defaults to 2*r_in and must match it if supplied.
 * ``heat_exchanger`` uses a constant-temperature refrigerant-side approximation:
@@ -171,3 +175,41 @@ The new API separates ``ground_flow_ref_lpm`` (fixed normalization),
 the water denominator, reference UA or reference/setpoint Rb* anchors. UA and
 fan power may exceed reference values. See :doc:`../developer/reference-operating-limits`
 for full migration, fan limits and compatibility defaults.
+
+
+Auxiliary pressure drop and operating limits
+--------------------------------------------
+
+.. math::
+
+   \Delta p_{total}(\dot V) = \Delta p_{BHE}(\dot V)
+     + \Delta p_{aux,ref}(\dot V/\dot V_{ref})^{n_{\Delta p}}
+
+   E_{pmp} = \Delta p_{total}\dot V / \eta_{pmp}
+
+``dp_aux_ref=0.0`` and ``dp_aux_exponent=2.0`` are shared GSHP/GSHPB defaults.
+A nonzero auxiliary loss activates hydraulic pump evaluation. Reference flow
+is independent of the maximum; ratios above one are supported. BHE pressure
+uses branch flow and auxiliary pressure uses field-total flow. Diagnostics
+``ground_pressure_drop_bhe [Pa]``, ``ground_pressure_drop_aux [Pa]`` and
+``ground_pressure_drop_total [Pa]`` expose each contribution; the existing
+``ground_pressure_drop [Pa]`` remains an alias for the total.
+
+The constant-flow setpoint must lie within the stated minimum/maximum,
+including direct controller calls. An invalid setpoint raises ``ValueError``;
+it is not silently clamped. Valid constant control uses the same setpoint at
+every active load, and zero flow/power is reserved for off or failed points.
+
+Generic ASHRAE fan control enforces 15--100% of the fixed reference
+flow. Hardware limits may narrow this interval; explicit custom fan curves
+permit independently declared ranges. The unchanged empirical power curve
+has no added electrical floor. Below-minimum duty clamps the airflow but
+remains thermally infeasible until the indoor approach closes the heat duty.
+A failed point is excluded from plots and savings, rather than interpreted
+as zero-power operation. See :doc:`../developer/reference-operating-limits`.
+
+ASHRAE 2024 Systems and Equipment Chapter 44, Hydronic System Curves, supports
+approximately quadratic system resistance. ASHRAE 2023 Applications SI
+Chapter 35, Table 8, provides closed-loop GSHP pumping/head guidelines. These
+are modeling guidance, not measured loss data for any specific installation.
+Static borehole elevation head is not added to this closed-loop model.

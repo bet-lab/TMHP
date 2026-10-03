@@ -70,7 +70,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
-from .hx_fan import calc_fan_power_from_dV_fan
+from .hx_fan import calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
@@ -266,6 +266,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             self.dV_fan_a_ref,
             dV_fan_a_min,
             dV_fan_a_max,
+            custom_curve=not is_generic_fan_curve(vsd_coeffs),
         )
         self.dP_fan_rated: float = dP_fan_rated
         self.eta_fan_rated: float = eta_fan_rated
@@ -282,6 +283,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.E_fan_rated: float = self.dV_fan_a_rated * self.dP_fan_rated / self.eta_fan_rated
         self.vsd_coeffs: dict = vsd_coeffs
         self.fan_params: dict = {
+            "fan_min_flow_rate": self.dV_fan_a_min,
+            "fan_max_flow_rate": self.dV_fan_a_max,
             "fan_ref_flow_rate": self.dV_fan_a_rated,
             "fan_rated_flow_rate": self.dV_fan_a_rated,
             "fan_ref_power": self.E_fan_rated,
@@ -751,6 +754,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_fan_ref=self.dV_fan_a_ref,
             dV_fan_min=self.dV_fan_a_min,
             dV_fan_max=self.dV_fan_a_max,
+            custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs),
             is_active=True,
             exponent=self.n_ou,
         )

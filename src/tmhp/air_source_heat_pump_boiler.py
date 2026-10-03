@@ -46,11 +46,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize_scalar
+from scipy.optimize import brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import safe_float_attr
+from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
 from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
@@ -403,12 +403,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # Flow-dependent ε-NTU: circulating water passing a constant
             # condensing-temperature surface (same physics as the outdoor-side HX,
             # cf. enex_functions.calc_HX_perf_for_target_heat)
-            C_w = m_dot_w * c_w
-            eps_c = 1.0 - math.exp(-self.UA_tank_hx / C_w)
-            dT_ref_tank = Q_ref_tank / (C_w * eps_c) if Q_ref_tank > 0 else 0.0
+            C_w_tank = m_dot_w * c_w
+            eps_tank_hx = 1.0 - math.exp(-self.UA_tank_hx / C_w_tank)
+            K_tank_hx = C_w_tank * eps_tank_hx
         else:
-            # Backward-compatible fallback (standalone runs without loop flow)
-            dT_ref_tank = Q_ref_tank / self.UA_tank_hx if Q_ref_tank > 0 else 0.0
+            # Backward-compatible fallback (standalone runs without loop flow).
+            # There is no water-side capacity rate, so no effectiveness to
+            # define either -- the conductance carries the whole description.
+            C_w_tank = float("nan")
+            eps_tank_hx = float("nan")
+            K_tank_hx = self.UA_tank_hx
+
+        # Heat transferred per kelvin of tank-side approach. The approach that
+        # goes into the cycle is the one implied by the *requested* duty; when
+        # the compressor turns out to be outside its modulating band, the
+        # closure below re-solves it against the heat actually delivered.
+        dT_ref_tank = Q_ref_tank / K_tank_hx if Q_ref_tank > 0 else 0.0
 
         T_tank_w_K: float = cu.C2K(T_tank_w)
         T0_K: float = cu.C2K(T0)
@@ -503,50 +513,25 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # --- Active state calculations ---
         self._last_cycle_failure_reason = None
-        # Low-lift feasibility is enforced downstream by the compressor
-        # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
-        # redundant and non-transferable across refrigerants/operating levels.
-        actual_dT_subcool: float = min(self.dT_subcool, max(0.0, dT_ref_tank - self.dT_hx_min))
-        actual_dT_superheat: float = min(self.dT_superheat, max(0.0, dT_ref_ou - self.dT_hx_min))
 
-        # Same name (`cs`) is annotated up in the inactive branch (~L339);
-        # re-annotating here triggers mypy [no-redef] even though the
-        # inactive branch returns unconditionally. Use plain assignment.
-        cs = calc_ref_state(
-            T_evap_K=T_ou_sat_K,
-            T_cond_K=T_tank_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
-            mode="heating",
-            dT_superheat=actual_dT_superheat,
-            dT_subcool=actual_dT_subcool,
-            is_active=True,
-            rps=None,
-        )
+        def _cycle(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
+            """Refrigerant cycle for one tank-side approach temperature.
 
-        ratio_P_cmp = cs["P_ref_cmp_out [Pa]"] / cs["P_ref_cmp_in [Pa]"] if cs["P_ref_cmp_in [Pa]"] > 0 else 1.0
+            ``rps_fixed`` holds the compressor at a given speed instead of
+            solving for the requested duty; the speed-floor closure below runs
+            the machine at its bound and lets the approach move instead.
+            Returns ``None`` when the cycle is infeasible.
+            """
+            # Low-lift feasibility is enforced downstream by the compressor
+            # pressure-ratio floor (PR_cycle_min); a separate fixed minimum lift is
+            # redundant and non-transferable across refrigerants/operating levels.
+            actual_dT_subcool = min(self.dT_subcool, max(0.0, dT_tank - self.dT_hx_min))
+            actual_dT_superheat = min(self.dT_superheat, max(0.0, dT_ref_ou - self.dT_hx_min))
+            T_cond_K = T_tank_w_K + dT_tank
 
-        # Compressor pressure-ratio envelope guard (see compressor_envelope.py).
-        # Ceiling -> reject; floor -> clamp the cycle onto PR_cycle_min by holding
-        # the evaporator (outdoor) pressure and projecting the condensing
-        # (tank-side) pressure, then refresh the state. Recorded for the
-        # analyze_steady hint; no print here (runs inside the optimiser loop).
-        self._last_pr_event = None
-        pr_event = check_pr_envelope(ratio_P_cmp, self.PR_cycle_min, self.PR_cycle_max)
-        pr_clamped = pr_event == "pr_below_min"
-        if pr_event == "pr_above_max":
-            self._last_pr_event = ("pr_above_max", ratio_P_cmp, self.PR_cycle_max)
-            return None
-        if pr_event == "pr_below_min":
-            self._last_pr_event = ("pr_below_min", ratio_P_cmp, self.PR_cycle_min)
-            import CoolProp.CoolProp as CP
-
-            P_evap_clamp = cs["P_ref_cmp_in [Pa]"]
-            P_cond_clamp = self.PR_cycle_min * P_evap_clamp
-            T_tank_sat_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
-            cs = calc_ref_state(
+            cs_i = calc_ref_state(
                 T_evap_K=T_ou_sat_K,
-                T_cond_K=T_tank_sat_K,
+                T_cond_K=T_cond_K,
                 refrigerant=self.ref,
                 eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
                 mode="heating",
@@ -555,62 +540,206 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 is_active=True,
                 rps=None,
             )
-            ratio_P_cmp = (
-                cs["P_ref_cmp_out [Pa]"] / cs["P_ref_cmp_in [Pa]"] if cs["P_ref_cmp_in [Pa]"] > 0 else self.PR_cycle_min
+
+            ratio = cs_i["P_ref_cmp_out [Pa]"] / cs_i["P_ref_cmp_in [Pa]"] if cs_i["P_ref_cmp_in [Pa]"] > 0 else 1.0
+
+            # Compressor pressure-ratio envelope guard (see compressor_envelope.py).
+            # Ceiling -> reject; floor -> clamp the cycle onto PR_cycle_min by holding
+            # the evaporator (outdoor) pressure and projecting the condensing
+            # (tank-side) pressure, then refresh the state. Recorded for the
+            # analyze_steady hint; no print here (runs inside the optimiser loop).
+            self._last_pr_event = None
+            pr_event = check_pr_envelope(ratio, self.PR_cycle_min, self.PR_cycle_max)
+            pr_clamped_i = pr_event == "pr_below_min"
+            if pr_event == "pr_above_max":
+                self._last_pr_event = ("pr_above_max", ratio, self.PR_cycle_max)
+                return None
+            if pr_event == "pr_below_min":
+                self._last_pr_event = ("pr_below_min", ratio, self.PR_cycle_min)
+                import CoolProp.CoolProp as CP
+
+                P_evap_clamp = cs_i["P_ref_cmp_in [Pa]"]
+                P_cond_clamp = self.PR_cycle_min * P_evap_clamp
+                T_cond_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
+                cs_i = calc_ref_state(
+                    T_evap_K=T_ou_sat_K,
+                    T_cond_K=T_cond_K,
+                    refrigerant=self.ref,
+                    eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
+                    mode="heating",
+                    dT_superheat=actual_dT_superheat,
+                    dT_subcool=actual_dT_subcool,
+                    is_active=True,
+                    rps=None,
+                )
+                ratio = (
+                    cs_i["P_ref_cmp_out [Pa]"] / cs_i["P_ref_cmp_in [Pa]"]
+                    if cs_i["P_ref_cmp_in [Pa]"] > 0
+                    else self.PR_cycle_min
+                )
+
+            if T_cond_K <= T_tank_w_K:
+                # Condensing temperature at/below tank/loop inlet temperature:
+                # heat transfer to the circulating water is thermodynamically infeasible.
+                self._last_cycle_failure_reason = "t_cond_below_t_in"
+                return None
+
+            P_cond = cs_i["P_ref_cmp_out [Pa]"]
+            s_cmp_in = cs_i["s_ref_cmp_in [J/(kg·K)]"]
+            h_cmp_in = cs_i["h_ref_cmp_in [J/kg]"]
+            h_exp_in = cs_i["h_ref_exp_in [J/kg]"]
+
+            # Compute isentropic enthalpy once before loop
+            try:
+                import CoolProp.CoolProp as CP
+
+                h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+            except ValueError:
+                h_ref_cmp_out_isen = h_cmp_in
+
+            def _residual_rps(rps):
+                eta_vol_r = _eval_eff(self.eta_cmp_vol, ratio, rps)
+                eta_isen_r = _eval_eff(self.eta_cmp_isen, ratio, rps)
+
+                h_cmp_out = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / eta_isen_r
+                dh_cond_local = h_cmp_out - h_exp_in
+
+                m_dot = self.V_cmp_ref * cs_i["rho_ref_cmp_in [kg/m3]"] * eta_vol_r * rps
+                return (m_dot * dh_cond_local) - Q_ref_tank
+
+            if rps_fixed is None:
+                rps_i, converged_i, clamped_i = solve_compressor_speed(_residual_rps, self.rps_min, self.rps_max)
+            else:
+                rps_i, converged_i, clamped_i = rps_fixed, True, None
+
+            eta_vol_i = _eval_eff(self.eta_cmp_vol, ratio, rps_i)
+            eta_isen_i = _eval_eff(self.eta_cmp_isen, ratio, rps_i)
+            eta_em_i = _eval_eff(self.eta_cmp, ratio, rps_i)
+
+            # Post-evaluate state with final isentropic efficiency
+            cs_i = calc_ref_state(
+                T_evap_K=T_ou_sat_K,
+                T_cond_K=T_cond_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=eta_isen_i,
+                mode="heating",
+                dT_superheat=actual_dT_superheat,
+                dT_subcool=actual_dT_subcool,
+                is_active=True,
+                rps=rps_i,
             )
 
-        if T_tank_sat_K <= T_tank_w_K:
-            # Condensing temperature at/below tank/loop inlet temperature:
-            # heat transfer to the circulating water is thermodynamically infeasible.
-            self._last_cycle_failure_reason = "t_cond_below_t_in"
+            m_dot_i = self.V_cmp_ref * cs_i["rho_ref_cmp_in [kg/m3]"] * eta_vol_i * rps_i
+            return {
+                "cs": cs_i,
+                "rps": rps_i,
+                "converged_rps": converged_i,
+                "capacity_clamped": clamped_i,
+                "pr_clamped": pr_clamped_i,
+                "pr": ratio,
+                "eta_vol": eta_vol_i,
+                "eta_isen": eta_isen_i,
+                "eta_em": eta_em_i,
+                "m_dot_ref": m_dot_i,
+                # The approach the cycle actually runs at: equal to the input
+                # unless the pressure-ratio floor moved the condensing state.
+                "dT_tank": T_cond_K - T_tank_w_K,
+                "Q_tank": m_dot_i * (cs_i["h_ref_cmp_out [J/kg]"] - cs_i["h_ref_exp_in [J/kg]"]),
+                "Q_ou": m_dot_i * (cs_i["h_ref_cmp_in [J/kg]"] - cs_i["h_ref_exp_out [J/kg]"]),
+                "E_cmp": m_dot_i * (cs_i["h_ref_cmp_out [J/kg]"] - cs_i["h_ref_cmp_in [J/kg]"]) / eta_em_i,
+            }
+
+        def _close_tank_hx(state0: dict) -> dict | None:
+            """Re-solve the approach against the heat the machine delivers.
+
+            Outside the modulating band the compressor no longer meets the
+            request, so an approach derived from the request describes a
+            condenser transferring a different duty than the cycle produces.
+            The speed is held at the bound it clamped onto and the approach
+            becomes the unknown of
+
+                Q_delivered(dT) = K_tank_hx * dT
+
+            which is the same closure the outdoor coil already runs on. No
+            correction factor enters; the root is the operating point at which
+            the two descriptions of the condenser agree.
+            """
+            rps_bound = state0["rps"]
+
+            def _residual(dT: float) -> float:
+                st = _cycle(dT, rps_fixed=rps_bound)
+                if st is None:
+                    return float("nan")
+                return float(st["Q_tank"] - K_tank_hx * st["dT_tank"])
+
+            lo = hi = dT_ref_tank
+            r0 = state0["Q_tank"] - K_tank_hx * state0["dT_tank"]
+            if r0 > 0.0:
+                # Over-delivery (speed floor): the approach has to widen.
+                for _ in range(12):
+                    hi = hi * 1.5 + 0.5
+                    r_hi = _residual(hi)
+                    if not math.isfinite(r_hi):
+                        return None
+                    if r_hi <= 0.0:
+                        break
+                else:
+                    return None
+            elif r0 < 0.0:
+                # Shortfall (speed ceiling): the approach has to narrow.
+                for _ in range(12):
+                    lo = lo * 0.6
+                    if lo < 1.0e-3:
+                        return None
+                    r_lo = _residual(lo)
+                    if not math.isfinite(r_lo):
+                        return None
+                    if r_lo >= 0.0:
+                        break
+                else:
+                    return None
+            else:
+                return state0
+
+            try:
+                dT_closed = brentq(_residual, lo, hi, xtol=1.0e-6, rtol=1.0e-12, maxiter=100)
+            except (ValueError, RuntimeError):
+                return None
+            closed = _cycle(dT_closed, rps_fixed=rps_bound)
+            if closed is None:
+                return None
+            closed["capacity_clamped"] = state0["capacity_clamped"]
+            closed["converged_rps"] = state0["converged_rps"]
+            return closed
+
+        state = _cycle(dT_ref_tank)
+        if state is None:
             return None
 
-        P_cond = cs["P_ref_cmp_out [Pa]"]
-        s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
-        h_cmp_in = cs["h_ref_cmp_in [J/kg]"]
-        h_exp_in = cs["h_ref_exp_in [J/kg]"]
+        if state["capacity_clamped"] is not None:
+            saved_failure = self._last_cycle_failure_reason
+            closed_state = _close_tank_hx(state)
+            if closed_state is None:
+                # The closure could not be bracketed. Keep the request-based
+                # state; the non-zero `tank_hx_residual [W]` reported below is
+                # what tells a caller the condenser balance is not closed.
+                self._last_cycle_failure_reason = saved_failure
+            else:
+                state = closed_state
 
-        # Compute isentropic enthalpy once before loop
-        try:
-            import CoolProp.CoolProp as CP
-
-            h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
-        except ValueError:
-            h_ref_cmp_out_isen = h_cmp_in
-
-        def _residual_rps(rps):
-            val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, rps)
-            val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, rps)
-
-            h_cmp_out = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / val_eta_isen
-            dh_cond_local = h_cmp_out - h_exp_in
-
-            m_dot = self.V_cmp_ref * cs["rho_ref_cmp_in [kg/m3]"] * val_eta_vol * rps
-            return (m_dot * dh_cond_local) - Q_ref_tank
-
-        cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(_residual_rps, self.rps_min, self.rps_max)
-
-        val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, cmp_rps)
-        val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, cmp_rps)
-        val_eta_electro_mech = _eval_eff(self.eta_cmp, ratio_P_cmp, cmp_rps)
-
-        # Post-evaluate state with final isentropic efficiency
-        cs = calc_ref_state(
-            T_evap_K=T_ou_sat_K,
-            T_cond_K=T_tank_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=val_eta_isen,
-            mode="heating",
-            dT_superheat=actual_dT_superheat,
-            dT_subcool=actual_dT_subcool,
-            is_active=True,
-            rps=cmp_rps,
-        )
-
-        m_dot_ref = self.V_cmp_ref * cs["rho_ref_cmp_in [kg/m3]"] * val_eta_vol * cmp_rps
-        Q_ref_tank_calc = m_dot_ref * (cs["h_ref_cmp_out [J/kg]"] - cs["h_ref_exp_in [J/kg]"])
-        Q_ref_ou = m_dot_ref * (cs["h_ref_cmp_in [J/kg]"] - cs["h_ref_exp_out [J/kg]"])
-        E_cmp = m_dot_ref * (cs["h_ref_cmp_out [J/kg]"] - cs["h_ref_cmp_in [J/kg]"]) / val_eta_electro_mech
+        cs = state["cs"]
+        cmp_rps = state["rps"]
+        converged_rps = state["converged_rps"]
+        capacity_clamped = state["capacity_clamped"]
+        pr_clamped = state["pr_clamped"]
+        m_dot_ref = state["m_dot_ref"]
+        dT_ref_tank = state["dT_tank"]
+        Q_ref_tank_calc = state["Q_tank"]
+        Q_ref_ou = state["Q_ou"]
+        E_cmp = state["E_cmp"]
+        # Residual of the tank-side closure: zero by construction wherever the
+        # compressor meets the request, and driven to zero at a speed bound.
+        tank_hx_residual = Q_ref_tank_calc - K_tank_hx * dT_ref_tank
 
         HX_perf_ou: dict = calc_HX_perf_for_target_heat(
             Q_ref_target=Q_ref_ou,
@@ -689,6 +818,19 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "capacity_clamped": capacity_clamped,
                 "pr_clamped": pr_clamped,
                 "Q_ref_tank_request [W]": Q_ref_tank,
+                # Heat-exchanger closure diagnostics. `dT_ref_tank` is the
+                # approach the cycle ran at, `tank_hx_residual` how far the
+                # condenser is from carrying the delivered duty.
+                "dT_ref_tank [K]": dT_ref_tank,
+                "UA_tank_hx [W/K]": self.UA_tank_hx,
+                "C_w_tank [W/K]": C_w_tank,
+                "epsilon_tank_hx [-]": eps_tank_hx,
+                "tank_hx_residual [W]": tank_hx_residual,
+                "UA_ou [W/K]": HX_perf_ou.get("UA", np.nan),
+                "NTU_ou [-]": (HX_perf_ou.get("UA", np.nan) / (c_a * rho_a * dV_ou_a) if dV_ou_a > 0 else np.nan),
+                "epsilon_ou [-]": HX_perf_ou.get("epsilon", np.nan),
+                "PLR_request [-]": (Q_ref_tank / self.hp_capacity if self.hp_capacity > 0 else np.nan),
+                "PLR_delivered [-]": (Q_ref_tank_calc / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 "fan_flow_min_limit": HX_perf_ou.get("min_limit", False),
                 "fan_flow_max_limit": HX_perf_ou.get("max_limit", False),
                 # Temperatures [°C]
@@ -767,13 +909,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 m_dot_w=m_dot_w,
             )
             if perf is None or not perf.get("converged", False):
-                return 1e6
+                return PENALTY
 
-            E_tot: float = float(perf.get("E_tot [W]", 1e6))
-            if E_tot <= 0 or np.isnan(E_tot):
-                return 1e6
-
-            return E_tot
+            # Specific energy over candidates that meet the request. Below the
+            # compressor speed floor the candidates deliver different heat, and
+            # minimising raw E_tot would pick the one that starves the outdoor
+            # coil (see `_opt_utils`). Surplus is credited only while the tank
+            # has thermal headroom to store it.
+            E_tot: float = float(perf.get("E_tot [W]", PENALTY))
+            delivered = float(perf.get("Q_ref_tank [W]", 0.0))
+            storable = math.inf if T_tank_w < self.T_tank_w_upper_bound - 0.5 else 0.0
+            return specific_energy_objective(E_tot, delivered, Q_ref_tank, storable)
 
         return minimize_scalar(
             _objective,
@@ -1158,10 +1304,25 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
 
-        # Diagnostic of the steady solve, not a time-series quantity: keep it on
-        # the analyze_steady dict and out of the dynamic frame (an object column
-        # of None/str breaks numeric frame comparisons downstream).
-        r.pop("capacity_clamped", None)
+        # Diagnostics of the steady solve, not time-series quantities: keep them
+        # on the analyze_steady dict and out of the dynamic frame (an object
+        # column of None/str breaks numeric frame comparisons downstream, and
+        # the heat-exchanger closure terms describe one operating point rather
+        # than the tank trajectory).
+        for key in (
+            "capacity_clamped",
+            "dT_ref_tank [K]",
+            "UA_tank_hx [W/K]",
+            "C_w_tank [W/K]",
+            "epsilon_tank_hx [-]",
+            "tank_hx_residual [W]",
+            "UA_ou [W/K]",
+            "NTU_ou [-]",
+            "epsilon_ou [-]",
+            "PLR_request [-]",
+            "PLR_delivered [-]",
+        ):
+            r.pop(key, None)
 
         return r
 

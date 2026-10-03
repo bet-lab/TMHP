@@ -1,0 +1,12 @@
+{
+ "version": "v2026-09-24",
+ "created": "2026-09-24T02:41:13",
+ "tmhp": "0.1.0",
+ "coolprop": "7.2.0",
+ "python": "3.12.3",
+ "git_head": "02e035f42fbbd34d9412965c9a62e00375be2bb8",
+ "git_branch": "feat/compressor-efficiency-v3",
+ "git_dirty": true,
+ "estimator": "fe",
+ "selection_rule": "sequential nesting; +1 coefficient must buy >= 0.1 pp in the metric its term targets (speed terms: leave-one-compressor-out speed-transfer MAPE, lift terms: LOCO MAPE) and cost <= 0.1 pp in the other; no stratum with >= 3 machines worse by > 2 pp or > 25 %; constraints 0 < eta <= 1.02 and monotone delivered duty on PR 1.5-8, n* 0.15-2.5; a speed or lift x speed term must be seen within the machines that identify it (median within-machine/added ratio >= 2/3, >= 3 machines from >= 2 sources); ties within 0.1 pp go to the form with a physical precedent; the drive factor is anchored on the discharge-temperature split (Cuevas & Lebrun 2009) and bounded below by the drive-only measurements of Ossorio & Navarro-Peris 2023"
+}

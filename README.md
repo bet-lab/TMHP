@@ -179,7 +179,7 @@ Swap the refrigerant by changing one argument — no recalibration, no manufactu
 from tmhp import AirSourceHeatPumpBoiler
 
 ashpb_r290 = AirSourceHeatPumpBoiler(ref="R290")    # propane
-ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744")    # CO₂
+ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)  # CO₂: no subcritical rating point
 ashpb_r410 = AirSourceHeatPumpBoiler(ref="R410A")
 ```
 

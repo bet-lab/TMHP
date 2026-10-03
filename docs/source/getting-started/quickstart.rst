@@ -50,14 +50,16 @@ Swapping the refrigerant
 ========================
 
 The refrigerant is just a constructor argument; no recalibration is
-required. Any fluid CoolProp recognises works:
+required. Any fluid CoolProp recognises works, and the compressor's rated
+speed is re-solved for it at the model's rating condition
+(:doc:`/models/reference-state`):
 
 .. code-block:: python
 
    from tmhp import AirSourceHeatPumpBoiler
 
    AirSourceHeatPumpBoiler(ref="R290")     # propane
-   AirSourceHeatPumpBoiler(ref="R744")     # CO₂ (transcritical)
+   AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)  # CO₂: no subcritical rating point
    AirSourceHeatPumpBoiler(ref="R410A")
    AirSourceHeatPumpBoiler(ref="R134a")
 

@@ -24,6 +24,9 @@ def _model(cls, **overrides):
         m_dot_ref_rated=0.04,
         hp_capacity=8000,
         t_max_s=86400,
+        # A fixed machine (12 cm3/rev cannot rate 8 kW): pin the former
+        # default rated speeds so the recorded regressions keep their inputs.
+        rps_rated=60 if cls is GroundSourceHeatPump else 40,
     )
     kw.update(
         dict(UA_cond=2000, UA_evap=2000, eta_v=1, eta_em=1, PR_cycle_max=8)

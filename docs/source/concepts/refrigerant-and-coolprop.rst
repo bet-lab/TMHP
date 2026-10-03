@@ -35,8 +35,16 @@ out of the box:
    AirSourceHeatPumpBoiler(ref="R290")       # propane
    AirSourceHeatPumpBoiler(ref="R410A")      # mixture
    AirSourceHeatPumpBoiler(ref="R134a")
-   AirSourceHeatPumpBoiler(ref="R744")       # CO₂ (see below)
-   AirSourceHeatPumpBoiler(ref="R600a")      # isobutane
+   AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)    # CO₂ (see below)
+   AirSourceHeatPumpBoiler(ref="R600a", V_cmp_ref=1.0e-4)  # isobutane
+
+The compressor's rated speed is solved for each fluid at the model's rating
+condition (:doc:`/models/reference-state`), so swapping the fluid keeps the
+rated capacity. The capacity-scaled default displacement comes from an R32
+catalogue unit; a low-pressure fluid such as R600a needs a larger
+``V_cmp_ref`` to reach its rated capacity below ``rps_max``, and the
+constructor says so (``reference_capacity_inconsistent``) instead of
+clamping the speed.
 
 CoolProp returns REFPROP-grade equation-of-state values, so the same
 first-principles cycle calculation can be rerun with a different
@@ -61,9 +69,12 @@ Supercritical / transcritical operation (R744)
 R744 (CO₂) has a critical temperature near 31 °C. For DHW heating
 (condenser water at 50–65 °C) the high side runs *above* the
 critical point — a transcritical cycle. The current model is
-written against a subcritical-condenser assumption, so R744 will
-still solve but the results are best interpreted as a
-sanity-check, not a fully transcritical model.
+written against a subcritical-condenser assumption, so R744 has no
+subcritical rating point to solve the rated speed from: pass
+``rps_rated`` explicitly (the constructor warns that
+``m_dot_ref_rated`` could not be derived). It will then still solve,
+but the results are best interpreted as a sanity-check, not a fully
+transcritical model.
 
 If you need a faithful transcritical model, a future cycle path
 that treats the gas-cooler explicitly is the right place to add

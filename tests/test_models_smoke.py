@@ -42,10 +42,13 @@ def test_ashpb_default_compressor_efficiencies():
 
     from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 
-    assert ashpb.rps_rated == 40
-    assert ashpb.eta_cmp_vol(4.0, 55.0) == pytest.approx(make_eta_vol(40)(4.0, 55.0))
-    assert ashpb.eta_cmp_isen(4.0, 55.0) == pytest.approx(make_eta_isen(40)(4.0, 55.0))
-    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(40)(4.0, 55.0))
+    # The rated speed is solved at the rating condition, not a fixed default.
+    rated = ashpb.rps_rated
+    assert rated == ashpb.reference_state.rps_rated
+    assert ashpb.rps_min < rated < ashpb.rps_max
+    assert ashpb.eta_cmp_vol(4.0, 55.0) == pytest.approx(make_eta_vol(rated)(4.0, 55.0))
+    assert ashpb.eta_cmp_isen(4.0, 55.0) == pytest.approx(make_eta_isen(rated)(4.0, 55.0))
+    assert ashpb.eta_cmp(4.0, 55.0) == pytest.approx(make_eta_em(rated)(4.0, 55.0))
 
 
 def test_ashpb_default_heat_exchanger_uas_follow_validation_rules():
@@ -166,15 +169,19 @@ def test_ashp_off_mode_failure_reason_is_diagnostic():
     # ``dT_approach_bounds[1]`` = 20 K. So the case is genuinely unsolvable only
     # once Q/UA exceeds that bound: measured, 200 W/K (15 K) converges and
     # 120 W/K (25 K) does not. 50 W/K asks for 60 K, well clear of the boundary.
-    ashp = AirSourceHeatPump(
-        ref="R32",
-        UA_iu_rated=50.0,
-        UA_ou_rated=50.0,
-        dV_iu_fan_a_design=0.5,
-        dV_ou_fan_a_design=0.5,
-        A_cross_iu=0.5,
-        A_cross_ou=0.5,
-    )
+    with pytest.warns(RuntimeWarning, match="m_dot_ref_rated not derived"):
+        ashp = AirSourceHeatPump(
+            ref="R32",
+            UA_iu_rated=50.0,
+            UA_ou_rated=50.0,
+            dV_iu_fan_a_design=0.5,
+            dV_ou_fan_a_design=0.5,
+            A_cross_iu=0.5,
+            A_cross_ou=0.5,
+            # Such a coil cannot be rated either; fix the speed so the operating
+            # failure (not the construction) is what is tested.
+            rps_rated=60,
+        )
     result = ashp.analyze_steady(Q_r_iu=-3_000.0, T0=5.0, T_a_room=20.0, verbose=False)
     assert isinstance(result, dict)
     assert result["mode"] == "off"
@@ -412,8 +419,8 @@ def test_non_air_source_boiler_common_eta_defaults():
 
     for cls in (GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler):
         m = cls(ref="R32")
-        assert m.rps_rated == 40
-        assert m.eta_cmp_isen(3, 40) == pytest.approx(make_eta_isen(40)(3, 40))
+        assert m.rps_min < m.rps_rated < m.rps_max
+        assert m.eta_cmp_isen(3, 40) == pytest.approx(make_eta_isen(m.rps_rated)(3, 40))
         assert callable(m.eta_cmp_vol) and callable(m.eta_cmp)
 
 

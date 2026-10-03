@@ -17,7 +17,8 @@ heat exchange at the indoor unit.
 """
 
 import contextlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -26,7 +27,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
@@ -39,6 +40,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import resolve_fan_flow_limits
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -64,7 +66,7 @@ OBJ_CAPACITY_LIMITED = 1.0e9
 OBJ_INFEASIBLE = 1.0e12
 
 
-class AirSourceHeatPump:
+class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp with
@@ -79,6 +81,9 @@ class AirSourceHeatPump:
     ``capacity_clamped == "max"`` and a ``Q_ref_iu [W]`` below the request;
     the difference is unmet load, not a solver failure.
     """
+
+    _RATING_FAMILY = "ASHP"
+    _RATING_DEFAULT_MODE = "cooling"
 
     def __init__(
         self,
@@ -141,7 +146,9 @@ class AirSourceHeatPump:
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
         *,
-        rps_rated: float = 60.0,
+        rps_rated: float | None = None,
+        m_dot_ref_rated: float | None = None,
+        rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         dV_ou_fan_a_ref: float | None = None,
         dV_ou_fan_a_min: float | None = None,
         dV_ou_fan_a_max: float | None = None,
@@ -155,14 +162,11 @@ class AirSourceHeatPump:
             dV_ou_fan_a_rated = dV_ou_fan_a_ref
         if dV_iu_fan_a_ref is not None:
             dV_iu_fan_a_rated = dV_iu_fan_a_ref
-        if not np.isfinite(rps_rated) or rps_rated <= 0:
-            raise ValueError("rps_rated must be positive and finite")
-        self.rps_rated = rps_rated
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(rps_rated)
+            eta_cmp = eta_cmp_mech
         # UA_cond/evap_design → UA_cond/evap_rated (oldest names, two hops)
         if UA_cond_rated is None:
             UA_cond_rated = UA_cond_design
@@ -229,9 +233,6 @@ class AirSourceHeatPump:
         #: operating-point search may propose.
         self._T_crit_K: float = float(CP.PropsSI("Tcrit", ref))
         self.V_cmp_ref: float = V_cmp_ref
-        self.eta_cmp_isen: float | Callable = eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
-        self.eta_cmp_vol: float | Callable = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
-        self.eta_cmp: float | Callable = eta_cmp
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
         self.dT_hx_min: float = dT_hx_min
@@ -324,6 +325,23 @@ class AirSourceHeatPump:
 
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
+
+        # --- 6. Compressor reference state (rated speed, rated mass flow) ---
+        efficiencies = self._initialize_reference_state(
+            rps_rated=rps_rated,
+            m_dot_ref_rated=m_dot_ref_rated,
+            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            rated_condition=rated_condition,
+        )
+        self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
+        self.eta_cmp_vol: float | Callable = efficiencies["eta_cmp_vol"]
+        self.eta_cmp: float | Callable = efficiencies["eta_cmp"]
+
+    def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
+        """Outdoor coil is the source side, indoor coil the load side, in either mode."""
+        if role == "source":
+            return HXSide("air", T_in_C, self.UA_ou_rated, self.dV_ou_fan_a_ref)
+        return HXSide("air", T_in_C, self.UA_iu_rated, self.dV_iu_fan_a_ref)
 
     # =============================================================
     # Refrigerant cycle physics

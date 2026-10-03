@@ -116,3 +116,4 @@ not one of the refrigerant-cycle-core families in the matrix above.
     ashp
     gshp
     ground-flow
+    reference-state

@@ -40,7 +40,7 @@ configured through constructor parameters.
 
 import contextlib
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -51,7 +51,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -71,13 +71,14 @@ from .enex_functions import (
 from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import calc_fan_power_from_dV_fan
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
 from .thermodynamics import calc_energy_flow
 
 
 @dataclass
-class AirSourceHeatPumpBoiler:
+class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     """Air source heat pump boiler with outdoor-air evaporator.
 
     The refrigerant cycle is resolved via CoolProp with
@@ -93,6 +94,9 @@ class AirSourceHeatPumpBoiler:
     (v2026-09-24), evaluated at PR and speed relative to ``rps_rated``.
     Scalar and user-supplied callable overrides remain supported.
     """
+
+    _RATING_FAMILY = "ASHPB"
+    _RATING_DEFAULT_MODE = "heating"
 
     def __init__(
         self,
@@ -168,21 +172,20 @@ class AirSourceHeatPumpBoiler:
         eta_ou_fan_design: float | None = None,
         vsd_coeffs_ou: dict | None = None,
         *,
-        rps_rated: float = 40.0,
+        rps_rated: float | None = None,
+        m_dot_ref_rated: float | None = None,
+        rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         dV_fan_a_ref: float | None = None,
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
     ):
         if dV_fan_a_ref is not None:
             dV_fan_a_rated = dV_fan_a_ref
-        if not np.isfinite(rps_rated) or rps_rated <= 0:
-            raise ValueError("rps_rated must be positive and finite")
-        self.rps_rated = rps_rated
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if eta_cmp is None:
-            eta_cmp = eta_cmp_electro_mech if eta_cmp_electro_mech is not None else make_eta_em(rps_rated)
+            eta_cmp = eta_cmp_electro_mech
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else UA_cond_design
         if UA_ou_rated is None:
@@ -212,20 +215,6 @@ class AirSourceHeatPumpBoiler:
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
-
-        # Isentropic Efficiency
-        if eta_cmp_isen is not None:
-            self.eta_cmp_isen: float | Callable = eta_cmp_isen
-        else:
-            self.eta_cmp_isen = make_eta_isen(rps_rated)
-
-        # Volumetric Efficiency
-        if eta_cmp_vol is not None:
-            self.eta_cmp_vol: float | Callable = eta_cmp_vol
-        else:
-            self.eta_cmp_vol = make_eta_vol(rps_rated)
-
-        self.eta_cmp: float | Callable = eta_cmp
 
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
@@ -299,6 +288,17 @@ class AirSourceHeatPumpBoiler:
             "fan_rated_power": self.E_fan_rated,
         }
 
+        # --- Compressor reference state (rated speed, rated mass flow) ---
+        efficiencies = self._initialize_reference_state(
+            rps_rated=rps_rated,
+            m_dot_ref_rated=m_dot_ref_rated,
+            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            rated_condition=rated_condition,
+        )
+        self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
+        self.eta_cmp_vol: float | Callable = efficiencies["eta_cmp_vol"]
+        self.eta_cmp: float | Callable = efficiencies["eta_cmp"]
+
         # --- 4. Tank geometry and thermal props ---
         self.tank_physical: dict = {
             "r0": r0,
@@ -352,6 +352,12 @@ class AirSourceHeatPumpBoiler:
         self.dV_tank_w_out: float = 0.0
         self.dV_mix_sup_w_in: float = 0.0
         self.dV_mix_w_out: float = 0.0
+
+    def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
+        """Outdoor-air evaporator (source) and tank-immersed condenser (load)."""
+        if role == "source":
+            return HXSide("air", T_in_C, self.UA_ou_rated, self.dV_fan_a_ref)
+        return HXSide("tank", T_in_C, self.UA_tank_hx)
 
     # =============================================================
     # Refrigerant cycle physics (ASHP-specific)

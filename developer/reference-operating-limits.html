@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-10-02T01:22:26+09:00" />
+    <meta property="article:modified_time" content="2026-10-03T14:12:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -94,6 +94,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/reference-state.html">Compressor reference state</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
@@ -188,7 +189,8 @@ Never change a normalization denominator when expanding an operating range.</p>
 <p>Existing thermodynamic identifiers containing <code class="docutils literal notranslate"><span class="pre">ref</span></code> (refrigerant), such as
 <code class="docutils literal notranslate"><span class="pre">T_ref_sat_K</span></code> and actual <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span></code>, are thermodynamic states, not scaling
 references. <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> is the fixed refrigerant mass-flow reference
-for ground-HX scaling. <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> is swept displacement per revolution;
+for ground-HX scaling; when omitted it is solved at the compressor reference
+state, so no external reference run is needed. <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> is swept displacement per revolution;
 it does not define speed limits. Compressor limits remain <code class="docutils literal notranslate"><span class="pre">rps_min/rps_max</span></code>.</p>
 </section>
 <section id="ground-loop-api-and-migration">
@@ -275,11 +277,15 @@ These represent isentropic, volumetric and electro-mechanical efficiency,
 respectively. Each input also accepts a scalar, a <code class="docutils literal notranslate"><span class="pre">function(PR)</span></code> or a
 <code class="docutils literal notranslate"><span class="pre">function(PR,</span> <span class="pre">rps)</span></code>. Evaluation validates finite values in (0, 1] and
 preserves exceptions raised inside a user function.</p>
-<p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> defines the normalization <code class="docutils literal notranslate"><span class="pre">n_star</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>:
-60 rev/s for ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB, matching the
-source baseline’s air-to-air / air-to-water reference speeds. Specify the
-same rated speed when comparing model defaults at the same PR and rps.
-This reference does not change <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> or <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. Correlation factors
+<p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> defines the normalization <code class="docutils literal notranslate"><span class="pre">n_star</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>.
+When omitted it is no longer a fixed default (formerly 60 rev/s for
+ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB): it is solved as the speed that
+delivers <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> at the family’s standard rating condition with
+<code class="docutils literal notranslate"><span class="pre">n_star</span> <span class="pre">=</span> <span class="pre">1</span></code>, together with <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> from the same state
+(<a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>). Pass the former value explicitly to
+reproduce earlier results. Specify the same rated speed when comparing
+models at the same PR and rps. This reference does not change <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> or
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, and it is not forced to <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>. Correlation factors
 held above <code class="docutils literal notranslate"><span class="pre">n_star=2</span></code> protect extrapolation; they do not impose a speed limit.</p>
 <p>GSHP now solves speed using <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">=</span> <span class="pre">V_cmp_ref</span> <span class="pre">*</span> <span class="pre">rho_suction</span> <span class="pre">*</span> <span class="pre">eta_v</span> <span class="pre">*</span> <span class="pre">rps</span></code>
 at each speed candidate, and evaluates isentropic efficiency before calculating
@@ -308,7 +314,7 @@ existing HX, load and optimization verification tolerances remain unchanged.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 02, 2026
+  Last updated Oct 03, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

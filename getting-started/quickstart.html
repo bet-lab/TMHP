@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page walks through a single steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library, and the fastest way to confirm your install works..." />
 
-    <meta property="article:modified_time" content="2026-07-01T13:57:28+09:00" />
+    <meta property="article:modified_time" content="2026-10-03T14:12:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -94,6 +94,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/reference-state.html">Compressor reference state</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
@@ -220,11 +221,13 @@ the same columns instead.</p>
 <section id="swapping-the-refrigerant">
 <h2>Swapping the refrigerant<a class="headerlink" href="#swapping-the-refrigerant" title="Link to this heading">¶</a></h2>
 <p>The refrigerant is just a constructor argument; no recalibration is
-required. Any fluid CoolProp recognises works:</p>
+required. Any fluid CoolProp recognises works, and the compressor’s rated
+speed is re-solved for it at the model’s rating condition
+(<a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>     <span class="c1"># propane</span>
-</span><span data-line="4"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">)</span>     <span class="c1"># CO₂ (transcritical)</span>
+</span><span data-line="4"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">,</span> <span class="n">rps_rated</span><span class="o">=</span><span class="mf">40.0</span><span class="p">)</span>  <span class="c1"># CO₂: no subcritical rating point</span>
 </span><span data-line="5"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>
 </span><span data-line="6"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">)</span>
 </span></pre></div>
@@ -240,7 +243,7 @@ required. Any fluid CoolProp recognises works:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Oct 03, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

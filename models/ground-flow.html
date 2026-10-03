@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-01T23:32:43+09:00" />
+    <meta property="article:modified_time" content="2026-10-03T17:02:52+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -146,6 +146,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#module-boundaries-and-assumptions">Module boundaries and assumptions</a></li>
 <li><a class="reference internal" href="#feasibility-and-reporting">Feasibility and reporting</a></li>
 <li><a class="reference internal" href="#reference-flow-is-independent-of-limits">Reference flow is independent of limits</a></li>
+<li><a class="reference internal" href="#auxiliary-pressure-drop-and-operating-limits">Auxiliary pressure drop and operating limits</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -282,9 +283,13 @@ precomputes 101 flow-grid values, including rated flow, and uses PCHIP with
 no extrapolation. A fixed user <code class="docutils literal notranslate"><span class="pre">R_b</span></code> override cannot be combined with it.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pump</span></code> uses Darcy–Weisbach with laminar/Haaland friction. Identical U-tubes
 are in parallel: branch flow is total flow / borehole count; pipe length is
-2H. Branch pressure losses are not added in series. <code class="docutils literal notranslate"><span class="pre">dp_common=0</span></code> excludes
-header/manifold/minor losses. A nonzero value is a prescribed pressure loss
-at the evaluated point, not a resolved pipe network. Constant pump efficiency
+2H. Branch pressure losses are not added in series. Auxiliary HX, header,
+valve, strainer and common-pipe loss is specified by <code class="docutils literal notranslate"><span class="pre">dp_aux_ref</span></code> [Pa] at
+<code class="docutils literal notranslate"><span class="pre">ground_flow_ref_lpm</span></code> and scales with flow ratio to <code class="docutils literal notranslate"><span class="pre">dp_aux_exponent</span></code>
+(default 2.0). Zero reference loss preserves BHE-only behavior.
+<code class="docutils literal notranslate"><span class="pre">dp_common</span></code> is a deprecated reference-loss alias, with a migration warning;
+it is never an absolute operating-point constant. Low-level pump calls with
+nonzero auxiliary loss require <code class="docutils literal notranslate"><span class="pre">volume_flow_ref</span></code> [m³/s]. Constant pump efficiency
 is assumed; pump electrical input heats the water as in the legacy model.
 <code class="docutils literal notranslate"><span class="pre">pipe_inner_diameter</span></code> defaults to 2*r_in and must match it if supplied.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">heat_exchanger</span></code> uses a constant-temperature refrigerant-side approximation:
@@ -338,10 +343,41 @@ the water denominator, reference UA or reference/setpoint Rb* anchors. UA and
 fan power may exceed reference values. See <a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>
 for full migration, fan limits and compatibility defaults.</p>
 </section>
+<section id="auxiliary-pressure-drop-and-operating-limits">
+<h2>Auxiliary pressure drop and operating limits<a class="headerlink" href="#auxiliary-pressure-drop-and-operating-limits" title="Link to this heading">¶</a></h2>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[ \begin{align}\begin{aligned}\Delta p_{total}(\dot V) = \Delta p_{BHE}(\dot V)
+  + \Delta p_{aux,ref}(\dot V/\dot V_{ref})^{n_{\Delta p}}\\E_{pmp} = \Delta p_{total}\dot V / \eta_{pmp}\end{aligned}\end{align} \]</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">dp_aux_ref=0.0</span></code> and <code class="docutils literal notranslate"><span class="pre">dp_aux_exponent=2.0</span></code> are shared GSHP/GSHPB defaults.
+A nonzero auxiliary loss activates hydraulic pump evaluation. Reference flow
+is independent of the maximum; ratios above one are supported. BHE pressure
+uses branch flow and auxiliary pressure uses field-total flow. Diagnostics
+<code class="docutils literal notranslate"><span class="pre">ground_pressure_drop_bhe</span> <span class="pre">[Pa]</span></code>, <code class="docutils literal notranslate"><span class="pre">ground_pressure_drop_aux</span> <span class="pre">[Pa]</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ground_pressure_drop_total</span> <span class="pre">[Pa]</span></code> expose each contribution; the existing
+<code class="docutils literal notranslate"><span class="pre">ground_pressure_drop</span> <span class="pre">[Pa]</span></code> remains an alias for the total.</p>
+<p>The constant-flow setpoint must lie within the stated minimum/maximum,
+including direct controller calls. An invalid setpoint raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>;
+it is not silently clamped. Valid constant control uses the same setpoint at
+every active load, and zero flow/power is reserved for off or failed points.</p>
+<p>Generic ASHRAE fan control enforces 15–100% of the fixed reference
+flow. Hardware limits may narrow this interval; explicit custom fan curves
+permit independently declared ranges. The unchanged empirical power curve
+has no added electrical floor. Below-minimum duty clamps the airflow but
+remains thermally infeasible until the indoor approach closes the heat duty.
+A failed point is excluded from plots and savings, rather than interpreted
+as zero-power operation. See <a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>.</p>
+<p>ASHRAE 2024 Systems and Equipment Chapter 44, Hydronic System Curves, supports
+approximately quadratic system resistance. ASHRAE 2023 Applications SI
+Chapter 35, Table 8, provides closed-loop GSHP pumping/head guidelines. These
+are modeling guidance, not measured loss data for any specific installation.
+Static borehole elevation head is not added to this closed-loop model.</p>
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 01, 2026
+  Last updated Oct 03, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -398,6 +434,8 @@ for full migration, fan limits and compatibility defaults.</p>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>

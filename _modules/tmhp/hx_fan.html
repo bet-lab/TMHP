@@ -177,74 +177,164 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="12">
 </span><span data-line="13"><span class="kn">from</span><span class="w"> </span><span class="nn">.heat_exchanger</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_UA_from_dV_fan</span> <span class="k">as</span> <span class="n">calc_UA_from_dV_fan</span>
 </span><span data-line="14">
-</span><span data-line="15">
+</span><span data-line="15"><span class="n">ASHRAE_VSD_COEFFICIENTS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">c1</span><span class="o">=</span><span class="mf">0.0013</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="mf">0.1470</span><span class="p">,</span> <span class="n">c3</span><span class="o">=</span><span class="mf">0.9506</span><span class="p">,</span> <span class="n">c4</span><span class="o">=-</span><span class="mf">0.0998</span><span class="p">,</span> <span class="n">c5</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="16">
+</span><span data-line="17">
+<div class="viewcode-block" id="is_generic_fan_curve">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.hx_fan.is_generic_fan_curve">[docs]</a>
+</span><span data-line="18"><span class="k">def</span><span class="w"> </span><span class="nf">is_generic_fan_curve</span><span class="p">(</span><span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="19"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Identify the unmodified ASHRAE Appendix G Method 2 correlation.&quot;&quot;&quot;</span>
+</span><span data-line="20">    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">vsd_coeffs</span> <span class="ow">or</span> <span class="p">{}</span>
+</span><span data-line="21">    <span class="k">return</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;curve_type&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;custom&quot;</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+</span><span data-line="22">        <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">==</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ASHRAE_VSD_COEFFICIENTS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span><span data-line="23">    <span class="p">)</span></div>
+
+</span><span data-line="24">
+</span><span data-line="25">
+<div class="viewcode-block" id="calc_ashrae_fan_power_ratio">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.hx_fan.calc_ashrae_fan_power_ratio">[docs]</a>
+</span><span data-line="26"><span class="k">def</span><span class="w"> </span><span class="nf">calc_ashrae_fan_power_ratio</span><span class="p">(</span><span class="n">flow_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="27"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Raw Appendix G Method 2 fit for table parity, not a flow controller.</span>
+</span><span data-line="28">
+</span><span data-line="29"><span class="sd">    Table G3.1.3.15 Method 1 spans 0--1. Its x=0.1 row can be compared</span>
+</span><span data-line="30"><span class="sd">    mathematically, but generic operating control separately enforces x&gt;=0.15.</span>
+</span><span data-line="31"><span class="sd">    Source: https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90.1-2016/90_1_2016_be_bm_bn_bo_bp_br_bs_bu_bv_cf_cl_cm_cq_ct_cu_cv_cw_cy_20210324.pdf</span>
+</span><span data-line="32"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="33">    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">flow_ratio</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">flow_ratio</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="34">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Raw ASHRAE fit requires 0 &lt;= airflow/reference &lt;= 1&quot;</span><span class="p">)</span>
+</span><span data-line="35">    <span class="n">x</span> <span class="o">=</span> <span class="n">flow_ratio</span>
+</span><span data-line="36">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="mf">0.0013</span> <span class="o">+</span> <span class="mf">0.1470</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.9506</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">0.0998</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span></div>
+
+</span><span data-line="37">
+</span><span data-line="38">
+<div class="viewcode-block" id="calc_fan_operating_point">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.hx_fan.calc_fan_operating_point">[docs]</a>
+</span><span data-line="39"><span class="k">def</span><span class="w"> </span><span class="nf">calc_fan_operating_point</span><span class="p">(</span>
+</span><span data-line="40">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="41">    <span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="42">    <span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="43">    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="44"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="45"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Clamp fan flow to its model/control limits, then compute power.</span>
+</span><span data-line="46">
+</span><span data-line="47"><span class="sd">    Source: ANSI/ASHRAE/IES Standard 90.1-2016, Appendix G,</span>
+</span><span data-line="48"><span class="sd">    Table G3.1.3.15, Method 2:</span>
+</span><span data-line="49"><span class="sd">    P* = 0.0013 + 0.1470*x + 0.9506*x**2 - 0.0998*x**3.</span>
+</span><span data-line="50"><span class="sd">    x = actual airflow / fixed reference airflow. The generic correlation is</span>
+</span><span data-line="51"><span class="sd">    restricted to 0.15 &lt;= x &lt;= 1.0. ASHRAE 2025 Fundamentals Chapter 19</span>
+</span><span data-line="52"><span class="sd">    cautions against extrapolation below a minimum ratio (example 0.15).</span>
+</span><span data-line="53"><span class="sd">    90.1-2022 Addendum u is supporting multizone-VAV turndown evidence;</span>
+</span><span data-line="54"><span class="sd">    its informative foreword discusses 16% power at 15% airflow, not a</span>
+</span><span data-line="55"><span class="sd">    normative 16% requirement or a universal electrical floor. The amended</span>
+</span><span data-line="56"><span class="sd">    body 6.5.3.2.1(b) removes the old 30% power sentence without adding 16%.</span>
+</span><span data-line="57"><span class="sd">    Its airflow turndown provision includes the design minimum outdoor air.</span>
+</span><span data-line="58"><span class="sd">    Evidence: references/fan_model/01_ashrae_90_1_fan_curve.png through</span>
+</span><span data-line="59"><span class="sd">    04_ashrae_addendum_u_normative.png, captured in Windows Chrome via CDP.</span>
+</span><span data-line="60"><span class="sd">    Generic 0.15--1.0 is a TMHP assumption, not a heat-pump requirement.</span>
+</span><span data-line="61"><span class="sd">    Nondefault user coefficients define a custom curve with explicit limits.</span>
+</span><span data-line="62"><span class="sd">    A raw demand is clamped here; HX solvers must separately close heat duty.</span>
+</span><span data-line="63">
+</span><span data-line="64"><span class="sd">    Parameters</span>
+</span><span data-line="65"><span class="sd">    ----------</span>
+</span><span data-line="66"><span class="sd">    dV_fan : float</span>
+</span><span data-line="67"><span class="sd">        Current flow rate [m³/s].</span>
+</span><span data-line="68"><span class="sd">    fan_params : dict</span>
+</span><span data-line="69"><span class="sd">        Must contain ``fan_design_flow_rate`` and ``fan_design_power``.</span>
+</span><span data-line="70"><span class="sd">    vsd_coeffs : dict</span>
+</span><span data-line="71"><span class="sd">        VSD Curve coefficients (``c1`` through ``c5``).</span>
+</span><span data-line="72"><span class="sd">    is_active : bool</span>
+</span><span data-line="73"><span class="sd">        If False, reports zero actual flow and ``np.nan`` power.</span>
+</span><span data-line="74">
+</span><span data-line="75"><span class="sd">    Returns</span>
+</span><span data-line="76"><span class="sd">    -------</span>
+</span><span data-line="77"><span class="sd">    dict</span>
+</span><span data-line="78"><span class="sd">        Actual flow, ratio, power [W] and min/max limit flags.</span>
+</span><span data-line="79"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="80">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
+</span><span data-line="81">        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+</span><span data-line="82">            <span class="n">power_W</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">actual_flow</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">flow_ratio_to_ref</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">fan_flow_min_limit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fan_flow_max_limit</span><span class="o">=</span><span class="kc">False</span>
+</span><span data-line="83">        <span class="p">)</span>
+</span><span data-line="84">    <span class="c1"># A failed HX candidate reports NaN airflow; preserve that diagnostic so</span>
+</span><span data-line="85">    <span class="c1"># the cycle optimizer can reject it without raising an input exception.</span>
+</span><span data-line="86">    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
+</span><span data-line="87">        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+</span><span data-line="88">            <span class="n">power_W</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="89">            <span class="n">actual_flow</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="90">            <span class="n">flow_ratio_to_ref</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="91">            <span class="n">fan_flow_min_limit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="92">            <span class="n">fan_flow_max_limit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="93">        <span class="p">)</span>
+</span><span data-line="94">
+</span><span data-line="95">    <span class="n">fan_design_flow_rate</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+</span><span data-line="96">        <span class="s2">&quot;fan_ref_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">))</span>
+</span><span data-line="97">    <span class="p">)</span>
+</span><span data-line="98">    <span class="n">fan_design_power</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+</span><span data-line="99">        <span class="s2">&quot;fan_ref_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_power&quot;</span><span class="p">))</span>
+</span><span data-line="100">    <span class="p">)</span>
+</span><span data-line="101">
+</span><span data-line="102">    <span class="k">if</span> <span class="n">fan_design_flow_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="103">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="104">            <span class="s2">&quot;fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params&quot;</span>
+</span><span data-line="105">        <span class="p">)</span>
+</span><span data-line="106">
+</span><span data-line="107">    <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="108">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan flow rate must be greater than 0&quot;</span><span class="p">)</span>
+</span><span data-line="109">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="110">        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">)</span>
+</span><span data-line="111">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_flow_rate</span><span class="p">)</span>
+</span><span data-line="112">        <span class="ow">or</span> <span class="n">fan_design_flow_rate</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="113">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_power</span><span class="p">)</span>
+</span><span data-line="114">        <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="o">&lt;</span> <span class="mi">0</span>
+</span><span data-line="115">    <span class="p">):</span>
+</span><span data-line="116">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan flow/reference must be finite and reference positive; reference power nonnegative&quot;</span><span class="p">)</span>
+</span><span data-line="117">
+</span><span data-line="118">    <span class="kn">from</span><span class="w"> </span><span class="nn">.heat_exchanger</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_fan_flow_limits</span>
+</span><span data-line="119">
+</span><span data-line="120">    <span class="n">coefficients</span> <span class="o">=</span> <span class="n">vsd_coeffs</span> <span class="ow">or</span> <span class="p">{}</span>
+</span><span data-line="121">    <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">resolve_fan_flow_limits</span><span class="p">(</span>
+</span><span data-line="122">        <span class="n">fan_design_flow_rate</span><span class="p">,</span>
+</span><span data-line="123">        <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_min_flow_rate&quot;</span><span class="p">),</span>
+</span><span data-line="124">        <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_max_flow_rate&quot;</span><span class="p">),</span>
+</span><span data-line="125">        <span class="n">custom_curve</span><span class="o">=</span><span class="ow">not</span> <span class="n">is_generic_fan_curve</span><span class="p">(</span><span class="n">coefficients</span><span class="p">),</span>
+</span><span data-line="126">    <span class="p">)</span>
+</span><span data-line="127">    <span class="n">actual</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">low</span><span class="p">),</span> <span class="n">high</span><span class="p">)</span>
+</span><span data-line="128">    <span class="n">c1</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="mf">0.0013</span><span class="p">)</span>
+</span><span data-line="129">    <span class="n">c2</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c2&quot;</span><span class="p">,</span> <span class="mf">0.1470</span><span class="p">)</span>
+</span><span data-line="130">    <span class="n">c3</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c3&quot;</span><span class="p">,</span> <span class="mf">0.9506</span><span class="p">)</span>
+</span><span data-line="131">    <span class="n">c4</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c4&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0998</span><span class="p">)</span>
+</span><span data-line="132">    <span class="n">c5</span> <span class="o">=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c5&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="133">
+</span><span data-line="134">    <span class="n">x</span> <span class="o">=</span> <span class="n">actual</span> <span class="o">/</span> <span class="n">fan_design_flow_rate</span>  <span class="c1"># fixed normalization; custom limits may exceed reference</span>
+</span><span data-line="135">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
+</span><span data-line="136">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
+</span><span data-line="137">
+</span><span data-line="138">    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+</span><span data-line="139">        <span class="n">power_W</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">),</span>
+</span><span data-line="140">        <span class="n">actual_flow</span><span class="o">=</span><span class="n">actual</span><span class="p">,</span>
+</span><span data-line="141">        <span class="n">flow_ratio_to_ref</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+</span><span data-line="142">        <span class="n">fan_flow_min_limit</span><span class="o">=</span><span class="n">dV_fan</span> <span class="o">&lt;=</span> <span class="n">low</span><span class="p">,</span>
+</span><span data-line="143">        <span class="n">fan_flow_max_limit</span><span class="o">=</span><span class="n">dV_fan</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">,</span>
+</span><span data-line="144">        <span class="n">flow_min</span><span class="o">=</span><span class="n">low</span><span class="p">,</span>
+</span><span data-line="145">        <span class="n">flow_max</span><span class="o">=</span><span class="n">high</span><span class="p">,</span>
+</span><span data-line="146">    <span class="p">)</span></div>
+
+</span><span data-line="147">
+</span><span data-line="148">
 <div class="viewcode-block" id="calc_fan_power_from_dV_fan">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.hx_fan.calc_fan_power_from_dV_fan">[docs]</a>
-</span><span data-line="16"><span class="k">def</span><span class="w"> </span><span class="nf">calc_fan_power_from_dV_fan</span><span class="p">(</span>
-</span><span data-line="17">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="18">    <span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="19">    <span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="20">    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="21"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="22"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate fan power using ASHRAE 90.1 VSD Curve.</span>
-</span><span data-line="23">
-</span><span data-line="24"><span class="sd">    Parameters</span>
-</span><span data-line="25"><span class="sd">    ----------</span>
-</span><span data-line="26"><span class="sd">    dV_fan : float</span>
-</span><span data-line="27"><span class="sd">        Current flow rate [m³/s].</span>
-</span><span data-line="28"><span class="sd">    fan_params : dict</span>
-</span><span data-line="29"><span class="sd">        Must contain ``fan_design_flow_rate`` and ``fan_design_power``.</span>
-</span><span data-line="30"><span class="sd">    vsd_coeffs : dict</span>
-</span><span data-line="31"><span class="sd">        VSD Curve coefficients (``c1`` through ``c5``).</span>
-</span><span data-line="32"><span class="sd">    is_active : bool</span>
-</span><span data-line="33"><span class="sd">        If False, returns ``np.nan``.</span>
-</span><span data-line="34">
-</span><span data-line="35"><span class="sd">    Returns</span>
-</span><span data-line="36"><span class="sd">    -------</span>
-</span><span data-line="37"><span class="sd">    float</span>
-</span><span data-line="38"><span class="sd">        Fan power [W].</span>
-</span><span data-line="39"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="40">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
-</span><span data-line="41">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="42">    <span class="c1"># A failed HX candidate reports NaN airflow; preserve that diagnostic so</span>
-</span><span data-line="43">    <span class="c1"># the cycle optimizer can reject it without raising an input exception.</span>
-</span><span data-line="44">    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
-</span><span data-line="45">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-</span><span data-line="46">
-</span><span data-line="47">    <span class="n">fan_design_flow_rate</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-</span><span data-line="48">        <span class="s2">&quot;fan_ref_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_flow_rate&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_flow_rate&quot;</span><span class="p">))</span>
-</span><span data-line="49">    <span class="p">)</span>
-</span><span data-line="50">    <span class="n">fan_design_power</span> <span class="o">=</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-</span><span data-line="51">        <span class="s2">&quot;fan_ref_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_rated_power&quot;</span><span class="p">,</span> <span class="n">fan_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fan_design_power&quot;</span><span class="p">))</span>
-</span><span data-line="52">    <span class="p">)</span>
-</span><span data-line="53">
-</span><span data-line="54">    <span class="k">if</span> <span class="n">fan_design_flow_rate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="55">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span data-line="56">            <span class="s2">&quot;fan_rated_flow_rate/fan_design_flow_rate and fan_rated_power/fan_design_power must be provided in fan_params&quot;</span>
-</span><span data-line="57">        <span class="p">)</span>
-</span><span data-line="58">
-</span><span data-line="59">    <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="60">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;fan flow rate must be greater than 0&quot;</span><span class="p">)</span>
-</span><span data-line="61">    <span class="k">if</span> <span class="p">(</span>
-</span><span data-line="62">        <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">)</span>
-</span><span data-line="63">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_flow_rate</span><span class="p">)</span>
-</span><span data-line="64">        <span class="ow">or</span> <span class="n">fan_design_flow_rate</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-</span><span data-line="65">        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">fan_design_power</span><span class="p">)</span>
-</span><span data-line="66">        <span class="ow">or</span> <span class="n">fan_design_power</span> <span class="o">&lt;</span> <span class="mi">0</span>
-</span><span data-line="67">    <span class="p">):</span>
-</span><span data-line="68">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan flow/reference must be finite and reference positive; reference power nonnegative&quot;</span><span class="p">)</span>
-</span><span data-line="69">
-</span><span data-line="70">    <span class="n">c1</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="mf">0.0013</span><span class="p">)</span>
-</span><span data-line="71">    <span class="n">c2</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c2&quot;</span><span class="p">,</span> <span class="mf">0.1470</span><span class="p">)</span>
-</span><span data-line="72">    <span class="n">c3</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c3&quot;</span><span class="p">,</span> <span class="mf">0.9506</span><span class="p">)</span>
-</span><span data-line="73">    <span class="n">c4</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c4&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0998</span><span class="p">)</span>
-</span><span data-line="74">    <span class="n">c5</span> <span class="o">=</span> <span class="n">vsd_coeffs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;c5&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="75">
-</span><span data-line="76">    <span class="n">x</span> <span class="o">=</span> <span class="n">dV_fan</span> <span class="o">/</span> <span class="n">fan_design_flow_rate</span>  <span class="c1"># x &gt; 1 is allowed; reference is not a ceiling</span>
-</span><span data-line="77">    <span class="n">PLR</span> <span class="o">=</span> <span class="n">c1</span> <span class="o">+</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">c3</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">c4</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span> <span class="o">+</span> <span class="n">c5</span> <span class="o">*</span> <span class="n">x</span><span class="o">**</span><span class="mi">4</span>
-</span><span data-line="78">    <span class="n">PLR</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">PLR</span><span class="p">)</span>
-</span><span data-line="79">
-</span><span data-line="80">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">fan_design_power</span> <span class="o">*</span> <span class="n">PLR</span><span class="p">)</span></div>
+</span><span data-line="149"><span class="k">def</span><span class="w"> </span><span class="nf">calc_fan_power_from_dV_fan</span><span class="p">(</span>
+</span><span data-line="150">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="151">    <span class="n">fan_params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="152">    <span class="n">vsd_coeffs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="153">    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="154"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="155"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Electrical power [W] at the bounded fan operating point.</span>
+</span><span data-line="156">
+</span><span data-line="157"><span class="sd">    ASHRAE Appendix G Method 2 uses its unchanged empirical coefficients</span>
+</span><span data-line="158"><span class="sd">    only over 0.15--1.0 of reference airflow. See calc_fan_operating_point</span>
+</span><span data-line="159"><span class="sd">    for actual flow and limit flags. No arbitrary electrical power floor.</span>
+</span><span data-line="160"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="161">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">calc_fan_operating_point</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">fan_params</span><span class="p">,</span> <span class="n">vsd_coeffs</span><span class="p">,</span> <span class="n">is_active</span><span class="p">)[</span><span class="s2">&quot;power_W&quot;</span><span class="p">])</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

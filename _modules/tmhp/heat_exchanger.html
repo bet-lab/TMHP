@@ -289,250 +289,249 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="124">
 </span><span data-line="125">
 </span><span data-line="126"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_fan_flow_limits</span><span class="p">(</span>
-</span><span data-line="127">    <span class="n">reference</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">minimum</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">maximum</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="127">    <span class="n">reference</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">minimum</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">maximum</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">custom_curve</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 </span><span data-line="128"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 </span><span data-line="129"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate independent air-flow reference and solver bounds [m3/s].</span>
 </span><span data-line="130">
-</span><span data-line="131"><span class="sd">    Historical defaults (5% to 100% of reference) are compatibility defaults,</span>
-</span><span data-line="132"><span class="sd">    not a statement that the rated/reference point is a hardware maximum.</span>
-</span><span data-line="133"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="134">    <span class="n">minimum</span> <span class="o">=</span> <span class="mf">0.05</span> <span class="o">*</span> <span class="n">reference</span> <span class="k">if</span> <span class="n">minimum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">minimum</span>
-</span><span data-line="135">    <span class="n">maximum</span> <span class="o">=</span> <span class="n">reference</span> <span class="k">if</span> <span class="n">maximum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">maximum</span>
-</span><span data-line="136">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">))</span> <span class="ow">or</span> <span class="n">reference</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">minimum</span> <span class="o">&lt;</span> <span class="n">maximum</span><span class="p">:</span>
-</span><span data-line="137">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference must be positive and finite; require finite 0 &lt;= min &lt; max&quot;</span><span class="p">)</span>
-</span><span data-line="138">    <span class="k">return</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span>
-</span><span data-line="139">
-</span><span data-line="140">
+</span><span data-line="131"><span class="sd">    The generic ASHRAE correlation is limited to 15--100% of reference.</span>
+</span><span data-line="132"><span class="sd">    Custom curves may supply independent limits outside that validity range.</span>
+</span><span data-line="133"><span class="sd">    Reference is always a normalization point, not an implicit hardware limit.</span>
+</span><span data-line="134"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="135">    <span class="n">minimum</span> <span class="o">=</span> <span class="mf">0.15</span> <span class="o">*</span> <span class="n">reference</span> <span class="k">if</span> <span class="n">minimum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">minimum</span>
+</span><span data-line="136">    <span class="n">maximum</span> <span class="o">=</span> <span class="n">reference</span> <span class="k">if</span> <span class="n">maximum</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">maximum</span>
+</span><span data-line="137">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">))</span> <span class="ow">or</span> <span class="n">reference</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">minimum</span> <span class="o">&lt;</span> <span class="n">maximum</span><span class="p">:</span>
+</span><span data-line="138">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference must be positive and finite; require finite 0 &lt;= min &lt; max&quot;</span><span class="p">)</span>
+</span><span data-line="139">    <span class="k">if</span> <span class="ow">not</span> <span class="n">custom_curve</span><span class="p">:</span>
+</span><span data-line="140">        <span class="n">minimum</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="mf">0.15</span> <span class="o">*</span> <span class="n">reference</span><span class="p">)</span>
+</span><span data-line="141">        <span class="n">maximum</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">maximum</span><span class="p">,</span> <span class="n">reference</span><span class="p">)</span>
+</span><span data-line="142">        <span class="k">if</span> <span class="n">minimum</span> <span class="o">&gt;=</span> <span class="n">maximum</span><span class="p">:</span>
+</span><span data-line="143">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Generic ASHRAE fan limits must overlap 0.15--1.0 of reference&quot;</span><span class="p">)</span>
+</span><span data-line="144">    <span class="k">return</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span>
+</span><span data-line="145">
+</span><span data-line="146">
 <div class="viewcode-block" id="calc_UA_from_dV_fan">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.enex_functions.calc_UA_from_dV_fan">[docs]</a>
-</span><span data-line="141"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_from_dV_fan</span><span class="p">(</span>
-</span><span data-line="142">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="143">    <span class="n">dV_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="144">    <span class="n">A_cross</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="145">    <span class="n">UA</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="146">    <span class="n">exponent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.71</span><span class="p">,</span>
-</span><span data-line="147">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="148">    <span class="n">dV_fan_ref</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="149"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="150"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</span>
-</span><span data-line="151">
-</span><span data-line="152"><span class="sd">    Parameters</span>
-</span><span data-line="153"><span class="sd">    ----------</span>
-</span><span data-line="154"><span class="sd">    dV_fan : float</span>
-</span><span data-line="155"><span class="sd">        Current fan flow rate [m³/s].</span>
-</span><span data-line="156"><span class="sd">    dV_fan_rated : float</span>
-</span><span data-line="157"><span class="sd">        Rated fan flow rate [m³/s].</span>
-</span><span data-line="158"><span class="sd">    A_cross : float</span>
-</span><span data-line="159"><span class="sd">        Heat exchanger cross-sectional area [m²].</span>
-</span><span data-line="160"><span class="sd">    UA : float</span>
-</span><span data-line="161"><span class="sd">        Rated UA value [W/K].</span>
-</span><span data-line="162"><span class="sd">    exponent : float</span>
-</span><span data-line="163"><span class="sd">        Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</span>
-</span><span data-line="164">
-</span><span data-line="165"><span class="sd">    Returns</span>
-</span><span data-line="166"><span class="sd">    -------</span>
-</span><span data-line="167"><span class="sd">    float</span>
-</span><span data-line="168"><span class="sd">        Scaled UA value [W/K].</span>
-</span><span data-line="169">
-</span><span data-line="170"><span class="sd">    Notes</span>
-</span><span data-line="171"><span class="sd">    -----</span>
-</span><span data-line="172"><span class="sd">    Instead of the Dittus-Boelter tube-side exponent (0.8), this uses</span>
-</span><span data-line="173"><span class="sd">    a simplified lumped exponent (default 0.71). This derivation assumes a 1-row</span>
-</span><span data-line="174"><span class="sd">    plain fin-and-tube configuration (N=1) where the Colburn j-factor</span>
-</span><span data-line="175"><span class="sd">    is proportional to Re^-0.29, leading to h ∝ V^0.71. Multi-row coils may</span>
-</span><span data-line="176"><span class="sd">    use exponents between 0.5 and 0.8 depending on configuration.</span>
-</span><span data-line="177"><span class="sd">    Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</span>
-</span><span data-line="178"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="179">    <span class="n">reference</span> <span class="o">=</span> <span class="n">dV_fan_ref</span> <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dV_fan_rated</span>
-</span><span data-line="180">    <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">UA</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">A_cross</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="181">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference, UA and cross-sectional area are required&quot;</span><span class="p">)</span>
-</span><span data-line="182">    <span class="k">if</span> <span class="p">(</span>
-</span><span data-line="183">        <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">dV_fan</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA</span><span class="p">,</span> <span class="n">exponent</span><span class="p">))</span>
-</span><span data-line="184">        <span class="ow">or</span> <span class="n">reference</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-</span><span data-line="185">        <span class="ow">or</span> <span class="n">A_cross</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-</span><span data-line="186">        <span class="ow">or</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span>
-</span><span data-line="187">        <span class="ow">or</span> <span class="n">UA</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-</span><span data-line="188">        <span class="ow">or</span> <span class="n">exponent</span> <span class="o">&lt;</span> <span class="mi">0</span>
-</span><span data-line="189">    <span class="p">):</span>
-</span><span data-line="190">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid fan/UA scaling input&quot;</span><span class="p">)</span>
-</span><span data-line="191">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_fan</span> <span class="o">/</span> <span class="n">reference</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span></div>
+</span><span data-line="147"><span class="k">def</span><span class="w"> </span><span class="nf">calc_UA_from_dV_fan</span><span class="p">(</span>
+</span><span data-line="148">    <span class="n">dV_fan</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="149">    <span class="n">dV_fan_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="150">    <span class="n">A_cross</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="151">    <span class="n">UA</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="152">    <span class="n">exponent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.71</span><span class="p">,</span>
+</span><span data-line="153">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="154">    <span class="n">dV_fan_ref</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="155"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="156"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate velocity-dependent UA via lumped scaling (Wang et al., 2000).</span>
+</span><span data-line="157">
+</span><span data-line="158"><span class="sd">    Parameters</span>
+</span><span data-line="159"><span class="sd">    ----------</span>
+</span><span data-line="160"><span class="sd">    dV_fan : float</span>
+</span><span data-line="161"><span class="sd">        Current fan flow rate [m³/s].</span>
+</span><span data-line="162"><span class="sd">    dV_fan_rated : float</span>
+</span><span data-line="163"><span class="sd">        Rated fan flow rate [m³/s].</span>
+</span><span data-line="164"><span class="sd">    A_cross : float</span>
+</span><span data-line="165"><span class="sd">        Heat exchanger cross-sectional area [m²].</span>
+</span><span data-line="166"><span class="sd">    UA : float</span>
+</span><span data-line="167"><span class="sd">        Rated UA value [W/K].</span>
+</span><span data-line="168"><span class="sd">    exponent : float</span>
+</span><span data-line="169"><span class="sd">        Exponent for velocity scaling. Default is 0.71 for a 1-row configuration.</span>
+</span><span data-line="170">
+</span><span data-line="171"><span class="sd">    Returns</span>
+</span><span data-line="172"><span class="sd">    -------</span>
+</span><span data-line="173"><span class="sd">    float</span>
+</span><span data-line="174"><span class="sd">        Scaled UA value [W/K].</span>
+</span><span data-line="175">
+</span><span data-line="176"><span class="sd">    Notes</span>
+</span><span data-line="177"><span class="sd">    -----</span>
+</span><span data-line="178"><span class="sd">    Instead of the Dittus-Boelter tube-side exponent (0.8), this uses</span>
+</span><span data-line="179"><span class="sd">    a simplified lumped exponent (default 0.71). This derivation assumes a 1-row</span>
+</span><span data-line="180"><span class="sd">    plain fin-and-tube configuration (N=1) where the Colburn j-factor</span>
+</span><span data-line="181"><span class="sd">    is proportional to Re^-0.29, leading to h ∝ V^0.71. Multi-row coils may</span>
+</span><span data-line="182"><span class="sd">    use exponents between 0.5 and 0.8 depending on configuration.</span>
+</span><span data-line="183"><span class="sd">    Reference: Wang et al. (2000), DOI: 10.1016/S0017-9310(99)00333-6</span>
+</span><span data-line="184"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="185">    <span class="n">reference</span> <span class="o">=</span> <span class="n">dV_fan_ref</span> <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dV_fan_rated</span>
+</span><span data-line="186">    <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">UA</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">A_cross</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="187">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference, UA and cross-sectional area are required&quot;</span><span class="p">)</span>
+</span><span data-line="188">    <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="189">        <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">dV_fan</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA</span><span class="p">,</span> <span class="n">exponent</span><span class="p">))</span>
+</span><span data-line="190">        <span class="ow">or</span> <span class="n">reference</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="191">        <span class="ow">or</span> <span class="n">A_cross</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="192">        <span class="ow">or</span> <span class="n">dV_fan</span> <span class="o">&lt;</span> <span class="mi">0</span>
+</span><span data-line="193">        <span class="ow">or</span> <span class="n">UA</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span data-line="194">        <span class="ow">or</span> <span class="n">exponent</span> <span class="o">&lt;</span> <span class="mi">0</span>
+</span><span data-line="195">    <span class="p">):</span>
+</span><span data-line="196">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid fan/UA scaling input&quot;</span><span class="p">)</span>
+</span><span data-line="197">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">UA</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_fan</span> <span class="o">/</span> <span class="n">reference</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span></div>
 
-</span><span data-line="192">
-</span><span data-line="193">
+</span><span data-line="198">
+</span><span data-line="199">
 <div class="viewcode-block" id="calc_HX_perf_for_target_heat">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.enex_functions.calc_HX_perf_for_target_heat">[docs]</a>
-</span><span data-line="194"><span class="k">def</span><span class="w"> </span><span class="nf">calc_HX_perf_for_target_heat</span><span class="p">(</span>
-</span><span data-line="195">    <span class="n">Q_ref_target</span><span class="p">,</span>
-</span><span data-line="196">    <span class="n">T_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="197">    <span class="n">T_ref_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="198">    <span class="n">A_cross</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="199">    <span class="n">UA_rated</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="200">    <span class="n">dV_fan_rated</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="201">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="202">    <span class="n">exponent</span><span class="o">=</span><span class="mf">0.71</span><span class="p">,</span>
-</span><span data-line="203">    <span class="c1"># Legacy parameters for backward compatibility</span>
-</span><span data-line="204">    <span class="n">T_ou_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="205">    <span class="n">T_ref_evap_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="206">    <span class="n">T_ref_cond_sat_l_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="207">    <span class="n">UA_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="208">    <span class="n">dV_fan_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="209">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="210">    <span class="n">dV_fan_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="211">    <span class="n">dV_fan_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="212">    <span class="n">dV_fan_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-</span><span data-line="213"><span class="p">):</span>
-</span><span data-line="214"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.</span>
-</span><span data-line="215">
-</span><span data-line="216"><span class="sd">    Given a target heat transfer duty, find the airflow that delivers it,</span>
-</span><span data-line="217"><span class="sd">    accounting for the velocity dependence of UA via the Wang et al. (2000)</span>
-</span><span data-line="218"><span class="sd">    fin-and-tube correlation (UA ∝ velocity^0.71).</span>
-</span><span data-line="219">
-</span><span data-line="220"><span class="sd">    Parameters</span>
-</span><span data-line="221"><span class="sd">    ----------</span>
-</span><span data-line="222"><span class="sd">    Q_ref_target : float</span>
-</span><span data-line="223"><span class="sd">        Target heat transfer rate [W] (always positive).</span>
-</span><span data-line="224"><span class="sd">    T_a_in_C : float, optional</span>
-</span><span data-line="225"><span class="sd">        Air-side inlet temperature [°C].</span>
-</span><span data-line="226"><span class="sd">    T_ref_sat_K : float, optional</span>
-</span><span data-line="227"><span class="sd">        Refrigerant saturation temperature [K] on the constant-temperature side.</span>
-</span><span data-line="228"><span class="sd">    A_cross : float</span>
-</span><span data-line="229"><span class="sd">        Heat-exchanger cross-sectional area [m²].</span>
-</span><span data-line="230"><span class="sd">    UA_rated : float</span>
-</span><span data-line="231"><span class="sd">        Rated UA [W/K].</span>
-</span><span data-line="232"><span class="sd">    dV_fan_rated : float</span>
-</span><span data-line="233"><span class="sd">        Rated fan volumetric flow rate [m³/s].</span>
-</span><span data-line="234">
-</span><span data-line="235"><span class="sd">    is_active : bool</span>
-</span><span data-line="236"><span class="sd">        Active flag.</span>
-</span><span data-line="237"><span class="sd">    exponent : float</span>
-</span><span data-line="238"><span class="sd">        UA scaling exponent (default: 0.71).</span>
-</span><span data-line="239">
-</span><span data-line="240"><span class="sd">    # Legacy aliases (optional)</span>
-</span><span data-line="241"><span class="sd">    T_ou_a_in_C : float, optional</span>
-</span><span data-line="242"><span class="sd">        Backward-compat alias for ``T_a_in_C``.</span>
-</span><span data-line="243"><span class="sd">    T_ref_evap_sat_K : float, optional</span>
-</span><span data-line="244"><span class="sd">        Backward-compat alias for ``T_ref_sat_K``.</span>
-</span><span data-line="245"><span class="sd">    T_ref_cond_sat_l_K : float, optional</span>
-</span><span data-line="246"><span class="sd">        Unused; kept only to preserve the older function signature.</span>
-</span><span data-line="247">
-</span><span data-line="248"><span class="sd">    Returns</span>
-</span><span data-line="249"><span class="sd">    -------</span>
-</span><span data-line="250"><span class="sd">    dict</span>
-</span><span data-line="251"><span class="sd">        Dictionary with the following keys:</span>
-</span><span data-line="252">
-</span><span data-line="253"><span class="sd">        - ``dV_fan`` — required air-side flow rate [m³/s]</span>
-</span><span data-line="254"><span class="sd">        - ``UA`` — overall heat-transfer coefficient at the solution point [W/K]</span>
-</span><span data-line="255"><span class="sd">        - ``T_a_mid_C`` — air temperature between the heat exchanger and the fan [°C]</span>
-</span><span data-line="256"><span class="sd">        - ``Q_air`` — heat-transfer rate at the operating point [W]</span>
-</span><span data-line="257"><span class="sd">        - ``epsilon`` — effectiveness at the operating point [–]</span>
-</span><span data-line="258"><span class="sd">        - ``converged`` — whether the solver converged</span>
+</span><span data-line="200"><span class="k">def</span><span class="w"> </span><span class="nf">calc_HX_perf_for_target_heat</span><span class="p">(</span>
+</span><span data-line="201">    <span class="n">Q_ref_target</span><span class="p">,</span>
+</span><span data-line="202">    <span class="n">T_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="203">    <span class="n">T_ref_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="204">    <span class="n">A_cross</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="205">    <span class="n">UA_rated</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="206">    <span class="n">dV_fan_rated</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="207">    <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="208">    <span class="n">exponent</span><span class="o">=</span><span class="mf">0.71</span><span class="p">,</span>
+</span><span data-line="209">    <span class="c1"># Legacy parameters for backward compatibility</span>
+</span><span data-line="210">    <span class="n">T_ou_a_in_C</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="211">    <span class="n">T_ref_evap_sat_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="212">    <span class="n">T_ref_cond_sat_l_K</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="213">    <span class="n">UA_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="214">    <span class="n">dV_fan_design</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="215">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="216">    <span class="n">dV_fan_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="217">    <span class="n">dV_fan_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="218">    <span class="n">dV_fan_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span data-line="219">    <span class="n">custom_fan_curve</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+</span><span data-line="220"><span class="p">):</span>
+</span><span data-line="221"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.</span>
+</span><span data-line="222">
+</span><span data-line="223"><span class="sd">    Given a target heat transfer duty, find the airflow that delivers it,</span>
+</span><span data-line="224"><span class="sd">    accounting for the velocity dependence of UA via the Wang et al. (2000)</span>
+</span><span data-line="225"><span class="sd">    fin-and-tube correlation (UA ∝ velocity^0.71).</span>
+</span><span data-line="226">
+</span><span data-line="227"><span class="sd">    Parameters</span>
+</span><span data-line="228"><span class="sd">    ----------</span>
+</span><span data-line="229"><span class="sd">    Q_ref_target : float</span>
+</span><span data-line="230"><span class="sd">        Target heat transfer rate [W] (always positive).</span>
+</span><span data-line="231"><span class="sd">    T_a_in_C : float, optional</span>
+</span><span data-line="232"><span class="sd">        Air-side inlet temperature [°C].</span>
+</span><span data-line="233"><span class="sd">    T_ref_sat_K : float, optional</span>
+</span><span data-line="234"><span class="sd">        Refrigerant saturation temperature [K] on the constant-temperature side.</span>
+</span><span data-line="235"><span class="sd">    A_cross : float</span>
+</span><span data-line="236"><span class="sd">        Heat-exchanger cross-sectional area [m²].</span>
+</span><span data-line="237"><span class="sd">    UA_rated : float</span>
+</span><span data-line="238"><span class="sd">        Rated UA [W/K].</span>
+</span><span data-line="239"><span class="sd">    dV_fan_rated : float</span>
+</span><span data-line="240"><span class="sd">        Rated fan volumetric flow rate [m³/s].</span>
+</span><span data-line="241">
+</span><span data-line="242"><span class="sd">    is_active : bool</span>
+</span><span data-line="243"><span class="sd">        Active flag.</span>
+</span><span data-line="244"><span class="sd">    exponent : float</span>
+</span><span data-line="245"><span class="sd">        UA scaling exponent (default: 0.71).</span>
+</span><span data-line="246">
+</span><span data-line="247"><span class="sd">    # Legacy aliases (optional)</span>
+</span><span data-line="248"><span class="sd">    T_ou_a_in_C : float, optional</span>
+</span><span data-line="249"><span class="sd">        Backward-compat alias for ``T_a_in_C``.</span>
+</span><span data-line="250"><span class="sd">    T_ref_evap_sat_K : float, optional</span>
+</span><span data-line="251"><span class="sd">        Backward-compat alias for ``T_ref_sat_K``.</span>
+</span><span data-line="252"><span class="sd">    T_ref_cond_sat_l_K : float, optional</span>
+</span><span data-line="253"><span class="sd">        Unused; kept only to preserve the older function signature.</span>
+</span><span data-line="254">
+</span><span data-line="255"><span class="sd">    Returns</span>
+</span><span data-line="256"><span class="sd">    -------</span>
+</span><span data-line="257"><span class="sd">    dict</span>
+</span><span data-line="258"><span class="sd">        Dictionary with the following keys:</span>
 </span><span data-line="259">
-</span><span data-line="260"><span class="sd">        All numeric values are ``np.nan`` when ``is_active=False``.</span>
-</span><span data-line="261"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="262">    <span class="c1"># Backward-compat: accept legacy parameter names.</span>
-</span><span data-line="263">    <span class="k">if</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="264">        <span class="n">T_a_in_C</span> <span class="o">=</span> <span class="n">T_ou_a_in_C</span>
-</span><span data-line="265">    <span class="k">if</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="266">        <span class="n">T_ref_sat_K</span> <span class="o">=</span> <span class="n">T_ref_evap_sat_K</span>
-</span><span data-line="267">    <span class="k">if</span> <span class="n">UA_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="268">        <span class="n">UA_rated</span> <span class="o">=</span> <span class="n">UA_design</span>
-</span><span data-line="269">    <span class="k">if</span> <span class="n">dV_fan_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="270">        <span class="n">dV_fan_rated</span> <span class="o">=</span> <span class="n">dV_fan_design</span>
-</span><span data-line="271">    <span class="k">if</span> <span class="n">dV_fan_design</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="272">        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-</span><span data-line="273">            <span class="s2">&quot;dV_fan_design is deprecated; use dV_fan_ref with independent min/max.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
-</span><span data-line="274">        <span class="p">)</span>
-</span><span data-line="275">    <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="276">        <span class="n">dV_fan_ref</span> <span class="o">=</span> <span class="n">dV_fan_rated</span>
-</span><span data-line="277">
-</span><span data-line="278">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span> <span class="ow">or</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="279">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="280">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="281">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="282">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="283">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="284">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="285">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="286">            <span class="c1"># Legacy keys</span>
-</span><span data-line="287">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="288">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="289">        <span class="p">}</span>
-</span><span data-line="290">
-</span><span data-line="291">    <span class="n">T_a_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_in_C</span><span class="p">)</span>
-</span><span data-line="292">    <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="293">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference flow is required&quot;</span><span class="p">)</span>
-</span><span data-line="294">    <span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span> <span class="o">=</span> <span class="n">resolve_fan_flow_limits</span><span class="p">(</span><span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">dV_fan_min</span><span class="p">,</span> <span class="n">dV_fan_max</span><span class="p">)</span>
-</span><span data-line="295">
-</span><span data-line="296">    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_ref_target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
-</span><span data-line="297">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="298">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-</span><span data-line="299">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="300">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="301">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
-</span><span data-line="302">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="303">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="304">            <span class="c1"># Legacy keys</span>
-</span><span data-line="305">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
-</span><span data-line="306">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="307">        <span class="p">}</span>
-</span><span data-line="308">
-</span><span data-line="309">    <span class="k">def</span><span class="w"> </span><span class="nf">_error_function</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
-</span><span data-line="310">        <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="311">            <span class="k">return</span> <span class="o">-</span><span class="n">Q_ref_target</span>
-</span><span data-line="312">        <span class="n">UA</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_rated</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
-</span><span data-line="313">        <span class="n">C_air</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_fan</span>
-</span><span data-line="314">        <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA</span> <span class="o">/</span> <span class="n">C_air</span><span class="p">)</span>
-</span><span data-line="315">        <span class="c1"># Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)</span>
-</span><span data-line="316">        <span class="n">Q_air</span> <span class="o">=</span> <span class="n">C_air</span> <span class="o">*</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span>
-</span><span data-line="317">        <span class="k">return</span> <span class="n">Q_air</span> <span class="o">-</span> <span class="n">Q_ref_target</span>
-</span><span data-line="318">
-</span><span data-line="319">    <span class="c1"># Physical solver bounds are independent of the fixed UA normalization.</span>
-</span><span data-line="320">
-</span><span data-line="321">    <span class="k">try</span><span class="p">:</span>
-</span><span data-line="322">        <span class="n">sol</span> <span class="o">=</span> <span class="n">root_scalar</span><span class="p">(</span><span class="n">_error_function</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="p">[</span><span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bisect&quot;</span><span class="p">)</span>
-</span><span data-line="323">        <span class="n">dV_sol</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">root</span>
-</span><span data-line="324">        <span class="n">converged</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span>
-</span><span data-line="325">    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-</span><span data-line="326">        <span class="n">err_min</span> <span class="o">=</span> <span class="n">_error_function</span><span class="p">(</span><span class="n">dV_min</span><span class="p">)</span>
-</span><span data-line="327">        <span class="n">err_max</span> <span class="o">=</span> <span class="n">_error_function</span><span class="p">(</span><span class="n">dV_max</span><span class="p">)</span>
-</span><span data-line="328">        <span class="c1"># Optimization loop penalty handling: return failure flag</span>
-</span><span data-line="329">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="330">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="331">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="332">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="333">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="334">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="335">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="336">            <span class="s2">&quot;min_limit&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">err_min</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span>
-</span><span data-line="337">            <span class="s2">&quot;max_limit&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">err_max</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">),</span>
-</span><span data-line="338">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="339">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-</span><span data-line="340">        <span class="p">}</span>
-</span><span data-line="341">
-</span><span data-line="342">    <span class="c1"># Final calculations at solved point</span>
-</span><span data-line="343">    <span class="n">UA_sol</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_sol</span><span class="p">,</span> <span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_rated</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
-</span><span data-line="344">    <span class="n">C_air_sol</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_sol</span>
-</span><span data-line="345">    <span class="n">eps_sol</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA_sol</span> <span class="o">/</span> <span class="n">C_air_sol</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV_sol</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="346">
-</span><span data-line="347">    <span class="c1"># Exit air temperature (before fan heat if any)</span>
-</span><span data-line="348">    <span class="n">T_a_mid_K</span> <span class="o">=</span> <span class="n">T_a_in_K</span> <span class="o">-</span> <span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">eps_sol</span>
-</span><span data-line="349">    <span class="n">T_a_mid_C</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_mid_K</span><span class="p">)</span>
-</span><span data-line="350">    <span class="n">Q_air_sol</span> <span class="o">=</span> <span class="n">C_air_sol</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_a_mid_K</span><span class="p">)</span>
-</span><span data-line="351">
-</span><span data-line="352">    <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="353">        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">converged</span><span class="p">,</span>
-</span><span data-line="354">        <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">dV_sol</span><span class="p">,</span>
-</span><span data-line="355">        <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">UA_sol</span><span class="p">,</span>
-</span><span data-line="356">        <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
-</span><span data-line="357">        <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
-</span><span data-line="358">        <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">eps_sol</span><span class="p">,</span>
-</span><span data-line="359">        <span class="s2">&quot;min_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="360">        <span class="s2">&quot;max_limit&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="361">        <span class="s2">&quot;fan_flow_ratio_to_ref&quot;</span><span class="p">:</span> <span class="n">dV_sol</span> <span class="o">/</span> <span class="n">dV_fan_ref</span><span class="p">,</span>
-</span><span data-line="362">        <span class="c1"># Legacy keys</span>
-</span><span data-line="363">        <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
-</span><span data-line="364">        <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
-</span><span data-line="365">    <span class="p">}</span></div>
+</span><span data-line="260"><span class="sd">        - ``dV_fan`` — required air-side flow rate [m³/s]</span>
+</span><span data-line="261"><span class="sd">        - ``UA`` — overall heat-transfer coefficient at the solution point [W/K]</span>
+</span><span data-line="262"><span class="sd">        - ``T_a_mid_C`` — air temperature between the heat exchanger and the fan [°C]</span>
+</span><span data-line="263"><span class="sd">        - ``Q_air`` — heat-transfer rate at the operating point [W]</span>
+</span><span data-line="264"><span class="sd">        - ``epsilon`` — effectiveness at the operating point [–]</span>
+</span><span data-line="265"><span class="sd">        - ``converged`` — whether the solver converged</span>
+</span><span data-line="266">
+</span><span data-line="267"><span class="sd">        All numeric values are ``np.nan`` when ``is_active=False``.</span>
+</span><span data-line="268"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="269">    <span class="c1"># Backward-compat: accept legacy parameter names.</span>
+</span><span data-line="270">    <span class="k">if</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="271">        <span class="n">T_a_in_C</span> <span class="o">=</span> <span class="n">T_ou_a_in_C</span>
+</span><span data-line="272">    <span class="k">if</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="273">        <span class="n">T_ref_sat_K</span> <span class="o">=</span> <span class="n">T_ref_evap_sat_K</span>
+</span><span data-line="274">    <span class="k">if</span> <span class="n">UA_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="275">        <span class="n">UA_rated</span> <span class="o">=</span> <span class="n">UA_design</span>
+</span><span data-line="276">    <span class="k">if</span> <span class="n">dV_fan_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="277">        <span class="n">dV_fan_rated</span> <span class="o">=</span> <span class="n">dV_fan_design</span>
+</span><span data-line="278">    <span class="k">if</span> <span class="n">dV_fan_design</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="279">        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="280">            <span class="s2">&quot;dV_fan_design is deprecated; use dV_fan_ref with independent min/max.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+</span><span data-line="281">        <span class="p">)</span>
+</span><span data-line="282">    <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="283">        <span class="n">dV_fan_ref</span> <span class="o">=</span> <span class="n">dV_fan_rated</span>
+</span><span data-line="284">
+</span><span data-line="285">    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span> <span class="ow">or</span> <span class="n">T_a_in_C</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">T_ref_sat_K</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="286">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="287">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="288">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="289">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="290">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="291">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="292">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="293">            <span class="c1"># Legacy keys</span>
+</span><span data-line="294">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="295">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="296">        <span class="p">}</span>
+</span><span data-line="297">
+</span><span data-line="298">    <span class="n">T_a_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_a_in_C</span><span class="p">)</span>
+</span><span data-line="299">    <span class="k">if</span> <span class="n">dV_fan_ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="300">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Fan reference flow is required&quot;</span><span class="p">)</span>
+</span><span data-line="301">    <span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span> <span class="o">=</span> <span class="n">resolve_fan_flow_limits</span><span class="p">(</span><span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">dV_fan_min</span><span class="p">,</span> <span class="n">dV_fan_max</span><span class="p">,</span> <span class="n">custom_curve</span><span class="o">=</span><span class="n">custom_fan_curve</span><span class="p">)</span>
+</span><span data-line="302">
+</span><span data-line="303">    <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_ref_target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+</span><span data-line="304">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="305">            <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+</span><span data-line="306">            <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="307">            <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="308">            <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
+</span><span data-line="309">            <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="310">            <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="311">            <span class="c1"># Legacy keys</span>
+</span><span data-line="312">            <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_in_C</span><span class="p">,</span>
+</span><span data-line="313">            <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span data-line="314">        <span class="p">}</span>
+</span><span data-line="315">
+</span><span data-line="316">    <span class="k">def</span><span class="w"> </span><span class="nf">_error_function</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">):</span>
+</span><span data-line="317">        <span class="k">if</span> <span class="n">dV_fan</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="318">            <span class="k">return</span> <span class="o">-</span><span class="n">Q_ref_target</span>
+</span><span data-line="319">        <span class="n">UA</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_fan</span><span class="p">,</span> <span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_rated</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
+</span><span data-line="320">        <span class="n">C_air</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_fan</span>
+</span><span data-line="321">        <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA</span> <span class="o">/</span> <span class="n">C_air</span><span class="p">)</span>
+</span><span data-line="322">        <span class="c1"># Heat transfer Q = C_air * epsilon * abs(T_air_in - T_ref_sat)</span>
+</span><span data-line="323">        <span class="n">Q_air</span> <span class="o">=</span> <span class="n">C_air</span> <span class="o">*</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span>
+</span><span data-line="324">        <span class="k">return</span> <span class="n">Q_air</span> <span class="o">-</span> <span class="n">Q_ref_target</span>
+</span><span data-line="325">
+</span><span data-line="326">    <span class="c1"># Clamp the flow demand, but do not mark an unmatched HX duty feasible.</span>
+</span><span data-line="327">    <span class="n">err_min</span><span class="p">,</span> <span class="n">err_max</span> <span class="o">=</span> <span class="n">_error_function</span><span class="p">(</span><span class="n">dV_min</span><span class="p">),</span> <span class="n">_error_function</span><span class="p">(</span><span class="n">dV_max</span><span class="p">)</span>
+</span><span data-line="328">    <span class="n">min_limit</span><span class="p">,</span> <span class="n">max_limit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">err_min</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span> <span class="nb">bool</span><span class="p">(</span><span class="n">err_max</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+</span><span data-line="329">    <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">custom_fan_curve</span> <span class="k">else</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">1e-5</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Q_ref_target</span><span class="p">))</span>
+</span><span data-line="330">    <span class="k">if</span> <span class="n">min_limit</span><span class="p">:</span>
+</span><span data-line="331">        <span class="n">dV_sol</span><span class="p">,</span> <span class="n">converged</span> <span class="o">=</span> <span class="n">dV_min</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">err_min</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">)</span>
+</span><span data-line="332">    <span class="k">elif</span> <span class="n">max_limit</span><span class="p">:</span>
+</span><span data-line="333">        <span class="n">dV_sol</span><span class="p">,</span> <span class="n">converged</span> <span class="o">=</span> <span class="n">dV_max</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">err_max</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">)</span>
+</span><span data-line="334">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="335">        <span class="n">sol</span> <span class="o">=</span> <span class="n">root_scalar</span><span class="p">(</span><span class="n">_error_function</span><span class="p">,</span> <span class="n">bracket</span><span class="o">=</span><span class="p">[</span><span class="n">dV_min</span><span class="p">,</span> <span class="n">dV_max</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;bisect&quot;</span><span class="p">)</span>
+</span><span data-line="336">        <span class="n">dV_sol</span><span class="p">,</span> <span class="n">converged</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span>
+</span><span data-line="337">
+</span><span data-line="338">    <span class="c1"># Final calculations at solved point</span>
+</span><span data-line="339">    <span class="n">UA_sol</span> <span class="o">=</span> <span class="n">calc_UA_from_dV_fan</span><span class="p">(</span><span class="n">dV_sol</span><span class="p">,</span> <span class="n">dV_fan_ref</span><span class="p">,</span> <span class="n">A_cross</span><span class="p">,</span> <span class="n">UA_rated</span><span class="p">,</span> <span class="n">exponent</span><span class="p">)</span>
+</span><span data-line="340">    <span class="n">C_air_sol</span> <span class="o">=</span> <span class="n">c_a</span> <span class="o">*</span> <span class="n">rho_a</span> <span class="o">*</span> <span class="n">dV_sol</span>
+</span><span data-line="341">    <span class="n">eps_sol</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">UA_sol</span> <span class="o">/</span> <span class="n">C_air_sol</span><span class="p">)</span> <span class="k">if</span> <span class="n">dV_sol</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="342">
+</span><span data-line="343">    <span class="c1"># Exit air temperature (before fan heat if any)</span>
+</span><span data-line="344">    <span class="n">T_a_mid_K</span> <span class="o">=</span> <span class="n">T_a_in_K</span> <span class="o">-</span> <span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_ref_sat_K</span><span class="p">)</span> <span class="o">*</span> <span class="n">eps_sol</span>
+</span><span data-line="345">    <span class="n">T_a_mid_C</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">T_a_mid_K</span><span class="p">)</span>
+</span><span data-line="346">    <span class="n">Q_air_sol</span> <span class="o">=</span> <span class="n">C_air_sol</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">T_a_in_K</span> <span class="o">-</span> <span class="n">T_a_mid_K</span><span class="p">)</span>
+</span><span data-line="347">
+</span><span data-line="348">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="349">        <span class="s2">&quot;converged&quot;</span><span class="p">:</span> <span class="n">converged</span><span class="p">,</span>
+</span><span data-line="350">        <span class="s2">&quot;dV_fan&quot;</span><span class="p">:</span> <span class="n">dV_sol</span><span class="p">,</span>
+</span><span data-line="351">        <span class="s2">&quot;UA&quot;</span><span class="p">:</span> <span class="n">UA_sol</span><span class="p">,</span>
+</span><span data-line="352">        <span class="s2">&quot;T_a_mid_C&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
+</span><span data-line="353">        <span class="s2">&quot;Q_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
+</span><span data-line="354">        <span class="s2">&quot;epsilon&quot;</span><span class="p">:</span> <span class="n">eps_sol</span><span class="p">,</span>
+</span><span data-line="355">        <span class="s2">&quot;min_limit&quot;</span><span class="p">:</span> <span class="n">min_limit</span><span class="p">,</span>
+</span><span data-line="356">        <span class="s2">&quot;max_limit&quot;</span><span class="p">:</span> <span class="n">max_limit</span><span class="p">,</span>
+</span><span data-line="357">        <span class="s2">&quot;fan_flow_ratio_to_ref&quot;</span><span class="p">:</span> <span class="n">dV_sol</span> <span class="o">/</span> <span class="n">dV_fan_ref</span><span class="p">,</span>
+</span><span data-line="358">        <span class="s2">&quot;capacity_margin_W&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span> <span class="o">-</span> <span class="n">Q_ref_target</span><span class="p">,</span>
+</span><span data-line="359">        <span class="s2">&quot;min_flow_capacity_margin_W&quot;</span><span class="p">:</span> <span class="n">err_min</span><span class="p">,</span>
+</span><span data-line="360">        <span class="s2">&quot;max_flow_capacity_margin_W&quot;</span><span class="p">:</span> <span class="n">err_max</span><span class="p">,</span>
+</span><span data-line="361">        <span class="c1"># Legacy keys</span>
+</span><span data-line="362">        <span class="s2">&quot;T_ou_a_mid&quot;</span><span class="p">:</span> <span class="n">T_a_mid_C</span><span class="p">,</span>
+</span><span data-line="363">        <span class="s2">&quot;Q_ou_air&quot;</span><span class="p">:</span> <span class="n">Q_air_sol</span><span class="p">,</span>
+</span><span data-line="364">    <span class="p">}</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

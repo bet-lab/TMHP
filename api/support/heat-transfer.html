@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-10-01T23:28:59+09:00" />
+    <meta property="article:modified_time" content="2026-10-03T17:02:52+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -151,6 +151,9 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.hx_fan">Air-side fan &amp; heat exchanger</a><ul>
+<li><a class="reference internal" href="#tmhp.hx_fan.is_generic_fan_curve"><code class="docutils literal notranslate"><span class="pre">is_generic_fan_curve()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.hx_fan.calc_ashrae_fan_power_ratio"><code class="docutils literal notranslate"><span class="pre">calc_ashrae_fan_power_ratio()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_operating_point"><code class="docutils literal notranslate"><span class="pre">calc_fan_operating_point()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
 </ul>
 </li>
@@ -402,23 +405,92 @@ velocity-dependent UA scaling law (<code class="docutils literal notranslate"><s
 curve (<code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan</span></code>). HX performance solving lives in
 <code class="docutils literal notranslate"><span class="pre">enex_functions</span></code> and HP schedule checking in <code class="docutils literal notranslate"><span class="pre">dynamic_context</span></code>.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="tmhp.hx_fan.calc_fan_power_from_dV_fan">
-<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate fan power using ASHRAE 90.1 VSD Curve.</p>
+<dt class="sig sig-object py" id="tmhp.hx_fan.is_generic_fan_curve">
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">is_generic_fan_curve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#is_generic_fan_curve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.is_generic_fan_curve" title="Link to this definition">¶</a></dt>
+<dd><p>Identify the unmodified ASHRAE Appendix G Method 2 correlation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.hx_fan.calc_ashrae_fan_power_ratio">
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_ashrae_fan_power_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_ashrae_fan_power_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_ashrae_fan_power_ratio" title="Link to this definition">¶</a></dt>
+<dd><p>Raw Appendix G Method 2 fit for table parity, not a flow controller.</p>
+<p>Table G3.1.3.15 Method 1 spans 0–1. Its x=0.1 row can be compared
+mathematically, but generic operating control separately enforces x&gt;=0.15.
+Source: <a class="reference external" href="https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90.1-2016/90_1_2016_be_bm_bn_bo_bp_br_bs_bu_bv_cf_cl_cm_cq_ct_cu_cv_cw_cy_20210324.pdf">https://www.ashrae.org/file%20library/technical%20resources/standards%20and%20guidelines/standards%20addenda/90.1-2016/90_1_2016_be_bm_bn_bo_bp_br_bs_bu_bv_cf_cl_cm_cq_ct_cu_cv_cw_cy_20210324.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>flow_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.hx_fan.calc_fan_operating_point">
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_fan_operating_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_fan_operating_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_fan_operating_point" title="Link to this definition">¶</a></dt>
+<dd><p>Clamp fan flow to its model/control limits, then compute power.</p>
+<p>Source: ANSI/ASHRAE/IES Standard 90.1-2016, Appendix G,
+Table G3.1.3.15, Method 2:
+P* = 0.0013 + 0.1470*x + 0.9506*x**2 - 0.0998*x**3.
+x = actual airflow / fixed reference airflow. The generic correlation is
+restricted to 0.15 &lt;= x &lt;= 1.0. ASHRAE 2025 Fundamentals Chapter 19
+cautions against extrapolation below a minimum ratio (example 0.15).
+90.1-2022 Addendum u is supporting multizone-VAV turndown evidence;
+its informative foreword discusses 16% power at 15% airflow, not a
+normative 16% requirement or a universal electrical floor. The amended
+body 6.5.3.2.1(b) removes the old 30% power sentence without adding 16%.
+Its airflow turndown provision includes the design minimum outdoor air.
+Evidence: references/fan_model/01_ashrae_90_1_fan_curve.png through
+04_ashrae_addendum_u_normative.png, captured in Windows Chrome via CDP.
+Generic 0.15–1.0 is a TMHP assumption, not a heat-pump requirement.
+Nondefault user coefficients define a custom curve with explicit limits.
+A raw demand is clamped here; HX solvers must separately close heat duty.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Current flow rate [m³/s].</p></li>
 <li><p><strong>fan_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – Must contain <code class="docutils literal notranslate"><span class="pre">fan_design_flow_rate</span></code> and <code class="docutils literal notranslate"><span class="pre">fan_design_power</span></code>.</p></li>
-<li><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
-<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, returns <code class="docutils literal notranslate"><span class="pre">np.nan</span></code>.</p></li>
+<li><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – VSD Curve coefficients (<code class="docutils literal notranslate"><span class="pre">c1</span></code> through <code class="docutils literal notranslate"><span class="pre">c5</span></code>).</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If False, reports zero actual flow and <code class="docutils literal notranslate"><span class="pre">np.nan</span></code> power.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Fan power [W].</p>
+<dd class="field-even"><p>Actual flow, ratio, power [W] and min/max limit flags.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.hx_fan.calc_fan_power_from_dV_fan">
+<span class="sig-prename descclassname"><span class="pre">tmhp.hx_fan.</span></span><span class="sig-name descname"><span class="pre">calc_fan_power_from_dV_fan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_fan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fan_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vsd_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hx_fan.html#calc_fan_power_from_dV_fan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan" title="Link to this definition">¶</a></dt>
+<dd><p>Electrical power [W] at the bounded fan operating point.</p>
+<p>ASHRAE Appendix G Method 2 uses its unchanged empirical coefficients
+only over 0.15–1.0 of reference airflow. See calc_fan_operating_point
+for actual flow and limit flags. No arbitrary electrical power floor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dV_fan</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>fan_params</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>vsd_coeffs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>is_active</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -860,7 +932,7 @@ protocol remains unchanged for legacy external backends.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 01, 2026
+  Last updated Oct 03, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

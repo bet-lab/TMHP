@@ -1,20 +1,31 @@
 {
-  "config_sha256": "8c964cfe4508fbc5bf93d59e60b9f767dde2416c0024c2fe002f6a43184c657a",
-  "source_commit": "5d4e60b279a17cf275d9777d8e817b981c577a2d",
+  "config_sha256": "028dfde51bd1c3a46fd951545294a17fdc2bf500602b7130310ad042211e49e9",
+  "source_commit": "5637ac974f506b16ef6f361b224a406c32315a99",
   "efficiency_module_sha256": "4a596b3870e90dadb653589e957a266566cee3c27609b2d81cb2db99ede4e68a",
-  "gshp_module_sha256": "ef1ec436500be7cb5656af930d13fb9f6f1919cf66958bf15deb1b9c4dc71649",
-  "study_script_sha256": "4b163ae480115cd0d230b4cd346222672490f055af1e3556754dd4e823cd1364",
+  "gshp_module_sha256": "33dbcfc150a1d58d9f5f3820938bab7ec59e91065ed90d6f471e198cab7934e4",
+  "study_script_sha256": "c169d910f5f56275468ab42c2c4ef351da770b5aaf08c55718c23bf2eef7ee3d",
   "objective": "E_tot [W] = E_cmp + E_pmp + E_iu_fan",
+  "source_tree_kind": "modified working tree; source_commit identifies base only",
+  "hydraulic_modules_sha256": {
+    "pump.py": "73aa0ac6177f646e59990170527572575dfaa89eb061afda296f266a5fbc80fb",
+    "ground_loop.py": "2eb9759a2b40c0063ba3937a0af81d2c40c5d7ac79d183a38f1f4ba818b89960",
+    "ground_flow_control.py": "c65d2b618a81435a2c8665172bb8afaf6de43e0eb6c46414b289f90dec6466c7",
+    "ground_source_heat_pump_boiler.py": "23967f265d7f441070883710aa9e4bf81bf9e74862378cfe1fbfecd6510efe27",
+    "hx_fan.py": "5422960902bfa1ae254501d559535d3fdf8ffba0ba23f7a4e090dda164aa9855",
+    "heat_exchanger.py": "17cad90a10cd1564062bcd1a08a6c05fb00ed2c72675c735e3fc2a428fa15a4d",
+    "air_source_heat_pump.py": "ac9121d66a8d6486fe4e3ae6fd22fef31275a4e810460e62ef4220db8d63746c",
+    "air_source_heat_pump_boiler.py": "3572e5b5c0ceaec2bef1f5bd3355147510690ca9ce8cb9752f4989cc3a65d2ad"
+  },
   "scalar_efficiencies": {
     "eta_cmp_isen": 0.7,
     "eta_cmp_vol": 0.9,
     "eta_cmp": 0.8
   },
   "reference": {
-    "m_dot_ref_rated_kg_s": 0.042827520975365484,
-    "ground_UA_rated_W_K": 800,
-    "load_UA_rated_W_K": 1600
+    "m_dot_ref_rated_kg_s": 0.04115565556816054,
+    "ground_UA_rated_W_K": 1600,
+    "load_UA_rated_W_K": 800
   },
-  "comparison_script_sha256": "419cb47d633e1aa6a487c274b19969af264987ccad033996b9f95fe55d8ce1a4",
-  "interpretation": "Matched UA800/1600 case isolates efficiency change; historical UA1440/640 study is archived separately."
+  "comparison_script_sha256": "305762c3fbc456293220e246294b5742018c5e195aeb72b00a07974a6b01614a",
+  "interpretation": "Matched UA1600/800 case isolates efficiency change; historical UA1440/640 study is archived separately."
 }

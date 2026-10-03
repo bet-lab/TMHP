@@ -1,194 +1,23 @@
 {
-  "archive_source_commit": "b11115bb30b0a7aaad9039be762b381fb5ddae12",
-  "archive_files_byte_identical": [
-    {
-      "path": "capacity_ua_revision_plan.md",
-      "sha256": "9b2a7ba204a055f54a3a9b1399076a78055ab2bd58bdb73c2da88db540a95a15"
-    },
-    {
-      "path": "validation_notes.md",
-      "sha256": "0474dbdefc5b1e5bc0f53723e399955633bda63fa663eaa0fb94736cc6c97ef8"
-    },
-    {
-      "path": "reference_flow_revision_plan.md",
-      "sha256": "fbf0bb87ab8e4e5ef359f89b956b1fb38a327499313f964661cbe8c0783e14ff"
-    },
-    {
-      "path": "ruff.toml",
-      "sha256": "71438827a4a30e63913378c31ffb38a9931529e780c85bf23dce909ba259d76c"
-    },
-    {
-      "path": "README.md",
-      "sha256": "d738bf4641a2054dcc0de7f49d81646ea23ee1a50ab8044253db332e1ad9744d"
-    },
-    {
-      "path": "revision_plan.md",
-      "sha256": "1d17d38c44a1d82334fb82b9ac512a820ad26ecaf53b80f46bbdabe35e3927ef"
-    },
-    {
-      "path": "figure/visual_validation.json",
-      "sha256": "5f14f0b1d4c606acfc5ca4027c0143fd58899a7df815aadd1764313eef5b6e90"
-    },
-    {
-      "path": "figure/fig_total_power_objective.pdf",
-      "sha256": "135c2c86fdad52cd3c43d125ae7d4b32ad74738ac05500cea79a958f3549d87a"
-    },
-    {
-      "path": "figure/fig_1_part_load.pdf",
-      "sha256": "46109dc46f3fc0cdf78ace3c6e5f41171040520af0483039173dde80bd13af6e"
-    },
-    {
-      "path": "figure/fig_hx_feasibility.png",
-      "sha256": "23a262939f41f5a985a3d8882e9629d143e8b320b07ecc8e13e4ff9dd9264499"
-    },
-    {
-      "path": "figure/fig_hx_feasibility.pdf",
-      "sha256": "07621a25ad5aac7a5e52ad1b29d38621c0bf37762756b23aa6ae1fe5cb6b3e50"
-    },
-    {
-      "path": "figure/fig_flow_max_sensitivity.png",
-      "sha256": "addde657cabc5912dd383c85a96bf3cd664ab4ce80991486321a3a166df2716d"
-    },
-    {
-      "path": "figure/mcp_review.json",
-      "sha256": "f17df9972311252baa7cc102ccde49efff30ff33a302a44a4dabdbc4e49f6ad1"
-    },
-    {
-      "path": "figure/fig_total_power_objective.png",
-      "sha256": "af7c383689aa8eaa87776145e81e7242ee8e9e092e2d339d7c0d51e6499ab03d"
-    },
-    {
-      "path": "figure/fig_1_part_load.png",
-      "sha256": "789285448d50fa1dcb25306eaf4fed3b293ab770484fb41b0731c0761719711a"
-    },
-    {
-      "path": "figure/fig_flow_max_sensitivity.pdf",
-      "sha256": "900f7c465e061d9e1cfec8d73fc68172e071c1b73b061f8eb30f98bacb2fcfda"
-    },
-    {
-      "path": "code/write_validation_notes.py",
-      "sha256": "1c7d9c801668caf04b823f3d975b96fbc0481ef22336bdfb443bdcbf699ded9c"
-    },
-    {
-      "path": "code/run_study.py",
-      "sha256": "f3b93ae71edf0438b9d28d093348729a3852adba46ab94b3c73b260edf24ecd5"
-    },
-    {
-      "path": "code/run_sensitivity.py",
-      "sha256": "8382912e86dddb2784b341951c3c010f2e3615bdfea60072587a15544f357240"
-    },
-    {
-      "path": "code/stress_hx.py",
-      "sha256": "1f6325a297e3e85968c20980e0770e8fd4a4e459f668dccb1cfd44c0e74cee83"
-    },
-    {
-      "path": "data/config.json",
-      "sha256": "2b5dc7805fe8c55efff19f2e5e8139aa982872ee1936a41e66dc397003b9b197"
-    },
-    {
-      "path": "results/components.csv",
-      "sha256": "4fd076de27bfda089c899d21d130bc52ba7645b63216e636da1e93e15f8a9fd3"
-    },
-    {
-      "path": "results/operating_points.csv",
-      "sha256": "f2daddc2febb724f684598731ea0f313f0e236f62b24acca8e485b98ab888775"
-    },
-    {
-      "path": "results/sensitivity_fingerprint.json",
-      "sha256": "d51f745876cf70686b0b929068fea5667f7a48a0c7734101fafbc2d61363c2b6"
-    },
-    {
-      "path": "results/ua_map.csv",
-      "sha256": "5ef12ae002645d8c9c7e5f04ac286985a3b5b339d091275b75ce4d6f8591ebd1"
-    },
-    {
-      "path": "results/flow_max_sensitivity_verification.json",
-      "sha256": "bab19c8e4907598e0780887128baceb22ff53c802cecc68494aad52439473e05"
-    },
-    {
-      "path": "results/study_execution_qa.json",
-      "sha256": "a90af49afcc3b36c8fb3a553e4e551b828e76f884c4798c923644c8c08946a5e"
-    },
-    {
-      "path": "results/reference.json",
-      "sha256": "dfa4f2edb8a6e188dca8e4d44ab5211096675d3ed129d3283e031aef4186d817"
-    },
-    {
-      "path": "results/case_fingerprint.json",
-      "sha256": "a20870450ec2a8e52ccbb04ce3dea42fdf45898b4680793099864aa9c08ecb46"
-    },
-    {
-      "path": "results/flow_max_sensitivity.csv",
-      "sha256": "deff24398fa1445aea04e35fd7351ff912f29a4a2ca914d5c4f5a8ad6d7c8609"
-    },
-    {
-      "path": "results/hx_stress.csv",
-      "sha256": "21c61ef0499361afbaaf3ecd5b2062f88f533ffc8f7529206c5598ee61328a65"
-    },
-    {
-      "path": "results/comparison.csv",
-      "sha256": "cb9aebb87c5259a09458bc1e3f4b8b261cf035482f62bfabb4a592e5ccbe6583"
-    },
-    {
-      "path": "results/flow_max_sensitivity_points.csv",
-      "sha256": "3c40241648d677f5318c320baee902ec68d2a2b4f6671fac76815fa9f6a0a930"
-    },
-    {
-      "path": "results/flow_max_sensitivity_selected.csv",
-      "sha256": "b56d75539ef1049605cf3179880a0ed6fdbeec67a627496316bd044ce0e8cb20"
-    },
-    {
-      "path": "results/normalization.csv",
-      "sha256": "fecb871246c9a0193c4e537991564e043a82541af5993431fb7b2715686d0a14"
-    },
-    {
-      "path": "results/verification.json",
-      "sha256": "a4f026ab4c3ce0ce3efea436fa810fa15fc81f9a6f611a7bb693e82f40cf275b"
-    },
-    {
-      "path": "results/simulation_results.csv",
-      "sha256": "73220b0828d59302fed37807ce6402fa22029666ac93fb102e3cf48a7b2840e7"
-    },
-    {
-      "path": "code/plot/review_mcp.py",
-      "sha256": "80a2d517453261df0bbbbfa19e731f4841f9e16506bfcf2a664c3c5f0dceb383"
-    },
-    {
-      "path": "code/plot/plot_ground_flow.py",
-      "sha256": "1564ec06281246a6cc54c9a784e488560769ef7067f1ea1c9638986da94ef817"
-    }
+  "execution_base_commit": "5637ac974f506b16ef6f361b224a406c32315a99",
+  "source_tree_kind": "modified working tree; source_commit identifies base only",
+  "all_execution_fingerprints_verified": true,
+  "post_execution_documentation_only_modules": [
+    "hx_fan.py"
   ],
-  "execution_fingerprints_match_config_and_executed_scripts": true,
-  "execution_model_commit": "5d4e60b279a17cf275d9777d8e817b981c577a2d",
-  "model_merge_commit": "411a73b04305989a9c86d186de318fba4d2d9b73",
-  "MCP_code_and_all_seven_plot_data_checks_passed": true,
-  "scientific_style_and_all_seven_images_visually_inspected": true,
-  "rated_UAs_W_K": {
-    "ground": 800,
-    "indoor": 1600
-  },
-  "unchanged_ground_HX_tolerance_checked": "max(0.01 W, 1e-5 * required duty)",
-  "matched_scalar_efficiency_comparison_points": 16,
-  "intermediate_callable_checkpoint_files_verified": 45,
+  "original_execution_source_hashes_preserved": true,
   "main_points": 184,
-  "main_feasible_points": 178,
-  "excluded_main_reasons": {
-    "ground_hx_capacity_insufficient": 6
-  },
-  "sensitivity_computed_points": 182,
-  "sensitivity_selected_points": 48,
-  "prescribed_fairness_points": 24,
-  "stress_rejected_points": 88,
-  "graph_axis_format_verified": {
-    "physical_units": "square brackets",
-    "fan_y_label": "Fan power [W]",
-    "compressor_y_label": "Comp. power [kW]",
-    "PLR_ticks": [
-      0.4,
-      0.6,
-      0.8,
-      1.0
-    ],
-    "panel_labels": "letters without parentheses"
-  }
+  "main_feasible_points": 161,
+  "requested_selected_points": 16,
+  "feasible_selected_points": 14,
+  "failed_PLRs": [
+    0.3
+  ],
+  "all_seven_scientific_figures_MCP_runtime_and_visual_checks_passed": true,
+  "constant24_and_control_limits_verified": true,
+  "fan_ratio_validity": [
+    0.15,
+    1
+  ],
+  "failed_points_excluded_from_savings": true
 }

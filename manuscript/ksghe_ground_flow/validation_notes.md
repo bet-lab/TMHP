@@ -1,67 +1,78 @@
-# Cooling study validation notes
+# Pump / fan model and flow validation
 
-- 적용조건: R410A, 정격 냉방 8 kW, 실내 26 °C, 초기 지중·고정 벽면 15 °C,
-  압축기 3효율은 공유 baseline v2026-09-24의 PR/회전수 함수, PLR 0.3–1.0.
-- 보어필드: 1×2, 깊이 100 m, 간격 6 m, 총 활성길이 200 m.
-  기준·정유량 24 L/min, 최적 범위 9.6–36 L/min (0.4–1.5×기준), 펌프 종합효율 0.60, 공통손실 0.
-- 정격 UA: 지중측 800 W/K, 실내측 1600 W/K. 사용자가 지정한 입력값이며 장비별 정밀 보정값으로 해석하지 않는다.
-- 냉매 기준유량: 새 정유량·PLR=1 기준점에서 0.0428812648 kg/s를 산출했다.
-  `reference.json`의 동일 기준 열상태를 고정하고 variable-UA를 켜면 유량·UA·전력·COP가 일치한다.
-  내부 접근온도를 다시 최적화한 전부하 상태는 기준 열상태와 구분한다.
-  재최적화 전부하 냉매유량/기준 = 1.0000000000,
-  실제 지중 UA = 800.000000 W/K이며 유량 의존식으로 검증했다.
-- 팬 기본값: 정격 공기유량 1.6 m³/s, 압력 60 Pa, 효율 0.60, 정격 전력 160 W.
-- 목적함수: 내부 실내 접근온도 및 외부 지중유량 모두 `E_tot [W]`를 최소화한다.
-  `E_cmp = E_cmp_ref / eta_em(PR,rps)`, 손실은 냉매 사이클 밖에서 소산한다.
-  `E_tot = E_cmp + E_pmp + E_iu_fan`; `E_cmp_plus_pmp`는 진단값이다.
-- COP: `COP_sys = Q_cooling / E_tot`, `COP_comp = Q_cooling / E_cmp`.
-  모든 성공점의 전달 냉방열량·전력 합·COP 정의·실내온도를 직접 대조했다.
-- 지중 정규화: `q′ = Q_bhe/(N_b H_b)`, 복원은 `Q_bhe=q′ N_b H_b`.
-  냉방 방열의 부호는 음수이며 `Q_bhe=−(Q_cond+E_pmp)`를 검증했다.
-- HX: ε–NTU만 사용, ε=1−exp(−UA/(m_w c_p)), Q_HX=ε m_w c_p |T_in−T_sat|.
-  주 사례 184점 중 178점 성공;
-  성공점의 최대 HX 잔차 0.0752 W,
-  온도 폐쇄 잔차 4.69e-06 K.
-- 별도 지중 UA=100 W/K 용량 검사: 88점 중
-  88점 거부, 실패 COP는 NaN이다.
-  실패 사유: {'ground_hx_capacity_insufficient': 88}.
-- 독립 21점 유량격자 대비 총전력 차이(최적 − 격자최소), PLR 0.3/0.6/1.0:
-  [-0.02365955693386468, -0.03160475785949757, -0.043037757715183034] W.
-- 유량 경계 활성 PLR: 없음. 경계에 선택된 점을 내부 최적점으로 해석하지 않는다.
-- 최적 유량: 기준의 0.540029–1.478416배
-  (12.960704–35.481992 L/min).
-- 총전력 절감: 0.001263–3.605635%;
-  시스템 COP 증가: 0.001263–3.740504%.
-- 펌프 전력 변화(최적/정유량 − 1): -81.2025–191.0842%.
-- 실내팬 전력 변화(최적/정유량 − 1): -33.8780–12.2674%.
-- 압축기 전력 변화(최적/정유량 − 1): -1.1337–0.9146%.
-- 압축기 압력비 바닥값 1.5, 상한 8, 속도 15–150 rev/s를 적용했다.
-  상용 장비 보정·배관 헤더·펌프 곡선·장기 열이력은 이 정상 예시의 경계 밖이다.
-- 모델 커밋: `5d4e60b279a17cf275d9777d8e817b981c577a2d`.
-  입력/실행 코드 SHA-256: `case_fingerprint.json` 및 `verification.json`.
-- 그림: `fig_1_part_load`는 1×4, 전 패널에 동일 PLR 눈금·전략별 선·표식을 사용한다.
-  생성 스타일은 `scientific`, MCP 코드/데이터 검수 기록은 `figure/mcp_review.json`,
-  렌더링 검사 기록은 `figure/visual_validation.json`이다.
+## Conditions and pressure selection
 
-## 고정효율 재계산 대비 (동일 UA800/1600 W/K, max=36 L/min)
+Reference and constant water command are 24 L/min = 0.0004 m³/s, with two parallel bores each carrying 12 L/min when active. Variable control limits are 9.6–36 L/min. The main constant strategy runs without a prescribed-flow override. Constructor, shared configuration and controller reject out-of-range constant setpoints. Lower/upper bounds are not reference definitions.
 
-| PLR | 전략 | 이전 압축기 W | 새 압축기 W | 이전 COP | 새 COP |
-| --- | --- | ---: | ---: | ---: | ---: |
-| 0.3 | constant | 234.790 | 232.741 | 9.6254 | 9.7047 |
-| 0.3 | optimal | 236.824 | 234.869 | 9.8982 | 9.9743 |
-| 1.0 | constant | 835.917 | 817.242 | 8.1509 | 8.2639 |
-| 1.0 | optimal | 826.687 | 807.976 | 8.4286 | 8.5730 |
+Pump: dp_total = dp_BHE(actual branch flow, 2H) + dp_aux_ref*(actual total flow/reference total flow)^n; P_pump = dp_total*V/eta. No static borehole head or tuned friction factor is added. Default auxiliary loss is zero, exponent 2. Deprecated dp_common becomes a warned reference-loss alias; direct low-level nonzero-loss calls require an explicit reference flow.
 
-이번 지중/실내 UA는 사용자 지정 800/1600 W/K이다. 기준 24 L/min, 최대 36 L/min, 실내 접근온도 범위 1–25 K를 유지했다. 이전 UA1440/640 결과는 archive에 보관하고, 효율 비교는 같은 새 UA에서 고정효율을 재계산했다. 이전 계산은 eta_is=.70, eta_v=.90, eta_em=.80을 실제 적용했다. 효율 미적용 사례로 잘못 표기하지 않았다. 새 효율은 출하 baseline만 사용하며 상세 비교·PR floor·회전수·효율 표는 compressor_efficiency_validation.md에 기록했다.
+[ASHRAE source archive](references/gs_hp_pump_pressure_drop/sources.md) verifies hydronic flow² resistance and GSHP common/HX/piping losses. The 2023 Applications SI Ch35 Table8 pressure boundary of 138 kPa at .05 L/s/kW anchors a scenario, not measured hardware or a mandatory design value. At 8 kW the flow is 24 L/min. BHE-only reference loss is 16.973153 kPa; auxiliary reference loss is 121.026847 kPa. The resulting constant pump input is 92 W (eta=.60), compared with the previous BHE-only 11.315435 W at the same water flow.
 
-## Reference / control maximum 민감도
+## Fan validity and failed operating points
 
-- 기준과 정유량은 항상 24 L/min이며 최대유량만 24/28.8/36 L/min이다. 동일 실제 유량 24 L/min의 UA·Rb*·펌프·압축기·팬·총전력이 24개 prescribed 점과 각 constant 점에서 일치한다.
-- 실내 접근온도 탐색 범위는 1–25 K이다. 기존 reference/max 리팩터링에서 확정한 범위와 기준 유량을 유지했고 새 UA800/1600을 모든 상한에서 동일하게 적용했다.
-| Max/ref | 최적 유량 L/min | 상한 활성 PLR | 최대 총전력 절감 % | 최대 COP 증가 % |
-| --- | --- | --- | ---: | ---: |
-| 1 | 12.9625–24.0000 | [0.8, 0.9, 1.0] | 2.7024 | 2.7775 |
-| 1.2 | 12.9603–28.8000 | [0.9, 1.0] | 2.7024 | 2.7775 |
-| 1.5 | 12.9607–35.4820 | [] | 3.6056 | 3.7405 |
+The unchanged ASHRAE Appendix G Method2 equation is P*=.0013+.147x+.9506x²−.0998x³, x=actual/reference airflow. Generic validity/control is 0.15–1.0, with actual airflow clamp and min/max flags. Reference/min/max are 1.6/.24/1.6 m³/s, reference pressure 60 Pa, efficiency .60, reference electrical power 160 W. At the lower airflow limit the unchanged equation predicts 7.104268 W; this is a curve prediction, not a measured electrical floor. No arbitrary power floor was added.
 
-- 상한에 붙은 점은 주어진 제어 구간의 최소값이며 무제약 내부 최적점이 아니다. 상·하한 사이에 놓인 점도 수치 탐색 결과로 구분하여 기록한다. 펌프 모델은 실제 유량의 Darcy–Weisbach 압력손실×유량/효율이며 병렬 보어홀의 분지유량·왕복 2H를 사용한다. 공통 배관손실 0, 펌프 효율 .60, 물/냉매/상수 UA 저항분율 .5/.3/.2 및 지수 .8은 미보정 가정이다. 헤더·펌프 곡선·장비별 UA 보정 자료가 없으므로 상한 결과를 실제 하드웨어의 최적 유량으로 일반화하지 않는다. 내부·외부 최적화와 Rb 보간의 수치 해상도에 따라 저부하 최적 유량은 조금 달라진다. 상한 민감도에서 확장 범위의 총전력 비증가는 0.5 W 허용오차로 검증했다.
+[Fan source archive](references/fan_part_load/sources.md) contains the original equation, Handbook minimum-ratio caution (.15 example), and Addendum u turndown. The informative Addendum foreword discusses 15% airflow / 16% power for multizone VAV; the amended body deletes the old 30% sentence without inserting 16%. Its airflow provision includes minimum outdoor air. This is not a normative 16% requirement or a universal heat-pump fan law. A custom curve can declare limits beyond reference; UA normalization/scaling remains independent.
+
+PLR .3 has no feasible steady operating point under the unchanged PR≥1.5 constraint, ground/indoor UA1600/800, water limits and new fan minimum. Per user decision, conditions are retained and cycling is not introduced. Requested failures are kept in CSV with converged=False, hp_is_on=False, explicit failure_reason, zero delivered power/flow and NaN COP. Failed-state indoor temperatures/airflow describe a rejected candidate, not running equipment. They are excluded from plotted performance and paired savings. This prevents a failed 0 W result from appearing as a low-power optimum.
+
+## Requested operating points
+
+| PLR | Strategy | Status | Water L/min | Pump W | Fan W | Air m³/s | Reason |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| 0.3 | constant | infeasible | — | — | — | — | load_hx_capacity_insufficient |
+| 0.3 | optimal | infeasible | — | — | — | — | load_hx_capacity_insufficient |
+| 0.4 | constant | feasible | 24.00000 | 92.00000 | 8.87346 | 0.279513 | none |
+| 0.4 | optimal | feasible | 9.60000 | 6.11180 | 11.26388 | 0.327619 | none |
+| 0.5 | constant | feasible | 24.00000 | 92.00000 | 15.29220 | 0.399133 | none |
+| 0.5 | optimal | feasible | 10.69802 | 8.41435 | 20.23388 | 0.475820 | none |
+| 0.6 | constant | feasible | 24.00000 | 92.00000 | 25.24163 | 0.545082 | none |
+| 0.6 | optimal | feasible | 12.33526 | 12.81599 | 33.36442 | 0.645045 | none |
+| 0.7 | constant | feasible | 24.00000 | 92.00000 | 40.43002 | 0.723113 | none |
+| 0.7 | optimal | feasible | 14.08888 | 18.98746 | 52.51436 | 0.843266 | none |
+| 0.8 | constant | feasible | 24.00000 | 92.00000 | 63.44026 | 0.941338 | none |
+| 0.8 | optimal | feasible | 15.92815 | 27.30029 | 79.93090 | 1.075813 | none |
+| 0.9 | constant | feasible | 24.00000 | 92.00000 | 98.17772 | 1.210730 | none |
+| 0.9 | optimal | feasible | 17.95128 | 38.89978 | 118.06672 | 1.345613 | none |
+| 1.0 | constant | feasible | 24.00000 | 92.00000 | 150.64046 | 1.546638 | none |
+| 1.0 | optimal | feasible | 21.81124 | 69.28254 | 159.85600 | 1.600000 | none |
+
+## Paired feasible comparison
+
+| PLR | Optimal water L/min | BHE / aux / total kPa | Total saving % | COP gain % | Water bound |
+| --- | ---: | --- | ---: | ---: | --- |
+| 0.4 | 9.60000 | 3.55495 / 19.36430 / 22.91924 | 20.03897 | 25.06092 | min |
+| 0.5 | 10.69802 | 4.26788 / 24.04730 / 28.31518 | 15.14150 | 17.84323 | interior |
+| 0.6 | 12.33526 | 5.43207 / 31.97095 / 37.40302 | 11.13245 | 12.52701 | interior |
+| 0.7 | 14.08888 | 6.80953 / 41.70733 / 48.51686 | 8.06138 | 8.76822 | interior |
+| 0.8 | 15.92815 | 8.39508 / 53.30767 / 61.70275 | 5.43102 | 5.74292 | interior |
+| 0.9 | 17.95128 | 10.30119 / 67.70955 / 78.01073 | 3.15171 | 3.25427 | interior |
+| 1.0 | 21.81124 | 14.39400 / 99.95856 / 114.35256 | 1.04339 | 1.05440 | interior |
+
+## Auxiliary-loss sensitivity
+
+Every multiplier has its own recomputed full-load refrigerant reference; all cases use the new 15% fan lower bound. Paired savings use only common feasible PLRs.
+
+| Multiplier | Aux ref kPa | Paired PLRs | Optimal water range L/min | Max saving % | Max COP gain % |
+| --- | ---: | --- | --- | ---: | ---: |
+| 0 | 0.00000 | [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] | 14.32217–31.85757 | 2.73839 | 2.81549 |
+| 0.75 | 90.77014 | [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] | 9.69231–21.83219 | 16.22618 | 19.36903 |
+| 1 | 121.02685 | [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] | 9.60000–21.81124 | 20.03897 | 25.06092 |
+| 1.25 | 151.28356 | [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] | 9.60000–20.80294 | 23.49413 | 30.70893 |
+
+Base feasible optimal flow: 9.60000–21.81124 L/min. Lower-bound PLRs: [0.4]; upper-bound PLRs: []. The pump head scenario changes the hydraulic/thermal tradeoff; these are scenario results, not measured savings.
+
+## Closure, optimization and provenance
+
+- Main sweep: 184 requested, 161 feasible. Selected: 16 requested, 14 feasible. Paired PLRs: [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]. Failures: [{'kind': 'constant', 'plr': 0.3, 'failure_reason': 'load_hx_capacity_insufficient'}, {'kind': 'optimal', 'plr': 0.3, 'failure_reason': 'load_hx_capacity_insufficient'}].
+- All successful points satisfy requested cooling, both HX duties, BHE fluid-temperature closure, pressure decomposition/scaling, water/fan limits, compressor speed/PR bounds, efficiency and mass-flow parity. Maximum ground HX residual 0.06970431 W; temperature residual 0.0000016350 K; existing tolerances retained.
+- Total power = compressor + pump + indoor fan. COP_comp = delivered indoor heat / compressor input; COP_sys = delivered indoor heat / total input. Ground rejection includes refrigerant work and pump heat once; motor/drive losses are external to refrigerant duty.
+- Shared compressor baseline v2026-09-24; rated refrigerant flow 0.0411887175 kg/s. Physical ground/indoor UA1600/800 W/K, variable UA/Rb* and epsilon–NTU retained. Main optimizer minus independent-grid gaps: [-0.005384996480302107, -0.10582181434949689] W (≤.5 W). Infeasible PLRs require the independent scan to contain no feasible point.
+- Fresh extra computations: 237 auxiliary-loss points, 182 flow-maximum sensitivity points, 88 undersized-HX stress points, and 16 matched scalar-efficiency points. Failure masks are preserved throughout comparisons.
+- Fingerprints record original base commits and actual executed working-tree module/config/script hashes. Historical paper UA800/1600 differs from the active study UA1600/800; paper before/after includes that stale-placement correction. New auxiliary sensitivity at shared fan/UA conditions isolates pressure-loss effects. Historical pump-only and original active results are archived separately.
+- Final validation: 344 passed, 3 skipped. Native one-page HWPX/PDF and new 1×4 figure are checked against fresh CSVs; Linux font-substituted PDF rendering is used.
+- Original ASHRAE passages were verified and highlighted; Chrome Bridge is unavailable, so the specified Bridge capture remains unfulfilled. Chromium/Poppler fallback is explicitly recorded. Remaining calibration needs: installed HX/common pressure curve, fan hardware map, pump efficiency map and UA fractions.
+
+## Fan source follow-up — 2026-10-03
+
+Four original Windows Chrome PDF/HTML highlights, including the normative body, are in [the updated archive](references/fan_part_load/windows_chrome_20261003/sources.md). Direct CDP access used the user-opened Chrome; no Chrome Bridge MCP was registered. Fan source documentation changed after numerical execution; the executable AST is unchanged and original execution hashes are preserved in source_documentation_changes.json.

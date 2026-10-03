@@ -29,7 +29,7 @@ def main():
     fingerprint = json.loads((HERE / "data/case_fingerprint.json").read_text())
     assert hashlib.sha256((HERE / "data/config.json").read_bytes()).hexdigest() == fingerprint["config_sha256"]
     assert fingerprint["source_commit"] == verification["source_commit"]
-    assert reference["ground_UA_rated_W_K"] == 800 and reference["load_UA_rated_W_K"] == 1600
+    assert reference["ground_UA_rated_W_K"] == 1600 and reference["load_UA_rated_W_K"] == 800
     config = json.loads((HERE / "data/config.json").read_text())
     inputs = config["model"]
     assert inputs["ground_flow_ref_lpm"] == inputs["ground_flow_constant_lpm"] == 24
@@ -48,12 +48,44 @@ def main():
     assert verification["efficiency_and_mass_flow_checks"]
     with (HERE / "data/simulation_results.csv").open() as stream:
         rows = list(csv.DictReader(stream))
-    assert len(rows) == 16
+    assert verification["constant_flow_24_lpm_checked"]
+    assert verification["aux_pressure_scaling_checked"]
+    assert verification["all_feasible_water_and_fan_flows_within_bounds_checked"]
+    assert math.isclose(
+        inputs["dp_aux_ref"], 138000 - config["aux_pressure_drop_selection"]["BHE_ref_Pa"], abs_tol=1e-9
+    )
+    assert inputs["dp_aux_exponent"] == 2.0
+    assert "121.03 kPa" in manuscript["abstract"][2]
+    requested_rows = rows
+    assert len(requested_rows) == 16
+    failed_rows = [r for r in requested_rows if r["converged"] == "False"]
+    assert len(failed_rows) == 2 and {float(r["plr"]) for r in failed_rows} == {0.3}
+    for r in failed_rows:
+        assert (not r["cop_sys [-]"] or math.isnan(float(r["cop_sys [-]"]))) and float(r["E_tot [W]"]) == 0
+        assert r["failure_reason"] != "none"
+    rows = [r for r in requested_rows if r["converged"] == "True"]
+    assert len(rows) == manuscript["claims"]["feasible_selected_points"] == verification["feasible_selected_points"]
     baseline = {float(r["plr"]): r for r in rows if r["kind"] == "constant"}
     optimum = {float(r["plr"]): r for r in rows if r["kind"] == "optimal"}
-    assert set(baseline) == set(optimum) == {i / 10 for i in range(3, 11)}
+    assert set(baseline) == set(optimum) == {i / 10 for i in range(4, 11)}
     for row in rows:
         assert row["converged"] == row["hx_feasible"] == "True"
+        flow = float(row["ground_flow_L_min"])
+        assert 9.6 - 1e-10 <= flow <= 36 + 1e-10
+        if row["kind"] == "constant":
+            assert math.isclose(flow, 24, abs_tol=1e-12)
+            assert math.isclose(float(row["E_pmp [W]"]), 92, abs_tol=1e-9)
+        dp_bhe, dp_aux, dp_total = (
+            float(row[k])
+            for k in (
+                "ground_pressure_drop_bhe [Pa]",
+                "ground_pressure_drop_aux [Pa]",
+                "ground_pressure_drop_total [Pa]",
+            )
+        )
+        assert math.isclose(dp_total, dp_bhe + dp_aux, rel_tol=1e-12)
+        assert math.isclose(dp_aux, inputs["dp_aux_ref"] * (flow / 24) ** 2, rel_tol=1e-12)
+        assert inputs["dV_iu_fan_a_min"] <= float(row["dV_iu_a [m3/s]"]) <= inputs["dV_iu_fan_a_max"]
         assert row["mode"] == "cooling" and float(row["T_a_room [°C]"]) == 26
         total = sum(float(row[k]) for k in ("E_cmp [W]", "E_pmp [W]", "E_iu_fan [W]"))
         assert math.isclose(total, float(row["E_tot [W]"]), rel_tol=1e-10)
@@ -148,7 +180,8 @@ def main():
         assert line.split()[-5] == "yes", line
     mcp = json.loads((HERE / "figure/mcp_review.json").read_text())
     assert mcp["calls"][0]["result"] == []
-    assert len(mcp["calls"]) == 16
+    assert len(mcp["calls"]) == 15
+    assert mcp["skipped_infeasible_plrs"] == [0.3]
     assert all(call["result"].startswith("✅ Data structure valid") for call in mcp["calls"][1:])
     assert {call["figure"] for call in mcp["calls"][1:]} == {
         "fig_1_part_load",
@@ -170,12 +203,16 @@ def main():
             == hashlib.sha256((HERE / f"figure/fig_1_part_load.{suffix}").read_bytes()).hexdigest()
         )
     sensitivity = json.loads((HERE / "data/flow_max_sensitivity_verification.json").read_text())
-    assert sensitivity["all_selected_feasible"] and sensitivity["identical_actual_point_component_physics"]
+    assert (
+        sensitivity["failed_points_excluded_from_savings"] and sensitivity["identical_actual_point_component_physics"]
+    )
     report = {
         "one_page": True,
         "figures": 1,
         "panels": 4,
-        "selected_points": len(rows),
+        "requested_selected_points": len(requested_rows),
+        "feasible_selected_points": len(rows),
+        "failed_selected_points_excluded": len(failed_rows),
         "claims_match_csv": calculated,
         "upper_bound_plrs": bounds,
         "lower_bound_plrs": lower_bounds,

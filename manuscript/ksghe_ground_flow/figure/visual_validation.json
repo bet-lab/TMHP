@@ -18,116 +18,45 @@
   "visual_inspection": {
     "fig_1_part_load": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "04f6f90f09be001d88cf7c3320632cc8f8498f7c15e469b1637323de75c23e92",
-      "pdf_sha256": "e8124df88ba50532d2d24571de003f35830a99f7a860ed6b081ef0daa7cd9cea",
-      "size_px": [
-        3968,
-        1086
-      ],
-      "nonwhite_bbox_px": [
-        61,
-        44,
-        3945,
-        1054
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "9ba02698f51df563924ac234d82199006eef15aec4ac76bb4a0ba5a708cf45f6",
+      "pdf_sha256": "d4c35398db8ff0fa428b86fb530b4bea1bbace27ded66d7f299921764104d086"
     },
     "fig_total_power_objective": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "d1ec0720f1597dabdceeec55eea81add2d6444f805eb1eac61ca426fb6361429",
-      "pdf_sha256": "9b5b336db42c2a36a07d838ba17cda4161b5d7f6365ed91863b066f9ed551791",
-      "size_px": [
-        3070,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        47,
-        46,
-        3026,
-        1716
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "b7635f86d3eca47c7387e91dd65b7ebee1373c006142d68fe48ba053da90a846",
+      "pdf_sha256": "58aee3819a26c42b08a8ecac72fae40248938358dfab811e0bb242706d5fbe74"
     },
     "fig_hx_feasibility": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
       "png_sha256": "23a262939f41f5a985a3d8882e9629d143e8b320b07ecc8e13e4ff9dd9264499",
-      "pdf_sha256": "8f9a178cab47f2424cd23113e5ec8d181771fb625b0f76555597c28d7301b890",
-      "size_px": [
-        3070,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        55,
-        48,
-        2729,
-        1716
-      ]
+      "pdf_sha256": "0ced12546183131be25add00fdd5512d12764721ff3340b7a4678c74ea664f14"
     },
     "fig_flow_max_sensitivity": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "1f506015d8ec27642fa8fc6262c69851a535fc917bb7fc2ad66c43b7196c032e",
-      "pdf_sha256": "c1f06b0cbfa4c6d539092de5483eccce4cd73e2c1a98df489310cdf06596ea00",
-      "size_px": [
-        3968,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        47,
-        33,
-        3923,
-        1710
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "554d4da5f966be76ebc1213f4a1d00bc9b86992e4799bb7e50f5691d579f480d",
+      "pdf_sha256": "690432d6af311ba5cfa04e080d9e81d0c8a954ad406f604a0854164ce5836d35"
     },
     "fig_compressor_speed": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "dbee9cb8b65e04eb21782f1f354b7996b70e46248aa518790300b6a6b5df3db9",
-      "pdf_sha256": "9c1cf3b22a3d4983de0f1ff16523c1f9c247999d8695e15ac258eafac2b6bf2f",
-      "size_px": [
-        3070,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        46,
-        33,
-        3026,
-        1710
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "56a7c1cc473437748000b7370be574154b8b240450dc4e5692edc4d81cf7518d",
+      "pdf_sha256": "73213654f4ee31ec57c338f2507dc90d92e29faf2afad2b9f0ea9b773746046f"
     },
     "fig_compressor_efficiencies": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "02955341179d20ceca541f31727e40733e0ba407c6c6b8463312949fc0a536c8",
-      "pdf_sha256": "279b32868b16e8f9534530dbf935a3cfb2ebdd682684828a6c2ad0d1bab5d0ac",
-      "size_px": [
-        3968,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        95,
-        33,
-        3924,
-        1710
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "b78afc2aa4817228b46f34369f33228f0a12e859f07f2ee371744a6852587017",
+      "pdf_sha256": "259fa36060238b18d39dbfe7dcc0565e6ebcf86a48554f2ba5d523d33a5b6baa"
     },
     "fig_compressor_pressure_ratio": {
       "checked": true,
-      "labels_legends_units_and_marker_positions": "Final PNG inspected: no clipping/overlap; readable axes, legends and markers. Bracket units and PLR .4/.6/.8/1. Paper legend uses Variable-flow; a\u2013d without parentheses. Efficiency panels spaced apart; hollow development markers indicate PR floor. PR plot shows its physical 1.5 value without magnifying floating-point noise.",
-      "png_sha256": "776d8108c209371c08fef05a5191fce52ce6e3354f1233335405974c2bb8a34f",
-      "pdf_sha256": "0e083627f47f8fd6177d86aa62db8e73395c4ed6eb3290b0cbfd33a764411c10",
-      "size_px": [
-        3070,
-        1771
-      ],
-      "nonwhite_bbox_px": [
-        47,
-        33,
-        3026,
-        1710
-      ]
+      "comments": "Labels and legends readable; no clipping/overlap. Failed PLR .3 excluded from operating traces. PR axis does not magnify the small near-floor excursion.",
+      "png_sha256": "d599c58371e17b0b8f8e65f7be0ef058c148477dd3df7e3d3c5baac552b9d71f",
+      "pdf_sha256": "ac013f0fdd68245e7bfe77c22aa639ee3a3045bb1582c3c5b882f02dcaa92351"
     }
-  },
-  "paper_figure_pdf_raster_inspected": true
+  }
 }

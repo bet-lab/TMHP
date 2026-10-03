@@ -2,18 +2,22 @@
   "one_page": true,
   "figures": 1,
   "panels": 4,
-  "selected_points": 16,
+  "requested_selected_points": 16,
+  "feasible_selected_points": 14,
+  "failed_selected_points_excluded": 2,
   "claims_match_csv": {
-    "minimum_flow_percent": 54.002934135996085,
-    "maximum_flow_percent": 147.84163402300481,
-    "maximum_pump_saving_percent": 81.20245891165085,
-    "maximum_fan_increase_percent": 12.267425771625229,
-    "maximum_total_power_saving_percent": 3.605634892147991,
-    "maximum_system_COP_gain_percent": 3.7405038023890613,
-    "m_dot_ref_rated_kg_s": 0.04288126475661589
+    "minimum_flow_percent": 40.0,
+    "maximum_flow_percent": 90.88017120568018,
+    "maximum_pump_saving_percent": 93.35674114327402,
+    "maximum_fan_increase_percent": 32.31499348138938,
+    "maximum_total_power_saving_percent": 20.03897055038185,
+    "maximum_system_COP_gain_percent": 25.060921161611628,
+    "m_dot_ref_rated_kg_s": 0.04118871753307563
   },
   "upper_bound_plrs": [],
-  "lower_bound_plrs": [],
+  "lower_bound_plrs": [
+    0.4
+  ],
   "total_power_and_COP_checked": true,
   "callable_baseline_and_mass_flow_checked": true,
   "fixed_reference_and_explicit_flow_bounds_checked": true,
@@ -22,7 +26,7 @@
   "authors_affiliations_acknowledgement_present": true,
   "pdf_fonts_embedded": true,
   "scientific_style_and_MCP_checks": true,
-  "hwpx_sha256": "6ea1b821a333259948a7dca9c995af7a540ff527f7d8e5a2ba83d53389694bef",
-  "pdf_sha256": "d1d6c6533f14f6160da6f198feccae722794c959a0c877494b0905d192a0618d",
+  "hwpx_sha256": "0763d6d44d532d7ce5bfb6d360f0cf9b744948d69d9788b7ff2dade78f393673",
+  "pdf_sha256": "215c3cef23f63cbe44ca8e12e912ac2763d4e8f1deb156908a6c173cec1b89b8",
   "renderer_limit": "Linux pyhwpxlib/rhwp and font substitutes; not tested in Hancom Office"
 }

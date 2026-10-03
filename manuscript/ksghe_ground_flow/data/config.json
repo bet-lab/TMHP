@@ -1,5 +1,5 @@
 {
-  "description": "Fixed 24 L/min water reference and constant setpoint; explicit 9.6–36 L/min variable-flow control interval.",
+  "description": "Fixed 24 L/min water reference and constant setpoint; explicit 9.6\u201336 L/min variable-flow control interval.",
   "model": {
     "ref": "R410A",
     "hp_capacity": 8000,
@@ -21,7 +21,6 @@
     "rho_s": 2000,
     "Ts": 15,
     "pump_efficiency": 0.6,
-    "dp_common": 0,
     "pipe_roughness": 1e-06,
     "hydraulic_pump": true,
     "variable_Rb": true,
@@ -38,7 +37,7 @@
     "dT_superheat": 5,
     "dT_subcool": 5,
     "t_max_s": 86400,
-    "UA_iu_rated": 1600,
+    "UA_iu_rated": 800,
     "ground_flow_ref_lpm": 24,
     "ground_flow_constant_lpm": 24,
     "ground_flow_min_lpm": 9.6,
@@ -46,7 +45,14 @@
     "indoor_approach_min_K": 1,
     "indoor_approach_max_K": 25,
     "rps_rated": 60,
-    "UA_ground_rated": 800
+    "UA_ground_rated": 1600,
+    "dp_aux_ref": 121026.84689699873,
+    "dp_aux_exponent": 2.0,
+    "dV_iu_fan_a_ref": 1.6,
+    "dV_iu_fan_a_min": 0.24,
+    "dV_iu_fan_a_max": 1.6,
+    "dP_iu_fan_rated": 60.0,
+    "eta_iu_fan_rated": 0.6
   },
   "operating": {
     "T0": 26,
@@ -85,5 +91,27 @@
     1.5
   ],
   "compressor_efficiency_model": "baseline-v2026-09-24",
-  "compressor_efficiency_source": "https://app.notion.com/p/3eb6947d125d814d9480db29404ebbd3"
+  "compressor_efficiency_source": "https://app.notion.com/p/3eb6947d125d814d9480db29404ebbd3",
+  "aux_pressure_drop_selection": {
+    "target_total_ref_Pa": 138000,
+    "BHE_ref_Pa": 16973.153103001274,
+    "aux_ref_Pa": 121026.84689699873,
+    "source": "ASHRAE 2023 Applications SI Chapter 35 Table 8",
+    "url": "https://handbook.ashrae.org/Handbooks/A23/SI/A23_Ch35/a23_ch35_si.aspx",
+    "interpretation": "Guideline-anchored A/B head boundary scenario at 0.05 L/s/kW; not measured equipment loss, not a mandated design point.",
+    "sensitivity_multipliers": [
+      0,
+      0.75,
+      1,
+      1.25
+    ]
+  },
+  "fan_model": {
+    "correlation": "ASHRAE 90.1-2016 Appendix G Table G3.1.3.15 Method 2",
+    "generic_flow_ratio_bounds": [
+      0.15,
+      1.0
+    ],
+    "electrical_power_floor": null
+  }
 }

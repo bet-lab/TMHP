@@ -7,10 +7,11 @@
   },
   "coefficient_version": "v2026-09-24",
   "selected_points": 16,
+  "feasible_selected_points": 14,
   "additional_sensitivity_points": 182,
-  "additional_sensitivity_successful_points_checked": 172,
-  "pr_floor_points": 16,
-  "comparison_sha256": "aea3163b41c61a4b83c28b63d6ea645e4fa6d8da850f4feac36b4cdf52954c26",
-  "model_source_commit": "5d4e60b279a17cf275d9777d8e817b981c577a2d",
+  "additional_sensitivity_successful_points_checked": 133,
+  "pr_floor_points": 13,
+  "comparison_sha256": "35ea24096ef2c99e4cae65e94af2ae0deb79f9f639b3b817f650196801565cd5",
+  "model_source_commit": "5637ac974f506b16ef6f361b224a406c32315a99",
   "efficiency_module_sha256": "4a596b3870e90dadb653589e957a266566cee3c27609b2d81cb2db99ede4e68a"
 }

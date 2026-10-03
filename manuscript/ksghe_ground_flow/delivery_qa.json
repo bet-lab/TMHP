@@ -1,59 +1,65 @@
 {
-  "copied_files": [
-    {
-      "name": "261001_KSGHE_HB.hwpx",
-      "sha256": "6ea1b821a333259948a7dca9c995af7a540ff527f7d8e5a2ba83d53389694bef"
+  "validated_deliverable_hashes": {
+    "261003_KSGHE_HB_aux_fan_revision.hwpx": "0763d6d44d532d7ce5bfb6d360f0cf9b744948d69d9788b7ff2dade78f393673",
+    "261003_KSGHE_HB_aux_fan_revision.pdf": "215c3cef23f63cbe44ca8e12e912ac2763d4e8f1deb156908a6c173cec1b89b8",
+    "261003_KSGHE_HB_aux_fan_revision.png": "df215768093a8150833ce8df939102856f70a1a578cc4d825daefb0212f9d511",
+    "261003_KSGHE_HB_aux_fan_fig1.png": "9ba02698f51df563924ac234d82199006eef15aec4ac76bb4a0ba5a708cf45f6",
+    "261003_KSGHE_HB_aux_fan_simulation_results.csv": "d4548228c41cda03af79004088aaca1e088c9eb4ea9b308d443c7307adbf1edf",
+    "261003_KSGHE_HB_aux_fan_validation_notes.md": "187ae3a779d7ab7a6d9f4a4dbe94b03497beeacbd5477aec1730811da8511fd1",
+    "261003_KSGHE_HB_aux_fan_paper_revision_summary.md": "3b63b5b5d4e2ff918f003b528d9c6cb8de22ada6efc4c2f4e6d7e21a362fc4c6",
+    "261003_KSGHE_HB_aux_fan_revision_diff.pdf": "48f6c8c5a7e27f661e06a3d16c0141cfe963c64e55083912740f3d026e6887dc",
+    "261003_KSGHE_HB_aux_fan_revision.diff": "7eda6fb53fd5564830443e3615d8098b0188521c6c018eb499f1b1b0b894806a"
+  },
+  "paper_qa": {
+    "one_page": true,
+    "figures": 1,
+    "panels": 4,
+    "requested_selected_points": 16,
+    "feasible_selected_points": 14,
+    "failed_selected_points_excluded": 2,
+    "claims_match_csv": {
+      "minimum_flow_percent": 40.0,
+      "maximum_flow_percent": 90.88017120568018,
+      "maximum_pump_saving_percent": 93.35674114327402,
+      "maximum_fan_increase_percent": 32.31499348138938,
+      "maximum_total_power_saving_percent": 20.03897055038185,
+      "maximum_system_COP_gain_percent": 25.060921161611628,
+      "m_dot_ref_rated_kg_s": 0.04118871753307563
     },
-    {
-      "name": "261001_KSGHE_HB.pdf",
-      "sha256": "d1d6c6533f14f6160da6f198feccae722794c959a0c877494b0905d192a0618d"
-    },
-    {
-      "name": "261001_KSGHE_HB.png",
-      "sha256": "f802274c29d377e499dfddbe600ae86721f1f1eab23458a29ea8baba8a827659"
-    },
-    {
-      "name": "261001_KSGHE_HB_fig1.png",
-      "sha256": "04f6f90f09be001d88cf7c3320632cc8f8498f7c15e469b1637323de75c23e92"
-    },
-    {
-      "name": "261001_KSGHE_HB_simulation_results.csv",
-      "sha256": "bd1cf41ef25a36d447158c901c308d9dcb7a489deee0903116e0129cf8e3f6f1"
-    },
-    {
-      "name": "261001_KSGHE_HB_flow_max_sensitivity.csv",
-      "sha256": "97472f46c21a4751cfbd50f717a7919a4a4bea19667037b67d4862ee641f1fab"
-    },
-    {
-      "name": "261001_KSGHE_HB_compressor_efficiency_comparison.csv",
-      "sha256": "aea3163b41c61a4b83c28b63d6ea645e4fa6d8da850f4feac36b4cdf52954c26"
-    },
-    {
-      "name": "261001_KSGHE_HB_validation_notes.md",
-      "sha256": "62d81e80f0bf18041ea493dd31c81267481029bff6884d28a9cf5e582100463f"
-    },
-    {
-      "name": "261001_KSGHE_HB_compressor_efficiency_validation.md",
-      "sha256": "9eb981b1024f09bf0eba76ec7d91bc467a54bf81762596a3a074ca8adc549292"
-    },
-    {
-      "name": "261001_KSGHE_HB_compressor_efficiency_revision_diff.pdf",
-      "sha256": "97824ec628139c9ed431f7cdb4a28ac826da9c3559ace9715417733876beac55"
-    },
-    {
-      "name": "261001_KSGHE_HB_compressor_efficiency_revision.diff",
-      "sha256": "617f5b1ed96bbe2a22a451d1e6dd92e445912bb54e5994f5ab988e49406da3f7"
-    }
+    "upper_bound_plrs": [],
+    "lower_bound_plrs": [
+      0.4
+    ],
+    "total_power_and_COP_checked": true,
+    "callable_baseline_and_mass_flow_checked": true,
+    "fixed_reference_and_explicit_flow_bounds_checked": true,
+    "sensitivity_fairness_checked": true,
+    "all_manuscript_text_present_in_PDF": true,
+    "authors_affiliations_acknowledgement_present": true,
+    "pdf_fonts_embedded": true,
+    "scientific_style_and_MCP_checks": true,
+    "hwpx_sha256": "0763d6d44d532d7ce5bfb6d360f0cf9b744948d69d9788b7ff2dade78f393673",
+    "pdf_sha256": "215c3cef23f63cbe44ca8e12e912ac2763d4e8f1deb156908a6c173cec1b89b8",
+    "renderer_limit": "Linux pyhwpxlib/rhwp and font substitutes; not tested in Hancom Office"
+  },
+  "native_validation_passed": true,
+  "visual_review": "Final one-page paper and before/after diff inspected; no clipping or overlaps.",
+  "rated_UAs_W_K": {
+    "ground": 1600,
+    "indoor": 800
+  },
+  "fan_reference_min_max_m3_s": [
+    1.6,
+    0.24,
+    1.6
   ],
-  "user_copy_byte_identical_to_validated_artifacts": true,
-  "visual_review": {
-    "paper": "Final one-page paper visually inspected: all authors/affiliations/acknowledgement/footer visible, no clipping or overlap",
-    "diff": "Visual before/after and native-text differences inspected",
-    "requested_graph_format": "Constant-flow / Variable-flow; bracket units, Fan/Comp. labels, PLR .4/.6/.8/1, letters without parentheses",
-    "title": "Both titles omit \ubb3c\ub9ac \uae30\ubc18 / Physics-Based",
-    "rated_UAs_W_K": {
-      "ground": 800,
-      "indoor": 1600
-    }
+  "failed_PLRs_excluded": [
+    0.3
+  ],
+  "source_capture": "Chromium/Poppler fallback; specified Chrome Bridge unavailable",
+  "notion_verified": {
+    "source_images": 6,
+    "native_source_note_files": 2,
+    "unrelated_sections_7_onward_preserved": true
   }
 }

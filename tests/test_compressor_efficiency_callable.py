@@ -1,5 +1,7 @@
 """Ground compressors must evaluate all three efficiencies at solved speed."""
 
+import contextlib
+
 import pytest
 
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler
@@ -23,17 +25,20 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
 
         return eff
 
-    hp = cls(
-        ref="R410A",
-        V_cmp_ref=1.2e-5,
-        hp_capacity=8000,
-        R_b=0.2,
-        t_max_s=3600,
-        eta_cmp_isen=model(0),
-        eta_cmp_vol=model(1),
-        eta_cmp=model(2),
-        PR_cycle_max=8,
-    )
+    unrated = pytest.warns(RuntimeWarning, match="m_dot_ref_rated not derived")
+    with unrated if cls is GroundSourceHeatPumpBoiler else contextlib.nullcontext():
+        hp = cls(
+            ref="R410A",
+            V_cmp_ref=1.2e-5,
+            hp_capacity=8000,
+            R_b=0.2,
+            t_max_s=3600,
+            eta_cmp_isen=model(0),
+            eta_cmp_vol=model(1),
+            eta_cmp=model(2),
+            PR_cycle_max=8,
+            rps_rated=40,  # 12 cm3/rev cannot rate 8 kW; the speed is fixed here
+        )
     if cls is GroundSourceHeatPump:
         row = hp._calc_state(10, 10, 4000, 26, 26)
         duty = "Q_ref_iu [W]"

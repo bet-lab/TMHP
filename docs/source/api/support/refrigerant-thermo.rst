@@ -37,3 +37,10 @@ Compressor envelope
     :members:
     :undoc-members:
     :show-inheritance:
+
+Compressor reference state
+==========================
+
+.. automodule:: tmhp.reference_state
+    :members:
+    :show-inheritance:

@@ -169,7 +169,10 @@ def configure_ground_flow(
         0, n_boreholes, H_b, pipe_inner_diameter, rho_w, geometry["mu_f"], pipe_roughness, dp_common
     )
     if variable_UA and m_dot_ref_rated is None:
-        raise ValueError("variable_ground_hx_UA requires m_dot_ref_rated [kg/s]")
+        raise ValueError(
+            "variable_ground_hx_UA requires m_dot_ref_rated [kg/s]; it could not be derived at the "
+            "rating condition for the given rps_rated (see the RuntimeWarning) -- pass it explicitly"
+        )
     calc_UA_two_stream_scaled(
         1, 1, 1, 1, m_dot_ref_rated if m_dot_ref_rated is not None else 1, *ua_fractions, *ua_exponents
     )

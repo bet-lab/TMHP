@@ -17,7 +17,7 @@ resolves borehole g-functions.)
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
 import CoolProp.CoolProp as CP
@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
@@ -44,6 +44,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .thermodynamics import calc_exergy_flow
 
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
 
 
-class WaterSourceHeatPumpBoiler:
+class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     """Water source heat pump boiler with surface-water source and lumped-tank model.
 
     The refrigerant cycle is resolved via CoolProp with user-specified
@@ -59,6 +60,9 @@ class WaterSourceHeatPumpBoiler:
     electrical input subject to NTU-based evaporator constraints against the
     source-water temperature and analytical condenser temperature relations.
     """
+
+    _RATING_FAMILY = "WSHPB"
+    _RATING_DEFAULT_MODE = "heating"
 
     def __init__(
         self,
@@ -138,7 +142,9 @@ class WaterSourceHeatPumpBoiler:
         rps_min: float = 15.0,
         rps_max: float = 150.0,
         *,
-        rps_rated: float = 40.0,
+        rps_rated: float | None = None,
+        m_dot_ref_rated: float | None = None,
+        rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -156,20 +162,9 @@ class WaterSourceHeatPumpBoiler:
             )
             ref = refrigerant
 
-        if not np.isfinite(rps_rated) or rps_rated <= 0:
-            raise ValueError("rps_rated must be positive and finite")
-        self.rps_rated = rps_rated
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
-        # Common heat-pump-boiler default efficiencies (shared with ASHPB/GSHPB):
-        # isentropic 0.80, volumetric 0.95 - 0.05*PR, electro-mechanical 0.855.
-        # (eta_cmp_vol default is assigned at the attribute store below to keep
-        # the lambda off a bare local name — ruff E731.)
-        if eta_cmp_isen is None:
-            eta_cmp_isen = make_eta_isen(rps_rated)
-        if eta_cmp is None:
-            eta_cmp = make_eta_em(rps_rated)
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else (UA_cond_design if UA_cond_design is not None else 500.0)
         if UA_water is None:
@@ -191,9 +186,6 @@ class WaterSourceHeatPumpBoiler:
 
         self.ref = ref
         self.V_cmp_ref = V_cmp_ref
-        self.eta_cmp_isen = eta_cmp_isen
-        self.eta_cmp_vol = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
-        self.eta_cmp = eta_cmp
 
         self.UA_tank_hx = UA_tank_hx
         self.UA_water = UA_water
@@ -269,6 +261,17 @@ class WaterSourceHeatPumpBoiler:
             )
         else:
             self.R_b = R_b
+
+        # Compressor reference state (rated speed, rated mass flow)
+        efficiencies = self._initialize_reference_state(
+            rps_rated=rps_rated,
+            m_dot_ref_rated=m_dot_ref_rated,
+            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            rated_condition=rated_condition,
+        )
+        self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
+        self.eta_cmp_vol = efficiencies["eta_cmp_vol"]
+        self.eta_cmp = efficiencies["eta_cmp"]
 
         # Subsystems
         self.stc = stc
@@ -396,6 +399,12 @@ class WaterSourceHeatPumpBoiler:
             "cop_ref [-]": np.nan,
             "cop_sys [-]": np.nan,
         }
+
+    def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
+        """Source-water evaporator (source) and tank-immersed condenser (load)."""
+        if role == "source":
+            return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s)
+        return HXSide("tank", T_in_C, self.UA_tank_hx)
 
     def _calc_state(
         self, dT_ref_water: float, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict

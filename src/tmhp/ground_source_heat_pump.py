@@ -23,7 +23,8 @@ from __future__ import annotations
 
 import contextlib
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -31,7 +32,7 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
@@ -57,19 +58,23 @@ from .ground_loop import (
     resolve_ground_flow_rates,
 )
 from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness, resolve_fan_flow_limits
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
 )
 
 
-class GroundSourceHeatPump:
+class GroundSourceHeatPump(ReferenceStateMixin):
     """Ground source heat pump with BHE and indoor-unit air heat exchange.
 
     The refrigerant cycle is resolved via CoolProp.  A bounded 2-D
     optimiser minimises total electrical input (``E_cmp + E_pmp + E_iu_fan``)
     over the evaporator and condenser approach temperatures.
     """
+
+    _RATING_FAMILY = "GSHP"
+    _RATING_DEFAULT_MODE = "cooling"
 
     def __init__(
         self,
@@ -134,7 +139,7 @@ class GroundSourceHeatPump:
         indoor_approach_max_K: float = 20.0,
         eta_cmp_vol: float | Callable | None = None,
         eta_cmp: float | Callable | None = None,
-        rps_rated: float = 60.0,
+        rps_rated: float | None = None,
         eta_v: float | None = None,
         eta_em: float | None = None,
         ground_flow_ref_lpm: float | None = None,
@@ -153,6 +158,7 @@ class GroundSourceHeatPump:
         ground_flow_min_ratio: float | None = None,
         ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
+        rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         ground_hx_fluid_fraction: float = 0.5,
         ground_hx_refrigerant_fraction: float = 0.3,
         ground_hx_constant_fraction: float = 0.2,
@@ -214,27 +220,24 @@ class GroundSourceHeatPump:
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
         self.V_cmp_ref: float = V_cmp_ref
-        if not np.isfinite(rps_rated) or rps_rated <= 0:
-            raise ValueError("rps_rated must be positive and finite")
-        self.rps_rated = rps_rated
+        # Validation-only speed for scalar/legacy inputs (the rated speed may not
+        # be known yet; scalars do not depend on it).
+        rps_check = rps_rated if rps_rated is not None else rps_min
         for name, legacy in (("eta_v", eta_v), ("eta_em", eta_em)):
             if legacy is not None:
-                _eval_eff(legacy, 3.0, rps_rated)
+                _eval_eff(legacy, 3.0, rps_check)
                 warnings.warn(
                     f"{name} is deprecated; use eta_cmp_vol / eta_cmp. Explicit new inputs take precedence.",
                     DeprecationWarning,
                     stacklevel=2,
                 )
         if eta_cmp_vol is None:
-            eta_cmp_vol = eta_v if eta_v is not None else make_eta_vol(rps_rated)
+            eta_cmp_vol = eta_v
         if eta_cmp is None:
-            eta_cmp = eta_em if eta_em is not None else make_eta_em(rps_rated)
-        self.eta_cmp_isen = eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
-        self.eta_cmp_vol = eta_cmp_vol
-        self.eta_cmp = eta_cmp
-        for efficiency in (self.eta_cmp_isen, self.eta_cmp_vol, self.eta_cmp):
-            if not callable(efficiency):
-                _eval_eff(efficiency, 3.0, rps_rated)
+            eta_cmp = eta_em
+        for efficiency in (eta_cmp_isen, eta_cmp_vol, eta_cmp):
+            if efficiency is not None and not callable(efficiency):
+                _eval_eff(efficiency, 3.0, rps_check)
         self.dT_superheat: float = dT_superheat
         self.dT_subcool: float = dT_subcool
         self.dT_hx_min: float = dT_hx_min
@@ -256,7 +259,6 @@ class GroundSourceHeatPump:
         # Preserve the former cooling indoor-air default, independently of
         # ground-HX sizing. This is an air-HX assumption, not the BPHE rule.
         self.UA_iu_rated = 0.08 * hp_capacity if UA_iu_rated is None else UA_iu_rated
-        self.eta_v, self.eta_em = self.eta_cmp_vol, self.eta_cmp  # read-compatible aliases
         if not all(np.isfinite(v) and v > 0 for v in (self.UA_ground_rated, self.UA_iu_rated)):
             raise ValueError("Physical heat exchanger rated UA values must be positive and finite")
         legacy_ua = UA_cond is not None or UA_evap is not None
@@ -368,6 +370,18 @@ class GroundSourceHeatPump:
             raise ValueError("Heat exchanger UA values must be positive and finite")
         if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
+        # Compressor reference state at rated (fixed) UA, before variable
+        # ground-HX UA is configured with the m_dot_ref_rated it produces.
+        efficiencies = self._initialize_reference_state(
+            rps_rated=rps_rated,
+            m_dot_ref_rated=m_dot_ref_rated,
+            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            rated_condition=rated_condition,
+        )
+        self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
+        self.eta_cmp_vol = efficiencies["eta_cmp_vol"]
+        self.eta_cmp = efficiencies["eta_cmp"]
+        self.eta_v, self.eta_em = self.eta_cmp_vol, self.eta_cmp  # read-compatible aliases
         self._ground_settings = configure_ground_flow(
             control=ground_flow_control,
             variable_ground_flow=variable_ground_flow,
@@ -387,7 +401,7 @@ class GroundSourceHeatPump:
             pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
             pipe_roughness=pipe_roughness,
             dp_common=dp_common,
-            m_dot_ref_rated=m_dot_ref_rated,
+            m_dot_ref_rated=self.m_dot_ref_rated,
             ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
             ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
             boundary_condition=boundary_condition,
@@ -777,6 +791,13 @@ class GroundSourceHeatPump:
             result["converged_rps"] = False
             result["failure_reason"] = "compressor_min_speed" if capacity_clamped == "min" else "compressor_max_speed"
         return result
+
+    def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
+        """Ground loop is the source side, indoor coil the load side, in either mode."""
+        UA_ground, UA_iu = self._rated_hx_UAs(mode)
+        if role == "source":
+            return HXSide("water", T_in_C, UA_ground, self.dV_b_f_m3s)
+        return HXSide("air", T_in_C, UA_iu, self.dV_iu_fan_a_ref)
 
     def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:
         """Return ground/IU physical UA; old explicit role inputs use an adapter.

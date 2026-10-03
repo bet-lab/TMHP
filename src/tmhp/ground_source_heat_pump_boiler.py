@@ -38,7 +38,7 @@ condenser temperature is solved analytically.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
 import CoolProp.CoolProp as CP
@@ -48,7 +48,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import _eval_eff
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
@@ -82,6 +82,7 @@ from .ground_loop import (
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .stratified_tank import StratifiedTank
 from .thermodynamics import calc_exergy_flow
@@ -90,7 +91,7 @@ if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
 
 
-class GroundSourceHeatPumpBoiler:
+class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     """Ground source heat pump boiler with BHE and lumped-tank model.
 
     The refrigerant cycle is resolved via CoolProp with user-specified
@@ -98,6 +99,9 @@ class GroundSourceHeatPumpBoiler:
     electrical input subject to NTU-based evaporator constraints and
     analytical condenser temperature relations.
     """
+
+    _RATING_FAMILY = "GSHPB"
+    _RATING_DEFAULT_MODE = "heating"
 
     def __init__(
         self,
@@ -187,7 +191,7 @@ class GroundSourceHeatPumpBoiler:
         rps_min: float = 15.0,
         rps_max: float = 150.0,
         *,
-        rps_rated: float = 40.0,
+        rps_rated: float | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -211,6 +215,7 @@ class GroundSourceHeatPumpBoiler:
         ground_flow_min_ratio: float | None = None,
         ground_flow_max_ratio: float | None = None,
         m_dot_ref_rated: float | None = None,
+        rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         ground_hx_fluid_fraction: float = 0.5,
         ground_hx_refrigerant_fraction: float = 0.3,
         ground_hx_constant_fraction: float = 0.2,
@@ -242,14 +247,11 @@ class GroundSourceHeatPumpBoiler:
             )
             ref = refrigerant
 
-        if not np.isfinite(rps_rated) or rps_rated <= 0:
-            raise ValueError("rps_rated must be positive and finite")
-        self.rps_rated = rps_rated
         # Resolve deprecated mapping
         if V_cmp_ref is None:
             V_cmp_ref = V_disp_cmp if V_disp_cmp is not None else default_displacement(hp_capacity)
         if eta_cmp is None:
-            eta_cmp = eta_cmp_mech if eta_cmp_mech is not None else make_eta_em(rps_rated)
+            eta_cmp = eta_cmp_mech
         if UA_tank_hx is None:
             UA_tank_hx = UA_tank if UA_tank is not None else (UA_cond_design if UA_cond_design is not None else 500.0)
         if UA_ground is None:
@@ -271,12 +273,6 @@ class GroundSourceHeatPumpBoiler:
 
         self.ref = ref
         self.V_cmp_ref = V_cmp_ref
-        # Common heat-pump-boiler default efficiencies (shared with ASHPB/WSHPB):
-        # isentropic 0.80, volumetric 0.95 - 0.05*PR (eta_cmp already resolved
-        # to 0.855 above). Resolve here so an unconfigured model is not ideal.
-        self.eta_cmp_isen = eta_cmp_isen if eta_cmp_isen is not None else make_eta_isen(rps_rated)
-        self.eta_cmp_vol = eta_cmp_vol if eta_cmp_vol is not None else make_eta_vol(rps_rated)
-        self.eta_cmp = eta_cmp
 
         self.UA_tank_hx = UA_tank_hx
         self.UA_ground = UA_ground
@@ -368,6 +364,17 @@ class GroundSourceHeatPumpBoiler:
             raise ValueError("Heat exchanger UA values must be positive and finite")
         if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
+        # Compressor reference state at rated (fixed) UA, before variable
+        # ground-HX UA is configured with the m_dot_ref_rated it produces.
+        efficiencies = self._initialize_reference_state(
+            rps_rated=rps_rated,
+            m_dot_ref_rated=m_dot_ref_rated,
+            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            rated_condition=rated_condition,
+        )
+        self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
+        self.eta_cmp_vol = efficiencies["eta_cmp_vol"]
+        self.eta_cmp = efficiencies["eta_cmp"]
         self._ground_settings = configure_ground_flow(
             control=ground_flow_control,
             variable_ground_flow=variable_ground_flow,
@@ -387,7 +394,7 @@ class GroundSourceHeatPumpBoiler:
             pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
             pipe_roughness=pipe_roughness,
             dp_common=dp_common,
-            m_dot_ref_rated=m_dot_ref_rated,
+            m_dot_ref_rated=self.m_dot_ref_rated,
             ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
             ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
             boundary_condition=boundary_condition,
@@ -480,6 +487,12 @@ class GroundSourceHeatPumpBoiler:
             "dV_tank_w_in": dV_tank_w_in,
             "dV_mix_sup_w_in": flows["dV_cold_in"],
         }
+
+    def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
+        """Ground-loop evaporator (source) and tank-immersed condenser (load)."""
+        if role == "source":
+            return HXSide("water", T_in_C, self.UA_ground, self.dV_b_f_m3s)
+        return HXSide("tank", T_in_C, self.UA_tank_hx)
 
     def _calc_state(
         self,

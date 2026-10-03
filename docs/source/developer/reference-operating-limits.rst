@@ -14,7 +14,8 @@ Never change a normalization denominator when expanding an operating range.
 Existing thermodynamic identifiers containing ``ref`` (refrigerant), such as
 ``T_ref_sat_K`` and actual ``m_dot_ref``, are thermodynamic states, not scaling
 references. ``m_dot_ref_rated`` is the fixed refrigerant mass-flow reference
-for ground-HX scaling. ``V_cmp_ref`` is swept displacement per revolution;
+for ground-HX scaling; when omitted it is solved at the compressor reference
+state, so no external reference run is needed. ``V_cmp_ref`` is swept displacement per revolution;
 it does not define speed limits. Compressor limits remain ``rps_min/rps_max``.
 
 Ground-loop API and migration
@@ -112,11 +113,15 @@ respectively. Each input also accepts a scalar, a ``function(PR)`` or a
 ``function(PR, rps)``. Evaluation validates finite values in (0, 1] and
 preserves exceptions raised inside a user function.
 
-``rps_rated`` defines the normalization ``n_star = rps / rps_rated``:
-60 rev/s for ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB, matching the
-source baseline's air-to-air / air-to-water reference speeds. Specify the
-same rated speed when comparing model defaults at the same PR and rps.
-This reference does not change ``rps_min`` or ``rps_max``. Correlation factors
+``rps_rated`` defines the normalization ``n_star = rps / rps_rated``.
+When omitted it is no longer a fixed default (formerly 60 rev/s for
+ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB): it is solved as the speed that
+delivers ``hp_capacity`` at the family's standard rating condition with
+``n_star = 1``, together with ``m_dot_ref_rated`` from the same state
+(:doc:`/models/reference-state`). Pass the former value explicitly to
+reproduce earlier results. Specify the same rated speed when comparing
+models at the same PR and rps. This reference does not change ``rps_min`` or
+``rps_max``, and it is not forced to ``rps_max``. Correlation factors
 held above ``n_star=2`` protect extrapolation; they do not impose a speed limit.
 
 GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``

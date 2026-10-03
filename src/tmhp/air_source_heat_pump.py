@@ -39,6 +39,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import resolve_fan_flow_limits
+from .hx_fan import is_generic_fan_curve
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -275,6 +276,7 @@ class AirSourceHeatPump:
             self.dV_ou_fan_a_ref,
             dV_ou_fan_a_min,
             dV_ou_fan_a_max,
+            custom_curve=not is_generic_fan_curve(vsd_coeffs_ou),
         )
         self.dP_ou_fan_rated: float = dP_ou_fan_rated
         self.eta_ou_fan_rated: float = eta_ou_fan_rated
@@ -287,6 +289,8 @@ class AirSourceHeatPump:
         self.E_ou_fan_rated: float = self.dV_ou_fan_a_rated * self.dP_ou_fan_rated / self.eta_ou_fan_rated
         self.vsd_coeffs_ou: dict = vsd_coeffs_ou
         self.fan_params_ou: dict = {
+            "fan_min_flow_rate": self.dV_ou_fan_a_min,
+            "fan_max_flow_rate": self.dV_ou_fan_a_max,
             "fan_ref_flow_rate": self.dV_ou_fan_a_rated,
             "fan_rated_flow_rate": self.dV_ou_fan_a_rated,
             "fan_ref_power": self.E_ou_fan_rated,
@@ -304,6 +308,7 @@ class AirSourceHeatPump:
             self.dV_iu_fan_a_ref,
             dV_iu_fan_a_min,
             dV_iu_fan_a_max,
+            custom_curve=not is_generic_fan_curve(vsd_coeffs_iu),
         )
         self.dP_iu_fan_rated: float = dP_iu_fan_rated
         self.eta_iu_fan_rated: float = eta_iu_fan_rated
@@ -316,6 +321,8 @@ class AirSourceHeatPump:
         self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
         self.fan_params_iu: dict = {
+            "fan_min_flow_rate": self.dV_iu_fan_a_min,
+            "fan_max_flow_rate": self.dV_iu_fan_a_max,
             "fan_ref_flow_rate": self.dV_iu_fan_a_rated,
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
             "fan_ref_power": self.E_iu_fan_rated,
@@ -573,6 +580,7 @@ class AirSourceHeatPump:
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_ou),
                 is_active=True,
                 exponent=self.n_ou,
             )
@@ -587,6 +595,7 @@ class AirSourceHeatPump:
                 dV_fan_ref=self.dV_ou_fan_a_ref,
                 dV_fan_min=self.dV_ou_fan_a_min,
                 dV_fan_max=self.dV_ou_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_ou),
                 is_active=True,
                 exponent=self.n_ou,
             )
@@ -615,6 +624,7 @@ class AirSourceHeatPump:
                 dV_fan_ref=self.dV_iu_fan_a_ref,
                 dV_fan_min=self.dV_iu_fan_a_min,
                 dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=True,
                 exponent=self.n_iu,
             )
@@ -629,6 +639,7 @@ class AirSourceHeatPump:
                 dV_fan_ref=self.dV_iu_fan_a_ref,
                 dV_fan_min=self.dV_iu_fan_a_min,
                 dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=True,
                 exponent=self.n_iu,
             )

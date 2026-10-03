@@ -124,17 +124,23 @@ def calc_phase_change_hx_capacity(UA: float, m_dot: float, cp: float, T_fluid_in
 
 
 def resolve_fan_flow_limits(
-    reference: float, minimum: float | None = None, maximum: float | None = None
+    reference: float, minimum: float | None = None, maximum: float | None = None, *, custom_curve: bool = False
 ) -> tuple[float, float]:
     """Validate independent air-flow reference and solver bounds [m3/s].
 
-    Historical defaults (5% to 100% of reference) are compatibility defaults,
-    not a statement that the rated/reference point is a hardware maximum.
+    The generic ASHRAE correlation is limited to 15--100% of reference.
+    Custom curves may supply independent limits outside that validity range.
+    Reference is always a normalization point, not an implicit hardware limit.
     """
-    minimum = 0.05 * reference if minimum is None else minimum
+    minimum = 0.15 * reference if minimum is None else minimum
     maximum = reference if maximum is None else maximum
     if not all(math.isfinite(v) for v in (reference, minimum, maximum)) or reference <= 0 or not 0 <= minimum < maximum:
         raise ValueError("Fan reference must be positive and finite; require finite 0 <= min < max")
+    if not custom_curve:
+        minimum = max(minimum, 0.15 * reference)
+        maximum = min(maximum, reference)
+        if minimum >= maximum:
+            raise ValueError("Generic ASHRAE fan limits must overlap 0.15--1.0 of reference")
     return minimum, maximum
 
 
@@ -210,6 +216,7 @@ def calc_HX_perf_for_target_heat(
     dV_fan_ref=None,
     dV_fan_min=None,
     dV_fan_max=None,
+    custom_fan_curve=False,
 ):
     """Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.
 
@@ -291,7 +298,7 @@ def calc_HX_perf_for_target_heat(
     T_a_in_K = cu.C2K(T_a_in_C)
     if dV_fan_ref is None:
         raise ValueError("Fan reference flow is required")
-    dV_min, dV_max = resolve_fan_flow_limits(dV_fan_ref, dV_fan_min, dV_fan_max)
+    dV_min, dV_max = resolve_fan_flow_limits(dV_fan_ref, dV_fan_min, dV_fan_max, custom_curve=custom_fan_curve)
 
     if abs(Q_ref_target) < 1e-6:
         return {
@@ -316,28 +323,17 @@ def calc_HX_perf_for_target_heat(
         Q_air = C_air * epsilon * abs(T_a_in_K - T_ref_sat_K)
         return Q_air - Q_ref_target
 
-    # Physical solver bounds are independent of the fixed UA normalization.
-
-    try:
+    # Clamp the flow demand, but do not mark an unmatched HX duty feasible.
+    err_min, err_max = _error_function(dV_min), _error_function(dV_max)
+    min_limit, max_limit = bool(err_min >= 0), bool(err_max <= 0)
+    tolerance = 0.0 if custom_fan_curve else max(0.01, 1e-5 * abs(Q_ref_target))
+    if min_limit:
+        dV_sol, converged = dV_min, bool(abs(err_min) <= tolerance)
+    elif max_limit:
+        dV_sol, converged = dV_max, bool(abs(err_max) <= tolerance)
+    else:
         sol = root_scalar(_error_function, bracket=[dV_min, dV_max], method="bisect")
-        dV_sol = sol.root
-        converged = sol.converged
-    except ValueError:
-        err_min = _error_function(dV_min)
-        err_max = _error_function(dV_max)
-        # Optimization loop penalty handling: return failure flag
-        return {
-            "converged": False,
-            "dV_fan": np.nan,
-            "UA": np.nan,
-            "T_a_mid_C": np.nan,
-            "Q_air": np.nan,
-            "epsilon": np.nan,
-            "min_limit": bool(err_min > 0),
-            "max_limit": bool(err_max < 0),
-            "T_ou_a_mid": np.nan,
-            "Q_ou_air": np.nan,
-        }
+        dV_sol, converged = sol.root, sol.converged
 
     # Final calculations at solved point
     UA_sol = calc_UA_from_dV_fan(dV_sol, dV_fan_ref, A_cross, UA_rated, exponent)
@@ -356,9 +352,12 @@ def calc_HX_perf_for_target_heat(
         "T_a_mid_C": T_a_mid_C,
         "Q_air": Q_air_sol,
         "epsilon": eps_sol,
-        "min_limit": False,
-        "max_limit": False,
+        "min_limit": min_limit,
+        "max_limit": max_limit,
         "fan_flow_ratio_to_ref": dV_sol / dV_fan_ref,
+        "capacity_margin_W": Q_air_sol - Q_ref_target,
+        "min_flow_capacity_margin_W": err_min,
+        "max_flow_capacity_margin_W": err_max,
         # Legacy keys
         "T_ou_a_mid": T_a_mid_C,
         "Q_ou_air": Q_air_sol,

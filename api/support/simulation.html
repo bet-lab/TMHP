@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-10-03T17:02:52+09:00" />
+    <meta property="article:modified_time" content="2026-10-05T21:48:35+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1511,7 +1511,8 @@ array for multiple time values.</p>
 <dd><p>Electrical power [W] at the bounded fan operating point.</p>
 <p>ASHRAE Appendix G Method 2 uses its unchanged empirical coefficients
 only over 0.15–1.0 of reference airflow. See calc_fan_operating_point
-for actual flow and limit flags. No arbitrary electrical power floor.</p>
+for actual flow and limit flags. The default single-zone surrogate has a 10% electrical floor;
+custom settings may explicitly supply an independent <code class="docutils literal notranslate"><span class="pre">power_min_ratio</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1821,7 +1822,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 03, 2026
+  Last updated Oct 05, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -13,11 +13,20 @@ import numpy as np
 from .heat_exchanger import calc_UA_from_dV_fan as calc_UA_from_dV_fan
 
 ASHRAE_VSD_COEFFICIENTS = dict(c1=0.0013, c2=0.1470, c3=0.9506, c4=-0.0998, c5=0.0)
+SINGLE_ZONE_VAV_COEFFICIENTS: dict = dict(
+    c1=0.027828,
+    c2=0.026583,
+    c3=-0.087069,
+    c4=1.030920,
+    c5=0.0,
+    curve_type="custom",
+    power_min_ratio=0.10,
+)
 
 
 def is_generic_fan_curve(vsd_coeffs: dict | None) -> bool:
     """Identify the unmodified ASHRAE Appendix G Method 2 correlation."""
-    coefficients = vsd_coeffs or {}
+    coefficients = vsd_coeffs or SINGLE_ZONE_VAV_COEFFICIENTS
     return coefficients.get("curve_type") != "custom" and all(
         coefficients.get(k, v) == v for k, v in ASHRAE_VSD_COEFFICIENTS.items()
     )
@@ -44,6 +53,10 @@ def calc_fan_operating_point(
 ) -> dict:
     """Clamp fan flow to its model/control limits, then compute power.
 
+    The default is the single-zone VAV surrogate with an independent 10%
+    electrical floor. Its 15% airflow bound is a TMHP control assumption.
+    The following fixed-SP curve remains an explicit alternative.
+
     Source: ANSI/ASHRAE/IES Standard 90.1-2016, Appendix G,
     Table G3.1.3.15, Method 2:
     P* = 0.0013 + 0.1470*x + 0.9506*x**2 - 0.0998*x**3.
@@ -60,6 +73,13 @@ def calc_fan_operating_point(
     Generic 0.15--1.0 is a TMHP assumption, not a heat-pump requirement.
     Nondefault user coefficients define a custom curve with explicit limits.
     A raw demand is clamped here; HX solvers must separately close heat duty.
+    An optional ``power_min_ratio`` implements a part-flow electrical power
+    floor independently of those airflow bounds: P/P_ref=max(polynomial, floor).
+    It does not invert the power curve to impose a minimum airflow. The
+    SINGLE_ZONE_VAV_COEFFICIENTS alternative comes from PNNL-26917,
+    PRM Reference Manual, Eq. (11) / Table 50 (printed pp. 3.153--3.154).
+    That row is a single-zone/static-pressure-reset modeling surrogate,
+    not a measured fan curve or a requirement for every heat pump.
 
     Parameters
     ----------
@@ -117,7 +137,7 @@ def calc_fan_operating_point(
 
     from .heat_exchanger import resolve_fan_flow_limits
 
-    coefficients = vsd_coeffs or {}
+    coefficients = vsd_coeffs or SINGLE_ZONE_VAV_COEFFICIENTS
     low, high = resolve_fan_flow_limits(
         fan_design_flow_rate,
         fan_params.get("fan_min_flow_rate"),
@@ -132,8 +152,11 @@ def calc_fan_operating_point(
     c5 = coefficients.get("c5", 0.0)
 
     x = actual / fan_design_flow_rate  # fixed normalization; custom limits may exceed reference
-    PLR = c1 + c2 * x + c3 * x**2 + c4 * x**3 + c5 * x**4
-    PLR = max(0.0, PLR)
+    raw_power_ratio = c1 + c2 * x + c3 * x**2 + c4 * x**3 + c5 * x**4
+    power_min_ratio = coefficients.get("power_min_ratio", 0.0)
+    if not np.isfinite(power_min_ratio) or not 0 <= power_min_ratio <= 1:
+        raise ValueError("power_min_ratio must be finite and in [0, 1]")
+    PLR = max(0.0, raw_power_ratio, power_min_ratio)
 
     return dict(
         power_W=float(fan_design_power * PLR),
@@ -143,6 +166,10 @@ def calc_fan_operating_point(
         fan_flow_max_limit=dV_fan >= high,
         flow_min=low,
         flow_max=high,
+        raw_power_ratio=float(raw_power_ratio),
+        power_ratio=float(PLR),
+        power_min_ratio=float(power_min_ratio),
+        power_floor_active=bool(raw_power_ratio < power_min_ratio),
     )
 
 
@@ -156,6 +183,7 @@ def calc_fan_power_from_dV_fan(
 
     ASHRAE Appendix G Method 2 uses its unchanged empirical coefficients
     only over 0.15--1.0 of reference airflow. See calc_fan_operating_point
-    for actual flow and limit flags. No arbitrary electrical power floor.
+    for actual flow and limit flags. The default single-zone surrogate has a 10% electrical floor;
+    custom settings may explicitly supply an independent ``power_min_ratio``.
     """
     return float(calc_fan_operating_point(dV_fan, fan_params, vsd_coeffs, is_active)["power_W"])

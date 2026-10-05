@@ -21,7 +21,7 @@ from . import g_function as gf
 from .constants import c_a, c_w, k_w, rho_a, rho_w
 from .cop import calc_GSHP_COP
 from .g_function import precompute_gfunction
-from .hx_fan import calc_fan_power_from_dV_fan
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan
 
 # Aliases to match the borehole-fluid naming convention in the original code
 c_f = c_w
@@ -38,7 +38,7 @@ class GroundSourceHeatPumpEmpirical:
 
     This model computes borehole thermal resistance R_b* automatically
     using the pygfunction multipole method (Hellström 1991), and fan
-    power using the ASHRAE 90.1 VSD curve.
+    power using the default single-zone VAV surrogate.
 
     For a full refrigerant-cycle model, see :class:`~tmhp.GroundSourceHeatPump`.
     """
@@ -111,13 +111,7 @@ class GroundSourceHeatPumpEmpirical:
         _hp_capacity = max(self.Q_rated_cooling, self.Q_rated_heating)
         self.dV_iu_fan_design = _hp_capacity / (rho_a * c_a * 10.0)
         self.E_iu_fan_design = self.dV_iu_fan_design * self.dP_iu_fan_design / self.eta_iu_fan_design
-        self.vsd_coeffs_iu = {
-            "c1": 0.0013,
-            "c2": 0.1470,
-            "c3": 0.9506,
-            "c4": -0.0998,
-            "c5": 0.0,
-        }
+        self.vsd_coeffs_iu = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
         self.fan_params_iu = {
             "fan_design_flow_rate": self.dV_iu_fan_design,
             "fan_design_power": self.E_iu_fan_design,

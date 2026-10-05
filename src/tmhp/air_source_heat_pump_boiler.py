@@ -70,7 +70,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
-from .hx_fan import calc_fan_power_from_dV_fan, is_generic_fan_curve
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
@@ -203,14 +203,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if hp_on_schedule is None:
             hp_on_schedule = [(0.0, 24.0)]
-        if vsd_coeffs is None:
-            vsd_coeffs = {
-                "c1": 0.0013,
-                "c2": 0.1470,
-                "c3": 0.9506,
-                "c4": -0.0998,
-                "c5": 0.0,
-            }
+        if not vsd_coeffs:
+            vsd_coeffs = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
 
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref

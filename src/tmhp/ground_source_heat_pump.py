@@ -58,7 +58,7 @@ from .ground_loop import (
     resolve_ground_flow_rates,
 )
 from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness, resolve_fan_flow_limits
-from .hx_fan import is_generic_fan_curve
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -211,14 +211,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         if eta_iu_fan_rated is None:
             eta_iu_fan_rated = eta_iu_fan_design if eta_iu_fan_design is not None else 0.6
 
-        if vsd_coeffs_iu is None:
-            vsd_coeffs_iu = {
-                "c1": 0.0013,
-                "c2": 0.1470,
-                "c3": 0.9506,
-                "c4": -0.0998,
-                "c5": 0.0,
-            }
+        if not vsd_coeffs_iu:
+            vsd_coeffs_iu = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
 
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref

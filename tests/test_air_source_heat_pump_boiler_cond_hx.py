@@ -9,11 +9,17 @@ import pytest
 from tmhp import AirSourceHeatPumpBoiler
 from tmhp import air_source_heat_pump_boiler as ashpb_module
 from tmhp import calc_util as cu
+from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS
 
 
 @pytest.fixture
 def hp() -> AirSourceHeatPumpBoiler:
-    return AirSourceHeatPumpBoiler(ref="R32", hp_capacity=15000.0)
+    return AirSourceHeatPumpBoiler(
+        ref="R32",
+        hp_capacity=15000.0,
+        vsd_coeffs=ASHRAE_VSD_COEFFICIENTS | {"curve_type": "custom"},
+        dV_fan_a_min=0.05 * 15000 * 0.00015,
+    )
 
 
 def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):

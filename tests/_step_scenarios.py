@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS
 
 PERIOD_S: int = 3 * 86400  # 3-day horizon (spec: >= 3 days)
 DTS: tuple[int, ...] = (300, 600)  # spec: dt in {300, 600} s
@@ -27,7 +28,10 @@ DATA_DIR: Path = Path(__file__).parent / "data"
 
 def make_model() -> AirSourceHeatPumpBoiler:
     """Fixed ASHPB configuration shared by golden generation and tests."""
-    return AirSourceHeatPumpBoiler(ref="R32")
+    # Keep the existing pre-single-zone golden recordings reproducible.
+    return AirSourceHeatPumpBoiler(
+        ref="R32", vsd_coeffs=ASHRAE_VSD_COEFFICIENTS | {"curve_type": "custom"}, dV_fan_a_min=0.05 * 15000 * 0.00015
+    )
 
 
 def scenario_kwargs(name: str, dt_s: int) -> dict:

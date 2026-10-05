@@ -58,6 +58,7 @@ from .hx_fan import (
 from .hx_fan import (
     calc_UA_from_dV_fan as calc_UA_from_dV_fan,
 )
+from .hx_fan import resolve_fan_flow_limits
 from .thermodynamics import (
     calc_energy_flow as calc_energy_flow,
 )
@@ -388,6 +389,9 @@ def calc_HX_perf_for_target_heat(
     T_ref_cond_sat_l_K=None,
     UA_design=None,
     dV_fan_design=None,
+    dV_fan_min=None,
+    dV_fan_max=None,
+    custom_fan_curve=False,
 ):
     """Numerically solve for the air-side flow rate of an ε-NTU heat exchanger.
 
@@ -485,9 +489,8 @@ def calc_HX_perf_for_target_heat(
         Q_air = C_air * epsilon * abs(T_a_in_K - T_ref_sat_K)
         return Q_air - Q_ref_target
 
-    # Search range: 5% to 100% of rated flow
-    dV_min = dV_fan_rated * 0.05
-    dV_max = dV_fan_rated
+    # Search range: retained TMHP control assumption, 15% to 100% of rated flow
+    dV_min, dV_max = resolve_fan_flow_limits(dV_fan_rated, dV_fan_min, dV_fan_max, custom_curve=custom_fan_curve)
 
     try:
         sol = root_scalar(_error_function, bracket=[dV_min, dV_max], method="bisect")

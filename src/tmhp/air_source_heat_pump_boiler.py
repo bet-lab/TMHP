@@ -74,7 +74,12 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .heat_transfer import calc_simple_tank_UA
-from .hx_fan import calc_fan_power_from_dV_fan
+from .hx_fan import (
+    SINGLE_ZONE_VAV_COEFFICIENTS,
+    calc_fan_power_from_dV_fan,
+    is_generic_fan_curve,
+    resolve_fan_flow_limits,
+)
 from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
 from .thermodynamics import calc_energy_flow
@@ -181,6 +186,8 @@ class AirSourceHeatPumpBoiler:
         A_cross_ou: float | None = None,
         eta_ou_fan_design: float | None = None,
         vsd_coeffs_ou: dict | None = None,
+        dV_fan_a_min: float | None = None,
+        dV_fan_a_max: float | None = None,
     ):
         # Resolve deprecated mapping
         if V_cmp_ref is None:
@@ -206,14 +213,8 @@ class AirSourceHeatPumpBoiler:
 
         if hp_on_schedule is None:
             hp_on_schedule = [(0.0, 24.0)]
-        if vsd_coeffs is None:
-            vsd_coeffs = {
-                "c1": 0.0013,
-                "c2": 0.1470,
-                "c3": 0.9506,
-                "c4": -0.0998,
-                "c5": 0.0,
-            }
+        if not vsd_coeffs:
+            vsd_coeffs = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
 
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
@@ -316,9 +317,14 @@ class AirSourceHeatPumpBoiler:
 
         self.E_fan_rated: float = self.dV_fan_a_rated * self.dP_fan_rated / self.eta_fan_rated
         self.vsd_coeffs: dict = vsd_coeffs
+        self.dV_fan_a_min, self.dV_fan_a_max = resolve_fan_flow_limits(
+            self.dV_fan_a_rated, dV_fan_a_min, dV_fan_a_max, custom_curve=not is_generic_fan_curve(vsd_coeffs)
+        )
         self.fan_params: dict = {
             "fan_rated_flow_rate": self.dV_fan_a_rated,
             "fan_rated_power": self.E_fan_rated,
+            "fan_min_flow_rate": self.dV_fan_a_min,
+            "fan_max_flow_rate": self.dV_fan_a_max,
         }
 
         # --- 4. Tank geometry and thermal props ---
@@ -779,6 +785,9 @@ class AirSourceHeatPumpBoiler:
             A_cross=self.A_cross,
             UA_rated=self.UA_ou_rated,
             dV_fan_rated=self.dV_fan_a_rated,
+            dV_fan_min=self.dV_fan_a_min,
+            dV_fan_max=self.dV_fan_a_max,
+            custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs),
             is_active=True,
             exponent=self.n_ou,
         )

@@ -40,6 +40,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import precompute_gfunction
+from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve, resolve_fan_flow_limits
 from .refrigerant import (
     calc_ref_state,
     reportable_state,
@@ -109,6 +110,8 @@ class GroundSourceHeatPump:
         dV_iu_fan_a_design: float | None = None,
         dP_iu_fan_design: float | None = None,
         eta_iu_fan_design: float | None = None,
+        dV_iu_fan_a_min: float | None = None,
+        dV_iu_fan_a_max: float | None = None,
     ):
         # Resolve deprecated mapping
         if V_cmp_ref is None:
@@ -124,14 +127,8 @@ class GroundSourceHeatPump:
         if eta_iu_fan_rated is None:
             eta_iu_fan_rated = eta_iu_fan_design if eta_iu_fan_design is not None else 0.6
 
-        if vsd_coeffs_iu is None:
-            vsd_coeffs_iu = {
-                "c1": 0.0013,
-                "c2": 0.1470,
-                "c3": 0.9506,
-                "c4": -0.0998,
-                "c5": 0.0,
-            }
+        if not vsd_coeffs_iu:
+            vsd_coeffs_iu = SINGLE_ZONE_VAV_COEFFICIENTS.copy()
 
         # --- 1. Refrigerant / cycle / compressor ---
         self.ref: str = ref
@@ -173,9 +170,17 @@ class GroundSourceHeatPump:
 
         self.E_iu_fan_rated: float = self.dV_iu_fan_a_rated * self.dP_iu_fan_rated / self.eta_iu_fan_rated
         self.vsd_coeffs_iu: dict = vsd_coeffs_iu
+        self.dV_iu_fan_a_min, self.dV_iu_fan_a_max = resolve_fan_flow_limits(
+            self.dV_iu_fan_a_rated,
+            dV_iu_fan_a_min,
+            dV_iu_fan_a_max,
+            custom_curve=not is_generic_fan_curve(vsd_coeffs_iu),
+        )
         self.fan_params_iu: dict = {
             "fan_rated_flow_rate": self.dV_iu_fan_a_rated,
             "fan_rated_power": self.E_iu_fan_rated,
+            "fan_min_flow_rate": self.dV_iu_fan_a_min,
+            "fan_max_flow_rate": self.dV_iu_fan_a_max,
         }
 
         # --- 4. BHE ---
@@ -421,6 +426,9 @@ class GroundSourceHeatPump:
                 A_cross=self.A_cross_iu,
                 UA_rated=self.UA_evap,
                 dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
             )
         elif mode == "heating":
@@ -431,6 +439,9 @@ class GroundSourceHeatPump:
                 A_cross=self.A_cross_iu,
                 UA_rated=self.UA_cond,
                 dV_fan_rated=self.dV_iu_fan_a_rated,
+                dV_fan_min=self.dV_iu_fan_a_min,
+                dV_fan_max=self.dV_iu_fan_a_max,
+                custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
             )
         else:

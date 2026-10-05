@@ -211,10 +211,16 @@ def test_part_load_cop_is_heat_exchanger_gain_against_compressor_loss() -> None:
     curve by the compressor's measured low-speed loss -- a few per cent at half
     load, more at the speed floor -- without collapsing.
     """
-    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32")
+    # Isolate compressor correlations using the historical fan assumption.
+    from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS
+
+    fan = ASHRAE_VSD_COEFFICIENTS | {"curve_type": "custom"}
+    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32", vsd_coeffs=fan, dV_fan_a_min=0.05 * 9000 * 0.00015)
     rated = model.analyze_steady(T_tank_w=42.5, T0=7.0, Q_ref_tank=9000.0, return_dict=True)
     assert isinstance(rated, dict)
     frozen = AirSourceHeatPumpBoiler(
+        vsd_coeffs=fan,
+        dV_fan_a_min=0.05 * 9000 * 0.00015,
         hp_capacity=9000.0,
         ref="R32",
         eta_cmp_vol=float(rated["eta_cmp_vol [-]"]),
@@ -334,17 +340,10 @@ def test_en14825_gradient_matches_the_certified_population() -> None:
     assert lo <= gradient <= hi, f"COP(D)/COP(A) = {gradient:.2f}, outside the certified p10-p90 of {lo:.2f}-{hi:.2f}"
 
 
-def test_outdoor_fan_turndown_bound_is_documented() -> None:
-    """``calc_HX_perf_for_target_heat`` lets the outdoor fan turn down to 5 % of rated flow.
-
-    The bound carries no source. Since the operating-point optimiser now scores
-    candidates by specific energy, the bound is no longer the branch the model
-    selects at low load (see the test above), but it is still the search bracket;
-    changing it should be a deliberate act with the documentation updated.
-    """
-    import inspect
-
+def test_outdoor_fan_default_turndown_rejects_unmatched_heat_duty() -> None:
+    """The retained 15% airflow assumption must not hide HX overdelivery."""
     from tmhp.enex_functions import calc_HX_perf_for_target_heat
 
-    source = inspect.getsource(calc_HX_perf_for_target_heat)
-    assert "dV_fan_rated * 0.05" in source
+    row = calc_HX_perf_for_target_heat(1.0, T_a_in_C=20, T_ref_sat_K=283.15, A_cross=0.5, UA_rated=1000, dV_fan_rated=1)
+    assert not row["converged"]
+    assert row["min_limit"]

@@ -130,6 +130,12 @@ def test_constant_flow_regression_before_total_power_policy(cls, expected):
         if cls is GroundSourceHeatPump
         else {"eta_cmp_isen": 0.8, "eta_cmp_vol": lambda pr: 0.95 - 0.05 * pr, "eta_cmp": 0.855}
     )
+    # This historical baseline predates the single-zone default. Select the
+    # old fixed-SP curve explicitly to test backward-compatible reproduction.
+    if cls is GroundSourceHeatPump:
+        from tmhp.hx_fan import ASHRAE_VSD_COEFFICIENTS
+
+        legacy["vsd_coeffs_iu"] = ASHRAE_VSD_COEFFICIENTS.copy()
     row = _run(_model(cls, **legacy))
     assert row["converged"]
     for key, value in zip(("E_cmp [W]", "E_pmp [W]", "E_tot [W]"), expected, strict=True):

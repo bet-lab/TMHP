@@ -25,7 +25,7 @@ import numpy as np
 from tmhp.g_function import precompute_gfunction
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
 
 # Ground / borehole parameters (representative values, not site-specific).
 H_B = 150.0  # m, borehole length
@@ -74,7 +74,7 @@ def main() -> None:
 
     ax.set_xlabel(r"$\ln(t / t_s)$, with $t_s = H^2 / (9\alpha_s)$")
     ax.set_ylabel(r"$g(t/t_s, B/H)$ [-]")
-    ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-1))
 
     ax.text(

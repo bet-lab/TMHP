@@ -1,0 +1,190 @@
+{
+  "script": "validation/diagnostics/low_load_fixed_power_sh_sc_once.py",
+  "purpose": "one-off low-load sensitivity: fixed electrical power and superheat/subcooling",
+  "started_utc": "2026-09-27T10:58:17.740906+00:00",
+  "finished_utc": "2026-09-27T10:58:26.459336+00:00",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+  "coefficient_version": "v2026-09-24",
+  "capacity_W": 3500.0,
+  "refrigerant": "R32",
+  "plr_fractions": [
+    1.0,
+    0.96,
+    0.92,
+    0.88,
+    0.84,
+    0.8,
+    0.76,
+    0.72,
+    0.68,
+    0.64,
+    0.6,
+    0.56,
+    0.52,
+    0.48,
+    0.44,
+    0.4,
+    0.36,
+    0.32,
+    0.28,
+    0.24,
+    0.2,
+    0.16,
+    0.12
+  ],
+  "W_fixed_W": [
+    0.0,
+    25.0,
+    50.0,
+    100.0
+  ],
+  "conditions": [
+    {
+      "key": "heating_7",
+      "duty": "heating",
+      "T_outdoor_C": 7.0,
+      "T_room_C": 20.0,
+      "main": true
+    },
+    {
+      "key": "cooling_35",
+      "duty": "cooling",
+      "T_outdoor_C": 35.0,
+      "T_room_C": 27.0,
+      "main": true
+    },
+    {
+      "key": "heating_m7",
+      "duty": "heating",
+      "T_outdoor_C": -7.0,
+      "T_room_C": 20.0,
+      "main": false
+    }
+  ],
+  "setpoints": [
+    {
+      "SH_set": 3.0,
+      "SC_set": 3.0,
+      "label": "Case 0 current 3/3"
+    },
+    {
+      "SH_set": 3.0,
+      "SC_set": 0.0,
+      "label": "Case 1 low 3/0"
+    },
+    {
+      "SH_set": 5.0,
+      "SC_set": 3.0,
+      "label": "Case 2 5/3"
+    },
+    {
+      "SH_set": 5.0,
+      "SC_set": 5.0,
+      "label": "Case 3 5/5"
+    },
+    {
+      "SH_set": 8.0,
+      "SC_set": 5.0,
+      "label": "Case 4 8/5"
+    },
+    {
+      "SH_set": 10.0,
+      "SC_set": 5.0,
+      "label": "Case 5 10/5"
+    },
+    {
+      "SH_set": 10.0,
+      "SC_set": 8.0,
+      "label": "Case 6 10/8"
+    },
+    {
+      "SH_set": 3.0,
+      "SC_set": 5.0,
+      "label": "split 3/5"
+    },
+    {
+      "SH_set": 5.0,
+      "SC_set": 0.0,
+      "label": "split 5/0"
+    },
+    {
+      "SH_set": 5.0,
+      "SC_set": 8.0,
+      "label": "split 5/8"
+    }
+  ],
+  "sh_sc_modes": {
+    "mode_A": "shipped model; actual_SH/SC clipped by the optimised approach",
+    "mode_B": "per-variable approach floors dT_ref_evap >= SH + dT_hx_min and dT_ref_cond >= SC + dT_hx_min, imposed by rewriting the bounds kwarg of scipy.optimize.minimize inside this module only"
+  },
+  "dT_hx_min": 0.5,
+  "approach_bounds_shipped": [
+    1.0,
+    20.0
+  ],
+  "src_modified": false,
+  "checks": {
+    "fixed_power_state_invariance_max_spread": {
+      "T_evap": 0.0,
+      "T_cond": 0.0,
+      "r_p": 0.0,
+      "n_star": 0.0,
+      "dT_ref_evap": 0.0,
+      "dT_ref_cond": 0.0,
+      "E_tot_baseline": 0.0
+    },
+    "fixed_power_state_invariant": true,
+    "mode_B_points": 686,
+    "mode_B_SH_not_achieved": 0,
+    "mode_B_SC_not_achieved": 0,
+    "mode_B_SH_max_shortfall_K": 0.0,
+    "mode_B_SC_max_shortfall_K": 0.0,
+    "mode_B_bound_violation_evap": 0,
+    "mode_B_bound_violation_cond": 0,
+    "points_total": 1380,
+    "failures_by_reason": {
+      "none": 1376,
+      "hx_not_converged": 4
+    },
+    "capacity_clamped_counts": {
+      "none": 1127,
+      "min": 253
+    },
+    "pr_clamped_points": 0,
+    "fan_flow_floor_hits_ou": 0,
+    "fan_flow_floor_hits_iu": 0,
+    "fan_fraction_ou_min": 0.0646064698558802,
+    "fan_fraction_iu_min": 0.114008685258068,
+    "fan_flow_min_limit_flags": 0
+  },
+  "outputs": [
+    "01_fixed_power_cop_vs_plr.png",
+    "01_fixed_power_cop_vs_plr.svg",
+    "02_fixed_power_fraction_vs_plr.png",
+    "02_fixed_power_fraction_vs_plr.svg",
+    "03_fixed_power_lowload_summary.png",
+    "03_fixed_power_lowload_summary.svg",
+    "04_actual_sh_sc_vs_plr.png",
+    "04_actual_sh_sc_vs_plr.svg",
+    "05_approach_vs_plr.png",
+    "05_approach_vs_plr.svg",
+    "06_saturation_temperature_vs_plr.png",
+    "06_saturation_temperature_vs_plr.svg",
+    "07_pressure_ratio_vs_plr.png",
+    "07_pressure_ratio_vs_plr.svg",
+    "08_nstar_vs_plr.png",
+    "08_nstar_vs_plr.svg",
+    "09_sh_sc_cop_vs_plr.png",
+    "09_sh_sc_cop_vs_plr.svg",
+    "10_sh_only_cop_vs_plr.png",
+    "10_sh_only_cop_vs_plr.svg",
+    "11_sc_only_cop_vs_plr.png",
+    "11_sc_only_cop_vs_plr.svg",
+    "12_combined_effect_cop_vs_plr.png",
+    "12_combined_effect_cop_vs_plr.svg",
+    "fig03_fixed_power_lowload_summary.csv",
+    "low_load_fixed_power_sh_sc_once.csv",
+    "run_manifest.json"
+  ]
+}

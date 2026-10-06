@@ -63,6 +63,12 @@ dev = [
     "pytest-xdist>=3.8.0",
     "ruff>=0.15.5",
 ]
+validation = [
+    # Catalogue scraping for validation/extraction/. Not needed to use the
+    # library; only to rebuild the evidence tables from the source documents.
+    "pdfplumber>=0.11.0",
+    "pyyaml>=6.0",
+]
 docs = [
     "sphinx>=7.0.0",
     "shibuya>=2024.5.2",

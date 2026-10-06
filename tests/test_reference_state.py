@@ -86,7 +86,7 @@ def test_reference_state_closes_cycle_and_both_heat_exchangers(cls):
     pr, rps = state.pressure_ratio, hp.rps_rated
     for name, factory in (("eta_cmp_vol", make_eta_vol), ("eta_cmp_isen", make_eta_isen), ("eta_cmp", make_eta_em)):
         assert getattr(state, name) == pytest.approx(getattr(hp, name)(pr, rps))
-        assert getattr(hp, name)(pr, rps) == pytest.approx(factory(1.0)(pr, None))
+        assert getattr(hp, name)(pr, rps) == pytest.approx(factory(hp.rps_rated)(pr, rps))
     # Energy balance of each heat exchanger at rated UA and reference flow.
     heating = cond.mode == "heating"
     evap_side, cond_side = (cond.source, cond.load) if heating else (cond.load, cond.source)

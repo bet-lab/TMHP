@@ -17,7 +17,7 @@ import CoolProp.CoolProp as CP
 import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
-from _dmpl_common import COLORS, apply_style, finalize, panel_letter, static_path
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path
 
 from tmhp import AirSourceHeatPumpBoiler
 
@@ -178,7 +178,7 @@ def main() -> None:
     ax_ph.set_xlabel("Enthalpy [kJ/kg]")
     ax_ph.set_ylabel("Pressure [kPa]")
     ax_ph.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
-    ax_ph.grid(True, which="both", alpha=0.25, linewidth=dm.lw(-2))
+    ax_ph.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
     panel_letter(ax_ph, "a")
 
     # --- Panel (b): T-h --------------------------------------------------
@@ -204,7 +204,7 @@ def main() -> None:
     ax_th.set_xlabel("Enthalpy [kJ/kg]")
     ax_th.set_ylabel("Temperature [°C]")
     ax_th.legend(loc="upper left", frameon=False, ncol=3, bbox_to_anchor=(0.06, 1.0), fontsize=dm.fs(-1))
-    ax_th.grid(True, which="both", alpha=0.25, linewidth=dm.lw(-2))
+    ax_th.grid(True, which="both", alpha=0.25, linewidth=GRIDLINE)
     panel_letter(ax_th, "b")
 
     finalize(fig, OUTPUT_STEM)

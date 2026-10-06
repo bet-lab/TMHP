@@ -29,7 +29,7 @@ from scripts.visualization._dmpl_common import (  # noqa: E402
     ticks,
 )
 
-from tmhp.compressor_efficiency import (  # noqa: E402
+from tmhp.compressor_efficiency_legacy import (  # noqa: E402
     COEFFICIENT_VERSION,
     ETA_EM_REF,
     ETA_OI_A,

@@ -22,7 +22,7 @@ import numpy as np
 from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, static_path  # noqa: E402
 
 T_TANK_W = 55.0  # °C — typical DHW set-point
 Q_COND = 8_000  # W
@@ -105,7 +105,7 @@ def main() -> None:
     ax.set_ylabel("System COP [-]")
     ax.set_xlim(-16, 31)
     ax.set_ylim(bottom=0)
-    ax.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-1))
 
     ax.text(

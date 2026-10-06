@@ -710,6 +710,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 "v_iu_a [m/s]": v_iu_a,
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pr_cmp [-]": ratio_P_cmp,
+                "eta_cmp_vol [-]": val_eta_vol,
+                "eta_cmp_isen [-]": val_eta_isen,
+                "eta_cmp [-]": val_eta_electro_mech,
                 # Energy rates [W]
                 "E_iu_fan [W]": E_iu_fan,
                 "E_ou_fan [W]": E_ou_fan,

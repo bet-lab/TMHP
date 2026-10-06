@@ -1,8 +1,7 @@
 r"""Compressor reference state solved from nominal capacity.
 
-Every compressor-based heat-pump model in TMHP normalises its compressor
-efficiencies by a rated speed (``n* = rps / rps_rated``) and, for the ground
-heat exchanger, its refrigerant-side UA by a rated refrigerant mass flow
+BITZER compressor efficiencies use absolute shaft speed in rev/s. Models
+normalise the ground heat exchanger refrigerant-side UA by a rated mass flow
 (``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one physical
 point -- the *reference state* -- and this module computes that point from the
 same inputs every model already requires:
@@ -22,7 +21,7 @@ same inputs every model already requires:
     operating condition is simulated afterwards.
 ``rps_rated``
     The speed at which the model delivers ``hp_capacity`` at the rating
-    condition, with every efficiency evaluated at ``n* = 1``.
+    condition, with every efficiency evaluated at that actual shaft speed.
 ``m_dot_ref_rated``
     The refrigerant mass flow of that same state.
 
@@ -65,6 +64,7 @@ import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
 from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .refrigerant import calc_ref_state
 
@@ -252,9 +252,9 @@ def rating_condition(
 
 
 def _rated_speed_efficiency(factory: Callable[[float], Callable]) -> Callable[[float, float], float]:
-    """Baseline correlation pinned at ``n* = 1`` (the candidate is its own rated speed)."""
+    """Evaluate absolute shaft speed at every candidate reference point."""
     correlation = factory(1.0)
-    return lambda pressure_ratio, rps: correlation(pressure_ratio, None)
+    return lambda pressure_ratio, rps: correlation(pressure_ratio, rps)
 
 
 #: Efficiency factories by attribute, used when the caller supplied none.
@@ -273,7 +273,7 @@ def reference_efficiencies(
 
     ``resolved`` (the model's final efficiencies) is used when the rated speed
     is already known. Otherwise caller-supplied models are used as they are and
-    omitted ones become baseline correlations at ``n* = 1``.
+    omitted ones use BITZER correlations at each candidate shaft speed.
     """
     if resolved is not None:
         return dict(resolved)
@@ -418,22 +418,16 @@ def _solve(
             Q_cond_r, Q_evap_r = duties(rps)[1:3]
             return (Q_cond_r if heating else Q_evap_r) - Q_rated
 
-        # Bounded root Q_model(rps) = Q_rated. With rps_rated=None the baseline
-        # efficiencies arrive pinned at n* = 1 (each candidate is its own rated
-        # speed), so duty is linear in rps unless a caller-supplied efficiency
-        # depends on speed. Efficiencies are never evaluated outside the envelope.
-        res_lo, res_hi = residual(rps_min), residual(rps_max)
-        in_range = res_lo <= 0 <= res_hi
-        if in_range:
-            rps = brentq(residual, rps_min, rps_max, xtol=1e-10, rtol=1e-12)
-        else:
-            bound, res = (rps_min, res_lo) if res_lo > 0 else (rps_max, res_hi)
-            rps = bound * Q_rated / (res + Q_rated)
-        m_dot, Q_cond_c, Q_evap_c, eta_vol, eta_isen = duties(rps if in_range else (rps_min if res_lo > 0 else rps_max))
+        rps, converged, clamped = solve_compressor_speed(residual, rps_min, rps_max)
+        in_range = converged and clamped is None
+        bound = rps
+        m_dot, Q_cond_c, Q_evap_c, eta_vol, eta_isen = duties(bound)
         if not in_range:
-            # Linear extrapolation outside the envelope: used only to steer the
-            # outer energy balance; rejected below if it survives to the end.
-            scale = rps / (rps_min if res_lo > 0 else rps_max)
+            # Preserve the outer-balance steering used for infeasible ratings;
+            # the final reference state still rejects a capacity outside bounds.
+            delivered = Q_cond_c if heating else Q_evap_c
+            scale = Q_rated / delivered
+            rps = bound * scale
             m_dot, Q_cond_c, Q_evap_c = m_dot * scale, Q_cond_c * scale, Q_evap_c * scale
         return {
             "rps": rps,

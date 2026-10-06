@@ -596,6 +596,11 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "P_ref_cond_sat_l [Pa]": cycle_states.get("P_ref_exp_in [Pa]", np.nan),
                 "m_dot_ref [kg/s]": m_dot_ref,
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pr_cmp [-]": ratio_P_cmp,
+                "eta_cmp_vol [-]": val_eta_vol,
+                "eta_cmp_isen [-]": val_eta_isen,
+                "eta_cmp [-]": val_eta_electro_mech,
                 "h_ref_evap_sat [J/kg]": CP.PropsSI(
                     "H", "P", cycle_states.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref
                 ),

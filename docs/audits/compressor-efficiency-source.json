@@ -1,19 +1,20 @@
 {
-  "source_module": "/home/habin/papers/TMHP-feat-compressor-efficiency-defaults/src/tmhp/compressor_efficiency.py",
-  "source_sha256": "22699a79c8b7bbf05e30c4c3006012b083fcbb4e9ec80c824b586f98907ac60d",
-  "source_commit": "d9fa2f3646df66493f499308723a63e49fbb91d6",
-  "notion_url": "https://app.notion.com/p/3eb6947d125d814d9480db29404ebbd3",
-  "coefficient_version": "v2026-09-24",
+  "source_module": "src/tmhp/compressor_efficiency.py",
+  "source_sha256": "780cce36c2a9420ca9c7ff8776fb4fe2731c31550e68488c49d26e2e0161b5a9",
+  "source_commit": "integration of BITZER Notion source on 2026-10-06",
+  "notion_url": "https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d",
+  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
   "default_rps_space_conditioning": 60,
   "default_rps_boiler": 40,
   "tuned": false,
   "current_source_sha256": {
-    "src/tmhp/air_source_heat_pump.py": "b1544db0316b56581496613cc8619495864de3a71c8b91a5d17d3311897b9aec",
-    "src/tmhp/air_source_heat_pump_boiler.py": "fda50bf749d6949edd43a19183c9682203358ad3a7aa98725d16317957882dff",
-    "src/tmhp/ground_source_heat_pump.py": "ef1ec436500be7cb5656af930d13fb9f6f1919cf66958bf15deb1b9c4dc71649",
-    "src/tmhp/ground_source_heat_pump_boiler.py": "419912f465bee794f98f7c49d1b8ee42ea1cbc1da4d876bfb41f38a004960d32",
-    "src/tmhp/water_source_heat_pump_boiler.py": "d0d3fbfb9692e54dca96b3b781a531d8474215b1403155df28a73f0a0e7b94dc",
-    "src/tmhp/compressor_efficiency.py": "4a596b3870e90dadb653589e957a266566cee3c27609b2d81cb2db99ede4e68a"
+    "src/tmhp/air_source_heat_pump.py": "810ccd16e094568e36c1d1181a69aec40beee8fbb82cd4a71fafd79ec0aa62be",
+    "src/tmhp/air_source_heat_pump_boiler.py": "57bd993633622cf333232b3b016a57733c3363cdecd10b148f6b92f76783aceb",
+    "src/tmhp/ground_source_heat_pump.py": "0826981987d9c1ee16f0c31e1acfd297ad7d43da020ef238b95996d193c2bdeb",
+    "src/tmhp/ground_source_heat_pump_boiler.py": "357dd89b2b65b68a65a20a660c577abadc8a57110adeb943f975448fc09f4d33",
+    "src/tmhp/water_source_heat_pump_boiler.py": "f57d08482911e14b5523fb2307fd0244a670eaeaa9626f39dfd55ae1c4ee0eb7",
+    "src/tmhp/compressor_efficiency.py": "780cce36c2a9420ca9c7ff8776fb4fe2731c31550e68488c49d26e2e0161b5a9"
   },
-  "pressure_floor_search": "Projected condenser temperature determines permitted subcooling before evaluating speed; GSHP explicitly brackets ground-HX duty equality at PR-floor boundary. Coefficients and verification tolerances are unchanged."
+  "pressure_floor_search": "Projected condenser temperature determines permitted subcooling before evaluating speed; GSHP explicitly brackets ground-HX duty equality at PR-floor boundary. Coefficients and verification tolerances are unchanged.",
+  "speed_mapping": "absolute shaft speed N [rev/s], no reference normalization"
 }

@@ -143,8 +143,8 @@ To regenerate the figure shipped with the docs:
    uv run python scripts/visualization/mollier_cycle_R32.py
 
 The script pins ``mpl.rcParams["svg.hashsalt"]`` so the resulting SVG
-is byte-identical across runs — the same convention used by
-``scripts/validation/samsung_ehs_parity.py``.
+is byte-identical across runs — the same convention used by the validation
+figures in ``scripts/validation/``.
 
 Going further
 =============

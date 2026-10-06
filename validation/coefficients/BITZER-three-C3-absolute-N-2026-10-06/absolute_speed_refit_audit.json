@@ -1,0 +1,9 @@
+{
+  "speed": "N [rev/s] directly",
+  "reference_speed_normalization": false,
+  "max_prediction_difference_vs_coordinate_transform": {
+    "fitted": 3.980149543281186e-13,
+    "cv": 2.3714363805993344e-13
+  },
+  "interpretation": "Coordinate rescaling leaves archive fit and LOCO predictions unchanged; ASHP now evaluates at physical N directly."
+}

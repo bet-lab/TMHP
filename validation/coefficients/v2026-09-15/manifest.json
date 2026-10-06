@@ -1,0 +1,11 @@
+{
+ "version": "v2026-09-15",
+ "created": "2026-09-15T09:15:01",
+ "tmhp": "0.1.0",
+ "coolprop": "7.2.0",
+ "python": "3.12.3",
+ "git_head": "b196a6d883ee4a2c6fdcdc14e761ecc95f92d028",
+ "git_branch": "feat/compressor-efficiency-defaults",
+ "git_dirty": true,
+ "selection_rule": "sequential nesting: +1 coefficient must buy >= 0.1 pp LOCO MAPE; no stratum with >= 3 machines worse by > 2 pp or > 25 %; constraints 0 < eta <= 1.02 and d(n* eta_vol)/dn* > 0 on PR 1.5-8, n* 0.15-2.5; PR x speed interaction kept as a documented extension only"
+}

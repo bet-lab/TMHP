@@ -1,0 +1,26 @@
+{
+ "coefficient_version": "v2026-09-24",
+ "rated_within_10pct": 17,
+ "rated_total": 19,
+ "rated_worst_abs_pct": 13.384049017333178,
+ "headline": [
+  {
+   "model_class": "ASHP",
+   "rating_standard": "EN 14511",
+   "units": 5,
+   "points": 358,
+   "cop_MAPE_pct": 9.204701449785736,
+   "cop_bias_pct": -0.013755625336924805,
+   "meets_target": true
+  },
+  {
+   "model_class": "ASHPB",
+   "rating_standard": "unknown",
+   "units": 10,
+   "points": 153,
+   "cop_MAPE_pct": 8.237862542126207,
+   "cop_bias_pct": 1.5222670349383554,
+   "meets_target": true
+  }
+ ]
+}

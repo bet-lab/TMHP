@@ -1,0 +1,139 @@
+{
+  "warning": "P_TO proxy for non-vanishing parasitic power. NOT P_aux,active. Not a TMHP coefficient.",
+  "source": "Heat Pump Keymark via hplib (FZJ-IEK3-VSA, MIT, doi:10.5281/zenodo.5521597)",
+  "variable_identification": "EN14825_024 = P_TO, verified against Bosch CS2000AWF ErP fiches",
+  "capacity_variable": "EN14511_2_005 rated heating capacity [kW]",
+  "selected_population": "air_to_air_single_split",
+  "selected_model": "model0_constant",
+  "selection_rule": "leave-one-outdoor-unit-out MAE; slope kept only if it improves on the constant",
+  "air_to_air_single_split": {
+    "label": "air_to_air_single_split",
+    "N_rows": 14,
+    "N_units": 12,
+    "model0_constant": {
+      "a_W": 11.64285714285714,
+      "b_W_per_kW": 0.0,
+      "in_sample": {
+        "N": 14,
+        "MAE_W": 1.887755102040817,
+        "RMSE_W": 2.767338661115788,
+        "bias_W": -2.2838873649431793e-15,
+        "R2": 2.220446049250313e-16
+      },
+      "loo_unit": {
+        "N": 14,
+        "MAE_W": 2.047952047952049,
+        "RMSE_W": 2.982319842418548,
+        "bias_W": -0.014985014985012843,
+        "R2": -0.16140533106378752
+      },
+      "pred_at_3p5kW_W": 11.64285714285714
+    },
+    "model1_linear": {
+      "a_W": 8.806855318340492,
+      "b_W_per_kW": 0.8259626699237173,
+      "in_sample": {
+        "N": 14,
+        "MAE_W": 2.0672762461692065,
+        "RMSE_W": 2.636122481733481,
+        "bias_W": -1.2688263138573218e-15,
+        "R2": 0.092583756971796
+      },
+      "loo_unit": {
+        "N": 14,
+        "MAE_W": 2.550666553536668,
+        "RMSE_W": 3.1706116725152165,
+        "bias_W": -0.1413914231438166,
+        "R2": -0.31268791610019186
+      },
+      "pred_at_3p5kW_W": 11.697724663073503
+    }
+  },
+  "air_to_air_all": {
+    "label": "air_to_air_all",
+    "N_rows": 19,
+    "N_units": 15,
+    "model0_constant": {
+      "a_W": 16.578947368421062,
+      "b_W_per_kW": 0.0,
+      "in_sample": {
+        "N": 19,
+        "MAE_W": 7.318559556786707,
+        "RMSE_W": 8.749831814766704,
+        "bias_W": 9.349246523159214e-15,
+        "R2": -2.220446049250313e-16
+      },
+      "loo_unit": {
+        "N": 19,
+        "MAE_W": 7.992711558307531,
+        "RMSE_W": 9.565950466790763,
+        "bias_W": -0.07677588579291501,
+        "R2": -0.19524475028030586
+      },
+      "pred_at_3p5kW_W": 16.578947368421062
+    },
+    "model1_linear": {
+      "a_W": 0.27492560216807965,
+      "b_W_per_kW": 3.8765663065799836,
+      "in_sample": {
+        "N": 19,
+        "MAE_W": 4.164173887624263,
+        "RMSE_W": 5.191186853067579,
+        "bias_W": -9.349246523159212e-17,
+        "R2": 0.6480070931113082
+      },
+      "loo_unit": {
+        "N": 19,
+        "MAE_W": 4.775794522323208,
+        "RMSE_W": 5.80936506622601,
+        "bias_W": -0.3695921192097627,
+        "R2": 0.5591834136826088
+      },
+      "pred_at_3p5kW_W": 13.842907675198022
+    }
+  },
+  "air_to_water": {
+    "label": "air_to_water",
+    "N_rows": 8676,
+    "N_units": 5675,
+    "model0_constant": {
+      "a_W": 26.16977869986168,
+      "b_W_per_kW": 0.0,
+      "in_sample": {
+        "N": 8676,
+        "MAE_W": 17.962219110348443,
+        "RMSE_W": 37.66575923333055,
+        "bias_W": -5.870413012826646e-15,
+        "R2": 0.0
+      },
+      "loo_unit": {
+        "N": 8676,
+        "MAE_W": 17.969559231504828,
+        "RMSE_W": 37.6729713347608,
+        "bias_W": 0.0009098496078354894,
+        "R2": -0.0003829893277307317
+      },
+      "pred_at_3p5kW_W": 26.16977869986168
+    },
+    "model1_linear": {
+      "a_W": 1.278943348740676,
+      "b_W_per_kW": 2.337591646074693,
+      "in_sample": {
+        "N": 8676,
+        "MAE_W": 14.796701620989225,
+        "RMSE_W": 27.19816517184891,
+        "bias_W": -1.3208429278859954e-14,
+        "R2": 0.4785823093829533
+      },
+      "loo_unit": {
+        "N": 8676,
+        "MAE_W": 14.818217697487482,
+        "RMSE_W": 27.346498823030775,
+        "bias_W": 0.0018866595714555504,
+        "R2": 0.4728793732801535
+      },
+      "pred_at_3p5kW_W": 9.460514110002102
+    }
+  },
+  "tmhp_prediction_at_3p5kW_W": 11.64285714285714
+}

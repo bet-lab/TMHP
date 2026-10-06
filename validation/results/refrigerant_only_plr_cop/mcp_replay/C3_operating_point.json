@@ -1,0 +1,194 @@
+{
+ "name": "C3_operating_point",
+ "size_inches": [
+  5.905511811023622,
+  2.4803149606299213
+ ],
+ "axes": [
+  {
+   "position": [
+    0.0970278518518519,
+    0.1841255511463844,
+    0.37709078904991944,
+    0.6764461864660494
+   ],
+   "xlim": [
+    0.0,
+    100.0
+   ],
+   "ylim": [
+    0.0,
+    2.0
+   ],
+   "x": {
+    "ticks": [
+     0.0,
+     20.0,
+     40.0,
+     60.0,
+     80.0,
+     100.0
+    ],
+    "labels": [
+     "0",
+     "20",
+     "40",
+     "60",
+     "80",
+     "100"
+    ],
+    "size": 8.0,
+    "rotation": 0.0,
+    "ha": "center"
+   },
+   "y": {
+    "ticks": [
+     0.0,
+     0.5,
+     1.0,
+     1.5,
+     2.0
+    ],
+    "labels": [
+     "0.0",
+     "0.5",
+     "1.0",
+     "1.5",
+     "2.0"
+    ],
+    "size": 8.0,
+    "rotation": 0.0,
+    "ha": "right"
+   },
+   "ytick_side": "left",
+   "has_content": true,
+   "xlabel": "Requested part-load ratio [%]",
+   "xlabel_size": 8.0,
+   "ylabel": "Relative speed  $n^{*}=N/N_{rated}$ [-]",
+   "ylabel_size": 8.0,
+   "title": "ASHP cooling, 35 \u00b0C outdoor / 27 \u00b0C room, 3.5 kW",
+   "title_size": 9.0,
+   "title_loc": "left",
+   "texts": [
+    {
+     "x": -0.1,
+     "y": 1.03,
+     "s": "a",
+     "size": 11.0,
+     "ha": "left",
+     "va": "bottom",
+     "rotation": 0.0,
+     "axes_fraction": true,
+     "linespacing": 1.2,
+     "bbox": false
+    }
+   ],
+   "legend": {
+    "labels": [
+     "R32",
+     "R410A",
+     "R290",
+     "R407C",
+     "R134a",
+     "R22"
+    ],
+    "kinds": [
+     "line",
+     "line",
+     "line",
+     "line",
+     "line",
+     "line"
+    ],
+    "loc": 2,
+    "size": 4.5,
+    "ncol": 2,
+    "frameon": false,
+    "handlelength": 1.6,
+    "columnspacing": 1.0,
+    "labelspacing": 0.4
+   }
+  },
+  {
+   "position": [
+    0.5872458776167472,
+    0.1841255511463844,
+    0.37709078904991944,
+    0.6764461864660494
+   ],
+   "xlim": [
+    0.0,
+    100.0
+   ],
+   "ylim": [
+    1.5,
+    2.5
+   ],
+   "x": {
+    "ticks": [
+     0.0,
+     20.0,
+     40.0,
+     60.0,
+     80.0,
+     100.0
+    ],
+    "labels": [
+     "0",
+     "20",
+     "40",
+     "60",
+     "80",
+     "100"
+    ],
+    "size": 8.0,
+    "rotation": 0.0,
+    "ha": "center"
+   },
+   "y": {
+    "ticks": [
+     1.5,
+     1.75,
+     2.0,
+     2.25,
+     2.5
+    ],
+    "labels": [
+     "1.50",
+     "1.75",
+     "2.00",
+     "2.25",
+     "2.50"
+    ],
+    "size": 8.0,
+    "rotation": 0.0,
+    "ha": "right"
+   },
+   "ytick_side": "left",
+   "has_content": true,
+   "xlabel": "Requested part-load ratio [%]",
+   "xlabel_size": 8.0,
+   "ylabel": "Pressure ratio  $r_p=p_{dis}/p_{suc}$ [-]",
+   "ylabel_size": 8.0,
+   "title": "Same rows, compressor lift",
+   "title_size": 9.0,
+   "title_loc": "left",
+   "texts": [
+    {
+     "x": -0.1,
+     "y": 1.03,
+     "s": "b",
+     "size": 11.0,
+     "ha": "left",
+     "va": "bottom",
+     "rotation": 0.0,
+     "axes_fraction": true,
+     "linespacing": 1.2,
+     "bbox": false
+    }
+   ],
+   "legend": null
+  }
+ ],
+ "figure_texts": []
+}

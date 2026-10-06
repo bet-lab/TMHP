@@ -1,0 +1,72 @@
+{
+  "default_UA_ou_rated_W_K": 700.0,
+  "default_UA_iu_rated_W_K": 560.0,
+  "joint_scales": [
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "split_cases": [
+    [
+      0.5,
+      1.0
+    ],
+    [
+      2.0,
+      1.0
+    ],
+    [
+      1.0,
+      0.5
+    ],
+    [
+      1.0,
+      2.0
+    ]
+  ],
+  "fractions": [
+    1.0,
+    0.96,
+    0.92,
+    0.88,
+    0.84,
+    0.8,
+    0.76,
+    0.72,
+    0.68,
+    0.64,
+    0.6,
+    0.56,
+    0.52,
+    0.48,
+    0.44,
+    0.4,
+    0.36,
+    0.32,
+    0.28,
+    0.24,
+    0.2,
+    0.16,
+    0.12
+  ],
+  "regression_max_rel_dev": {
+    "cop_sys": 0.0,
+    "cop_ref": 0.0,
+    "UA_ou": 0.0,
+    "UA_iu": 0.0,
+    "T_evap_C": 0.0,
+    "T_cond_C": 0.0,
+    "pr": 0.0,
+    "E_tot": 0.0,
+    "n_star": 0.0
+  },
+  "n_rows": 506,
+  "n_failures": 16,
+  "n_speed_floor": 117,
+  "n_fan_floor_ou": 16,
+  "n_fan_floor_iu": 16,
+  "coefficient_version": "v2026-09-24"
+}

@@ -91,7 +91,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
     Unless explicitly injected, compressor efficiencies use the
     shared baseline correlations in :mod:`tmhp.compressor_efficiency`
-    (v2026-09-24), evaluated at PR and speed relative to ``rps_rated``.
+    (BITZER 2026-10-06), evaluated at PR and actual shaft speed in rev/s.
     Scalar and user-supplied callable overrides remain supported.
     """
 
@@ -849,6 +849,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "dV_mix_sup_w_in [m3/s]": (dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan),
                 "m_dot_ref [kg/s]": m_dot_ref,  # Mass flow rate [kg/s]
                 "cmp_rpm [rpm]": cmp_rps * 60,
+                "n_star [-]": cmp_rps / self.rps_rated,
+                "pr_cmp [-]": state["pr"],
+                "eta_cmp_vol [-]": state["eta_vol"],
+                "eta_cmp_isen [-]": state["eta_isen"],
+                "eta_cmp [-]": state["eta_em"],
                 # Energy rates [W]
                 "E_ou_fan [W]": E_ou_fan,
                 "Q_ref_ou [W]": Q_ref_ou,

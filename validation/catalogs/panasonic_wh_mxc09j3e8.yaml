@@ -1,0 +1,119 @@
+# WH-MXC09J3E8 -- Panasonic Aquarea, R32, 9 kW nominal heating.
+#
+# Published heating-performance grid: leaving water temperature x outdoor air
+# temperature, with COP printed directly. Transcribed from the manufacturer
+# documentation named under `source` below.
+#
+# The compressor displacement is a published specification of this machine:
+# Panasonic's compressor division catalogues 9JD420XBA22 at 42.0 cm3/rev, and
+# the outdoor unit's service-manual parts list names that compressor. Rated
+# air flow is likewise read verbatim from the service manual. Both are inputs,
+# not tuning -- every efficiency coefficient and conductance comes from the
+# library defaults.
+slug: panasonic_wh_mxc09j3e8
+name: WH-MXC09J3E8
+manufacturer: Panasonic
+model_class: ASHPB
+refrigerant: R32
+nominal_capacity_kW: 9.0
+cop_definition: "Q_cond / (E_cmp + E_fan), heating"
+source:
+  document: "Panasonic Aquarea WH-MXC series service manual / 2025 catalogue"
+  table: "references/Panasonic_R32_9-12-16 kW.png (heating performance table)"
+published_inputs:
+  displacement_cc: 42.0
+  rated_air_flow_m3_s: 1.153
+# The catalogue's reference is leaving water temperature; the model's tank
+# temperature sits this far below it.
+sink_offset_K: 2.5
+points:
+  - id: 1
+    t_source_C: -15
+    t_sink_C: 45
+    q_kW: 9.00
+    cop: 2.23
+    mode: heating
+  - id: 2
+    t_source_C: -7
+    t_sink_C: 45
+    q_kW: 9.00
+    cop: 2.54
+    mode: heating
+  - id: 3
+    t_source_C: 2
+    t_sink_C: 45
+    q_kW: 9.00
+    cop: 3.09
+    mode: heating
+  - id: 4
+    t_source_C: 7
+    t_sink_C: 45
+    q_kW: 9.00
+    cop: 3.80
+    mode: heating
+  - id: 5
+    t_source_C: 25
+    t_sink_C: 45
+    q_kW: 10.00
+    cop: 5.99
+    mode: heating
+  - id: 6
+    t_source_C: -15
+    t_sink_C: 55
+    q_kW: 9.00
+    cop: 1.86
+    mode: heating
+  - id: 7
+    t_source_C: -7
+    t_sink_C: 55
+    q_kW: 9.00
+    cop: 2.12
+    mode: heating
+  - id: 8
+    t_source_C: 2
+    t_sink_C: 55
+    q_kW: 9.00
+    cop: 2.54
+    mode: heating
+  - id: 9
+    t_source_C: 7
+    t_sink_C: 55
+    q_kW: 9.00
+    cop: 3.08
+    mode: heating
+  - id: 10
+    t_source_C: 25
+    t_sink_C: 55
+    q_kW: 10.00
+    cop: 4.39
+    mode: heating
+  - id: 11
+    t_source_C: -15
+    t_sink_C: 60
+    q_kW: 8.70
+    cop: 1.62
+    mode: heating
+  - id: 12
+    t_source_C: -7
+    t_sink_C: 60
+    q_kW: 9.00
+    cop: 1.95
+    mode: heating
+  - id: 13
+    t_source_C: 2
+    t_sink_C: 60
+    q_kW: 9.00
+    cop: 2.22
+    mode: heating
+  - id: 14
+    t_source_C: 7
+    t_sink_C: 60
+    q_kW: 9.00
+    cop: 2.74
+    mode: heating
+  - id: 15
+    t_source_C: 25
+    t_sink_C: 60
+    q_kW: 11.00
+    cop: 3.85
+    mode: heating

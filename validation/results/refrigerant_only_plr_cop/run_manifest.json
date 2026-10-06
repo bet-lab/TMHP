@@ -1,0 +1,91 @@
+{
+  "cases": {
+    "ASHP_heating": "ASHP heating, 7 °C outdoor / 20 °C room, 3.5 kW",
+    "ASHP_cooling": "ASHP cooling, 35 °C outdoor / 27 °C room, 3.5 kW",
+    "ASHPB_heating": "ASHPB heating, 7 °C outdoor / 42.5 °C tank, 9 kW"
+  },
+  "refrigerants": [
+    "R32",
+    "R410A",
+    "R290",
+    "R407C",
+    "R134a",
+    "R22"
+  ],
+  "reference_refrigerant": "R32",
+  "fractions": [
+    1.0,
+    0.96,
+    0.92,
+    0.88,
+    0.84,
+    0.8,
+    0.76,
+    0.72,
+    0.68,
+    0.64,
+    0.6,
+    0.56,
+    0.52,
+    0.48,
+    0.44,
+    0.4,
+    0.36,
+    0.32,
+    0.28,
+    0.24,
+    0.2,
+    0.16,
+    0.12
+  ],
+  "fixed_displacement_cm3": {
+    "ASHP_heating": 9.365415077969358,
+    "ASHP_cooling": 9.365415077969358,
+    "ASHPB_heating": 35.32918345659227
+  },
+  "own_displacement_cm3": {
+    "ASHP_heating/R32": 9.365415077969358,
+    "ASHP_heating/R410A": 10.386417881417204,
+    "ASHP_heating/R290": 17.69134083197758,
+    "ASHP_heating/R407C": 16.17613424043611,
+    "ASHP_heating/R134a": 22.682412992020094,
+    "ASHP_heating/R22": 14.810613035175768,
+    "ASHP_cooling/R32": 9.365415077969358,
+    "ASHP_cooling/R410A": 10.386417881417204,
+    "ASHP_cooling/R290": 17.69134083197758,
+    "ASHP_cooling/R407C": 16.17613424043611,
+    "ASHP_cooling/R134a": 22.682412992020094,
+    "ASHP_cooling/R22": 14.810613035175768,
+    "ASHPB_heating/R32": 35.32918345659227,
+    "ASHPB_heating/R410A": 38.369630773994466,
+    "ASHPB_heating/R290": 66.38454652869356,
+    "ASHPB_heating/R134a": 89.61151527250456,
+    "ASHPB_heating/R22": 56.90528438866905
+  },
+  "own_displacement_skipped": {
+    "ASHPB_heating/R407C": "ValueError: Two-phase inputs not supported for pseudo-pure for now : PropsSI(\"H\",\"T\",308.15,\"P\",1541186.027,\"R407C\")"
+  },
+  "regression_max_rel_dev": {
+    "COP_comp": 0.0,
+    "COP_sys": 0.0,
+    "W_tot": 0.0,
+    "n_star": 0.0,
+    "r_p": 0.0,
+    "T_evap_sat": 0.0,
+    "T_cond_sat": 0.0,
+    "m_ref": 0.0
+  },
+  "n_rows": 805,
+  "n_failures": 0,
+  "n_speed_floor": 168,
+  "n_fan_floor_ou": 0,
+  "fit_domain_n_star": [
+    0.27,
+    2.0
+  ],
+  "fit_domain_pr": [
+    1.5,
+    7.3
+  ],
+  "coefficient_version": "v2026-09-24"
+}

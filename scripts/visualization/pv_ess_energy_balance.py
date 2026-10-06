@@ -32,7 +32,7 @@ from tmhp import ASHPB_PV_ESS
 from tmhp.subsystems import EnergyStorageSystem, PhotovoltaicSystem
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _dmpl_common import COLORS, apply_style, finalize, panel_letter, static_path  # noqa: E402
+from _dmpl_common import COLORS, GRIDLINE, apply_style, finalize, panel_letter, static_path  # noqa: E402
 
 SIM_HOURS = 24
 DT_S = 60
@@ -149,7 +149,7 @@ def main() -> None:
     ax_t.set_ylabel("Power [kW]")
     ax_t.set_xlim(0, SIM_HOURS)
     ax_t.set_xticks(np.arange(0, SIM_HOURS + 1, 3))
-    ax_t.grid(True, alpha=0.25, linewidth=dm.lw(-2))
+    ax_t.grid(True, alpha=0.25, linewidth=GRIDLINE)
     ax_t.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-1), ncol=2)
     panel_letter(ax_t, "a")
 
@@ -201,7 +201,7 @@ def main() -> None:
     # to match the left panel's "Time of day [h]" / "Power [kW]".
     ax_b.set_xticklabels(x_labels)
     ax_b.set_ylabel("Daily energy [kWh]")
-    ax_b.grid(True, alpha=0.25, linewidth=dm.lw(-2), axis="y")
+    ax_b.grid(True, alpha=0.25, linewidth=GRIDLINE, axis="y")
     ax_b.legend(loc="upper left", bbox_to_anchor=(0.06, 1.0), frameon=False, fontsize=dm.fs(-2))
     panel_letter(ax_b, "b")
 

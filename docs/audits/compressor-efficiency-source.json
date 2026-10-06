@@ -1,19 +1,21 @@
 {
   "source_module": "src/tmhp/compressor_efficiency.py",
-  "source_sha256": "780cce36c2a9420ca9c7ff8776fb4fe2731c31550e68488c49d26e2e0161b5a9",
-  "source_commit": "integration of BITZER Notion source on 2026-10-06",
+  "source_sha256": "026d8078e1009aff5136214269323c3ab67090cdb16ebcb053eff8dde5be1c7c",
+  "source_commit": "e0cea4a (initial integration); source_sha256 records the final source",
   "notion_url": "https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d",
   "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
   "default_rps_space_conditioning": 60,
   "default_rps_boiler": 40,
   "tuned": false,
   "current_source_sha256": {
-    "src/tmhp/air_source_heat_pump.py": "810ccd16e094568e36c1d1181a69aec40beee8fbb82cd4a71fafd79ec0aa62be",
-    "src/tmhp/air_source_heat_pump_boiler.py": "57bd993633622cf333232b3b016a57733c3363cdecd10b148f6b92f76783aceb",
-    "src/tmhp/ground_source_heat_pump.py": "0826981987d9c1ee16f0c31e1acfd297ad7d43da020ef238b95996d193c2bdeb",
-    "src/tmhp/ground_source_heat_pump_boiler.py": "357dd89b2b65b68a65a20a660c577abadc8a57110adeb943f975448fc09f4d33",
-    "src/tmhp/water_source_heat_pump_boiler.py": "f57d08482911e14b5523fb2307fd0244a670eaeaa9626f39dfd55ae1c4ee0eb7",
-    "src/tmhp/compressor_efficiency.py": "780cce36c2a9420ca9c7ff8776fb4fe2731c31550e68488c49d26e2e0161b5a9"
+    "src/tmhp/air_source_heat_pump.py": "35ebabb0251ff484140e9472c03f36da750447579f476348d2332419ec76009f",
+    "src/tmhp/air_source_heat_pump_boiler.py": "5ef3825a4505f286b94edc23adf7c789900717708543c3d5af2bb3b816943984",
+    "src/tmhp/ground_source_heat_pump.py": "f94a8fe42a568c27ac678921b8cf69779542bb404c1196b9cc8dd476275c7607",
+    "src/tmhp/ground_source_heat_pump_boiler.py": "5d9ab99774100d1180c05473f50c3244c53216c0ede31ecfb003b5a6b1b73a91",
+    "src/tmhp/water_source_heat_pump_boiler.py": "a18d8f765fd3b7b3e06a42c9e1abae2b6b78bd65cdb2102e1941f519b93377b0",
+    "src/tmhp/compressor_efficiency.py": "026d8078e1009aff5136214269323c3ab67090cdb16ebcb053eff8dde5be1c7c",
+    "src/tmhp/reference_state.py": "afc492fdca77fcbbfd7fc9c6a5539e4dd9184cb5fb5a20f0cd40a0e0b1ae6b20",
+    "src/tmhp/compressor_speed.py": "5111320b2c72ec92674be7b1efc3e3bbfc6c62372be2bdc2d57fa339399f05f4"
   },
   "pressure_floor_search": "Projected condenser temperature determines permitted subcooling before evaluating speed; GSHP explicitly brackets ground-HX duty equality at PR-floor boundary. Coefficients and verification tolerances are unchanged.",
   "speed_mapping": "absolute shaft speed N [rev/s], no reference normalization"

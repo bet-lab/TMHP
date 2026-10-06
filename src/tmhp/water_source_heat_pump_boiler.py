@@ -27,7 +27,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
-from .compressor_efficiency import _eval_eff
+from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
@@ -406,6 +406,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s)
         return HXSide("tank", T_in_C, self.UA_tank_hx)
 
+    @reject_invalid_efficiency
     def _calc_state(
         self, dT_ref_water: float, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict
     ) -> dict | None:

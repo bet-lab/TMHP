@@ -627,3 +627,13 @@ checksum is running on identical bytes, and everything under
 
     :doc:`adding-a-catalogue`
         How to add a unit and have all of it update.
+
+
+.. note::
+
+   The numerical fits and validation results on this page archive the
+   2026-09-24 model. Production compressor defaults now follow the
+   `BITZER three-efficiency Notion study <https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d>`_
+   (2026-10-06), with three independent quadratic fits in pressure ratio
+   and absolute shaft speed N [rev/s]. Historical scores are not validation
+   scores for the new defaults.

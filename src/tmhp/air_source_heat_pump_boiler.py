@@ -51,7 +51,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
-from .compressor_efficiency import _eval_eff
+from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -360,6 +360,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Refrigerant cycle physics (ASHP-specific)
     # =============================================================
 
+    @reject_invalid_efficiency
     def _calc_state(
         self,
         dT_ref_ou: float,

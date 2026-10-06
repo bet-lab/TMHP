@@ -63,7 +63,7 @@ from typing import Any, Literal
 import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
-from .compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
+from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .refrigerant import calc_ref_state
@@ -333,18 +333,24 @@ def solve_reference_state(
         )
         if key in _CACHE:
             return _CACHE[key]
-    state = _solve(
-        ref=ref,
-        V_cmp_ref=V_cmp_ref,
-        Q_rated=hp_capacity,
-        condition=condition,
-        etas=(eta_cmp_isen, eta_cmp_vol, eta_cmp),
-        dT_superheat=dT_superheat,
-        dT_subcool=dT_subcool,
-        dT_hx_min=dT_hx_min,
-        rps_bounds=(rps_min, rps_max),
-        rps_rated=rps_rated,
-    )
+    try:
+        state = _solve(
+            ref=ref,
+            V_cmp_ref=V_cmp_ref,
+            Q_rated=hp_capacity,
+            condition=condition,
+            etas=(eta_cmp_isen, eta_cmp_vol, eta_cmp),
+            dT_superheat=dT_superheat,
+            dT_subcool=dT_subcool,
+            dT_hx_min=dT_hx_min,
+            rps_bounds=(rps_min, rps_max),
+            rps_rated=rps_rated,
+        )
+    except InvalidCompressorEfficiency as exc:
+        raise ReferenceStateError(
+            f"raw BITZER efficiency outside (0, 1] at {condition.standard}; "
+            "supply a supported rated_condition or custom compressor efficiencies"
+        ) from exc
     if key is not None:
         if len(_CACHE) >= _CACHE_MAX:
             _CACHE.pop(next(iter(_CACHE)))
@@ -410,6 +416,7 @@ def _solve(
         def duties(rps: float) -> tuple[float, float, float, float, float]:
             eta_vol = _eval_eff(eta_vol_model, PR, rps)
             eta_isen = _eval_eff(eta_isen_model, PR, rps)
+            _eval_eff(eta_em_model, PR, rps)
             m_dot = V_cmp_ref * rho * eta_vol * rps
             h2 = h1 + dh_isen / eta_isen
             return m_dot, m_dot * (h2 - h3), m_dot * (h1 - h4), eta_vol, eta_isen

@@ -44,3 +44,18 @@ def test_unattainable_polynomial_load_clamps_at_capacity_peak():
     n, ok, clamp = solve_compressor_speed(lambda n: n * (100 - n) - 3000, 5, 95)
     assert n == pytest.approx(50)
     assert ok and clamp == "max"
+
+
+def test_invalid_fit_returns_infeasible_state_without_hiding_custom_errors():
+    from tmhp import AirSourceHeatPump
+
+    model = AirSourceHeatPump(eta_cmp=0.9, eta_cmp_vol=0.9, eta_cmp_isen=0.7)
+    model.eta_cmp = -1.0
+    assert model._calc_state(5, 5, -2000, 7, 20) is None
+
+    def broken(pr, speed):
+        raise TypeError("custom body error")
+
+    model.eta_cmp = broken
+    with pytest.raises(TypeError, match="custom body error"):
+        model._calc_state(5, 5, -2000, 7, 20)

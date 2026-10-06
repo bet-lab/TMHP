@@ -28,7 +28,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
-from .compressor_efficiency import _eval_eff
+from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
@@ -343,6 +343,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @reject_invalid_efficiency
     def _calc_state(
         self,
         dT_ref_evap: float,

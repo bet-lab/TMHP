@@ -40,6 +40,7 @@ from scipy.optimize import brentq, minimize_scalar
 __all__ = [
     "solve_compressor_speed",
     "default_displacement",
+    "refrigerant_aware_displacement",
     "RatedPoint",
     "RATED_POINT_AIR_TO_WATER",
     "RATED_POINT_AIR_TO_AIR",
@@ -59,7 +60,7 @@ CAPACITY_CLAMPED_MAX = "max"
 #: It takes no account of the working fluid, and the volumetric refrigerating
 #: capacity of the fluids in common use spans a factor of 2.7 -- so a single
 #: constant is roughly 50 % too large for R32 and 40 % too small for R134a.
-#: :func:`default_displacement` supersedes it.
+#: :func:`refrigerant_aware_displacement` is the optional physical alternative.
 DISPLACEMENT_PER_W = 42.0e-6 / 9000.0
 
 
@@ -282,7 +283,11 @@ def solve_compressor_speed(
         return rps_min, True, None
     high = value(rps_max)
     if math.isfinite(high) and high >= 0:
-        return brentq(residual, rps_min, rps_max), True, None
+        try:
+            return brentq(residual, rps_min, rps_max), True, None
+        except ValueError:
+            bound = rps_min if abs(low) < abs(high) else rps_max
+            return bound, False, None
     # Raw BITZER polynomials may turn down or become invalid at high N.
     # Locate the maximum and solve its rising branch, as in the source study.
     peak = minimize_scalar(lambda rps: -value(rps), bounds=(rps_min, rps_max), method="bounded")
@@ -290,5 +295,8 @@ def solve_compressor_speed(
     if not math.isfinite(f_peak):
         return rps_min, False, None
     if f_peak < 0:
+        # An increasing scalar/custom model retains its exact configured bound.
+        if math.isfinite(high) and rps_max - n_peak < 1e-4 and high >= f_peak:
+            return rps_max, True, CAPACITY_CLAMPED_MAX
         return n_peak, True, CAPACITY_CLAMPED_MAX
     return brentq(residual, rps_min, n_peak), True, None

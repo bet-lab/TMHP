@@ -32,7 +32,7 @@ from scipy.optimize import minimize
 from tqdm import tqdm
 
 from . import calc_util as cu
-from .compressor_efficiency import _eval_eff
+from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
@@ -451,6 +451,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @reject_invalid_efficiency
     def _calc_state(
         self,
         dT_ref_evap: float,

@@ -75,3 +75,11 @@ def test_pytest_matrix_runs_on_main_pushes_after_pr_gate() -> None:
 
     assert '"${{ github.event_name }}" != "pull_request"' in workflow
     assert 'echo "run-matrix=true" >> "$GITHUB_OUTPUT"' in workflow
+
+
+def test_matrix_pins_uv_interpreter_and_checks_the_actual_version() -> None:
+    workflow = _read(".github/workflows/tests.yml")
+    test_job = _job_block(workflow, "test", "docs")
+    assert "UV_PYTHON: ${{ matrix.python-version }}" in test_job
+    assert "name: Verify matrix interpreter" in test_job
+    assert "sys.version_info[:2]" in test_job

@@ -10,6 +10,9 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  UV_PYTHON: "3.12"
+
 jobs:
   lint-type:
     name: Static analysis
@@ -72,6 +75,8 @@ jobs:
     needs: test-scope
     if: needs.test-scope.outputs.run-matrix == 'true'
     runs-on: [self-hosted, ml-main]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +94,9 @@ jobs:
 
       - name: Install project (dev group + integrations extra, lockfile pinned)
         run: uv sync --group dev --extra integrations --locked
+
+      - name: Verify matrix interpreter
+        run: uv run python -c 'import sys; assert ".".join(map(str, sys.version_info[:2])) == "${{ matrix.python-version }}", sys.version'
 
       - name: Pytest
         if: matrix.python-version != '3.12'

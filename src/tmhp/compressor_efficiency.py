@@ -3,7 +3,7 @@
 Each efficiency independently uses b0+b1*PR+b2*N+b3*PR**2+b4*N**2+b5*PR*N.
 N is physical shaft speed in rev/s; no relative-speed mapping or clipping.
 Manufacturer calculation data at SH/SC 10/0 K underpin the fit. Extrapolation
-is allowed; heat-pump state evaluation requires 0 < eta <= 1. eta_em is the
+is allowed; heat-pump state evaluation requires finite eta > 0. eta_em is the
 effective refrigerant enthalpy rise / electrical input factor.
 Previous correlations remain in compressor_efficiency_legacy.
 """
@@ -90,14 +90,14 @@ eta_em_default = make_eta_em(RPS_REF)
 
 
 class InvalidCompressorEfficiency(ValueError):
-    """The raw efficiency cannot describe a physical heat-pump state."""
+    """The raw efficiency is nonpositive or nonfinite."""
 
 
 _F = TypeVar("_F", bound=Callable)
 
 
 def reject_invalid_efficiency(function: _F) -> _F:
-    """Return an infeasible state for raw-fit violations, as in the study."""
+    """Return an infeasible state for nonpositive or nonfinite raw fits."""
 
     @wraps(function)
     def wrapped(*args, **kwargs):
@@ -126,6 +126,10 @@ def _eval_eff(model: float | Callable, PR: float, rps: float) -> float:
             value = float(model(PR, rps))
     else:
         value = float(model)
-    if not math.isfinite(value) or not 0 < value <= 1:
-        raise InvalidCompressorEfficiency("Compressor efficiencies must be finite and in (0, 1]")
+    # TEMPORARY (2026-10-07, user-requested): retain raw fitted efficiencies
+    # above one without clipping or rejecting the operating point. This is a
+    # numerical study policy, not physical validation; revisit after the fit
+    # is reviewed. Nonpositive/nonfinite values remain invalid.
+    if not math.isfinite(value) or value <= 0:
+        raise InvalidCompressorEfficiency("Compressor efficiencies must be finite and positive")
     return value

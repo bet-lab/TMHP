@@ -181,7 +181,7 @@ def test_explicit_rated_speed_keeps_former_results(cls):
 
 def test_unreachable_rated_capacity_fails_instead_of_clamping():
     with pytest.raises(ReferenceStateError) as excinfo:
-        AirSourceHeatPumpBoiler(V_cmp_ref=1e-5)
+        AirSourceHeatPumpBoiler(V_cmp_ref=1e-5, eta_cmp_isen=0.7, eta_cmp_vol=0.9, eta_cmp=0.9)
     assert isinstance(excinfo.value, ValueError)
     assert excinfo.value.reason == REFERENCE_CAPACITY_INCONSISTENT
     assert str(excinfo.value).startswith(REFERENCE_CAPACITY_INCONSISTENT)

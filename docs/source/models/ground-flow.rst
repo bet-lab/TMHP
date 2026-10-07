@@ -213,3 +213,24 @@ approximately quadratic system resistance. ASHRAE 2023 Applications SI
 Chapter 35, Table 8, provides closed-loop GSHP pumping/head guidelines. These
 are modeling guidance, not measured loss data for any specific installation.
 Static borehole elevation head is not added to this closed-loop model.
+
+ASHRAE pressure-budget calibration
+----------------------------------
+
+``tmhp.pump.calc_aux_loss_from_ashrae_grade`` derives equivalent auxiliary
+resistance from grade A-D and an explicit total reference flow, borehole
+geometry and fluid properties. Its single source is Kavanaugh & Rafferty
+(2014), ASHRAE, *Geothermal Heating and Cooling: Design of Ground-Source
+Heat Pump Systems*, Table 6.2, p. 185. The finite upper boundaries are
+140, 210, 280 and 420 kPa. Grade F has no finite upper boundary.
+
+The helper subtracts one parallel branch's straight-pipe pressure loss
+from the budget. Pass its ``dp_aux_ref`` to the heat pump with the same
+``ground_flow_ref_lpm`` and ``dp_aux_exponent=2``. ``K_aux`` is based on
+total flow in the auxiliary pipe; ``K_aux_branch`` uses branch flow.
+These are equivalent loop resistances, not measured fitting coefficients.
+
+The source table assumes 3 L/min/kW and 70% hydraulic efficiency. Applying
+its pressure boundary at a caller-selected flow is an explicit modeling
+assumption, not a pumping-grade certification. The helper does not change
+reference flow, heat-exchanger UA or the electrical pump performance map.

@@ -57,7 +57,11 @@ from .ground_loop import (
     ground_result_diagnostics,
     resolve_ground_flow_rates,
 )
-from .heat_exchanger import calc_ground_hx_UA_from_capacity, calc_phase_change_hx_effectiveness, resolve_fan_flow_limits
+from .heat_exchanger import (
+    calc_ground_hx_UA_from_capacity,
+    calc_phase_change_hx_effectiveness,
+    resolve_fan_flow_limits,
+)
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
@@ -153,6 +157,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         variable_Rb: bool = False,
         hydraulic_pump: bool = False,
         pump_efficiency: float = 0.6,
+        pump_map: Mapping[str, Any] | None = None,
         pipe_inner_diameter: float | None = None,
         pipe_roughness: float = 1e-6,
         dp_common: float | None = None,
@@ -375,13 +380,20 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         efficiencies = self._initialize_reference_state(
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
-            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            efficiencies={
+                "eta_cmp_isen": eta_cmp_isen,
+                "eta_cmp_vol": eta_cmp_vol,
+                "eta_cmp": eta_cmp,
+            },
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
         self.eta_cmp_vol = efficiencies["eta_cmp_vol"]
         self.eta_cmp = efficiencies["eta_cmp"]
-        self.eta_v, self.eta_em = self.eta_cmp_vol, self.eta_cmp  # read-compatible aliases
+        self.eta_v, self.eta_em = (
+            self.eta_cmp_vol,
+            self.eta_cmp,
+        )  # read-compatible aliases
         self._ground_settings = configure_ground_flow(
             control=ground_flow_control,
             variable_ground_flow=variable_ground_flow,
@@ -398,17 +410,31 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             R_b_supplied=R_b is not None,
             pump_power=self.E_pmp,
             pump_efficiency=pump_efficiency,
+            pump_map=dict(pump_map) if pump_map is not None else None,
             pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
             pipe_roughness=pipe_roughness,
             dp_common=dp_common,
             dp_aux_ref=dp_aux_ref,
             dp_aux_exponent=dp_aux_exponent,
             m_dot_ref_rated=self.m_dot_ref_rated,
-            ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
+            ua_fractions=(
+                ground_hx_fluid_fraction,
+                ground_hx_refrigerant_fraction,
+                ground_hx_constant_fraction,
+            ),
             ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
             boundary_condition=boundary_condition,
             geometry=dict(
-                k_s=k_s, k_g=k_g, k_p=k_p, r_b=r_b, r_out=r_out, r_in=r_in, D_s=D_s, rho_f=rho_w, mu_f=mu_w, k_f=k_w
+                k_s=k_s,
+                k_g=k_g,
+                k_p=k_p,
+                r_b=r_b,
+                r_out=r_out,
+                r_in=r_in,
+                D_s=D_s,
+                rho_f=rho_w,
+                mu_f=mu_w,
+                k_f=k_w,
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
@@ -827,7 +853,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # =============================================================
 
     def _solve_ground_flow_point(
-        self, ratio: float, Q_r_iu: float, T0: float, T_a_room: float, wall_K: float | Callable[[float], float]
+        self,
+        ratio: float,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | Callable[[float], float],
     ) -> dict:
         """At fixed flow, close the ground HX and optimize the indoor approach."""
         from scipy.optimize import brentq, minimize_scalar
@@ -839,7 +870,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             evap, cond = (ground_approach, load_approach) if Q_r_iu < 0 else (load_approach, ground_approach)
             return close_ground_temperature(
                 lambda temperature: self._calc_state(
-                    evap, cond, Q_r_iu, T0, T_a_room, ground_flow_ratio=ratio, source_temperature_K=temperature
+                    evap,
+                    cond,
+                    Q_r_iu,
+                    T0,
+                    T_a_room,
+                    ground_flow_ratio=ratio,
+                    source_temperature_K=temperature,
                 ),
                 wall_K,
                 self.n_boreholes,
@@ -849,7 +886,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         def evaluate_load_approach(load_approach: float) -> dict:
             if load_approach not in cache:
                 cache[load_approach] = solve_ground_approach(
-                    lambda ground: evaluate_ground(load_approach, ground), "Q_ref_iu [W]", abs(Q_r_iu)
+                    lambda ground: evaluate_ground(load_approach, ground),
+                    "Q_ref_iu [W]",
+                    abs(Q_r_iu),
                 )
                 if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
                     cache[load_approach]["failure_reason"] = "pressure_ratio_limit"
@@ -920,17 +959,26 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             rows = list(cache.values())
             return next(
                 (r for r in rows if r["failure_reason"] == "load_hx_capacity_insufficient"),
-                next((r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"), rows[0]),
+                next(
+                    (r for r in rows if r["failure_reason"] == "ground_hx_capacity_insufficient"),
+                    rows[0],
+                ),
             )
         best = min(feasible, key=lambda i: powers[i])
         optimum = minimize_scalar(
             objective,
-            bounds=(float(grid[max(0, best - 1)]), float(grid[min(len(grid) - 1, best + 1)])),
+            bounds=(
+                float(grid[max(0, best - 1)]),
+                float(grid[min(len(grid) - 1, best + 1)]),
+            ),
             method="bounded",
             options={"xatol": 1e-3, "maxiter": 30},
         )
         objective(float(optimum.x))
-        return min((r for r in cache.values() if r.get("converged", False)), key=lambda r: r["E_tot [W]"])
+        return min(
+            (r for r in cache.values() if r.get("converged", False)),
+            key=lambda r: r["E_tot [W]"],
+        )
 
     def _solve_ground_flow(
         self,
@@ -1097,7 +1145,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             )
         if self._ground_settings["active"] or ground_flow_ratio is not None:
             result = self._solve_ground_flow(
-                Q_r_iu, T0, T_a_room, ground_flow_ratio=ground_flow_ratio, T_bhe_wall=T_bhe_wall
+                Q_r_iu,
+                T0,
+                T_a_room,
+                ground_flow_ratio=ground_flow_ratio,
+                T_bhe_wall=T_bhe_wall,
             )
             return result if return_dict else pd.DataFrame([result])
 
@@ -1234,7 +1286,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     idx = np.flatnonzero(Q_bhe_unit_pulse[:step])
                     rise = (
                         float(
-                            np.dot(Q_bhe_unit_pulse[idx], self._gfunc_interp(np.maximum(time[step] - time[idx], 1e-6)))
+                            np.dot(
+                                Q_bhe_unit_pulse[idx],
+                                self._gfunc_interp(np.maximum(time[step] - time[idx], 1e-6)),
+                            )
                         )
                         if len(idx)
                         else 0.0

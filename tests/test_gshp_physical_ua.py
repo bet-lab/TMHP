@@ -94,10 +94,8 @@ def test_efficiencies_correct_power_speed_and_refrigerant_energy_balance(load):
     "kwargs",
     [
         {"eta_v": 0},
-        {"eta_v": 1.1},
         {"eta_v": math.nan},
         {"eta_em": 0},
-        {"eta_em": 1.1},
         {"eta_em": math.inf},
         {"UA_ground_rated": 0},
         {"UA_iu_rated": -1},
@@ -114,3 +112,13 @@ def test_off_and_failed_points_have_no_compressor_loss_or_work():
     assert row["E_cmp [W]"] == row["E_cmp_ref [W]"] == row["E_cmp_loss [W]"] == 0
     failed = failed_ground_point("ground_hx_capacity_insufficient", {"E_cmp_ref [W]": 80, "E_cmp_loss [W]": 20})
     assert failed["E_cmp_ref [W]"] == failed["E_cmp_loss [W]"] == 0
+
+
+@pytest.mark.parametrize("name", ["eta_cmp_vol", "eta_cmp_isen", "eta_cmp"])
+def test_temporary_efficiency_above_one_reaches_cycle_unchanged(name):
+    hp = model(rps_min=1, **{name: 1.1})
+    row = hp._calc_state(10, 10, 4000, 26, 26)
+    assert row is not None
+    key = {"eta_cmp_vol": "eta_v [-]", "eta_cmp_isen": "eta_is [-]", "eta_cmp": "eta_em [-]"}[name]
+    assert row[key] == pytest.approx(1.1)
+    assert row["Q_ref_iu [W]"] == pytest.approx(4000)

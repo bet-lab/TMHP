@@ -101,7 +101,7 @@ def test_helper_does_not_mask_callable_body_type_error():
         _eval_eff(broken, 3, 40)
 
 
-@pytest.mark.parametrize("eff", [0, -1, 1.01, float("nan"), float("inf")])
+@pytest.mark.parametrize("eff", [0, -1, float("nan"), float("inf")])
 def test_evaluated_efficiency_validation(eff):
     from tmhp.compressor_efficiency import _eval_eff
 

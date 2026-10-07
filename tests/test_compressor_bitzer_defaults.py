@@ -25,7 +25,7 @@ def test_absolute_speed_matches_notion_archive(key, factory):
 def test_invalid_extrapolation_is_rejected_without_clipping():
     model = make_eta_isen(60)
     assert model(3, 150) < 0
-    with pytest.raises(ValueError, match="finite and in"):
+    with pytest.raises(ValueError, match="finite and positive"):
         _eval_eff(model, 3, 150)
 
 
@@ -59,3 +59,11 @@ def test_invalid_fit_returns_infeasible_state_without_hiding_custom_errors():
     model.eta_cmp = broken
     with pytest.raises(TypeError, match="custom body error"):
         model._calc_state(5, 5, -2000, 7, 20)
+
+
+def test_temporary_policy_preserves_efficiencies_above_one():
+    raw = make_eta_vol(60)(2.0, 53.0)
+    assert raw > 1.0
+    assert _eval_eff(lambda pr, speed: raw, 2.0, 53.0) == raw
+    assert _eval_eff(raw, 2.0, 53.0) == raw
+    assert _eval_eff(make_eta_vol(60), 2.0, 53.0) == raw

@@ -141,22 +141,21 @@ Compressor efficiency baseline and speed
 
 All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
 ``eta_cmp`` set to ``None`` to the shared factories in
-:mod:`tmhp.compressor_efficiency` (frozen coefficients ``v2026-09-24``).
+:mod:`tmhp.compressor_efficiency` (frozen coefficients
+``BITZER-three-C3-absolute-N-2026-10-06``).
 These represent isentropic, volumetric and electro-mechanical efficiency,
 respectively. Each input also accepts a scalar, a ``function(PR)`` or a
-``function(PR, rps)``. Evaluation validates finite values in (0, 1] and
+``function(PR, rps)``. Evaluation validates finite, positive values and
 preserves exceptions raised inside a user function.
 
-``rps_rated`` defines the normalization ``n_star = rps / rps_rated``.
-When omitted it is no longer a fixed default (formerly 60 rev/s for
-ASHP/GSHP and 40 rev/s for ASHPB/GSHPB/WSHPB): it is solved as the speed that
-delivers ``hp_capacity`` at the family's standard rating condition with
-``n_star = 1``, together with ``m_dot_ref_rated`` from the same state
-(:doc:`/models/reference-state`). Pass the former value explicitly to
-reproduce earlier results. Specify the same rated speed when comparing
-models at the same PR and rps. This reference does not change ``rps_min`` or
-``rps_max``, and it is not forced to ``rps_max``. Correlation factors
-held above ``n_star=2`` protect extrapolation; they do not impose a speed limit.
+The BITZER defaults evaluate physical shaft speed ``N = rps`` [rev/s]
+directly; ``n_star`` does not normalize the efficiency inputs. ``rps_rated``
+is used as a fallback only when a callable is invoked without its speed.
+When omitted, the reference state solves the speed delivering ``hp_capacity``
+and its ``m_dot_ref_rated`` at the family's rating condition
+(:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
+remain available. The reference solve does not change ``rps_min`` or
+``rps_max`` and does not clip extrapolated efficiencies.
 
 GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``
 at each speed candidate, and evaluates isentropic efficiency before calculating
@@ -184,3 +183,11 @@ approaches therefore cannot change the refrigerant liquid state at identical
 projected conditions. Coupled optimization explicitly includes the ground-HX
 duty-equality boundary at the PR floor; the shipped efficiency coefficients and
 existing HX, load and optimization verification tolerances remain unchanged.
+
+Temporary compressor fit policy (2026-10-07)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+At the user's request, fitted compressor efficiencies above one are used raw,
+without clipping or rejection. This temporary numerical study policy is not
+physical validation of the regression. Nonpositive and nonfinite efficiencies
+remain invalid. Revisit the policy after reviewing the compressor fit.

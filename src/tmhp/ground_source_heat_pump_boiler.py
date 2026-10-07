@@ -209,6 +209,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         variable_Rb: bool = False,
         hydraulic_pump: bool = False,
         pump_efficiency: float = 0.6,
+        pump_map: Mapping[str, Any] | None = None,
         pipe_inner_diameter: float | None = None,
         pipe_roughness: float = 1e-6,
         dp_common: float | None = None,
@@ -331,7 +332,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_b_f_m3s = dV_b_f_lpm / 60000
 
         if R_b is None:
-            from .borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
+            from .borehole import (
+                calc_effective_borehole_thermal_resistance,
+                calc_local_borehole_thermal_resistance,
+            )
 
             n_boreholes = max(1, self.N_1 * self.N_2)
             m_flow_total = self.dV_b_f_m3s * rho_w
@@ -371,7 +375,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         efficiencies = self._initialize_reference_state(
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
-            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            efficiencies={
+                "eta_cmp_isen": eta_cmp_isen,
+                "eta_cmp_vol": eta_cmp_vol,
+                "eta_cmp": eta_cmp,
+            },
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen = efficiencies["eta_cmp_isen"]
@@ -393,17 +401,31 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             R_b_supplied=R_b is not None,
             pump_power=self.E_pmp,
             pump_efficiency=pump_efficiency,
+            pump_map=dict(pump_map) if pump_map is not None else None,
             pipe_inner_diameter=pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in,
             pipe_roughness=pipe_roughness,
             dp_common=dp_common,
             dp_aux_ref=dp_aux_ref,
             dp_aux_exponent=dp_aux_exponent,
             m_dot_ref_rated=self.m_dot_ref_rated,
-            ua_fractions=(ground_hx_fluid_fraction, ground_hx_refrigerant_fraction, ground_hx_constant_fraction),
+            ua_fractions=(
+                ground_hx_fluid_fraction,
+                ground_hx_refrigerant_fraction,
+                ground_hx_constant_fraction,
+            ),
             ua_exponents=(ground_hx_fluid_exponent, ground_hx_refrigerant_exponent),
             boundary_condition=boundary_condition,
             geometry=dict(
-                k_s=k_s, k_g=k_g, k_p=k_p, r_b=r_b, r_out=r_out, r_in=r_in, D_s=D_s, rho_f=rho_w, mu_f=mu_w, k_f=k_w
+                k_s=k_s,
+                k_g=k_g,
+                k_p=k_p,
+                r_b=r_b,
+                r_out=r_out,
+                r_in=r_in,
+                D_s=D_s,
+                rho_f=rho_w,
+                mu_f=mu_w,
+                k_f=k_w,
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
@@ -449,7 +471,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # Precompute g-function
         self.dt_s: float = dt_s
         self._gfunc_interp = precompute_gfunction(
-            N_1=N_1, N_2=N_2, B=B, H_b=H_b, D_b=D_b, r_b=r_b, alpha_s=self.alp_s, k_s=k_s, t_max_s=t_max_s, dt_s=dt_s
+            N_1=N_1,
+            N_2=N_2,
+            B=B,
+            H_b=H_b,
+            D_b=D_b,
+            r_b=r_b,
+            alpha_s=self.alp_s,
+            k_s=k_s,
+            t_max_s=t_max_s,
+            dt_s=dt_s,
         )
 
         # Ground-response backend: default wraps the single field-average
@@ -595,7 +626,15 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "cop_sys [-]": np.nan,
                 }
             )
-            ground_result_diagnostics(inactive_result, self._ground_settings, loop, 0.0, self.UA_ground, 0.0, 0.0)
+            ground_result_diagnostics(
+                inactive_result,
+                self._ground_settings,
+                loop,
+                0.0,
+                self.UA_ground,
+                0.0,
+                0.0,
+            )
             return inactive_result
 
         # Low-lift feasibility is enforced downstream by the compressor
@@ -803,7 +842,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if wall_K is None:
                 try:
                     return self._calc_state(
-                        approach, T_tank_w, Q_tank_load, T0, flow_state=flow_state, ground_flow_ratio=ratio
+                        approach,
+                        T_tank_w,
+                        Q_tank_load,
+                        T0,
+                        flow_state=flow_state,
+                        ground_flow_ratio=ratio,
                     )
                 except (ValueError, OverflowError, ZeroDivisionError):
                     return None
@@ -865,7 +909,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         def _objective(dT_ground):
             self._opt_evals += 1
             perf = self._calc_state(
-                dT_ref_ground=dT_ground, T_tank_w=T_tank_w, Q_tank_load=Q_tank_load, T0=T0, flow_state=flow_state
+                dT_ref_ground=dT_ground,
+                T_tank_w=T_tank_w,
+                Q_tank_load=Q_tank_load,
+                T0=T0,
+                flow_state=flow_state,
             )
             if perf is None:
                 raise ValueError(f"Cycle impossible at dT_ground={dT_ground}")
@@ -923,7 +971,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 return self.Ts_K - preview(ctx.n, self.time, q_total / self.total_borehole_length)
 
             perf = self._solve_ground_flow(
-                T_tank_w, Q_tank_load, cu.K2C(ctx.T0_K), flow_state=flow_state, wall_response=wall_response
+                T_tank_w,
+                Q_tank_load,
+                cu.K2C(ctx.T0_K),
+                flow_state=flow_state,
+                wall_response=wall_response,
             )
             active = bool(perf.get("hp_is_on", False))
             return active, perf, float(perf.get("Q_ref_tank [W]", 0.0))
@@ -936,7 +988,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             opt_res = self._optimize_operation(T_tank_w, Q_tank_load, cu.K2C(ctx.T0_K), flow_state=flow_state)
             if opt_res.success:
                 opt_x = float(getattr(opt_res, "x", 0.0))
-                perf_opt = self._calc_state(opt_x, T_tank_w, Q_tank_load, cu.K2C(ctx.T0_K), flow_state=flow_state)
+                perf_opt = self._calc_state(
+                    opt_x,
+                    T_tank_w,
+                    Q_tank_load,
+                    cu.K2C(ctx.T0_K),
+                    flow_state=flow_state,
+                )
                 perf = (
                     perf_opt
                     if perf_opt is not None
@@ -955,7 +1013,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             perf["converged"] = opt_res.success if "opt_res" in locals() else False
             perf["Q_tank_load [W]"] = Q_tank_load
 
-        return Q_tank_load > self.Q_tank_LOAD_OFF_TOL, perf, float(perf.get("Q_tank_load [W]", 0.0))
+        return (
+            Q_tank_load > self.Q_tank_LOAD_OFF_TOL,
+            perf,
+            float(perf.get("Q_tank_load [W]", 0.0)),
+        )
 
     # =============================================================
     # Hooks
@@ -1035,7 +1097,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         return self.postprocess_exergy(df)
 
     def _assemble_core_results(
-        self, ctx: StepContext, ctrl: ControlState, T_solved_K: float, level_solved: float, perf: dict, flow_state: dict
+        self,
+        ctx: StepContext,
+        ctrl: ControlState,
+        T_solved_K: float,
+        level_solved: float,
+        perf: dict,
+        flow_state: dict,
     ) -> dict:
         r = perf.copy()
         r["T_tank_w [°C]"] = cu.K2C(T_solved_K)
@@ -1112,7 +1180,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     # Tank backends (swappable)
     # =============================================================
 
-    def _solve_lumped_tank(self, ctx, ctrl, dt_s, T_sup_w_K_n, tank_level_solve, sub_states, dV_tank_w_out_prev):
+    def _solve_lumped_tank(
+        self,
+        ctx,
+        ctrl,
+        dt_s,
+        T_sup_w_K_n,
+        tank_level_solve,
+        sub_states,
+        dV_tank_w_out_prev,
+    ):
         """Legacy single-node tank: implicit fsolve over (T_tank, level)."""
         from typing import cast
 
@@ -1349,7 +1426,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             sub_states = self._run_subsystems(ctx, ctrl, dt_s, T_sup_w_K_n)
 
             alp_prev: float = min(
-                1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
+                1.0,
+                max(
+                    0.0,
+                    (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n),
+                ),
             )
             dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
             dV_tank_w_in_prev = dV_tank_w_out_prev if ctrl.dV_tank_w_in_ctrl is None else ctrl.dV_tank_w_in_ctrl
@@ -1361,7 +1442,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # fsolve path (byte-identical); stratified advances the multi-node tank.
             if self._tank is None:
                 T_solved_K, flow_state_final, level_next = self._solve_lumped_tank(
-                    ctx, ctrl, dt_s, T_sup_w_K_n, tank_level_solve, sub_states, dV_tank_w_out_prev
+                    ctx,
+                    ctrl,
+                    dt_s,
+                    T_sup_w_K_n,
+                    tank_level_solve,
+                    sub_states,
+                    dV_tank_w_out_prev,
                 )
             else:
                 T_solved_K, flow_state_final, level_next = self._solve_stratified_tank(ctx, ctrl, dt_s, T_sup_w_K_n)
@@ -1605,7 +1692,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
     def postprocess_exergy(self, df: pd.DataFrame) -> pd.DataFrame:
         """Compute GSHPB-specific exergy variables."""
-        from .thermodynamics import calc_energy_flow, calc_refrigerant_exergy, convert_electricity_to_exergy
+        from .thermodynamics import (
+            calc_energy_flow,
+            calc_refrigerant_exergy,
+            convert_electricity_to_exergy,
+        )
 
         df = df.copy()
         T0_K = cu.C2K(df["T0 [°C]"])
@@ -1647,15 +1738,21 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         )
 
         df["X_tank_w_in [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_tank_w_in [m3/s]"].fillna(0), cu.C2K(df["T_tank_w_in [°C]"]), T0_K
+            c_w * rho_w * df["dV_tank_w_in [m3/s]"].fillna(0),
+            cu.C2K(df["T_tank_w_in [°C]"]),
+            T0_K,
         )
         df["X_tank_w_out [W]"] = calc_exergy_flow(c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_K, T0_K)
 
         df["X_mix_w_out [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0), cu.C2K(df["T_mix_w_out [°C]"]), T0_K
+            c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0),
+            cu.C2K(df["T_mix_w_out [°C]"]),
+            T0_K,
         )
         df["X_mix_sup_w_in [W]"] = calc_exergy_flow(
-            c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0), cu.C2K(df["T_tank_w_in [°C]"]), T0_K
+            c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0),
+            cu.C2K(df["T_tank_w_in [°C]"]),
+            T0_K,
         )
 
         df["X_tank_loss [W]"] = df["Q_tank_loss [W]"] * (1 - T0_K / T_tank_K)

@@ -70,11 +70,23 @@ def close_ground_temperature(
     initial_wall = wall_K(0.0) if callable(wall_K) else wall_K
     temperature = initial_wall
     previous_temperature, previous_error = initial_wall, None
-    for _ in range(40):
+    for iteration in range(40):
         try:
             result = evaluate(temperature)
         except (ValueError, OverflowError, ZeroDivisionError):
-            return None
+            result = None
+        # The wall temperature is an initial guess, not the operating fluid
+        # temperature. Raw compressor maps can reject that guess while a
+        # warmer/cooler, energy-balanced fluid state remains feasible.
+        if result is None and iteration == 0:
+            for offset in (5.0, -5.0, 10.0, -10.0, 20.0, -20.0):
+                temperature = initial_wall + offset
+                try:
+                    result = evaluate(temperature)
+                except (ValueError, OverflowError, ZeroDivisionError):
+                    result = None
+                if result is not None:
+                    break
         if result is None:
             return None
         mean, inlet, outlet = calc_bhe_fluid_temperatures(

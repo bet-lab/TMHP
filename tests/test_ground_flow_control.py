@@ -263,3 +263,37 @@ def test_dynamic_invalid_cycle_preserves_failure_diagnostic(cls):
     assert (frame["failure_reason"] == "pressure_ratio_limit").all()
     assert (frame["E_cmp [W]"] == 0).all()
     assert frame["cop_sys [-]"].isna().all()
+
+
+@pytest.mark.parametrize("raises", [False, True])
+def test_valid_ground_balance_after_invalid_wall_guess(raises):
+    """A rejected wall guess must not hide a valid fluid energy balance."""
+    from tmhp.ground_flow_control import close_ground_temperature
+
+    sampled = []
+
+    def evaluate(temperature):
+        sampled.append(temperature)
+        if temperature < 290.15:
+            if raises:
+                raise ValueError("Compressor map rejects the trial state")
+            return None
+        return {
+            "Q_bhe [W]": -8000.0,
+            "R_b_eff [mK/W]": 0.15,
+            "dV_bhe_f [m3/s]": 0.0006,
+            "trial_temperature_K": temperature,
+        }
+
+    result = close_ground_temperature(evaluate, 288.15, 2, 100)
+    expected = 288.15 + 8000 * 0.15 / 200 - 8000 / (2 * 0.0006 * rho_w * c_w)
+    assert sampled[0] == 288.15
+    assert result is not None
+    assert result["trial_temperature_K"] == pytest.approx(expected, abs=1e-5)
+    assert abs(result["ground_temperature_residual [K]"]) < 1e-5
+
+
+def test_invalid_ground_guesses_remain_infeasible():
+    from tmhp.ground_flow_control import close_ground_temperature
+
+    assert close_ground_temperature(lambda _: None, 288.15, 2, 100) is None

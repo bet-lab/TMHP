@@ -115,6 +115,7 @@ def configure_ground_flow(
     R_b_supplied: bool,
     pump_power: float,
     pump_efficiency: float,
+    pump_map: dict | None = None,
     pipe_inner_diameter: float,
     pipe_roughness: float,
     dp_common: float | None = None,
@@ -135,7 +136,11 @@ def configure_ground_flow(
     from .borehole import precompute_borehole_resistance_from_flow
     from .constants import c_w, rho_w
     from .heat_exchanger import calc_UA_two_stream_scaled
-    from .pump import calc_parallel_borefield_pressure_drop, calc_pump_power, resolve_aux_pressure_drop
+    from .pump import (
+        calc_parallel_borefield_pressure_drop,
+        calc_pump_power,
+        resolve_aux_pressure_drop,
+    )
 
     if control not in ("constant", "optimal_power"):
         raise ValueError("ground_flow_control must be 'constant' or 'optimal_power'")
@@ -164,13 +169,19 @@ def configure_ground_flow(
         raise ValueError("Require positive finite setpoint/R_b and 0 < ground_flow_min < ground_flow_max")
     if not volume_flow_min <= volume_flow_constant <= volume_flow_max:
         raise ValueError("Constant ground flow is outside the configured bounds")
-    min_ratio, max_ratio = volume_flow_min / volume_flow_ref, volume_flow_max / volume_flow_ref
+    min_ratio, max_ratio = (
+        volume_flow_min / volume_flow_ref,
+        volume_flow_max / volume_flow_ref,
+    )
     if not math.isfinite(pump_power) or pump_power < 0:
         raise ValueError("E_pmp must be finite and nonnegative")
     calc_total_borehole_length(n_boreholes, H_b)
     if not math.isclose(pipe_inner_diameter, 2 * geometry["r_in"], rel_tol=1e-10):
         raise ValueError("pipe_inner_diameter must match 2*r_in for the same U-tube")
     calc_pump_power(0, 0, pump_efficiency)
+    from .pump import PumpPerformanceMap
+
+    performance_map = PumpPerformanceMap(pump_map) if pump_map is not None else None
     dp_aux_ref = resolve_aux_pressure_drop(dp_common, dp_aux_ref, dp_aux_exponent)
     calc_parallel_borefield_pressure_drop(
         0,
@@ -190,7 +201,13 @@ def configure_ground_flow(
             "rating condition for the given rps_rated (see the RuntimeWarning) -- pass it explicitly"
         )
     calc_UA_two_stream_scaled(
-        1, 1, 1, 1, m_dot_ref_rated if m_dot_ref_rated is not None else 1, *ua_fractions, *ua_exponents
+        1,
+        1,
+        1,
+        1,
+        m_dot_ref_rated if m_dot_ref_rated is not None else 1,
+        *ua_fractions,
+        *ua_exponents,
     )
     if variable_Rb and R_b_supplied:
         raise ValueError("variable_Rb requires borehole geometry; omit the fixed R_b override")
@@ -202,7 +219,10 @@ def configure_ground_flow(
             H_b,
             c_w,
             boundary_condition,
-            anchor_flows=(volume_flow_ref * rho_w / n_boreholes, volume_flow_constant * rho_w / n_boreholes),
+            anchor_flows=(
+                volume_flow_ref * rho_w / n_boreholes,
+                volume_flow_constant * rho_w / n_boreholes,
+            ),
             **geometry,
         )
     return dict(
@@ -210,12 +230,13 @@ def configure_ground_flow(
         or variable_UA
         or variable_Rb
         or hydraulic_pump
+        or performance_map is not None
         or dp_aux_ref > 0
         or volume_flow_constant != volume_flow_ref,
         control=control,
         variable_UA=variable_UA,
         variable_Rb=variable_Rb,
-        hydraulic_pump=hydraulic_pump or control == "optimal_power" or dp_aux_ref > 0,
+        hydraulic_pump=hydraulic_pump or performance_map is not None or control == "optimal_power" or dp_aux_ref > 0,
         min_ratio=min_ratio,
         max_ratio=max_ratio,
         volume_flow_ref=volume_flow_ref,
@@ -228,6 +249,7 @@ def configure_ground_flow(
         R_b=R_b,
         pump_power=pump_power,
         pump_efficiency=pump_efficiency,
+        pump_map=performance_map,
         pipe_inner_diameter=pipe_inner_diameter,
         pipe_roughness=pipe_roughness,
         dp_common=dp_aux_ref,  # compatibility alias for reference loss
@@ -243,7 +265,11 @@ def configure_ground_flow(
 def ground_flow_state(settings: dict, ratio: float | None = None, *, volume_flow: float | None = None) -> dict:
     """Evaluate pump, branch flow and Rb* at the same field flow ratio."""
     from .constants import mu_w, rho_w
-    from .pump import calc_aux_pressure_drop, calc_parallel_borefield_pressure_drop, calc_pump_power
+    from .pump import (
+        calc_aux_pressure_drop,
+        calc_parallel_borefield_pressure_drop,
+        calc_pump_power,
+    )
 
     if ratio is not None and volume_flow is not None:
         raise ValueError("Supply ratio or actual volume_flow, not both")
@@ -260,6 +286,8 @@ def ground_flow_state(settings: dict, ratio: float | None = None, *, volume_flow
     rb = settings["rb_interp"](branch) if settings["variable_Rb"] else settings["R_b"]
     pressure = pressure_bhe = pressure_aux = math.nan
     pump = settings["pump_power"]
+    pump_speed = math.nan
+    pump_efficiency = settings.get("pump_efficiency", math.nan)
     if settings["hydraulic_pump"]:
         pressure_bhe = calc_parallel_borefield_pressure_drop(
             mass,
@@ -271,16 +299,29 @@ def ground_flow_state(settings: dict, ratio: float | None = None, *, volume_flow
             settings["pipe_roughness"],
         )
         pressure_aux = calc_aux_pressure_drop(
-            volume, settings["volume_flow_ref"], settings["dp_aux_ref"], settings["dp_aux_exponent"]
+            volume,
+            settings["volume_flow_ref"],
+            settings["dp_aux_ref"],
+            settings["dp_aux_exponent"],
         )
         pressure = pressure_bhe + pressure_aux
-        pump = calc_pump_power(pressure, volume, settings["pump_efficiency"])
+        if settings.get("pump_map") is None:
+            pump = calc_pump_power(pressure, volume, settings["pump_efficiency"])
+        else:
+            point = settings["pump_map"].operating_point(pressure, volume, rho_w)
+            pump, pump_speed, pump_efficiency = (
+                point["power_W"],
+                point["speed_ratio"],
+                point["efficiency"],
+            )
     return {
         "dV": volume,
         "m_dot": mass,
         "m_dot_borehole": branch,
         "R_b": rb,
         "E_pmp": pump,
+        "pump_speed_ratio": pump_speed,
+        "pump_efficiency": pump_efficiency,
         "dp": pressure,
         "dp_bhe": pressure_bhe,
         "dp_aux": pressure_aux,
@@ -305,7 +346,13 @@ def ground_hx_UA(settings: dict, UA_rated: float, ratio: float, m_dot_ref: float
 
 
 def ground_result_diagnostics(
-    result: dict, settings: dict, loop: dict, ratio: float, UA: float, available: float, required: float
+    result: dict,
+    settings: dict,
+    loop: dict,
+    ratio: float,
+    UA: float,
+    available: float,
+    required: float,
 ) -> None:
     """Attach auditable component values; feasibility requires duty equality."""
     active = result.get("hp_is_on", False)
@@ -327,6 +374,8 @@ def ground_result_diagnostics(
             "m_dot_borehole [kg/s]": loop["m_dot_borehole"] if active else 0.0,
             "R_b_eff [mK/W]": loop["R_b"],
             "UA_ground [W/K]": UA,
+            "pump_speed_ratio": loop.get("pump_speed_ratio", math.nan) if active else 0.0,
+            "pump_efficiency": loop.get("pump_efficiency", math.nan) if active else math.nan,
             "ground_pressure_drop [Pa]": loop["dp"] if active else 0.0,
             "ground_pressure_drop_bhe [Pa]": loop["dp_bhe"] if active else 0.0,
             "ground_pressure_drop_aux [Pa]": loop["dp_aux"] if active else 0.0,

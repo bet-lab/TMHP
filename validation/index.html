@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Validation - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Reference points and operating limits" href="../developer/reference-operating-limits.html" /><link rel="prev" title="Utilities &amp; constants" href="../api/support/utilities.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Validation - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Where the defaults come from" href="defaults.html" /><link rel="prev" title="Utilities &amp; constants" href="../api/support/utilities.html" />
       <link rel="canonical" href="https://bet-lab.github.io/TMHP/validation/" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=4ea1e3a9" />
     <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/TMHP/validation/index.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it’s meant to describe. This page is that check. AirSourceHeatPumpBoiler has been benchmarked ag..." />
+<meta property="og:description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 <meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
-<meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it’s meant to describe. This page is that check. AirSourceHeatPumpBoiler has been benchmarked ag..." />
+<meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-07-16T18:55:48+09:00" />
+    <meta property="article:modified_time" content="2026-10-01T15:03:40+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -122,7 +122,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Validation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
@@ -140,11 +145,12 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#parity-plot">Parity plot</a></li>
-<li><a class="reference internal" href="#per-point-comparison">Per-point comparison</a></li>
-<li><a class="reference internal" href="#notation">Notation</a></li>
-<li><a class="reference internal" href="#reproducibility">Reproducibility</a></li>
+<li><a class="reference internal" href="#parity">Parity</a></li>
+<li><a class="reference internal" href="#per-unit-results">Per-unit results</a></li>
+<li><a class="reference internal" href="#reading-the-residuals">Reading the residuals</a></li>
+<li><a class="reference internal" href="#cooling-and-latent-load">Cooling and latent load</a></li>
 <li><a class="reference internal" href="#scope">Scope</a></li>
+<li><a class="reference internal" href="#reproduce">Reproduce</a></li>
 <li><a class="reference internal" href="#citations">Citations</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
@@ -178,290 +184,390 @@ data-aria-dark="Switch to auto color mode">
   <article class="yue" role="main">
           <section id="validation">
 <h1>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h1>
-<p>A physics-based model is only useful if its first-principles answers
-land close to the real machines it’s meant to describe. This page is
-that check.</p>
-<p><a class="reference internal" href="../models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a>
-has been benchmarked against the <strong>Samsung EHS Mono HT Quiet R32
-14 kW</strong> catalogue across 15 operating points — <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}
-\in \{40, 50, 65\}\)</span> °C paired with outdoor air temperatures from −10
-to 30 °C. The model tracks the catalogue COP to a mean absolute error
-of 0.35 (MAPE 10.1 %), with no unit-specific calibration. Within this
-ASHPB reference boundary, the same cycle code path can be rerun with
-any CoolProp refrigerant.</p>
-<section id="parity-plot">
-<h2>Parity plot<a class="headerlink" href="#parity-plot" title="Link to this heading">¶</a></h2>
+<p>A physics-based model is only useful if its first-principles answers land close
+to the real machines it is meant to describe. This page is that check.</p>
+<p>The harder question is whether it keeps landing close when the machine changes.
+A model tuned to one unit will match that unit; what tells you something is
+whether the same defaults, unchanged, follow a different refrigerant, a
+different size, and a different equipment architecture.</p>
+<div class="important admonition">
+<p class="admonition-title">How to read these numbers</p>
+<p><strong>Nothing here is fitted to anything here.</strong> Every unit is run with the
+library defaults exactly as shipped. The only per-unit inputs are values the
+manufacturer publishes about the machine itself — nameplate capacity,
+refrigerant, and, where the manufacturer publishes them at all, compressor
+displacement and rated air flow. Those have the same status as the
+nameplate: specification, not tuning. Where the evidence for a default came
+from is a separate page, <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>.</p>
+<p><strong>Points the model could not evaluate are reported, not dropped.</strong> The
+counts below distinguish points attempted from points evaluated, and the
+interactive table shows each unevaluated point with its reason.</p>
+</div>
+<div class="toctree-wrapper compound">
+</div>
+<section id="parity">
+<h2>Parity<a class="headerlink" href="#parity" title="Link to this heading">¶</a></h2>
 <figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/validation_parity.svg"><img alt="Parity plot — predicted vs target COP across 15 operating points of the Samsung EHS Mono HT Quiet R32 catalogue." src="../_images/validation_parity.svg" style="width: 60%;" />
+<a class="reference internal image-reference" href="../_images/validation_parity.svg"><img alt="Predicted against published COP for every catalogue point, split into air-to-water and air-to-air panels, coloured by refrigerant and sized by nominal capacity, with ±10 % and ±20 % bands." src="../_images/validation_parity.svg" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-text">Predicted COP vs catalogue target COP. The 1 : 1 diagonal is
-the reference; points clustered around it indicate the model
-tracks the catalogue without unit-specific calibration.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+<p><span class="caption-text">Predicted against published COP. Colour is refrigerant, marker size is
+nominal capacity. A model quietly tuned to one unit would show one tight
+cluster on the diagonal and the rest scattered.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-</section>
-<section id="per-point-comparison">
-<h2>Per-point comparison<a class="headerlink" href="#per-point-comparison" title="Link to this heading">¶</a></h2>
-<p>Catalogue conditions and target values follow Table 1 of the
-KJACR 2026 paper (see citations below). Predicted values come
-from re-running the released code via
-<code class="docutils literal notranslate"><span class="pre">scripts/validation/samsung_ehs_parity.py</span></code>.</p>
-<div id="validation-table-mount"></div>
-<script src="../_static/js/plots/_plot-common.js"></script>
-<script src="../_static/js/widgets/validation-table.js"></script><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3 sd-fade-in-slide-down">
-<summary class="sd-summary-title sd-card-header sd-bg-primary sd-bg-text-primary">
-<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-table" viewBox="0 0 16 16" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25ZM6.5 6.5v8h7.75a.25.25 0 0 0 .25-.25V6.5Zm8-1.5V1.75a.25.25 0 0 0-.25-.25H6.5V5Zm-13 1.5v7.75c0 .138.112.25.25.25H5v-8ZM5 5V1.5H1.75a.25.25 0 0 0-.25.25V5Z"></path></svg></span><span class="sd-summary-text">Show all 15 operating points</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
-<div class="table-wrapper colwidths-given validation-table-static docutils container">
-<table class="validation-table-static docutils align-default">
+<div class="table-wrapper colwidths-given docutils container" id="id2">
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Coverage</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
 <colgroup>
-<col style="width: 5.7%" />
-<col style="width: 13.8%" />
-<col style="width: 11.5%" />
-<col style="width: 16.1%" />
-<col style="width: 16.1%" />
-<col style="width: 16.1%" />
-<col style="width: 9.2%" />
-<col style="width: 11.5%" />
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"><p class="sd-card-text">ID</p></th>
-<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\ [\mathrm{°C}]\)</span></p></th>
-<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(T_0\ [\mathrm{°C}]\)</span></p></th>
-<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}}\ [\mathrm{kW}]\)</span></p></th>
-<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{target}}\)</span></p></th>
-<th class="head"><p class="sd-card-text"><span class="math notranslate nohighlight">\(\mathrm{COP}_{\mathrm{pred}}\)</span></p></th>
-<th class="head"><p class="sd-card-text">AE</p></th>
-<th class="head"><p class="sd-card-text">APE</p></th>
+<tr class="row-odd"><th class="head"><p>Dimension</p></th>
+<th class="head"><p>Span</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p class="sd-card-text">1</p></td>
-<td><p class="sd-card-text">40</p></td>
-<td><p class="sd-card-text">−10</p></td>
-<td><p class="sd-card-text">13.45</p></td>
-<td><p class="sd-card-text">2.30</p></td>
-<td><p class="sd-card-text">2.37</p></td>
-<td><p class="sd-card-text">0.07</p></td>
-<td><p class="sd-card-text">3.0 %</p></td>
+<tr class="row-even"><td><p>Families</p></td>
+<td><p>Air-to-water (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>), air-to-air
+(<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td><p class="sd-card-text">2</p></td>
-<td><p class="sd-card-text">40</p></td>
-<td><p class="sd-card-text">2</p></td>
-<td><p class="sd-card-text">12.42</p></td>
-<td><p class="sd-card-text">3.04</p></td>
-<td><p class="sd-card-text">3.83</p></td>
-<td><p class="sd-card-text">0.79</p></td>
-<td><p class="sd-card-text">25.8 %</p></td>
+<tr class="row-odd"><td><p>Refrigerants</p></td>
+<td><p>R32, R410A, R290</p></td>
 </tr>
-<tr class="row-even"><td><p class="sd-card-text">3</p></td>
-<td><p class="sd-card-text">40</p></td>
-<td><p class="sd-card-text">12</p></td>
-<td><p class="sd-card-text">14.65</p></td>
-<td><p class="sd-card-text">5.07</p></td>
-<td><p class="sd-card-text">4.67</p></td>
-<td><p class="sd-card-text">0.40</p></td>
-<td><p class="sd-card-text">7.9 %</p></td>
+<tr class="row-even"><td><p>Nominal capacity</p></td>
+<td><p>2.0 – 16.0 kW, a factor of eight</p></td>
 </tr>
-<tr class="row-odd"><td><p class="sd-card-text">4</p></td>
-<td><p class="sd-card-text">40</p></td>
-<td><p class="sd-card-text">20</p></td>
-<td><p class="sd-card-text">15.69</p></td>
-<td><p class="sd-card-text">6.48</p></td>
-<td><p class="sd-card-text">5.65</p></td>
-<td><p class="sd-card-text">0.83</p></td>
-<td><p class="sd-card-text">12.8 %</p></td>
+<tr class="row-odd"><td><p>Manufacturers</p></td>
+<td><p>Panasonic, Samsung, Daikin, Fujitsu</p></td>
 </tr>
-<tr class="row-even"><td><p class="sd-card-text">5</p></td>
-<td><p class="sd-card-text">40</p></td>
-<td><p class="sd-card-text">30</p></td>
-<td><p class="sd-card-text">16.98</p></td>
-<td><p class="sd-card-text">7.68</p></td>
-<td><p class="sd-card-text">7.43</p></td>
-<td><p class="sd-card-text">0.25</p></td>
-<td><p class="sd-card-text">3.2 %</p></td>
+<tr class="row-even"><td><p>Points</p></td>
+<td><p>757 attempted, 753 evaluated</p></td>
 </tr>
-<tr class="row-odd"><td><p class="sd-card-text">6</p></td>
-<td><p class="sd-card-text">50</p></td>
-<td><p class="sd-card-text">−10</p></td>
-<td><p class="sd-card-text">13.89</p></td>
-<td><p class="sd-card-text">2.00</p></td>
-<td><p class="sd-card-text">1.84</p></td>
-<td><p class="sd-card-text">0.16</p></td>
-<td><p class="sd-card-text">7.8 %</p></td>
+<tr class="row-odd"><td><p>Modes</p></td>
+<td><p>Heating and cooling</p></td>
 </tr>
-<tr class="row-even"><td><p class="sd-card-text">7</p></td>
-<td><p class="sd-card-text">50</p></td>
-<td><p class="sd-card-text">2</p></td>
-<td><p class="sd-card-text">13.27</p></td>
-<td><p class="sd-card-text">2.56</p></td>
-<td><p class="sd-card-text">3.04</p></td>
-<td><p class="sd-card-text">0.48</p></td>
-<td><p class="sd-card-text">18.9 %</p></td>
+<tr class="row-even"><td><p>Source temperature</p></td>
+<td><p>−20 to +40 °C</p></td>
 </tr>
-<tr class="row-odd"><td><p class="sd-card-text">8</p></td>
-<td><p class="sd-card-text">50</p></td>
-<td><p class="sd-card-text">12</p></td>
-<td><p class="sd-card-text">14.76</p></td>
-<td><p class="sd-card-text">3.86</p></td>
-<td><p class="sd-card-text">3.71</p></td>
-<td><p class="sd-card-text">0.15</p></td>
-<td><p class="sd-card-text">3.9 %</p></td>
-</tr>
-<tr class="row-even"><td><p class="sd-card-text">9</p></td>
-<td><p class="sd-card-text">50</p></td>
-<td><p class="sd-card-text">20</p></td>
-<td><p class="sd-card-text">15.97</p></td>
-<td><p class="sd-card-text">4.78</p></td>
-<td><p class="sd-card-text">4.34</p></td>
-<td><p class="sd-card-text">0.44</p></td>
-<td><p class="sd-card-text">9.2 %</p></td>
-</tr>
-<tr class="row-odd"><td><p class="sd-card-text">10</p></td>
-<td><p class="sd-card-text">50</p></td>
-<td><p class="sd-card-text">30</p></td>
-<td><p class="sd-card-text">17.48</p></td>
-<td><p class="sd-card-text">5.95</p></td>
-<td><p class="sd-card-text">5.37</p></td>
-<td><p class="sd-card-text">0.58</p></td>
-<td><p class="sd-card-text">9.8 %</p></td>
-</tr>
-<tr class="row-even"><td><p class="sd-card-text">11</p></td>
-<td><p class="sd-card-text">65</p></td>
-<td><p class="sd-card-text">−10</p></td>
-<td><p class="sd-card-text">13.97</p></td>
-<td><p class="sd-card-text">1.73</p></td>
-<td><p class="sd-card-text">1.42</p></td>
-<td><p class="sd-card-text">0.31</p></td>
-<td><p class="sd-card-text">17.7 %</p></td>
-</tr>
-<tr class="row-odd"><td><p class="sd-card-text">12</p></td>
-<td><p class="sd-card-text">65</p></td>
-<td><p class="sd-card-text">2</p></td>
-<td><p class="sd-card-text">13.71</p></td>
-<td><p class="sd-card-text">2.04</p></td>
-<td><p class="sd-card-text">2.37</p></td>
-<td><p class="sd-card-text">0.33</p></td>
-<td><p class="sd-card-text">16.1 %</p></td>
-</tr>
-<tr class="row-even"><td><p class="sd-card-text">13</p></td>
-<td><p class="sd-card-text">65</p></td>
-<td><p class="sd-card-text">12</p></td>
-<td><p class="sd-card-text">16.38</p></td>
-<td><p class="sd-card-text">2.84</p></td>
-<td><p class="sd-card-text">2.73</p></td>
-<td><p class="sd-card-text">0.11</p></td>
-<td><p class="sd-card-text">3.7 %</p></td>
-</tr>
-<tr class="row-odd"><td><p class="sd-card-text">14</p></td>
-<td><p class="sd-card-text">65</p></td>
-<td><p class="sd-card-text">20</p></td>
-<td><p class="sd-card-text">17.48</p></td>
-<td><p class="sd-card-text">3.34</p></td>
-<td><p class="sd-card-text">3.17</p></td>
-<td><p class="sd-card-text">0.17</p></td>
-<td><p class="sd-card-text">5.1 %</p></td>
-</tr>
-<tr class="row-even"><td><p class="sd-card-text">15</p></td>
-<td><p class="sd-card-text">65</p></td>
-<td><p class="sd-card-text">30</p></td>
-<td><p class="sd-card-text">18.84</p></td>
-<td><p class="sd-card-text">4.04</p></td>
-<td><p class="sd-card-text">3.79</p></td>
-<td><p class="sd-card-text">0.25</p></td>
-<td><p class="sd-card-text">6.1 %</p></td>
-</tr>
-<tr class="row-odd"><td></td>
-<td></td>
-<td></td>
-<td></td>
-<td><p class="sd-card-text"><strong>Mean</strong></p></td>
-<td></td>
-<td><p class="sd-card-text"><strong>0.35</strong></p></td>
-<td><p class="sd-card-text"><strong>10.1 %</strong></p></td>
+<tr class="row-odd"><td><p>Sink temperature</p></td>
+<td><p>15 to 65 °C leaving water / indoor dry bulb</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-</div>
-</details></section>
-<section id="notation">
-<h2>Notation<a class="headerlink" href="#notation" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\)</span> — Leaving Water Temperature, the
-manufacturer’s catalogue reference. The model’s tank temperature is
-set 2.5 K below <span class="math notranslate nohighlight">\(T_{\mathrm{LWT}}\)</span> for
-<span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} \le 60\)</span> °C and 5 K below for
-<span class="math notranslate nohighlight">\(T_{\mathrm{LWT}} &gt; 60\)</span> °C, per the paper’s EWT / LWT offset.</p></li>
-<li><p><span class="math notranslate nohighlight">\(T_0\)</span> — outdoor (dead-state) air temperature.</p></li>
-<li><p><span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}}\)</span> — target condenser heat rate.</p></li>
-<li><p><span class="math notranslate nohighlight">\(\mathrm{COP}\)</span> — system Coefficient of Performance,
-<span class="math notranslate nohighlight">\(\dot{Q}_{\mathrm{cond}} / (E_{\mathrm{cmp}} + E_{\mathrm{fan}})\)</span>.</p></li>
-<li><p>AE — Absolute Error,
-<span class="math notranslate nohighlight">\(\left|\mathrm{COP}_{\mathrm{pred}} - \mathrm{COP}_{\mathrm{target}}\right|\)</span>.</p></li>
-<li><p>APE — Absolute Percentage Error,
-<span class="math notranslate nohighlight">\(\mathrm{AE} / \mathrm{COP}_{\mathrm{target}}\)</span>.</p></li>
-<li><p>MAE / MAPE — mean of AE / APE over all 15 points.</p></li>
-</ul>
 </section>
-<section id="reproducibility">
-<h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
-<p>The parity plot and the table above are regenerated by
-<a class="reference external" href="https://github.com/bet-lab/TMHP/blob/main/scripts/validation/samsung_ehs_parity.py">scripts/validation/samsung_ehs_parity.py</a>,
-so anyone can rerun the comparison from the source.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--locked
-</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/validation/samsung_ehs_parity.py
-</span></pre></div>
+<section id="per-unit-results">
+<h2>Per-unit results<a class="headerlink" href="#per-unit-results" title="Link to this heading">¶</a></h2>
+<div id="validation-table-mount"></div>
+<script src="../_static/js/plots/_plot-common.js"></script>
+<script src="../_static/js/widgets/validation-table.js"></script><p>Sort by any column, filter by unit, refrigerant or mode. The numbers come from
+<code class="docutils literal notranslate"><span class="pre">validation/results/</span></code>, which the parity harness writes.</p>
+</section>
+<section id="reading-the-residuals">
+<h2>Reading the residuals<a class="headerlink" href="#reading-the-residuals" title="Link to this heading">¶</a></h2>
+<p>There is no single headline number: the set mixes two rating standards
+(EN 14511 and AHRI 210/240) that define COP differently, so the harness reports
+one figure per standard and pools nothing across them. Over 753 evaluated points
+the adopted catalogues come to a COP MAPE of 8.9 %; the two held catalogues are
+run and written but never enter a headline. The compressor coefficients are
+version <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), fitted on standalone compressor data
+and applied here unchanged.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group</p></th>
+<th class="head"><p>COP MAPE</p></th>
+<th class="head"><p>Bias</p></th>
+<th class="head"><p>What it is</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Air-to-water, 10 units</p></td>
+<td><p>8.2 %</p></td>
+<td><p>+1.5 %</p></td>
+<td><p>Scatter, centred (rating standard not stated)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Air-to-air, Daikin, 5 units</p></td>
+<td><p>9.2 %</p></td>
+<td><p>−0.0 %</p></td>
+<td><p>Scatter, centred (EN 14511)</p></td>
+</tr>
+<tr class="row-even"><td><p>Air-to-air, Fujitsu, 2 units</p></td>
+<td><p>30.3 %</p></td>
+<td><p><strong>+28.8 %</strong></p></td>
+<td><p>Held: AHRI 210/240, COP boundary not stated — a uniform offset</p></td>
+</tr>
+</tbody>
+</table>
 </div>
-<p>The script:</p>
-<ul class="simple">
-<li><p>Iterates over the 15 catalogue operating points hard-coded
-from Samsung’s TDB Table 1.</p></li>
-<li><p>Calls <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler(ref=&quot;R32&quot;).analyze_steady(...)</span></code>
-at each point.</p></li>
-<li><p>Writes a publication-quality SVG to
-<code class="docutils literal notranslate"><span class="pre">docs/source/_static/validation_parity.svg</span></code> with a pinned
-<code class="docutils literal notranslate"><span class="pre">svg.hashsalt</span></code> so the output is byte-identical across runs.</p></li>
-</ul>
+<p>A bias equal to the error is the signature of a systematic cause, so the
+Fujitsu result was checked before being published rather than after.</p>
+<div class="important admonition">
+<p class="admonition-title">The offset is three things, not one</p>
+<p>An earlier version of this page attributed the whole gap to hardware
+efficiency. That was one of three causes presented as the explanation, and
+this is the correction. Comparing each machine at its own <strong>nominal</strong>
+rating point – no latent load, no forced maximum output, the cleanest
+comparison available – separates them.</p>
+<p><strong>① Residual hardware efficiency (~20 points).</strong> At the nominal heating
+rating point Daikin lands 6-11 % low and Fujitsu 13-15 % high. That part is
+real and it is the defaults’ responsibility: the two product lines are
+built to different efficiency targets and a rule written per kilowatt
+cannot tell which one it is looking at.</p>
+<p><strong>② Dehumidification, cooling half.</strong> TMHP’s indoor coil is a dry sensible
+exchanger. A real machine removing moisture must hold its coil below the
+dew point, far colder than a sensible-only coil needs to move the same
+total heat — and a colder coil means more lift and less COP. At its rating
+point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
+against the Daikin’s 2 % (SHR 0.98). Within the Daikin set alone, bias
+correlates with sensible heat ratio at <em>r</em> = −0.52.</p>
+<p><strong>③ Maximum-capacity tables, heating half.</strong> Fujitsu’s heating grid is
+published at maximum capacity, with the compressor pinned at full speed
+where its efficiency is worst. The harness asks for that same duty and the
+model meets it at about half the available speed range. Different operating
+point; the comparison flatters the model.</p>
+<p>Only ① is a property of the defaults. ② is a stated model boundary and ③ is
+a property of the source document.</p>
+</div>
+<div class="note admonition">
+<p class="admonition-title">Where each machine sits in the measured band</p>
+<p>Backing the conductance out of each machine’s own rating point — “if the
+whole residual were conductance, how much would it be?” — places each one
+against the population the default came from.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.0%" />
+<col style="width: 22.0%" />
+<col style="width: 22.0%" />
+<col style="width: 22.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Unit</p></th>
+<th class="head"><p>Nameplate EER</p></th>
+<th class="head"><p>Implied rule</p></th>
+<th class="head"><p>In the band?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FTXM20A / RXM20A</p></td>
+<td><p>5.41</p></td>
+<td><p>Q/3.7</p></td>
+<td><p>inside</p></td>
+</tr>
+<tr class="row-odd"><td><p>FTXM25A / RXM25A</p></td>
+<td><p>5.21</p></td>
+<td><p>Q/3.9</p></td>
+<td><p>inside</p></td>
+</tr>
+<tr class="row-even"><td><p>FTXM35A / RXM35A</p></td>
+<td><p>4.61</p></td>
+<td><p>Q/4.2</p></td>
+<td><p>inside</p></td>
+</tr>
+<tr class="row-odd"><td><p>FTXM42A / RXM42A</p></td>
+<td><p>4.20</p></td>
+<td><p>Q/4.9</p></td>
+<td><p>inside</p></td>
+</tr>
+<tr class="row-even"><td><p>FTXM50A / RXM50A</p></td>
+<td><p>3.68</p></td>
+<td><p>Q/6.0</p></td>
+<td><p>inside</p></td>
+</tr>
+<tr class="row-odd"><td><p>ASUH09LPAS</p></td>
+<td><p>3.67</p></td>
+<td><p>Q/7.6</p></td>
+<td><p><strong>outside</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>ASUH12LPAS</p></td>
+<td><p>3.23</p></td>
+<td><p>Q/8.5</p></td>
+<td><p><strong>outside</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The band is <strong>Q/3.3 to Q/7.1</strong> at p10–p90 of 1,414 component coils, on the
+nameplate-capacity basis, and the default <code class="docutils literal notranslate"><span class="pre">Q/5.0</span></code> sits inside it. Every
+Daikin unit is inside. Both Fujitsu units sit just outside the
+low-conductance end: they behave like machines with less coil per kilowatt
+than 90 % of the component population, which is exactly why a median
+default over-predicts them.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The band must be quoted on the same basis as the rule. Component
+catalogues report conductance per unit of <em>coil</em> duty; the rule is
+written against the <em>nameplate</em>, and the two differ by <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">1/EER</span></code>
+= 1.307. An earlier version of this page carried the median across but
+not the band, which made the default look better placed in its own
+population than it is.</p>
+</div>
+</div>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/validation_residuals.svg"><img alt="Three panels: the conductance back-out per machine, those machines placed against the 1,414-coil measured band, and model bias at each machine's rating point sorted by nameplate EER." src="../_images/validation_residuals.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Reproduce with <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">python</span> <span class="pre">-m</span> <span class="pre">validation.analysis.residual_decomposition</span></code>
+and <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">python</span> <span class="pre">-m</span> <span class="pre">scripts.validation.residual_figure</span></code>.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<div class="note admonition">
+<p class="admonition-title">Why the default was not moved</p>
+<p>Nudging the conductance from <code class="docutils literal notranslate"><span class="pre">Q/5</span></code> toward <code class="docutils literal notranslate"><span class="pre">Q/6</span></code> would have improved the
+aggregate number on this page. It was not done. The value was derived from
+the catalogue population before any parity result existed, and changing it
+afterwards to improve a parity plot is calibration wearing validation’s
+clothes — the exact thing this harness is built to prevent. The spread is
+reported instead.</p>
+</div>
+<p>Three smaller patterns, also named rather than left for a reader to find:</p>
+<p><strong>The air-to-water set is the tighter one.</strong> Those units publish compressor
+displacement, which no air-to-air unit in the set does — neither Daikin nor
+Fujitsu prints one, and a search of five data books, three service manuals and
+two specification sheets found no displacement for any of them. So the
+air-to-air panel is also a test of the <em>derived</em> displacement rule rather than
+of a specification input.</p>
+<p><strong>Both air-to-air refrigerants are present for a reason.</strong> Daikin’s
+pair-application range is entirely R-32. Without the Fujitsu R-410A units that
+panel would say nothing about whether the physics carries across working
+fluids. It is worth being explicit that the offset above is <em>not</em> a refrigerant
+effect: the three R-410A air-to-water units are among the best fits in the
+whole set, at 4.7 to 7.9 % MAPE.</p>
+<p><strong>The one air-to-water outlier turns out to be the same story.</strong> The 16 kW R32
+unit runs +11.7 % optimistic. Neither of its published inputs explains it:
+substituting its sibling’s rated air flow, or dropping its published
+displacement in favour of the derived rule, moves the bias by about a point.
+What explains it is the catalogue itself. At every one of the fifteen
+conditions, the 16 kW machine’s <em>published</em> COP is 8 to 22 % below the 9 kW
+machine’s from the same product line:</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Condition</p></th>
+<th class="head"><p>9 kW</p></th>
+<th class="head"><p>12 kW</p></th>
+<th class="head"><p>16 kW</p></th>
+<th class="head"><p>16 kW / 9 kW</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>−7 °C / 45 °C</p></td>
+<td><p>2.54</p></td>
+<td><p>2.39</p></td>
+<td><p>2.04</p></td>
+<td><p>0.80</p></td>
+</tr>
+<tr class="row-odd"><td><p>+2 °C / 55 °C</p></td>
+<td><p>2.54</p></td>
+<td><p>2.42</p></td>
+<td><p>2.07</p></td>
+<td><p>0.82</p></td>
+</tr>
+<tr class="row-even"><td><p>+25 °C / 45 °C</p></td>
+<td><p>5.99</p></td>
+<td><p>5.71</p></td>
+<td><p>5.00</p></td>
+<td><p>0.84</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Efficiency is not constant per kilowatt as you go up a product line, and a rule
+written per kilowatt cannot know that. The model treats the three units as
+near-identical machines at different sizes, which is what the rules say; the
+manufacturer’s own data says the largest is about 16 % worse. The residual is
+that gap.</p>
+<p>This is the Fujitsu finding again at smaller scale and inside a single
+manufacturer’s range, which is worth noticing: <strong>the limitation is not one
+unusual product line, it is capacity-normalised scaling itself.</strong> The defaults
+describe a typical machine of a given size; they do not know that a
+manufacturer’s 16 kW model is built to a different cost target than its 9 kW
+model.</p>
+<p><strong>The Samsung high-temperature unit is genuinely outside the model boundary.</strong>
+It publishes no displacement and reaches 65 °C leaving water at −10 °C outdoor
+air — a pressure ratio around 16, which real machines achieve with vapour
+injection and TMHP does not model as a single-stage cycle. Stated rather than
+corrected for.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>An earlier published figure for the Samsung unit — MAE 0.35, MAPE 10.1 % —
+came from a parameter set written for that machine, including its own
+displacement, conductances and efficiency coefficients. It is not
+comparable to the number here, which is the shipped defaults applied
+without adjustment. Removing that divergence between the published
+validation script and the library default is part of what this work did.</p>
+</div>
+</section>
+<section id="cooling-and-latent-load">
+<h2>Cooling and latent load<a class="headerlink" href="#cooling-and-latent-load" title="Link to this heading">¶</a></h2>
+<p>TMHP’s indoor coil is a dry sensible-heat exchanger. Manufacturer cooling
+grids publish total capacity, part of which is dehumidification, so a cooling
+point with a low sensible heat ratio asks the model to carry a latent duty it
+does not compute. Each cooling point in the catalogue files records its
+sensible heat ratio for this reason. Heating points have no latent component.</p>
 </section>
 <section id="scope">
 <h2>Scope<a class="headerlink" href="#scope" title="Link to this heading">¶</a></h2>
 <div class="note admonition">
-<p class="admonition-title">What has — and hasn’t — been benchmarked</p>
-<p>Only <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> has been quantitatively
-validated against catalogue data. The other system classes
-(<a class="reference internal" href="../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>,
+<p class="admonition-title">What has and has not been benchmarked</p>
+<p><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> and <code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code> are benchmarked
+against manufacturer catalogues here. The ground-source and water-source
+families (<a class="reference internal" href="../models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a>,
 <a class="reference internal" href="../models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler" title="tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code></a>,
-<a class="reference internal" href="../models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump" title="tmhp.air_source_heat_pump.AirSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code></a>,
-<a class="reference internal" href="../models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump" title="tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>,
-and the subsystem-augmented variants) share the same
-refrigerant-cycle core and pass smoke tests on representative
-operating points, but they have not yet been benchmarked
-against unit-specific data.</p>
+<a class="reference internal" href="../models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump" title="tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a>, and the
+subsystem-augmented variants) share the same refrigerant-cycle core and
+pass smoke tests on representative operating points, but have not been
+compared against unit-specific data. The conductance rule derived here is
+for air coils and does not transfer to a water- or brine-coupled face,
+which is different physics.</p>
+<p><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> additionally still carries a fixed compressor
+displacement rather than the derived rule, and is not covered by the
+displacement work on this page.</p>
 </div>
-<p>This benchmark validates the released first-principles ASHPB reference
-path against one real catalogue rather than tuning a curve fit to that
-catalogue. It supports confidence in the shared refrigerant-cycle
-implementation, but it is not yet a quantitative validation claim for
-the ground-source, water-source, or space-conditioning families.
-Per-family catalogue comparisons will be added as the relevant data
-becomes available.</p>
+</section>
+<section id="reproduce">
+<h2>Reproduce<a class="headerlink" href="#reproduce" title="Link to this heading">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--group<span class="w"> </span>validation
+</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.parity.run<span class="w">             </span><span class="c1"># every catalogue</span>
+</span><span data-line="3">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.validation.parity_figure<span class="w">  </span><span class="c1"># this figure</span>
+</span></pre></div>
+</div>
+<p>Adding a machine is a transcription and nothing else — see
+<a class="reference internal" href="adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a>.</p>
 </section>
 <section id="citations">
 <h2>Citations<a class="headerlink" href="#citations" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Jo, H. &amp; Choi, W. <em>“Thermodynamic Modeling of Refrigerant Cycle
-in an Air-Source Heat Pump Boiler and Performance Validation”</em>,
-KJACR (2026, in press).</p></li>
-<li><p>Samsung Electronics, <em>EHS Mono HT Quiet R32 Technical Data
-Book</em> (2024) —
-<a class="reference external" href="https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf">PDF</a>.</p></li>
+<li><p>Jo, H. &amp; Choi, W. <em>“Thermodynamic Modeling of Refrigerant Cycle in an
+Air-Source Heat Pump Boiler and Performance Validation”</em>, KJACR (2026, in
+press).</p></li>
+<li><p>Samsung Electronics, <em>EHS Mono HT Quiet R32 Technical Data Book</em> (2024).</p></li>
+<li><p>Panasonic, <em>Aquarea WH-MXC / WH-WXG / WH-UQ service manuals and compressor
+catalogues</em> (2025).</p></li>
+<li><p>Daikin, <em>RXM-A engineering data book</em>, EEDEN24-200.</p></li>
 </ul>
+<p>Full provenance, with checksums, is in <code class="docutils literal notranslate"><span class="pre">validation/registry/sources.yaml</span></code>.</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 16, 2026
+  Last updated Oct 01, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -475,10 +581,10 @@ Book</em> (2024) —
         <span>Previous</span><div class="title">Utilities &amp; constants</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="../developer/reference-operating-limits.html">
+    <a href="defaults.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">Reference points and operating limits</div>
+        <div class="title">Where the defaults come from</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>
@@ -518,8 +624,6 @@ Book</em> (2024) —
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
       <script src="../_static/shibuya.js?v=cac61aee"></script>
-      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
       <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
       <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
       <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>

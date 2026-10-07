@@ -1009,6 +1009,10 @@ footer.sy-foot { display: none; }
 .validation-table .vt-row.is-selected { background: var(--rx-accent-3); }
 .validation-table .vt-table td.ok   { color: var(--rx-green-11); }
 .validation-table .vt-table td.warn { color: var(--rx-amber-11); }
+/* Points the model could not evaluate stay in the table, dimmed. Dropping
+   them would flatter the summary; hiding them would be worse. */
+.validation-table .vt-row.vt-unevaluated td { opacity: 0.55; font-style: italic; }
+.validation-table .vt-table { font-variant-numeric: tabular-nums; }
 .hidden-by-js { display: none !important; }
 
 @media (max-width: 700px) {

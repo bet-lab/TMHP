@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,7 +112,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
@@ -165,71 +170,71 @@ data-aria-dark="Switch to auto color mode">
           <h1>Source code for tmhp.reference_state</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compressor reference state solved from nominal capacity.</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="sd">Every compressor-based heat-pump model in TMHP normalises its compressor</span>
-</span><span data-line="4"><span class="sd">efficiencies by a rated speed (``n* = rps / rps_rated``) and, for the ground</span>
-</span><span data-line="5"><span class="sd">heat exchanger, its refrigerant-side UA by a rated refrigerant mass flow</span>
-</span><span data-line="6"><span class="sd">(``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one physical</span>
-</span><span data-line="7"><span class="sd">point -- the *reference state* -- and this module computes that point from the</span>
-</span><span data-line="8"><span class="sd">same inputs every model already requires:</span>
-</span><span data-line="9">
-</span><span data-line="10"><span class="sd">.. code-block:: text</span>
-</span><span data-line="11">
-</span><span data-line="12"><span class="sd">    hp_capacity -&gt; V_cmp_ref -&gt; rating condition -&gt; rps_rated -&gt; m_dot_ref_rated</span>
-</span><span data-line="13">
-</span><span data-line="14"><span class="sd">``V_cmp_ref``</span>
-</span><span data-line="15"><span class="sd">    Swept displacement. When the caller gives none, the models use</span>
-</span><span data-line="16"><span class="sd">    :func:`tmhp.compressor_speed.default_displacement`, a capacity-scaled</span>
-</span><span data-line="17"><span class="sd">    reduced-order default, not an identification of a real compressor.</span>
-</span><span data-line="18"><span class="sd">``rating condition``</span>
-</span><span data-line="19"><span class="sd">    A standard (or manufacturer/user) rating point for the model family:</span>
-</span><span data-line="20"><span class="sd">    mode, source- and load-side inlet temperatures, the model&#39;s reference</span>
-</span><span data-line="21"><span class="sd">    secondary flows and its rated UA values. It is independent of whatever</span>
-</span><span data-line="22"><span class="sd">    operating condition is simulated afterwards.</span>
-</span><span data-line="23"><span class="sd">``rps_rated``</span>
-</span><span data-line="24"><span class="sd">    The speed at which the model delivers ``hp_capacity`` at the rating</span>
-</span><span data-line="25"><span class="sd">    condition, with every efficiency evaluated at ``n* = 1``.</span>
-</span><span data-line="26"><span class="sd">``m_dot_ref_rated``</span>
-</span><span data-line="27"><span class="sd">    The refrigerant mass flow of that same state.</span>
-</span><span data-line="28">
-</span><span data-line="29"><span class="sd">Capacity-only initialization constructs a representative compressor; it does</span>
-</span><span data-line="30"><span class="sd">not identify the exact manufacturer compressor.</span>
-</span><span data-line="31">
-</span><span data-line="32"><span class="sd">Solution method</span>
-</span><span data-line="33"><span class="sd">---------------</span>
-</span><span data-line="34"><span class="sd">At the rating condition the duty on the rated side (load side) is known, so</span>
-</span><span data-line="35"><span class="sd">the rated-side saturation temperature follows from the rated-UA heat</span>
-</span><span data-line="36"><span class="sd">exchanger directly. For a trial duty on the other side, the other saturation</span>
-</span><span data-line="37"><span class="sd">temperature follows the same way; the cycle at those two temperatures then</span>
-</span><span data-line="38"><span class="sd">fixes the speed through the bounded root</span>
-</span><span data-line="39">
-</span><span data-line="40"><span class="sd">.. math:: Q_{model}(rps) - Q_{rated} = 0</span>
-</span><span data-line="41">
-</span><span data-line="42"><span class="sd">with ``eta_vol(PR, 1)``, ``eta_isen(PR, 1)`` and ``eta_em(PR, 1)`` (or the</span>
-</span><span data-line="43"><span class="sd">caller&#39;s own callables). An outer bounded root closes the energy balance of</span>
-</span><span data-line="44"><span class="sd">the other heat exchanger. Variable ground-HX UA is not used here -- it needs</span>
-</span><span data-line="45"><span class="sd">``m_dot_ref_rated``, which is what is being solved for -- so both heat</span>
-</span><span data-line="46"><span class="sd">exchangers use their rated UA at their reference flow.</span>
-</span><span data-line="47">
-</span><span data-line="48"><span class="sd">A rated capacity that needs a speed outside ``[rps_min, rps_max]`` -- or a</span>
-</span><span data-line="49"><span class="sd">rating point the subcritical cycle or the rated heat exchangers cannot reach</span>
-</span><span data-line="50"><span class="sd">-- is reported as :data:`REFERENCE_CAPACITY_INCONSISTENT` instead of being</span>
-</span><span data-line="51"><span class="sd">clamped onto a bound: a clamped speed would deliver a different capacity and</span>
-</span><span data-line="52"><span class="sd">silently redefine the machine. The pressure-ratio envelope is an operating</span>
-</span><span data-line="53"><span class="sd">limit and is not imposed on the rating point; its pressure ratio is reported.</span>
-</span><span data-line="54"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="55">
-</span><span data-line="56"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="57">
-</span><span data-line="58"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="59"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-</span><span data-line="60"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
-</span><span data-line="61"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-</span><span data-line="62"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
-</span><span data-line="63">
-</span><span data-line="64"><span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
-</span><span data-line="65"><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">brentq</span>
-</span><span data-line="66">
-</span><span data-line="67"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_efficiency</span><span class="w"> </span><span class="kn">import</span> <span class="n">_eval_eff</span><span class="p">,</span> <span class="n">make_eta_em</span><span class="p">,</span> <span class="n">make_eta_isen</span><span class="p">,</span> <span class="n">make_eta_vol</span>
+</span><span data-line="3"><span class="sd">BITZER compressor efficiencies use absolute shaft speed in rev/s. Models</span>
+</span><span data-line="4"><span class="sd">normalise the ground heat exchanger refrigerant-side UA by a rated mass flow</span>
+</span><span data-line="5"><span class="sd">(``m_dot_ref / m_dot_ref_rated``). Both denominators belong to one physical</span>
+</span><span data-line="6"><span class="sd">point -- the *reference state* -- and this module computes that point from the</span>
+</span><span data-line="7"><span class="sd">same inputs every model already requires:</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="sd">.. code-block:: text</span>
+</span><span data-line="10">
+</span><span data-line="11"><span class="sd">    hp_capacity -&gt; V_cmp_ref -&gt; rating condition -&gt; rps_rated -&gt; m_dot_ref_rated</span>
+</span><span data-line="12">
+</span><span data-line="13"><span class="sd">``V_cmp_ref``</span>
+</span><span data-line="14"><span class="sd">    Swept displacement. When the caller gives none, the models use</span>
+</span><span data-line="15"><span class="sd">    :func:`tmhp.compressor_speed.default_displacement`, a capacity-scaled</span>
+</span><span data-line="16"><span class="sd">    reduced-order default, not an identification of a real compressor.</span>
+</span><span data-line="17"><span class="sd">``rating condition``</span>
+</span><span data-line="18"><span class="sd">    A standard (or manufacturer/user) rating point for the model family:</span>
+</span><span data-line="19"><span class="sd">    mode, source- and load-side inlet temperatures, the model&#39;s reference</span>
+</span><span data-line="20"><span class="sd">    secondary flows and its rated UA values. It is independent of whatever</span>
+</span><span data-line="21"><span class="sd">    operating condition is simulated afterwards.</span>
+</span><span data-line="22"><span class="sd">``rps_rated``</span>
+</span><span data-line="23"><span class="sd">    The speed at which the model delivers ``hp_capacity`` at the rating</span>
+</span><span data-line="24"><span class="sd">    condition, with every efficiency evaluated at that actual shaft speed.</span>
+</span><span data-line="25"><span class="sd">``m_dot_ref_rated``</span>
+</span><span data-line="26"><span class="sd">    The refrigerant mass flow of that same state.</span>
+</span><span data-line="27">
+</span><span data-line="28"><span class="sd">Capacity-only initialization constructs a representative compressor; it does</span>
+</span><span data-line="29"><span class="sd">not identify the exact manufacturer compressor.</span>
+</span><span data-line="30">
+</span><span data-line="31"><span class="sd">Solution method</span>
+</span><span data-line="32"><span class="sd">---------------</span>
+</span><span data-line="33"><span class="sd">At the rating condition the duty on the rated side (load side) is known, so</span>
+</span><span data-line="34"><span class="sd">the rated-side saturation temperature follows from the rated-UA heat</span>
+</span><span data-line="35"><span class="sd">exchanger directly. For a trial duty on the other side, the other saturation</span>
+</span><span data-line="36"><span class="sd">temperature follows the same way; the cycle at those two temperatures then</span>
+</span><span data-line="37"><span class="sd">fixes the speed through the bounded root</span>
+</span><span data-line="38">
+</span><span data-line="39"><span class="sd">.. math:: Q_{model}(rps) - Q_{rated} = 0</span>
+</span><span data-line="40">
+</span><span data-line="41"><span class="sd">with ``eta_vol(PR, 1)``, ``eta_isen(PR, 1)`` and ``eta_em(PR, 1)`` (or the</span>
+</span><span data-line="42"><span class="sd">caller&#39;s own callables). An outer bounded root closes the energy balance of</span>
+</span><span data-line="43"><span class="sd">the other heat exchanger. Variable ground-HX UA is not used here -- it needs</span>
+</span><span data-line="44"><span class="sd">``m_dot_ref_rated``, which is what is being solved for -- so both heat</span>
+</span><span data-line="45"><span class="sd">exchangers use their rated UA at their reference flow.</span>
+</span><span data-line="46">
+</span><span data-line="47"><span class="sd">A rated capacity that needs a speed outside ``[rps_min, rps_max]`` -- or a</span>
+</span><span data-line="48"><span class="sd">rating point the subcritical cycle or the rated heat exchangers cannot reach</span>
+</span><span data-line="49"><span class="sd">-- is reported as :data:`REFERENCE_CAPACITY_INCONSISTENT` instead of being</span>
+</span><span data-line="50"><span class="sd">clamped onto a bound: a clamped speed would deliver a different capacity and</span>
+</span><span data-line="51"><span class="sd">silently redefine the machine. The pressure-ratio envelope is an operating</span>
+</span><span data-line="52"><span class="sd">limit and is not imposed on the rating point; its pressure ratio is reported.</span>
+</span><span data-line="53"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="54">
+</span><span data-line="55"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="58"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="59"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
+</span><span data-line="60"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+</span><span data-line="61"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+</span><span data-line="62">
+</span><span data-line="63"><span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
+</span><span data-line="64"><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">brentq</span>
+</span><span data-line="65">
+</span><span data-line="66"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_efficiency</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidCompressorEfficiency</span><span class="p">,</span> <span class="n">_eval_eff</span><span class="p">,</span> <span class="n">make_eta_em</span><span class="p">,</span> <span class="n">make_eta_isen</span><span class="p">,</span> <span class="n">make_eta_vol</span>
+</span><span data-line="67"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_speed</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_compressor_speed</span>
 </span><span data-line="68"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">rho_a</span><span class="p">,</span> <span class="n">rho_w</span>
 </span><span data-line="69"><span class="kn">from</span><span class="w"> </span><span class="nn">.refrigerant</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_ref_state</span>
 </span><span data-line="70">
@@ -435,9 +440,9 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="252">
 </span><span data-line="253">
 </span><span data-line="254"><span class="k">def</span><span class="w"> </span><span class="nf">_rated_speed_efficiency</span><span class="p">(</span><span class="n">factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Callable</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="255"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Baseline correlation pinned at ``n* = 1`` (the candidate is its own rated speed).&quot;&quot;&quot;</span>
+</span><span data-line="255"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate absolute shaft speed at every candidate reference point.&quot;&quot;&quot;</span>
 </span><span data-line="256">    <span class="n">correlation</span> <span class="o">=</span> <span class="n">factory</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
-</span><span data-line="257">    <span class="k">return</span> <span class="k">lambda</span> <span class="n">pressure_ratio</span><span class="p">,</span> <span class="n">rps</span><span class="p">:</span> <span class="n">correlation</span><span class="p">(</span><span class="n">pressure_ratio</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="257">    <span class="k">return</span> <span class="k">lambda</span> <span class="n">pressure_ratio</span><span class="p">,</span> <span class="n">rps</span><span class="p">:</span> <span class="n">correlation</span><span class="p">(</span><span class="n">pressure_ratio</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
 </span><span data-line="258">
 </span><span data-line="259">
 </span><span data-line="260"><span class="c1">#: Efficiency factories by attribute, used when the caller supplied none.</span>
@@ -456,7 +461,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="273">
 </span><span data-line="274"><span class="sd">    ``resolved`` (the model&#39;s final efficiencies) is used when the rated speed</span>
 </span><span data-line="275"><span class="sd">    is already known. Otherwise caller-supplied models are used as they are and</span>
-</span><span data-line="276"><span class="sd">    omitted ones become baseline correlations at ``n* = 1``.</span>
+</span><span data-line="276"><span class="sd">    omitted ones use BITZER correlations at each candidate shaft speed.</span>
 </span><span data-line="277"><span class="sd">    &quot;&quot;&quot;</span>
 </span><span data-line="278">    <span class="k">if</span> <span class="n">resolved</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span data-line="279">        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
@@ -518,302 +523,303 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="333">        <span class="p">)</span>
 </span><span data-line="334">        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_CACHE</span><span class="p">:</span>
 </span><span data-line="335">            <span class="k">return</span> <span class="n">_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-</span><span data-line="336">    <span class="n">state</span> <span class="o">=</span> <span class="n">_solve</span><span class="p">(</span>
-</span><span data-line="337">        <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
-</span><span data-line="338">        <span class="n">V_cmp_ref</span><span class="o">=</span><span class="n">V_cmp_ref</span><span class="p">,</span>
-</span><span data-line="339">        <span class="n">Q_rated</span><span class="o">=</span><span class="n">hp_capacity</span><span class="p">,</span>
-</span><span data-line="340">        <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
-</span><span data-line="341">        <span class="n">etas</span><span class="o">=</span><span class="p">(</span><span class="n">eta_cmp_isen</span><span class="p">,</span> <span class="n">eta_cmp_vol</span><span class="p">,</span> <span class="n">eta_cmp</span><span class="p">),</span>
-</span><span data-line="342">        <span class="n">dT_superheat</span><span class="o">=</span><span class="n">dT_superheat</span><span class="p">,</span>
-</span><span data-line="343">        <span class="n">dT_subcool</span><span class="o">=</span><span class="n">dT_subcool</span><span class="p">,</span>
-</span><span data-line="344">        <span class="n">dT_hx_min</span><span class="o">=</span><span class="n">dT_hx_min</span><span class="p">,</span>
-</span><span data-line="345">        <span class="n">rps_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span><span class="p">),</span>
-</span><span data-line="346">        <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_rated</span><span class="p">,</span>
-</span><span data-line="347">    <span class="p">)</span>
-</span><span data-line="348">    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="349">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_CACHE</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_CACHE_MAX</span><span class="p">:</span>
-</span><span data-line="350">            <span class="n">_CACHE</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">_CACHE</span><span class="p">)))</span>
-</span><span data-line="351">        <span class="n">_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
-</span><span data-line="352">    <span class="k">return</span> <span class="n">state</span></div>
+</span><span data-line="336">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="337">        <span class="n">state</span> <span class="o">=</span> <span class="n">_solve</span><span class="p">(</span>
+</span><span data-line="338">            <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
+</span><span data-line="339">            <span class="n">V_cmp_ref</span><span class="o">=</span><span class="n">V_cmp_ref</span><span class="p">,</span>
+</span><span data-line="340">            <span class="n">Q_rated</span><span class="o">=</span><span class="n">hp_capacity</span><span class="p">,</span>
+</span><span data-line="341">            <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
+</span><span data-line="342">            <span class="n">etas</span><span class="o">=</span><span class="p">(</span><span class="n">eta_cmp_isen</span><span class="p">,</span> <span class="n">eta_cmp_vol</span><span class="p">,</span> <span class="n">eta_cmp</span><span class="p">),</span>
+</span><span data-line="343">            <span class="n">dT_superheat</span><span class="o">=</span><span class="n">dT_superheat</span><span class="p">,</span>
+</span><span data-line="344">            <span class="n">dT_subcool</span><span class="o">=</span><span class="n">dT_subcool</span><span class="p">,</span>
+</span><span data-line="345">            <span class="n">dT_hx_min</span><span class="o">=</span><span class="n">dT_hx_min</span><span class="p">,</span>
+</span><span data-line="346">            <span class="n">rps_bounds</span><span class="o">=</span><span class="p">(</span><span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span><span class="p">),</span>
+</span><span data-line="347">            <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_rated</span><span class="p">,</span>
+</span><span data-line="348">        <span class="p">)</span>
+</span><span data-line="349">    <span class="k">except</span> <span class="n">InvalidCompressorEfficiency</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="350">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
+</span><span data-line="351">            <span class="sa">f</span><span class="s2">&quot;nonpositive or nonfinite raw BITZER efficiency at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2">; &quot;</span>
+</span><span data-line="352">            <span class="s2">&quot;supply a supported rated_condition or custom compressor efficiencies&quot;</span>
+</span><span data-line="353">        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+</span><span data-line="354">    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="355">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_CACHE</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">_CACHE_MAX</span><span class="p">:</span>
+</span><span data-line="356">            <span class="n">_CACHE</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">_CACHE</span><span class="p">)))</span>
+</span><span data-line="357">        <span class="n">_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+</span><span data-line="358">    <span class="k">return</span> <span class="n">state</span></div>
 
-</span><span data-line="353">
-</span><span data-line="354">
-</span><span data-line="355"><span class="k">def</span><span class="w"> </span><span class="nf">_solve</span><span class="p">(</span>
-</span><span data-line="356">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="357">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="358">    <span class="n">V_cmp_ref</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="359">    <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="360">    <span class="n">condition</span><span class="p">:</span> <span class="n">RatingCondition</span><span class="p">,</span>
-</span><span data-line="361">    <span class="n">etas</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">],</span>
-</span><span data-line="362">    <span class="n">dT_superheat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="363">    <span class="n">dT_subcool</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="364">    <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="365">    <span class="n">rps_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
-</span><span data-line="366">    <span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="367"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReferenceState</span><span class="p">:</span>
-</span><span data-line="368">    <span class="n">eta_isen_model</span><span class="p">,</span> <span class="n">eta_vol_model</span><span class="p">,</span> <span class="n">eta_em_model</span> <span class="o">=</span> <span class="n">etas</span>
-</span><span data-line="369">    <span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span> <span class="o">=</span> <span class="n">rps_bounds</span>
-</span><span data-line="370">    <span class="n">heating</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span>
-</span><span data-line="371">    <span class="n">T_crit_K</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Tcrit&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">))</span>
-</span><span data-line="372">    <span class="n">cond_side</span><span class="p">,</span> <span class="n">evap_side</span> <span class="o">=</span> <span class="p">(</span><span class="n">condition</span><span class="o">.</span><span class="n">load</span><span class="p">,</span> <span class="n">condition</span><span class="o">.</span><span class="n">source</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">condition</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">condition</span><span class="o">.</span><span class="n">load</span><span class="p">)</span>
-</span><span data-line="373">
-</span><span data-line="374">    <span class="k">def</span><span class="w"> </span><span class="nf">saturation</span><span class="p">(</span><span class="n">side</span><span class="p">:</span> <span class="n">HXSide</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">condenser</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="375">        <span class="n">approach</span> <span class="o">=</span> <span class="n">duty</span> <span class="o">/</span> <span class="n">side</span><span class="o">.</span><span class="n">conductance</span>
-</span><span data-line="376">        <span class="n">T_sat_K</span> <span class="o">=</span> <span class="n">side</span><span class="o">.</span><span class="n">T_in_C</span> <span class="o">+</span> <span class="mf">273.15</span> <span class="o">+</span> <span class="p">(</span><span class="n">approach</span> <span class="k">if</span> <span class="n">condenser</span> <span class="k">else</span> <span class="o">-</span><span class="n">approach</span><span class="p">)</span>
-</span><span data-line="377">        <span class="k">return</span> <span class="n">T_sat_K</span><span class="p">,</span> <span class="n">approach</span>
-</span><span data-line="378">
-</span><span data-line="379">    <span class="k">def</span><span class="w"> </span><span class="nf">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="380">        <span class="n">Q_cond</span><span class="p">,</span> <span class="n">Q_evap</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_rated</span><span class="p">,</span> <span class="n">Q_other</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">Q_other</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span>
-</span><span data-line="381">        <span class="n">T_cond_K</span><span class="p">,</span> <span class="n">dT_cond</span> <span class="o">=</span> <span class="n">saturation</span><span class="p">(</span><span class="n">cond_side</span><span class="p">,</span> <span class="n">Q_cond</span><span class="p">,</span> <span class="n">condenser</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="382">        <span class="n">T_evap_K</span><span class="p">,</span> <span class="n">dT_evap</span> <span class="o">=</span> <span class="n">saturation</span><span class="p">(</span><span class="n">evap_side</span><span class="p">,</span> <span class="n">Q_evap</span><span class="p">,</span> <span class="n">condenser</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-</span><span data-line="383">        <span class="k">if</span> <span class="n">T_cond_K</span> <span class="o">&lt;=</span> <span class="n">T_evap_K</span><span class="p">:</span>
-</span><span data-line="384">            <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span><span class="s2">&quot;condensing temperature not above evaporating temperature&quot;</span><span class="p">)</span>
-</span><span data-line="385">        <span class="k">if</span> <span class="n">T_cond_K</span> <span class="o">&gt;=</span> <span class="n">T_crit_K</span><span class="p">:</span>
-</span><span data-line="386">            <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
-</span><span data-line="387">                <span class="sa">f</span><span class="s2">&quot;condensing temperature </span><span class="si">{</span><span class="n">T_cond_K</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">273.15</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> is at or above &quot;</span>
-</span><span data-line="388">                <span class="sa">f</span><span class="s2">&quot;the critical temperature of </span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">T_crit_K</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">273.15</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C); TMHP cycles are subcritical, &quot;</span>
-</span><span data-line="389">                <span class="s2">&quot;so supply rps_rated (and m_dot_ref_rated) or a rated_condition the cycle can reach&quot;</span>
-</span><span data-line="390">            <span class="p">)</span>
-</span><span data-line="391">        <span class="c1"># Same margin rule as the models&#39; cycles: superheat/subcool cannot</span>
-</span><span data-line="392">        <span class="c1"># exceed the approach less the minimum HX temperature difference.</span>
-</span><span data-line="393">        <span class="n">states</span> <span class="o">=</span> <span class="n">calc_ref_state</span><span class="p">(</span>
-</span><span data-line="394">            <span class="n">T_evap_K</span><span class="o">=</span><span class="n">T_evap_K</span><span class="p">,</span>
-</span><span data-line="395">            <span class="n">T_cond_K</span><span class="o">=</span><span class="n">T_cond_K</span><span class="p">,</span>
-</span><span data-line="396">            <span class="n">refrigerant</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
-</span><span data-line="397">            <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-</span><span data-line="398">            <span class="n">mode</span><span class="o">=</span><span class="n">condition</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
-</span><span data-line="399">            <span class="n">dT_superheat</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_evap</span> <span class="o">-</span> <span class="n">dT_hx_min</span><span class="p">)),</span>
-</span><span data-line="400">            <span class="n">dT_subcool</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">dT_subcool</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_cond</span> <span class="o">-</span> <span class="n">dT_hx_min</span><span class="p">)),</span>
-</span><span data-line="401">            <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span data-line="402">        <span class="p">)</span>
-</span><span data-line="403">        <span class="n">PR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">]</span>
-</span><span data-line="404">        <span class="n">h1</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">]</span>
-</span><span data-line="405">        <span class="n">dh_isen</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h1</span>
-</span><span data-line="406">        <span class="n">h3</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">]</span>
-</span><span data-line="407">        <span class="n">h4</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">]</span>
-</span><span data-line="408">        <span class="n">rho</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;rho_ref_cmp_in [kg/m3]&quot;</span><span class="p">]</span>
-</span><span data-line="409">
-</span><span data-line="410">        <span class="k">def</span><span class="w"> </span><span class="nf">duties</span><span class="p">(</span><span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="411">            <span class="n">eta_vol</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_vol_model</span><span class="p">,</span> <span class="n">PR</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
-</span><span data-line="412">            <span class="n">eta_isen</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_isen_model</span><span class="p">,</span> <span class="n">PR</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
-</span><span data-line="413">            <span class="n">m_dot</span> <span class="o">=</span> <span class="n">V_cmp_ref</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">eta_vol</span> <span class="o">*</span> <span class="n">rps</span>
-</span><span data-line="414">            <span class="n">h2</span> <span class="o">=</span> <span class="n">h1</span> <span class="o">+</span> <span class="n">dh_isen</span> <span class="o">/</span> <span class="n">eta_isen</span>
-</span><span data-line="415">            <span class="k">return</span> <span class="n">m_dot</span><span class="p">,</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="p">(</span><span class="n">h2</span> <span class="o">-</span> <span class="n">h3</span><span class="p">),</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="p">(</span><span class="n">h1</span> <span class="o">-</span> <span class="n">h4</span><span class="p">),</span> <span class="n">eta_vol</span><span class="p">,</span> <span class="n">eta_isen</span>
-</span><span data-line="416">
-</span><span data-line="417">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="418">            <span class="n">Q_cond_r</span><span class="p">,</span> <span class="n">Q_evap_r</span> <span class="o">=</span> <span class="n">duties</span><span class="p">(</span><span class="n">rps</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-</span><span data-line="419">            <span class="k">return</span> <span class="p">(</span><span class="n">Q_cond_r</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="n">Q_evap_r</span><span class="p">)</span> <span class="o">-</span> <span class="n">Q_rated</span>
-</span><span data-line="420">
-</span><span data-line="421">        <span class="c1"># Bounded root Q_model(rps) = Q_rated. With rps_rated=None the baseline</span>
-</span><span data-line="422">        <span class="c1"># efficiencies arrive pinned at n* = 1 (each candidate is its own rated</span>
-</span><span data-line="423">        <span class="c1"># speed), so duty is linear in rps unless a caller-supplied efficiency</span>
-</span><span data-line="424">        <span class="c1"># depends on speed. Efficiencies are never evaluated outside the envelope.</span>
-</span><span data-line="425">        <span class="n">res_lo</span><span class="p">,</span> <span class="n">res_hi</span> <span class="o">=</span> <span class="n">residual</span><span class="p">(</span><span class="n">rps_min</span><span class="p">),</span> <span class="n">residual</span><span class="p">(</span><span class="n">rps_max</span><span class="p">)</span>
-</span><span data-line="426">        <span class="n">in_range</span> <span class="o">=</span> <span class="n">res_lo</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">res_hi</span>
-</span><span data-line="427">        <span class="k">if</span> <span class="n">in_range</span><span class="p">:</span>
-</span><span data-line="428">            <span class="n">rps</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span><span class="n">residual</span><span class="p">,</span> <span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
-</span><span data-line="429">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="430">            <span class="n">bound</span><span class="p">,</span> <span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">rps_min</span><span class="p">,</span> <span class="n">res_lo</span><span class="p">)</span> <span class="k">if</span> <span class="n">res_lo</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">(</span><span class="n">rps_max</span><span class="p">,</span> <span class="n">res_hi</span><span class="p">)</span>
-</span><span data-line="431">            <span class="n">rps</span> <span class="o">=</span> <span class="n">bound</span> <span class="o">*</span> <span class="n">Q_rated</span> <span class="o">/</span> <span class="p">(</span><span class="n">res</span> <span class="o">+</span> <span class="n">Q_rated</span><span class="p">)</span>
-</span><span data-line="432">        <span class="n">m_dot</span><span class="p">,</span> <span class="n">Q_cond_c</span><span class="p">,</span> <span class="n">Q_evap_c</span><span class="p">,</span> <span class="n">eta_vol</span><span class="p">,</span> <span class="n">eta_isen</span> <span class="o">=</span> <span class="n">duties</span><span class="p">(</span><span class="n">rps</span> <span class="k">if</span> <span class="n">in_range</span> <span class="k">else</span> <span class="p">(</span><span class="n">rps_min</span> <span class="k">if</span> <span class="n">res_lo</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">rps_max</span><span class="p">))</span>
-</span><span data-line="433">        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_range</span><span class="p">:</span>
-</span><span data-line="434">            <span class="c1"># Linear extrapolation outside the envelope: used only to steer the</span>
-</span><span data-line="435">            <span class="c1"># outer energy balance; rejected below if it survives to the end.</span>
-</span><span data-line="436">            <span class="n">scale</span> <span class="o">=</span> <span class="n">rps</span> <span class="o">/</span> <span class="p">(</span><span class="n">rps_min</span> <span class="k">if</span> <span class="n">res_lo</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">rps_max</span><span class="p">)</span>
-</span><span data-line="437">            <span class="n">m_dot</span><span class="p">,</span> <span class="n">Q_cond_c</span><span class="p">,</span> <span class="n">Q_evap_c</span> <span class="o">=</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">Q_cond_c</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">Q_evap_c</span> <span class="o">*</span> <span class="n">scale</span>
-</span><span data-line="438">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="439">            <span class="s2">&quot;rps&quot;</span><span class="p">:</span> <span class="n">rps</span><span class="p">,</span>
-</span><span data-line="440">            <span class="s2">&quot;in_range&quot;</span><span class="p">:</span> <span class="n">in_range</span><span class="p">,</span>
-</span><span data-line="441">            <span class="s2">&quot;m_dot&quot;</span><span class="p">:</span> <span class="n">m_dot</span><span class="p">,</span>
-</span><span data-line="442">            <span class="s2">&quot;Q_cond&quot;</span><span class="p">:</span> <span class="n">Q_cond_c</span><span class="p">,</span>
-</span><span data-line="443">            <span class="s2">&quot;Q_evap&quot;</span><span class="p">:</span> <span class="n">Q_evap_c</span><span class="p">,</span>
-</span><span data-line="444">            <span class="s2">&quot;PR&quot;</span><span class="p">:</span> <span class="n">PR</span><span class="p">,</span>
-</span><span data-line="445">            <span class="s2">&quot;eta_vol&quot;</span><span class="p">:</span> <span class="n">eta_vol</span><span class="p">,</span>
-</span><span data-line="446">            <span class="s2">&quot;eta_isen&quot;</span><span class="p">:</span> <span class="n">eta_isen</span><span class="p">,</span>
-</span><span data-line="447">            <span class="s2">&quot;T_cond_K&quot;</span><span class="p">:</span> <span class="n">T_cond_K</span><span class="p">,</span>
-</span><span data-line="448">            <span class="s2">&quot;T_evap_K&quot;</span><span class="p">:</span> <span class="n">T_evap_K</span><span class="p">,</span>
-</span><span data-line="449">        <span class="p">}</span>
-</span><span data-line="450">
-</span><span data-line="451">    <span class="k">def</span><span class="w"> </span><span class="nf">balance</span><span class="p">(</span><span class="n">Q_other</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="452">        <span class="n">c</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">)</span>
-</span><span data-line="453">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="n">Q_other</span>
-</span><span data-line="454">
-</span><span data-line="455">    <span class="c1"># Heating: the evaporator takes Q_rated less the compressor work.</span>
-</span><span data-line="456">    <span class="c1"># Cooling: the condenser rejects Q_rated plus the compressor work.</span>
-</span><span data-line="457">    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1e-3</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">Q_rated</span><span class="p">,</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">)</span>
-</span><span data-line="458">    <span class="n">hi</span> <span class="o">=</span> <span class="n">_evaluable_bound</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span>
-</span><span data-line="459">    <span class="n">f_lo</span><span class="p">,</span> <span class="n">f_hi</span> <span class="o">=</span> <span class="n">balance</span><span class="p">(</span><span class="n">lo</span><span class="p">),</span> <span class="n">balance</span><span class="p">(</span><span class="n">hi</span><span class="p">)</span>
-</span><span data-line="460">    <span class="k">if</span> <span class="n">f_lo</span> <span class="o">*</span> <span class="n">f_hi</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="461">        <span class="n">side</span> <span class="o">=</span> <span class="s2">&quot;source&quot;</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="s2">&quot;source-side condenser&quot;</span>
-</span><span data-line="462">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
-</span><span data-line="463">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">side</span><span class="si">}</span><span class="s2"> heat exchanger cannot close the energy balance at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> &quot;</span>
-</span><span data-line="464">            <span class="sa">f</span><span class="s2">&quot;for hp_capacity=</span><span class="si">{</span><span class="n">Q_rated</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> W (rated UA and reference flow too small)&quot;</span>
-</span><span data-line="465">        <span class="p">)</span>
-</span><span data-line="466">    <span class="n">Q_other</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-9</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
-</span><span data-line="467">    <span class="n">c</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">)</span>
-</span><span data-line="468">
-</span><span data-line="469">    <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;in_range&quot;</span><span class="p">]:</span>
-</span><span data-line="470">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
-</span><span data-line="471">            <span class="sa">f</span><span class="s2">&quot;hp_capacity=</span><span class="si">{</span><span class="n">Q_rated</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> W at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> needs </span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;rps&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2"> rev/s, &quot;</span>
-</span><span data-line="472">            <span class="sa">f</span><span class="s2">&quot;outside rps_min=</span><span class="si">{</span><span class="n">rps_min</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> .. rps_max=</span><span class="si">{</span><span class="n">rps_max</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> &quot;</span>
-</span><span data-line="473">            <span class="sa">f</span><span class="s2">&quot;(V_cmp_ref=</span><span class="si">{</span><span class="n">V_cmp_ref</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m3/rev); supply V_cmp_ref or rps_rated consistent with the machine&quot;</span>
-</span><span data-line="474">        <span class="p">)</span>
-</span><span data-line="475">    <span class="n">rps_ref</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;rps&quot;</span><span class="p">]</span>
-</span><span data-line="476">    <span class="n">eta_em</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_em_model</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;PR&quot;</span><span class="p">],</span> <span class="n">rps_ref</span><span class="p">)</span>
-</span><span data-line="477">    <span class="n">E_cmp_ref</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">]</span>
-</span><span data-line="478">    <span class="k">return</span> <span class="n">ReferenceState</span><span class="p">(</span>
-</span><span data-line="479">        <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_ref</span> <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rps_rated</span><span class="p">,</span>
-</span><span data-line="480">        <span class="n">m_dot_ref_rated</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;m_dot&quot;</span><span class="p">],</span>
-</span><span data-line="481">        <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
-</span><span data-line="482">        <span class="n">hp_capacity</span><span class="o">=</span><span class="n">Q_rated</span><span class="p">,</span>
-</span><span data-line="483">        <span class="n">V_cmp_ref</span><span class="o">=</span><span class="n">V_cmp_ref</span><span class="p">,</span>
-</span><span data-line="484">        <span class="n">T_evap_sat_C</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;T_evap_K&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span><span class="p">,</span>
-</span><span data-line="485">        <span class="n">T_cond_sat_C</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;T_cond_K&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span><span class="p">,</span>
-</span><span data-line="486">        <span class="n">pressure_ratio</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;PR&quot;</span><span class="p">],</span>
-</span><span data-line="487">        <span class="n">Q_cond</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">],</span>
-</span><span data-line="488">        <span class="n">Q_evap</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">],</span>
-</span><span data-line="489">        <span class="n">E_cmp_ref</span><span class="o">=</span><span class="n">E_cmp_ref</span><span class="p">,</span>
-</span><span data-line="490">        <span class="n">E_cmp</span><span class="o">=</span><span class="n">E_cmp_ref</span> <span class="o">/</span> <span class="n">eta_em</span><span class="p">,</span>
-</span><span data-line="491">        <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;eta_isen&quot;</span><span class="p">],</span>
-</span><span data-line="492">        <span class="n">eta_cmp_vol</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;eta_vol&quot;</span><span class="p">],</span>
-</span><span data-line="493">        <span class="n">eta_cmp</span><span class="o">=</span><span class="n">eta_em</span><span class="p">,</span>
-</span><span data-line="494">        <span class="n">rps_rated_solved</span><span class="o">=</span><span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="495">    <span class="p">)</span>
-</span><span data-line="496">
+</span><span data-line="359">
+</span><span data-line="360">
+</span><span data-line="361"><span class="k">def</span><span class="w"> </span><span class="nf">_solve</span><span class="p">(</span>
+</span><span data-line="362">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="363">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="364">    <span class="n">V_cmp_ref</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="365">    <span class="n">Q_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="366">    <span class="n">condition</span><span class="p">:</span> <span class="n">RatingCondition</span><span class="p">,</span>
+</span><span data-line="367">    <span class="n">etas</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">],</span>
+</span><span data-line="368">    <span class="n">dT_superheat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="369">    <span class="n">dT_subcool</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="370">    <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="371">    <span class="n">rps_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+</span><span data-line="372">    <span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="373"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ReferenceState</span><span class="p">:</span>
+</span><span data-line="374">    <span class="n">eta_isen_model</span><span class="p">,</span> <span class="n">eta_vol_model</span><span class="p">,</span> <span class="n">eta_em_model</span> <span class="o">=</span> <span class="n">etas</span>
+</span><span data-line="375">    <span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span> <span class="o">=</span> <span class="n">rps_bounds</span>
+</span><span data-line="376">    <span class="n">heating</span> <span class="o">=</span> <span class="n">condition</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;heating&quot;</span>
+</span><span data-line="377">    <span class="n">T_crit_K</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;Tcrit&quot;</span><span class="p">,</span> <span class="n">ref</span><span class="p">))</span>
+</span><span data-line="378">    <span class="n">cond_side</span><span class="p">,</span> <span class="n">evap_side</span> <span class="o">=</span> <span class="p">(</span><span class="n">condition</span><span class="o">.</span><span class="n">load</span><span class="p">,</span> <span class="n">condition</span><span class="o">.</span><span class="n">source</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">condition</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">condition</span><span class="o">.</span><span class="n">load</span><span class="p">)</span>
+</span><span data-line="379">
+</span><span data-line="380">    <span class="k">def</span><span class="w"> </span><span class="nf">saturation</span><span class="p">(</span><span class="n">side</span><span class="p">:</span> <span class="n">HXSide</span><span class="p">,</span> <span class="n">duty</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">condenser</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="381">        <span class="n">approach</span> <span class="o">=</span> <span class="n">duty</span> <span class="o">/</span> <span class="n">side</span><span class="o">.</span><span class="n">conductance</span>
+</span><span data-line="382">        <span class="n">T_sat_K</span> <span class="o">=</span> <span class="n">side</span><span class="o">.</span><span class="n">T_in_C</span> <span class="o">+</span> <span class="mf">273.15</span> <span class="o">+</span> <span class="p">(</span><span class="n">approach</span> <span class="k">if</span> <span class="n">condenser</span> <span class="k">else</span> <span class="o">-</span><span class="n">approach</span><span class="p">)</span>
+</span><span data-line="383">        <span class="k">return</span> <span class="n">T_sat_K</span><span class="p">,</span> <span class="n">approach</span>
+</span><span data-line="384">
+</span><span data-line="385">    <span class="k">def</span><span class="w"> </span><span class="nf">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="386">        <span class="n">Q_cond</span><span class="p">,</span> <span class="n">Q_evap</span> <span class="o">=</span> <span class="p">(</span><span class="n">Q_rated</span><span class="p">,</span> <span class="n">Q_other</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">Q_other</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span>
+</span><span data-line="387">        <span class="n">T_cond_K</span><span class="p">,</span> <span class="n">dT_cond</span> <span class="o">=</span> <span class="n">saturation</span><span class="p">(</span><span class="n">cond_side</span><span class="p">,</span> <span class="n">Q_cond</span><span class="p">,</span> <span class="n">condenser</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="388">        <span class="n">T_evap_K</span><span class="p">,</span> <span class="n">dT_evap</span> <span class="o">=</span> <span class="n">saturation</span><span class="p">(</span><span class="n">evap_side</span><span class="p">,</span> <span class="n">Q_evap</span><span class="p">,</span> <span class="n">condenser</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="389">        <span class="k">if</span> <span class="n">T_cond_K</span> <span class="o">&lt;=</span> <span class="n">T_evap_K</span><span class="p">:</span>
+</span><span data-line="390">            <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span><span class="s2">&quot;condensing temperature not above evaporating temperature&quot;</span><span class="p">)</span>
+</span><span data-line="391">        <span class="k">if</span> <span class="n">T_cond_K</span> <span class="o">&gt;=</span> <span class="n">T_crit_K</span><span class="p">:</span>
+</span><span data-line="392">            <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
+</span><span data-line="393">                <span class="sa">f</span><span class="s2">&quot;condensing temperature </span><span class="si">{</span><span class="n">T_cond_K</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">273.15</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> is at or above &quot;</span>
+</span><span data-line="394">                <span class="sa">f</span><span class="s2">&quot;the critical temperature of </span><span class="si">{</span><span class="n">ref</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">T_crit_K</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">273.15</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C); TMHP cycles are subcritical, &quot;</span>
+</span><span data-line="395">                <span class="s2">&quot;so supply rps_rated (and m_dot_ref_rated) or a rated_condition the cycle can reach&quot;</span>
+</span><span data-line="396">            <span class="p">)</span>
+</span><span data-line="397">        <span class="c1"># Same margin rule as the models&#39; cycles: superheat/subcool cannot</span>
+</span><span data-line="398">        <span class="c1"># exceed the approach less the minimum HX temperature difference.</span>
+</span><span data-line="399">        <span class="n">states</span> <span class="o">=</span> <span class="n">calc_ref_state</span><span class="p">(</span>
+</span><span data-line="400">            <span class="n">T_evap_K</span><span class="o">=</span><span class="n">T_evap_K</span><span class="p">,</span>
+</span><span data-line="401">            <span class="n">T_cond_K</span><span class="o">=</span><span class="n">T_cond_K</span><span class="p">,</span>
+</span><span data-line="402">            <span class="n">refrigerant</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
+</span><span data-line="403">            <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+</span><span data-line="404">            <span class="n">mode</span><span class="o">=</span><span class="n">condition</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
+</span><span data-line="405">            <span class="n">dT_superheat</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_evap</span> <span class="o">-</span> <span class="n">dT_hx_min</span><span class="p">)),</span>
+</span><span data-line="406">            <span class="n">dT_subcool</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">dT_subcool</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dT_cond</span> <span class="o">-</span> <span class="n">dT_hx_min</span><span class="p">)),</span>
+</span><span data-line="407">            <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span data-line="408">        <span class="p">)</span>
+</span><span data-line="409">        <span class="n">PR</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">]</span>
+</span><span data-line="410">        <span class="n">h1</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_cmp_in [J/kg]&quot;</span><span class="p">]</span>
+</span><span data-line="411">        <span class="n">dh_isen</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_cmp_out [J/kg]&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">h1</span>
+</span><span data-line="412">        <span class="n">h3</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_exp_in [J/kg]&quot;</span><span class="p">]</span>
+</span><span data-line="413">        <span class="n">h4</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;h_ref_exp_out [J/kg]&quot;</span><span class="p">]</span>
+</span><span data-line="414">        <span class="n">rho</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s2">&quot;rho_ref_cmp_in [kg/m3]&quot;</span><span class="p">]</span>
+</span><span data-line="415">
+</span><span data-line="416">        <span class="k">def</span><span class="w"> </span><span class="nf">duties</span><span class="p">(</span><span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="417">            <span class="n">eta_vol</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_vol_model</span><span class="p">,</span> <span class="n">PR</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
+</span><span data-line="418">            <span class="n">eta_isen</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_isen_model</span><span class="p">,</span> <span class="n">PR</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
+</span><span data-line="419">            <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_em_model</span><span class="p">,</span> <span class="n">PR</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span>
+</span><span data-line="420">            <span class="n">m_dot</span> <span class="o">=</span> <span class="n">V_cmp_ref</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">eta_vol</span> <span class="o">*</span> <span class="n">rps</span>
+</span><span data-line="421">            <span class="n">h2</span> <span class="o">=</span> <span class="n">h1</span> <span class="o">+</span> <span class="n">dh_isen</span> <span class="o">/</span> <span class="n">eta_isen</span>
+</span><span data-line="422">            <span class="k">return</span> <span class="n">m_dot</span><span class="p">,</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="p">(</span><span class="n">h2</span> <span class="o">-</span> <span class="n">h3</span><span class="p">),</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="p">(</span><span class="n">h1</span> <span class="o">-</span> <span class="n">h4</span><span class="p">),</span> <span class="n">eta_vol</span><span class="p">,</span> <span class="n">eta_isen</span>
+</span><span data-line="423">
+</span><span data-line="424">        <span class="k">def</span><span class="w"> </span><span class="nf">residual</span><span class="p">(</span><span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="425">            <span class="n">Q_cond_r</span><span class="p">,</span> <span class="n">Q_evap_r</span> <span class="o">=</span> <span class="n">duties</span><span class="p">(</span><span class="n">rps</span><span class="p">)[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+</span><span data-line="426">            <span class="k">return</span> <span class="p">(</span><span class="n">Q_cond_r</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="n">Q_evap_r</span><span class="p">)</span> <span class="o">-</span> <span class="n">Q_rated</span>
+</span><span data-line="427">
+</span><span data-line="428">        <span class="n">rps</span><span class="p">,</span> <span class="n">converged</span><span class="p">,</span> <span class="n">clamped</span> <span class="o">=</span> <span class="n">solve_compressor_speed</span><span class="p">(</span><span class="n">residual</span><span class="p">,</span> <span class="n">rps_min</span><span class="p">,</span> <span class="n">rps_max</span><span class="p">)</span>
+</span><span data-line="429">        <span class="n">in_range</span> <span class="o">=</span> <span class="n">converged</span> <span class="ow">and</span> <span class="n">clamped</span> <span class="ow">is</span> <span class="kc">None</span>
+</span><span data-line="430">        <span class="n">bound</span> <span class="o">=</span> <span class="n">rps</span>
+</span><span data-line="431">        <span class="n">m_dot</span><span class="p">,</span> <span class="n">Q_cond_c</span><span class="p">,</span> <span class="n">Q_evap_c</span><span class="p">,</span> <span class="n">eta_vol</span><span class="p">,</span> <span class="n">eta_isen</span> <span class="o">=</span> <span class="n">duties</span><span class="p">(</span><span class="n">bound</span><span class="p">)</span>
+</span><span data-line="432">        <span class="k">if</span> <span class="ow">not</span> <span class="n">in_range</span><span class="p">:</span>
+</span><span data-line="433">            <span class="c1"># Preserve the outer-balance steering used for infeasible ratings;</span>
+</span><span data-line="434">            <span class="c1"># the final reference state still rejects a capacity outside bounds.</span>
+</span><span data-line="435">            <span class="n">delivered</span> <span class="o">=</span> <span class="n">Q_cond_c</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="n">Q_evap_c</span>
+</span><span data-line="436">            <span class="n">scale</span> <span class="o">=</span> <span class="n">Q_rated</span> <span class="o">/</span> <span class="n">delivered</span>
+</span><span data-line="437">            <span class="n">rps</span> <span class="o">=</span> <span class="n">bound</span> <span class="o">*</span> <span class="n">scale</span>
+</span><span data-line="438">            <span class="n">m_dot</span><span class="p">,</span> <span class="n">Q_cond_c</span><span class="p">,</span> <span class="n">Q_evap_c</span> <span class="o">=</span> <span class="n">m_dot</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">Q_cond_c</span> <span class="o">*</span> <span class="n">scale</span><span class="p">,</span> <span class="n">Q_evap_c</span> <span class="o">*</span> <span class="n">scale</span>
+</span><span data-line="439">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="440">            <span class="s2">&quot;rps&quot;</span><span class="p">:</span> <span class="n">rps</span><span class="p">,</span>
+</span><span data-line="441">            <span class="s2">&quot;in_range&quot;</span><span class="p">:</span> <span class="n">in_range</span><span class="p">,</span>
+</span><span data-line="442">            <span class="s2">&quot;m_dot&quot;</span><span class="p">:</span> <span class="n">m_dot</span><span class="p">,</span>
+</span><span data-line="443">            <span class="s2">&quot;Q_cond&quot;</span><span class="p">:</span> <span class="n">Q_cond_c</span><span class="p">,</span>
+</span><span data-line="444">            <span class="s2">&quot;Q_evap&quot;</span><span class="p">:</span> <span class="n">Q_evap_c</span><span class="p">,</span>
+</span><span data-line="445">            <span class="s2">&quot;PR&quot;</span><span class="p">:</span> <span class="n">PR</span><span class="p">,</span>
+</span><span data-line="446">            <span class="s2">&quot;eta_vol&quot;</span><span class="p">:</span> <span class="n">eta_vol</span><span class="p">,</span>
+</span><span data-line="447">            <span class="s2">&quot;eta_isen&quot;</span><span class="p">:</span> <span class="n">eta_isen</span><span class="p">,</span>
+</span><span data-line="448">            <span class="s2">&quot;T_cond_K&quot;</span><span class="p">:</span> <span class="n">T_cond_K</span><span class="p">,</span>
+</span><span data-line="449">            <span class="s2">&quot;T_evap_K&quot;</span><span class="p">:</span> <span class="n">T_evap_K</span><span class="p">,</span>
+</span><span data-line="450">        <span class="p">}</span>
+</span><span data-line="451">
+</span><span data-line="452">    <span class="k">def</span><span class="w"> </span><span class="nf">balance</span><span class="p">(</span><span class="n">Q_other</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="453">        <span class="n">c</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">)</span>
+</span><span data-line="454">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="n">Q_other</span>
+</span><span data-line="455">
+</span><span data-line="456">    <span class="c1"># Heating: the evaporator takes Q_rated less the compressor work.</span>
+</span><span data-line="457">    <span class="c1"># Cooling: the condenser rejects Q_rated plus the compressor work.</span>
+</span><span data-line="458">    <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1e-3</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="p">(</span><span class="n">Q_rated</span><span class="p">,</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">)</span>
+</span><span data-line="459">    <span class="n">hi</span> <span class="o">=</span> <span class="n">_evaluable_bound</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">Q_rated</span><span class="p">)</span>
+</span><span data-line="460">    <span class="n">f_lo</span><span class="p">,</span> <span class="n">f_hi</span> <span class="o">=</span> <span class="n">balance</span><span class="p">(</span><span class="n">lo</span><span class="p">),</span> <span class="n">balance</span><span class="p">(</span><span class="n">hi</span><span class="p">)</span>
+</span><span data-line="461">    <span class="k">if</span> <span class="n">f_lo</span> <span class="o">*</span> <span class="n">f_hi</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="462">        <span class="n">side</span> <span class="o">=</span> <span class="s2">&quot;source&quot;</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="s2">&quot;source-side condenser&quot;</span>
+</span><span data-line="463">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
+</span><span data-line="464">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">side</span><span class="si">}</span><span class="s2"> heat exchanger cannot close the energy balance at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> &quot;</span>
+</span><span data-line="465">            <span class="sa">f</span><span class="s2">&quot;for hp_capacity=</span><span class="si">{</span><span class="n">Q_rated</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> W (rated UA and reference flow too small)&quot;</span>
+</span><span data-line="466">        <span class="p">)</span>
+</span><span data-line="467">    <span class="n">Q_other</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span><span class="n">balance</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="mf">1e-9</span> <span class="o">*</span> <span class="n">Q_rated</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+</span><span data-line="468">    <span class="n">c</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="n">Q_other</span><span class="p">)</span>
+</span><span data-line="469">
+</span><span data-line="470">    <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;in_range&quot;</span><span class="p">]:</span>
+</span><span data-line="471">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
+</span><span data-line="472">            <span class="sa">f</span><span class="s2">&quot;hp_capacity=</span><span class="si">{</span><span class="n">Q_rated</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> W at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2"> needs </span><span class="si">{</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;rps&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2"> rev/s, &quot;</span>
+</span><span data-line="473">            <span class="sa">f</span><span class="s2">&quot;outside rps_min=</span><span class="si">{</span><span class="n">rps_min</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> .. rps_max=</span><span class="si">{</span><span class="n">rps_max</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> &quot;</span>
+</span><span data-line="474">            <span class="sa">f</span><span class="s2">&quot;(V_cmp_ref=</span><span class="si">{</span><span class="n">V_cmp_ref</span><span class="si">:</span><span class="s2">.4g</span><span class="si">}</span><span class="s2"> m3/rev); supply V_cmp_ref or rps_rated consistent with the machine&quot;</span>
+</span><span data-line="475">        <span class="p">)</span>
+</span><span data-line="476">    <span class="n">rps_ref</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;rps&quot;</span><span class="p">]</span>
+</span><span data-line="477">    <span class="n">eta_em</span> <span class="o">=</span> <span class="n">_eval_eff</span><span class="p">(</span><span class="n">eta_em_model</span><span class="p">,</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;PR&quot;</span><span class="p">],</span> <span class="n">rps_ref</span><span class="p">)</span>
+</span><span data-line="478">    <span class="n">E_cmp_ref</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">]</span>
+</span><span data-line="479">    <span class="k">return</span> <span class="n">ReferenceState</span><span class="p">(</span>
+</span><span data-line="480">        <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_ref</span> <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">rps_rated</span><span class="p">,</span>
+</span><span data-line="481">        <span class="n">m_dot_ref_rated</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;m_dot&quot;</span><span class="p">],</span>
+</span><span data-line="482">        <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
+</span><span data-line="483">        <span class="n">hp_capacity</span><span class="o">=</span><span class="n">Q_rated</span><span class="p">,</span>
+</span><span data-line="484">        <span class="n">V_cmp_ref</span><span class="o">=</span><span class="n">V_cmp_ref</span><span class="p">,</span>
+</span><span data-line="485">        <span class="n">T_evap_sat_C</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;T_evap_K&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span><span class="p">,</span>
+</span><span data-line="486">        <span class="n">T_cond_sat_C</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;T_cond_K&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mf">273.15</span><span class="p">,</span>
+</span><span data-line="487">        <span class="n">pressure_ratio</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;PR&quot;</span><span class="p">],</span>
+</span><span data-line="488">        <span class="n">Q_cond</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_cond&quot;</span><span class="p">],</span>
+</span><span data-line="489">        <span class="n">Q_evap</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;Q_evap&quot;</span><span class="p">],</span>
+</span><span data-line="490">        <span class="n">E_cmp_ref</span><span class="o">=</span><span class="n">E_cmp_ref</span><span class="p">,</span>
+</span><span data-line="491">        <span class="n">E_cmp</span><span class="o">=</span><span class="n">E_cmp_ref</span> <span class="o">/</span> <span class="n">eta_em</span><span class="p">,</span>
+</span><span data-line="492">        <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;eta_isen&quot;</span><span class="p">],</span>
+</span><span data-line="493">        <span class="n">eta_cmp_vol</span><span class="o">=</span><span class="n">c</span><span class="p">[</span><span class="s2">&quot;eta_vol&quot;</span><span class="p">],</span>
+</span><span data-line="494">        <span class="n">eta_cmp</span><span class="o">=</span><span class="n">eta_em</span><span class="p">,</span>
+</span><span data-line="495">        <span class="n">rps_rated_solved</span><span class="o">=</span><span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="496">    <span class="p">)</span>
 </span><span data-line="497">
-</span><span data-line="498"><span class="k">def</span><span class="w"> </span><span class="nf">_evaluable_bound</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="n">lo</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">hi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="499"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shrink ``hi`` towards ``lo`` until ``f`` can be evaluated there.</span>
-</span><span data-line="500">
-</span><span data-line="501"><span class="sd">    A large trial duty can push the other saturation temperature past the</span>
-</span><span data-line="502"><span class="sd">    refrigerant&#39;s critical point or property range; that trial is not a</span>
-</span><span data-line="503"><span class="sd">    solution candidate, so the bracket shrinks instead of failing. Only when</span>
-</span><span data-line="504"><span class="sd">    no trial is evaluable is the last reason reported.</span>
-</span><span data-line="505"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="506">    <span class="n">last</span><span class="p">:</span> <span class="ne">ValueError</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="507">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
-</span><span data-line="508">        <span class="k">try</span><span class="p">:</span>
-</span><span data-line="509">            <span class="n">f</span><span class="p">(</span><span class="n">hi</span><span class="p">)</span>
-</span><span data-line="510">            <span class="k">return</span> <span class="n">hi</span>
-</span><span data-line="511">        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="512">            <span class="n">last</span> <span class="o">=</span> <span class="n">exc</span>
-</span><span data-line="513">            <span class="n">hi</span> <span class="o">=</span> <span class="n">lo</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span>
-</span><span data-line="514">            <span class="k">if</span> <span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span> <span class="o">&lt;</span> <span class="mf">1e-9</span> <span class="o">*</span> <span class="n">scale</span><span class="p">:</span>
-</span><span data-line="515">                <span class="k">break</span>
-</span><span data-line="516">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">last</span><span class="p">,</span> <span class="n">ReferenceStateError</span><span class="p">):</span>
-</span><span data-line="517">        <span class="k">raise</span> <span class="n">last</span>
-</span><span data-line="518">    <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no evaluable refrigerant cycle at the rating condition (</span><span class="si">{</span><span class="n">last</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-</span><span data-line="519">
+</span><span data-line="498">
+</span><span data-line="499"><span class="k">def</span><span class="w"> </span><span class="nf">_evaluable_bound</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="n">lo</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">hi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="500"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shrink ``hi`` towards ``lo`` until ``f`` can be evaluated there.</span>
+</span><span data-line="501">
+</span><span data-line="502"><span class="sd">    A large trial duty can push the other saturation temperature past the</span>
+</span><span data-line="503"><span class="sd">    refrigerant&#39;s critical point or property range; that trial is not a</span>
+</span><span data-line="504"><span class="sd">    solution candidate, so the bracket shrinks instead of failing. Only when</span>
+</span><span data-line="505"><span class="sd">    no trial is evaluable is the last reason reported.</span>
+</span><span data-line="506"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="507">    <span class="n">last</span><span class="p">:</span> <span class="ne">ValueError</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="508">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
+</span><span data-line="509">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="510">            <span class="n">f</span><span class="p">(</span><span class="n">hi</span><span class="p">)</span>
+</span><span data-line="511">            <span class="k">return</span> <span class="n">hi</span>
+</span><span data-line="512">        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="513">            <span class="n">last</span> <span class="o">=</span> <span class="n">exc</span>
+</span><span data-line="514">            <span class="n">hi</span> <span class="o">=</span> <span class="n">lo</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span><span class="p">)</span>
+</span><span data-line="515">            <span class="k">if</span> <span class="n">hi</span> <span class="o">-</span> <span class="n">lo</span> <span class="o">&lt;</span> <span class="mf">1e-9</span> <span class="o">*</span> <span class="n">scale</span><span class="p">:</span>
+</span><span data-line="516">                <span class="k">break</span>
+</span><span data-line="517">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">last</span><span class="p">,</span> <span class="n">ReferenceStateError</span><span class="p">):</span>
+</span><span data-line="518">        <span class="k">raise</span> <span class="n">last</span>
+</span><span data-line="519">    <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;no evaluable refrigerant cycle at the rating condition (</span><span class="si">{</span><span class="n">last</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 </span><span data-line="520">
+</span><span data-line="521">
 <div class="viewcode-block" id="ReferenceStateMixin">
 <a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin">[docs]</a>
-</span><span data-line="521"><span class="k">class</span><span class="w"> </span><span class="nc">ReferenceStateMixin</span><span class="p">:</span>
-</span><span data-line="522"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shared reference-state initialization for compressor-based models.</span>
-</span><span data-line="523">
-</span><span data-line="524"><span class="sd">    A model sets ``_RATING_FAMILY`` / ``_RATING_DEFAULT_MODE``, implements</span>
-</span><span data-line="525"><span class="sd">    :meth:`_rating_side`, and calls :meth:`_initialize_reference_state` once its</span>
-</span><span data-line="526"><span class="sd">    refrigerant, displacement, rated UA values, reference flows and speed</span>
-</span><span data-line="527"><span class="sd">    limits are known -- and before anything that needs ``m_dot_ref_rated``</span>
-</span><span data-line="528"><span class="sd">    (variable ground-HX UA) is configured.</span>
-</span><span data-line="529"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="530">
-</span><span data-line="531">    <span class="n">_RATING_FAMILY</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="532">    <span class="n">_RATING_DEFAULT_MODE</span><span class="p">:</span> <span class="n">Mode</span>
-</span><span data-line="533">
-</span><span data-line="534">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span>
-</span><span data-line="535">    <span class="n">V_cmp_ref</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="536">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="537">    <span class="n">dT_superheat</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="538">    <span class="n">dT_subcool</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="539">    <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="540">    <span class="n">rps_min</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="541">    <span class="n">rps_max</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="542">
-</span><span data-line="543">    <span class="k">def</span><span class="w"> </span><span class="nf">_rating_side</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">role</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">T_in_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HXSide</span><span class="p">:</span>
-</span><span data-line="544"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The model&#39;s own heat exchanger on ``role`` at its rated UA and reference flow.&quot;&quot;&quot;</span>
-</span><span data-line="545">        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-</span><span data-line="546">
-</span><span data-line="547">    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_reference_state</span><span class="p">(</span>
-</span><span data-line="548">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="549">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="550">        <span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="551">        <span class="n">m_dot_ref_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="552">        <span class="n">efficiencies</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
-</span><span data-line="553">        <span class="n">rated_condition</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">RatingCondition</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="554">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]:</span>
-</span><span data-line="555"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve ``rps_rated``, ``m_dot_ref_rated`` and the compressor efficiencies.</span>
-</span><span data-line="556">
-</span><span data-line="557"><span class="sd">        ``efficiencies`` maps ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``</span>
-</span><span data-line="558"><span class="sd">        to the caller&#39;s input (``None`` = baseline correlation). Explicit</span>
-</span><span data-line="559"><span class="sd">        ``rps_rated`` / ``m_dot_ref_rated`` take precedence over solved values.</span>
-</span><span data-line="560"><span class="sd">        Returns the resolved efficiencies; also sets ``rps_rated``,</span>
-</span><span data-line="561"><span class="sd">        ``m_dot_ref_rated``, ``rated_condition`` and ``reference_state``</span>
-</span><span data-line="562"><span class="sd">        (``None`` when both were supplied and nothing was solved).</span>
-</span><span data-line="563">
-</span><span data-line="564"><span class="sd">        Order: (1) ``V_cmp_ref`` is already resolved by the caller, (2) rating</span>
-</span><span data-line="565"><span class="sd">        condition, (3) speed at ``n* = 1``, (4)-(5) reference cycle and its mass</span>
-</span><span data-line="566"><span class="sd">        flow, (6) efficiencies built at the rated speed.</span>
-</span><span data-line="567"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="568">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rps_rated</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
-</span><span data-line="569">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;rps_rated must be positive and finite&quot;</span><span class="p">)</span>
-</span><span data-line="570">        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">):</span>
-</span><span data-line="571">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Require finite 0 &lt; rps_min &lt; rps_max&quot;</span><span class="p">)</span>
-</span><span data-line="572">        <span class="n">condition</span> <span class="o">=</span> <span class="n">rating_condition</span><span class="p">(</span>
-</span><span data-line="573">            <span class="bp">self</span><span class="o">.</span><span class="n">_RATING_FAMILY</span><span class="p">,</span>
-</span><span data-line="574">            <span class="n">source</span><span class="o">=</span><span class="k">lambda</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rating_side</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span>
-</span><span data-line="575">            <span class="n">load</span><span class="o">=</span><span class="k">lambda</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rating_side</span><span class="p">(</span><span class="s2">&quot;load&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span>
-</span><span data-line="576">            <span class="n">default_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_RATING_DEFAULT_MODE</span><span class="p">,</span>
-</span><span data-line="577">            <span class="n">overrides</span><span class="o">=</span><span class="n">rated_condition</span><span class="p">,</span>
-</span><span data-line="578">        <span class="p">)</span>
-</span><span data-line="579">
-</span><span data-line="580">        <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="n">speed</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]:</span>
-</span><span data-line="581">            <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="582">                <span class="n">name</span><span class="p">:</span> <span class="n">model</span> <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">BASELINE_FACTORIES</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">speed</span><span class="p">)</span>
-</span><span data-line="583">                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">efficiencies</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-</span><span data-line="584">            <span class="p">}</span>
-</span><span data-line="585">
-</span><span data-line="586">        <span class="n">state</span><span class="p">:</span> <span class="n">ReferenceState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span data-line="587">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">m_dot_ref_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="588">            <span class="c1"># Scalars and baseline correlations are hashable descriptions of the</span>
-</span><span data-line="589">            <span class="c1"># compressor; a caller&#39;s callable is not, so it is solved uncached.</span>
-</span><span data-line="590">            <span class="n">cacheable</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">callable</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">efficiencies</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-</span><span data-line="591">            <span class="n">cache_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">efficiencies</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="k">if</span> <span class="n">cacheable</span> <span class="k">else</span> <span class="kc">None</span>
-</span><span data-line="592">            <span class="n">etas</span> <span class="o">=</span> <span class="n">reference_efficiencies</span><span class="p">(</span><span class="n">efficiencies</span><span class="p">,</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolve</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">))</span>
-</span><span data-line="593">            <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-</span><span data-line="594">                <span class="n">ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span>
-</span><span data-line="595">                <span class="n">V_cmp_ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V_cmp_ref</span><span class="p">,</span>
-</span><span data-line="596">                <span class="n">hp_capacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">,</span>
-</span><span data-line="597">                <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
-</span><span data-line="598">                <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">],</span>
-</span><span data-line="599">                <span class="n">eta_cmp_vol</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp_vol&quot;</span><span class="p">],</span>
-</span><span data-line="600">                <span class="n">eta_cmp</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp&quot;</span><span class="p">],</span>
-</span><span data-line="601">                <span class="n">dT_superheat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span>
-</span><span data-line="602">                <span class="n">dT_subcool</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_subcool</span><span class="p">,</span>
-</span><span data-line="603">                <span class="n">dT_hx_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">,</span>
-</span><span data-line="604">                <span class="n">rps_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span><span class="p">,</span>
-</span><span data-line="605">                <span class="n">rps_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">,</span>
-</span><span data-line="606">                <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_rated</span><span class="p">,</span>
-</span><span data-line="607">                <span class="n">cache_key</span><span class="o">=</span><span class="n">cache_key</span><span class="p">,</span>
-</span><span data-line="608">            <span class="p">)</span>
-</span><span data-line="609">            <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="610">                <span class="n">state</span> <span class="o">=</span> <span class="n">solve_reference_state</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="611">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="612">                <span class="c1"># The caller fixed the machine; only m_dot_ref_rated is derived.</span>
-</span><span data-line="613">                <span class="c1"># A rating point it cannot reach leaves m_dot_ref_rated unset</span>
-</span><span data-line="614">                <span class="c1"># (and fails only if variable ground-HX UA asks for it).</span>
-</span><span data-line="615">                <span class="k">try</span><span class="p">:</span>
-</span><span data-line="616">                    <span class="n">state</span> <span class="o">=</span> <span class="n">solve_reference_state</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="617">                <span class="k">except</span> <span class="n">ReferenceStateError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-</span><span data-line="618">                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m_dot_ref_rated not derived: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-</span><span data-line="619">        <span class="bp">self</span><span class="o">.</span><span class="n">rated_condition</span><span class="p">:</span> <span class="n">RatingCondition</span> <span class="o">=</span> <span class="n">condition</span>
-</span><span data-line="620">        <span class="bp">self</span><span class="o">.</span><span class="n">reference_state</span><span class="p">:</span> <span class="n">ReferenceState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">state</span>
-</span><span data-line="621">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="622">            <span class="k">assert</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span data-line="623">            <span class="n">rps_rated</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">rps_rated</span>
-</span><span data-line="624">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_rated</span>
-</span><span data-line="625">        <span class="bp">self</span><span class="o">.</span><span class="n">m_dot_ref_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="626">            <span class="n">m_dot_ref_rated</span> <span class="k">if</span> <span class="n">m_dot_ref_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">m_dot_ref_rated</span> <span class="k">if</span> <span class="n">state</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-</span><span data-line="627">        <span class="p">)</span>
-</span><span data-line="628">        <span class="k">return</span> <span class="n">resolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_rated</span><span class="p">)</span></div>
+</span><span data-line="522"><span class="k">class</span><span class="w"> </span><span class="nc">ReferenceStateMixin</span><span class="p">:</span>
+</span><span data-line="523"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Shared reference-state initialization for compressor-based models.</span>
+</span><span data-line="524">
+</span><span data-line="525"><span class="sd">    A model sets ``_RATING_FAMILY`` / ``_RATING_DEFAULT_MODE``, implements</span>
+</span><span data-line="526"><span class="sd">    :meth:`_rating_side`, and calls :meth:`_initialize_reference_state` once its</span>
+</span><span data-line="527"><span class="sd">    refrigerant, displacement, rated UA values, reference flows and speed</span>
+</span><span data-line="528"><span class="sd">    limits are known -- and before anything that needs ``m_dot_ref_rated``</span>
+</span><span data-line="529"><span class="sd">    (variable ground-HX UA) is configured.</span>
+</span><span data-line="530"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="531">
+</span><span data-line="532">    <span class="n">_RATING_FAMILY</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="533">    <span class="n">_RATING_DEFAULT_MODE</span><span class="p">:</span> <span class="n">Mode</span>
+</span><span data-line="534">
+</span><span data-line="535">    <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="536">    <span class="n">V_cmp_ref</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="537">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="538">    <span class="n">dT_superheat</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="539">    <span class="n">dT_subcool</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="540">    <span class="n">dT_hx_min</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="541">    <span class="n">rps_min</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="542">    <span class="n">rps_max</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="543">
+</span><span data-line="544">    <span class="k">def</span><span class="w"> </span><span class="nf">_rating_side</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">role</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">T_in_C</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HXSide</span><span class="p">:</span>
+</span><span data-line="545"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The model&#39;s own heat exchanger on ``role`` at its rated UA and reference flow.&quot;&quot;&quot;</span>
+</span><span data-line="546">        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</span><span data-line="547">
+</span><span data-line="548">    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_reference_state</span><span class="p">(</span>
+</span><span data-line="549">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="550">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="551">        <span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="552">        <span class="n">m_dot_ref_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="553">        <span class="n">efficiencies</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
+</span><span data-line="554">        <span class="n">rated_condition</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">RatingCondition</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="555">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]:</span>
+</span><span data-line="556"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve ``rps_rated``, ``m_dot_ref_rated`` and the compressor efficiencies.</span>
+</span><span data-line="557">
+</span><span data-line="558"><span class="sd">        ``efficiencies`` maps ``eta_cmp_isen`` / ``eta_cmp_vol`` / ``eta_cmp``</span>
+</span><span data-line="559"><span class="sd">        to the caller&#39;s input (``None`` = baseline correlation). Explicit</span>
+</span><span data-line="560"><span class="sd">        ``rps_rated`` / ``m_dot_ref_rated`` take precedence over solved values.</span>
+</span><span data-line="561"><span class="sd">        Returns the resolved efficiencies; also sets ``rps_rated``,</span>
+</span><span data-line="562"><span class="sd">        ``m_dot_ref_rated``, ``rated_condition`` and ``reference_state``</span>
+</span><span data-line="563"><span class="sd">        (``None`` when both were supplied and nothing was solved).</span>
+</span><span data-line="564">
+</span><span data-line="565"><span class="sd">        Order: (1) ``V_cmp_ref`` is already resolved by the caller, (2) rating</span>
+</span><span data-line="566"><span class="sd">        condition, (3) speed at ``n* = 1``, (4)-(5) reference cycle and its mass</span>
+</span><span data-line="567"><span class="sd">        flow, (6) efficiencies built at the rated speed.</span>
+</span><span data-line="568"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="569">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rps_rated</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="570">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;rps_rated must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="571">        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">):</span>
+</span><span data-line="572">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Require finite 0 &lt; rps_min &lt; rps_max&quot;</span><span class="p">)</span>
+</span><span data-line="573">        <span class="n">condition</span> <span class="o">=</span> <span class="n">rating_condition</span><span class="p">(</span>
+</span><span data-line="574">            <span class="bp">self</span><span class="o">.</span><span class="n">_RATING_FAMILY</span><span class="p">,</span>
+</span><span data-line="575">            <span class="n">source</span><span class="o">=</span><span class="k">lambda</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rating_side</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span>
+</span><span data-line="576">            <span class="n">load</span><span class="o">=</span><span class="k">lambda</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rating_side</span><span class="p">(</span><span class="s2">&quot;load&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">T</span><span class="p">),</span>
+</span><span data-line="577">            <span class="n">default_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_RATING_DEFAULT_MODE</span><span class="p">,</span>
+</span><span data-line="578">            <span class="n">overrides</span><span class="o">=</span><span class="n">rated_condition</span><span class="p">,</span>
+</span><span data-line="579">        <span class="p">)</span>
+</span><span data-line="580">
+</span><span data-line="581">        <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="n">speed</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Callable</span><span class="p">]:</span>
+</span><span data-line="582">            <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="583">                <span class="n">name</span><span class="p">:</span> <span class="n">model</span> <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">BASELINE_FACTORIES</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">speed</span><span class="p">)</span>
+</span><span data-line="584">                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">efficiencies</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+</span><span data-line="585">            <span class="p">}</span>
+</span><span data-line="586">
+</span><span data-line="587">        <span class="n">state</span><span class="p">:</span> <span class="n">ReferenceState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="588">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">m_dot_ref_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="589">            <span class="c1"># Scalars and baseline correlations are hashable descriptions of the</span>
+</span><span data-line="590">            <span class="c1"># compressor; a caller&#39;s callable is not, so it is solved uncached.</span>
+</span><span data-line="591">            <span class="n">cacheable</span> <span class="o">=</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">callable</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">efficiencies</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span><span data-line="592">            <span class="n">cache_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">efficiencies</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="k">if</span> <span class="n">cacheable</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="593">            <span class="n">etas</span> <span class="o">=</span> <span class="n">reference_efficiencies</span><span class="p">(</span><span class="n">efficiencies</span><span class="p">,</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolve</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">))</span>
+</span><span data-line="594">            <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+</span><span data-line="595">                <span class="n">ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">,</span>
+</span><span data-line="596">                <span class="n">V_cmp_ref</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">V_cmp_ref</span><span class="p">,</span>
+</span><span data-line="597">                <span class="n">hp_capacity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hp_capacity</span><span class="p">,</span>
+</span><span data-line="598">                <span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">,</span>
+</span><span data-line="599">                <span class="n">eta_cmp_isen</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">],</span>
+</span><span data-line="600">                <span class="n">eta_cmp_vol</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp_vol&quot;</span><span class="p">],</span>
+</span><span data-line="601">                <span class="n">eta_cmp</span><span class="o">=</span><span class="n">etas</span><span class="p">[</span><span class="s2">&quot;eta_cmp&quot;</span><span class="p">],</span>
+</span><span data-line="602">                <span class="n">dT_superheat</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span>
+</span><span data-line="603">                <span class="n">dT_subcool</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_subcool</span><span class="p">,</span>
+</span><span data-line="604">                <span class="n">dT_hx_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_hx_min</span><span class="p">,</span>
+</span><span data-line="605">                <span class="n">rps_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_min</span><span class="p">,</span>
+</span><span data-line="606">                <span class="n">rps_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_max</span><span class="p">,</span>
+</span><span data-line="607">                <span class="n">rps_rated</span><span class="o">=</span><span class="n">rps_rated</span><span class="p">,</span>
+</span><span data-line="608">                <span class="n">cache_key</span><span class="o">=</span><span class="n">cache_key</span><span class="p">,</span>
+</span><span data-line="609">            <span class="p">)</span>
+</span><span data-line="610">            <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="611">                <span class="n">state</span> <span class="o">=</span> <span class="n">solve_reference_state</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="612">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="613">                <span class="c1"># The caller fixed the machine; only m_dot_ref_rated is derived.</span>
+</span><span data-line="614">                <span class="c1"># A rating point it cannot reach leaves m_dot_ref_rated unset</span>
+</span><span data-line="615">                <span class="c1"># (and fails only if variable ground-HX UA asks for it).</span>
+</span><span data-line="616">                <span class="k">try</span><span class="p">:</span>
+</span><span data-line="617">                    <span class="n">state</span> <span class="o">=</span> <span class="n">solve_reference_state</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="618">                <span class="k">except</span> <span class="n">ReferenceStateError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span data-line="619">                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m_dot_ref_rated not derived: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</span><span data-line="620">        <span class="bp">self</span><span class="o">.</span><span class="n">rated_condition</span><span class="p">:</span> <span class="n">RatingCondition</span> <span class="o">=</span> <span class="n">condition</span>
+</span><span data-line="621">        <span class="bp">self</span><span class="o">.</span><span class="n">reference_state</span><span class="p">:</span> <span class="n">ReferenceState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">state</span>
+</span><span data-line="622">        <span class="k">if</span> <span class="n">rps_rated</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="623">            <span class="k">assert</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span data-line="624">            <span class="n">rps_rated</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">rps_rated</span>
+</span><span data-line="625">        <span class="bp">self</span><span class="o">.</span><span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">rps_rated</span>
+</span><span data-line="626">        <span class="bp">self</span><span class="o">.</span><span class="n">m_dot_ref_rated</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="627">            <span class="n">m_dot_ref_rated</span> <span class="k">if</span> <span class="n">m_dot_ref_rated</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">m_dot_ref_rated</span> <span class="k">if</span> <span class="n">state</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="628">        <span class="p">)</span>
+</span><span data-line="629">        <span class="k">return</span> <span class="n">resolve</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rps_rated</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

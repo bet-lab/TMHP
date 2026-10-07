@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-10-03T14:12:16+09:00" />
+    <meta property="article:modified_time" content="2026-10-07T22:39:11+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -122,7 +122,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
@@ -671,9 +676,8 @@ longer representative.</p></li>
 <section id="module-tmhp.reference_state">
 <span id="compressor-reference-state"></span><h2>Compressor reference state<a class="headerlink" href="#module-tmhp.reference_state" title="Link to this heading">¶</a></h2>
 <p>Compressor reference state solved from nominal capacity.</p>
-<p>Every compressor-based heat-pump model in TMHP normalises its compressor
-efficiencies by a rated speed (<code class="docutils literal notranslate"><span class="pre">n*</span> <span class="pre">=</span> <span class="pre">rps</span> <span class="pre">/</span> <span class="pre">rps_rated</span></code>) and, for the ground
-heat exchanger, its refrigerant-side UA by a rated refrigerant mass flow
+<p>BITZER compressor efficiencies use absolute shaft speed in rev/s. Models
+normalise the ground heat exchanger refrigerant-side UA by a rated mass flow
 (<code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">/</span> <span class="pre">m_dot_ref_rated</span></code>). Both denominators belong to one physical
 point – the <em>reference state</em> – and this module computes that point from the
 same inputs every model already requires:</p>
@@ -691,7 +695,7 @@ secondary flows and its rated UA values. It is independent of whatever
 operating condition is simulated afterwards.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code></dt><dd><p>The speed at which the model delivers <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> at the rating
-condition, with every efficiency evaluated at <code class="docutils literal notranslate"><span class="pre">n*</span> <span class="pre">=</span> <span class="pre">1</span></code>.</p>
+condition, with every efficiency evaluated at that actual shaft speed.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code></dt><dd><p>The refrigerant mass flow of that same state.</p>
 </dd>
@@ -1143,7 +1147,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 03, 2026
+  Last updated Oct 07, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

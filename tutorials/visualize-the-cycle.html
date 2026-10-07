@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=4ea1e3a9" />
     <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Because TMHP solves the cycle from first principles, every analyze_steady call returns the full thermodynamic state at each cycle node (compressor in / out, expander in / out, evaporator / condense..." />
 
-    <meta property="article:modified_time" content="2026-07-16T18:55:48+09:00" />
+    <meta property="article:modified_time" content="2026-09-13T15:43:05+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -122,7 +122,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
@@ -1312,8 +1317,8 @@ marker convention used in the figure above.</p>
 </span></pre></div>
 </div>
 <p>The script pins <code class="docutils literal notranslate"><span class="pre">mpl.rcParams[&quot;svg.hashsalt&quot;]</span></code> so the resulting SVG
-is byte-identical across runs — the same convention used by
-<code class="docutils literal notranslate"><span class="pre">scripts/validation/samsung_ehs_parity.py</span></code>.</p>
+is byte-identical across runs — the same convention used by the validation
+figures in <code class="docutils literal notranslate"><span class="pre">scripts/validation/</span></code>.</p>
 </section>
 <section id="going-further">
 <h2>Going further<a class="headerlink" href="#going-further" title="Link to this heading">¶</a></h2>
@@ -1335,7 +1340,7 @@ outdoor temperatures or different LWT set-points.</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 16, 2026
+  Last updated Sep 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

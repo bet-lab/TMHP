@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
     <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
     <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
-    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=6b1006f3" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=4ea1e3a9" />
     <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-03T17:02:52+09:00" />
+    <meta property="article:modified_time" content="2026-10-07T22:39:11+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -122,7 +122,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
 </ul>
 </li>
-<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a></li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
 </ul>
 <p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
@@ -147,6 +152,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#feasibility-and-reporting">Feasibility and reporting</a></li>
 <li><a class="reference internal" href="#reference-flow-is-independent-of-limits">Reference flow is independent of limits</a></li>
 <li><a class="reference internal" href="#auxiliary-pressure-drop-and-operating-limits">Auxiliary pressure drop and operating limits</a></li>
+<li><a class="reference internal" href="#ashrae-pressure-budget-calibration">ASHRAE pressure-budget calibration</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -374,10 +380,28 @@ Chapter 35, Table 8, provides closed-loop GSHP pumping/head guidelines. These
 are modeling guidance, not measured loss data for any specific installation.
 Static borehole elevation head is not added to this closed-loop model.</p>
 </section>
+<section id="ashrae-pressure-budget-calibration">
+<h2>ASHRAE pressure-budget calibration<a class="headerlink" href="#ashrae-pressure-budget-calibration" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tmhp.pump.calc_aux_loss_from_ashrae_grade</span></code> derives equivalent auxiliary
+resistance from grade A-D and an explicit total reference flow, borehole
+geometry and fluid properties. Its single source is Kavanaugh &amp; Rafferty
+(2014), ASHRAE, <em>Geothermal Heating and Cooling: Design of Ground-Source
+Heat Pump Systems</em>, Table 6.2, p. 185. The finite upper boundaries are
+140, 210, 280 and 420 kPa. Grade F has no finite upper boundary.</p>
+<p>The helper subtracts one parallel branch’s straight-pipe pressure loss
+from the budget. Pass its <code class="docutils literal notranslate"><span class="pre">dp_aux_ref</span></code> to the heat pump with the same
+<code class="docutils literal notranslate"><span class="pre">ground_flow_ref_lpm</span></code> and <code class="docutils literal notranslate"><span class="pre">dp_aux_exponent=2</span></code>. <code class="docutils literal notranslate"><span class="pre">K_aux</span></code> is based on
+total flow in the auxiliary pipe; <code class="docutils literal notranslate"><span class="pre">K_aux_branch</span></code> uses branch flow.
+These are equivalent loop resistances, not measured fitting coefficients.</p>
+<p>The source table assumes 3 L/min/kW and 70% hydraulic efficiency. Applying
+its pressure boundary at a caller-selected flow is an explicit modeling
+assumption, not a pumping-grade certification. The helper does not change
+reference flow, heat-exchanger UA or the electrical pump performance map.</p>
+</section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 03, 2026
+  Last updated Oct 07, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

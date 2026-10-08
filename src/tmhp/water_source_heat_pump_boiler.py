@@ -44,7 +44,7 @@ from .enex_functions import (
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
-from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
+from .reference_state import HXSide, RatingCondition, ReferenceStateMixin, _evaluable_bracket
 from .refrigerant import calc_ref_state, reportable_state
 from .thermodynamics import calc_exergy_flow
 
@@ -643,7 +643,17 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self._opt_evals = 0
         try:
-            opt_x = brentq(_objective, 1, 20.0, xtol=1e-4, maxiter=50)
+            bracket = _evaluable_bracket(_objective, 1, 20.0, endpoints_first=True)
+            opt_x = bracket[0] if bracket[0] == bracket[1] else brentq(_objective, *bracket, xtol=1e-4, maxiter=50)
+            final = self._calc_state(opt_x, T_tank_w, Q_tank_load, T0, flow_state=flow_state)
+            if final is None or not final.get("converged_rps", False):
+                raise ValueError("Reference operating speed did not converge")
+            residual = float(final["err_Q_water [W]"])
+            required = float(final["Q_ref_water [W]"])
+            if not (math.isfinite(residual) and math.isfinite(required) and required > 0):
+                raise ValueError("Source-water heat exchanger has no finite energy balance")
+            if abs(residual) > max(0.01, 1e-5 * required):
+                raise ValueError("Source-water heat exchanger did not close the energy balance")
 
             class OptRes:
                 success = True

@@ -1063,6 +1063,42 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "T_a_room [°C]": T_a_room,
         }
 
+    def _capacity_limited_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
+        """Return an energy-balanced ceiling only when the request exceeds it."""
+        mode = "cooling" if Q_r_iu > 0 else "heating"
+        ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
+        # An unbounded ladder result is only a lower bound, not a ceiling.
+        if ceiling.get("binding") not in {"compressor", "cycle"}:
+            return None
+        q_ceiling = float(ceiling["Q_max [W]"])
+        if not math.isfinite(q_ceiling) or not 0 < q_ceiling < abs(Q_r_iu):
+            return None
+        state = self._calc_state(
+            dT_ref_evap=ceiling["dT_ref_evap [K]"],
+            dT_ref_cond=ceiling["dT_ref_cond [K]"],
+            Q_r_iu=math.copysign(q_ceiling, Q_r_iu),
+            T0=T0,
+            T_a_room=T_a_room,
+        )
+        if state is None or not state.get("converged", False):
+            return None
+        delivered = float(state["Q_ref_iu [W]"])
+        other = float(state["Q_ref_ou [W]"])
+        work = float(state["E_cmp [W]"]) * float(state["eta_cmp [-]"])
+        cycle_work = (other - delivered) if mode == "cooling" else (delivered - other)
+        residuals = (abs(delivered - q_ceiling), abs(cycle_work - work))
+        if not all(math.isfinite(value) and value <= 1e-9 * q_ceiling for value in residuals):
+            return None
+        state.update(
+            {
+                "capacity_clamped": CAPACITY_CLAMPED_MAX,
+                "Q_request [W]": Q_r_iu,
+                "Q_max [W]": q_ceiling,
+                "capacity_binding": ceiling["binding"],
+            }
+        )
+        return state
+
     # =============================================================
     # Steady-state analysis
     # =============================================================
@@ -1184,6 +1220,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 failure_reason = "optimizer_failed"
             else:
                 failure_reason = "none"
+
+            if failure_reason != "none" and (result is None or not result.get("converged", False)):
+                # The air-side/cycle envelope can bind before the compressor's
+                # speed limit. A larger request then has no feasible exact-duty
+                # point even though the machine can operate at its ceiling.
+                # Match the existing numerical off-state fallback if the
+                # envelope search itself encounters an invalid cycle.
+                with contextlib.suppress(Exception):
+                    ceiling_state = self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room)
+                    if ceiling_state is not None:
+                        result = ceiling_state
+                        failure_reason = "none"
 
             if failure_reason != "none":
                 if verbose:

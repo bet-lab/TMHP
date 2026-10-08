@@ -5,12 +5,14 @@ Compressor reference state
 Every compressor-based model -- :class:`tmhp.AirSourceHeatPump`,
 :class:`tmhp.GroundSourceHeatPump`, :class:`tmhp.AirSourceHeatPumpBoiler`,
 :class:`tmhp.GroundSourceHeatPumpBoiler`, :class:`tmhp.WaterSourceHeatPumpBoiler`
-and the composed variants built on them -- normalises two quantities by one
-physical *reference state*:
+and the composed variants built on them -- derives rated speed and refrigerant
+mass flow from one physical *reference state*:
 
-* compressor efficiencies by the rated speed, ``n* = rps / rps_rated``;
-* the refrigerant-side ground-HX resistance by the rated refrigerant mass
-  flow, ``m_dot_ref / m_dot_ref_rated`` (``variable_ground_hx_UA=True``).
+* ``rps_rated`` identifies the nominal-capacity operating point and the reported
+  speed ratio, ``n* = rps / rps_rated``. BITZER efficiencies use actual shaft
+  speed in rev/s, without relative-speed normalization;
+* ``m_dot_ref_rated`` normalizes the refrigerant-side ground-HX resistance,
+  ``m_dot_ref / m_dot_ref_rated`` (``variable_ground_hx_UA=True``).
 
 The constructor builds that state from the inputs every model already needs,
 so ``hp_capacity`` and the refrigerant are enough:
@@ -20,7 +22,7 @@ so ``hp_capacity`` and the refrigerant are enough:
     hp_capacity
        -> V_cmp_ref            (given, or capacity-scaled default)
        -> rating condition     (family standard, or rated_condition=...)
-       -> rps_rated            Q_model(rps) = hp_capacity at n* = 1
+       -> rps_rated            Q_model(rps) = hp_capacity
        -> m_dot_ref_rated      refrigerant mass flow of the same state
        -> normal simulation
 
@@ -70,8 +72,8 @@ ones left as ``None`` are solved. With an explicit ``rps_rated`` the model
 behaves exactly as before this feature (baseline correlations built at that
 speed), and ``m_dot_ref_rated`` is still derived from the rating condition.
 Scalar and callable efficiency inputs are unchanged; the reference solve
-evaluates a caller's callable as given and the baseline correlations at
-``n* = 1``.
+evaluates a caller's callable as given and the baseline correlations at the
+actual candidate shaft speed.
 
 Rating conditions
 =================
@@ -135,15 +137,26 @@ How it is solved
 ================
 
 At the rating point the load-side duty is ``hp_capacity``, so the load-side
-saturation temperature follows from that heat exchanger directly. For a
-trial duty on the source side the source saturation temperature follows the
-same way, and the cycle between them fixes the speed through the bounded root
-``Q_model(rps) - hp_capacity = 0`` on ``[rps_min, rps_max]``, with
-``eta_vol(PR, 1)``, ``eta_isen(PR, 1)`` and ``eta_em(PR, 1)``. An outer
-bounded root closes the source heat exchanger's energy balance. The solve uses
+saturation temperature follows from that heat exchanger directly. In heating,
+the solver tries actual speeds inside ``[rps_min, rps_max]``. At each speed it
+closes the source evaporator's mass-flow and heat-exchanger balance, then solves
+``Q_cond(rps) - hp_capacity = 0`` over evaluable speed intervals. This avoids
+assuming condenser duty increases from the minimum speed: raw speed-dependent
+efficiencies can produce a decreasing segment and multiple mass-flow branches.
+In cooling, the known evaporator duty fixes mass flow and speed, then an outer
+root closes the source condenser. Every efficiency is evaluated at the actual
+candidate speed, and both final heat-exchanger balances are verified. The solve uses
 fixed rated UA: variable ground-HX UA needs ``m_dot_ref_rated``, which is what
 is being solved for, so it is activated only afterwards. Each object solves
 once; identical machines share a cached result.
+
+The interval search refines a bounded set of actual, finite evaluations; invalid
+points split a bracket rather than supplying extrapolated duties. A custom fit
+with an arbitrarily narrow valid domain can still evade this finite search.
+An error saying that no finite balance could be bracketed reports that search
+limitation; it does not prove that every possible custom-fit state is physically
+infeasible. Declare the supported speed interval or supply an explicit rated
+speed and refrigerant mass flow when such a fit requires a narrower search.
 
 When it fails
 =============

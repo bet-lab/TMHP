@@ -38,9 +38,10 @@ fixes the speed through the bounded root
 
 .. math:: Q_{model}(rps) - Q_{rated} = 0
 
-with ``eta_vol(PR, 1)``, ``eta_isen(PR, 1)`` and ``eta_em(PR, 1)`` (or the
-caller's own callables). An outer bounded root closes the energy balance of
-the other heat exchanger. Variable ground-HX UA is not used here -- it needs
+with efficiencies evaluated at the actual bounded shaft speed (or the
+caller's own callables). Heating is parameterized by speed, closing source
+mass flow first and then the rated condenser duty; this does not assume a
+monotone condenser-duty curve. Variable ground-HX UA is not used here -- it needs
 ``m_dot_ref_rated``, which is what is being solved for -- so both heat
 exchangers use their rated UA at their reference flow.
 
@@ -382,7 +383,9 @@ def _solve(
         T_sat_K = side.T_in_C + 273.15 + (approach if condenser else -approach)
         return T_sat_K, approach
 
-    def cycle(Q_other: float) -> dict[str, Any]:
+    cycle_properties: dict[float, dict[str, Any]] = {}
+
+    def cycle(Q_other: float, rps_fixed: float | None = None, *, evaporator_only: bool = False) -> dict[str, Any]:
         Q_cond, Q_evap = (Q_rated, Q_other) if heating else (Q_other, Q_rated)
         T_cond_K, dT_cond = saturation(cond_side, Q_cond, condenser=True)
         T_evap_K, dT_evap = saturation(evap_side, Q_evap, condenser=False)
@@ -396,16 +399,20 @@ def _solve(
             )
         # Same margin rule as the models' cycles: superheat/subcool cannot
         # exceed the approach less the minimum HX temperature difference.
-        states = calc_ref_state(
-            T_evap_K=T_evap_K,
-            T_cond_K=T_cond_K,
-            refrigerant=ref,
-            eta_cmp_isen=1.0,
-            mode=condition.mode,
-            dT_superheat=min(dT_superheat, max(0.0, dT_evap - dT_hx_min)),
-            dT_subcool=min(dT_subcool, max(0.0, dT_cond - dT_hx_min)),
-            is_active=True,
-        )
+        # The ideal-fluid state depends on HX duty, not trial speed. Reuse it
+        # within this one solve when adaptive speed trials revisit a duty.
+        if Q_other not in cycle_properties:
+            cycle_properties[Q_other] = calc_ref_state(
+                T_evap_K=T_evap_K,
+                T_cond_K=T_cond_K,
+                refrigerant=ref,
+                eta_cmp_isen=1.0,
+                mode=condition.mode,
+                dT_superheat=min(dT_superheat, max(0.0, dT_evap - dT_hx_min)),
+                dT_subcool=min(dT_subcool, max(0.0, dT_cond - dT_hx_min)),
+                is_active=True,
+            )
+        states = cycle_properties[Q_other]
         PR = states["P_ref_cmp_out [Pa]"] / states["P_ref_cmp_in [Pa]"]
         h1 = states["h_ref_cmp_in [J/kg]"]
         dh_isen = states["h_ref_cmp_out [J/kg]"] - h1
@@ -422,20 +429,28 @@ def _solve(
             return m_dot, m_dot * (h2 - h3), m_dot * (h1 - h4), eta_vol, eta_isen
 
         def residual(rps: float) -> float:
-            Q_cond_r, Q_evap_r = duties(rps)[1:3]
-            return (Q_cond_r if heating else Q_evap_r) - Q_rated
+            # Evaporator duty fixes mass flow without the isentropic-efficiency
+            # denominator. With raw speed-dependent fits, condenser duty can
+            # decrease before rising again, so its value at rps_min is not a
+            # lower capacity bound.
+            eta_vol = _eval_eff(eta_vol_model, PR, rps)
+            m_dot = V_cmp_ref * rho * eta_vol * rps
+            return float(m_dot * (h1 - h4) - Q_evap)
 
-        rps, converged, clamped = solve_compressor_speed(residual, rps_min, rps_max)
+        if rps_fixed is not None and evaporator_only:
+            return {"Q_evap": residual(rps_fixed) + Q_evap}
+        if rps_fixed is None:
+            rps, converged, clamped = solve_compressor_speed(residual, rps_min, rps_max)
+        else:
+            rps, converged, clamped = rps_fixed, True, None
         in_range = converged and clamped is None
-        bound = rps
-        m_dot, Q_cond_c, Q_evap_c, eta_vol, eta_isen = duties(bound)
         if not in_range:
-            # Preserve the outer-balance steering used for infeasible ratings;
-            # the final reference state still rejects a capacity outside bounds.
-            delivered = Q_cond_c if heating else Q_evap_c
-            scale = Q_rated / delivered
-            rps = bound * scale
-            m_dot, Q_cond_c, Q_evap_c = m_dot * scale, Q_cond_c * scale, Q_evap_c * scale
+            raise ReferenceStateError(
+                f"reference evaporator duty={Q_evap:g} W is outside the reachable "
+                f"speed range rps_min={rps_min:g} .. rps_max={rps_max:g} "
+                f"(V_cmp_ref={V_cmp_ref:.4g} m3/rev)"
+            )
+        m_dot, Q_cond_c, Q_evap_c, eta_vol, eta_isen = duties(rps)
         return {
             "rps": rps,
             "in_range": in_range,
@@ -449,23 +464,54 @@ def _solve(
             "T_evap_K": T_evap_K,
         }
 
-    def balance(Q_other: float) -> float:
-        c = cycle(Q_other)
-        return float(c["Q_evap"] if heating else c["Q_cond"]) - Q_other
-
     # Heating: the evaporator takes Q_rated less the compressor work.
     # Cooling: the condenser rejects Q_rated plus the compressor work.
     lo, hi = (1e-3 * Q_rated, Q_rated) if heating else (Q_rated, 4.0 * Q_rated)
-    hi = _evaluable_bound(balance, lo, hi, Q_rated)
-    f_lo, f_hi = balance(lo), balance(hi)
-    if f_lo * f_hi > 0:
-        side = "source" if heating else "source-side condenser"
-        raise ReferenceStateError(
-            f"{side} heat exchanger cannot close the energy balance at {condition.standard} "
-            f"for hp_capacity={Q_rated:g} W (rated UA and reference flow too small)"
-        )
-    Q_other = brentq(balance, lo, hi, xtol=1e-9 * Q_rated, rtol=1e-12)
-    c = cycle(Q_other)
+    if heating:
+        # Parameterize the actual bounded speed, rather than assuming that
+        # condenser duty increases from rps_min. This also retains reference
+        # solutions on the descending mass-flow branch of a raw fit.
+        speed_states: dict[float, dict[str, Any]] = {}
+
+        def at_speed(rps: float) -> dict[str, Any]:
+            if rps in speed_states:
+                return speed_states[rps]
+
+            def evaporator_balance(Q_source: float) -> float:
+                return float(cycle(Q_source, rps, evaporator_only=True)["Q_evap"]) - Q_source
+
+            bracket = _evaluable_bracket(evaporator_balance, lo, hi, endpoints_first=True, max_subdivisions=128)
+            Q_source = _root_in_bracket(evaporator_balance, bracket, Q_rated)
+            state = cycle(Q_source, rps)
+            speed_states[rps] = state
+            return state
+
+        def heating_balance(rps: float) -> float:
+            return float(at_speed(rps)["Q_cond"]) - Q_rated
+
+        try:
+            bracket = _evaluable_bracket(heating_balance, rps_min, rps_max)
+        except ReferenceStateError as exc:
+            raise ReferenceStateError(
+                f"hp_capacity={Q_rated:g} W could not bracket a finite reference balance inside rps_min={rps_min:g} "
+                f".. rps_max={rps_max:g} at {condition.standard} ({exc})"
+            ) from exc
+        speed = _root_in_bracket(heating_balance, bracket, rps_max)
+        c = at_speed(speed)
+    else:
+
+        def cooling_balance(Q_other: float) -> float:
+            return float(cycle(Q_other)["Q_cond"]) - Q_other
+
+        bracket = _evaluable_bracket(cooling_balance, lo, hi)
+        Q_other = _root_in_bracket(cooling_balance, bracket, Q_rated)
+        c = cycle(Q_other)
+
+    Q_cond_hx = cond_side.conductance * (c["T_cond_K"] - 273.15 - cond_side.T_in_C)
+    Q_evap_hx = evap_side.conductance * (evap_side.T_in_C + 273.15 - c["T_evap_K"])
+    closure_residuals = (abs(c["Q_cond"] - Q_cond_hx), abs(c["Q_evap"] - Q_evap_hx))
+    if not all(math.isfinite(value) and value <= 1e-9 * Q_rated for value in closure_residuals):
+        raise ReferenceStateError("reference heat exchangers did not close the energy balance")
 
     if not c["in_range"]:
         raise ReferenceStateError(
@@ -496,27 +542,72 @@ def _solve(
     )
 
 
-def _evaluable_bound(f: Callable[[float], float], lo: float, hi: float, scale: float) -> float:
-    """Shrink ``hi`` towards ``lo`` until ``f`` can be evaluated there.
+def _evaluable_bracket(
+    f: Callable[[float], float],
+    lo: float,
+    hi: float,
+    *,
+    endpoints_first: bool = False,
+    max_subdivisions: int = 1024,
+) -> tuple[float, float]:
+    """Find adjacent actual, evaluable residuals with opposing signs.
 
-    A large trial duty can push the other saturation temperature past the
-    refrigerant's critical point or property range; that trial is not a
-    solution candidate, so the bracket shrinks instead of failing. Only when
-    no trial is evaluable is the last reason reported.
+    A raw fit can be invalid at an endpoint but valid inside the interval.
+    Halving that endpoint can jump past a root. Invalid evaluations break a
+    bracket instead of contributing a synthetic residual.
     """
     last: ValueError | None = None
-    for _ in range(60):
-        try:
-            f(hi)
-            return hi
-        except ValueError as exc:
-            last = exc
-            hi = lo + 0.5 * (hi - lo)
-            if hi - lo < 1e-9 * scale:
-                break
-    if isinstance(last, ReferenceStateError):
+    samples: dict[float, float | None] = {}
+    if endpoints_first:
+        # Prime the endpoint evaluations but still check adjacent points:
+        # opposite endpoint signs can span an invalid interior domain.
+        for fraction, candidate in ((0.0, lo), (1.0, hi)):
+            try:
+                value = f(candidate)
+                samples[fraction] = value if math.isfinite(value) else None
+            except ValueError as exc:
+                last = exc
+                samples[fraction] = None
+    any_evaluable = False
+    # Refine only if the coarser actual samples do not bracket a root. Cached
+    # evaluations keep a difficult domain from repeatedly solving one cycle.
+    # This bounded search does not promise roots in arbitrarily narrow domains
+    # supplied by an arbitrary callable; accepted roots must still close both HXs.
+    for subdivisions in (16, 32, 64, 128, 256, 512, 1024):
+        if subdivisions > max_subdivisions:
+            break
+        previous: tuple[float, float] | None = None
+        for index in range(subdivisions + 1):
+            fraction = index / subdivisions
+            candidate = lo + (hi - lo) * fraction
+            if fraction not in samples:
+                try:
+                    value = f(candidate)
+                    samples[fraction] = value if math.isfinite(value) else None
+                except ValueError as exc:
+                    last = exc
+                    samples[fraction] = None
+            value = samples[fraction]
+            if value is None:
+                previous = None
+                continue
+            any_evaluable = True
+            if value == 0:
+                return candidate, candidate
+            if previous is not None and previous[1] * value < 0:
+                return previous[0], candidate
+            previous = candidate, value
+    if not any_evaluable and isinstance(last, ReferenceStateError):
         raise last
-    raise ReferenceStateError(f"no evaluable refrigerant cycle at the rating condition ({last})")
+    raise ReferenceStateError(
+        f"could not bracket a finite energy balance in the reference interval [{lo:g}, {hi:g}] ({last})"
+    )
+
+
+def _root_in_bracket(f: Callable[[float], float], bracket: tuple[float, float], scale: float) -> float:
+    if bracket[0] == bracket[1]:
+        return bracket[0]
+    return float(brentq(f, *bracket, xtol=1e-12 * scale, rtol=1e-12))
 
 
 class ReferenceStateMixin:
@@ -563,7 +654,7 @@ class ReferenceStateMixin:
         (``None`` when both were supplied and nothing was solved).
 
         Order: (1) ``V_cmp_ref`` is already resolved by the caller, (2) rating
-        condition, (3) speed at ``n* = 1``, (4)-(5) reference cycle and its mass
+        condition, (3) actual rated-point speed, (4)-(5) reference cycle and its mass
         flow, (6) efficiencies built at the rated speed.
         """
         if rps_rated is not None and not (math.isfinite(rps_rated) and rps_rated > 0):

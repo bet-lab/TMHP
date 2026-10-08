@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 
 from tmhp import AirSourceHeatPumpBoiler
+from tmhp.compressor_efficiency_legacy import make_eta_em, make_eta_isen, make_eta_vol
+from tmhp.compressor_speed import refrigerant_aware_displacement
 
 PERIOD_S: int = 3 * 86400  # 3-day horizon (spec: >= 3 days)
 DTS: tuple[int, ...] = (300, 600)  # spec: dt in {300, 600} s
@@ -27,12 +29,17 @@ DATA_DIR: Path = Path(__file__).parent / "data"
 
 def make_model() -> AirSourceHeatPumpBoiler:
     """Fixed ASHPB configuration shared by golden generation and tests."""
-    # Freeze the pre-callable-baseline efficiencies used by the committed goldens.
+    # Freeze the archived machine recorded in the goldens: v2026-09-24
+    # efficiencies at 40 rev/s and the A7/W35 refrigerant-aware displacement.
+    # Constructor defaults now use BITZER absolute-speed fits and a different
+    # capacity-based displacement, so leaving either implicit changes the run.
     return AirSourceHeatPumpBoiler(
         ref="R32",
-        eta_cmp_isen=lambda pr: 0.90 - 0.02 * pr,
-        eta_cmp_vol=lambda pr: 1 - 0.020 * (pr - 1),
-        eta_cmp=lambda pr, rps: 0.80 - 3e-5 * (rps - 55) ** 2,
+        V_cmp_ref=refrigerant_aware_displacement(15000, "R32"),
+        rps_rated=40.0,
+        eta_cmp_isen=make_eta_isen(40.0),
+        eta_cmp_vol=make_eta_vol(40.0),
+        eta_cmp=make_eta_em(40.0),
         # Historical 5% correlation domain, frozen for this characterization.
         vsd_coeffs={"curve_type": "custom"},
         dV_fan_a_min=0.05 * 15000 * 0.00015,

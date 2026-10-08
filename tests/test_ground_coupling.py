@@ -1,9 +1,9 @@
 """Characterization + contract tests for the BHE ground-coupling abstraction.
 
 The default :class:`AggregateGFunctionCoupler` must reproduce the legacy inline
-temporal superposition *byte-for-byte*, and the GSHPB integration must keep
-producing the same BHE temperatures after delegating to the coupler. This is the
-"self-only" regression gate for the G1 ground-coupling refactor.
+temporal superposition *byte-for-byte*. Archived imposed ground loads retain
+the captured BHE response; the real GSHPB plant is checked separately against
+heat-exchanger conservation and ground-temperature feedback.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import warnings
 from collections.abc import Callable
 
 import numpy as np
+import pandas as pd
 import pytest
 
 # The default g-function precompute requires pygfunction; skip gracefully where
@@ -19,6 +20,7 @@ import pytest
 pytest.importorskip("pygfunction")
 
 from tmhp import GroundSourceHeatPumpBoiler  # noqa: E402
+from tmhp.constants import c_w, rho_w  # noqa: E402
 from tmhp.ground_coupling import AggregateGFunctionCoupler, GroundCoupler  # noqa: E402
 
 
@@ -186,17 +188,63 @@ _GOLDEN = {
 }
 
 
-def test_analyze_dynamic_bhe_matches_golden():
-    """End-to-end: the refactored plant reproduces the captured BHE outputs."""
+# Total field heat extraction [W] recorded from the unchanged 20ddce0260872ee12a5b6190d04c67ef33885d31
+# plant, with the original efficiency inputs below, dt=3600 s, and 16 steps.
+# The old plant returned a literal zero source-HX residual at a 1 K approach;
+# these archived inputs characterize ground response, not closed HP states.
+# Canonical provenance JSON SHA256: 1b4af99c4814948e9aa30100a03b1011a8cfb17db96fccf15e922ca24cd7798c
+_ARCHIVED_BHE_LOAD_W = {4: 6723.479372235796, 5: 5922.149254862031, 10: 5341.249407415474}
+
+
+def _historical_efficiency_plant():
+    return GroundSourceHeatPumpBoiler(
+        t_max_s=200 * 3600, eta_cmp_isen=0.80, eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr, eta_cmp=0.855
+    )
+
+
+def test_archived_bhe_load_response_matches_golden():
+    """Replay the original imposed loads through the production BHE hook."""
+    gshpb = _historical_efficiency_plant()
+    time_arr = np.arange(16) * 3600.0
+    gshpb._ground_coupler.reset(len(time_arr), time_arr)
+    rows = []
+    for n in range(len(time_arr)):
+        load = _ARCHIVED_BHE_LOAD_W.get(n, 0.0)
+        gshpb._compute_bhe_superposition(n, time_arr, {"Q_bhe [W]": load}, load > 0)
+        rows.append(
+            {
+                "T_bhe [°C]": gshpb.T_bhe,
+                "T_bhe_f [°C]": gshpb.T_bhe_f,
+                "T_bhe_f_in [°C]": gshpb.T_bhe_f_in,
+                "T_bhe_f_out [°C]": gshpb.T_bhe_f_out,
+            }
+        )
+    df = pd.DataFrame(rows)
+
+    for col, golden in _GOLDEN.items():
+        assert col in df.columns
+        np.testing.assert_allclose(df[col].to_numpy(), np.array(golden), rtol=0.0, atol=1e-12)
+
+
+def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch):
+    """Real accepted plant states conserve energy and use the evolving loop."""
     tN = 16
     dhw = np.zeros(tN)
     dhw[[3, 4, 9, 10]] = 6.0e-5
     T0 = np.full(tN, 15.0)
 
-    # The golden characterizes BHE coupling under the original efficiency inputs.
-    gshpb = GroundSourceHeatPumpBoiler(
-        t_max_s=200 * 3600, eta_cmp_isen=0.80, eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr, eta_cmp=0.855
-    )
+    gshpb = _historical_efficiency_plant()
+    accepted = []
+    determine = gshpb._determine_hp_state
+
+    def record_state(ctx, is_on_prev):
+        result = determine(ctx, is_on_prev)
+        if result[0]:
+            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result[1].copy()))
+        return result
+
+    # Observe the actual solver return without replacing any physical result.
+    monkeypatch.setattr(gshpb, "_determine_hp_state", record_state)
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
         df = gshpb.analyze_dynamic(
@@ -207,6 +255,39 @@ def test_analyze_dynamic_bhe_matches_golden():
             T0_schedule=T0,
         )
 
-    for col, golden in _GOLDEN.items():
-        assert col in df.columns
-        np.testing.assert_allclose(df[col].to_numpy(), np.array(golden), rtol=0.0, atol=1e-12)
+    assert [n for n, _, _ in accepted] == [4, 5, 10]
+    for n, source_outlet_C, state in accepted:
+        assert state["converged"] and state["converged_rps"]
+        C = state["dV_bhe_f [m3/s]"] * rho_w * c_w
+        source_inlet_C = source_outlet_C + state["E_pmp [W]"] / C
+        # The HX sees the previous step's BHE outlet, before this step commits
+        # its new ground response. Pump input warms that inlet stream.
+        assert source_outlet_C == pytest.approx(df["T_bhe_f_out [°C]"].iloc[n - 1], abs=1e-12, rel=0)
+        Q_hx = -np.expm1(-gshpb.UA_ground / C) * C * (source_inlet_C - state["T_ref_evap_sat [°C]"])
+        Q_source = state["m_dot_ref [kg/s]"] * (state["h_ref_cmp_in [J/kg]"] - state["h_ref_exp_out [J/kg]"])
+        assert abs(Q_source - Q_hx) <= max(0.01, 1e-5 * Q_source)
+        assert state["Q_ref_ground [W]"] == pytest.approx(Q_source, rel=1e-9, abs=1e-9)
+        assert state["Q_ref_tank [W]"] == pytest.approx(
+            Q_source + state["E_cmp [W]"] * state["eta_cmp [-]"], rel=1e-9, abs=1e-9
+        )
+        assert state["Q_bhe [W]"] == pytest.approx(Q_source - state["E_pmp [W]"], rel=1e-9, abs=1e-9)
+        assert df["Q_bhe [W]"].iloc[n] == state["Q_bhe [W]"]
+
+    # Independent Duhamel superposition as a dense causal response matrix:
+    # the real cycle's total field load is converted to W/m exactly once.
+    time_arr = np.arange(tN) * 3600.0
+    loads_per_m = df["Q_bhe [W]"].to_numpy() / gshpb.total_borehole_length
+    increments = np.diff(np.r_[0.0, loads_per_m])
+    lags = np.maximum(time_arr[:, None] - time_arr[None, :], 1e-6)
+    response = np.tril(gshpb._gfunc_interp(lags)) @ increments
+    wall_C = gshpb.Ts - response
+    mean_C = wall_C - loads_per_m * gshpb.R_b
+    capacity_rate = df["dV_bhe_f [m3/s]"].to_numpy() * rho_w * c_w
+    half_rise = np.divide(df["Q_bhe [W]"].to_numpy(), 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0)
+    for column, expected in (
+        ("T_bhe [°C]", wall_C),
+        ("T_bhe_f [°C]", mean_C),
+        ("T_bhe_f_in [°C]", mean_C - half_rise),
+        ("T_bhe_f_out [°C]", mean_C + half_rise),
+    ):
+        np.testing.assert_allclose(df[column], expected, rtol=0.0, atol=1e-12)

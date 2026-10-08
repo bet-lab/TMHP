@@ -16,7 +16,8 @@ env:
 jobs:
   lint-type:
     name: Static analysis
-    runs-on: [self-hosted, ml-main]
+    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
     steps:
       - uses: actions/checkout@v6
 
@@ -42,7 +43,8 @@ jobs:
 
   test-scope:
     name: Pytest matrix scope
-    runs-on: [self-hosted, ml-main]
+    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
     outputs:
       run-matrix: ${{ steps.changed-files.outputs.run-matrix }}
     steps:
@@ -74,7 +76,8 @@ jobs:
   test:
     needs: test-scope
     if: needs.test-scope.outputs.run-matrix == 'true'
-    runs-on: [self-hosted, ml-main]
+    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     strategy:
@@ -120,7 +123,8 @@ jobs:
 
   docs:
     # Sphinx output is Python-version-independent; run once and gate PRs on it.
-    runs-on: [self-hosted, ml-main]
+    # Public PR checks use an isolated GitHub-hosted runner; trusted events keep ml-main.
+    runs-on: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-24.04"]' || '["self-hosted", "ml-main"]') }}
     steps:
       - uses: actions/checkout@v6
         with:

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-10-07T22:39:11+09:00" />
+    <meta property="article:modified_time" content="2026-10-08T14:29:14+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -713,9 +713,10 @@ fixes the speed through the bounded root</p>
 <div class="math notranslate nohighlight">
 \[Q_{model}(rps) - Q_{rated} = 0\]</div>
 </div>
-<p>with <code class="docutils literal notranslate"><span class="pre">eta_vol(PR,</span> <span class="pre">1)</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_isen(PR,</span> <span class="pre">1)</span></code> and <code class="docutils literal notranslate"><span class="pre">eta_em(PR,</span> <span class="pre">1)</span></code> (or the
-caller’s own callables). An outer bounded root closes the energy balance of
-the other heat exchanger. Variable ground-HX UA is not used here – it needs
+<p>with efficiencies evaluated at the actual bounded shaft speed (or the
+caller’s own callables). Heating is parameterized by speed, closing source
+mass flow first and then the rated condenser duty; this does not assume a
+monotone condenser-duty curve. Variable ground-HX UA is not used here – it needs
 <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code>, which is what is being solved for – so both heat
 exchangers use their rated UA at their reference flow.</p>
 <p>A rated capacity that needs a speed outside <code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">rps_max]</span></code> – or a
@@ -1147,7 +1148,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 07, 2026
+  Last updated Oct 08, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

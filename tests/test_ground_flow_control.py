@@ -140,7 +140,8 @@ def test_constant_flow_regression_before_total_power_policy(cls, expected):
     assert row["converged"]
     for key, value in zip(("E_cmp [W]", "E_pmp [W]", "E_tot [W]"), expected, strict=True):
         assert row[key] == pytest.approx(value, rel=1e-8)
-    assert row["cop_sys [-]"] == pytest.approx(4000 / row["E_tot [W]"])
+    duty = abs(row["Q_a_iu_out [W]"] - row["Q_a_iu_in [W]"]) if cls is GroundSourceHeatPump else 4000
+    assert row["cop_sys [-]"] == pytest.approx(duty / row["E_tot [W]"])
 
 
 @pytest.mark.parametrize("load,room,approach", [(4000, 26, -10), (-4000, 20, 10)])

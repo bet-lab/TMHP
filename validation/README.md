@@ -1,5 +1,18 @@
 # `validation/` — where TMHP's automatic choices come from
 
+## COP definition and historical outputs
+
+Physics-based space-conditioning ASHP/GSHP results through commit `c5d673e`
+use **coil-duty COP**, `Q_ref_iu / E_tot`, including archived CSVs and figures
+in this directory. They remain historical evidence. New runs use final indoor
+air delivery, `abs(Q_a_iu_out - Q_a_iu_in) / E_tot`, with fan heat included
+once in the outlet. Regenerate results and figures and record the source commit
+before using them for a current system-COP comparison. Coil-based capacity,
+requested/delivered PLR and catalogue-specific COP boundaries remain separate.
+DHW and empirical models keep their existing definitions. See
+`docs/source/models/ashp.rst` and `gshp.rst` for electrical boundaries,
+direction checks and seasonal aggregation.
+
 TMHP decides a lot on the user's behalf. Give it a capacity and a refrigerant
 and it produces heat-exchanger conductances, a compressor displacement and a
 rated air flow. That convenience is only worth having if each of those numbers

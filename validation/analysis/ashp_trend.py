@@ -127,6 +127,8 @@ def _run(model: AirSourceHeatPump, duty: Duty, load_w: float, t_outdoor: float) 
         return None
     return {
         "cop_sys": cop,
+        "cop_basis": "final_indoor_air_sensible",
+        "q_air_delivered_W": abs(float(result["Q_a_iu_out [W]"]) - float(result["Q_a_iu_in [W]"])),
         "rps": float(result.get("cmp_rpm [rpm]", float("nan"))) / 60.0,
         "q_delivered_W": abs(float(result.get("Q_ref_iu [W]", float("nan")))),
         "e_tot_W": float(result.get("E_tot [W]", float("nan"))),

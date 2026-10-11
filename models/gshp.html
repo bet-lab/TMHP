@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone, drawing or rejecting heat through the same g-function borehole heat exchanger as GSHPB. Overview: The class is tmhp.GroundSourceHeatPump. Use it when the heat pump’s job..." />
 
-    <meta property="article:modified_time" content="2026-10-08T14:29:14+09:00" />
+    <meta property="article:modified_time" content="2026-10-11T12:49:18+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -149,6 +149,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#base-usage">Base usage</a></li>
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
+<li><a class="reference internal" href="#cop-boundary">COP boundary</a></li>
 <li><a class="reference internal" href="#empirical-alternative">Empirical alternative</a></li>
 <li><a class="reference internal" href="#module-tmhp.ground_source_heat_pump">API reference</a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump.GroundSourceHeatPump"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code></a><ul>
@@ -261,6 +262,24 @@ detailed mechanic and the g-function figure.</p>
 <a class="reference internal" href="ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>. The indoor-unit load <code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> selects operating mode:
 positive values are cooling, negative values are heating, and zero
 values are off operation.</p>
+</section>
+<section id="cop-boundary">
+<h2>COP boundary<a class="headerlink" href="#cop-boundary" title="Link to this heading">¶</a></h2>
+<p>The physics-based GSHP uses the same final indoor-air delivery definition as
+<a class="reference internal" href="ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>: <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span> <span class="pre">=</span> <span class="pre">abs(Q_a_iu_out</span> <span class="pre">-</span> <span class="pre">Q_a_iu_in)</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>.
+The actual airflow and common outdoor reference temperature define both
+air energy flows. The final outlet includes indoor fan heat once. The
+denominator retains the compressor, indoor fan and <strong>entire ground-loop
+pump</strong> electricity; this boundary may differ from a standard unit rating.
+<code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>, rated capacity, PLR and the optimisation remain coil-duty based;
+<code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code> remains coil duty divided by compressor electricity.
+Active zero-flow or opposite-mode air delivery is flagged by
+<code class="docutils literal notranslate"><span class="pre">indoor_heat_direction_valid</span> <span class="pre">=</span> <span class="pre">False</span></code> and reported with NaN system COP.
+Off states have zero air energy flows and NaN COP.</p>
+<p>Seasonal performance uses integrated actual air delivery divided by integrated
+system electricity, separately by mode. Legacy outputs through <code class="docutils literal notranslate"><span class="pre">c5d673e</span></code>
+use coil-duty COP; regenerate them before comparing to the final-air metric.
+The empirical alternative and DHW models retain their existing definitions.</p>
 </section>
 <section id="empirical-alternative">
 <h2>Empirical alternative<a class="headerlink" href="#empirical-alternative" title="Link to this heading">¶</a></h2>
@@ -964,7 +983,7 @@ control, source boundaries, and feasibility diagnostics.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 08, 2026
+  Last updated Oct 11, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

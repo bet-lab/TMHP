@@ -37,6 +37,7 @@ from .compressor_speed import (
 )
 from .constants import c_a, rho_a
 from .enex_functions import (
+    calc_energy_flow,
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
@@ -421,6 +422,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                     "E_ou_fan [W]": 0.0,
                     # Heat duties by physical location (mode-independent labels)
                     "Q_ref_iu [W]": 0.0,
+                    "Q_a_iu_in [W]": 0.0,
+                    "Q_a_iu_out [W]": 0.0,
+                    "indoor_heat_direction_valid": True,
                     "Q_ref_ou [W]": 0.0,
                     "E_cmp [W]": 0.0,
                     "E_tot [W]": 0.0,
@@ -680,6 +684,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Check overall convergence
         is_converged = ou_hx.get("converged", True) and iu_hx.get("converged", True) and converged_rps
         E_tot: float = E_cmp + E_ou_fan + E_iu_fan
+        # Final outlet already includes fan heat. Keep the coil-load residual
+        # and operating-point objective unchanged; only the reported COP changes.
+        G_iu_a = c_a * rho_a * dV_iu_a
+        Q_a_iu_in = calc_energy_flow(G_iu_a, T_a_room_K, T0_K)
+        Q_a_iu_out = calc_energy_flow(G_iu_a, cu.C2K(T_iu_a_out), T0_K)
+        Q_air = Q_a_iu_out - Q_a_iu_in
+        heat_direction_valid = bool(dV_iu_a > 0 and (Q_air <= 0 if mode == "cooling" else Q_air >= 0))
 
         # Same name (`result`) is annotated up in the inactive branch (~L216);
         # plain assignment to avoid the mypy [no-redef] false positive.
@@ -726,12 +737,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 # bookkeeping (the refrigerant-perspective cond/evap remain only in
                 # the refrigerant-state keys T/P/h/s_ref_*_sat and in refrigerant.py).
                 "Q_ref_iu [W]": Q_ref_iu,
+                "Q_a_iu_in [W]": Q_a_iu_in,
+                "Q_a_iu_out [W]": Q_a_iu_out,
+                "indoor_heat_direction_valid": heat_direction_valid,
                 "Q_ref_ou [W]": Q_ref_ou,
                 "E_cmp [W]": E_cmp,
                 "E_tot [W]": E_tot,
-                # COP metrics (indoor-unit duty basis; == |Q_r_iu| at convergence)
+                # Refrigerant COP uses coil duty; system COP uses final air delivery.
                 "cop_ref [-]": (Q_ref_iu / E_cmp if E_cmp > 0 else np.nan),
-                "cop_sys [-]": (Q_ref_iu / E_tot if E_tot > 0 else np.nan),
+                "cop_sys [-]": (abs(Q_air) / E_tot if E_tot > 0 and heat_direction_valid else np.nan),
             }
         )
         return result

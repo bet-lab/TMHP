@@ -144,10 +144,13 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
                 "q_kW": point.q_kW,
                 "cop_target": cop_target,
                 "cop_pred": cop_pred if usable else float("nan"),
+                "cop_basis": "final_indoor_air_sensible" if catalog.model_class == "ASHP" else "tank_duty",
                 "abs_error": abs(cop_pred - cop_target) if usable else float("nan"),
                 "abs_pct_error": abs(cop_pred - cop_target) / cop_target * 100.0 if usable else float("nan"),
                 "power_target_kW": point.q_kW / cop_target,
-                "power_pred_kW": (point.q_kW / cop_pred) if usable else float("nan"),
+                # Requested catalogue duty is a coil input, not the final-air
+                # COP numerator; read the actual electrical input directly.
+                "power_pred_kW": float(result["E_tot [W]"]) / 1000 if usable else float("nan"),
                 "rps": (result.get("cmp_rpm [rpm]", float("nan")) or float("nan")) / 60.0,
                 "n_star": result.get("n_star [-]", float("nan")),
                 "pr_cmp": result.get("pr_cmp [-]", float("nan")),
@@ -246,6 +249,7 @@ def main() -> None:
     manifest = {
         "coefficient_version": COEFFICIENT_VERSION,
         "git_head": _git_head(),
+        "space_conditioning_cop_basis": "final_indoor_air_sensible",
         "units": int(len(summary)),
         "adopted_units": int(len(adopted)),
         "held_units": sorted(held.slug.tolist()),

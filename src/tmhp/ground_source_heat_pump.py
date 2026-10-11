@@ -37,6 +37,7 @@ from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
 from .enex_functions import (
+    calc_energy_flow,
     calc_exergy_flow,
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
@@ -715,6 +716,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             vsd_coeffs=self.vsd_coeffs_iu,
             is_active=is_active,
         )
+        if not is_active:
+            E_iu_fan = 0.0
         T_iu_a_out = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if is_active and dV_iu_a > 0 else T_a_room
         v_iu_a = dV_iu_a / self.A_cross_iu if is_active else 0.0
 
@@ -739,6 +742,16 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # Total electrical input
         E_pmp_active = loop["E_pmp"] if is_active else 0.0
         E_tot = E_cmp + E_pmp_active + E_iu_fan
+        # Air-stream energy uses the actual flow and final fan-heated outlet.
+        # It does not replace the coil duty used by the compressor/load solver.
+        G_iu_a = c_a * rho_a * dV_iu_a
+        T0_K = cu.C2K(T0)
+        Q_a_iu_in = calc_energy_flow(G_iu_a, T_a_room_K, T0_K)
+        Q_a_iu_out = calc_energy_flow(G_iu_a, cu.C2K(T_iu_a_out), T0_K)
+        Q_air = Q_a_iu_out - Q_a_iu_in
+        heat_direction_valid = bool(
+            not is_active or (dV_iu_a > 0 and (Q_air <= 0 if mode == "cooling" else Q_air >= 0))
+        )
 
         result = reportable_state(cycle_states)
         result.update(
@@ -787,6 +800,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 # refrigerant-perspective cond/evap remain only in the refrigerant-state
                 # keys T/P/h/s_ref_*_sat and in refrigerant.py).
                 "Q_ref_iu [W]": Q_ref_cond if mode == "heating" else Q_ref_evap,
+                "Q_a_iu_in [W]": Q_a_iu_in,
+                "Q_a_iu_out [W]": Q_a_iu_out,
+                "indoor_heat_direction_valid": heat_direction_valid,
                 "Q_ref_ground [W]": Q_ref_evap if mode == "heating" else Q_ref_cond,
                 "Q_bhe [W]": Q_bhe,
                 "E_cmp [W]": E_cmp,
@@ -801,13 +817,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 "UA_ground_rated [W/K]": UA_ground_rated,
                 "UA_iu_rated [W/K]": UA_iu_rated,
                 "E_tot [W]": E_tot,
-                # COP (indoor-unit duty basis; == |Q_r_iu| at convergence)
+                # Refrigerant COP uses coil duty; system COP uses final air delivery.
                 "cop_ref [-]": (
                     (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_cmp if (is_active and E_cmp > 0) else np.nan
                 ),
-                "cop_sys [-]": (
-                    (Q_ref_cond if mode == "heating" else Q_ref_evap) / E_tot if (is_active and E_tot > 0) else np.nan
-                ),
+                "cop_sys [-]": (abs(Q_air) / E_tot if (is_active and E_tot > 0 and heat_direction_valid) else np.nan),
             }
         )
         ground_result_diagnostics(
@@ -1136,8 +1150,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         if ground_flow_lpm is not None:
             ground_flow_ratio = ground_flow_lpm / self.ground_flow_ref_lpm
         elif ground_flow_ratio is not None:
-            import warnings
-
             warnings.warn(
                 "ground_flow_ratio is deprecated; use ground_flow_lpm (ratio is always to reference).",
                 DeprecationWarning,

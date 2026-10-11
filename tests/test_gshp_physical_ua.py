@@ -87,7 +87,8 @@ def test_efficiencies_correct_power_speed_and_refrigerant_energy_balance(load):
     evaporator = real["Q_ref_iu [W]"] if load > 0 else real["Q_ref_ground [W]"]
     assert condenser == pytest.approx(evaporator + real["E_cmp_ref [W]"])
     assert real["E_tot [W]"] == pytest.approx(real["E_cmp [W]"] + real["E_pmp [W]"] + real["E_iu_fan [W]"])
-    assert real["cop_sys [-]"] == pytest.approx(abs(load) / real["E_tot [W]"])
+    net_air_heat = abs(real["Q_a_iu_out [W]"] - real["Q_a_iu_in [W]"])
+    assert real["cop_sys [-]"] == pytest.approx(net_air_heat / real["E_tot [W]"])
 
 
 @pytest.mark.parametrize(

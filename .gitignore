@@ -133,3 +133,22 @@ validation/data/keymark_en14825_declared.csv
 validation/data/compressor_maps/points_copeland_opi.csv
 validation/data/compressor_maps/points_derived.csv
 validation/data/compressor_maps/points_fit_ready.csv
+
+# Research manuscripts, internal work notes and publication-tool artifacts
+/manuscript/
+/figures/
+/docs/plans/
+/docs/superpowers/
+/validation/gshp_ground_flow/
+/validation/results/refrigerant_only_plr_cop/mcp_replay/
+/validation/coefficients/v2026-09-24/figures/professor/
+/docs/audits/consolidation-20261006.md
+/validation/compressor_maps/_notion.py
+/validation/compressor_maps/notion_final.py
+/validation/compressor_maps/notion_report.py
+/validation/compressor_maps/notion_observations_final.md
+/validation/compressor_maps/notion_observations_v3.md
+/validation/hx_ua_sensitivity/notion_publish.py
+/validation/hx_ua_sensitivity/notion_observations.md
+/validation/bitzer_efficiency_pilot/scripts/notion_summary.py
+/validation/refrigerant_only_plr_cop/mcp_replay.py

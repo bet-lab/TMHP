@@ -82,7 +82,8 @@ def main():
         parser.error('--payload and --catalog-checkout are required together')
     if args.payload:
         total_files = total_bytes = datasets = 0
-        dataset_ids = {r['dataset_id'] for r in sources if r.get('local_payload_root')}
+        # Recovered originals may have a local path before an archive ID is assigned.
+        dataset_ids = {r['dataset_id'] for r in sources if r.get('local_payload_root') and r.get('dataset_id')}
         for dataset_id in sorted(dataset_ids):
             d = args.catalog_checkout / 'energy-systems' / dataset_id
             data = json.loads((d / 'dataset.json').read_text())

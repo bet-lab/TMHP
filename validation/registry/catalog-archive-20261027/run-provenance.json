@@ -32,5 +32,11 @@
   "nas_transfer_receipt": "smb-transfer.json",
   "nas_verified_at": "2026-10-27T04:21:25.248402+00:00",
   "nas_commands_executed": false,
-  "catalog_metadata_merged": false
+  "catalog_metadata_merged": false,
+  "source_expansion": {
+    "receipt": "source-recovery-20261027.json",
+    "nas_receipt": "expansion-smb-transfer-20261027.json",
+    "architecture_proposal": "archive-architecture-proposal.md",
+    "all_originals_complete": false
+  }
 }

@@ -1,0 +1,30 @@
+{
+  "reviewed_on": "2026-10-27",
+  "plan_drive_file_id": "1ZbQqlTe8WIQy0IDAbCgEg-q67Od6357E",
+  "plan_sha256": "398a72c99e55070085d9a9ef526a9a4b7ce6cd1beec6a5f338e2dd37c70ed092",
+  "catalog_base_commit": "7e4bdee92fbb434b1375b88dff74ff65b2017555",
+  "tmhp_base_commit": "3f103de7f7d57835776c0f37d35ae58039f78855",
+  "inputs": [
+    {
+      "path": "/home/habin/papers/TMHP/validation/registry/sources.yaml",
+      "bytes": 25378,
+      "sha256": "424725a12334ba4e1b89816816ad3a5f51a164a90df97a7e6df0f9c49ad6be51"
+    },
+    {
+      "path": "/home/habin/papers/TMHP/validation/default_inputs/compressor_displacement/measurements.csv",
+      "bytes": 157534,
+      "sha256": "11e3768c23a7736d06493564e63df8ac8a5a05908b31aad200c6d05698f01a1b"
+    },
+    {
+      "path": "/home/habin/papers/TMHP/validation/default_inputs/fan_airflow/measurements.csv",
+      "bytes": 662161,
+      "sha256": "3c33f07d8347e274c29b18deb4c0754036ab35f9e6e3778e5148dff2619afed0"
+    }
+  ],
+  "raw_payload_root": "/home/habin/tmhp-archive-handoff-20261027/payload",
+  "raw_not_committed": true,
+  "nas_write_status": "read-only filesystem; SSH publickey authentication failure",
+  "published": false,
+  "warehouse_registered": false,
+  "new_web_raw_downloads": 0
+}

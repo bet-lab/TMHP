@@ -1,0 +1,52 @@
+{
+  "reviewed_on": "2026-10-27",
+  "review_mode": "read-only; no source or metadata changes",
+  "scope": ["/tmp/build_tmhp_archive.py", "/home/habin/dataset-catalog-tmhp-20261027/energy-systems/<28 new datasets>", "/home/habin/tmhp-archive-handoff-20261027/payload"],
+  "verification": {
+    "datasets": 28,
+    "files_hashed": 34,
+    "file_hash_or_size_mismatches": 0,
+    "tree_hash_mismatches": 0,
+    "file_count_or_byte_total_mismatches": 0,
+    "duplicate_payload_hashes": 0,
+    "broken_extracted_copy_source_links": 0,
+    "source_and_print_distinction": "LG/Highly six HTML originals and six browser-print PDFs now correctly separated; print PDFs use extracted-copy and link to original HTML.",
+    "source_dates": "Historical acquisition dates copied from existing receipts rather than today's hash date. Six web original HTML rows conservatively have acquisition-unrecorded; no fabricated dates found.",
+    "research_result_leakage": "No regression outputs, efficiency calculations, figures, or TMHP-generated numeric CSVs found among 34 staged payload files."
+  },
+  "findings": [
+    {
+      "id": "M1",
+      "severity": "medium",
+      "path": "energy-systems/danfoss-coolselector-user-guide-20261024/dataset.json",
+      "issue_ko": "선정 소프트웨어 사용 설명서를 외부 데이터셋으로 분류했다.",
+      "evidence": {"current_kind": "public-dataset", "current_content_origin": "external-release", "first_pdf_page": "User guide for Coolselector®2. Not for use as a design guide."},
+      "impact_ko": "아카이브 성격 구분에서 참고 문서가 독립 설비 데이터 배포본처럼 집계된다. 일반 설명도 '설비 사양·성능·조건'이라는 카탈로그 공통문구여서 실제 문서 역할이 흐려진다.",
+      "recommendation_ko": "kind=research-material/content_origin=reference-document로 바꾸고 사용법·선정 도구 참고 문서임을 설명한다. Danfoss application-guide도 참고/설치 문서 역할을 검토해 같은 방식으로 구분한다.",
+      "rule": "_submission-contract-v1.json content_origins.reference-document; task plan section 9.2"
+    },
+    {
+      "id": "M2",
+      "severity": "medium",
+      "path": "archive-map.json and base_configs()",
+      "issue_ko": "SHA 일치가 확인된 Mitsubishi SCI 원본 28쪽은 이번 28개 데이터셋/payload에 없다.",
+      "evidence": {"actual_path": "/home/habin/papers/temp/compressor_factor/lambda_and_catalogues_20261019/PDF/Mitsubishi_SCI_rotary_catalogue.pdf", "second_identical_copy": "/home/habin/papers/temp/compressor_factor/catalogue_replacement_20261019/rotary_catalogue.pdf", "bytes": 10495890, "sha256": "85e2c806fac5bd1b3310ebc87c5e47125d19b2e085eddf9da44fd5adc7d20992", "registry_match": "validation/registry/sources.yaml compressor_maps/mitsubishi/mitsubishi_rotary_catalogue.pdf"},
+      "impact_ko": "기획서의 우선 D 후보이며 명시60rps R410A 7모델이 있는 원문이다. 기존 파일 취합을 완료했다고 보고하면 누락된다.",
+      "recommendation_ko": "판·정확한 원취득 URL·취득일은 미확인으로 유지한 acquisition-unrecorded 인계 묶음을 추가하거나, 인계 범위 밖으로 보류한 구체적 사유를 현황표와 진단표에 명시한다. 두 사본은 한 원본 릴리스로 취급한다.",
+      "rule": "task plan sections 2.2, 8.1, 11.2"
+    },
+    {
+      "id": "L1",
+      "severity": "low",
+      "path": "energy-systems/danfoss-coolselector-user-guide-20261024/dataset.json period and title",
+      "issue_ko": "현재 문서번호만 있어 원문에서 바로 확인되는 제목·버전·날짜가 메타데이터에 빠졌다.",
+      "evidence": {"current_title": "Danfoss BC257834920738en-000302", "current_period": "BC257834920738en-000302", "first_pdf_page": "User guide for Coolselector®2; 2019-06-04 | Version 1.03"},
+      "recommendation_ko": "제목에 Coolselector2 사용자 안내를 넣고, 문서판2019-06-04/Version1.03을 note 또는 문서판 설명에 보존한다. 획득일2026-10-24와 발행판을 구분한다."
+    }
+  ],
+  "not_findings": [
+    "수치표 추출·warehouse 등록 미완료는 metadata note/caveat에 이미 명시되어 있어 이를 새 결함으로 세지 않았다.",
+    "6개 브라우저 출력은 원문충실 사본으로 HTML에 연결되어 있어 연구결과 admission을 임의 요구하지 않았다.",
+    "source_paths는 기존 로컬 위치의 출처 추적 기록이며 실 NAS 위치 또는 등록 완료 주장으로 해석하지 않았다."
+  ]
+}

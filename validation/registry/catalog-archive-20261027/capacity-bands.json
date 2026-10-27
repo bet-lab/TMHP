@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-27-pilot",
+  "status": "proposed-not-industrial-standard",
+  "interval_convention": "[lower,upper); last upper=null",
+  "unverified_values_not_binned": true,
+  "schemes": [
+    {
+      "id": "compressor-rated-cooling-ASRE-T-60rps-v20261027-pilot",
+      "equipment_type": "compressor",
+      "capacity_basis": "rated-cooling",
+      "rating_condition_id": "ASRE-T-60rps",
+      "rating_speed_rps": 60,
+      "unit": "kW",
+      "boundaries": [
+        0,
+        3,
+        6,
+        10,
+        null
+      ],
+      "basis_ko": "이번 선택칸 검토7모델의2.510–9.880kW 분포를 보기 위한 잠정 경계. 산업표준·물리변곡점이 아니다. R410A·inverter twin rotary·1제조사에 한정."
+    },
+    {
+      "id": "heatpump-rated-heating-A7W35-v20261027-pilot",
+      "equipment_type": "heatpump",
+      "capacity_basis": "rated-heating",
+      "rating_condition_id": "A7DB-6WB-Win30-Wout35",
+      "rating_speed_rps": null,
+      "unit": "kW",
+      "boundaries": [
+        0,
+        5,
+        10,
+        15,
+        null
+      ],
+      "basis_ko": "보유 Panasonic 사양서에서 확인한9/12/16kW 9모델 구분용 잠정 경계. 공기–물·정격난방 조건을 공기–공기 냉방 자료와 합치지 않는다. 제조사 제어속도 미공개는 그대로 null."
+    }
+  ]
+}

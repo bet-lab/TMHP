@@ -1,0 +1,165 @@
+{
+  "spec_version": 1,
+  "status": "pilot-blocked",
+  "source_scope": "PDF pages 5,6,10 attempted; page5 no detected table",
+  "tables": [
+    {
+      "id": "LG-ROTARY-2024_p10_t1",
+      "grid": "LG-ROTARY-2024_p10_t1",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 10,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 132,
+        "cells_differing": 59
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p10_t2",
+      "grid": "LG-ROTARY-2024_p10_t2",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 10,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 88,
+        "cells_differing": 34
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p10_t3",
+      "grid": "LG-ROTARY-2024_p10_t3",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 10,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 154,
+        "cells_differing": 67
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p10_t4",
+      "grid": "LG-ROTARY-2024_p10_t4",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 10,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 88,
+        "cells_differing": 44
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p10_t5",
+      "grid": "LG-ROTARY-2024_p10_t5",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 10,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 48,
+        "cells_differing": 38
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t1",
+      "grid": "LG-ROTARY-2024_p6_t1",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 319,
+        "cells_differing": 158
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t2",
+      "grid": "LG-ROTARY-2024_p6_t2",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 66,
+        "cells_differing": 25
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t3",
+      "grid": "LG-ROTARY-2024_p6_t3",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 77,
+        "cells_differing": 32
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t4",
+      "grid": "LG-ROTARY-2024_p6_t4",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 110,
+        "cells_differing": 52
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t5",
+      "grid": "LG-ROTARY-2024_p6_t5",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 187,
+        "cells_differing": 91
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    },
+    {
+      "id": "LG-ROTARY-2024_p6_t6",
+      "grid": "LG-ROTARY-2024_p6_t6",
+      "source_file": "files/source/LG-ROTARY-2024.pdf",
+      "source_sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+      "page": 6,
+      "verification": "unverified",
+      "cross_check": {
+        "tool": "pdfplumber",
+        "cells_compared": 154,
+        "cells_differing": 70
+      },
+      "note": "복합 가로배치·병합셀을 포함한 불일치 미해소. header/row_keys/column_groups/fills 매핑 확정 전이므로 정본 tidy 생성·등록 금지."
+    }
+  ],
+  "total_cells": 1423,
+  "different_cells_unresolved": 670,
+  "raw_trial_location": "인계물 review/lg-pilot-tables 에 원표·셀별 불일치·렌더를 보존. Git 명세에는 표별 검증 수와 상태만 기록.",
+  "next_step_ko": "PDF 렌더와 모든 불일치 셀을 대조하고 조건·음영·단위 매핑을 확정한 뒤 tidy 명세와 검토본을 갱신한다."
+}

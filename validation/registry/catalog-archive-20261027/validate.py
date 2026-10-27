@@ -1,4 +1,4 @@
-"""Validate intake metadata and optional staged originals; never run a model or publish."""
+"""Validate intake metadata and optional payload originals; never run a model or publish."""
 import argparse
 import collections
 import csv
@@ -103,7 +103,7 @@ def main():
             total_bytes += data['bytes']
             datasets += 1
         assert (datasets, total_files, total_bytes) == (summary['new_handoff_datasets'], summary['new_handoff_files'], summary['new_handoff_bytes'])
-        result.update(staged_datasets=datasets, staged_files=total_files, staged_bytes=total_bytes, staged_hashes='passed', nas_registered=False)
+        result.update(payload_root=str(args.payload), payload_datasets=datasets, payload_files=total_files, payload_bytes=total_bytes, payload_hashes='passed')
     print(json.dumps(result, ensure_ascii=False))
 
 if __name__ == '__main__':

@@ -1,10 +1,10 @@
 # TMHP 외부 입력자료 아카이브 인계 · 2026-10-27
 
-계획서의 기존 자료 대조·원문 경계 검토·로컬 인계 준비를 수행했다. **NAS 등록·신규 웹 원본 취득·전체 수치표 추출·warehouse 등록·게시까지 완료한 상태는 아니다.** 메타데이터는 dataset-catalog 초안 PR로, 연구별 채택 판정은 이 목록으로 분리했다. 회귀·물성·효율·COP 평가와 TMHP 모델 변경은 수행하지 않았다.
+계획서의 기존 자료 대조·원문 경계 검토와 **37묶음·43파일의 SMB NAS 반입·해시 검증을 완료했다.** 신규 웹 원본 취득·전체 수치표 추출·공유 warehouse 등록·메타데이터 PR 머지·사이트 게시는 미완료다. 메타데이터는 dataset-catalog 초안 PR로, 연구별 채택 판정은 이 목록으로 분리했다. 회귀·물성·효율·COP 평가와 TMHP 모델 변경은 수행하지 않았다.
 
 ## 범위와 실제 상태
 
-- 새 인계본: 37개 출처·배포본 묶음, 43파일, 450,867,643 bytes. 원본 위치를 보존하고 복사 전후 SHA-256·bytes·파일 집합·tree hash를 확인했다. 브라우저 PDF 출력 6개는 원문 HTML 6개와 함께 보존하며 `extracted-copy`로 구별했다.
+- NAS 반입본: 37개 출처·배포본 묶음, 43파일, 450,867,643 bytes. 기존 `receipt-nas` SMB로 새 dataset의 `files/`에만 반입했다. 임시 인계 경로와 최종 경로에서 SMB 재다운로드 SHA-256을 각각 대조하고 NAS 읽기 파일 집합·bytes·tree hash를 확인했다. 기존 NAS 원자료·공유 체크아웃은 바꾸지 않았다. 브라우저 PDF 출력 6개는 원문 HTML 6개와 함께 보존하며 `extracted-copy`로 구별했다.
 - 기존 등록 재사용: Vigo R410A, R407C 액체–물, hplib. NAS 원본 7파일(1+1+5)의 해시·크기를 확인했다. hplib의 원인증서 전체를 확보했다는 뜻은 아니다.
 - `sources.yaml`의 기록 위치 81개는 현재 모두 부재다. LG·Mitsubishi 원본은 다른 위치의 동일 SHA 파일과 연결했다. 기존 그림·캡처·계산 CSV는 외부 입력자료로 새 등록하지 않았다. 다른 바이트의 Cuevas 보유본은 별도 배포본이다.
 - source-model-condition 890행과 여섯 목적별 5,340행을 작성했다. 기존 압축기 137행·풍량 624행은 이전 연구의 추출 이력으로만 연결한다. 과거 `eligible`를 승계하지 않고, 이번 미검증 용량은 `recorded_capacity_value_kw`에만 남겼다.
@@ -25,11 +25,12 @@
 | [extraction-trial.json](extraction-trial.json) | LG 시험 추출의 불일치와 보류 상태. 실행 가능한 최종 tidy 명세가 아님 |
 | [run-provenance.json](run-provenance.json) | 계획서·기준 커밋·소비한 기존 목록의 해시·NAS 상태 |
 | [reviews/](reviews/) | 원문 검토 결과·해석 정정·검토 범위. 전체 원문/수치표는 Git 밖에 보존 |
-| [validate.py](validate.py) | 목록 연결·6개 목적·구간 조건 및 선택적으로 실제 인계 파일 SHA 검증 |
+| [validate.py](validate.py) | 목록 연결·6개 목적·구간 조건 및 선택적으로 실제 payload SHA 검증 |
+| [smb-transfer.json](smb-transfer.json) / [transfer-log.jsonl](transfer-log.jsonl) | NAS 반입·SMB 재다운로드·정본 매니페스트 대조 및 단계 전환 기록 |
 
 목록 검사: `python3 validation/registry/catalog-archive-20261027/validate.py`
 
-원자료 검사에는 `--payload <인계물/payload> --catalog-checkout <dataset-catalog 체크아웃>`을 함께 지정한다. 로컬 인계물 기본 위치는 `/home/habin/tmhp-archive-handoff-20261027/`이다.
+실제 NAS 원자료 검사에는 `--payload /mnt/datasets --catalog-checkout <dataset-catalog 체크아웃>`을 함께 지정한다. NFS는 읽기에만 사용하며 쓰기는 기존 SMB 연결로 수행했다. 로컬 인계물 기본 위치는 `/home/habin/tmhp-archive-handoff-20261027/`이다.
 
 ## 원문 대조에서 확인한 중요한 경계
 
@@ -52,8 +53,10 @@
 
 ## 검증과 남은 작업
 
-실제 인계 37묶음·43파일의 bytes/SHA/tree/file-set 검사와 dataset-catalog 원도구의 `verify`가 통과했다. 카탈로그 render는 **로컬 신규 인계본 + NAS 기존 자료 읽기 전용 조회층**에서 124개 기록의 원자료 참조를 확인했다. 이는 새 원본이 NAS에 반영됐다는 뜻이 아니다. metadata audit, QA, harness 검사를 수행했고 37개 새 상세 페이지의 1440/390px 총74보기에서 HTTP 오류·가로 넘침은 없었다. 전체 수치표 검증을 대신하지 않는다.
+실제 NAS 37묶음·43파일의 SHA-256·bytes·파일 집합·tree 검증을 완료했다. `_incoming`과 최종 경로에서 각각 SMB로 43파일을 재다운로드해 원본과 대조했다. 클라이언트에서 원도구 `init_manifest.inventory`를 실제 NAS 파일에 적용한 37개 결과도 PR 매니페스트와 일치했다. 카탈로그 `render . --payload /mnt/datasets`는 **실제 NAS**에서 124개 기록의 원자료 참조를 확인했다. 원래 로컬 인계본의 원도구 `verify` 통과 이력은 보존한다.
+
+공유 NAS에는 신규 `files/`만 추가했고 미머지 메타데이터를 쓰지 않았다. 따라서 공유 루트에서 신규 ID를 대상으로 하는 `dataset_pool.py verify`는 PR 메타데이터가 정식 반영된 뒤 실행한다. 이 제약과 별개로 새 원본 43파일의 NAS 해시·파일 집합·tree 검사는 완료됐다. 기존 37개 상세 페이지의 1440/390px 총74보기 검토 이력은 수치표 전 칸 검증을 대신하지 않는다.
 
 LG 시험 11표는 1,423칸 중 670칸의 두 추출기 차이가 미해소라 정본 등록을 보류했다. 기존 Annex81 insights 1.09MB 경고와 PDF extraction 규칙의 기존 무매칭 glob 경고는 별도로 남겼다. 검토 후 원문·음영·조건 매핑을 고치고 정본 추출표와 warehouse를 등록해야 한다.
 
-현재 `/mnt/datasets` 새 폴더 생성은 `Read-only file system`, NAS SSH는 `Permission denied (publickey)`로 실패한다. 쓰기 가능한 큐레이터 환경에서 원본 복사·해시 재확인 → NAS를 실제 payload로 한 render/verify → 수치표·warehouse 보완 → PR 검토 순으로 이어야 한다. `build`·머지·게시를 이번 작업에서 실행하지 않았다.
+초기 NFS 쓰기·SSH 인증 실패는 해당 접속 방식의 실패였으며, NAS 파일 작업 전체의 차단으로 판단한 것은 잘못이었다. 2026-10-27 사용자가 알려준 기존 `receipt-nas` SMB 연결로 파일 반입·검증과 이 작업의 임시 인계본 정리를 완료했다. 새 SSH 키 등록이나 사용자 수동 업로드는 필요하지 않았다. 남은 작업은 누락 원문·LG 추출 불일치·권리와 조건 검토·수치표·공유 warehouse 보완, 메타데이터 PR 검토·머지 및 승인 후 게시다. NAS에서 명령을 실행하는 직접 웹 취득·게시 등의 경로를 선택하면 별도 실행 환경이 필요하지만 이번 SMB 파일 작업에는 NAS 명령을 실행하지 않았다.

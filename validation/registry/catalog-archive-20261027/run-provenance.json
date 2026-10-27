@@ -21,10 +21,16 @@
       "sha256": "3c33f07d8347e274c29b18deb4c0754036ab35f9e6e3778e5148dff2619afed0"
     }
   ],
-  "raw_payload_root": "/home/habin/tmhp-archive-handoff-20261027/payload",
+  "raw_payload_root": "/mnt/datasets",
   "raw_not_committed": true,
-  "nas_write_status": "read-only filesystem; SSH publickey authentication failure",
+  "nas_write_status": "SMB receipt-nas: new payload files ingested and verified; NFS writes remain read-only and SSH is not used",
   "published": false,
   "warehouse_registered": false,
-  "new_web_raw_downloads": 0
+  "new_web_raw_downloads": 0,
+  "previous_nas_write_status": "read-only filesystem; SSH publickey authentication failure",
+  "local_backup_payload_root": "/home/habin/tmhp-archive-handoff-20261027/payload",
+  "nas_transfer_receipt": "smb-transfer.json",
+  "nas_verified_at": "2026-10-27T04:21:25.248402+00:00",
+  "nas_commands_executed": false,
+  "catalog_metadata_merged": false
 }

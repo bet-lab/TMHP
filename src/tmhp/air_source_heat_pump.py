@@ -29,6 +29,7 @@ from tqdm import tqdm
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
 from .calibration import FitReport, FittingPoint, Mode, Parameter, PointResult, fit_compressor, predict_catalogue
+from .compressor_baseline import ossorio_r290_efficiencies
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
@@ -160,6 +161,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
     ):
+        """Configure an ASHP with Ossorio research maps for omitted efficiencies.
+
+        Explicit scalar/callable efficiencies take precedence, including the
+        legacy mechanical-efficiency fallback. Default maps describe an R290
+        scroll; their use with another refrigerant or compressor technology is
+        a modelling assumption. Reference-state errors retain the existing
+        constructor behaviour; efficiency defaults for other classes are not
+        changed by constructing this class.
+        """
         import warnings
 
         if dV_ou_fan_a_ref is not None:
@@ -325,10 +335,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.T_a_room: float = T_a_room
 
         # --- 6. Compressor reference state (rated speed, rated mass flow) ---
+        default_efficiencies = ossorio_r290_efficiencies()
         efficiencies = self._initialize_reference_state(
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
-            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            efficiencies={
+                "eta_cmp_isen": default_efficiencies["eta_cmp_isen"] if eta_cmp_isen is None else eta_cmp_isen,
+                "eta_cmp_vol": default_efficiencies["eta_cmp_vol"] if eta_cmp_vol is None else eta_cmp_vol,
+                "eta_cmp": default_efficiencies["eta_cmp"] if eta_cmp is None else eta_cmp,
+            },
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]

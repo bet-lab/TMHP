@@ -1,13 +1,17 @@
 {
-  "identical_metrics_after_review_fixes": true,
+  "method": "Public predict_catalogue repeated with frozen applied scales; not a second optimizer run",
+  "points_rechecked": 20,
+  "rtol": 1e-10,
+  "atol": 1e-08,
+  "final_predictions_reproduced": true,
   "all_stages_completed": true,
   "hashes": {
     "src/tmhp/calibration.py": "1e368ddec728e40276d4323c171a2b01e4000cc6ce1a7877e69e78b176d1d1cf",
-    "src/tmhp/compressor_baseline.py": "ea8871bdeee764a7661718fac52b9d130cdc4f347618e9d911dbb2ad96229062",
-    "src/tmhp/air_source_heat_pump.py": "7374f44831a50c04dcb34f008d0b4eab48882289ce7ac52d88e5a3a2c4e3badf",
-    "validation/compressor_fitting/case.py": "c8fd3e77c71bc23de941d5d4edd6b6171cfa7a0ea91e6c1f4923ce10a2352da2",
-    "validation/compressor_fitting/catalogue_points.csv": "8b20c77238ba95d6ca4d3c565e0219217fdc45ef175e1f1a088f58b76e67aba6",
-    "validation/compressor_fitting/fit_report.json": "1c0eb35a5264b5053652a98b13c5ee5e6674640dc5a100ae82dd9c2d13db4984",
-    "validation/compressor_fitting/metrics.json": "0931e0650225620eaae98e8ab862fc688d509faa415fdab7397b3c1202b3e97d"
+    "src/tmhp/compressor_baseline.py": "16f8896454389510925d41c5dcf90765644dd4c9c47c80d5978237ab75fa36e9",
+    "src/tmhp/air_source_heat_pump.py": "4097baa1637ae6364d7f104acf00d071fa87abd4074c039c4e16213776666f0b",
+    "validation/compressor_fitting/case.py": "ab9d7de25b585eeda7e90c651ed7a53a18cb00f6fa365f02e2862b65e60d2793",
+    "validation/compressor_fitting/catalogue_points.csv": "155835a4c6a22df2a45758782f070ead3ee28f959d9205d2b7d8ac7abc25c3ea",
+    "validation/compressor_fitting/fit_report.json": "cdd6b5c496c1d7035aab3b0ed15a91aad0a4fdc1d762e8ea1badfc16d033b040",
+    "validation/compressor_fitting/metrics.json": "fc05e9e8807bf86756c0b71d64a6c1a0b9a416bd53140e4394470c128eb26565"
   }
 }

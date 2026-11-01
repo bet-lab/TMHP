@@ -22,7 +22,7 @@ OUT = ROOT / "figures"
 WIDTH, HEIGHT = 1000, 360
 AXIS_PR = (2, 7, 1)
 AXIS_N = (30, 110, 20)
-MAP_BOUNDS = {"eta_v": (80, 110, 5), "eta_ov": (35, 85, 10), "f_loss": (5, 25, 5)}
+MAP_BOUNDS = {"eta_v": (90, 100, 2), "eta_ov": (50, 70, 5), "f_loss": (10, 20, 2)}
 TITLES = {"eta_v": "Volumetric efficiency", "eta_ov": "Overall efficiency", "f_loss": "Heat loss fraction"}
 TOKENS = json.loads((ROOT / "plot_tokens.json").read_text())["roles"]
 BLUE = TOKENS["magnitude.stop_6"]["value"]
@@ -80,12 +80,31 @@ def maps(scales=None, name="baseline_maps"):
             if scales is None
             else scales[{"eta_v": "lambda_eta_v", "eta_ov": "lambda_eta_ov", "f_loss": "lambda_f_loss"}[key]]
         )
-        lo, hi, step = MAP_BOUNDS[key]
-        levels = np.linspace(lo, hi, 21)
-        im = ax.contourf(pr, n, baseline * factor, levels=levels, cmap=CMAP, extend="both")
-        lines = ax.contour(
-            pr, n, baseline * factor, levels=np.arange(lo, hi + step, step), colors=INK, linewidths=0.35, alpha=0.6
+        _, _, step = MAP_BOUNDS[key]
+        # Standalone maps use compact data bounds; the video fixes bounds across its frames.
+        lo = float(np.floor((baseline * factor).min() / 5) * 5)
+        hi = float(np.ceil((baseline * factor).max() / 5) * 5)
+        # Continuous scalar field, without contour-band colour quantization.
+        im = ax.imshow(
+            baseline * factor,
+            extent=(2, 7, 30, 110),
+            origin="lower",
+            cmap=CMAP,
+            vmin=lo,
+            vmax=hi,
+            interpolation="bilinear",
+            aspect="auto",
         )
+        z = baseline * factor
+        contour_step = {"eta_v": 2, "eta_ov": 4, "f_loss": 2}[key]
+        first = np.ceil(z.min() / contour_step) * contour_step
+        contour_levels = np.arange(first, z.max(), contour_step)
+        while len(contour_levels) < 4:
+            contour_step /= 2
+            first = np.ceil(z.min() / contour_step) * contour_step
+            contour_levels = np.arange(first, z.max(), contour_step)
+        assert len(contour_levels) >= 4
+        lines = ax.contour(pr, n, z, levels=contour_levels, colors=INK, linewidths=0.35, alpha=0.6)
         ax.clabel(lines, fontsize=7, fmt="%g")
         if scales is not None and abs(factor - 1) > 1e-6:
             ax.contour(
@@ -95,17 +114,23 @@ def maps(scales=None, name="baseline_maps"):
         axis(ax, "x", AXIS_PR, "Pressure ratio")
         axis(ax, "y", AXIS_N, "Shaft speed [rev/s]")
         ax.set_box_aspect(1)
-        cb = fig.colorbar(im, ax=ax, fraction=0.035, pad=0.04, shrink=0.60, ticks=np.arange(lo, hi + step, step))
+        # Compact vertical half-height scale, aligned to axis bottom; endpoint ticks only.
+        pos = ax.get_position()
+        cax = fig.add_axes([pos.x1 + 0.008, pos.y0, 0.006, pos.height * 0.5])
+        cb = fig.colorbar(im, cax=cax, orientation="vertical", ticks=[lo, hi])
         cb.ax.set_title("(%)", fontsize=8, pad=8)
-        cb.ax.set_ylim(lo, hi)
         AUDIT.append(
             dict(
                 axis="colorbar",
                 quantity=key,
                 min=lo,
                 max=hi,
-                interval=step,
-                ticks=np.arange(lo, hi + step, step).tolist(),
+                interval=hi - lo,
+                ticks=[lo, hi],
+                continuous=True,
+                contours=contour_levels.tolist(),
+                height_fraction=0.5,
+                extension="neither",
             )
         )
     save(fig, name)
@@ -124,7 +149,7 @@ def sensitivity():
             )
         axis(ax, "x", AXIS_N, "Shaft speed [rev/s]")
         axis(ax, "y", ranges[key], TITLES[key] + " (%)")
-        ax.set_title("PR = 3.5", fontsize=10.5, pad=12)
+        ax.set_title("Pressure ratio = 3.5", fontsize=10.5, pad=12)
         ax.set_box_aspect(1)
         ax.legend(fontsize=8, loc="upper right", frameon=False)
     save(fig, "lambda_sensitivity")
@@ -140,6 +165,11 @@ def parity():
     ]:
         df["catalogue_power_kW"] = df.Q_requested_W / df.COP_catalogue / 1000
         df["power_kW"] = df.power_W / 1000
+        displayed = df[df.stage.isin(["before", "after"])]
+        low = min(displayed[truth].min(), displayed[predicted].min())
+        high = max(displayed[truth].max(), displayed[predicted].max())
+        interval = 1 if quantity == "COP" else 0.5
+        spec = (float(np.floor(low / interval) * interval), float(np.ceil(high / interval) * interval), interval)
         fig, axes = plt.subplots(1, 2, figsize=(WIDTH / 96, 400 / 96))
         fig.subplots_adjust(left=0.08, right=0.96, bottom=0.18, top=0.83, wspace=0.36)
         for ax, stage, label in zip(
@@ -179,7 +209,7 @@ def parity():
         for stage, color in [("before", GRAY), ("after", BLUE)]:
             data = df[(df.split == split) & (df.stage == stage)]
             ax.scatter(data.pressure_ratio, data.speed_rps, marker=marker, c=color, label=f"{split.title()} / {stage}")
-    axis(ax, "x", AXIS_PR, "Pressure ratio")
+    axis(ax, "x", (1.5, 7.5, 1.5), "Pressure ratio")
     axis(ax, "y", AXIS_N, "Shaft speed [rev/s]")
     ax.set_box_aspect(1)
     ax.legend(fontsize=7, frameon=False)

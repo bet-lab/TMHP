@@ -1,0 +1,68 @@
+{
+  "python": "3.12.3",
+  "CoolProp": "7.2.0",
+  "baseline": "Ossorio2024-R290-PRN-quadratic-2026-11-01",
+  "equipment": {
+    "ref": "R32",
+    "hp_capacity": 3500.0,
+    "V_cmp_ref": 1.03e-05,
+    "UA_iu_rated": 306.3298,
+    "UA_ou_rated": 766.8609,
+    "dV_iu_fan_a_rated": 0.20666666666666667,
+    "dV_ou_fan_a_rated": 0.5933333333333334,
+    "dV_iu_fan_a_min": 0.04133333333333333,
+    "dV_iu_fan_a_max": 0.20666666666666667,
+    "dV_ou_fan_a_min": 0.11866666666666668,
+    "dV_ou_fan_a_max": 0.5933333333333334,
+    "dP_iu_fan_rated": 130.3548387096774,
+    "dP_ou_fan_rated": 50.561797752808985,
+    "eta_iu_fan_rated": 0.6,
+    "eta_ou_fan_rated": 0.6,
+    "dT_superheat": 5.0,
+    "dT_subcool": 5.0,
+    "rps_min": 30.0,
+    "rps_max": 110.0,
+    "PR_cycle_min": 1.5,
+    "PR_cycle_max": 7.5,
+    "dT_approach_bounds": [
+      1.0,
+      35.0
+    ]
+  },
+  "bounds": {
+    "overall_efficiency": [
+      0.65,
+      1.25
+    ],
+    "volumetric_efficiency": [
+      0.75,
+      1.1
+    ],
+    "heat_loss_fraction": [
+      0.0,
+      1.5
+    ]
+  },
+  "calibration_ids": [
+    "H33",
+    "H35",
+    "H23",
+    "H25",
+    "H13",
+    "H15"
+  ],
+  "holdout_ids": [
+    "H34",
+    "H24",
+    "H14"
+  ],
+  "elapsed_s": 826.6448250282556,
+  "assumptions": [
+    "Outdoor DB=printed WB+1 K, not a measured dry bulb",
+    "UA derived with assumed effectiveness 0.70/0.65",
+    "44.9/50 W are fan reference inputs; actual fan powers follow existing TMHP fan curves",
+    "Airflow limits 20–100% reference and approach 1–35 K are numerical case assumptions",
+    "R290 scroll map transferred to R32 rotary; not independently identified compressor efficiencies",
+    "Speed 30–110 rev/s restricts to source-map speed support, not manufacturer-certified envelope"
+  ]
+}

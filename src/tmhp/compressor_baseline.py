@@ -1,4 +1,4 @@
-"""Explicit research baseline; it does not replace TMHP's BITZER defaults.
+"""ASHP research baseline; other heat-pump classes retain their existing defaults.
 
 The coefficients approximate the Ossorio 2024 R290 correlations on 567
 generated points (Te -10..15 C, Tc 20..70 C, SH 10 K, N 30..110 rev/s).
@@ -76,11 +76,12 @@ class OssorioR290Map:
 
 
 def ossorio_r290_efficiencies() -> dict[str, Callable[[float, float], float]]:
-    """Return constructor overrides for existing TMHP heat-pump classes.
+    """Return the ASHP defaults as explicit overrides for compatible TMHP classes.
 
-    Use ``AirSourceHeatPump(..., **ossorio_r290_efficiencies())``. This opts
-    into a R290 scroll research surrogate, including when transferred to a
-    different fluid/technology; that transfer is an assumption, not validation.
+    AirSourceHeatPump selects these maps when efficiency inputs are omitted.
+    Other classes can opt in through the existing constructor overrides. This
+    R290 scroll surrogate is not validated for every refrigerant/technology;
+    using it for another compressor remains an explicit modelling assumption.
     """
     return {
         "eta_cmp_vol": OssorioR290Map("eta_v"),

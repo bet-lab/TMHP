@@ -1,6 +1,13 @@
 # BITZER three-efficiency defaults (2026-10-06)
 
-The production compressor defaults follow [Compressor 3 efficiency](https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d): the archived BITZER scroll fit evaluates each of volumetric, isentropic and effective electro-mechanical efficiency independently as
+Update (2026-11-02): `AirSourceHeatPump` now uses the Ossorio 2024 R290 research
+maps for omitted efficiency inputs. The remaining ground/boiler model defaults
+and the BITZER factory functions described below are unchanged. ASHP callers can
+still select this archived BITZER behaviour through explicit `eta_cmp_vol`,
+`eta_cmp_isen`, and `eta_cmp` overrides. The new ASHP default is a research-map
+transfer assumption for other refrigerants or compressor technologies.
+
+The BITZER compressor defaults follow [Compressor 3 efficiency](https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d): the archived BITZER scroll fit evaluates each of volumetric, isentropic and effective electro-mechanical efficiency independently as
 
 `eta = b0 + b1*PR + b2*N + b3*PR**2 + b4*N**2 + b5*PR*N`.
 

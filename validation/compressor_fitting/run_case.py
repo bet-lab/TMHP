@@ -8,7 +8,7 @@ from dataclasses import asdict
 import CoolProp
 import numpy as np
 import pandas as pd
-from case import CALIBRATION_BOUNDS, EQUIPMENT_SETTINGS, ROOT, catalogue, make_model, points
+from case import ASSUMPTIONS, EQUIPMENT_SETTINGS, HEATING_REFERENCE_W, ROOT, catalogue, make_model, points
 
 from tmhp.compressor_baseline import BASELINE_VERSION
 
@@ -30,22 +30,22 @@ def save(name, payload):
 
 
 def main():
-    """Fit six fixed rows and evaluate three unseen outdoor-temperature rows."""
+    """Fit four fixed rows and evaluate sixteen held-out indoor-temperature rows."""
     start = time.monotonic()
     train, test = catalogue("calibration"), catalogue("holdout")
     hp = make_model()
     print("Evaluate uncalibrated holdout", flush=True)
     held_before = hp.predict_catalogue(points(test), mode="heating")
     save("holdout_before.json", [asdict(p) for p in held_before])
-    print("Fit six catalogue rows; frozen equipment and partition", flush=True)
+    print("Fit four catalogue rows; frozen equipment and partition; library default lambda bounds", flush=True)
     report = hp.fit(
         points(train),
         mode="heating",
         parameters=("overall_efficiency", "volumetric_efficiency", "heat_loss_fraction"),
-        lambda_bounds=CALIBRATION_BOUNDS,
         baseline_label=BASELINE_VERSION,
     )
     save("fit_report.json", asdict(report))
+    save("baseline_predictions.json", [asdict(p) for p in report.initial_points])
     print("Fit finished", report.success, asdict(report.candidate_scales), flush=True)
     if not report.applied:
         for name in ("metrics.json", "point_predictions.csv", "holdout_after.json", "run_manifest.json"):
@@ -86,18 +86,13 @@ def main():
             CoolProp=CoolProp.__version__,
             baseline=BASELINE_VERSION,
             equipment=EQUIPMENT_SETTINGS,
-            bounds=CALIBRATION_BOUNDS,
+            bounds=report.lambda_bounds,
+            heating_reference_W=HEATING_REFERENCE_W,
+            catalogue_model="ASYG30LMTA/AOYG30LMTA",
             calibration_ids=train.id.tolist(),
             holdout_ids=test.id.tolist(),
             elapsed_s=time.monotonic() - start,
-            assumptions=[
-                "Outdoor DB=printed WB+1 K, not a measured dry bulb",
-                "UA derived with assumed effectiveness 0.70/0.65",
-                "44.9/50 W are fan reference inputs; actual fan powers follow existing TMHP fan curves",
-                "Airflow limits 20–100% reference and approach 1–35 K are numerical case assumptions",
-                "R290 scroll map transferred to R32 rotary; not independently identified compressor efficiencies",
-                "Speed 30–110 rev/s restricts to source-map speed support, not manufacturer-certified envelope",
-            ],
+            assumptions=ASSUMPTIONS,
         ),
     )
     print(json.dumps(result, indent=2), flush=True)

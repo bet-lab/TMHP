@@ -1,4 +1,4 @@
-"""Research maps reproduce their archived surrogate without replacing production defaults."""
+"""ASHP research defaults reproduce their archive and retain explicit caller overrides."""
 
 import json
 from pathlib import Path
@@ -9,7 +9,6 @@ import pytest
 
 from tmhp import AirSourceHeatPump
 from tmhp.compressor_baseline import BASELINE_VERSION, OssorioR290Map, ossorio_r290_efficiencies
-from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 
 ARCHIVE = Path(__file__).parents[1] / "validation" / "compressor_fitting" / "baseline_surrogate.json"
 
@@ -47,21 +46,42 @@ def test_transformed_efficiencies_preserve_compressor_energy_balance_across_the_
         assert refrigerant_power == pytest.approx((1 - f_loss) * electrical_power)
 
 
-def test_research_baseline_requires_explicit_overrides_and_leaves_bitzer_defaults_unchanged():
-    """Constructing an Ossorio model has no side effect on existing or later default models."""
-    before = AirSourceHeatPump(ref="R32")
-    research = AirSourceHeatPump(ref="R32", **ossorio_r290_efficiencies())
-    after = AirSourceHeatPump(ref="R32")
-    for field, factory in (
-        ("eta_cmp_vol", make_eta_vol),
-        ("eta_cmp_isen", make_eta_isen),
-        ("eta_cmp", make_eta_em),
-    ):
-        expected = factory(50)(3, 50)
-        assert getattr(before, field)(3, 50) == pytest.approx(expected)
-        assert getattr(after, field)(3, 50) == pytest.approx(expected)
-        assert isinstance(getattr(research, field), OssorioR290Map)
-        assert getattr(research, field)(3, 50) != pytest.approx(expected)
+def test_ashp_uses_the_research_baseline_without_user_map_arguments():
+    """Omitting efficiency inputs selects the same maps as explicit Ossorio overrides."""
+    implicit = AirSourceHeatPump(ref="R32")
+    explicit = AirSourceHeatPump(ref="R32", **ossorio_r290_efficiencies())
+    for field in ("eta_cmp_vol", "eta_cmp_isen", "eta_cmp"):
+        assert isinstance(getattr(implicit, field), OssorioR290Map)
+        for pressure_ratio, speed in ((2, 30), (3, 50), (6, 100)):
+            assert getattr(implicit, field)(pressure_ratio, speed) == pytest.approx(
+                getattr(explicit, field)(pressure_ratio, speed)
+            )
+    assert implicit.rps_rated == pytest.approx(explicit.rps_rated)
+    assert implicit.m_dot_ref_rated == pytest.approx(explicit.m_dot_ref_rated)
+
+
+@pytest.mark.parametrize("field", ["eta_cmp_vol", "eta_cmp_isen", "eta_cmp"])
+@pytest.mark.parametrize("kind", ["scalar", "callable"])
+def test_explicit_efficiency_overrides_replace_only_the_requested_default(field, kind):
+    """A supplied scalar or callable remains authoritative while omitted maps use Ossorio."""
+
+    def custom(pressure_ratio, speed):
+        """Return a stable explicit user efficiency for override-preservation checks."""
+        return 0.85
+
+    override = 0.85 if kind == "scalar" else custom
+    model = AirSourceHeatPump(ref="R32", **{field: override})
+    assert getattr(model, field) is override
+    for other_field in {"eta_cmp_vol", "eta_cmp_isen", "eta_cmp"} - {field}:
+        assert isinstance(getattr(model, other_field), OssorioR290Map)
+
+
+def test_deprecated_mechanical_override_remains_a_fallback_below_explicit_eta_cmp():
+    """Legacy inputs remain usable and cannot override a modern explicit efficiency."""
+    fallback = AirSourceHeatPump(ref="R32", eta_cmp_mech=0.87)
+    explicit = AirSourceHeatPump(ref="R32", eta_cmp_mech=0.87, eta_cmp=0.91)
+    assert fallback.eta_cmp == 0.87
+    assert explicit.eta_cmp == 0.91
 
 
 @pytest.mark.parametrize("quantity", ["", "eta_isentropic", "power", "eta_v "])

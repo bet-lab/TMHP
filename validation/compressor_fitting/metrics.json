@@ -1,36 +1,36 @@
 {
   "calibration": {
     "before": {
-      "requested": 6,
-      "valid": 6,
+      "requested": 4,
+      "valid": 4,
       "failed": 0,
-      "COP_RMSE": 0.43385724955024324,
-      "power_RMSE_W": 123.93280869211726
+      "COP_RMSE": 0.8669983275759479,
+      "power_RMSE_W": 600.7918007460243
     },
     "after": {
-      "requested": 6,
-      "valid": 6,
+      "requested": 4,
+      "valid": 4,
       "failed": 0,
-      "COP_RMSE": 0.42912884382031913,
-      "power_RMSE_W": 129.05196284281328
+      "COP_RMSE": 0.35859285323613865,
+      "power_RMSE_W": 238.0567636184861
     },
-    "COP_RMSE_improvement_pct": 1.08985288014106
+    "COP_RMSE_improvement_pct": 58.639729532266436
   },
   "holdout": {
     "before": {
-      "requested": 3,
-      "valid": 3,
+      "requested": 16,
+      "valid": 16,
       "failed": 0,
-      "COP_RMSE": 0.5038207209866308,
-      "power_RMSE_W": 113.1219964886771
+      "COP_RMSE": 0.8994694117133101,
+      "power_RMSE_W": 618.7789905093812
     },
     "after": {
-      "requested": 3,
-      "valid": 3,
+      "requested": 16,
+      "valid": 16,
       "failed": 0,
-      "COP_RMSE": 0.4402145723937508,
-      "power_RMSE_W": 97.07704239922641
+      "COP_RMSE": 0.38334401711438076,
+      "power_RMSE_W": 257.5855262018143
     },
-    "COP_RMSE_improvement_pct": 12.624758360140536
+    "COP_RMSE_improvement_pct": 57.38109466288722
   }
 }

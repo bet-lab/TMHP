@@ -14,6 +14,7 @@ from tmhp import (
     WaterSourceHeatPumpBoiler,
 )
 from tmhp.ashpb_stc_preheat import ASHPB_STC_preheat
+from tmhp.compressor_baseline import ossorio_r290_efficiencies
 from tmhp.compressor_efficiency import make_eta_em, make_eta_isen, make_eta_vol
 from tmhp.compressor_speed import default_displacement
 from tmhp.gshpb_stc_ground import GSHPB_STC_ground
@@ -74,6 +75,7 @@ def test_rating_condition_is_the_family_standard_not_the_simulation_point(cls):
 
 @pytest.mark.parametrize("cls", ALL)
 def test_reference_state_closes_cycle_and_both_heat_exchangers(cls):
+    """Each family's chosen default closes the rated cycle and both heat exchangers."""
     hp = build(cls)
     state = hp.reference_state
     cond = state.condition
@@ -85,8 +87,11 @@ def test_reference_state_closes_cycle_and_both_heat_exchangers(cls):
     assert state.pressure_ratio == pytest.approx(P_cond / P_evap, rel=1e-6)
     pr, rps = state.pressure_ratio, hp.rps_rated
     for name, factory in (("eta_cmp_vol", make_eta_vol), ("eta_cmp_isen", make_eta_isen), ("eta_cmp", make_eta_em)):
+        expected = (
+            ossorio_r290_efficiencies()[name](pr, rps) if cls is AirSourceHeatPump else factory(hp.rps_rated)(pr, rps)
+        )
         assert getattr(state, name) == pytest.approx(getattr(hp, name)(pr, rps))
-        assert getattr(hp, name)(pr, rps) == pytest.approx(factory(hp.rps_rated)(pr, rps))
+        assert getattr(hp, name)(pr, rps) == pytest.approx(expected)
     # Energy balance of each heat exchanger at rated UA and reference flow.
     heating = cond.mode == "heating"
     evap_side, cond_side = (cond.source, cond.load) if heating else (cond.load, cond.source)
@@ -96,10 +101,11 @@ def test_reference_state_closes_cycle_and_both_heat_exchangers(cls):
 
 
 def test_model_cycle_at_reference_saturation_reproduces_rated_speed_and_mass_flow():
+    """Reference values and cycle balances are unchanged by maximum-flow overrides."""
     # Max flows above reference (reference, hence the rating point, unchanged)
     # so the model's own coil solvers are not sitting on their upper bound.
     ashp = AirSourceHeatPump(dV_iu_fan_a_max=1.2, dV_ou_fan_a_max=1.2)
-    assert ashp.reference_state is AirSourceHeatPump().reference_state
+    assert ashp.reference_state == AirSourceHeatPump().reference_state
     s = ashp.reference_state
     row = ashp._calc_state(27 - s.T_evap_sat_C, s.T_cond_sat_C - 35, ashp.hp_capacity, 35, 27)
     assert row["cmp_rpm [rpm]"] / 60 == pytest.approx(ashp.rps_rated, rel=1e-6)
@@ -131,12 +137,15 @@ def test_variable_ground_hx_ua_runs_without_external_reference_prerun(cls):
 
 @pytest.mark.parametrize("cls", ALL)
 def test_explicit_inputs_override_solved_values(cls):
+    """Explicit reference inputs remain authoritative while each family's efficiency defaults remain intact."""
     hp = build(cls, V_cmp_ref=8e-5, rps_rated=55.0, m_dot_ref_rated=0.03)
     assert (hp.V_cmp_ref, hp.rps_rated, hp.m_dot_ref_rated) == (8e-5, 55.0, 0.03)
     assert hp.reference_state is None  # nothing left to solve
-    assert hp.eta_cmp_vol(3.0, 40.0) == pytest.approx(make_eta_vol(55.0)(3.0, 40.0))
-    assert hp.eta_cmp_isen(3.0, 40.0) == pytest.approx(make_eta_isen(55.0)(3.0, 40.0))
-    assert hp.eta_cmp(3.0, 40.0) == pytest.approx(make_eta_em(55.0)(3.0, 40.0))
+    for name, factory in (("eta_cmp_vol", make_eta_vol), ("eta_cmp_isen", make_eta_isen), ("eta_cmp", make_eta_em)):
+        expected = (
+            ossorio_r290_efficiencies()[name](3.0, 40.0) if cls is AirSourceHeatPump else factory(55.0)(3.0, 40.0)
+        )
+        assert getattr(hp, name)(3.0, 40.0) == pytest.approx(expected)
 
     only_speed = build(cls, rps_rated=55.0)
     assert only_speed.rps_rated == 55.0 and not only_speed.reference_state.rps_rated_solved
@@ -153,8 +162,8 @@ def test_both_explicit_skips_the_solver(monkeypatch):
 
 
 @pytest.mark.parametrize("cls", ALL)
-def test_explicit_rated_speed_keeps_former_results(cls):
-    # Former behaviour: rps_rated fixed, baseline correlations built from it.
+def test_explicit_rated_speed_matches_each_models_chosen_default_maps(cls):
+    """Implicit and explicit maps produce the same cycle for each model family."""
     fixed = 60.0 if cls in (AirSourceHeatPump, GroundSourceHeatPump) else 40.0
     legacy = dict(
         eta_cmp_isen=make_eta_isen(fixed),
@@ -162,6 +171,8 @@ def test_explicit_rated_speed_keeps_former_results(cls):
         eta_cmp=make_eta_em(fixed),
         rps_rated=fixed,
     )
+    if cls is AirSourceHeatPump:
+        legacy.update(ossorio_r290_efficiencies())
     new = build(cls, rps_rated=fixed)
     old = build(cls, **legacy)
     if cls is AirSourceHeatPump:

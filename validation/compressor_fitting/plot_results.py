@@ -61,6 +61,8 @@ def save(fig, name):
     OUT.mkdir(exist_ok=True)
     fig.canvas.draw()
     fig.savefig(OUT / f"{name}.svg", transparent=True, bbox_inches=None)
+    svg = OUT / f"{name}.svg"
+    svg.write_text("\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n")
     fig.savefig(OUT / f"{name}.pdf", transparent=True, bbox_inches=None)
     fig.savefig(OUT / f"{name}.png", facecolor="white", transparent=False, dpi=180, bbox_inches=None)
     plt.close(fig)

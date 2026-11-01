@@ -1,0 +1,9 @@
+# Source documents and page reproductions remain local, following repository policy.
+panasonic_heating_table.png
+source_audit/crops/*.png
+source_audit/ossorio_thesis_r290_134*.csv
+# Regenerable presentation artifacts and logs are local; SVG/PDF plots are tracked.
+figures/*.png
+run_case.log
+figma_*.json
+

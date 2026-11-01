@@ -1,0 +1,13 @@
+{
+  "identical_metrics_after_review_fixes": true,
+  "all_stages_completed": true,
+  "hashes": {
+    "src/tmhp/calibration.py": "1e368ddec728e40276d4323c171a2b01e4000cc6ce1a7877e69e78b176d1d1cf",
+    "src/tmhp/compressor_baseline.py": "ea8871bdeee764a7661718fac52b9d130cdc4f347618e9d911dbb2ad96229062",
+    "src/tmhp/air_source_heat_pump.py": "7374f44831a50c04dcb34f008d0b4eab48882289ce7ac52d88e5a3a2c4e3badf",
+    "validation/compressor_fitting/case.py": "c8fd3e77c71bc23de941d5d4edd6b6171cfa7a0ea91e6c1f4923ce10a2352da2",
+    "validation/compressor_fitting/catalogue_points.csv": "8b20c77238ba95d6ca4d3c565e0219217fdc45ef175e1f1a088f58b76e67aba6",
+    "validation/compressor_fitting/fit_report.json": "1c0eb35a5264b5053652a98b13c5ee5e6674640dc5a100ae82dd9c2d13db4984",
+    "validation/compressor_fitting/metrics.json": "0931e0650225620eaae98e8ab862fc688d509faa415fdab7397b3c1202b3e97d"
+  }
+}

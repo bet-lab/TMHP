@@ -1,0 +1,30 @@
+{
+  "source_url": "https://riunet.upv.es/bitstreams/6612b905-7a7a-436d-b73c-ac1bc903c27a/download",
+  "source_sha256": "66f32f7ba6190c527317be55a66d584a3b85588c7263e539d578c937f8f0fa47",
+  "source_pdf_pages": [
+    244,
+    252
+  ],
+  "source_equation_pdf_page": 116,
+  "source_table35_pdf_page": 119,
+  "n": 134,
+  "excluded_rows": 0,
+  "CoolProp_version": "7.2.0",
+  "property_backend": "HEOS::Propane",
+  "power_boundary": "compressor plus inverter, measured",
+  "RMSE_eta_em_as_printed_journal_Eq22": 0.7536422962549203,
+  "RMSE_eta_em_thesis_Eq3_22_vs_author_ratio": 0.011633959925252728,
+  "RMSE_eta_em_thesis_Eq3_22_vs_HEOS": 0.011469410089668142,
+  "RMSE_tdis_from_measured_mdot_power_K": 0.7447084936108567,
+  "RMSE_eta_ov_HEOS_vs_author": 0.0022050827457871292,
+  "RMSE_mass_Eq10_g_s": 0.22221993406064938,
+  "RMSE_total_power_Eq17_W": 94.88748244874505,
+  "interpretation_status": "evidence-backed: author thesis Eq3.22, matching coefficients, all 134 printed rows",
+  "limitations": [
+    "The journal fits use 133 rows; the thesis prints 134. The omitted journal row is not identified.",
+    "The thesis prints rounded measurements and efficiencies; source precision is preserved.",
+    "The paper used REFPROP 10.0; this audit uses CoolProp HEOS.",
+    "The discharge-temperature audit conditions on measured mass flow and total power; it is not an end-to-end heat-pump validation.",
+    "The 134 rows are source-model training data, not an independent test set."
+  ]
+}

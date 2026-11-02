@@ -28,7 +28,10 @@ TOKENS = json.loads((ROOT / "plot_tokens.json").read_text())["roles"]
 BLUE = TOKENS["magnitude.stop_6"]["value"]
 INK = TOKENS["text.label"]["value"]
 GRAY = TOKENS["text.auxiliary"]["value"]
-CMAP = LinearSegmentedColormap.from_list("betlab_blue", [TOKENS[f"magnitude.stop_{i}"]["value"] for i in range(1, 10)])
+# ColorBrewer Blues9 (user override); upper 20% omitted to avoid the dark navy tail.
+BLUES9 = ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"]
+_BLUES9_BASE = LinearSegmentedColormap.from_list("Blues9", BLUES9, N=1024)
+CMAP = LinearSegmentedColormap.from_list("Blues9_light", _BLUES9_BASE(np.linspace(0, 0.8, 1024)), N=1024)
 plt.rcParams.update(
     {
         "figure.facecolor": "none",
@@ -99,11 +102,11 @@ def maps(scales=None, name="baseline_maps"):
         contour_step = {"eta_v": 2, "eta_ov": 4, "f_loss": 2}[key]
         first = np.ceil(z.min() / contour_step) * contour_step
         contour_levels = np.arange(first, z.max(), contour_step)
-        while len(contour_levels) < 4:
+        while len(contour_levels) < 3:
             contour_step /= 2
             first = np.ceil(z.min() / contour_step) * contour_step
             contour_levels = np.arange(first, z.max(), contour_step)
-        assert len(contour_levels) >= 4
+        assert 3 <= len(contour_levels) <= 8
         lines = ax.contour(pr, n, z, levels=contour_levels, colors=INK, linewidths=0.35, alpha=0.6)
         ax.clabel(lines, fontsize=7, fmt="%g")
         if scales is not None and abs(factor - 1) > 1e-6:

@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from case import EQUIPMENT_SETTINGS, ROOT, catalogue, make_model, points
 from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.offsetbox import AnnotationBbox, HPacker, TextArea
 
 from tmhp.calibration import EfficiencyScales, scaled_efficiencies
 from tmhp.compressor_baseline import OssorioR290Map
@@ -110,9 +111,14 @@ def render(data, target, seconds=15, fps=24):
     blue = tokens["magnitude.stop_6"]["value"]
     ink = tokens["text.label"]["value"]
     gray = tokens["text.auxiliary"]["value"]
-    cmap = LinearSegmentedColormap.from_list(
-        "betlab", [tokens[f"magnitude.stop_{i}"]["value"] for i in range(1, 10)], N=1024
+    # ColorBrewer Blues9 anchors, continuously interpolated; the installed
+    # dartwork-mpl 0.4 does not ship a colormap named blues9.
+    brewer = LinearSegmentedColormap.from_list(
+        "ColorBrewerBlues9",
+        ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
+        N=4096,
     )
+    cmap = LinearSegmentedColormap.from_list("Blues9_lightened_0_0.8", brewer(np.linspace(0, 0.8, 1024)), N=1024)
     plt.rcParams.update(
         {
             "font.family": tokens["font.latin"]["value"],
@@ -136,6 +142,15 @@ def render(data, target, seconds=15, fps=24):
         lo = math.floor(values.min() / step) * step
         hi = math.ceil(values.max() / step) * step
         limits.append((lo, hi, step))
+    # Explicit presentation choice: saturate colors outside 60–90%, retaining
+    # the unmodified physical surface and iso-values beyond the color limits.
+    limits[0] = (60.0, 90.0, 5.0)
+    fixed_contours = {
+        "eta_ov": np.arange(45, 106, 5),
+        "eta_v": np.arange(85, 102, 2),
+        "f_loss": np.array([5, 6, 7, 8, 9, 11, 13, 15, 17, 19]),
+    }
+    visible_counts = {key: [] for key in QUANTITIES}
     all_cop = [
         value
         for snapshot in data["snapshots"]
@@ -189,6 +204,7 @@ def render(data, target, seconds=15, fps=24):
                     facecolors=fill,
                     edgecolors=color,
                     label=label,
+                    clip_on=False,
                 )
         rejected = [p for p in cat if p["operating_valid"] and not p["valid"]]
         if rejected:
@@ -199,13 +215,13 @@ def render(data, target, seconds=15, fps=24):
                 s=22,
                 color="#c93c37",
                 label="Rejected / unverified",
+                clip_on=False,
             )
             ax.text(0.04, 0.80, "Rejected / unverified state", transform=ax.transAxes, color="#c93c37", fontsize=8)
         ax.legend(loc="lower right", frameon=False, fontsize=8)
 
         spec(ax, "x", cop_bounds, "Catalogue heating COP")
         spec(ax, "y", cop_bounds, "Predicted heating COP")
-        ax.set_title("Catalogue parity")
         rmse = (
             np.sqrt(np.mean([(p["COP_model"] - p["COP_catalogue"]) ** 2 for p in valid]))
             if len(valid) == len(cat)
@@ -223,6 +239,20 @@ def render(data, target, seconds=15, fps=24):
         ax = axes[1]
         ys = [p["COP_model"] if p["valid"] else np.nan for p in curve]
         ax.plot(data["PLR"], ys, color=blue, marker="o", markersize=3)
+        valid_curve = [(plr, point) for plr, point in zip(data["PLR"], curve, strict=True) if point["valid"]]
+        if valid_curve:
+            maximum_plr, maximum_point = max(valid_curve, key=lambda pair: pair[0])
+            ax.scatter(
+                [maximum_plr],
+                [maximum_point["COP_model"]],
+                s=22,
+                facecolors="white",
+                edgecolors=blue,
+                linewidths=0.8,
+                zorder=6,
+                clip_on=False,
+            )
+
         bad_curve = [
             (plr, p) for plr, p in zip(data["PLR"], curve, strict=True) if p["operating_valid"] and not p["valid"]
         ]
@@ -233,11 +263,11 @@ def render(data, target, seconds=15, fps=24):
                 color="#c93c37",
                 marker="x",
                 s=16,
+                clip_on=False,
             )
 
         spec(ax, "x", (0.4, 1.6, 0.2), "Part-load ratio")
         spec(ax, "y", curve_bounds, "Heating COP")
-        ax.set_title(f"Indoor {data['indoor']:g} °C / Outdoor {data['outdoor']:g} °C", fontsize=10)
         ax.text(
             0.04,
             0.05,
@@ -251,9 +281,14 @@ def render(data, target, seconds=15, fps=24):
         lo, hi, step = limits[stage]
         z = OssorioR290Map(key)(pr, n) * scales[FIELDS[stage]] * 100
         im = ax.pcolormesh(pr, n, z, cmap=cmap, norm=Normalize(lo, hi), shading="gouraud", rasterized=False)
-        levels = np.linspace(z.min() + 0.05 * (z.max() - z.min()), z.max() - 0.05 * (z.max() - z.min()), 6)
+        # These exact physical iso-values are fixed for the entire video.
+        # Levels outside the current field are naturally absent, never renumbered.
+        levels = fixed_contours[key]
         contours = ax.contour(pr, n, z, levels=levels, colors=ink, linewidths=0.4)
-        ax.clabel(contours, fontsize=7, fmt="%.1f")
+        visible_contours = sum(any(len(segment) >= 2 for segment in group) for group in contours.allsegs)
+        assert 3 <= visible_contours <= 8, (frame, key, visible_contours)
+        visible_counts[key].append(visible_contours)
+        ax.clabel(contours, fontsize=7, fmt="%d")
         ax.plot(
             [p["pressure_ratio"] if p["valid"] else np.nan for p in curve],
             [p["speed_rps"] if p["valid"] else np.nan for p in curve],
@@ -263,14 +298,17 @@ def render(data, target, seconds=15, fps=24):
             lw=1.1,
         )
         valid_curve = [(plr, point) for plr, point in zip(data["PLR"], curve, strict=True) if point["valid"]]
-        for plr, point in valid_curve[:: max(1, len(valid_curve) // 3)]:
-            ax.annotate(
-                f"{plr:.1f}",
-                (point["pressure_ratio"], point["speed_rps"]),
-                xytext=(5, 0),
-                textcoords="offset points",
-                fontsize=7,
-                color=ink,
+        if valid_curve:
+            maximum_point = max(valid_curve, key=lambda pair: pair[0])[1]
+            ax.scatter(
+                [maximum_point["pressure_ratio"]],
+                [maximum_point["speed_rps"]],
+                s=22,
+                facecolors="white",
+                edgecolors=ink,
+                linewidths=0.8,
+                zorder=6,
+                clip_on=False,
             )
         if bad_curve:
             ax.scatter(
@@ -279,22 +317,53 @@ def render(data, target, seconds=15, fps=24):
                 color="#c93c37",
                 marker="x",
                 s=16,
+                clip_on=False,
             )
         spec(ax, "x", (2, 7, 1), "Pressure ratio")
         spec(ax, "y", (30, 110, 20), "Shaft speed [rev/s]")
         delta = b["scales"][FIELDS[stage]] - a["scales"][FIELDS[stage]]
-        ax.set_title(f"{LABELS[stage]} (λ = {scales[FIELDS[stage]]:.3f})", fontsize=10, pad=16)
-        ax.text(
-            1.02,
-            1.03,
-            "=" if frame == frame_count - 1 else ("▲" if delta > 0 else "▼"),
-            transform=ax.transAxes,
-            color=gray if frame == frame_count - 1 else ("#238636" if delta > 0 else "#c93c37"),
-            fontsize=13,
+        # All three title boxes share a bottom anchor and baseline font.
+        common = {"fontsize": 10, "color": ink}
+        triangle = TextArea(
+            "▲" if delta > 0 else "▼", textprops={"fontsize": 10, "color": "#238636" if delta > 0 else "#c93c37"}
         )
+        active_title = HPacker(
+            children=[
+                TextArea(f"{LABELS[stage]} (λ = {scales[FIELDS[stage]]:.2f}", textprops=common),
+                triangle,
+                TextArea(")", textprops=common),
+            ],
+            align="baseline",
+            pad=0,
+            sep=2,
+        )
+        titles = []
+        for title_ax, title_box in zip(
+            axes,
+            [
+                TextArea("Catalogue parity", textprops=common),
+                TextArea(f"Indoor {data['indoor']:g} °C / Outdoor {data['outdoor']:g} °C", textprops=common),
+                active_title,
+            ],
+            strict=True,
+        ):
+            title_ax.set_title("")
+            title_artist = AnnotationBbox(
+                title_box,
+                (0.5, 1.04),
+                xycoords="axes fraction",
+                box_alignment=(0.5, 0),
+                frameon=False,
+                pad=0,
+                annotation_clip=False,
+            )
+            title_ax.add_artist(title_artist)
+            titles.append(title_artist)
         if barax is not None:
             barax.remove()
         fig.canvas.draw()
+        title_bottoms = [title.get_window_extent(fig.canvas.get_renderer()).y0 for title in titles]
+        assert max(title_bottoms) - min(title_bottoms) < 1, title_bottoms
         panel_bbox = ax.get_window_extent()
         for label in list(contours.labelTexts):
             bounds = label.get_window_extent(fig.canvas.get_renderer())
@@ -350,6 +419,24 @@ def render(data, target, seconds=15, fps=24):
         "duration_s": seconds,
         "size_px": [width, height],
         "normalization": dict(zip(QUANTITIES, limits, strict=True)),
+        "colormap": {
+            "source": "ColorBrewer Blues9 nine anchors",
+            "continuous": True,
+            "display_fraction": [0, 0.8],
+            "dartwork_native": False,
+        },
+        "contour_labels": "fixed physical integer iso-values across every frame; three to eight visible",
+        "visible_contour_counts": {
+            key: {"min": min(values), "max": max(values), "frames": len(values)}
+            for key, values in visible_counts.items()
+        },
+        "explicit_color_limit_override": {
+            "eta_ov": [60, 90],
+            "intent": "colors saturate outside 60–90%; physical surface and iso-lines remain unchanged",
+        },
+        "fixed_contour_levels": {key: levels.tolist() for key, levels in fixed_contours.items()},
+        "titles": "shared baseline; inline colored direction triangle; lambda .2f",
+        "PLR_markers": "maximum valid PLR is a white-filled circle on both COP curve and map trajectory; other valid markers filled; rejected/unverified points remain red crosses",
         "linear_axes": {
             "parity_x_and_y": cop_bounds,
             "PLR_x": (0.4, 1.6, 0.2),

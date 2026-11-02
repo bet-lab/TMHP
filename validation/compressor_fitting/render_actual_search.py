@@ -157,7 +157,7 @@ def render(source, target, fps=24):
             spec(ax, "x", parity, "Catalogue heating COP")
             spec(ax, "y", parity, "Predicted heating COP")
             rms = event["objective_rmse"]
-            status = f"COP RMSE = {rms:.3f}" if rms is not None else "COP RMSE = unavailable"
+            status = f"COP RMSE = {rms:.2f}" if rms is not None else "COP RMSE = unavailable"
             ax.text(
                 0.04,
                 0.96,
@@ -210,7 +210,7 @@ def render(source, target, fps=24):
                 ax.text(
                     0.04,
                     0.96,
-                    f"λ = {scales[field_key]:.5f}\nRMSE unavailable",
+                    f"λ = {scales[field_key]:.2f}\nRMSE unavailable",
                     transform=ax.transAxes,
                     va="top",
                     color=COLORS["invalid"],
@@ -222,7 +222,7 @@ def render(source, target, fps=24):
                 ax.text(
                     0.04,
                     0.96,
-                    f"λ = {scales[field_key]:.6f}\nRMSE = {rms:.6f}",
+                    f"λ = {scales[field_key]:.2f}\nRMSE = {rms:.2f}",
                     transform=ax.transAxes,
                     va="top",
                     fontsize=dm.fs(-2),
@@ -326,7 +326,7 @@ def render(source, target, fps=24):
             fig.text(
                 0.5,
                 0.125,
-                f"Call {event['sequence']}/{len(events)} · Unique candidate {event['candidate_id']}/{report['evaluations']} · λov {scales['lambda_eta_ov']:.5f} · λv {scales['lambda_eta_v']:.3f} · λloss {scales['lambda_f_loss']:.3f}",
+                f"Call {event['sequence']}/{len(events)} · Unique candidate {event['candidate_id']}/{report['evaluations']} · λov {scales['lambda_eta_ov']:.2f} · λv {scales['lambda_eta_v']:.2f} · λloss {scales['lambda_f_loss']:.2f}",
                 ha="center",
                 fontsize=dm.fs(-2),
                 color=COLORS["context"],

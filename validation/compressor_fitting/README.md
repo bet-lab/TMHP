@@ -209,3 +209,5 @@ Pressure-ratio and approach limits belong to the inner state solver. COP RMSE is
 an objective/accuracy measure, not the validity criterion. In the illustrative
 movie intermediate frames inherit endpoint validity without a new physical
 solve; actual-history frames use the recorded point-by-point validation results.
+
+Actual-search video RMSE and lambda annotations are displayed to two decimal places. Saved trace values and plotted candidate coordinates retain their original precision.

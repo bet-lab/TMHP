@@ -28,10 +28,10 @@ TOKENS = json.loads((ROOT / "plot_tokens.json").read_text())["roles"]
 BLUE = TOKENS["magnitude.stop_6"]["value"]
 INK = TOKENS["text.label"]["value"]
 GRAY = TOKENS["text.auxiliary"]["value"]
-# ColorBrewer Blues9 (user override); upper 20% omitted to avoid the dark navy tail.
-BLUES9 = ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"]
-_BLUES9_BASE = LinearSegmentedColormap.from_list("Blues9", BLUES9, N=1024)
-CMAP = LinearSegmentedColormap.from_list("Blues9_light", _BLUES9_BASE(np.linspace(0, 0.8, 1024)), N=1024)
+# Exact palette used by the user-approved lambda_scaling_1x reference video.
+# Figure System magnitude stops 1–5, continuously interpolated without truncation.
+REFERENCE_STOPS = [TOKENS[f"magnitude.stop_{i}"]["value"] for i in range(1, 6)]
+CMAP = LinearSegmentedColormap.from_list("magnitude-light", REFERENCE_STOPS, N=1024)
 plt.rcParams.update(
     {
         "figure.facecolor": "none",

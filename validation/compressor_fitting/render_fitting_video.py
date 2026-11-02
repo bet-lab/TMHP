@@ -25,6 +25,7 @@ import case as case_config
 import matplotlib.pyplot as plt
 import numpy as np
 from case import EQUIPMENT_SETTINGS, ROOT, catalogue, make_model, points
+from matplotlib import patheffects
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.offsetbox import AnnotationBbox, HPacker, TextArea
 
@@ -102,23 +103,170 @@ def interpolate_rows(a, b, f):
     return out
 
 
+def tracked_label_plan(segments, previous, frame, seed):
+    """Project a tracked anchor onto the current physical iso-line."""
+    pieces = [np.asarray(q) for q in segments if len(q) >= 2]
+    normalized = [(q - [2, 30]) / [5, 80] for q in pieces]
+    if previous is not None and previous["frame"] == frame - 1:
+        target = np.asarray(previous["anchor"])
+    else:
+        # Prefer the branch facing the fixed global minimum; it survives while
+        # the lower iso-value moves towards the boundary during scalar sweeps.
+        target = np.asarray(seed)
+    # Preserve branch identity before preferring interior placement. Otherwise a
+    # tiny boundary branch can jump to a distant, unrelated visible branch.
+    distances = [np.min(np.linalg.norm(q - target, axis=1)) for q in normalized]
+    normalized = [normalized[int(np.argmin(distances))]]
+
+    def candidates(interior):
+        out = []
+        for q in normalized:
+            mask = np.all((q >= 0.045) & (q <= 0.955), axis=1) if interior else np.ones(len(q), dtype=bool)
+            out.extend(q[mask])
+            a, b = q[:-1], q[1:]
+            keep = mask[:-1] & mask[1:]
+            a, b = a[keep], b[keep]
+            if len(a):
+                v = b - a
+                den = np.sum(v * v, axis=1)
+                u = np.clip(np.sum((target - a) * v, axis=1) / np.maximum(den, 1e-20), 0, 1)
+                out.extend(a + u[:, None] * v)
+        return np.asarray(out)
+
+    interior_points = candidates(True)
+    all_points = candidates(False)
+    boundary = not len(interior_points)
+    if len(interior_points):
+        interior_distance = np.min(np.linalg.norm(interior_points - target, axis=1))
+        nearest_distance = np.min(np.linalg.norm(all_points - target, axis=1))
+        # Preserve a tracked boundary branch rather than jump a label far along
+        # the curve only to regain an interior text box.
+        boundary = interior_distance > nearest_distance + 0.025
+    points = all_points if boundary else interior_points
+    anchor = points[np.argmin(np.linalg.norm(points - target, axis=1))]
+    text = np.clip(anchor, 0.045, 0.955)
+    delta = float(np.linalg.norm(text - previous["text"])) if previous and previous["frame"] == frame - 1 else None
+    return {
+        "frame": frame,
+        "anchor": anchor.tolist(),
+        "text": text.tolist(),
+        "text_offset_axes": float(np.linalg.norm(text - anchor)),
+        "leader_reason": "Tracked boundary iso-line has no nearby interior label anchor; offset text with leader"
+        if boundary
+        else None,
+        "consecutive_displacement_axes": delta,
+    }
+
+
+def plan_labels(data, pr, speed, fixed_levels, frame_count):
+    """Audit all physical labels before encoding, including natural lifetimes."""
+    import contourpy
+
+    previous = {}
+    previous_visible = set()
+    previous_key = None
+    events = []
+    plans = []
+    statistics = {key: [] for key in QUANTITIES}
+    for frame in range(frame_count):
+        progress = frame / (frame_count - 1) * 3
+        stage = min(int(progress), 2)
+        local = min(progress - stage, 1) * 3
+        left = min(int(local), 2) + 3 * stage
+        fraction = min(local - int(local), 1)
+        fraction = 0.5 - 0.5 * np.cos(np.pi * fraction)
+        if frame == frame_count - 1:
+            left = 8
+            fraction = 1
+        a, b = data["snapshots"][left : left + 2]
+        key = QUANTITIES[stage]
+        factor = a["scales"][FIELDS[stage]] + (b["scales"][FIELDS[stage]] - a["scales"][FIELDS[stage]]) * fraction
+        field = OssorioR290Map(key)(pr, speed) * factor * 100
+        generator = contourpy.contour_generator(x=pr, y=speed, z=field, line_type="Separate")
+        labels = {}
+        for level in fixed_levels[key]:
+            pieces = generator.lines(float(level))
+            if not any(len(q) >= 2 for q in pieces):
+                continue
+            identity = (key, int(level))
+            seed = np.unravel_index(np.argmin(field), field.shape)
+            seed = ((pr[seed] - 2) / 5, (speed[seed] - 30) / 80)
+            entry = tracked_label_plan(pieces, previous.get(identity), frame, seed)
+            point = np.asarray(entry["anchor"]) * [5, 80] + [2, 30]
+            entry.update(quantity=key, iso_value=int(level), lambda_scale=float(factor))
+            entry["physical_anchor_error_pct_points"] = abs(float(OssorioR290Map(key)(*point) * factor * 100 - level))
+            assert entry["physical_anchor_error_pct_points"] < 0.02, entry
+            previous[identity] = entry
+            labels[int(level)] = entry
+        assert 2 <= len(labels) <= 5, (frame, key, len(labels))
+        current_visible = set(labels)
+        if previous_key != key:
+            events.append(
+                {
+                    "frame": frame,
+                    "time_s": frame / 24,
+                    "quantity": key,
+                    "event": "stage_transition",
+                    "visible_values": sorted(current_visible),
+                    "reason": "Displayed physical quantity changes",
+                }
+            )
+        else:
+            for value in sorted(current_visible - previous_visible):
+                events.append(
+                    {
+                        "frame": frame,
+                        "time_s": frame / 24,
+                        "quantity": key,
+                        "event": "birth",
+                        "iso_value": value,
+                        "lambda_scale": float(factor),
+                        "field_range": [float(field.min()), float(field.max())],
+                        "reason": "Fixed physical iso-value enters the displayed field; a drawable contour segment exists",
+                    }
+                )
+            for value in sorted(previous_visible - current_visible):
+                events.append(
+                    {
+                        "frame": frame,
+                        "time_s": frame / 24,
+                        "quantity": key,
+                        "event": "death",
+                        "iso_value": value,
+                        "lambda_scale": float(factor),
+                        "field_range": [float(field.min()), float(field.max())],
+                        "reason": "Fixed physical iso-value leaves the displayed field; no drawable contour segment remains",
+                    }
+                )
+        previous_visible = current_visible
+        previous_key = key
+        statistics[key].append(len(labels))
+        plans.append(labels)
+    audit = {
+        "per_frame": plans,
+        "visible_counts": {key: {"min": min(v), "max": max(v), "frames": len(v)} for key, v in statistics.items()},
+    }
+    entries = [v for frame in plans for v in frame.values()]
+    audit["max_anchor_error_pct_points"] = max(v["physical_anchor_error_pct_points"] for v in entries)
+    audit["max_text_offset_axes"] = max(v["text_offset_axes"] for v in entries)
+    audit["max_consecutive_displacement_axes"] = max(v["consecutive_displacement_axes"] or 0 for v in entries)
+    audit["lifetime_events"] = events
+    audit["artificial_label_deletions"] = 0
+    audit["leader_instances"] = sum(bool(v["leader_reason"]) for v in entries)
+    return plans, audit
+
+
 def render(data, target, seconds=15, fps=24):
     """Continuous color normalization, independent square axes and compact bar."""
     import imageio_ffmpeg
 
     dm.style.use("presentation")
     tokens = json.loads((ROOT / "plot_tokens.json").read_text())["roles"]
-    blue = tokens["magnitude.stop_6"]["value"]
     ink = tokens["text.label"]["value"]
     gray = tokens["text.auxiliary"]["value"]
-    # ColorBrewer Blues9 anchors, continuously interpolated; the installed
-    # dartwork-mpl 0.4 does not ship a colormap named blues9.
-    brewer = LinearSegmentedColormap.from_list(
-        "ColorBrewerBlues9",
-        ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"],
-        N=4096,
-    )
-    cmap = LinearSegmentedColormap.from_list("Blues9_lightened_0_0.8", brewer(np.linspace(0, 0.8, 1024)), N=1024)
+    reference_stops = ["#E6F1FE", "#D1E5FD", "#B1D2FC", "#7BB2FA", "#4C8FEC"]
+    cmap = LinearSegmentedColormap.from_list("reference_magnitude_light", reference_stops, N=1024)
+    catalogue_teal, plr_blue = "#188179", "#144DA6"
     plt.rcParams.update(
         {
             "font.family": tokens["font.latin"]["value"],
@@ -146,9 +294,9 @@ def render(data, target, seconds=15, fps=24):
     # the unmodified physical surface and iso-values beyond the color limits.
     limits[0] = (60.0, 90.0, 5.0)
     fixed_contours = {
-        "eta_ov": np.arange(45, 106, 5),
-        "eta_v": np.arange(85, 102, 2),
-        "f_loss": np.array([5, 6, 7, 8, 9, 11, 13, 15, 17, 19]),
+        "eta_ov": np.array([55, 65, 70, 80, 90]),
+        "eta_v": np.array([90, 93, 96, 99]),
+        "f_loss": np.array([6, 8, 11, 14, 17]),
     }
     visible_counts = {key: [] for key in QUANTITIES}
     all_cop = [
@@ -163,6 +311,9 @@ def render(data, target, seconds=15, fps=24):
         row["COP_model"] for snapshot in data["snapshots"] for row in snapshot["curve"] if row["operating_valid"]
     )
     curve_bounds = (0, max(2, math.ceil(curve_top / 2) * 2), 2)
+    frame_count = round(seconds * fps)
+    label_plans, label_audit = plan_labels(data, pr, n, fixed_contours, frame_count)
+    print("Label geometry precheck:", {k: v for k, v in label_audit.items() if k != "per_frame"}, flush=True)
     writer = imageio_ffmpeg.write_frames(
         str(target), (width, height), fps=fps, codec="libx264", quality=8, pix_fmt_out="yuv420p", macro_block_size=1
     )
@@ -175,6 +326,7 @@ def render(data, target, seconds=15, fps=24):
         local = min(progress - stage, 1.0) * 3
         left = min(int(local), 2) + 3 * stage
         fraction = min(local - int(local), 1.0)
+        fraction = 0.5 - 0.5 * np.cos(np.pi * fraction)
         if frame == frame_count - 1:
             left = 8
             fraction = 1.0
@@ -191,8 +343,8 @@ def render(data, target, seconds=15, fps=24):
         ax.plot(cop_bounds[:2], cop_bounds[:2], color=gray, lw=0.8)
         n_calibration = data.get("calibration_count", len(cat))
         for group, marker, fill, color, label in [
-            (cat[:n_calibration], "o", blue, blue, "Calibration"),
-            (cat[n_calibration:], "s", "none", ink, "Check"),
+            (cat[:n_calibration], "o", catalogue_teal, catalogue_teal, "Calibration"),
+            (cat[n_calibration:], "s", "none", catalogue_teal, "Check"),
         ]:
             selected = [p for p in group if p["valid"]]
             if selected:
@@ -238,7 +390,7 @@ def render(data, target, seconds=15, fps=24):
         )
         ax = axes[1]
         ys = [p["COP_model"] if p["valid"] else np.nan for p in curve]
-        ax.plot(data["PLR"], ys, color=blue, marker="o", markersize=3)
+        ax.plot(data["PLR"], ys, color=plr_blue, marker="o", markersize=3)
         valid_curve = [(plr, point) for plr, point in zip(data["PLR"], curve, strict=True) if point["valid"]]
         if valid_curve:
             maximum_plr, maximum_point = max(valid_curve, key=lambda pair: pair[0])
@@ -247,7 +399,7 @@ def render(data, target, seconds=15, fps=24):
                 [maximum_point["COP_model"]],
                 s=22,
                 facecolors="white",
-                edgecolors=blue,
+                edgecolors=plr_blue,
                 linewidths=0.8,
                 zorder=6,
                 clip_on=False,
@@ -286,13 +438,44 @@ def render(data, target, seconds=15, fps=24):
         levels = fixed_contours[key]
         contours = ax.contour(pr, n, z, levels=levels, colors=ink, linewidths=0.4)
         visible_contours = sum(any(len(segment) >= 2 for segment in group) for group in contours.allsegs)
-        assert 3 <= visible_contours <= 8, (frame, key, visible_contours)
+        assert 2 <= visible_contours <= 5, (frame, key, visible_contours)
         visible_counts[key].append(visible_contours)
-        ax.clabel(contours, fontsize=7, fmt="%d")
+        label_artists = []
+        assert len(label_plans[frame]) == visible_contours
+        for level, entry in label_plans[frame].items():
+            point = np.asarray(entry["anchor"]) * [5, 80] + [2, 30]
+            if entry["leader_reason"]:
+                artist = ax.annotate(
+                    str(level),
+                    xy=point,
+                    xycoords="data",
+                    xytext=entry["text"],
+                    textcoords="axes fraction",
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color=ink,
+                    arrowprops={"arrowstyle": "-", "color": ink, "lw": 0.35, "shrinkA": 3, "shrinkB": 0},
+                    annotation_clip=False,
+                )
+                label_artists.append(artist)
+            else:
+                artist = ax.text(
+                    *point,
+                    str(level),
+                    ha="center",
+                    va="center",
+                    fontsize=7,
+                    color=ink,
+                    path_effects=[patheffects.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.65))],
+                )
+                label_artists.append(artist)
+        assert len(label_artists) == visible_contours, (frame, len(label_artists), visible_contours)
+
         ax.plot(
             [p["pressure_ratio"] if p["valid"] else np.nan for p in curve],
             [p["speed_rps"] if p["valid"] else np.nan for p in curve],
-            color=ink,
+            color=plr_blue,
             marker="o",
             markersize=3,
             lw=1.1,
@@ -305,7 +488,7 @@ def render(data, target, seconds=15, fps=24):
                 [maximum_point["speed_rps"]],
                 s=22,
                 facecolors="white",
-                edgecolors=ink,
+                edgecolors=plr_blue,
                 linewidths=0.8,
                 zorder=6,
                 clip_on=False,
@@ -365,15 +548,14 @@ def render(data, target, seconds=15, fps=24):
         title_bottoms = [title.get_window_extent(fig.canvas.get_renderer()).y0 for title in titles]
         assert max(title_bottoms) - min(title_bottoms) < 1, title_bottoms
         panel_bbox = ax.get_window_extent()
-        for label in list(contours.labelTexts):
+        for label in label_artists:
             bounds = label.get_window_extent(fig.canvas.get_renderer())
-            if (
-                bounds.x0 < panel_bbox.x0 + 2
-                or bounds.x1 > panel_bbox.x1 - 2
-                or bounds.y0 < panel_bbox.y0 + 2
-                or bounds.y1 > panel_bbox.y1 - 2
-            ):
-                label.remove()
+            assert (
+                bounds.x0 >= panel_bbox.x0 - 0.5
+                and bounds.x1 <= panel_bbox.x1 + 0.5
+                and bounds.y0 >= panel_bbox.y0 - 0.5
+                and bounds.y1 <= panel_bbox.y1 + 0.5
+            ), (frame, bounds, panel_bbox)
         box = ax.get_position()
         barax = fig.add_axes([box.x1 + (6 / 72 * fig.dpi / width), box.y0, box.width * 0.015, box.height * 0.5])
         cb = fig.colorbar(im, cax=barax, ticks=[lo, hi], extend="neither")
@@ -400,8 +582,12 @@ def render(data, target, seconds=15, fps=24):
             color=gray,
         )
         fig.canvas.draw()
-        if frame in (0, frame_count // 2, frame_count - 1):
-            suffix = "" if frame == frame_count - 1 else ("_initial" if frame == 0 else "_rejected")
+        if frame in (0, frame_count // 3, frame_count // 2, frame_count - 1):
+            suffix = (
+                ""
+                if frame == frame_count - 1
+                else ("_initial" if frame == 0 else ("_middle" if frame == frame_count // 3 else "_rejected"))
+            )
             fig.savefig(
                 target.with_name(target.stem + suffix).with_suffix(".png"), dpi=fig.dpi, facecolor=fig.get_facecolor()
             )
@@ -420,12 +606,13 @@ def render(data, target, seconds=15, fps=24):
         "size_px": [width, height],
         "normalization": dict(zip(QUANTITIES, limits, strict=True)),
         "colormap": {
-            "source": "ColorBrewer Blues9 nine anchors",
+            "source": "Exact reference lambda_figures.py Paper magnitude.stop_1..5",
+            "stops": reference_stops,
             "continuous": True,
-            "display_fraction": [0, 0.8],
-            "dartwork_native": False,
         },
-        "contour_labels": "fixed physical integer iso-values across every frame; three to eight visible",
+        "semantic_colors": {"catalogue": catalogue_teal, "PLR_curve_and_trajectory": plr_blue, "invalid": "#c93c37"},
+        "label_continuity_audit": label_audit,
+        "contour_labels": "fixed physical integer iso-values across every frame; two to five visible",
         "visible_contour_counts": {
             key: {"min": min(values), "max": max(values), "frames": len(values)}
             for key, values in visible_counts.items()
@@ -524,10 +711,36 @@ def main():
     )
     cache.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n")
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    manifest = render(data, args.output, args.seconds)
-    args.output.with_suffix(".json").write_text(
-        json.dumps({"source_signature": signature, "disclosure": data["disclosure"], **manifest}, indent=2) + "\n"
+    pending = args.output.with_name(args.output.stem + "__pending" + args.output.suffix)
+    manifest = render(data, pending, args.seconds)
+    from PIL import Image
+
+    images = []
+    for suffix in ("_initial", "_middle", "_rejected", ""):
+        source = pending.with_name(pending.stem + suffix).with_suffix(".png")
+        destination = args.output.with_name(args.output.stem + suffix).with_suffix(".png")
+        source.replace(destination)
+        images.append(Image.open(destination).convert("RGB"))
+    sheet = Image.new("RGB", (images[0].width * 2, images[0].height * 2))
+    for i, picture in enumerate(images):
+        sheet.paste(picture, ((i % 2) * picture.width, (i // 2) * picture.height))
+    sheet.save(args.output.with_name(args.output.stem + "_contact").with_suffix(".png"))
+    report_path = args.output.with_suffix(".json")
+    temporary_report = report_path.with_name(report_path.name + ".pending")
+    temporary_report.write_text(
+        json.dumps(
+            {
+                "source_signature": signature,
+                "disclosure": data["disclosure"],
+                "time_interpolation": "cosine ease between actual model keyframes",
+                **manifest,
+            },
+            indent=2,
+        )
+        + "\n"
     )
+    temporary_report.replace(report_path)
+    pending.replace(args.output)
     print(args.output, flush=True)
 
 

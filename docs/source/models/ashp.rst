@@ -161,6 +161,30 @@ The report retains every requested row, per-stage results, net capacity error,
 speed, pressure ratio, efficiencies, enthalpies, failure reasons and all-row COP
 RMSE. Missing or invalid metrics are ``None`` rather than silently filtered rows.
 ``dataclasses.asdict(report)`` is suitable for strict JSON serialization.
+``report.trace`` is an immutable tuple of ``FitEvaluation`` snapshots in actual
+candidate-call order. ``sequence`` is one-based call order, while
+``candidate_id`` identifies an exact scale tuple. A ``cache_hit`` reuses existing
+point results and never represents another solver computation;
+``report.evaluations`` continues to count unique candidates. All requested
+catalogue rows are retained in every snapshot, including failed rows.
+
+Phases distinguish the baseline, COP grid, bounded-optimizer calls, optimizer
+result read, COP selection, volumetric/loss feasibility checks and repair trials,
+stage selections, and final acceptance. ``decision`` records this fitter's
+observed selection or rejection. ``objective_returned`` only records a callback
+return; it does not reveal SciPy's internal acceptance or claim that a trial
+became the current best point. Unchanged auxiliary scales appear as ``retained``
+checks, not invented parameter movements.
+
+``objective_rmse`` is the all-row COP metric with the deferred discharge check;
+``constraint_rmse`` is available only when all final constraints pass.
+``objective_value`` is the actual value returned to the COP optimizer, including
+its ``1e12`` infeasibility penalty, and is ``None`` outside objective calls. Thus
+an RMSE shown during loss repair is diagnostic, not another optimized objective.
+Constraint violations and point failure reasons remain explicit. The trace adds
+no new candidate or solver call and does not interpolate intermediate scales.
+``dataclasses.asdict(report)`` serializes it along with the existing report.
+
 Separate held-out catalogue conditions must be supplied to
 ``predict_catalogue`` after fitting; they must not influence coefficient
 selection. COP and electrical power computed from the same output observation

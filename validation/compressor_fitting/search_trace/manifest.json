@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "python": "3.12.3",
+  "CoolProp": "7.2.0",
+  "baseline": "Ossorio2024-R290-PRN-quadratic-2026-11-01",
+  "equipment": {
+    "ref": "R410A",
+    "hp_capacity": 8000.0,
+    "dV_iu_fan_a_rated": 0.38333333333333336,
+    "dV_ou_fan_a_rated": 1.0,
+    "rps_min": 30.0,
+    "rps_max": 110.0,
+    "PR_cycle_max": 7.5,
+    "dT_approach_bounds": [
+      1.0,
+      35.0
+    ]
+  },
+  "assumptions": [
+    "Fujitsu ASYG30LMTA/AOYG30LMTA R410A: maximum-capacity calculated catalogue table, not measured nominal data",
+    "hp_capacity=8000 W is published nominal cooling capacity; published nominal heating 8800 W defines display PLR only",
+    "Indoor/outdoor DB are published; no wet-bulb conversion is used",
+    "Manufacturer reference airflows are 1380/3600 m3/h; Vdisp, UA and fan curves retain TMHP capacity defaults",
+    "Derived default Vdisp=37.333333 cm3/rev, UA indoor/outdoor=640/800 W/K; not manufacturer specifications",
+    "Default fan dp=60 Pa and efficiency=0.6 give 38.333333/100 W reference inputs; outdoor 100 W is not the published motor-output value",
+    "Published indoor fan input 60 W is retained as evidence, not substituted for the generic model fan curve",
+    "Source-map speed 30–110 rev/s and PR 1.5–7.5 are research bounds, not certified equipment envelope",
+    "Approach 1–35 K is a frozen numerical assumption; all other unspecified settings remain constructor defaults",
+    "R290 scroll map transferred to R410A target; these lambdas are not independently identified device efficiencies",
+    "Study uses outdoor DB 7/10/15/20 C and all indoor DB 16/18/20/22/24 C; indoor 20 C is calibration, the other 16 rows are holdout",
+    "Outdoor 24 C group was excluded before COP fitting because one of its five baseline solves failed; all five remain solver-edge diagnostics",
+    "All 25 warm candidates are preserved: corrected-rating baseline has 24 valid and one optimizer failure",
+    "Outdoor DB 7 C does not certify frost-free operation; the model contains no frost/defrost physics",
+    "Other 25 cold source rows remain diagnostic_cold; no failed rows are filtered from reported split metrics"
+  ],
+  "calibration_rows": 4,
+  "holdout_rows": 16,
+  "call_count": 43,
+  "unique_evaluations": 34,
+  "cache_hits": 9,
+  "final_scales": {
+    "lambda_eta_v": 1.0,
+    "lambda_eta_ov": 1.3748851081463451,
+    "lambda_f_loss": 0.5
+  },
+  "final_cop_rmse": 0.35859285323613865,
+  "frozen_final_and_stage_predictions_reproduced": true,
+  "frozen_files_unchanged": {
+    "fit_report.json": "cdd6b5c496c1d7035aab3b0ed15a91aad0a4fdc1d762e8ea1badfc16d033b040",
+    "metrics.json": "fc05e9e8807bf86756c0b71d64a6c1a0b9a416bd53140e4394470c128eb26565",
+    "holdout_before.json": "295bfc3487ab1a8521863dcbf13ebd20a4610610291d976345e44d56fb8e6b19",
+    "holdout_after.json": "e067e6828f65702730c846a63dee0d54ef5ea20b4ba2c2c69fe6af0ee1177cb5",
+    "point_predictions.csv": "fc328f4b8414f8dec190ac62a01e096a693618b4d048a07594ac1f3e8d585c8c"
+  },
+  "source_hashes": {
+    "src/tmhp/calibration.py": "ab20408169a099b0539db47e497b6c1fa2b849b28cf914d86af44137a7c00563",
+    "validation/compressor_fitting/case.py": "ab9d7de25b585eeda7e90c651ed7a53a18cb00f6fa365f02e2862b65e60d2793",
+    "validation/compressor_fitting/run_search_trace.py": "f3f9ac55856ca97daf72739eec1c229e8465dbf37cc9c65ab073d82982bc28a1"
+  },
+  "elapsed_s": 151.90425893943757
+}

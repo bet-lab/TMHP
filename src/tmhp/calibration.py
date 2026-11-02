@@ -24,6 +24,7 @@ __all__ = [
     "EfficiencyScales",
     "PointResult",
     "FitStage",
+    "FitEvaluation",
     "FitReport",
     "Parameter",
     "Mode",
@@ -124,6 +125,33 @@ class FitStage:
 
 
 @dataclass(frozen=True)
+class FitEvaluation:
+    """One actual evaluate call, including cache reads and its local decision.
+
+    ``sequence`` is one-based call order; ``candidate_id`` identifies the first
+    computation of an exact scale tuple. ``cache_hit`` never represents a new
+    solver computation. Objective RMSE permits the deferred discharge check;
+    constraint RMSE requires all final constraints. ``objective_value`` is the
+    actual objective return (including its infeasible penalty), or None outside
+    objective calls. Decisions expose this fitter's selections, not SciPy's
+    hidden internal acceptance. All point results are immutable snapshots.
+    """
+
+    sequence: int
+    candidate_id: int
+    phase: str
+    cache_hit: bool
+    scales: EfficiencyScales
+    points: tuple[PointResult, ...]
+    objective_rmse: float | None
+    objective_value: float | None
+    constraint_rmse: float | None
+    constraint_violations: tuple[str, ...]
+    decision: str = "evaluated"
+    reason: str = "candidate_evaluated"
+
+
+@dataclass(frozen=True)
 class FitReport:
     """Complete attempted fit; applied distinguishes accepted parameters from candidates."""
 
@@ -149,6 +177,7 @@ class FitReport:
         "Lambda bounds are numerical search settings, not manufacturer operating limits",
         "Input temperatures are dry-bulb; wet-bulb conversion must be documented by the caller",
     )
+    trace: tuple[FitEvaluation, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -395,6 +424,8 @@ def fit_compressor(
     isolate side effects captured by arbitrary user function closures.
     All fixed model inputs remain unchanged. A failure stores ``fit_report`` but
     leaves the original efficiencies and previously applied state intact.
+    ``report.trace`` records actual candidate calls and cache reads in order;
+    recording does not change solver order, objective values, or selections.
     """
     parsed = _parse_points(points, mode)
     if not parameters or len(set(parameters)) != len(parameters) or set(parameters) - set(_FIELDS):
@@ -424,10 +455,13 @@ def fit_compressor(
             raise ValueError(f"Current {name} scale lies outside lambda_bounds")
     isolated = copy.deepcopy(model)
     cache: dict[EfficiencyScales, tuple[PointResult, ...]] = {}
+    candidate_ids: dict[EfficiencyScales, int] = {}
+    trace: list[FitEvaluation] = []
 
-    def evaluate(scales: EfficiencyScales) -> tuple[PointResult, ...]:
-        """Evaluate a complete candidate once, preserving all catalogue rows in the cache."""
-        if scales not in cache:
+    def evaluate(scales: EfficiencyScales, phase: str) -> tuple[PointResult, ...]:
+        """Compute a candidate once and record every actual call, including cache reads."""
+        cache_hit = scales in cache
+        if not cache_hit:
             isolated.eta_cmp_vol, isolated.eta_cmp_isen, isolated.eta_cmp = scaled_efficiencies(baseline, scales)
             rows = []
             for point in parsed:
@@ -443,34 +477,65 @@ def fit_compressor(
                         )
                 rows.append(result)
             cache[scales] = tuple(rows)
-        return cache[scales]
+            candidate_ids[scales] = len(candidate_ids) + 1
+        result_points = cache[scales]
+        trace.append(
+            FitEvaluation(
+                sequence=len(trace) + 1,
+                candidate_id=candidate_ids[scales],
+                phase=phase,
+                cache_hit=cache_hit,
+                scales=scales,
+                points=result_points,
+                objective_rmse=_rmse(result_points),
+                objective_value=None,
+                constraint_rmse=_rmse(result_points, require_constraints=True),
+                constraint_violations=tuple(
+                    sorted({v for point in result_points for v in point.constraint_violations})
+                ),
+            )
+        )
+        return result_points
 
-    initial_points = evaluate(initial)
+    def decide(decision: str, reason: str, objective_value: float | None = None) -> None:
+        """Attach the immediately observed decision to the most recent evaluation call."""
+        trace[-1] = replace(trace[-1], decision=decision, reason=reason, objective_value=objective_value)
+
+    initial_points = evaluate(initial, "baseline")
     candidate = initial
     stages: list[FitStage] = []
     cop_stage_feasible = True
     if "overall_efficiency" in parameters:
         lower, upper = bounds["overall_efficiency"]
+        objective_phase = "cop_grid"
 
         def objective(value: float) -> float:
             """Use every requested COP observation; an invalid point invalidates the candidate."""
-            rms = _rmse(evaluate(replace(initial, lambda_eta_ov=float(value))))
-            return rms if rms is not None else 1e12
+            rms = _rmse(evaluate(replace(initial, lambda_eta_ov=float(value)), objective_phase))
+            result = rms if rms is not None else 1e12
+            decide("objective_returned", "objective_available" if rms is not None else "infeasible_penalty", result)
+            return result
 
         grid = sorted(set(np.linspace(lower, upper, 9).tolist() + [initial.lambda_eta_ov]))
         ranked = [(objective(value), value) for value in grid]
         best_index = min(range(len(grid)), key=lambda i: (ranked[i][0], abs(grid[i] - initial.lambda_eta_ov)))
         left, right = grid[max(0, best_index - 1)], grid[min(len(grid) - 1, best_index + 1)]
         if left < right and ranked[best_index][0] < 1e12:
+            objective_phase = "cop_optimizer"
             optimum = minimize_scalar(
                 objective, bounds=(left, right), method="bounded", options={"xatol": 1e-5, "maxiter": 35}
             )
+            objective_phase = "cop_optimizer_result"
             ranked.append((objective(float(optimum.x)), float(optimum.x)))
         _, value = min(ranked, key=lambda item: (item[0], abs(item[1] - initial.lambda_eta_ov)))
         candidate = replace(candidate, lambda_eta_ov=value)
-        rows = evaluate(candidate)
+        rows = evaluate(candidate, "cop_selection")
         cop_rmse = _rmse(rows)
         cop_stage_feasible = cop_rmse is not None
+        decide(
+            "selected" if cop_stage_feasible else "rejected",
+            "cop_candidate_selected" if cop_stage_feasible else "no_feasible_cop_candidate",
+        )
         stages.append(
             FitStage(
                 "COP fitting",
@@ -497,21 +562,35 @@ def fit_compressor(
         if name not in parameters:
             continue
         previous = candidate
+        phase_prefix = "volumetric" if name == "volumetric_efficiency" else "loss"
 
         def feasible(rows: tuple[PointResult, ...], checked: set[str] = checks) -> bool:
             """Check this stage's constraints without fitting its coefficient to COP."""
             return all(p.operating_valid and not (checked & set(p.constraint_violations)) for p in rows)
 
-        if not feasible(evaluate(candidate)):
+        current_feasible = feasible(evaluate(candidate, phase_prefix + "_check"))
+        decide(
+            "retained" if current_feasible else "rejected",
+            "role_constraints_satisfied" if current_feasible else "role_constraints_failed",
+        )
+        if not current_feasible:
             lower, upper = bounds[name]
             current_value = getattr(initial, _FIELDS[name])
             values = set(np.linspace(lower, upper, auxiliary_grid_size).tolist() + [current_value])
             for value in sorted(values, key=lambda v: (abs(v - current_value), v)):
                 trial = replace(candidate, **{_FIELDS[name]: float(value)})
-                if feasible(evaluate(trial)):
+                trial_feasible = feasible(evaluate(trial, phase_prefix + "_repair"))
+                decide(
+                    "selected" if trial_feasible else "rejected",
+                    "closest_feasible_candidate" if trial_feasible else "role_constraints_failed",
+                )
+                if trial_feasible:
                     candidate = trial
                     break
-        rows = evaluate(candidate)
+        rows = evaluate(candidate, phase_prefix + "_selection")
+        decide("selected" if previous != candidate else "retained", "role_constraints_satisfied")
+        if not feasible(rows):
+            decide("rejected", "no_feasible_role_candidate")
         stages.append(
             FitStage(
                 role,
@@ -523,7 +602,7 @@ def fit_compressor(
             )
         )
 
-    final_points = evaluate(candidate)
+    final_points = evaluate(candidate, "final")
     initial_rmse, final_rmse = (
         _rmse(initial_points, require_constraints=True),
         _rmse(final_points, require_constraints=True),
@@ -538,6 +617,7 @@ def fit_compressor(
         success, reason = False, "fit_worsened_after_auxiliary_adjustment"
     else:
         success, reason = True, "applied"
+    decide("applied" if success else "not_applied", reason)
     report = FitReport(
         success,
         success,
@@ -555,6 +635,7 @@ def fit_compressor(
         tuple(stages),
         len(cache),
         tuple((key, *bounds[key]) for key in parameters),
+        trace=tuple(trace),
     )
     if success:
         applied = scaled_efficiencies(baseline, candidate)

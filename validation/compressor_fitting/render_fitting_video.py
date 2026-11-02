@@ -256,11 +256,111 @@ def plan_labels(data, pr, speed, fixed_levels, frame_count):
     return plans, audit
 
 
+def reference_video_style_spec():
+    """Resolve the same actual presentation preset used by the reference helper.
+
+    Reference panel316px =237pt; this output's1000px slot=750pt. Keeping these
+    point sizes makes the displayed typography identical without frame scaling.
+    """
+    dm.style.use("presentation")
+    return {
+        "title_pt": float(plt.rcParams["axes.titlesize"]),
+        "title_weight": plt.rcParams["axes.titleweight"],
+        "title_pad_pt": float(plt.rcParams["axes.titlepad"]),
+        "title_visible_bottom_gap_pt": 4.0,
+        "axis_label_pt": float(plt.rcParams["axes.labelsize"]),
+        "axis_tick_pt": float(plt.rcParams["xtick.labelsize"]),
+        "legend_pt": float(plt.rcParams["legend.fontsize"]),
+        "contour_label_pt": float(dm.fs(-3)),
+        "colorbar_tick_and_unit_pt": float(dm.fs(-2)),
+        "colorbar_width_ratio": 0.015,
+        "colorbar_height_ratio": 0.5,
+        "colorbar_gap_pt": 6.0,
+        "colorbar_tick_pad_pt": 3.0,
+        "colorbar_unit_offset_pt": [3.0, 10.0],
+        "axis_line_pt": 0.5,
+        "data_line_pt": 1.0,
+        "marker_pt": 3.0,
+        "reference_panel_px": 316,
+        "reference_panel_pt": 237,
+        "display_slot_width_px": 1000,
+        "display_slot_width_pt": 750,
+    }
+
+
+def instrumentation_cache_equivalence(cached, settings, rows, final, indoor, outdoor, rated, current_hashes):
+    """Reuse actual predictions only after narrowly verifying trace-only changes."""
+    import ast
+    import subprocess
+
+    def canonical(value):
+        return json.loads(json.dumps(value))
+
+    checks = {
+        "equipment": cached["equipment"] == canonical(settings),
+        "catalogue": cached["catalogue_rows"] == canonical(rows),
+        "final_scales": cached["snapshots"][-1]["scales"] == final,
+        "all_sweep_scales": [p["scales"] for p in cached["snapshots"]] == keyframes(final)[0],
+        "PLR": cached["PLR"] == PLRS.tolist(),
+        "condition": cached["indoor"] == indoor and cached["outdoor"] == outdoor,
+        "heating_reference": cached["rated_heat_W"] == rated,
+    }
+    changed = [p for p, h in current_hashes.items() if cached["code_hashes"].get(p) != h]
+    if not all(checks.values()) or changed != ["src/tmhp/calibration.py"]:
+        return None
+    repository = ROOT.parents[1]
+    revisions = subprocess.check_output(
+        ["git", "log", "-n", "30", "--format=%H", "--", "src/tmhp/calibration.py"], cwd=repository, text=True
+    ).splitlines()
+    old = None
+    original_revision = None
+    for revision in revisions:
+        candidate = subprocess.check_output(["git", "show", revision + ":src/tmhp/calibration.py"], cwd=repository)
+        if hashlib.sha256(candidate).hexdigest() == cached["code_hashes"]["src/tmhp/calibration.py"]:
+            old = candidate
+            original_revision = revision
+            break
+    if old is None:
+        raise RuntimeError("Cannot verify original source for the retained model keyframes")
+    new = (repository / "src/tmhp/calibration.py").read_bytes()
+    names = [
+        "EfficiencyScales",
+        "PointResult",
+        "_efficiency",
+        "_finite",
+        "_parse_points",
+        "_point_result",
+        "predict_catalogue",
+        "scaled_efficiencies",
+    ]
+
+    def functions(source):
+        return {
+            node.name: ast.dump(node, include_attributes=False)
+            for node in ast.parse(source).body
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names
+        }
+
+    previous, current = functions(old), functions(new)
+    assert set(previous) == set(names) and previous == current, (
+        "Prediction code changed; cached physics cannot be reused"
+    )
+    return {
+        "reason": "Fit evaluation trace instrumentation changed; actual prediction functions and every physical input are identical",
+        "input_checks": checks,
+        "unchanged_prediction_AST": names,
+        "original_source_revision": original_revision,
+        "original_code_hashes": cached["code_hashes"],
+        "current_code_hashes": current_hashes,
+        "thermodynamic_snapshots_recomputed": False,
+    }
+
+
 def render(data, target, seconds=15, fps=24):
     """Continuous color normalization, independent square axes and compact bar."""
     import imageio_ffmpeg
 
-    dm.style.use("presentation")
+    reference_style = reference_video_style_spec()
     tokens = json.loads((ROOT / "plot_tokens.json").read_text())["roles"]
     ink = tokens["text.label"]["value"]
     gray = tokens["text.auxiliary"]["value"]
@@ -273,6 +373,14 @@ def render(data, target, seconds=15, fps=24):
             "svg.fonttype": "none",
             "text.color": ink,
             "axes.labelcolor": ink,
+            "axes.titlecolor": ink,
+            "axes.edgecolor": "#2E3744",
+            "xtick.color": "#2E3744",
+            "ytick.color": "#2E3744",
+            "axes.linewidth": reference_style["axis_line_pt"],
+            "xtick.major.width": reference_style["axis_line_pt"],
+            "ytick.major.width": reference_style["axis_line_pt"],
+            "lines.linewidth": reference_style["data_line_pt"],
         }
     )
     width, height = 1920, 800
@@ -370,7 +478,7 @@ def render(data, target, seconds=15, fps=24):
                 clip_on=False,
             )
             ax.text(0.04, 0.80, "Rejected / unverified state", transform=ax.transAxes, color="#c93c37", fontsize=8)
-        ax.legend(loc="lower right", frameon=False, fontsize=8)
+        ax.legend(loc="lower right", frameon=False, fontsize=reference_style["legend_pt"])
 
         spec(ax, "x", cop_bounds, "Catalogue heating COP")
         spec(ax, "y", cop_bounds, "Predicted heating COP")
@@ -436,7 +544,7 @@ def render(data, target, seconds=15, fps=24):
         # These exact physical iso-values are fixed for the entire video.
         # Levels outside the current field are naturally absent, never renumbered.
         levels = fixed_contours[key]
-        contours = ax.contour(pr, n, z, levels=levels, colors=ink, linewidths=0.4)
+        contours = ax.contour(pr, n, z, levels=levels, colors=ink, linewidths=reference_style["axis_line_pt"] * 0.6)
         visible_contours = sum(any(len(segment) >= 2 for segment in group) for group in contours.allsegs)
         assert 2 <= visible_contours <= 5, (frame, key, visible_contours)
         visible_counts[key].append(visible_contours)
@@ -453,7 +561,7 @@ def render(data, target, seconds=15, fps=24):
                     textcoords="axes fraction",
                     ha="center",
                     va="center",
-                    fontsize=7,
+                    fontsize=reference_style["contour_label_pt"],
                     color=ink,
                     arrowprops={"arrowstyle": "-", "color": ink, "lw": 0.35, "shrinkA": 3, "shrinkB": 0},
                     annotation_clip=False,
@@ -465,7 +573,7 @@ def render(data, target, seconds=15, fps=24):
                     str(level),
                     ha="center",
                     va="center",
-                    fontsize=7,
+                    fontsize=reference_style["contour_label_pt"],
                     color=ink,
                     path_effects=[patheffects.withStroke(linewidth=1.5, foreground=(1, 1, 1, 0.65))],
                 )
@@ -506,9 +614,10 @@ def render(data, target, seconds=15, fps=24):
         spec(ax, "y", (30, 110, 20), "Shaft speed [rev/s]")
         delta = b["scales"][FIELDS[stage]] - a["scales"][FIELDS[stage]]
         # All three title boxes share a bottom anchor and baseline font.
-        common = {"fontsize": 10, "color": ink}
+        common = {"fontsize": reference_style["title_pt"], "fontweight": reference_style["title_weight"], "color": ink}
         triangle = TextArea(
-            "▲" if delta > 0 else "▼", textprops={"fontsize": 10, "color": "#238636" if delta > 0 else "#c93c37"}
+            "▲" if delta > 0 else "▼",
+            textprops={"fontsize": reference_style["title_pt"], "color": "#238636" if delta > 0 else "#c93c37"},
         )
         active_title = HPacker(
             children=[
@@ -525,7 +634,7 @@ def render(data, target, seconds=15, fps=24):
             axes,
             [
                 TextArea("Catalogue parity", textprops=common),
-                TextArea(f"Indoor {data['indoor']:g} °C / Outdoor {data['outdoor']:g} °C", textprops=common),
+                TextArea(f"PLR–COP (In {data['indoor']:g} °C / Out {data['outdoor']:g} °C)", textprops=common),
                 active_title,
             ],
             strict=True,
@@ -533,8 +642,10 @@ def render(data, target, seconds=15, fps=24):
             title_ax.set_title("")
             title_artist = AnnotationBbox(
                 title_box,
-                (0.5, 1.04),
+                (0.5, 1),
                 xycoords="axes fraction",
+                xybox=(0, reference_style["title_visible_bottom_gap_pt"]),
+                boxcoords="offset points",
                 box_alignment=(0.5, 0),
                 frameon=False,
                 pad=0,
@@ -559,8 +670,34 @@ def render(data, target, seconds=15, fps=24):
         box = ax.get_position()
         barax = fig.add_axes([box.x1 + (6 / 72 * fig.dpi / width), box.y0, box.width * 0.015, box.height * 0.5])
         cb = fig.colorbar(im, cax=barax, ticks=[lo, hi], extend="neither")
-        cb.ax.tick_params(length=0, labelsize=8)
-        cb.ax.set_title("(%)", fontsize=8)
+        cb.ax.tick_params(
+            axis="y",
+            length=0,
+            labelsize=reference_style["colorbar_tick_and_unit_pt"],
+            pad=reference_style["colorbar_tick_pad_pt"],
+        )
+        cb.ax.minorticks_off()
+        cb.ax.annotate(
+            "(%)",
+            (1, 1),
+            xycoords="axes fraction",
+            xytext=reference_style["colorbar_unit_offset_pt"],
+            textcoords="offset points",
+            ha="left",
+            va="bottom",
+            fontsize=reference_style["colorbar_tick_and_unit_pt"],
+        )
+        fig.canvas.draw()
+        bar_bbox = barax.get_window_extent()
+        axis_bbox = ax.get_window_extent()
+        assert abs(bar_bbox.height / axis_bbox.height - 0.5) < 1e-6
+        assert abs(bar_bbox.width / axis_bbox.width - 0.015) < 1e-6
+        assert abs(bar_bbox.y0 - axis_bbox.y0) < 0.5
+        assert abs((bar_bbox.x0 - axis_bbox.x1) * 72 / fig.dpi - 6) < 0.01
+        for value in [*barax.get_yticklabels(), *barax.texts]:
+            bound = value.get_window_extent(fig.canvas.get_renderer())
+            assert bound.x0 >= 0 and bound.y0 >= 0 and bound.x1 <= fig.bbox.width and bound.y1 <= fig.bbox.height
+
         fig.suptitle(f"Stage {stage + 1}/3 · {LABELS[stage]}", y=0.98, fontsize=15)
         # Explicit disclosure avoids presenting oscillation as an optimization trace.
         for old in list(fig.texts)[1:]:
@@ -600,6 +737,7 @@ def render(data, target, seconds=15, fps=24):
     assert abs(encoded_seconds - seconds) < 1 / fps + 1e-6
     plt.close(fig)
     return {
+        "reference_style": reference_style,
         "frames": frame_count,
         "fps": fps,
         "duration_s": seconds,
@@ -673,8 +811,19 @@ def main():
         ).encode()
     ).hexdigest()
     cache = ROOT / "video_keyframes.json"
-    if cache.exists() and (data := json.loads(cache.read_text()))["signature"] == signature:
-        print("Reuse verified model keyframes", flush=True)
+    cache_reuse_proof = None
+    data = json.loads(cache.read_text()) if cache.exists() else None
+    matching = data is not None and data["signature"] == signature
+    if data is not None and not matching:
+        cache_reuse_proof = instrumentation_cache_equivalence(
+            data, EQUIPMENT_SETTINGS, rows, final, args.indoor, args.outdoor, rated, code_hashes
+        )
+    if matching or cache_reuse_proof is not None:
+        print(
+            "Reuse verified model keyframes",
+            "trace-only equivalence confirmed" if cache_reuse_proof else "",
+            flush=True,
+        )
     else:
         tasks = [(s, rows, args.indoor, args.outdoor, rated) for s in scales]
         with ProcessPoolExecutor(max_workers=args.workers) as pool:
@@ -730,7 +879,9 @@ def main():
     temporary_report.write_text(
         json.dumps(
             {
-                "source_signature": signature,
+                "source_signature": data["signature"],
+                "current_runtime_signature": signature,
+                "keyframe_cache_reuse_proof": cache_reuse_proof,
                 "disclosure": data["disclosure"],
                 "time_interpolation": "cosine ease between actual model keyframes",
                 **manifest,

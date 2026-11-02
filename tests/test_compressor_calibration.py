@@ -313,3 +313,115 @@ def test_overriding_an_applied_map_requires_an_explicit_new_baseline_instance():
     hp.eta_cmp_vol = 0.85
     with pytest.raises(ValueError, match="new model"):
         fit_compressor(hp, measured_points())
+
+
+def test_trace_records_actual_grid_order_cache_reuse_and_complete_point_results():
+    """Trace distinguishes solver work from cache reads and exposes only actual objective returns."""
+    import json
+
+    report = fit_compressor(AnalyticHeatPump(), measured_points())
+    trace = report.trace
+    assert [entry.sequence for entry in trace] == list(range(1, len(trace) + 1))
+    assert trace[0].phase == "baseline" and not trace[0].cache_hit
+    grid = [entry for entry in trace if entry.phase == "cop_grid"]
+    assert [entry.scales.lambda_eta_ov for entry in grid] == [0.5, 0.625, 0.75, 0.875, 1, 1.125, 1.25, 1.375, 1.5]
+    assert grid[4].cache_hit and grid[4].candidate_id == trace[0].candidate_id
+    first_by_id = {}
+    for entry in trace:
+        assert len(entry.points) == len(report.initial_points)
+        if entry.cache_hit:
+            first = first_by_id[entry.candidate_id]
+            assert entry.scales == first.scales and entry.points is first.points
+        else:
+            assert entry.candidate_id == len(first_by_id) + 1
+            first_by_id[entry.candidate_id] = entry
+        if entry.phase in {"cop_grid", "cop_optimizer", "cop_optimizer_result"}:
+            assert entry.decision == "objective_returned"
+            assert entry.objective_value == (entry.objective_rmse if entry.objective_rmse is not None else 1e12)
+        else:
+            assert entry.objective_value is None
+    assert len(first_by_id) == report.evaluations
+    assert len(trace) > report.evaluations
+    assert any(entry.phase == "cop_optimizer" for entry in trace)
+    assert trace[-1].phase == "final" and trace[-1].decision == "applied"
+    assert trace[-1].scales == report.applied_scales
+    assert trace[-1].points == report.final_points
+    json.dumps(asdict(report), allow_nan=False)
+
+
+def test_trace_shows_unchanged_volume_and_real_loss_feasibility_decisions():
+    """A discharge repair keeps rejected candidates and never pretends unchanged volume was fitted."""
+    report = fit_compressor(
+        AnalyticHeatPump(),
+        measured_points(scale=1.45),
+        parameters=("overall_efficiency", "volumetric_efficiency", "heat_loss_fraction"),
+    )
+    assert report.applied
+    volume = [entry for entry in report.trace if entry.phase.startswith("volumetric_")]
+    assert [entry.phase for entry in volume] == ["volumetric_check", "volumetric_selection"]
+    assert all(entry.decision == "retained" and entry.scales.lambda_eta_v == 1 for entry in volume)
+    loss = [entry for entry in report.trace if entry.phase == "loss_repair"]
+    assert loss[0].decision == "rejected" and "discharge_state" in loss[0].constraint_violations
+    assert loss[-1].decision == "selected" and loss[-1].constraint_rmse is not None
+    assert loss[-1].scales.lambda_f_loss == report.applied_scales.lambda_f_loss < 1
+    cop = next(entry for entry in report.trace if entry.phase == "cop_selection")
+    assert cop.objective_rmse is not None and cop.constraint_rmse is None
+
+
+def test_trace_retains_failed_final_decision_and_operating_penalties():
+    """An unavailable operating candidate gets a penalty, while failed application retains original maps."""
+    hp = AnalyticHeatPump()
+    original = (hp.eta_cmp_vol, hp.eta_cmp_isen, hp.eta_cmp)
+    report = fit_compressor(hp, [(20, 7, 10000, 4)])
+    assert not report.applied
+    scored = [entry for entry in report.trace if entry.decision == "objective_returned"]
+    assert scored and all(entry.objective_rmse is None and entry.objective_value == 1e12 for entry in scored)
+    assert report.trace[-1].decision == "not_applied"
+    assert report.trace[-1].reason == report.reason == "cop_fit_no_feasible_candidate"
+    assert report.trace[-1].constraint_violations
+    assert (hp.eta_cmp_vol, hp.eta_cmp_isen, hp.eta_cmp) == original
+
+
+def test_trace_does_not_add_or_reorder_solver_calls_on_cached_candidates():
+    """An injected recording model observes exactly two fan-net matching calls per unique point."""
+    import copy
+
+    import numpy as np
+
+    calls = []
+
+    class RecordingHeatPump(AnalyticHeatPump):
+        """Expose only solver-call observations across the fitter's isolated model copy."""
+
+        def __deepcopy__(self, memo):
+            """Keep scalar model state isolated while the test observer remains shared."""
+            return copy.copy(self)
+
+        def analyze_steady(self, Q_r_iu, T0, T_a_room=None, **kwargs):
+            """Record actual physics inputs before returning the same analytic heat balance."""
+            calls.append(
+                (
+                    Q_r_iu,
+                    self._value(self.eta_cmp_vol, 3, 50),
+                    self._value(self.eta_cmp_isen, 3, 50),
+                    self._value(self.eta_cmp, 3, 50),
+                )
+            )
+            return super().analyze_steady(Q_r_iu, T0, T_a_room, **kwargs)
+
+    report = fit_compressor(
+        RecordingHeatPump(),
+        measured_points(scale=1.45),
+        parameters=("overall_efficiency", "volumetric_efficiency", "heat_loss_fraction"),
+    )
+    expected = []
+    for entry in report.trace:
+        if entry.cache_hit:
+            continue
+        scales = entry.scales
+        em = 1 - scales.lambda_f_loss * (1 - 0.9)
+        isen = scales.lambda_eta_ov * 0.7 * 0.9 / em
+        for point in entry.points:
+            for duty in (-point.Q_requested_W, -point.Q_requested_W + 20):
+                expected.append((duty, 0.8 * scales.lambda_eta_v, isen, em))
+    np.testing.assert_allclose(calls, expected, rtol=1e-13, atol=1e-10)

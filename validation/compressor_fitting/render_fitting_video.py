@@ -487,7 +487,7 @@ def render(data, target, seconds=15, fps=24):
             if len(valid) == len(cat)
             else np.nan
         )
-        rmse_label = f"{rmse:.3f}" if np.isfinite(rmse) else "—"
+        rmse_label = f"{rmse:.2f}" if np.isfinite(rmse) else "—"
         ax.text(
             0.04,
             0.96,
@@ -699,25 +699,7 @@ def render(data, target, seconds=15, fps=24):
             assert bound.x0 >= 0 and bound.y0 >= 0 and bound.x1 <= fig.bbox.width and bound.y1 <= fig.bbox.height
 
         fig.suptitle(f"Stage {stage + 1}/3 · {LABELS[stage]}", y=0.98, fontsize=15)
-        # Explicit disclosure avoids presenting oscillation as an optimization trace.
-        for old in list(fig.texts)[1:]:
-            old.remove()
-        fig.text(
-            0.5,
-            0.085,
-            data.get("catalogue_label", "Compressor calibration example"),
-            ha="center",
-            fontsize=8,
-            color=gray,
-        )
-        fig.text(
-            0.5,
-            0.04,
-            "Illustrative sweep · computed keyframes; transitions interpolated, feasibility unverified · not optimizer history",
-            ha="center",
-            fontsize=9,
-            color=gray,
-        )
+        # Explanatory disclosure remains in the JSON/README and slide footnotes.
         fig.canvas.draw()
         if frame in (0, frame_count // 3, frame_count // 2, frame_count - 1):
             suffix = (
@@ -738,6 +720,8 @@ def render(data, target, seconds=15, fps=24):
     plt.close(fig)
     return {
         "reference_style": reference_style,
+        "footer_rendered": False,
+        "footer_location": "Figma slide footnotes; scientific disclosures retained in JSON/README",
         "frames": frame_count,
         "fps": fps,
         "duration_s": seconds,

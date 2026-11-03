@@ -320,33 +320,7 @@ def render(source, target, fps=24):
             assert abs(cb_box.width / ax_box.width - 0.015) < 1e-6
             phase = PHASES.get(event["phase"], event["phase"])
             fig.suptitle(phase, y=0.98, fontsize=dm.fs(2), color=COLORS["ink"])
-            for artist in list(fig.texts):
-                if artist is not fig._suptitle:
-                    artist.remove()
-            fig.text(
-                0.5,
-                0.125,
-                f"Call {event['sequence']}/{len(events)} · Unique candidate {event['candidate_id']}/{report['evaluations']} · λov {scales['lambda_eta_ov']:.2f} · λv {scales['lambda_eta_v']:.2f} · λloss {scales['lambda_f_loss']:.2f}",
-                ha="center",
-                fontsize=dm.fs(-2),
-                color=COLORS["context"],
-            )
-            fig.text(
-                0.5,
-                0.065,
-                "Fujitsu ASYG30LMTA/AOYG30LMTA · In 20 °C / Out 7, 10, 15, 20 °C · COP = TC/IP",
-                ha="center",
-                fontsize=dm.fs(-2),
-                color=COLORS["context"],
-            )
-            fig.text(
-                0.5,
-                0.025,
-                "Actual evaluation order · time compressed · discrete recorded candidates · 16 holdout rows excluded from fitting",
-                ha="center",
-                fontsize=dm.fs(-2),
-                color=COLORS["context"],
-            )
+            # Call metadata and scientific disclosure belong in slide footnotes/JSON.
             fig.canvas.draw()
             titles = [a.title.get_window_extent(fig.canvas.get_renderer()).y0 for a in axes]
             assert max(titles) - min(titles) < 1
@@ -374,7 +348,7 @@ def render(source, target, fps=24):
             if index in (0, len(events) // 2, len(events) - 1):
                 suffix = "" if index == len(events) - 1 else "_initial" if index == 0 else "_middle"
                 fig.savefig(
-                    target.with_name(target.stem + suffix).with_suffix(".png"),
+                    pending.with_name(pending.stem + suffix).with_suffix(".png"),
                     dpi=fig.dpi,
                     facecolor=fig.get_facecolor(),
                 )
@@ -386,12 +360,13 @@ def render(source, target, fps=24):
     metadata = next(reader)
     decoded = sum(1 for _ in reader)
     assert decoded == frame_total and tuple(metadata["size"]) == (width, height)
-    pending.replace(target)
     manifest = dict(
         source=str(source),
         source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
         presentation_style=presentation_style,
         actual_search=True,
+        footer_rendered=False,
+        footer_location="Figma slide footnotes; scientific disclosures retained in JSON/README",
         interpolated_candidates=False,
         fps=fps,
         frames=decoded,
@@ -408,7 +383,15 @@ def render(source, target, fps=24):
         final_rmse=report["final_cop_rmse"],
         events=audit,
     )
-    target.with_suffix(".json").write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n")
+    report_target = target.with_suffix(".json")
+    temporary_report = report_target.with_name(report_target.name + ".pending")
+    temporary_report.write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n")
+    for suffix in ("", "_initial", "_middle"):
+        pending.with_name(pending.stem + suffix).with_suffix(".png").replace(
+            target.with_name(target.stem + suffix).with_suffix(".png")
+        )
+    temporary_report.replace(report_target)
+    pending.replace(target)
     print(json.dumps({k: v for k, v in manifest.items() if k != "events"}), flush=True)
 
 

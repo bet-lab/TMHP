@@ -1,4 +1,4 @@
-"""Export real public-fit search calls separately from the frozen presentation results."""
+"""Export real public-fit search calls separately from the frozen validation results."""
 
 import csv
 import hashlib

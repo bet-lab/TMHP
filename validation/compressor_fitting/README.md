@@ -126,21 +126,6 @@ solver-edge rows; it does not claim to rerun coefficient optimization. The ASHP 
 
 Implementation tracking: [issue #89](https://github.com/bet-lab/TMHP/issues/89).
 
-## Presentation comment update
-
-The editable Monokai API window omits built-in maps and bounds; ellipses are presentation-only comments. All heatmaps use continuous scalar colour; static plots have three to eight visible contours and videos have two to five, prioritizing readable trends and temporal continuity. They use rectangular bottom-aligned half-height colourbars. The video source `render_fitting_video.py` uses ten actual model keyframes for 20 catalogue rows and a PLR sweep. Display interpolation is explicitly unverified and is not optimizer history. MP4, poster and axis/normalization metadata are written to the user's presentation folder (15 s, 24 fps, 1920×800, 360 decoded frames).
-
-Related plot/lint rules: https://github.com/bet-lab/figma-agent-playbook/pull/16
-
-### Further presentation review
-
-The source-to-map concept now shows the published mass-flow Eq.10, specific-power Eq.17 and loss Table5, evaluation on567 generated R290 states with thermophysical properties, and the final six-term PR–N least-squares surrogate. It does not show TMHP lambda fitting as the map-construction process. The exact user-approved reference palette is Figure System magnitude stops1–5 (#E6F1FE, #D1E5FD, #B1D2FC, #7BB2FA, #4C8FEC), interpolated continuously over the full range. It supersedes the earlier Blues9 override. The video uses fixed integer contour sets throughout each quantity stage, no numeric PLR trajectory annotations, and a white maximum-valid-PLR marker. Its lambda title is displayed with two decimals and an adjacent coloured direction symbol, with all panel-title baselines aligned. The reference video is the user's lambda_scaling_1x.mp4.
-
-2026-11-02 추가 지시: 영상 종합효율 색 범위는60–90%로 고정하고 초과 값은 색 포화로 표시하되 원자료를 자르지 않는다. 수치가 고정된 등고선이 프레임마다2–5개 보이도록 한다. 영상 λ는 소수2자리, 증감 삼각형은 λ옆에 두고 제목 y높이는일치한다. 최대유효PLR을 흰색 빈원으로 두 그래프에서 동일 표시한다.
-
-The video catalogue parity markers use teal (#188179). The PLR–COP curve and matching map trajectory share dark blue (#144DA6), including hollow maximum-valid-PLR marker outlines. Calibration/check splits retain different marker shapes and fill, while invalid red crosses remain a separate status overlay. Label placement tracks the same physical iso-line over time; automatic placement and post-draw label deletion are no longer used. Natural contour entry/exit and boundary-label leader offsets are audited per frame.
-
-
 ## Actual optimizer search trace
 
 Run the separate public API exporter without overwriting the frozen results:
@@ -164,50 +149,10 @@ penalty; outside objective calls it is null. `objective_rmse` can be finite whil
 the deferred discharge constraint fails, whereas `constraint_rmse` requires all
 final constraints. Repairs and final acceptance are separate recorded decisions.
 
-The trace provides real evaluated points for a separate search-history video.
-Interpolating lambda between those points would be a display animation and must
-not be labelled as additional optimizer evaluations. This exporter does not
-recompute holdouts or PLR curves for every candidate; holdouts are checked once
-before and once after fitting and never influence parameter selection.
+The exporter does not recompute holdouts or PLR curves for every candidate; holdouts are checked once before and once after fitting and never influence parameter selection.
 
-### Actual search-history video
+## Candidate validity
 
-`render_actual_search.py` replays `search_trace/fit_report.json` in actual call
-order. Its three panels show the four calibration-row parity points, the actual
-λ-versus-COP-RMSE candidate evaluations, and the corresponding efficiency map.
-Orange diamonds identify the current search candidate; grey marks retain prior
-evaluations, catalogue states are teal, and violated physical states use red X.
-The bounded COP search has a labelled fixed zoom; the loss stage uses a narrower
-fixed RMSE axis to expose its trade-off. Each numeric axis has explicit endpoints
-and interval. No intermediate lambda or prediction is interpolated: video holds
-repeat the recorded state and compress elapsed calculation time.
+A valid candidate requires a converged/on state, positive power and net delivery, net capacity relative error <= 1e-4, speed within the configured range, positive eta_v/eta_ov/eta_em, 0 <= loss < 1, and the adopted eta_is <= 1 / h2 >= h2s discharge constraint. The evaluator checks the original map electrical/loss domain. Eta_v <= 1 is not separately imposed. Pressure-ratio and approach limits belong to the inner solver. COP RMSE measures fitting error and does not replace validity checks.
 
-The real run contains 43 evaluation calls, 34 unique scale tuples and 9 cache
-reads. The COP stage uses nine grid callbacks and sixteen bounded optimizer
-callbacks. Volume remains at1 after its feasibility check. Loss candidates are
-actually tested as1,0.9,1.1,0.8,1.2,0.7,1.3,0.6,1.4,0.5;1.4 has a smaller COP RMSE
-but fails discharge feasibility, whereas0.5 is the first acceptable correction.
-The final four-row RMSE is0.358593. The older explanatory video's all-row parity
-uses these four rows plus sixteen holdouts, so its final RMSE is0.378523.
-
-```sh
-PYTHONPATH=src:validation/compressor_fitting python validation/compressor_fitting/render_actual_search.py
-```
-
-The actual search MP4 and its PNG/JSON are written as
-`TMHP_catalogue_actual_search` in the presentation folder. The existing
-`TMHP_catalogue_fitting_stages` remains the explicitly labelled illustrative
-sweep. Both use the reference dartwork-mpl presentation title11.5pt and compact
-half-height colourbar with8.5pt numbers/unit. The illustrative video's middle
-title is `PLR–COP (In20°C / Out7°C)` with spaces retained in the rendered label.
-
-`Valid` requires a converged/on state, positive power and net delivery, net
-capacity relative error≤1e-4, speed30–110rev/s, positive ηv/ηov/ηem,0≤loss<1,
-and the adopted ηis≤1 / h2≥h2s discharge constraint. The fitting evaluator also
-checks the original map's electrical/loss domain. ηv≤1 is not separately imposed.
-Pressure-ratio and approach limits belong to the inner state solver. COP RMSE is
-an objective/accuracy measure, not the validity criterion. In the illustrative
-movie intermediate frames inherit endpoint validity without a new physical
-solve; actual-history frames use the recorded point-by-point validation results.
-
-Actual-search video RMSE and lambda annotations are displayed to two decimal places. Saved trace values and plotted candidate coordinates retain their original precision.
+Further map-shape calibration is tracked in issue #91. It is not implemented by this documentation cleanup.

@@ -35,7 +35,7 @@ TMHP is now also an integration package. The same cycle-resolved heat-pump core 
 | Refrigerant and operating-point studies | Any CoolProp-supported refrigerant can be swapped at runtime without re-fitting empirical coefficients |
 | Building-simulation coupling | EnergyPlus Python Plugin support for plant-loop surrogate modeling |
 | Tool-to-tool co-simulation | FMI 2.0 and FMI 3.0 FMU export for the current ASHPB `step()` adapter, aligned with the shared cycle core |
-| Reproducible validation | Samsung EHS Mono HT Quiet R32 parity benchmark regenerated from source |
+| Reproducible validation | Shared catalogue parity harness applies shipped defaults with source provenance and explicit evidence limits |
 
 ---
 
@@ -45,12 +45,12 @@ Most building-energy simulators (EnergyPlus, TRNSYS, and friends) model a heat p
 
 | Curve-fit models                                      | This library                                             |
 | ----------------------------------------------------- | -------------------------------------------------------- |
-| Tied to the operating range of the original test data | Predictive across the full refrigerant envelope          |
+| Tied to the operating range of the original test data | Explores operating points within model and compressor limits          |
 | Refrigerant is baked into the coefficients            | Any CoolProp-supported refrigerant, swappable at runtime |
 | Refrigerant state is hidden                           | Full thermodynamic state at every cycle node             |
 | Requires re-fitting for every new unit                | One model class, parameterized by geometry & components  |
 
-You pay for it with a few extra parameters and a slightly more expensive time step. What you get in return is a model you can **trust outside its calibration range** — across refrigerants, operating envelopes, and system topologies that no single catalogue covers.
+You pay for it with a few extra parameters and a slightly more expensive time step. This makes refrigerants, operating conditions, and system topologies explicit. Accuracy outside a benchmarked range is not established by the cycle equations alone: respect compressor envelopes and the assumptions and evidence limits in [validation/README.md](validation/README.md).
 
 ---
 
@@ -300,15 +300,24 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 
 ## Validation
 
-`AirSourceHeatPumpBoiler` has been benchmarked against the **Samsung EHS Mono HT Quiet R32 14 kW** unit ([Technical Data Book PDF](https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf)) across **15 operating points** — $T_{\mathrm{LWT}} \in \{40, 50, 65\}$ °C paired with outdoor air temperatures from −10 to 30 °C. The model tracks the catalogue COP to MAE 0.35 (MAPE 10.1 %) without any unit-specific calibration.
+The current [catalogue parity harness](validation/parity/) runs shipped defaults against registered manufacturer data. Its documented coverage includes air-to-water `AirSourceHeatPumpBoiler` and air-to-air `AirSourceHeatPump`, heating and cooling, R32/R410A/R290, and multiple manufacturers. Read the [validation report](docs/source/validation/index.rst) for per-unit boundaries, unevaluated points, held catalogues and residual analysis; catalogue standards are not pooled into one interchangeable COP definition.
 
-<div align="center">
+```bash
+uv sync --locked --group validation
+uv run python -m validation.parity.run
+uv run python -m scripts.validation.parity_figure
+```
 
-<img src="docs/source/_static/validation_parity.svg" alt="Parity plot: predicted vs target COP across 15 operating points" width="520">
+For a single registered unit, use `uv run python -m validation.parity.run --unit samsung_ehs_mono_ht_r32_14kw`. [validation/README.md](validation/README.md) documents source checksums, extraction, catalogue transcription and the result chain. Manufacturer PDFs are obtained separately and are not committed.
 
-</div>
+**COP boundary matters.** Archived physics-based space-conditioning ASHP/GSHP outputs through `c5d673e` use coil-duty COP. New runs use final indoor-air delivery, with fan heat counted once. Regenerate outputs and figures and record the source commit before making a current system-COP comparison. DHW and empirical models retain their existing definitions. Existing site figures and historical error numbers are not newly reproduced results.
 
-<sub>Per-point comparison (catalogue conditions and target values follow Table 1 of the KJACR 2026 paper; predicted values come from re-running the released code via `scripts/validation/samsung_ehs_parity.py`):</sub>
+Ground-source, water-source and subsystem-augmented families share the cycle core and have representative smoke coverage, but do not inherit unit-specific catalogue validation. The outdoor-coil default evidence covers dry round-tube-plate-fin packaged equipment; frost, microchannel coils and residential mini-splits lie outside that evidence. The indoor coil is a dry sensible exchanger, so latent cooling and catalogue maximum-capacity conditions require separate interpretation. High-temperature vapour-injection hardware is outside the single-stage cycle boundary.
+
+<details>
+<summary>Historical Samsung comparison — superseded parameter set</summary>
+
+The former Samsung EHS Mono HT Quiet R32 14 kW comparison used 15 operating points and reported MAE 0.35 / MAPE 10.1%. Its dedicated parameter set differed from library defaults, so those numbers are **not** validation of the current shipped defaults. The deleted `samsung_ehs_parity.py` is not a reproduction route. The table is retained only as the historical record; use the shared harness above for a new comparison.
 
 | $\mathrm{ID}$  | $T_{\mathrm{LWT}}~[^\circ\mathrm{C}]$ | $T_0~[^\circ\mathrm{C}]$ | ${Q}_{\mathrm{ref,cond}}~[\mathrm{kW}]$ | $\mathrm{COP}_{\mathrm{target}}$ | $\mathrm{COP}_{\mathrm{pred}}$ | $\mathrm{AE}$ | $\mathrm{APE}$ |
 | :-: | :---------------------: | :--------: | :----------------------------: | :------------------------------: | :----------------------------: | :------: | :--------: |
@@ -329,23 +338,12 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 | 15  |           65            |     30     |             18.84              |               4.04               |              3.79              |   0.25   |   6.1 %    |
 |     |                         |            |                                |                                  |            **Mean**            | **0.35** | **10.1 %** |
 
-**Notation**
 
-- <i>T</i><sub>LWT</sub> — Leaving Water Temperature, the manufacturer's catalogue reference. The model's tank water temperature is set 2.5 K below <i>T</i><sub>LWT</sub> for <i>T</i><sub>LWT</sub> ≤ 60 °C and 5 K below for <i>T</i><sub>LWT</sub> > 60 °C, per the paper's EWT/LWT offset.
-- <i>T</i><sub>0</sub> — outdoor (dead-state) air temperature.
-- <i>Q</i><sub>ref,cond</sub> — target condenser heat rate.
-- COP — system Coefficient of Performance, <i>Q</i><sub>ref,cond</sub> / (<i>E</i><sub>cmp</sub> + <i>E</i><sub>fan</sub>).
-- AE — Absolute Error, \|COP<sub>pred</sub> − COP<sub>target</sub>\|.
-- APE — Absolute Percentage Error, (AE / COP<sub>target</sub>) × 100 %.
-- MAE / MAPE — mean AE / APE across the 15 points.
+The historical table uses leaving-water temperature (LWT), outdoor/dead-state temperature T0, target condenser heat rate, catalogue/predicted COP, absolute error (AE) and absolute percentage error (APE). The paper's EWT/LWT offset sets tank temperature 2.5 K below LWT up to 60 °C and 5 K below it above 60 °C. These conventions do not establish the boundary of a new space-conditioning run.
 
-The parity plot and the table above are regenerated by [`scripts/validation/samsung_ehs_parity.py`](scripts/validation/samsung_ehs_parity.py), so anyone can reproduce the comparison from source.
+</details>
 
-> **Scope.** Only `AirSourceHeatPumpBoiler` has been quantitatively validated against catalogue data. The other system classes (`GroundSourceHeatPumpBoiler`, `WaterSourceHeatPumpBoiler`, `AirSourceHeatPump`, `GroundSourceHeatPump`, and the subsystem-augmented variants) share the same refrigerant-cycle core and pass smoke tests on representative operating points, but they have not yet been benchmarked against unit-specific data.
-
-> 📄 Jo, H. & Choi, W. _"Thermodynamic Modeling of Refrigerant Cycle in an Air-Source Heat Pump Boiler and Performance Validation"_, KJACR (2026, in press).
->
-> 📘 Samsung Electronics, _EHS Mono HT Quiet R32 Technical Data Book_ (2024) — [PDF](https://www.theheatpumpwarehouse.co.uk/wp-content/uploads/2024/11/tdb-ehs-mono-ht-quiet-for-europe-r32-50hz-hp-ver.2.1-221005-compressed-compressed.pdf)
+Jo, H. & Choi, W., *“Thermodynamic Modeling of Refrigerant Cycle in an Air-Source Heat Pump Boiler and Performance Validation”*, KJACR (2026, in press). Samsung Electronics, *EHS Mono HT Quiet R32 Technical Data Book* (2024). Further catalogue provenance and checksums: [validation/registry/sources.yaml](validation/registry/sources.yaml).
 
 ---
 

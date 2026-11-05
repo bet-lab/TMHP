@@ -1,6 +1,8 @@
 """Guards for keeping the GitHub Actions test matrix focused and fast."""
 
+import argparse
 import os
+import shlex
 import subprocess
 from pathlib import Path
 from textwrap import dedent
@@ -43,13 +45,32 @@ def test_coverage_is_collected_once_on_canonical_python() -> None:
     assert "coverage-${{ matrix.python-version }}" not in text
 
 
+def _pytest_options(workflow: str) -> list[argparse.Namespace]:
+    """Parse each matrix pytest shell command independent of option order."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-n", "--numprocesses")
+    parser.add_argument("--dist", default="load")
+    parser.add_argument("--cov", action="append", default=[])
+    parser.add_argument("--cov-report", action="append", default=[])
+    commands = []
+    for line in _job_block(workflow, "test", "docs").replace("\\\n", " ").splitlines():
+        command = shlex.split(line.strip().removeprefix("run: "))
+        if command[:3] == ["uv", "run", "pytest"]:
+            options, _ = parser.parse_known_args(command[3:])
+            commands.append(options)
+    return commands
+
+
 def test_test_matrix_runs_pytest_with_xdist_workers() -> None:
-    workflow = _read(".github/workflows/tests.yml")
+    """Both matrix commands group shared trajectories and only one collects coverage."""
+    commands = _pytest_options(_read(".github/workflows/tests.yml"))
     pyproject = _read("pyproject.toml")
 
     assert '"pytest-xdist>=' in pyproject
-    assert workflow.count("uv run pytest -q -n auto") == 2
-    assert "uv run pytest -q -n auto \\\n            --cov=tmhp" in workflow
+    assert len(commands) == 2
+    assert all(command.numprocesses == "auto" for command in commands)
+    assert all(command.dist == "loadgroup" for command in commands)
+    assert sorted((command.cov, command.cov_report) for command in commands) == [([], []), (["tmhp"], ["term", "xml"])]
 
 
 def test_pytest_matrix_skips_docs_only_pull_requests() -> None:

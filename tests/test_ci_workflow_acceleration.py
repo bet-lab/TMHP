@@ -1,6 +1,9 @@
 """Guards for keeping the GitHub Actions test matrix focused and fast."""
 
+import os
+import subprocess
 from pathlib import Path
+from textwrap import dedent
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,3 +86,64 @@ def test_matrix_pins_uv_interpreter_and_checks_the_actual_version() -> None:
     assert "UV_PYTHON: ${{ matrix.python-version }}" in test_job
     assert "name: Verify matrix interpreter" in test_job
     assert "sys.version_info[:2]" in test_job
+
+
+def test_matrix_scope_runs_readme_examples_and_source_changes(tmp_path: Path) -> None:
+    """Exercise the real scope shell so README examples cannot bypass the PR matrix."""
+    workflow = _read(".github/workflows/tests.yml")
+    scope = _job_block(workflow, "test-scope", "test")
+    script = dedent(scope.split("run: |\n", 1)[1])
+    environment = {
+        **{key: value for key, value in os.environ.items() if not key.startswith("GIT_")},
+        "GIT_AUTHOR_NAME": "CI scope fixture",
+        "GIT_AUTHOR_EMAIL": "scope@example.invalid",
+        "GIT_COMMITTER_NAME": "CI scope fixture",
+        "GIT_COMMITTER_EMAIL": "scope@example.invalid",
+    }
+
+    def git(*args: str) -> str:
+        """Run isolated fixture Git without invoking user hooks or commit signing."""
+        return subprocess.run(
+            ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false", *args],
+            cwd=tmp_path,
+            env=environment,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
+    git("init", "-q")
+    (tmp_path / "fixture").write_text("base\n", encoding="utf-8")
+    git("add", "fixture")
+    git("commit", "-qm", "base")
+    base = git("rev-parse", "HEAD")
+    cases = (
+        ("README.md", "pull_request", "true"),
+        ("docs/source/index.rst", "pull_request", "false"),
+        ("src/tmhp/fixture.py", "pull_request", "true"),
+        ("tests/test_fixture.py", "pull_request", "true"),
+        ("pyproject.toml", "pull_request", "true"),
+        ("docs/another.rst", "push", "true"),
+    )
+    for relative, event, expected in cases:
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture\n", encoding="utf-8")
+        git("add", relative)
+        git("commit", "-qm", relative)
+        head = git("rev-parse", "HEAD")
+        selected = script.replace("${{ github.event_name }}", event)
+        selected = selected.replace("${{ github.event.pull_request.base.sha }}", base)
+        selected = selected.replace("${{ github.event.pull_request.head.sha }}", head)
+        output = tmp_path / "output"
+        output.write_text("", encoding="utf-8")
+        subprocess.run(
+            ["bash", "-c", selected],
+            cwd=tmp_path,
+            env={**environment, "GITHUB_OUTPUT": str(output)},
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert output.read_text(encoding="utf-8").strip() == f"run-matrix={expected}", (event, relative)
+        base = head

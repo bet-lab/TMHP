@@ -7,7 +7,8 @@ on:
   pull_request:
 
 concurrency:
-  group: tests-${{ github.ref }}
+  # Preserve every main push; only superseded checks for the same PR share a group.
+  group: ${{ github.event_name == 'pull_request' && format('tests-pr-{0}', github.event.pull_request.number) || format('tests-run-{0}', github.run_id) }}
   cancel-in-progress: true
 
 env:
@@ -67,7 +68,7 @@ jobs:
           head_sha="${{ github.event.pull_request.head.sha }}"
           changed_files="$(git diff --name-only "$base_sha" "$head_sha")"
 
-          if printf '%s\n' "$changed_files" | grep -E '^src/|^tests/|^scripts/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/tests\.yml$' >/dev/null; then
+          if printf '%s\n' "$changed_files" | grep -E '^README\.md$|^src/|^tests/|^scripts/|^pyproject\.toml$|^uv\.lock$|^\.github/workflows/tests\.yml$' >/dev/null; then
             echo "run-matrix=true" >> "$GITHUB_OUTPUT"
           else
             echo "run-matrix=false" >> "$GITHUB_OUTPUT"

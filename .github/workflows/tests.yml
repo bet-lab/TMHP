@@ -104,12 +104,12 @@ jobs:
 
       - name: Pytest
         if: matrix.python-version != '3.12'
-        run: uv run pytest -q -n auto
+        run: uv run pytest -q -n auto --dist loadgroup
 
       - name: Pytest with coverage
         if: matrix.python-version == '3.12'
         run: |
-          uv run pytest -q -n auto \
+          uv run pytest -q -n auto --dist loadgroup \
             --cov=tmhp \
             --cov-report=term \
             --cov-report=xml

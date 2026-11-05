@@ -16,6 +16,9 @@ Verification strategy (TDD characterization gate):
 * ``test_gshpb_step_not_implemented`` — RED before (no method), GREEN after;
   the history-dependent GSHPB must refuse a point-state ``step()`` loudly.
 
+The dynamic golden and idempotence checks share only the first trajectory,
+with one fresh model per scenario; the public-step run stays independent.
+
 Bit-identity tolerance: rtol=1e-9 (a pure code extraction must not change
 the math; the tolerance only absorbs %.17g CSV round-trip noise).
 """
@@ -26,7 +29,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tmhp import GroundSourceHeatPumpBoiler
+from tmhp import AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler
 
 from . import _step_scenarios as S
 
@@ -59,24 +62,44 @@ def _assert_frames_close(df: pd.DataFrame, golden: pd.DataFrame) -> None:
             )
 
 
-@pytest.mark.parametrize("name,dt", S.SCENARIOS)
-def test_analyze_dynamic_matches_golden(name: str, dt: int) -> None:
-    df = S.make_model().analyze_dynamic(**S.scenario_kwargs(name, dt))
-    _assert_frames_close(df, _load_golden(name, dt))
+@pytest.fixture(
+    scope="module",
+    params=[
+        pytest.param((name, dt), id=f"{name}-{dt}", marks=pytest.mark.xdist_group(f"dynamic-{name}-{dt}"))
+        for name, dt in S.SCENARIOS
+    ],
+)
+def dynamic_run(request: pytest.FixtureRequest) -> tuple[AirSourceHeatPumpBoiler, pd.DataFrame, str, int]:
+    """Keep one fresh model and a detached first trajectory per scenario.
+
+    Only idempotence runs the model again; golden comparison reads the saved
+    first result, so either test order observes the original trajectory.
+    With xdist, loadgroup keeps both consumers on the same worker.
+    """
+    name, dt = request.param
+    model = S.make_model()
+    first = model.analyze_dynamic(**S.scenario_kwargs(name, dt)).copy(deep=True)
+    return model, first, name, dt
+
+
+def test_analyze_dynamic_matches_golden(dynamic_run: tuple[AirSourceHeatPumpBoiler, pd.DataFrame, str, int]) -> None:
+    """The first dynamic run retains every archived numeric and string column."""
+    _, first, name, dt = dynamic_run
+    _assert_frames_close(first, _load_golden(name, dt))
 
 
 @pytest.mark.parametrize("name,dt", S.SCENARIOS)
 def test_step_public_api_matches_golden(name: str, dt: int) -> None:
+    """A fresh model driven only through public step reproduces the archive."""
     df = S.run_step_driven(S.make_model(), name, dt)
     _assert_frames_close(df, _load_golden(name, dt))
 
 
-@pytest.mark.parametrize("name,dt", S.SCENARIOS)
-def test_analyze_dynamic_idempotent(name: str, dt: int) -> None:
-    model = S.make_model()
-    df1 = model.analyze_dynamic(**S.scenario_kwargs(name, dt))
-    df2 = model.analyze_dynamic(**S.scenario_kwargs(name, dt))
-    _assert_frames_close(df1, df2)
+def test_analyze_dynamic_idempotent(dynamic_run: tuple[AirSourceHeatPumpBoiler, pd.DataFrame, str, int]) -> None:
+    """A second invocation on the exact first-run instance has no state leak."""
+    model, first, name, dt = dynamic_run
+    second = model.analyze_dynamic(**S.scenario_kwargs(name, dt))
+    _assert_frames_close(first, second)
 
 
 def test_gshpb_step_not_implemented() -> None:

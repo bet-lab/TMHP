@@ -173,13 +173,13 @@ print(f"Evap sat. temp.   : {result['T_ref_evap_sat [°C]']:.1f} °C")
 print(f"Cond sat. temp.   : {result['T_ref_cond_sat_v [°C]']:.1f} °C")
 ```
 
-Swap the refrigerant by changing one argument — no recalibration, no manufacturer data:
+Select a refrigerant with `ref`. R744 needs an explicit rated speed because the default DHW rating condition is above its critical temperature; the cycle remains subcritical.
 
 ```python
 from tmhp import AirSourceHeatPumpBoiler
 
 ashpb_r290 = AirSourceHeatPumpBoiler(ref="R290")    # propane
-ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744")    # CO₂
+ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)  # CO₂: explicit rated speed
 ashpb_r410 = AirSourceHeatPumpBoiler(ref="R410A")
 ```
 
@@ -301,6 +301,8 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 ## Validation
 
 The current [catalogue parity harness](validation/parity/) runs shipped defaults against registered manufacturer data. Its documented coverage includes air-to-water `AirSourceHeatPumpBoiler` and air-to-air `AirSourceHeatPump`, heating and cooling, R32/R410A/R290, and multiple manufacturers. Read the [validation report](docs/source/validation/index.rst) for per-unit boundaries, unevaluated points, held catalogues and residual analysis; catalogue standards are not pooled into one interchangeable COP definition.
+
+In the committed harness output, the adopted catalogues come to a COP MAPE of 8.9 %; held catalogues are excluded.
 
 ```bash
 uv sync --locked --group validation

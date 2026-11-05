@@ -1,0 +1,82 @@
+{
+  "name": "2023_measurement_sensors_detail",
+  "pdf_page": 3,
+  "rect_pdf_points": [
+    34,
+    399,
+    292,
+    507
+  ],
+  "highlight_phrases": [
+    "Standard EN13771",
+    "Coriolis",
+    "calorimetric balance",
+    "double-wattmeter",
+    "YOKOGAWA",
+    "WT1030"
+  ],
+  "source_url": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+  "source_sha256": "ff1f4d987e665654db51bc201de4c8e7cd3b745f42a76940e3e8b9d44044f757",
+  "output": "2023_measurement_sensors_detail.png",
+  "pixels": [
+    774,
+    324
+  ],
+  "highlights": [
+    {
+      "phrase": "Standard EN13771",
+      "rect_pdf_points": [
+        124.839111328125,
+        418.89605712890625,
+        191.90989685058594,
+        431.9271545410156
+      ]
+    },
+    {
+      "phrase": "Coriolis",
+      "rect_pdf_points": [
+        113.61402893066406,
+        429.3839111328125,
+        140.76817321777344,
+        442.4150085449219
+      ]
+    },
+    {
+      "phrase": "calorimetric balance",
+      "rect_pdf_points": [
+        61.51348876953125,
+        439.815185546875,
+        134.59056091308594,
+        452.8462829589844
+      ]
+    },
+    {
+      "phrase": "double-wattmeter",
+      "rect_pdf_points": [
+        83.96366882324219,
+        450.30303955078125,
+        146.70431518554688,
+        463.3341369628906
+      ]
+    },
+    {
+      "phrase": "YOKOGAWA",
+      "rect_pdf_points": [
+        243.26922607421875,
+        460.735107421875,
+        288.6988220214844,
+        473.7662048339844
+      ]
+    },
+    {
+      "phrase": "WT1030",
+      "rect_pdf_points": [
+        37.58964538574219,
+        471.22296142578125,
+        67.73255920410156,
+        484.2540588378906
+      ]
+    }
+  ],
+  "processing": "original PDF crop plus translucent PDF highlight annotations; no text replacement"
+}

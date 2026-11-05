@@ -1,0 +1,1 @@
+Frozen Panasonic case from commit f8058b7badc9daa6f3c7ed91706dc1fc84b8ac30. These values use explicit narrower lambda bounds and must not be relabelled as Fujitsu or default-bounds results. Shared compressor baseline and source audit remain in the parent directory. The original scripts are retained as evidence of the run.

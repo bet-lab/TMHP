@@ -1,0 +1,85 @@
+{
+  "reviewed_on": "2026-10-27",
+  "scope_ko": "6개 현황파일 읽기전용 최종검토; 원자료 전칸 추출검증은 아님",
+  "snapshot_sha256": {
+    "models.csv": "e0aa081a0b7bedc36c892009ae687c2b2222124f545d8ec01a954d527d18fe90",
+    "eligibility.csv": "ad67907713bd3e75d604a277022434c8bd3bc06925a95667141b96dded921600",
+    "capacity-bands.json": "ec8b1a43ce11b1ab53e12e0d4c72d59d7b96a70426052a6c3a92cf09cee897ec",
+    "capacity-coverage.csv": "a307a28d17aacb02fa946f6058fa81f3942711341b657d564c0c0fab613ca429",
+    "sources.csv": "36a72788c4a80a6553b8d5a9af157fda82679d79222fd1d33ecfdfd74b38ccfc",
+    "field-dictionary.csv": "895a74c4f2240162f9519a12fa574ebe4510503d0acb7c1c7028fe2a70d25958"
+  },
+  "checks": {
+    "models_count": 889,
+    "eligibility_count": 5334,
+    "unique_model_record_keys": true,
+    "six_purposes_per_record": true,
+    "unique_eligibility_key_purpose": true,
+    "source_ids_unique": true,
+    "dangling_model_source_ids": [],
+    "model_dataset_mismatches": [],
+    "dictionary_dangling_sources": [],
+    "invalid_band_assignments": [],
+    "canonical_capacity_count": 17,
+    "binned_count": 16,
+    "band_coverage_counts_match": true,
+    "legacy_count": 760,
+    "legacy_canonical_capacity_empty": true,
+    "legacy_DA_remain_unresolved": true
+  },
+  "findings": [],
+  "conclusion_ko": "용량구간 수치/경계와 단위 및6목적행 매핑은 일치. 원문미검증legacy 용량을 정본/구간에서 배제한 방식은 적절. source누락조인 및existing자료검토상태문구 정정 필요. Panasonic 원값/개별 locator와제품군구분보완권장.",
+  "independent_count_caveat_ko": "889는 모델·조건·풍량측·후보행을 포함한 현황레코드 수이며 독립기기889개가 아님. unknown placeholder를독립모델수로세면안됨.",
+  "revisions": [
+    {
+      "revision": "final-voltage-condition-preservation",
+      "reviewed_on": "2026-10-27",
+      "reason_ko": "THU33WC6-U의 서로다른 전압조건2행이 묶이던 손실을 원문heading조건키추가로정정한 뒤 재검토",
+      "snapshot_sha256": {
+        "models.csv": "301e4e3f709cb2d35b6812fae4d1c28aba922c720fa89c00186741e189a65458",
+        "eligibility.csv": "62273e67d0a07f3da4076b9eb66d04e2f491c0b802e0c225a919863e78fa663c",
+        "capacity-bands.json": "ec8b1a43ce11b1ab53e12e0d4c72d59d7b96a70426052a6c3a92cf09cee897ec",
+        "capacity-coverage.csv": "a307a28d17aacb02fa946f6058fa81f3942711341b657d564c0c0fab613ca429",
+        "sources.csv": "36a72788c4a80a6553b8d5a9af157fda82679d79222fd1d33ecfdfd74b38ccfc",
+        "field-dictionary.csv": "895a74c4f2240162f9519a12fa574ebe4510503d0acb7c1c7028fe2a70d25958"
+      },
+      "checks": {
+        "models_count": 890,
+        "eligibility_count": 5340,
+        "legacy_count": 761,
+        "target_voltage_rows": [
+          {
+            "record_key": "04a775a1d0a6cb2613f0",
+            "source_id": "HIGHLY-WEB-TH-20261025",
+            "model_id": "THU33WC6-U",
+            "condition_set_id": "ASHRAE_50Hz_fixed_single|cooling|||Constant-Speed/India/R22 220V-240V 50Hz",
+            "recorded_capacity_value_kw": "8.3",
+            "capacity_value_kw": "",
+            "capacity_band_id": "",
+            "evidence_locator": "validation/evidence/default_inputs/expansion/HIGHLY-TH-20261025-web-snapshot.pdf:PDF1 table[1], data row[2], heading=Constant-Speed/India/R22 220V-240V 50Hz"
+          },
+          {
+            "record_key": "67f330204c9c99a99e6d",
+            "source_id": "HIGHLY-WEB-TH-20261025",
+            "model_id": "THU33WC6-U",
+            "condition_set_id": "ASHRAE_50Hz_fixed_single|cooling|||Constant-Spced/India/R22 380V 50Hz",
+            "recorded_capacity_value_kw": "8.15",
+            "capacity_value_kw": "",
+            "capacity_band_id": "",
+            "evidence_locator": "validation/evidence/default_inputs/expansion/HIGHLY-TH-20261025-web-snapshot.pdf:PDF1 table[2], data row[2], heading=Constant-Spced/India/R22 380V 50Hz"
+          }
+        ],
+        "target_row_count_is_two": true,
+        "target_conditions_distinct": true,
+        "target_canonical_capacity_and_band_empty": true,
+        "unique_record_keys": true,
+        "unique_eligibility_key_purpose": true,
+        "each_model_six_purposes": true,
+        "dangling_source_ids": [],
+        "model_source_dataset_mismatch_count": 0,
+        "target_D_unresolved": true
+      },
+      "findings": []
+    }
+  ]
+}

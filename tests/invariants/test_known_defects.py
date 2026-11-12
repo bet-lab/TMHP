@@ -492,7 +492,6 @@ def test_g1_evaporator_below_source_fluid_in_same_row(run):
     expect(np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True)))
 
 
-@defect("G3", "g(t) is extrapolated linearly past t_max_s: +55 % at 12 x t_max")
 def test_g3_gfunction_beyond_t_max_matches_pygfunction():
     import pygfunction as gt
 

@@ -771,6 +771,20 @@ def warn_if_uv_ignored(model: object) -> None:
         )
 
 
+def single_count_uv_heat(sub_states: dict) -> dict:
+    """Make the UV lamp heat enter the tank balance once.
+
+    ``UVLamp.step`` reports the lamp power both as ``Q_contribution`` and as
+    ``E_subsystem``, and the tank residual adds both (defect T2).  Where a step
+    carries both with the same value, keep ``E_subsystem`` only.  Once
+    ``UVLamp.step`` reports the heat once this is a no-op.
+    """
+    uv = sub_states.get("uv")
+    if uv and uv.get("Q_contribution", 0.0) and uv.get("Q_contribution") == uv.get("E_subsystem"):
+        sub_states["uv"] = {**uv, "Q_contribution": 0.0}
+    return sub_states
+
+
 def pv_ess_result_columns(
     pv_result: dict,
     route: dict,

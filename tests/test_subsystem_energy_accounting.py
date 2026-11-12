@@ -517,3 +517,33 @@ def test_pv_ess_battery_starts_every_run_at_its_initial_state(runs):
     again = run(build("ASHPB_PV_ESS"))
     numeric = df.select_dtypes("number").columns
     pd.testing.assert_frame_equal(df[numeric], again[numeric], rtol=1e-9, atol=1e-9)
+
+
+@pytest.mark.parametrize("name", PV_ESS_NAMES)
+def test_pv_ess_uv_lamp_heat_enters_the_tank_once(name):
+    """With the heat pump off the tank gains exactly the lamp energy (not twice)."""
+    dt, n = 600, 18  # one full 3 h lamp period
+    kw = {"uv": UVLamp(lamp_watts=1000.0, exposure_sec=600.0, num_switching=1, period_sec=3 * 3600)}
+    if name == "ASHPB_PV_ESS":
+        model = tmhp.ASHPB_PV_ESS(**_pv_ess_parts(), hp_on_schedule=[(0.0, 0.0)], **kw)
+    else:
+        parts = _pv_ess_parts()
+        parts.pop("hp_capacity")
+        model = tmhp.GSHPB_PV_ESS(**parts, **{**_GROUND, "dt_s": float(dt)}, hp_on_schedule=[(0.0, 0.0)], **kw)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = model.analyze_dynamic(
+            n * dt,
+            dt,
+            50.0,
+            np.zeros(n),
+            np.full(n, 20.0),
+            I_DN_schedule=np.zeros(n),
+            I_dH_schedule=np.zeros(n),
+            T_sup_w_schedule=np.full(n, 15.0),
+            T_sur_schedule=np.full(n, 20.0),
+        )
+    lamp_J = float(col(df, "E_uv [W]").sum() * dt)
+    assert lamp_J == pytest.approx(1000.0 * 600.0, rel=1e-6)
+    gain_J = model.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(col(df, "Q_tank_loss [W]").sum() * dt)
+    assert gain_J == pytest.approx(lamp_J, rel=0.02)

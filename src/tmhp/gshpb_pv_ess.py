@@ -40,6 +40,7 @@ from .subsystems import (
     pv_ess_postprocess,
     pv_ess_result_columns,
     route_pv_ess,
+    single_count_uv_heat,
 )
 
 
@@ -115,7 +116,7 @@ class GSHPB_PV_ESS(GroundSourceHeatPumpBoilerRun):
     ) -> dict[str, dict]:
         # Let base class run STC/UV. PV is called after HP load is known.
         self._current_dt = dt
-        return super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K)
+        return single_count_uv_heat(super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K))
 
     def _augment_results(
         self,

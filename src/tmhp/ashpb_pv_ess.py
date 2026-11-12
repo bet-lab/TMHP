@@ -41,6 +41,7 @@ from .subsystems import (
     pv_ess_postprocess,
     pv_ess_result_columns,
     route_pv_ess,
+    single_count_uv_heat,
 )
 
 
@@ -118,7 +119,7 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         # PV is called after the HP load is known; only attached subsystems
         # (e.g. a UV lamp) are stepped here.
         self._current_dt = dt
-        return super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K)
+        return single_count_uv_heat(super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K))
 
     def _augment_results(
         self,

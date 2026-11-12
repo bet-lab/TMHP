@@ -60,9 +60,34 @@ def test_manifest_names_the_shipped_coefficients() -> None:
     )
     # The manifest has to say what produced the numbers, not just which
     # coefficients: a dirty tree means git_head alone does not reproduce them.
-    for key in ("git_head", "dirty", "src_tmhp_tree", "run_date", "python", "coolprop"):
+    for key in (
+        "git_heads",
+        "dirty",
+        "src_tmhp_tree",
+        "validation_parity_tree",
+        "python",
+        "coolprop",
+        "platform",
+        "run_started",
+        "run_finished",
+    ):
         assert key in manifest, f"manifest.json lacks {key!r} -- regenerate with scripts/regen-validation.sh"
     assert manifest["dirty"] is False, "committed results were produced from a dirty tree; regenerate from a commit"
+
+
+def test_every_committed_unit_has_a_provenance_record_matching_the_manifest() -> None:
+    """The manifest is the units' common provenance; each unit's record must exist and agree."""
+    from validation.parity.run import MUST_AGREE
+    from validation.parity.spec import load_all
+
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    for catalog in load_all():
+        path = RESULTS / "provenance" / f"{catalog.slug}.json"
+        assert path.exists(), f"{catalog.slug}: no provenance record. {REGEN_HINT}."
+        record = json.loads(path.read_text(encoding="utf-8"))
+        for key in MUST_AGREE:
+            assert record[key] == manifest[key], f"{catalog.slug}: {key} {record[key]!r} != manifest {manifest[key]!r}"
+        assert record["git_head"] in manifest["git_heads"]
 
 
 def _same(a, b) -> bool:

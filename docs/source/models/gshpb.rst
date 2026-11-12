@@ -43,6 +43,25 @@ Base usage
        Q_ref_tank=8_000,
    )
 
+Dynamic operation
+=================
+
+``analyze_dynamic`` follows the tank thermostat (``T_tank_w_lower_bound``
+/ ``T_tank_w_upper_bound``, 55 / 65 °C) inside each step: a step reports
+the fraction of it the compressor ran (``runtime_fraction [-]``), its
+starts (``hp_starts [-]``), and heat, power and ground heat averaged
+over the step. ``min_on_time_s`` / ``min_off_time_s`` (default 0) hold
+the compressor to a minimum run and rest time. See
+:ref:`time-step-and-thermostat`.
+
+The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
+it sets the shortest lag time tabulated for the g-function (never below
+one hour; shorter lags are interpolated linearly from zero). Pass the
+simulation step to ``analyze_dynamic``. Hourly steps keep the tank
+within its bounds, but they average hot-water draws over the hour; use
+10–15 min steps or shorter when the draw profile matters.
+
+
 Source-side mechanics
 =====================
 

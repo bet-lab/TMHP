@@ -72,17 +72,28 @@ time step. The columns are the same units-bracketed keys you get from
 - **Cycle state points** — ``P_ref_*`` pressures, ``T_ref_*`` temperatures
   at compressor / expander / evaporator / condenser nodes.
 - **Energy flows** — ``Q_ref_tank [W]``, ``Q_ref_ou [W]``,
-  ``E_cmp [W]``, fan / pump auxiliary power.
-- **Tank state** — ``T_tank_w [°C]``, ``level [-]``.
-- **Figures of merit** — ``cop_ref [-]``, ``cop_sys [-]``.
+  ``E_cmp [W]``, fan / pump auxiliary power. These are **averages over
+  the step**: the running cycle's rate times the fraction of the step the
+  compressor ran, so ``df["E_cmp [W]"].sum() * dt_s`` is the energy used.
+- **Operation** — ``hp_is_on`` (the compressor ran at some point in the
+  step), ``runtime_fraction [-]`` (the fraction it ran, 0-1),
+  ``hp_starts [-]`` (compressor starts in the step) and
+  ``failure_reason``.
+- **Tank state** — ``T_tank_w [°C]`` at the end of the step,
+  ``tank_level [-]``.
+- **Figures of merit** — ``cop_ref [-]``, ``cop_sys [-]`` of the running
+  cycle (``NaN`` on steps it did not run).
 
 You can pull any of these out by name once the run finishes:
 
 .. code-block:: python
 
-   # Daily-average system COP, skipping the first hour of warm-up
+   # Daily system COP, skipping the first hour of warm-up: heat over
+   # electricity. A plain mean of cop_sys would weight a step the
+   # compressor ran for 10 s like one it ran throughout.
    df_steady = df.iloc[60:]
-   print(f"Daily COP_sys: {df_steady['cop_sys [-]'].mean():.2f}")
+   cop_day = df_steady["Q_ref_tank [W]"].sum() / df_steady["E_tot [W]"].sum()
+   print(f"Daily COP_sys: {cop_day:.2f}")
 
 For the full column list, ``df.columns.tolist()`` after a short run is
 the fastest reference.
@@ -101,9 +112,49 @@ Common next moves
   documented under :doc:`../models/ashpb` and
   :doc:`../models/gshpb`.
 
-.. note::
+.. _time-step-and-thermostat:
 
-   ``analyze_dynamic`` uses a fully implicit time-stepping scheme —
-   ``fsolve`` solves for ``[T_next, level_next]`` at every step. This
-   makes the integrator robust to large ``dt_s`` values, but a
-   1-minute step is a safe default for first runs.
+Time step and the thermostat
+============================
+
+The heat pump runs between the tank's lower and upper bounds
+(``T_tank_w_lower_bound`` / ``T_tank_w_upper_bound``; 60 / 65 °C for
+ASHPB). A 15 kW machine on the default 151 L tank fills that 5 K band in
+about 3.5 minutes, so with any step longer than that the tank reaches a
+bound part-way through a step. ``analyze_dynamic`` and ``step()``
+follow the thermostat inside each step:
+
+- The tank heat balance over the step is linearised in the tank
+  temperature (draw-off, envelope loss and subsystem heat), and the
+  switching events are found on its exact solution: the compressor
+  stops when the tank reaches the upper bound and starts when it falls to
+  the lower bound, possibly several times in one long step.
+- The cycle is quasi-steady: it is solved once per step at the mean tank
+  temperature of the compressor's run in that step, and the step reports
+  the run-time fraction with the averaged heat and power.
+- The tank update itself stays the implicit balance over the step, fed
+  with that average heat, so the first-law balance closes for every
+  ``dt_s``.
+
+Results therefore converge as ``dt_s`` shrinks instead of drifting with
+it. For the default ASHPB, a 24 h run with hot-water draws gives the same
+daily heat input and electricity within about 2 % from 60 s to 900 s
+steps, and never exceeds the upper bound. What a
+long step still loses is the resolution of its inputs: a 30-minute draw
+averaged over an hourly step is a gentler draw, so the tank dips less
+and hourly results differ from minute results by the inputs, not by the
+controller. A 1-minute step resolves typical hot-water draws; 10–15 min
+steps (common co-simulation exchange intervals) are fine for daily or
+annual energy.
+
+The heat pump never heats the tank past 100 °C, whatever the bounds; a
+band set above 100 °C is moved down to end there. If heat from another
+source (for example a solar collector loop without a high limit) takes
+the tank above 100 °C anyway, a ``RuntimeWarning`` says so: the lumped
+tank has no boiling or relief valve.
+
+By default the compressor can start and stop at any moment. Real
+compressors are held to a minimum run and rest time (typically 3–5
+minutes); set ``min_on_time_s`` / ``min_off_time_s`` on the boiler to
+apply them. A minimum run holds the compressor past the upper bound, so
+the tank overshoots it by up to ``hp_capacity * min_on_time_s / C_tank``.

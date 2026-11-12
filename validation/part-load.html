@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page exists because the assumption it started from turned out to be wrong, and the correction changed what the library does. The assumption was the familiar one: a real inverter heat pump peak..." />
 
-    <meta property="article:modified_time" content="2026-10-01T15:03:40+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:11:42+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -285,16 +285,18 @@ same question and they do not have the same answer.</span><a class="headerlink" 
 </figure>
 <section id="panel-a-fixed-temperatures">
 <h3>Panel (a) — fixed temperatures<a class="headerlink" href="#panel-a-fixed-temperatures" title="Link to this heading">¶</a></h3>
-<p>Hold the source and sink where they are and take load away. COP rises, for the
-heat-exchanger reason alone: with the three efficiencies frozen at their rated
-values the 9 kW air-to-water model gains about 11 % between full load and the
-speed floor at 40 %. The low-speed compressor loss eats into that rise – with
-the <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> correlations, whose leakage term grows with pressure ratio,
-it takes back about half of it at 7/42.5 °C (net +5 to +6 %) and all of it at
-high lift (−7/32.5 °C: a plateau from 40 % load down to the floor). The
-air-to-air model at pressure ratios near 2 keeps most of the heat-exchanger
-gain (+20 to +24 % at the floor). None of these shapes is prescribed; they are
-the balance of the two effects (<code class="docutils literal notranslate"><span class="pre">validation/fixed_boundary_plr/decompose</span></code>).</p>
+<p>Hold the source and sink where they are and take load away. With the shipped
+compressor efficiencies the 9 kW air-to-water model gains 3.3 % between full
+load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water,
+1.2 % at 7/45 °C, and stays flat at −7/45 °C (COP 2.73 at full load, 2.77 from
+75 % load down to the floor at 33 %). Two effects set those shapes: the heat
+exchangers grow large relative to the duty, which raises COP, and the
+compressor loses efficiency at low speed, which takes it back. Their balance
+was measured with the earlier <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> correlations
+(<code class="docutils literal notranslate"><span class="pre">validation/fixed_boundary_plr/decompose</span></code>): with the three efficiencies
+frozen at their rated values the same model gains about 11 % between full load
+and the speed floor, and the air-to-air model at pressure ratios near 2 kept
++20 to +24 %. None of these shapes is prescribed.</p>
 <p>Below that the curve turns over, and the efficiency correlations are not the
 cause: a test gates the claim that wherever the modelled COP falls materially
 below its peak, the compressor speed equals <code class="docutils literal notranslate"><span class="pre">rps_min</span></code>.</p>
@@ -326,12 +328,15 @@ above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
 TMHP still computes no cycling loss (see below), so the sub-floor rows are a
 continuous-operation figure at the minimum capacity, not a part-load COP.
 They are drawn hollow in the figures and excluded from every trend verdict.</p>
+<p>At −7 °C air and 45 °C water the requests below the floor currently fail
+with <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> rather than resolving to the minimum-capacity
+point, so that curve stops at the floor.</p>
 </div>
 </section>
 <section id="panel-b-the-certification-trajectory">
 <h3>Panel (b) — the certification trajectory<a class="headerlink" href="#panel-b-the-certification-trajectory" title="Link to this heading">¶</a></h3>
-<p>This is the curve that has to match, and it does: the modelled trajectory rises
-monotonically A → D and sits inside the certified band.</p>
+<p>This is the curve that has to match: the modelled trajectory rises
+monotonically A → D and sits inside the certified band from B to D.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -356,28 +361,28 @@ monotonically A → D and sits inside the certified band.</p>
 <td><p>−7 °C / 34 °C</p></td>
 <td><p>5.28 kW</p></td>
 <td><p>5.28 kW</p></td>
-<td><p>3.53</p></td>
+<td><p>3.65</p></td>
 <td><p>2.99 (2.61–3.35)</p></td>
 </tr>
 <tr class="row-odd"><td><p>B</p></td>
 <td><p>+2 °C / 30 °C</p></td>
 <td><p>3.24 kW</p></td>
-<td><p>3.24 kW</p></td>
-<td><p>4.99</p></td>
+<td><p>3.72 kW</p></td>
+<td><p>4.84</p></td>
 <td><p>4.53 (4.13–5.01)</p></td>
 </tr>
 <tr class="row-even"><td><p>C</p></td>
 <td><p>+7 °C / 27 °C</p></td>
 <td><p>2.10 kW</p></td>
-<td><p>3.50 kW</p></td>
-<td><p>6.24</p></td>
+<td><p>4.25 kW</p></td>
+<td><p>5.88</p></td>
 <td><p>6.16 (5.37–6.82)</p></td>
 </tr>
 <tr class="row-odd"><td><p>D</p></td>
 <td><p>+12 °C / 24 °C</p></td>
 <td><p>0.90 kW</p></td>
-<td><p>4.00 kW</p></td>
-<td><p>8.08</p></td>
+<td><p>4.84 kW</p></td>
+<td><p>7.55</p></td>
 <td><p>7.88 (6.40–8.97)</p></td>
 </tr>
 </tbody>
@@ -385,13 +390,13 @@ monotonically A → D and sits inside the certified band.</p>
 </div>
 <p>The model runs optimistic at the cold end — above the 90th percentile at A —
 and sits inside the band elsewhere: between the 75th and 90th percentiles at B,
-between the median and the 75th at C and D. That is reported as it stands; no
-coefficient is adjusted to move it.</p>
+between the 25th percentile and the median at C and D. That is reported as it
+stands; no coefficient is adjusted to move it.</p>
 <div class="note admonition">
 <p class="admonition-title">One result nobody put in by hand</p>
-<p>Look at the <em>delivered</em> column. At points C and D the modelled machine
+<p>Look at the <em>delivered</em> column. At points B, C and D the modelled machine
 cannot modulate down to the required load and delivers more than the test
-point asks for — 4.00 kW where 0.90 kW is required.</p>
+point asks for — 4.84 kW where 0.90 kW is required.</p>
 <p>Certified machines do the same thing. 55 % of Keymark records declare a
 <em>higher</em> heat output at point D than at point C, which is the signature of
 a machine sitting on its modulation floor. TMHP reproduces that structure
@@ -447,7 +452,7 @@ different denominators for exactly this reason, and are labelled accordingly.</p
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 01, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

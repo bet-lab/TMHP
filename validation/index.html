@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-10-30T16:08:11+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:11:42+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -243,7 +243,7 @@ cluster on the diagonal and the rest scattered.</span><a class="headerlink" href
 <td><p>Panasonic, Samsung, Daikin, Fujitsu</p></td>
 </tr>
 <tr class="row-even"><td><p>Points</p></td>
-<td><p>757 attempted, 753 evaluated</p></td>
+<td><p>757 attempted, 757 evaluated</p></td>
 </tr>
 <tr class="row-odd"><td><p>Modes</p></td>
 <td><p>Heating and cooling</p></td>
@@ -267,47 +267,84 @@ cluster on the diagonal and the rest scattered.</span><a class="headerlink" href
 </section>
 <section id="reading-the-residuals">
 <h2>Reading the residuals<a class="headerlink" href="#reading-the-residuals" title="Link to this heading">¶</a></h2>
-<p>There is no single headline number: the set mixes two rating standards
-(EN 14511 and AHRI 210/240) that define COP differently, so the harness reports
-one figure per standard and pools nothing across them. Over 753 evaluated points
-the adopted catalogues come to a COP MAPE of 8.9 %; the two held catalogues are
-run and written but never enter a headline. The compressor coefficients are
-version <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), fitted on standalone compressor data
-and applied here unchanged.</p>
+<p>There is no single headline number: the two families answer different
+questions, and the set mixes rating standards (EN 14511 and AHRI 210/240) that
+define COP differently, so each family is reported on its own and nothing is
+pooled across standards. The two held catalogues are run and written but never
+enter a headline. Every point attempted was evaluated. The compressor
+efficiencies are the shipped <code class="docutils literal notranslate"><span class="pre">BITZER-three-C3-absolute-N-2026-10-06</span></code> fits
+with their range and validity-domain guards (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), applied here
+unchanged.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 34.0%" />
-<col style="width: 14.0%" />
-<col style="width: 14.0%" />
-<col style="width: 38.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 30.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Group</p></th>
 <th class="head"><p>COP MAPE</p></th>
 <th class="head"><p>Bias</p></th>
+<th class="head"><p>Evaluated</p></th>
 <th class="head"><p>What it is</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Air-to-water, 10 units</p></td>
-<td><p>8.2 %</p></td>
-<td><p>+1.5 %</p></td>
-<td><p>Scatter, centred (rating standard not stated)</p></td>
+<td><p>10.3 %</p></td>
+<td><p>+5.6 %</p></td>
+<td><p>153 / 153</p></td>
+<td><p>Optimistic on average; the bias sits at +2 °C outdoor</p></td>
 </tr>
 <tr class="row-odd"><td><p>Air-to-air, Daikin, 5 units</p></td>
-<td><p>9.2 %</p></td>
-<td><p>−0.0 %</p></td>
-<td><p>Scatter, centred (EN 14511)</p></td>
+<td><p>12.1 %</p></td>
+<td><p>+1.5 %</p></td>
+<td><p>360 / 360</p></td>
+<td><p>EN 14511; two opposite biases that net out</p></td>
 </tr>
-<tr class="row-even"><td><p>Air-to-air, Fujitsu, 2 units</p></td>
-<td><p>30.3 %</p></td>
-<td><p><strong>+28.8 %</strong></p></td>
+<tr class="row-even"><td><p>Daikin cooling</p></td>
+<td><p>10.5 %</p></td>
+<td><p>−9.7 %</p></td>
+<td><p>180 / 180</p></td>
+<td><p>Pessimistic, growing with outdoor temperature</p></td>
+</tr>
+<tr class="row-odd"><td><p>Daikin heating</p></td>
+<td><p>13.7 %</p></td>
+<td><p>+12.7 %</p></td>
+<td><p>180 / 180</p></td>
+<td><p>Centred above +2 °C outdoor, optimistic at and below 0 °C</p></td>
+</tr>
+<tr class="row-even"><td><p>Daikin heating at or below −7 °C</p></td>
+<td><p>22.5 %</p></td>
+<td><p>+22.5 %</p></td>
+<td><p>60 / 60</p></td>
+<td><p>Every point optimistic</p></td>
+</tr>
+<tr class="row-odd"><td><p>Air-to-air, Fujitsu, 2 units</p></td>
+<td><p>34.0 %</p></td>
+<td><p><strong>+33.1 %</strong></p></td>
+<td><p>244 / 244</p></td>
 <td><p>Held: AHRI 210/240, COP boundary not stated — a uniform offset</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<p>The biases are stated here, not corrected. <strong>Air-to-air cooling runs low</strong>,
+from −5 % at 20 °C to −12 % at 40 °C outdoor, and the dry indoor coil (see
+<a class="reference internal" href="#cooling-and-latent-load">Cooling and latent load</a>) is not the cause: the cooling rows with no latent
+load (sensible heat ratio 0.95 or above) are the most pessimistic, at −19 %,
+and those with the most latent load the least, at −5 %. The dry-coil
+idealisation pushes the other way (② below). What the low rows share is the
+most efficient hardware: at the rating point the smallest Daikin units, with
+the highest nameplate EER, sit 17 to 19 % low (①). <strong>Air-to-air heating runs
+high in the cold</strong> because
+frosting and defrost are not modelled: +17 % from 0 to −10 °C outdoor and +28 %
+at −15 °C, against 0 to −2 % at 6 and 10 °C. <strong>Air-to-water runs high at
++2 °C outdoor</strong> (+20 % over its 30 points, +2 % over the other 123), the condition at
+which an outdoor coil frosts most and a declared COP carries defrost.</p>
 <p>A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.</p>
 <div class="important admonition">
@@ -318,7 +355,9 @@ this is the correction. Comparing each machine at its own <strong>nominal</stron
 rating point – no latent load, no forced maximum output, the cleanest
 comparison available – separates them.</p>
 <p><strong>① Residual hardware efficiency (~20 points).</strong> At the nominal heating
-rating point Daikin lands 6-11 % low and Fujitsu 13-15 % high. That part is
+rating point Daikin lands between −2 and +8 % and Fujitsu at +24 to +25 %;
+at the cooling rating point Daikin spans −19 to +4 %, falling with
+nameplate EER, and Fujitsu +14 to +24 %. That part is
 real and it is the defaults’ responsibility: the two product lines are
 built to different efficiency targets and a rule written per kilowatt
 cannot tell which one it is looking at.</p>
@@ -327,8 +366,9 @@ exchanger. A real machine removing moisture must hold its coil below the
 dew point, far colder than a sensible-only coil needs to move the same
 total heat — and a colder coil means more lift and less COP. At its rating
 point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
-against the Daikin’s 2 % (SHR 0.98). Within the Daikin set alone, bias
-correlates with sensible heat ratio at <em>r</em> = −0.52.</p>
+against the Daikin’s 2 % (SHR 0.98). Within the Daikin set alone, the bias
+of the 180 cooling points correlates with their sensible heat ratio at
+<em>r</em> = −0.83: the more latent load, the more optimistic the model.</p>
 <p><strong>③ Maximum-capacity tables, heating half.</strong> Fujitsu’s heating grid is
 published at maximum capacity, with the compressor pinned at full speed
 where its efficiency is worst. The harness asks for that same duty and the
@@ -360,48 +400,51 @@ against the population the default came from.</p>
 <tbody>
 <tr class="row-even"><td><p>FTXM20A / RXM20A</p></td>
 <td><p>5.41</p></td>
-<td><p>Q/3.7</p></td>
-<td><p>inside</p></td>
+<td><p>none in Q/2–Q/16</p></td>
+<td><p><strong>outside</strong> (high end)</p></td>
 </tr>
 <tr class="row-odd"><td><p>FTXM25A / RXM25A</p></td>
 <td><p>5.21</p></td>
-<td><p>Q/3.9</p></td>
-<td><p>inside</p></td>
+<td><p>none in Q/2–Q/16</p></td>
+<td><p><strong>outside</strong> (high end)</p></td>
 </tr>
 <tr class="row-even"><td><p>FTXM35A / RXM35A</p></td>
 <td><p>4.61</p></td>
-<td><p>Q/4.2</p></td>
-<td><p>inside</p></td>
+<td><p>Q/2.6</p></td>
+<td><p><strong>outside</strong> (high end)</p></td>
 </tr>
 <tr class="row-odd"><td><p>FTXM42A / RXM42A</p></td>
 <td><p>4.20</p></td>
-<td><p>Q/4.9</p></td>
+<td><p>Q/3.8</p></td>
 <td><p>inside</p></td>
 </tr>
 <tr class="row-even"><td><p>FTXM50A / RXM50A</p></td>
 <td><p>3.68</p></td>
-<td><p>Q/6.0</p></td>
+<td><p>Q/5.6</p></td>
 <td><p>inside</p></td>
 </tr>
 <tr class="row-odd"><td><p>ASUH09LPAS</p></td>
 <td><p>3.67</p></td>
-<td><p>Q/7.6</p></td>
-<td><p><strong>outside</strong></p></td>
+<td><p>Q/7.1</p></td>
+<td><p>at the low end</p></td>
 </tr>
 <tr class="row-even"><td><p>ASUH12LPAS</p></td>
 <td><p>3.23</p></td>
-<td><p>Q/8.5</p></td>
-<td><p><strong>outside</strong></p></td>
+<td><p>Q/8.7</p></td>
+<td><p><strong>outside</strong> (low end)</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <p>The band is <strong>Q/3.3 to Q/7.1</strong> at p10–p90 of 1,414 component coils, on the
-nameplate-capacity basis, and the default <code class="docutils literal notranslate"><span class="pre">Q/5.0</span></code> sits inside it. Every
-Daikin unit is inside. Both Fujitsu units sit just outside the
-low-conductance end: they behave like machines with less coil per kilowatt
-than 90 % of the component population, which is exactly why a median
-default over-predicts them.</p>
+nameplate-capacity basis, and the default <code class="docutils literal notranslate"><span class="pre">Q/5.0</span></code> sits inside it. The
+machines now split at both ends. The three most efficient Daikin units
+would need more conductance than 90 % of the component population — the
+two smallest more than even <code class="docutils literal notranslate"><span class="pre">Q/2</span></code> gives, so no conductance alone closes
+their cooling gap — while the larger ASUH12LPAS behaves like a machine
+with less coil per kilowatt than 90 % of it and ASUH09LPAS sits on that
+edge (Q/7.09 against Q/7.08). A median default under-predicts the first
+group and over-predicts the second, which is the residual pattern above.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The band must be quoted on the same basis as the rule. Component
@@ -422,8 +465,9 @@ and <code class="docutils literal notranslate"><span class="pre">uv</span> <span
 </figure>
 <div class="note admonition">
 <p class="admonition-title">Why the default was not moved</p>
-<p>Nudging the conductance from <code class="docutils literal notranslate"><span class="pre">Q/5</span></code> toward <code class="docutils literal notranslate"><span class="pre">Q/6</span></code> would have improved the
-aggregate number on this page. It was not done. The value was derived from
+<p>Moving the conductance away from <code class="docutils literal notranslate"><span class="pre">Q/5</span></code> would improve the numbers on this
+page for the machines at one end of the band at the cost of the other. It
+was not done. The value was derived from
 the catalogue population before any parity result existed, and changing it
 afterwards to improve a parity plot is calibration wearing validation’s
 clothes — the exact thing this harness is built to prevent. The spread is
@@ -434,18 +478,18 @@ reported instead.</p>
 displacement, which no air-to-air unit in the set does — neither Daikin nor
 Fujitsu prints one, and a search of five data books, three service manuals and
 two specification sheets found no displacement for any of them. So the
-air-to-air panel is also a test of the <em>derived</em> displacement rule rather than
-of a specification input.</p>
+air-to-air panel is also a test of the library’s <em>default</em> displacement rather
+than of a specification input.</p>
 <p><strong>Both air-to-air refrigerants are present for a reason.</strong> Daikin’s
 pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is <em>not</em> a refrigerant
-effect: the three R-410A air-to-water units are among the best fits in the
-whole set, at 4.7 to 7.9 % MAPE.</p>
+effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
+inside the 7.2 to 16.9 % spread of the air-to-water set.</p>
 <p><strong>The one air-to-water outlier turns out to be the same story.</strong> The 16 kW R32
-unit runs +11.7 % optimistic. Neither of its published inputs explains it:
-substituting its sibling’s rated air flow, or dropping its published
-displacement in favour of the derived rule, moves the bias by about a point.
+unit runs +16.9 % optimistic. Neither of its published inputs explains it:
+substituting its 12 kW sibling’s rated air flow moves the bias by 1.3 points,
+and dropping its published displacement for the library default by 3.1.
 What explains it is the catalogue itself. At every one of the fifteen
 conditions, the 16 kW machine’s <em>published</em> COP is 8 to 22 % below the 9 kW
 machine’s from the same product line:</p>
@@ -511,7 +555,189 @@ came from a parameter set written for that machine, including its own
 displacement, conductances and efficiency coefficients. It is not
 comparable to the number here, which is the shipped defaults applied
 without adjustment. Removing that divergence between the published
-validation script and the library default is part of what this work did.</p>
+validation script and the library default is part of what this work did.
+The deleted <code class="docutils literal notranslate"><span class="pre">samsung_ehs_parity.py</span></code> is not a reproduction route; the
+table is kept only as the historical record.</p>
+<div class="table-wrapper colwidths-given docutils container" id="id4">
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Historical Samsung comparison — superseded parameter set</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 8.0%" />
+<col style="width: 14.0%" />
+<col style="width: 12.0%" />
+<col style="width: 18.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 8.0%" />
+<col style="width: 8.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>LWT [°C]</p></th>
+<th class="head"><p>T0 [°C]</p></th>
+<th class="head"><p>Q_ref,cond [kW]</p></th>
+<th class="head"><p>COP target</p></th>
+<th class="head"><p>COP predicted</p></th>
+<th class="head"><p>AE</p></th>
+<th class="head"><p>APE</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>40</p></td>
+<td><p>−10</p></td>
+<td><p>13.45</p></td>
+<td><p>2.30</p></td>
+<td><p>2.37</p></td>
+<td><p>0.07</p></td>
+<td><p>3.0 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>40</p></td>
+<td><p>2</p></td>
+<td><p>12.42</p></td>
+<td><p>3.04</p></td>
+<td><p>3.83</p></td>
+<td><p>0.79</p></td>
+<td><p>25.8 %</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>40</p></td>
+<td><p>12</p></td>
+<td><p>14.65</p></td>
+<td><p>5.07</p></td>
+<td><p>4.67</p></td>
+<td><p>0.40</p></td>
+<td><p>7.9 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>40</p></td>
+<td><p>20</p></td>
+<td><p>15.69</p></td>
+<td><p>6.48</p></td>
+<td><p>5.65</p></td>
+<td><p>0.83</p></td>
+<td><p>12.8 %</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>40</p></td>
+<td><p>30</p></td>
+<td><p>16.98</p></td>
+<td><p>7.68</p></td>
+<td><p>7.43</p></td>
+<td><p>0.25</p></td>
+<td><p>3.2 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>50</p></td>
+<td><p>−10</p></td>
+<td><p>13.89</p></td>
+<td><p>2.00</p></td>
+<td><p>1.84</p></td>
+<td><p>0.16</p></td>
+<td><p>7.8 %</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>50</p></td>
+<td><p>2</p></td>
+<td><p>13.27</p></td>
+<td><p>2.56</p></td>
+<td><p>3.04</p></td>
+<td><p>0.48</p></td>
+<td><p>18.9 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p>50</p></td>
+<td><p>12</p></td>
+<td><p>14.76</p></td>
+<td><p>3.86</p></td>
+<td><p>3.71</p></td>
+<td><p>0.15</p></td>
+<td><p>3.9 %</p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p>50</p></td>
+<td><p>20</p></td>
+<td><p>15.97</p></td>
+<td><p>4.78</p></td>
+<td><p>4.34</p></td>
+<td><p>0.44</p></td>
+<td><p>9.2 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p>50</p></td>
+<td><p>30</p></td>
+<td><p>17.48</p></td>
+<td><p>5.95</p></td>
+<td><p>5.37</p></td>
+<td><p>0.58</p></td>
+<td><p>9.8 %</p></td>
+</tr>
+<tr class="row-even"><td><p>11</p></td>
+<td><p>65</p></td>
+<td><p>−10</p></td>
+<td><p>13.97</p></td>
+<td><p>1.73</p></td>
+<td><p>1.42</p></td>
+<td><p>0.31</p></td>
+<td><p>17.7 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>12</p></td>
+<td><p>65</p></td>
+<td><p>2</p></td>
+<td><p>13.71</p></td>
+<td><p>2.04</p></td>
+<td><p>2.37</p></td>
+<td><p>0.33</p></td>
+<td><p>16.1 %</p></td>
+</tr>
+<tr class="row-even"><td><p>13</p></td>
+<td><p>65</p></td>
+<td><p>12</p></td>
+<td><p>16.38</p></td>
+<td><p>2.84</p></td>
+<td><p>2.73</p></td>
+<td><p>0.11</p></td>
+<td><p>3.7 %</p></td>
+</tr>
+<tr class="row-odd"><td><p>14</p></td>
+<td><p>65</p></td>
+<td><p>20</p></td>
+<td><p>17.48</p></td>
+<td><p>3.34</p></td>
+<td><p>3.17</p></td>
+<td><p>0.17</p></td>
+<td><p>5.1 %</p></td>
+</tr>
+<tr class="row-even"><td><p>15</p></td>
+<td><p>65</p></td>
+<td><p>30</p></td>
+<td><p>18.84</p></td>
+<td><p>4.04</p></td>
+<td><p>3.79</p></td>
+<td><p>0.25</p></td>
+<td><p>6.1 %</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p><strong>Mean</strong></p></td>
+<td><p><strong>0.35</strong></p></td>
+<td><p><strong>10.1 %</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>LWT is leaving-water temperature and T0 the outdoor (dead-state)
+temperature; AE and APE are the absolute and absolute percentage error.
+That comparison set the tank temperature 2.5 K below LWT up to 60 °C and
+5 K below it above 60 °C.</p>
+<p>Physics-based space-conditioning ASHP/GSHP outputs through commit
+<code class="docutils literal notranslate"><span class="pre">c5d673e</span></code> used coil-duty COP (<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span> <span class="pre">/</span> <span class="pre">E_tot</span></code>); results on this page
+use final indoor-air delivery with fan heat counted once
+(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>).</p>
 </div>
 </section>
 <section id="cooling-and-latent-load">
@@ -536,18 +762,27 @@ pass smoke tests on representative operating points, but have not been
 compared against unit-specific data. The conductance rule derived here is
 for air coils and does not transfer to a water- or brine-coupled face,
 which is different physics.</p>
-<p><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> additionally still carries a fixed compressor
-displacement rather than the derived rule, and is not covered by the
-displacement work on this page.</p>
+<p>Every family’s default compressor displacement is the fixed
+42 cm³ per 9 kW of nameplate (<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.default_displacement()</span></code>);
+the refrigerant-aware rule of <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a> is available as
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_speed.refrigerant_aware_displacement()</span></code> but is not
+the default.</p>
 </div>
 </section>
 <section id="reproduce">
 <h2>Reproduce<a class="headerlink" href="#reproduce" title="Link to this heading">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--group<span class="w"> </span>validation
-</span><span data-line="2">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.parity.run<span class="w">             </span><span class="c1"># every catalogue</span>
-</span><span data-line="3">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.validation.parity_figure<span class="w">  </span><span class="c1"># this figure</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span data-line="1">uv<span class="w"> </span>sync<span class="w"> </span>--locked<span class="w"> </span>--all-groups
+</span><span data-line="2">scripts/regen-validation.sh<span class="w">                         </span><span class="c1"># every catalogue, the site data and these figures</span>
+</span><span data-line="3">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>validation.parity.run<span class="w"> </span>--unit<span class="w"> </span>&lt;slug&gt;<span class="w">   </span><span class="c1"># one catalogue</span>
 </span></pre></div>
 </div>
+<p>Each unit run records what produced it in
+<code class="docutils literal notranslate"><span class="pre">validation/results/provenance/&lt;slug&gt;.json</span></code> — the commit, any uncommitted
+edits, the <code class="docutils literal notranslate"><span class="pre">src/tmhp</span></code> and harness tree hashes, the coefficient version, the
+Python, CoolProp and platform. The summary refuses units whose records
+disagree, and <code class="docutils literal notranslate"><span class="pre">validation/results/manifest.json</span></code> carries what they share.
+<code class="docutils literal notranslate"><span class="pre">tests/test_validation_results_current.py</span></code> reruns a fixed sample of points
+and fails when the model no longer reproduces them.</p>
 <p>Adding a machine is a transcription and nothing else — see
 <a class="reference internal" href="adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a>.</p>
 </section>
@@ -567,7 +802,7 @@ catalogues</em> (2025).</p></li>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 30, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

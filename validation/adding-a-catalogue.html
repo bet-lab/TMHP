@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This procedure is fixed. Follow it and the documentation site picks the new unit up on the next push to main — parity plot, error table and summary, all of it. The design goal is that adding a mach..." />
 
-    <meta property="article:modified_time" content="2026-09-12T19:08:58+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:11:42+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -204,9 +204,11 @@ other unit was run against.</p>
 </span><span data-line="8">
 </span><span data-line="9"><span class="c1"># 5. refresh the figure and the site data</span>
 </span><span data-line="10">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.validation.parity_figure
-</span><span data-line="11">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/data/gen_validation_data.py
-</span><span data-line="12">
-</span><span data-line="13"><span class="c1"># 6. commit the catalogue, the registry, results/ and the regenerated JSON</span>
+</span><span data-line="11">uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>scripts.data.gen_validation_data
+</span><span data-line="12"><span class="c1">#    (or all units, the site data and every validation figure at once)</span>
+</span><span data-line="13">scripts/regen-validation.sh
+</span><span data-line="14">
+</span><span data-line="15"><span class="c1"># 6. commit the catalogue, the registry, results/ and the regenerated JSON</span>
 </span></pre></div>
 </div>
 <p><strong>1. Archive the document.</strong> Drop it under <code class="docutils literal notranslate"><span class="pre">validation/evidence/</span></code> — in
@@ -219,7 +221,8 @@ command above. A document with no entry is listed under <code class="docutils li
 which is the audit trail for “nobody has checked this file yet”.</p>
 <p><strong>3. Transcribe the grid.</strong> One YAML file per outdoor unit. See below.</p>
 <p><strong>4. Run the harness.</strong> It writes <code class="docutils literal notranslate"><span class="pre">validation/results/&lt;slug&gt;.csv</span></code> and updates
-<code class="docutils literal notranslate"><span class="pre">validation/results/summary.csv</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">validation/results/summary.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">manifest.json</span></code>, which records the
+commit and the <code class="docutils literal notranslate"><span class="pre">src/tmhp</span></code> tree the numbers came from.</p>
 <p><strong>5. Refresh the derived artefacts.</strong> The figure and the site’s JSON both read
 from <code class="docutils literal notranslate"><span class="pre">validation/results/</span></code>, so they follow automatically.</p>
 <p><strong>6. Commit.</strong> Pushing to <code class="docutils literal notranslate"><span class="pre">main</span></code> rebuilds the site.</p>
@@ -343,7 +346,7 @@ drop them.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Sep 12, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

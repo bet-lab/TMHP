@@ -310,7 +310,7 @@ scripts/regen-validation.sh            # every catalogue in parallel, then the s
 uv run python -m validation.parity.run --unit samsung_ehs_mono_ht_r32_14kw   # one unit
 ```
 
-`validation/results/manifest.json` records the commit, the `src/tmhp` tree, the coefficient version and the Python/CoolProp versions the results came from, and `tests/test_validation_results_current.py` fails when the model no longer reproduces them. [validation/README.md](validation/README.md) documents source checksums, extraction, catalogue transcription and the result chain. Manufacturer PDFs are obtained separately and are not committed.
+`validation/results/manifest.json` records the commit, the `src/tmhp` tree, the coefficient version and the Python/CoolProp versions the unit runs shared (each unit's own record is in `validation/results/provenance/`), and `tests/test_validation_results_current.py` fails when the model no longer reproduces them. [validation/README.md](validation/README.md) documents source checksums, extraction, catalogue transcription and the result chain. Manufacturer PDFs are obtained separately and are not committed.
 
 The outdoor-coil default evidence covers dry round-tube-plate-fin packaged equipment; frost, microchannel coils and residential mini-splits lie outside that evidence. Catalogue maximum-capacity conditions require separate interpretation, and high-temperature vapour-injection hardware is outside the single-stage cycle boundary.
 

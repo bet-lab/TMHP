@@ -547,9 +547,11 @@ Reproduce
     scripts/regen-validation.sh                         # every catalogue, the site data and these figures
     uv run python -m validation.parity.run --unit <slug>   # one catalogue
 
-``validation/results/manifest.json`` records the commit, the ``src/tmhp`` tree
-hash, the coefficient version, the run date and the Python and CoolProp
-versions the committed results came from.
+Each unit run records what produced it in
+``validation/results/provenance/<slug>.json`` — the commit, any uncommitted
+edits, the ``src/tmhp`` and harness tree hashes, the coefficient version, the
+Python, CoolProp and platform. The summary refuses units whose records
+disagree, and ``validation/results/manifest.json`` carries what they share.
 ``tests/test_validation_results_current.py`` reruns a fixed sample of points
 and fails when the model no longer reproduces them.
 

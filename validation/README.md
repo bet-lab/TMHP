@@ -6,12 +6,14 @@ Physics-based space-conditioning ASHP/GSHP results through commit `c5d673e`
 use **coil-duty COP**, `Q_ref_iu / E_tot`, including archived CSVs and figures
 in this directory. They remain historical evidence. New runs use final indoor
 air delivery, `abs(Q_a_iu_out - Q_a_iu_in) / E_tot`, with fan heat included
-once in the outlet. `results/<slug>.csv`, `results/summary.csv` and
-`results/manifest.json` are regenerated together by `scripts/regen-validation.sh`;
-the manifest records the commit, whether the model and harness inputs were
-dirty, the `src/tmhp` tree hash, the coefficient version, the run date and the
-Python/CoolProp versions, and `tests/test_validation_results_current.py` fails
-when the code no longer reproduces them. Other result folders under `results/`
+once in the outlet. `results/<slug>.csv`, `results/provenance/<slug>.json`,
+`results/summary.csv` and `results/manifest.json` are regenerated together by
+`scripts/regen-validation.sh`. Each unit run records its own provenance (commit,
+uncommitted edits, `src/tmhp` and `validation/parity` tree hashes, coefficient
+version, Python/CoolProp/platform, time); the summary refuses units whose
+records disagree and the manifest carries what they share.
+`tests/test_validation_results_current.py` fails when the code no longer
+reproduces the committed numbers. Other result folders under `results/`
 and `data/` are dated studies; check their own provenance before using them for
 a current system-COP comparison. Coil-based capacity,
 requested/delivered PLR and catalogue-specific COP boundaries remain separate.

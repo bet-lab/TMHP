@@ -246,7 +246,8 @@ def test_calc_gshp_cop_refuses_points_outside_the_fit():
 
 @pytest.mark.parametrize(
     ("Q", "T_g"),
-    [(100.0, -5.0), (2000.0, 0.0), (40000.0, 30.0), (-16450.0, -3.0), (-8000.0, 0.0)],
+    # (40 kW, 38 °C) starts inside the cooling range and settles at EWT 55 °C, above 48.72 °C.
+    [(100.0, -5.0), (2000.0, 0.0), (40000.0, 38.0), (-16450.0, -3.0), (-8000.0, 0.0)],
 )
 def test_out_of_domain_steps_do_not_run(Q, T_g):
     m = _empirical(Q, T_g)
@@ -254,6 +255,33 @@ def test_out_of_domain_steps_do_not_run(Q, T_g):
     assert m.failure_detail
     assert m.E_cmp == 0.0 and m.Q_iu == 0.0 and math.isnan(m.COP)
     assert m.q_b == 0.0 and m.T_f_out == pytest.approx(m.T_b)
+
+
+@pytest.mark.parametrize(("Q", "T_g"), [(6000.0, 5.0), (6000.0, 8.0), (-6000.0, 33.0), (-6000.0, 34.0)])
+def test_valid_point_reached_from_out_of_range_ground_is_not_rejected(Q, T_g):
+    """Only the converged entering water decides the domain, not the undisturbed-ground first guess."""
+    m = _empirical(Q, T_g)
+    lo, hi = (v * 283.0 - 273.15 for v in GSHP_EQFIT_DOMAIN["cooling" if Q > 0 else "heating"]["x"])
+    assert not lo <= T_g <= hi
+    assert m.failure_reason == "none", m.failure_detail
+    assert lo <= m.T_f_out - 273.15 <= hi
+    assert m.Q_iu == Q and m.COP > 0.0
+    # Self-consistent: the COP is the curve value at the reported entering water.
+    curve_cop = calc_GSHP_COP(m.T_a_room_K, m.T_f_out, 1.0, "cooling" if Q > 0 else "heating")
+    assert pytest.approx(curve_cop, rel=2e-3) == m.COP
+
+
+def test_converged_entering_water_outside_the_fit_still_stops_the_unit():
+    # 3 kW heating from 34 °C ground settles at EWT 32.3 °C, above the 32.06 °C fit limit.
+    m = _empirical(-3000.0, 34.0)
+    assert m.failure_reason == "outside_curve_domain" and "x=" in m.failure_detail
+    assert m.E_cmp == 0.0 and math.isnan(m.COP)
+
+
+def test_room_outside_the_fit_reports_nan_cop():
+    m = _empirical(-8000.0, 10.0, T_a_room=30.0)
+    assert m.failure_reason == "outside_curve_domain" and "w=" in m.failure_detail
+    assert math.isnan(m.COP) and math.isnan(m.COP_sys) and m.E_cmp == 0.0
 
 
 def test_request_above_capacity_is_clamped():

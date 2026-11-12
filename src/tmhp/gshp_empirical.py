@@ -21,7 +21,13 @@ import numpy as np
 from . import calc_util as cu
 from . import g_function as gf
 from .constants import c_a, c_w, k_w, rho_a, rho_w
-from .cop import GSHP_EQFIT_COP_REF, EquationFitRangeError, gshp_equation_fit_ratios
+from .cop import (
+    GSHP_EQFIT_COP_REF,
+    GSHP_EQFIT_DOMAIN,
+    GSHP_EQFIT_T_REF_K,
+    EquationFitRangeError,
+    gshp_equation_fit_ratios,
+)
 from .g_function import g_step_mean, precompute_gfunction
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan
 
@@ -55,8 +61,9 @@ class GroundSourceHeatPumpEmpirical:
     flagged ``capacity_clamped = "max"``. Outside the fitted domain
     (:data:`~tmhp.cop.GSHP_EQFIT_DOMAIN`: entering water −1.25–32.06 °C in
     heating, 9.85–48.72 °C in cooling; entering air 9.85–26.51 °C dry-bulb in
-    heating, 9.85–23.73 °C wet-bulb in cooling) the unit does not run for
-    that step: heat, compressor and pump power are zero, ``COP`` is NaN and
+    heating, 9.85–23.73 °C wet-bulb in cooling; the water temperature is
+    judged at the converged, self-consistent entering water, not at the
+    undisturbed ground) the unit does not run for that step: heat, compressor and pump power are zero, ``COP`` is NaN and
     ``failure_reason`` says why. COP and compressor power are therefore never
     negative.
 
@@ -271,18 +278,27 @@ class GroundSourceHeatPumpEmpirical:
         T_b, T_f, T_f_in, T_f_out = ground_state(0.0, 0.0)
         if running:
             Q_rated = self.Q_rated_cooling if mode == "cooling" else self.Q_rated_heating
-            # Iterate the entering-water temperature from the undisturbed ground.
-            T_f_out = T_f_in = self.T_g_K
+            x_lo, x_hi = (v * GSHP_EQFIT_T_REF_K for v in GSHP_EQFIT_DOMAIN[mode]["x"])
+            try:
+                # Entering air (and the rated air-flow ratio y = 1) does not
+                # depend on the iteration: check it once, at a mid-range EWT.
+                gshp_equation_fit_ratios(self.T_a_room_K, 0.5 * (x_lo + x_hi), 1.0, mode)
+            except EquationFitRangeError as exc:
+                failure_reason, failure_detail = "outside_curve_domain", str(exc)
+                running = False
+        if running:
+            # Iterate the entering-water temperature, starting from the fluid
+            # temperature with this step unloaded. Iterates are evaluated with
+            # the EWT held inside the fitted range; only the converged EWT
+            # decides whether the point is inside the curve domain, so a
+            # first guess outside the range does not switch off a valid point.
             max_iter, tol = 20, 1e-2
             converged = False
             for _ in range(max_iter):
                 T_f_in_old = T_f_in
-                try:
-                    # Rated air flow while the compressor runs (y = 1).
-                    cap_ratio, pwr_ratio = gshp_equation_fit_ratios(self.T_a_room_K, T_f_out, 1.0, mode)
-                except EquationFitRangeError as exc:
-                    failure_reason, failure_detail = "outside_curve_domain", str(exc)
-                    break
+                T_eval = min(max(T_f_out, x_lo), x_hi)
+                # Rated air flow while the compressor runs (y = 1).
+                cap_ratio, pwr_ratio = gshp_equation_fit_ratios(self.T_a_room_K, T_eval, 1.0, mode)
                 Q_cap = Q_rated * cap_ratio
                 Q_served = min(Q_request, Q_cap)
                 COP = GSHP_EQFIT_COP_REF[mode] * cap_ratio / pwr_ratio
@@ -293,16 +309,22 @@ class GroundSourceHeatPumpEmpirical:
                 if abs(T_f_in - T_f_in_old) < tol:
                     converged = True
                     break
-            if failure_reason == "none" and not converged:
+            if not converged:
                 failure_reason = "not_converged"
+            elif not x_lo <= T_f_out <= x_hi:
+                # The self-consistent entering water lies outside the fit.
+                try:
+                    gshp_equation_fit_ratios(self.T_a_room_K, T_f_out, 1.0, mode)
+                except EquationFitRangeError as exc:
+                    failure_reason, failure_detail = "outside_curve_domain", str(exc)
             if failure_reason == "none":
                 capacity_clamped = "max" if Q_request > Q_cap else None
-            else:
-                # The unit does not run this step: no heat, no power, no ground load.
-                running = False
-                COP = float("nan")
-                E_cmp = Q_served = Q_r_ghx = q_b = 0.0
-                T_b, T_f, T_f_in, T_f_out = ground_state(0.0, 0.0)
+        if failure_reason != "none":
+            # The unit does not run this step: no heat, no power, no ground load.
+            running = False
+            COP = float("nan")
+            E_cmp = Q_served = Q_r_ghx = q_b = 0.0
+            T_b, T_f, T_f_in, T_f_out = ground_state(0.0, 0.0)
 
         mode_run = mode if running else "off"
         if mode_run == "cooling":

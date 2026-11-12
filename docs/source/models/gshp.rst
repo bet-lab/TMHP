@@ -82,7 +82,9 @@ with ``capacity_clamped = "max"``. Outside the fitted range — entering water
 −1.25 to 32.06 °C in heating and 9.85 to 48.72 °C in cooling, entering air
 9.85 to 26.51 °C dry-bulb in heating and 9.85 to 23.73 °C wet-bulb in
 cooling — the unit does not run for that step and ``failure_reason`` is
-``"outside_curve_domain"``. The room (entering-air) temperature is the
+``"outside_curve_domain"``. The water temperature is judged at the
+converged entering water of the step, so cold ground that the step's own
+heat rejection brings into range (or warm ground in heating) still runs. The room (entering-air) temperature is the
 ``T_a_room`` input (27 / 21 °C when omitted).
 
 Its conventions differ from the refrigerant-cycle model: the borehole load

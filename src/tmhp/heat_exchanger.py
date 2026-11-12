@@ -131,15 +131,24 @@ def resolve_fan_flow_limits(
     The generic ASHRAE correlation is limited to 15--100% of reference.
     Custom curves may supply independent limits outside that validity range.
     Reference is always a normalization point, not an implicit hardware limit.
+
+    ``minimum == maximum`` describes a constant-speed (single-stage) fan: the
+    airflow is fixed and the coil duty can only change through the approach
+    temperature. ``minimum > maximum`` stays an input error.
     """
     minimum = 0.15 * reference if minimum is None else minimum
     maximum = reference if maximum is None else maximum
-    if not all(math.isfinite(v) for v in (reference, minimum, maximum)) or reference <= 0 or not 0 <= minimum < maximum:
-        raise ValueError("Fan reference must be positive and finite; require finite 0 <= min < max")
+    if (
+        not all(math.isfinite(v) for v in (reference, minimum, maximum))
+        or reference <= 0
+        or not 0 <= minimum <= maximum
+        or maximum <= 0
+    ):
+        raise ValueError("Fan reference must be positive and finite; require finite 0 <= min <= max and max > 0")
     if not custom_curve:
         minimum = max(minimum, 0.15 * reference)
         maximum = min(maximum, reference)
-        if minimum >= maximum:
+        if minimum > maximum:
             raise ValueError("Generic ASHRAE fan limits must overlap 0.15--1.0 of reference")
     return minimum, maximum
 
@@ -324,9 +333,17 @@ def calc_HX_perf_for_target_heat(
         return Q_air - Q_ref_target
 
     # Clamp the flow demand, but do not mark an unmatched HX duty feasible.
+    # With dV_min == dV_max (constant-speed fan) err_min == err_max, so one of the
+    # two clamp branches below always applies and the bisection bracket
+    # [dV_min, dV_max] is never reached.
     err_min, err_max = _error_function(dV_min), _error_function(dV_max)
     min_limit, max_limit = bool(err_min >= 0), bool(err_max <= 0)
-    tolerance = 0.0 if custom_fan_curve else max(0.01, 1e-5 * abs(Q_ref_target))
+    # A custom curve normally requires an exact clamp match (a mismatch is a limit hit,
+    # and the flow bisection below finds the exact root when one exists). A
+    # constant-speed fan has no flow to bisect: the cycle solver closes the duty
+    # through the approach temperature, so the coil is converged within the same
+    # tolerance as the generic curve.
+    tolerance = 0.0 if custom_fan_curve and dV_min != dV_max else max(0.01, 1e-5 * abs(Q_ref_target))
     if min_limit:
         dV_sol, converged = dV_min, bool(abs(err_min) <= tolerance)
     elif max_limit:
@@ -344,6 +361,11 @@ def calc_HX_perf_for_target_heat(
     T_a_mid_K = T_a_in_K - (T_a_in_K - T_ref_sat_K) * eps_sol
     T_a_mid_C = cu.K2C(T_a_mid_K)
     Q_air_sol = C_air_sol * abs(T_a_in_K - T_a_mid_K)
+
+    if dV_min == dV_max:
+        # A constant-speed fan sits at both limits; the direction of the duty
+        # mismatch is in capacity_margin_W / min_flow_capacity_margin_W.
+        min_limit = max_limit = True
 
     return {
         "converged": converged,

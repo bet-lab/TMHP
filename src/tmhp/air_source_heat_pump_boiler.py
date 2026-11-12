@@ -1774,6 +1774,25 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "T_sup_w [°C]": cu.K2C(self.T_sup_w_K),
             }
         )
+        # Tank-side flows at the solved (end-of-step) tank temperature, as the
+        # implicit tank balance uses them. The cycle result carries them at the
+        # temperature its cycle was solved at (the run's mean, or the step
+        # start on an off step), which T_tank_w and the tank exergy do not use.
+        rc = c_w * rho_w
+        T_mix_K = cu.C2K(T_mix_w_out_val) if ctx.dV_mix_w_out > 0 else np.nan
+        dV_mix_sup_w_in = (1 - alp) * ctx.dV_mix_w_out
+        r.update(
+            {
+                "dV_mix_w_out [m3/s]": ctx.dV_mix_w_out if ctx.dV_mix_w_out > 0 else np.nan,
+                "dV_tank_w_out [m3/s]": dV_tank_w_out if dV_tank_w_out > 0 else np.nan,
+                "dV_tank_w_in [m3/s]": dV_tank_w_in if dV_tank_w_in > 0 else np.nan,
+                "dV_mix_sup_w_in [m3/s]": dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan,
+                "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
+                "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
+                "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
+                "Q_mix_w_out [W]": calc_energy_flow(G=rc * ctx.dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
+            }
+        )
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved

@@ -5,7 +5,34 @@ Surrogates :class:`~tmhp.AirSourceHeatPumpBoiler` inside EnergyPlus as a
 the loop inlet temperature, mass flow, specific heat, and load request (plus the
 site outdoor drybulb); the plugin solves the refrigerant cycle with the public
 ``analyze_steady()`` seam (#165 P0) and writes back the outlet-temperature and
-mass-flow actuators, routing compressor electricity to a metered output.
+mass-flow actuators, routing the system's electricity to a metered output.
+
+Metered electricity and delivered heat (what crosses the EnergyPlus boundary)
+-----------------------------------------------------------------------------
+The metered power is the **system total** ``E_tot`` of the solved cycle —
+compressor **plus outdoor-fan** power (the plugin globals keep their historical
+``tmhp_E_cmp*`` names). The heat handed to the plant loop and the metered power
+always belong to the same operating state:
+
+``q_loop``
+    heat put into the loop, ``m_dot * cp * (T_out - T_in)``.
+``E_meter = E_tot * q_loop / Q_cycle``
+    the solved cycle runs a fraction ``q_loop / Q_cycle`` of the timestep.
+
+Two situations make ``q_loop`` smaller than the heat ``Q_cycle`` of the solved
+(continuously running) cycle:
+
+* **Minimum-speed clamp.** Below its minimum compressor speed the machine cannot
+  deliver the requested part load; it would deliver ``Q_cycle`` > request. The
+  plugin treats that as on/off cycling: the time-averaged heat equals the load
+  request and the electricity is scaled by the same duty fraction (no
+  cycling-degradation penalty). ``PlantComponent:UserDefined`` documents the
+  ``Load Request for Plant Connection N`` as the *desired operating capacity* for
+  a connection in a load-meeting mode, and the loop outlet temperature is
+  ``T_in + q / (m_dot cp)``: supplying the clamped ``Q_cycle`` instead would
+  overheat the loop and the storage tank relative to what EnergyPlus asked for.
+* **Outlet limit** ``TOUT_MAX``. Heat that would push the outlet above the limit
+  is not delivered, and the electricity that would have produced it is not metered.
 
 Why ``analyze_steady`` (not ``step()``): EnergyPlus owns the storage-tank state
 through ``WaterHeater:Mixed`` and asks the component for a *steady* answer each
@@ -140,9 +167,41 @@ def _is_positive_finite(value: Any) -> bool:
     return out is not None and out > 0.0
 
 
+def _cycle_electric_power(res: dict[str, Any]) -> float | None:
+    """System electricity of a solved steady cycle [W]: ``E_tot``, else compressor + fan.
+
+    ``None`` when no finite value can be formed.
+    """
+    e_tot = _finite_float_or_none(res.get("E_tot [W]"))
+    if e_tot is not None:
+        return e_tot
+    e_cmp = _finite_float_or_none(res.get("E_cmp [W]"))
+    if e_cmp is None:
+        return None
+    fan = _finite_float_or_none(res.get("E_ou_fan [W]"))
+    return e_cmp + (0.0 if fan is None else fan)
+
+
 def _has_usable_cycle_output(res: dict[str, Any]) -> bool:
     """Whether a steady result can actuate the EnergyPlus plant component."""
-    return _is_positive_finite(res.get("E_cmp [W]")) and _is_positive_finite(res.get("Q_ref_tank [W]"))
+    return _is_positive_finite(_cycle_electric_power(res)) and _is_positive_finite(res.get("Q_ref_tank [W]"))
+
+
+def delivered_heat_and_power(
+    res: dict[str, Any], *, q_request: float, t_in: float, m_dot: float, cp: float
+) -> tuple[float, float]:
+    """Heat put into the loop [W] and the electricity metered for it [W].
+
+    ``q_request`` is the load EnergyPlus asked for (capped at the nominal capacity).
+    The solved cycle delivers ``Q_cycle`` at ``E_tot``; the loop receives
+    ``min(Q_cycle, q_request, m_dot * cp * (TOUT_MAX - t_in))`` and the machine is
+    metered for the matching share of the timestep (see the module docstring).
+    """
+    q_cycle = float(res["Q_ref_tank [W]"])
+    e_cycle = float(_cycle_electric_power(res))  # type: ignore[arg-type]
+    headroom = max(0.0, m_dot * cp * (TOUT_MAX - t_in))
+    q_loop = min(q_cycle, q_request, headroom)
+    return q_loop, e_cycle * (q_loop / q_cycle)
 
 
 def _issue_severe(api: Any, state: Any, msg: str) -> None:
@@ -420,9 +479,8 @@ class TmhpPlantSurrogate(EnergyPlusPlugin):
 
         guard_trip = reason == "t_cond_below_t_in"
         if not guard_trip and _has_usable_cycle_output(res):
-            q = float(res["Q_ref_tank [W]"])
-            e_cmp = float(res["E_cmp [W]"])
-            t_out = min(t_in + q / (m_dot * cp), TOUT_MAX)
+            q, e_cmp = delivered_heat_and_power(res, q_request=q_target, t_in=t_in, m_dot=m_dot, cp=cp)
+            t_out = t_in + q / (m_dot * cp)
             energy_j = e_cmp * 3600.0 * timestep_h
         else:
             q = e_cmp = energy_j = 0.0

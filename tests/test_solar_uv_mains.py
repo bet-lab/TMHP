@@ -431,3 +431,73 @@ def test_mains_temperature_southern_hemisphere_and_freezing_floor():
     assert south - mean == pytest.approx(mean - north, abs=1e-9)
     arctic = pd.DataFrame({"T_avg": MONTHLY - 25.0})
     assert calc_cold_water_temp(arctic, "2026-02-15") == 0.0
+
+
+@pytest.mark.parametrize("name", ["ASHPB_STC_tank", "GSHPB_STC_tank"])
+def test_boiling_protection_holds_within_the_step(name):
+    """The step-start check admits the loop; as the tank warms in the step the outlet would
+    pass T_stc_boil, so the loop stops part-way instead (the outlet never exceeds it)."""
+    from tmhp._stc_scenarios import TANK_LIMIT_RAMP_K
+
+    dt, n = 600, 18
+    # A slow loop (1.6 L/min on 4 m²): the outlet runs ~15 K above the tank.
+    stc = SolarThermalCollector(
+        A_stc=4.0, dV_stc_w=2.7e-5, start_time="2026-06-21 10:00", T_stc_tank_max=95.0, T_stc_boil=97.0
+    )
+    cls = getattr(tmhp, name)
+    kw = {} if name.startswith("ASHPB") else dict(N_1=2, N_2=1, H_b=100.0, dt_s=float(dt), t_max_s=6 * 3600.0)
+    m = cls(stc=stc, hp_on_schedule=[(0.0, 0.0)], **kw)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = m.analyze_dynamic(
+            n * dt,
+            dt,
+            78.0,
+            np.zeros(n),
+            np.full(n, 25.0),
+            I_DN_schedule=np.full(n, 850.0),
+            I_dH_schedule=np.full(n, 110.0),
+            T_sup_w_schedule=np.full(n, T_SUP),
+        )
+    on = df["stc_active [-]"].astype(bool).to_numpy()
+    share = df["stc_runtime_fraction [-]"].to_numpy()
+    T_out = df["T_stc_pump_w_out [°C]"].to_numpy()
+    assert on.any()
+    assert T_out[on].max() <= 97.0 + TANK_LIMIT_RAMP_K + 1e-9
+    assert ((share[on] > 0.0) & (share[on] <= 1.0)).all()
+    assert df["T_tank_w [°C]"].max() < 95.0 + TANK_LIMIT_RAMP_K + 1e-9
+    # Directly: an active loop whose end-of-step outlet would pass T_stc_boil (tank still
+    # below its limit) runs only a share of the step, and none once 0.05 K over.
+    from tmhp.dynamic_context import StepContext
+
+    ctx = StepContext(
+        n=0, current_time_s=2 * 3600.0, current_hour=2.0, hour_of_day=12.0, T0=25.0, T0_K=cu.C2K(25.0),
+        activation_flags={"stc": True}, T_tank_w_K=cu.C2K(80.0), tank_level=1.0, dV_mix_w_out=0.0,
+        I_DN=850.0, I_dH=110.0, T_sup_w_K=cu.C2K(T_SUP),
+    )  # fmt: skip
+    state = m._tank_loop_state(ctx, dt)
+    assert state["stc_active"]
+    outlet = {T: cu.K2C(m._tank_loop_heat(ctx, state, cu.C2K(T))[2]["T_stc_pump_w_out_K"]) for T in (81.0, 84.0)}
+    assert outlet[81.0] < 97.0 < outlet[84.0]
+    assert m._tank_loop_heat(ctx, state, cu.C2K(81.0))[1] == 1.0
+    assert m._tank_loop_heat(ctx, state, cu.C2K(84.0))[1] == 0.0
+
+
+@pytest.mark.parametrize("name", ["ASHPB_STC_preheat", "GSHPB_STC_preheat"])
+def test_preheat_outlet_limit_holds_at_the_end_of_step_flow(name):
+    """The preheated feed never exceeds T_stc_tank_max, whatever flow the solved tank draws."""
+    from tmhp._stc_scenarios import TANK_LIMIT_RAMP_K
+
+    m, df = _day(name, T_stc_tank_max=30.0)
+    T_in = df["T_tank_w_in [°C]"].to_numpy()
+    assert T_in.max() <= 30.0 + TANK_LIMIT_RAMP_K + 1e-9
+    plane = m._stc.plane_irradiance(800.0, 100.0, 12.5 * 3600.0)
+    ctx = type(
+        "Ctx",
+        (),
+        {"T_sup_w_K": cu.C2K(T_SUP), "dV_mix_w_out": 0.3 / 60000.0, "I_DN": 800.0, "I_dH": 100.0, "T0_K": cu.C2K(12.0)},
+    )()
+    ctrl = type("Ctrl", (), {"dV_tank_w_in_ctrl": None})()
+    flow, T_pre, r, share = m._preheat(ctx, ctrl, plane, cu.C2K(60.0))
+    assert cu.K2C(r["T_stc_w_out_K"]) > 30.0 + TANK_LIMIT_RAMP_K  # a slow draw would pass the limit
+    assert share == 0.0 and T_pre == pytest.approx(cu.C2K(T_SUP))

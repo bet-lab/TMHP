@@ -220,8 +220,9 @@ loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
 ``dT_stc_on`` (6 K) and the running outlet ``dT_stc_off`` (2 K) above the
 sink, its gain exceeds the pump power and its outlet stays below
 ``T_stc_boil`` (100 °C). Charging the tank stops at ``T_stc_tank_max``
-(85 °C) within the step: ``stc_runtime_fraction [-]`` is the share of the
-step the loop ran, and the flow, pump power and delivered heat are step
+(85 °C) within the step, and so does circulation once the outlet reaches
+``T_stc_boil`` as the tank warms: ``stc_runtime_fraction [-]`` is the share of
+the step the loop ran, and the flow, pump power and delivered heat are step
 averages. Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) +
 Q_l_stc`` with ``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
 
@@ -235,8 +236,9 @@ enters the tank passes the collector, so its flow is the tank's make-up
 flow; it is solved together with the tank temperature and the preheated
 inflow is the reported ``T_tank_w_in [°C]``. The collector is bypassed
 outside the ``preheat_start_hour``–``preheat_end_hour`` window, without a
-draw, when it would cool the feed, and when its outlet would exceed
-``T_stc_tank_max``. The mains pressure drives it: no pump power.
+draw and when it would cool the feed; when its outlet reaches
+``T_stc_tank_max`` at the flow the end-of-step tank draws, it is bypassed for
+the rest of the step. The mains pressure drives it: no pump power.
 
 .. code-block:: python
 

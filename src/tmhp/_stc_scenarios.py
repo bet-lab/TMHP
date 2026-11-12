@@ -155,18 +155,32 @@ class STCScenario:
             "Q_contribution": 0.0,
         }
 
+    @staticmethod
+    def _limit_share(value_C: float, limit_C: float) -> float:
+        """Run share that falls from 1 to 0 over :data:`TANK_LIMIT_RAMP_K` above ``limit_C``."""
+        return float(min(1.0, max(0.0, 1.0 - (value_C - limit_C) / TANK_LIMIT_RAMP_K)))
+
     def _tank_limit_share(self, T_K: float) -> float:
         """Share of the step the loop runs when the step ends at tank temperature ``T_K``."""
-        over = cu.K2C(T_K) - self._stc.T_stc_tank_max
-        return float(min(1.0, max(0.0, 1.0 - over / TANK_LIMIT_RAMP_K)))
+        return self._limit_share(cu.K2C(T_K), self._stc.T_stc_tank_max)
+
+    def _boil_share(self, result: dict) -> float:
+        """Share of the step the loop runs before its outlet reaches ``T_stc_boil``.
+
+        The step-start decision only admits a loop whose outlet is below the
+        boiling protection; the outlet rises with the end-of-step inlet, so the
+        protection is applied again within the step, like the storage limit.
+        """
+        return self._limit_share(cu.K2C(result["T_stc_pump_w_out_K"]), self._stc.T_stc_boil)
 
     def _tank_loop_heat(self, ctx: StepContext, state: dict, T_K: float) -> tuple[float, float, dict | None]:
         """``(heat into the tank [W], run share, running result)`` at end-of-step tank ``T_K``.
 
         The loop draws tank water at ``T_K`` (implicit in the tank temperature)
         and returns it heated by the collector and the pump; it stops (share 0)
-        when its outlet is no warmer than the tank, and runs the share
-        :meth:`_tank_limit_share` near the storage limit.
+        when its outlet is no warmer than the tank, and runs the share of the
+        step before the tank reaches ``T_stc_tank_max`` or its outlet reaches
+        ``T_stc_boil``, whichever comes first.
         """
         if not state.get("stc_active", False):
             return 0.0, 0.0, None
@@ -174,7 +188,7 @@ class STCScenario:
         gain = r["Q_stc_w_out"] - r["Q_stc_w_in"]
         if not gain > 0.0:
             return 0.0, 0.0, r
-        share = self._tank_limit_share(T_K)
+        share = min(self._tank_limit_share(T_K), self._boil_share(r))
         return share * (gain + self._stc.E_stc_pump), share, r
 
     def _tank_residual(
@@ -387,8 +401,9 @@ class STCPreheat(STCScenario):
 
     The mains pressure drives the collector: no pump power. The collector is
     bypassed (inactive) outside the ``preheat_start_hour``–``preheat_end_hour``
-    window, when no water is drawn, when it would cool the feed, and when its
-    outlet would exceed ``T_stc_tank_max``. ``T_stc_w_in`` is the mains
+    window, when no water is drawn and when it would cool the feed; when its
+    outlet reaches ``T_stc_tank_max`` (or ``T_stc_boil``) it is bypassed for the
+    rest of the step (``stc_runtime_fraction [-]``). ``T_stc_w_in`` is the mains
     temperature.
     """
 
@@ -410,20 +425,37 @@ class STCPreheat(STCScenario):
         alp = min(1.0, max(0.0, (self.T_mix_w_out_K - ctx.T_sup_w_K) / den))
         return float(alp * ctx.dV_mix_w_out)
 
-    def _preheat(self, ctx: StepContext, ctrl: ControlState, plane: dict, T_K: float) -> tuple[float, float, dict]:
-        """``(flow, preheated feed temperature [K], collector result)`` with the tank at ``T_K``."""
+    def _preheat(
+        self, ctx: StepContext, ctrl: ControlState, plane: dict, T_K: float
+    ) -> tuple[float, float, dict, float]:
+        """``(flow, feed temperature [K], collector result, in-line share)`` with the tank at ``T_K``.
+
+        The collector outlet rises as the flow falls, and the flow follows the
+        end-of-step tank temperature, so the outlet limit (``T_stc_tank_max``,
+        and ``T_stc_boil`` above it) is applied within the step: the collector
+        is in line for the share of the step before its outlet reaches the
+        limit and bypassed for the rest (the share falls from 1 to 0 over
+        :data:`TANK_LIMIT_RAMP_K` above it). The feed temperature is the
+        step average, ``T_mains + share·(T_out − T_mains)``.
+        """
         flow = self._feed_flow(ctx, ctrl, T_K)
         T_mains = ctx.T_sup_w_K
         if flow <= 0.0:
-            return 0.0, T_mains, self._stc_eval(ctx, plane, T_mains, active=False, dV=1e-6)
+            return 0.0, T_mains, self._stc_eval(ctx, plane, T_mains, active=False, dV=1e-6), 0.0
         r = self._stc_eval(ctx, plane, T_mains, active=True, dV=flow)
-        return flow, max(T_mains, r["T_stc_w_out_K"]), r
+        T_out_C = cu.K2C(r["T_stc_w_out_K"])
+        share = min(
+            self._limit_share(T_out_C, self._stc.T_stc_tank_max),
+            self._limit_share(T_out_C, self._stc.T_stc_boil),
+        )
+        rise = max(0.0, r["T_stc_w_out_K"] - T_mains)
+        return flow, T_mains + share * rise, r, share
 
     def _run_subsystems(self, ctx: StepContext, ctrl: ControlState, dt: float, T_tank_w_in_K: float) -> dict:
         plane = self._stc_plane(ctx, dt)
         active = False
         if ctx.activation_flags.get("stc", False) and plane["total"] > 0.0:
-            flow, T_pre, probe = self._preheat(ctx, ctrl, plane, ctx.T_tank_w_K)
+            flow, T_pre, probe, _ = self._preheat(ctx, ctrl, plane, ctx.T_tank_w_K)
             active = bool(
                 flow > 0.0
                 and probe["T_stc_w_out_K"] > T_tank_w_in_K
@@ -471,18 +503,19 @@ class STCPreheat(STCScenario):
         state = sub_states["stc"]
         active = bool(state.get("stc_active", False))
         T_mains = ctx.T_sup_w_K
+        share = 0.0
         if active:
-            flow, T_pre, result = self._preheat(ctx, ctrl, state["plane"], T_solved_K)
-            active = flow > 0.0
+            flow, T_pre, result, share = self._preheat(ctx, ctrl, state["plane"], T_solved_K)
+            active = flow > 0.0 and share > 0.0
         if active:
-            gain = result["Q_stc_w_out"] - result["Q_stc_w_in"]
+            gain = share * (result["Q_stc_w_out"] - result["Q_stc_w_in"])
             r["T_tank_w_in [°C]"] = cu.K2C(T_pre)
             r["Q_tank_w_in [W]"] = calc_energy_flow(c_w * rho_w * flow, T_pre, ctx.T0_K)
         else:
-            flow, gain = self._feed_flow(ctx, ctrl, T_solved_K), 0.0
+            flow, gain, share = self._feed_flow(ctx, ctrl, T_solved_K), 0.0, 0.0
             result = self._stc_eval(ctx, state["plane"], T_mains, active=False)
         r.update(self._solar_columns(ctx, active, 0.0))
-        r.update(stc_result_columns(result, T_mains, flow, 1.0 if active else 0.0))
+        r.update(stc_result_columns(result, T_mains, flow, share))
         r["Q_solar_tank [W]"] = gain
         return r
 

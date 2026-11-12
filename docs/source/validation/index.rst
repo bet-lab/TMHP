@@ -23,7 +23,10 @@ different size, and a different equipment architecture.
 
     **Points the model could not evaluate are reported, not dropped.** The
     counts below distinguish points attempted from points evaluated, and the
-    interactive table shows each unevaluated point with its reason.
+    interactive table shows each unevaluated point with its reason. A point at
+    which the model runs but delivers more than 1 % less than the published
+    duty (a capacity ceiling) is not scored either, with the reason
+    ``capacity_short``: its COP belongs to a different operating point.
 
 .. toctree::
     :hidden:

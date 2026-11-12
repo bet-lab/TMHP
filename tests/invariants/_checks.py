@@ -170,6 +170,37 @@ def check_envelope(model: object, r: Result) -> list[str]:
     rps_max = float(getattr(model, "rps_max", math.inf))
     if not rps <= rps_max * (1.0 + ENVELOPE_RTOL):
         v.append(f"speed_above_max: rps={_fmt(rps)} > rps_max={_fmt(rps_max)}")
+    v += check_suction_quality(model, r)
+    return v
+
+
+def check_suction_quality(model: object, r: Result) -> list[str]:
+    """Suction is dry vapour, except under discharge-temperature control (x >= x_suction_min).
+
+    The reported quality must also be the state's own: ``h_cmp_in`` equals the
+    saturated enthalpy at that quality, or lies at or above the dew point.
+    """
+    from CoolProp.CoolProp import PropsSI
+
+    v: list[str] = []
+    x = num(r, "x_ref_cmp_in [-]")
+    controlled = bool(r.get("discharge_control", False))
+    x_min = getattr(model, "x_suction_min", None)
+    if not math.isfinite(x):
+        return [f"suction_quality_missing: x_ref_cmp_in={_fmt(x)}"]
+    if controlled:
+        if x_min is None or not x >= x_min - 1e-9:
+            v.append(f"suction_quality_below_min: x={_fmt(x)} x_suction_min={x_min}")
+    elif x != 1.0:
+        v.append(f"suction_wet_without_control: x={_fmt(x)}")
+    ref = getattr(model, "ref", None)
+    P1, h1 = num(r, "P_ref_cmp_in [Pa]"), num(r, "h_ref_cmp_in [J/kg]")
+    if ref is not None and math.isfinite(P1) and math.isfinite(h1):
+        h_x = PropsSI("H", "P", P1, "Q", min(x, 1.0), ref)
+        if x < 1.0 and abs(h1 - h_x) > 1e-6 * abs(h_x) + 1.0:
+            v.append(f"suction_state_inconsistent: h1={_fmt(h1)} h(x={_fmt(x)})={_fmt(h_x)}")
+        if x >= 1.0 and h1 < h_x - 1.0:
+            v.append(f"suction_wet_unreported: h1={_fmt(h1)} < h_dew={_fmt(h_x)}")
     return v
 
 

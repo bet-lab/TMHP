@@ -67,12 +67,11 @@ _WHY = {
 KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]]] = {
     ("WSHPB", "R134a"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
-    # R32 0/50 and 0/55 at 0.25 discharge at 156 / 182 °C on the speed floor and
-    # are refused by the compressor envelope (R32 150 °C), so C11 no longer
-    # shows there. At 0.75 the request exceeds the limit and is reduced to a
-    # duty on the speed floor, where it does.
-    ("WSHPB", "R32"): {"C11": [(0, 50, 0.75)]},
-    ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25), (0, 55, 0.75)]},
+    # R32 0/50 and 0/55 at 0.25 discharge above 150 °C on the speed floor; the
+    # discharge-temperature control holds them by lowering the suction
+    # superheat, which also brings the suction below the source -- C11 no
+    # longer shows there. R410A keeps its 5 K superheat at these points.
+    ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
 }
 
 

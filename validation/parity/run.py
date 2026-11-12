@@ -137,6 +137,23 @@ def _run_point(model, catalog: Catalog, point: OperatingPoint) -> dict:
     return result
 
 
+#: Scoring reason: the model delivered less than the published duty.
+CAPACITY_SHORT = "capacity_short"
+#: Shortfall above which a point is not scored (fraction of the published duty).
+CAPACITY_SHORT_TOL = 0.01
+
+
+def _capacity_short(catalog: Catalog, point: OperatingPoint, result: dict) -> bool:
+    """Whether the delivered duty falls more than 1 % short of the published one."""
+    key = "Q_ref_tank [W]" if catalog.model_class == "ASHPB" else "Q_ref_iu [W]"
+    try:
+        delivered = abs(float(result[key]))
+    except (KeyError, TypeError, ValueError):
+        return False
+    requested = point.q_kW * 1000.0
+    return math.isfinite(delivered) and delivered < requested * (1.0 - CAPACITY_SHORT_TOL)
+
+
 def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame:
     models = {"cooling": _build_model(catalog, overrides, "cooling")}
     if catalog.published_inputs.get("rated_indoor_air_flow_heating_m3_s"):
@@ -146,6 +163,11 @@ def run_catalog(catalog: Catalog, overrides: dict | None = None) -> pd.DataFrame
         model = models.get(point.mode, models["cooling"])
         result = _run_point(model, catalog, point)
         failure = result.get("failure_reason", "none")
+        if failure == "none" and _capacity_short(catalog, point, result):
+            # The model ran but could not deliver the published duty (a
+            # capacity ceiling): its COP belongs to a different operating
+            # point than the catalogue's, so the point is not scored.
+            failure = CAPACITY_SHORT
         cop_pred = float(result.get("cop_sys [-]", float("nan")))
         cop_target = point.target_cop()
         usable = failure == "none" and math.isfinite(cop_pred) and cop_pred > 0.0

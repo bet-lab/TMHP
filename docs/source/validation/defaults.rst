@@ -85,12 +85,14 @@ Summary
         that lowers the efficiency
       - :mod:`tmhp.compressor_efficiency`
     * - Pressure-ratio limit
-      - ``PR_cycle_max`` 11 (air-to-air), 20 (air-to-water)
-      - Operating points above it are rejected. 11 is the air-conditioning
+      - ``PR_cycle_max`` 11 (air-to-air), 11 (air-to-water)
+      - Operating points above it are rejected. 11 is the single-stage
         scroll self-unload limit, above the ratio near 7 a split unit reaches
-        lifting from −15 °C outdoor air; air-to-water keeps 20 for
-        high-temperature hot water
-      - —
+        lifting from −15 °C outdoor air. Higher ratios are two-stage or
+        injection machines; the discharge-temperature limit (R32 150 °C,
+        other refrigerants 135 °C, held first by suction control) binds
+        before it almost everywhere
+      - :mod:`tmhp.compressor_envelope`
     * - Rated outdoor air flow
       - 720 m³/h per kW (air-to-air), 540 (air-to-water)
       - Manufacturer specifications for the respective product classes

@@ -140,23 +140,37 @@ def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
 
 
 def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
+    case = dict(T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
     hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0)
-    r = _quiet(hp.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
-    # Even the minimum-speed duty discharges above 150 degC (173 degC).
-    _off(r, DISCHARGE_TEMP_ABOVE_MAX)
+    r = _quiet(hp.analyze_steady, **case)
+    # Wet suction holds 150 degC only at a smaller duty: the request is the ceiling.
+    assert _running(r) and r["discharge_control"] is True
+    assert r["capacity_clamped"] == "max" and r["capacity_binding"] == BINDING_DISCHARGE
+    assert r["Q_ref_tank [W]"] < 0.6 * 8000.0
+    assert 0.9 - 1e-9 <= r["x_ref_cmp_in [-]"] < 1.0
+    assert r["T_ref_cmp_out [°C]"] <= 150.0 + 1e-6
+    # Without the control, even the minimum-speed duty discharges at 173 degC.
+    uncontrolled = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None)
+    _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
     legacy = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None)
     old = _quiet(legacy.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
     assert _running(old)
     assert old["T_ref_cmp_out [°C]"] > 300.0  # the value #104 reported (357 degC)
 
 
-@pytest.mark.parametrize(("T0", "T_tank"), [(-7.0, 55.0), (0.0, 60.0)])
-def test_ashpb_r32_high_lift_points_are_refused(T0, T_tank):
+def test_ashpb_r32_a_minus7_w55_is_refused_even_with_control():
+    """271 degC at eta_is 0.37: wet suction at x 0.9 brings it only to ~197 degC."""
     hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
-    r = _quiet(hp.analyze_steady, T_tank_w=T_tank, T0=T0, Q_ref_tank=15000.0)
-    # Load reduction does not help here: at lower speed eta_is falls and the
-    # discharge stays near 190 degC down to the speed floor.
+    r = _quiet(hp.analyze_steady, T_tank_w=55.0, T0=-7.0, Q_ref_tank=15000.0)
     _off(r, DISCHARGE_TEMP_ABOVE_MAX)
+
+
+@pytest.mark.parametrize("x_min", [None, 1.0])
+def test_ashpb_r32_a0_w60_needs_wet_suction(x_min):
+    """201.6 degC dry; superheat alone (x_suction_min=1) is not enough, and the
+    load reduction does not help (eta_is falls at low speed)."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, x_suction_min=x_min)
+    _off(_quiet(hp.analyze_steady, T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0), DISCHARGE_TEMP_ABOVE_MAX)
 
 
 def test_ashpb_r32_rating_point_a7_w55_still_runs():
@@ -203,7 +217,7 @@ def test_boiler_dataframe_return_keeps_the_envelope_keys():
 
 
 def test_air_to_air_ceiling_names_the_discharge_limit():
-    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=80.0)
+    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=80.0, x_suction_min=None)
     r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, verbose=False)
     assert _running(r)
     assert r["capacity_clamped"] == "max"
@@ -220,7 +234,7 @@ def test_air_to_air_without_any_duty_inside_the_limit_is_off():
 
 
 def test_gshp_reports_the_discharge_limit():
-    hp = _quiet(tmhp.GroundSourceHeatPump, ref="R32", T_dis_max=40.0)
+    hp = _quiet(tmhp.GroundSourceHeatPump, ref="R32", T_dis_max=40.0, x_suction_min=None)
     r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0)
     assert r["failure_reason"] == DISCHARGE_TEMP_ABOVE_MAX
     assert r["E_cmp [W]"] == 0.0
@@ -317,3 +331,73 @@ def test_air_to_air_search_finds_the_narrow_band_left_by_the_discharge_limit():
     assert _running(r) and _running(free)
     assert free["T_ref_cmp_out [°C]"] < with_limit.T_dis_max
     assert r["E_tot [W]"] == pytest.approx(free["E_tot [W]"], rel=1e-3)
+
+
+# ---------------------------------------------------------------------------
+# discharge-temperature control (superheat, then wet suction)
+# ---------------------------------------------------------------------------
+
+
+def _balance(r: dict, q_cond: str, q_evap: str) -> float:
+    work = r["m_dot_ref [kg/s]"] * (r["h_ref_cmp_out [J/kg]"] - r["h_ref_cmp_in [J/kg]"])
+    return abs(r[q_cond] - r[q_evap] - work) / r[q_cond]
+
+
+def test_control_reduces_superheat_first():
+    """A2/W55 R32 15 kW: 155.7 degC dry at 5 K superheat; ~1.3 K holds 150 degC."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    r = _quiet(hp.analyze_steady, T_tank_w=55.0, T0=2.0, Q_ref_tank=15000.0)
+    assert _running(r) and r["discharge_control"] is True
+    assert r["x_ref_cmp_in [-]"] == 1.0
+    assert 0.0 < r["dT_ref_superheat [K]"] < hp.dT_superheat
+    assert r["T_ref_cmp_out [°C]"] == pytest.approx(150.0, abs=0.05)
+    assert r["Q_ref_tank [W]"] == pytest.approx(15000.0, rel=1e-6)
+
+
+def test_control_then_uses_wet_suction_with_a_closed_cycle_balance():
+    """A0/W60 R32 15 kW (#96 C6): 201.6 degC dry; wet suction x ~0.92 holds 150 degC."""
+    import CoolProp.CoolProp as CP
+
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    r = _quiet(hp.analyze_steady, T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0)
+    assert _running(r) and r["discharge_control"] is True
+    x = r["x_ref_cmp_in [-]"]
+    assert hp.x_suction_min <= x < 1.0
+    assert r["dT_ref_superheat [K]"] == 0.0
+    assert r["T_ref_cmp_out [°C]"] == pytest.approx(150.0, abs=0.05)
+    P1 = r["P_ref_cmp_in [Pa]"]
+    assert r["h_ref_cmp_in [J/kg]"] == pytest.approx(CP.PropsSI("H", "P", P1, "Q", x, "R32"), rel=1e-9)
+    assert r["T_ref_cmp_in [°C]"] == pytest.approx(r["T_ref_evap_sat [°C]"], abs=1e-9)
+    assert _balance(r, "Q_ref_tank [W]", "Q_ref_ou [W]") < 1e-9
+    assert r["Q_ref_tank [W]"] == pytest.approx(15000.0, rel=1e-6)
+
+
+@pytest.mark.parametrize("cls", FAMILIES)
+def test_control_arguments_on_every_family(cls):
+    hp = _quiet(cls, ref="R32")
+    assert hp.x_suction_min == 0.9
+    assert _quiet(cls, ref="R32", x_suction_min=None).x_suction_min is None
+    with pytest.raises(ValueError, match="x_suction_min"):
+        _quiet(cls, ref="R32", x_suction_min=0.0)
+    with pytest.raises(ValueError, match="T_dis_max"):
+        _quiet(cls, ref="R32", T_dis_max="off")
+
+
+def test_steady_results_report_the_suction_state():
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    dry = _quiet(hp.analyze_steady, T_tank_w=35.0, T0=7.0, Q_ref_tank=15000.0)
+    assert dry["discharge_control"] is False and dry["x_ref_cmp_in [-]"] == 1.0
+    # Superheat as solved: the set value capped by the outdoor approach.
+    assert 0.0 <= dry["dT_ref_superheat [K]"] <= hp.dT_superheat + 1e-9
+    off = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, T_dis_max=None)
+    r = _quiet(off.analyze_steady, T_tank_w=35.0, T0=7.0, Q_ref_tank=15000.0)
+    assert r["discharge_control"] is False and r["x_ref_cmp_in [-]"] == 1.0
+
+
+def test_control_on_air_to_air_meets_the_duty_at_the_limit():
+    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=80.0)
+    r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, verbose=False)
+    assert _running(r) and r["discharge_control"] is True
+    assert r["capacity_clamped"] is None
+    assert r["T_ref_cmp_out [°C]"] <= 80.0 + 1e-6
+    assert _balance(r, "Q_ref_iu [W]", "Q_ref_ou [W]") < 1e-9

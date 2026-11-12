@@ -248,21 +248,25 @@ def test_t2_uv_lamp_heat_enters_tank_once():
     lamp_J = float(df["E_uv [W]"].sum() * dt)
     require(lamp_J == pytest.approx(P * on_s, rel=1e-6), f"lamp energy {lamp_J:.0f} J != P*t")
     tank_gain_J = m.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(df["Q_tank_loss [W]"].sum() * dt)
-    expect(tank_gain_J == pytest.approx(P * on_s, rel=0.02), f"tank gained {tank_gain_J / 1e3:.0f} kJ")
+    to_water = uv.heat_to_water_fraction * P * on_s
+    expect(tank_gain_J == pytest.approx(to_water, rel=0.02), f"tank gained {tank_gain_J / 1e3:.0f} kJ")
 
 
+# T3 fixed: the collector absorbs on A_stc the irradiance transposed to its plane
+# (stc_tilt, stc_azimuth, sun position at time_s); was 1,652.5 W for every geometry.
 @pytest.mark.parametrize(
     "kwargs",
     [
-        pytest.param({"A_stc": 4.0}, id="A_stc", marks=defect("T3", "collector gain uses A_stc_pipe, ignores A_stc")),
-        pytest.param({"stc_tilt": 90.0}, id="stc_tilt", marks=defect("T3", "stc_tilt is never used")),
+        pytest.param({"A_stc": 4.0}, id="A_stc"),
+        pytest.param({"stc_tilt": 90.0}, id="stc_tilt"),
     ],
 )
 def test_t3_collector_geometry_changes_gain(kwargs):
     from tmhp.subsystems import SolarThermalCollector
 
     def gain(**kw):
-        r = SolarThermalCollector(**kw).calc_performance(800.0, 100.0, 300.0, 293.15)
+        # Solar noon of the default start day (equinox) at the default site.
+        r = SolarThermalCollector(**kw).calc_performance(800.0, 100.0, 300.0, 293.15, time_s=12.5 * 3600.0)
         return r["Q_stc_w_out"] - r["Q_stc_w_in"]
 
     base, changed = gain(), gain(**kwargs)
@@ -340,12 +344,16 @@ def test_t6_ashpb_time_step_independence():
     expect(max(tmax60, tmax600) <= upper + 2.0, f"peak {tmax60:.1f} / {tmax600:.1f} °C, upper bound {upper}")
 
 
-@defect("T8", "STC preheat reports 1.74 kWh collected but only ~0.99 kWh reaches the tank")
+# T8 fixed: the collector runs at the tank's make-up flow (mains -> collector -> tank; the
+# mixing valve's cold side takes mains water), solved with the tank temperature, and the
+# preheated inflow is the reported tank inlet; was 1.74 kWh reported vs 0.99 kWh delivered.
 def test_t8_stc_preheat_reported_gain_reaches_tank():
     from tmhp.subsystems import SolarThermalCollector
 
     dt = 600
-    m = tmhp.ASHPB_STC_preheat(stc=SolarThermalCollector(preheat_start_hour=0.0))
+    # Start at 11:00 on the June solstice so the constant irradiance has the sun up.
+    stc = SolarThermalCollector(preheat_start_hour=0.0, start_time="2026-06-21 11:00")
+    m = tmhp.ASHPB_STC_preheat(stc=stc)
     df, n = _ashpb_dynamic(
         m,
         1.0,
@@ -357,27 +365,31 @@ def test_t8_stc_preheat_reported_gain_reaches_tank():
         I_dH_schedule=lambda n: _flat(n, 100.0),
     )
     active = df["stc_active [-]"].astype(bool).to_numpy()
-    require(active.any(), "collector never active")
+    require(active.all(), "collector must preheat every step")
     reported_J = float(((df["Q_stc_w_out [W]"] - df["Q_stc_w_in [W]"]).to_numpy() * active).sum() * dt)
-    # Heat the tank received beyond the refrigerant heat and a 15 °C inflow = preheat delivered.
-    delivered_J = _tank_balance(df, m.C_tank, 60.0, dt)["residual_J"]
-    expect(delivered_J == pytest.approx(reported_J, rel=0.05), (reported_J / 3.6e6, delivered_J / 3.6e6))
+    require(reported_J > 0.0, "no collector gain")
+    # The tank balance closes with the reported (preheated) inlet ...
+    closed = _tank_balance(df, m.C_tank, 60.0, dt)["residual_J"]
+    expect(abs(closed) < 1e-3 * reported_J, f"tank residual {closed / 3.6e6:.4f} kWh with the preheated inlet")
+    # ... and the heat the tank received beyond a mains-temperature inflow is the reported gain.
+    delivered_J = _tank_balance(df.assign(**{"T_tank_w_in [°C]": T_SUP}), m.C_tank, 60.0, dt)["residual_J"]
+    expect(delivered_J == pytest.approx(reported_J, rel=1e-3), (reported_J / 3.6e6, delivered_J / 3.6e6))
 
 
-@pytest.mark.parametrize(
-    "cls_name",
-    [
-        pytest.param("ASHPB_STC_tank", marks=defect("T9", "no collector high-limit: tank reaches 99.5 °C")),
-        pytest.param("GSHPB_STC_tank", marks=defect("T9", "no collector high-limit: tank reaches 124 °C")),
-    ],
-)
+# T9 fixed: the collector loop stops at the storage high limit T_stc_tank_max (85 °C) within
+# the step; was 99.5 °C (ASHPB) and 124 °C (GSHPB).
+@pytest.mark.parametrize("cls_name", ["ASHPB_STC_tank", "GSHPB_STC_tank"])
 def test_t9_stc_tank_respects_high_limit(cls_name):
     from tmhp.subsystems import SolarThermalCollector
 
     dt = 600
     cls = getattr(tmhp, cls_name)
     kw = {} if cls_name.startswith("ASHPB") else {"dt_s": dt, "t_max_s": 86400.0}
-    m = cls(stc=SolarThermalCollector(preheat_start_hour=0.0), **kw)
+    from tmhp._stc_scenarios import TANK_LIMIT_RAMP_K
+
+    # Start at 10:00 on the June solstice so the constant irradiance has the sun up.
+    stc = SolarThermalCollector(start_time="2026-06-21 10:00")
+    m = cls(stc=stc, **kw)
     df, _ = _ashpb_dynamic(
         m,
         3.0,
@@ -388,7 +400,11 @@ def test_t9_stc_tank_respects_high_limit(cls_name):
         I_DN_schedule=lambda n: _flat(n, 900.0),
         I_dH_schedule=lambda n: _flat(n, 120.0),
     )
-    expect(df["T_tank_w [°C]"].max() <= 90.0, 'df["T_tank_w [°C]"].max() <= 90.0')
+    T_max = float(df["T_tank_w [°C]"].max())
+    require(df["stc_active [-]"].astype(bool).any(), "collector loop never ran")
+    require(T_max > stc.T_stc_tank_max - 0.5, f"tank only reached {T_max:.1f} °C: the limit is not exercised")
+    expect(T_max <= 90.0, 'df["T_tank_w [°C]"].max() <= 90.0')
+    expect(T_max <= stc.T_stc_tank_max + TANK_LIMIT_RAMP_K + 1e-9, f"peak {T_max:.3f} °C")
 
 
 def _energyplus_mains_temperature_C(T_avg_C: float, dT_max_C: float, day_of_year: int) -> float:

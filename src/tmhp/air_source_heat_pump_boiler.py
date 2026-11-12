@@ -51,7 +51,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
-from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -59,9 +59,11 @@ from .dynamic_context import (
     ControlState,
     DynamicState,
     StepContext,
+    delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     tank_mass_energy_residual,
+    unphysical_cycle_detail,
 )
 from .enex_functions import (
     calc_HX_perf_for_target_heat,
@@ -512,7 +514,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # --- Active state calculations ---
         self._last_cycle_failure_reason = None
 
-        def _cycle(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
+        def _cycle_unchecked(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
             """Refrigerant cycle for one tank-side approach temperature.
 
             ``rps_fixed`` holds the compressor at a given speed instead of
@@ -646,6 +648,23 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_ou": m_dot_i * (cs_i["h_ref_cmp_in [J/kg]"] - cs_i["h_ref_exp_out [J/kg]"]),
                 "E_cmp": m_dot_i * (cs_i["h_ref_cmp_out [J/kg]"] - cs_i["h_ref_cmp_in [J/kg]"]) / eta_em_i,
             }
+
+        def _cycle(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
+            """:func:`_cycle_unchecked`, with no saturation state counted as infeasible.
+
+            A condensing temperature at or above the critical point (tank
+            temperature plus approach, or an approach widened by the closure
+            below) has no saturation state, and CoolProp raises. There is no
+            condenser there, so the cycle is infeasible -- the same answer the
+            GSHPB/WSHPB cycles give -- rather than an error escaping
+            ``analyze_steady`` / ``step()``.
+            """
+            try:
+                return _cycle_unchecked(dT_tank, rps_fixed)
+            except ValueError as exc:
+                if isinstance(exc, InvalidCompressorEfficiency):
+                    raise
+                return None
 
         def _close_tank_hx(state0: dict) -> dict | None:
             """Re-solve the approach against the heat the machine delivers.
@@ -977,7 +996,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``,
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
-              ``"hx_not_converged"``, or ``"optimizer_failed"``.
+              ``"pr_above_max"``, ``"hx_not_converged"``, or
+              ``"optimizer_failed"``.
+            - ``"failure_detail"`` (str, only on a rejected solved cycle) —
+              which check of
+              :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
+              the point ``"cycle_invalid"``.
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead,
@@ -988,12 +1012,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
               to recover the shortfall or excess.
 
-            ASHPB returns the cycle numbers (``E_cmp``, ``Q_ref_tank``, ...)
-            whenever ``_calc_state`` produced a dict at all. A
-            ``failure_reason`` of ``"hx_not_converged"`` therefore does not
-            invalidate the result: it only means the HX residual exceeded
-            tolerance and the converged flag is False. Off-mode fallback
-            (E_cmp=0) only occurs when the cycle itself was infeasible.
+            An infeasible cycle, or a solved cycle that is not an operating
+            point, falls back to an off-mode state (``E_cmp = 0``,
+            ``Q_ref_tank = 0``). ``"hx_not_converged"`` (the outdoor coil
+            did not converge) returns only the coil diagnostics, without
+            duty or power keys. ``"optimizer_failed"`` returns the cycle
+            numbers at the optimiser's best point with ``converged=False``.
         """
         import warnings
 
@@ -1034,6 +1058,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     m_dot_w=m_dot_w,
                 )
 
+            # A solved cycle that is not an operating point (undefined
+            # discharge state, speed-floor duty above the nameplate) is
+            # rejected like an infeasible one; see unphysical_cycle_detail.
+            invalid_detail: str | None = None
+            if isinstance(result, dict) and result.get("hp_is_on") and result.get("converged", False):
+                invalid_detail = unphysical_cycle_detail(result, self.hp_capacity)
+                if invalid_detail is not None:
+                    result = None
+
             # Pressure-ratio envelope hint for the final operating point
             # (one message per call; per-probe events are silent). Floor ->
             # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
@@ -1060,7 +1093,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # the historical behaviour of this branch.
             opt_success = bool(getattr(opt_result, "success", False))
             if result is None or not isinstance(result, dict):
-                if cycle_failure_reason is not None:
+                if invalid_detail is not None:
+                    failure_reason = "cycle_invalid"
+                elif cycle_failure_reason is not None:
                     failure_reason = cycle_failure_reason
                 elif pr_event is not None and pr_event[0] == "pr_above_max":
                     failure_reason = "pr_above_max"
@@ -1077,7 +1112,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 warnings.warn(
                     f"analyze_steady: fell back to HP-off state "
                     f"(reason={failure_reason!r}, "
-                    f"T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, "
+                    + (f"detail={invalid_detail!r}, " if invalid_detail else "")
+                    + f"T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, "
                     f"Q_ref_tank={Q_ref_tank:.0f}W, "
                     f"opt_success={opt_success}, "
                     f"opt_x={safe_float_attr(opt_result, 'x', float('nan')):.2f}, "
@@ -1114,6 +1150,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 if isinstance(result, dict):
                     result["converged"] = False
                     result["failure_reason"] = failure_reason
+                    if invalid_detail is not None:
+                        result["failure_detail"] = invalid_detail
             else:
                 # `result` is a valid dict — keep it, but tag the diagnostic
                 # so callers can branch on `failure_reason` even when the
@@ -1195,7 +1233,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Returns
         -------
         tuple[bool, dict, float]
-            ``(hp_is_on, hp_result, Q_ref_tank)``.
+            ``(call_for_heat, hp_result, Q_ref_tank)``. ``call_for_heat`` is
+            the thermostat state carried to the next step. ``hp_result``
+            says whether the compressor actually ran (``hp_is_on``) and, when
+            it was called but could not run, why (``failure_reason``); such a
+            step is an off-mode row. ``Q_ref_tank`` is the condenser heat the
+            solved cycle delivers, zero when it did not run.
         """
         T_tank_w: float = cu.K2C(ctx.T_tank_w_K)
 
@@ -1219,36 +1262,68 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
 
         if Q_ref_tank == 0:
-            hp_result = self._calc_state(
+            off_result = self._calc_state(
                 5.0,
                 T_tank_w,
                 0.0,
                 ctx.T0,
                 flow_state=flow_state,
             )
-        else:
-            opt = self._optimize_operation(
-                T_tank_w,
-                Q_ref_tank,
-                ctx.T0,
-                flow_state=flow_state,
-            )
-            hp_result = self._calc_state(
-                float(getattr(opt, "x", 5.0)),
-                T_tank_w,
-                Q_ref_tank,
-                ctx.T0,
-                flow_state=flow_state,
-            )
+            hp_result = off_result if off_result is not None else {}
+            hp_result["failure_reason"] = "none"
+            return hp_is_on, hp_result, 0.0
 
-        if hp_result is None:
-            hp_result = {}
-
-        return (
-            hp_is_on,
-            hp_result,
-            float(hp_result.get("Q_ref_tank [W]", 0.0)),
+        opt = self._optimize_operation(
+            T_tank_w,
+            Q_ref_tank,
+            ctx.T0,
+            flow_state=flow_state,
         )
+        solved = self._calc_state(
+            float(getattr(opt, "x", 5.0)),
+            T_tank_w,
+            Q_ref_tank,
+            ctx.T0,
+            flow_state=flow_state,
+        )
+        reason = self._active_step_failure(opt, solved)
+        if reason is None:
+            assert solved is not None
+            hp_result = solved
+            hp_result["failure_reason"] = "none"
+        else:
+            # Called but not solved: the compressor does not run this step.
+            # Report an off-mode row (no heat, no power, NaN COP) with the
+            # reason instead of a half-filled active row.
+            off_result = self._calc_state(5.0, T_tank_w, 0.0, ctx.T0, flow_state=flow_state)
+            hp_result = off_result if off_result is not None else {"hp_is_on": False}
+            hp_result.update({"converged": False, "failure_reason": reason})
+
+        return hp_is_on, hp_result, delivered_tank_heat(hp_result)
+
+    def _active_step_failure(self, opt: object, solved: dict | None) -> str | None:
+        """Why a called step has no operating point, or ``None`` if it has one.
+
+        Uses the same vocabulary as ``analyze_steady``: the cycle's own guard
+        (``t_cond_below_t_in``), the pressure-ratio ceiling, plain
+        infeasibility, an outdoor coil that did not converge, a compressor
+        speed or outer search that did not settle, and the operating-point
+        check of :func:`unphysical_cycle_detail`.
+        """
+        if solved is None:
+            if self._last_cycle_failure_reason is not None:
+                return self._last_cycle_failure_reason
+            event = self._last_pr_event
+            return "pr_above_max" if event is not None and event[0] == "pr_above_max" else "cycle_invalid"
+        if not solved.get("converged", False):
+            # `_hx_diag` marks the outdoor-coil branch; otherwise the speed
+            # root find inside the cycle failed numerically.
+            return "hx_not_converged" if "_hx_diag" in solved else "optimizer_failed"
+        if not bool(getattr(opt, "success", False)):
+            return "optimizer_failed"
+        if unphysical_cycle_detail(solved, self.hp_capacity) is not None:
+            return "cycle_invalid"
+        return None
 
     def _assemble_core_results(
         self,
@@ -1315,6 +1390,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # than the tank trajectory).
         for key in (
             "capacity_clamped",
+            "failure_detail",
+            "_hx_diag",
             "dT_ref_tank [K]",
             "UA_tank_hx [W/K]",
             "C_w_tank [W/K]",
@@ -1545,7 +1622,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
 
         # --- Phase A: control decisions ---
-        hp_is_on, hp_result, Q_ref_cond = self._determine_hp_state(ctx, state.hp_is_on_prev)
+        # The thermostat call carries the hysteresis; the compressor runs (and
+        # heats the tank) only when the called cycle was solved.
+        call_for_heat, hp_result, Q_ref_cond = self._determine_hp_state(ctx, state.hp_is_on_prev)
+        hp_is_on = bool(hp_result.get("hp_is_on", False))
 
         dV_tank_w_in_ctrl, is_refilling = determine_tank_refill_flow(
             dt=dt_s,
@@ -1636,7 +1716,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_K=T_tank_w_K,
             tank_level=tank_level,
             is_refilling=is_refilling,
-            hp_is_on_prev=hp_is_on,
+            hp_is_on_prev=call_for_heat,
             dV_tank_w_out_prev=self.dV_tank_w_out,
         )
         return new_state, r

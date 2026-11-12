@@ -127,6 +127,7 @@ def test_incomplete_or_unneeded_ceiling_keeps_original_failure(parameters):
 )
 def test_boiler_final_balance_is_checked_again_after_the_root(cls, side, error, required, converged, accepted):
     hp = object.__new__(cls)
+    hp.hp_capacity = 8000.0
 
     def calc_state(*args, **inputs):
         final = bool(args)
@@ -134,6 +135,10 @@ def test_boiler_final_balance_is_checked_again_after_the_root(cls, side, error, 
             "converged_rps": converged if final else True,
             f"err_Q_{side} [W]": error if final else inputs[f"dT_ref_{side}"] - 10,
             f"Q_ref_{side} [W]": required if final else 1000,
+            # A running state: the solver also checks it is an operating point.
+            "hp_is_on": True,
+            "Q_ref_tank [W]": 8000.0,
+            "E_cmp [W]": 2000.0,
         }
 
     hp._calc_state = calc_state

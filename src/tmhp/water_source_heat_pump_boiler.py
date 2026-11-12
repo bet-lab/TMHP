@@ -34,9 +34,7 @@ from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
     ControlState,
-    CycleCarry,
     CycleSolveOutcome,
-    KnownCycleFailure,
     StepContext,
     check_hp_schedule_active,
     delivered_tank_heat,
@@ -60,11 +58,6 @@ from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
-
-
-def _known_failure(hint: object) -> KnownCycleFailure | None:
-    """The remembered search failure ``resolve_step_operation`` passes as a hint, if any."""
-    return hint if isinstance(hint, KnownCycleFailure) else None
 
 
 class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -758,20 +751,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         perf["failure_reason"] = "none"
         return perf
 
-    def _solve_cycle_at(
-        self, ctx: StepContext, T_tank_w: float, known_failure: KnownCycleFailure | None = None
-    ) -> dict:
+    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row carrying the reason the call
         could not run; see :meth:`GroundSourceHeatPumpBoiler._solve_cycle_at`.
         """
         Q_tank_load = self.hp_capacity
-        if known_failure is not None:
-            flow_state = self._step_flow_state(ctx, T_tank_w)
-            return self._failed_cycle_result(
-                T_tank_w, cu.K2C(ctx.T0_K), flow_state, known_failure.reason, known_failure.detail
-            )
         T0_C = cu.K2C(ctx.T0_K)
         flow_state = self._step_flow_state(ctx, T_tank_w)
         opt_res = self._optimize_operation(T_tank_w, Q_tank_load, T0_C, flow_state=flow_state)
@@ -951,7 +937,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
-        cycle_carry: CycleCarry | None = None
         is_refilling = False
 
         self.T_bhe = self.Ts
@@ -1070,7 +1055,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
             # reaches the lower bound, not for whole steps.
-            run, cycle_result, cycle_carry = resolve_step_operation(
+            run, cycle_result, _ = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
                 running_prev=running_prev,
@@ -1083,16 +1068,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 C_next=self.C_tank * max(0.001, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=res_fn_free,
-                solve_cycle=lambda T_C, hint, _fraction, ctx=ctx: (
-                    self._solve_cycle_at(ctx, T_C, known_failure=_known_failure(hint)),
-                    None,
-                ),
+                solve_cycle=lambda T_C, _hint, _fraction, ctx=ctx: (self._solve_cycle_at(ctx, T_C), None),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
-                conditions=(float(ctx.T0), cu.K2C(self.T_bhe_f_out_K), float(T_source_w_n)),
-                carried=cycle_carry,
-                remember_failures=True,
             )
             hp_result = step_hp_result(
                 run,

@@ -55,9 +55,7 @@ from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
     ControlState,
-    CycleCarry,
     CycleSolveOutcome,
-    KnownCycleFailure,
     StepContext,
     check_hp_schedule_active,
     delivered_tank_heat,
@@ -99,11 +97,6 @@ from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
-
-
-def _known_failure(hint: object) -> KnownCycleFailure | None:
-    """The remembered search failure ``resolve_step_operation`` passes as a hint, if any."""
-    return hint if isinstance(hint, KnownCycleFailure) else None
 
 
 class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -1087,13 +1080,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         perf.update({"converged": True, "failure_reason": "none"})
         return perf
 
-    def _solve_cycle_at(
-        self,
-        ctx: StepContext,
-        T_tank_w: float,
-        runtime_fraction: float = 1.0,
-        known_failure: KnownCycleFailure | None = None,
-    ) -> dict:
+    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float, runtime_fraction: float = 1.0) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row (no heat to the tank, no heat
@@ -1101,16 +1088,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         The condenser heat is what the solved cycle delivers, never the
         requested capacity. ``runtime_fraction`` is the expected run time of
         the step, for the coupled ground-flow path (see
-        :meth:`_ground_flow_result`). ``known_failure`` is a search failure
-        the previous step observed at or below ``T_tank_w`` under the same
-        source conditions: the failure row is built without searching.
+        :meth:`_ground_flow_result`).
         """
         Q_tank_load = self.hp_capacity
-        if known_failure is not None:
-            flow_state = self._step_flow_state(ctx, T_tank_w)
-            return self._failed_cycle_result(
-                T_tank_w, cu.K2C(ctx.T0_K), flow_state, known_failure.reason, known_failure.detail
-            )
         if self._ground_settings["active"]:
             return self._ground_flow_result(ctx, T_tank_w, Q_tank_load, runtime_fraction)
 
@@ -1457,7 +1437,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
-        cycle_carry: CycleCarry | None = None
         is_refilling = False
 
         self.T_bhe_f = self.Ts
@@ -1564,7 +1543,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
             # reaches the lower bound, not for whole steps.
-            run, cycle_result, cycle_carry = resolve_step_operation(
+            run, cycle_result, _ = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
                 running_prev=running_prev,
@@ -1585,16 +1564,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     tank_level=tank_level_solve,
                     sub_states=sub_states,
                 ),
-                solve_cycle=lambda T_C, hint, fraction, ctx=ctx: (
-                    self._solve_cycle_at(ctx, T_C, fraction, known_failure=_known_failure(hint)),
-                    None,
-                ),
+                solve_cycle=lambda T_C, _hint, fraction, ctx=ctx: (self._solve_cycle_at(ctx, T_C, fraction), None),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
-                conditions=(float(ctx.T0), cu.K2C(self.T_bhe_f_out_K), float(self.T_bhe)),
-                carried=cycle_carry,
-                remember_failures=True,
             )
             hp_result = step_hp_result(
                 run,

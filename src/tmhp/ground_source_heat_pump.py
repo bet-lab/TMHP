@@ -24,6 +24,7 @@ and ``AirSourceHeatPump`` for the indoor-unit side.
 from __future__ import annotations
 
 import contextlib
+import math
 import warnings
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -1223,11 +1224,26 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T_out = calc_bhe_fluid_temperatures(
                 wall_K, Q_bhe_guess, self.n_boreholes, self.H_b, loop["R_b"], loop["dV"] * rho_w, c_w
             )[2]
+        # The compressor envelope (pressure-ratio ceiling) limits the absolute
+        # ground-side saturation temperature, not the approach: as the fluid
+        # temperature closes, the approach at that limit moves with it.
+        pump_rise = float(loop["E_pmp"]) / (float(loop["dV"]) * rho_w * c_w)
+
+        def saturation(approach: float, fluid: float) -> float:
+            source = fluid + pump_rise
+            return source - approach if heating else source + approach
+
+        def approach_at(sat_K: float, fluid: float) -> float:
+            source = fluid + pump_rise
+            return source - sat_K if heating else sat_K - source
+
         previous: tuple[float, float] | None = None
-        # Last valid evaluation, and the smallest approach known to leave the
-        # compressor envelope (larger approaches only raise the lift further).
+        # Previous (fluid temperature, closure error) pair for the secant step.
+        previous_fluid: tuple[float, float] | None = None
+        # Last valid evaluation (approach, residual, row, fluid temperature) and
+        # the nearest invalid saturation temperature seen (outside the envelope).
         last: tuple[float, float, dict, float] | None = None
-        upper = hi
+        bad_sat: float | None = None
         row: dict | None = None
         for _ in range(self._GROUND_CLOSURE_MAX_ITER):
             evap, cond = (g, load_approach) if heating else (load_approach, g)
@@ -1244,22 +1260,27 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             except (ValueError, OverflowError, ZeroDivisionError):
                 row = None
             if row is None:
-                # Larger approaches raise the lift into the pressure-ratio
-                # ceiling: retry at the smallest approach, or bisect between
-                # the last valid approach and this one.
+                # A larger approach raises the lift into the pressure-ratio
+                # ceiling: retry at the smallest approach, or bisect between the
+                # last valid saturation temperature and this one.
+                sat = saturation(g, T_out)
+                if bad_sat is not None:
+                    # Keep the invalid temperature closest to the valid side.
+                    sat = max(bad_sat, sat) if heating else min(bad_sat, sat)
+                bad_sat = sat
                 if last is None:
                     if g <= lo + 1e-9:
                         return "invalid", None, g, T_out
-                    upper, g = g, lo
+                    g = lo
                     continue
-                upper = min(upper, g)
-                if upper - last[0] < self._ENVELOPE_APPROACH_TOL_K:
+                last_sat = saturation(last[0], last[3])
+                if abs(last_sat - bad_sat) < self._ENVELOPE_APPROACH_TOL_K:
                     if last[1] > 0:
                         # The duty needs more ground approach than the compressor
                         # envelope allows: a ground-side capacity limit.
                         return "ground_limit", last[2], last[0], last[3]
                     return "invalid", None, g, T_out
-                g = 0.5 * (last[0] + upper)
+                g = max(lo, approach_at(0.5 * (last_sat + bad_sat), T_out))
                 continue
             residual = float(row["err_Q_evap [W]"])
             tolerance = max(0.01, 1e-5 * abs(float(row["Q_ref_ground [W]"])))
@@ -1276,6 +1297,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     c_w,
                 )
             closed = abs(T_next - T_out) <= self._FLUID_TEMPERATURE_TOL_K
+            upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
             if closed:
                 if abs(residual) <= tolerance:
                     return "equality", row, g, T_out
@@ -1293,10 +1315,24 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 if estimate > 0.05 * conductance:
                     slope = estimate
             previous, last = (g, residual), (g, residual, row, T_out)
+            # Fluid closure: plain substitution oscillates when the duty rises
+            # steeply with the source temperature (loop gain near -0.5 at the
+            # compressor speed ceiling); a secant step on the closure error
+            # removes that, as in the coupled solver's temperature closure.
+            error = T_next - T_out
+            step = error
+            if previous_fluid is not None and abs(error - previous_fluid[1]) > 1e-12:
+                secant = -error * (T_out - previous_fluid[0]) / (error - previous_fluid[1])
+                if math.isfinite(secant) and abs(secant) < 30.0:
+                    step = secant
+            previous_fluid = (T_out, error)
+            T_out = T_out + step
+            # Never step onto an approach already known to leave the envelope.
+            upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
             target = g + residual / slope
-            # Never step onto an approach already known to be invalid.
-            g = max(target, lo) if target < upper else (0.5 * (g + upper) if upper < hi else hi)
-            T_out = T_next
+            if target >= upper:
+                target = 0.5 * (g + upper) if upper < hi else hi
+            g = max(target, lo)
         return "not_closed", row, g, T_out
 
     def _solve_operating_point(

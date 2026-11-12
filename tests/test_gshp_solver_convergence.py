@@ -144,6 +144,20 @@ def test_request_above_capacity_reports_the_ceiling(hp):
     assert 1.0 < row["cop_sys [-]"] < 10.0
 
 
+def test_wall_coupled_ceiling_closes_at_the_compressor_speed_limit():
+    # With the efficiency guard the duty at rps_max rises steeply with the
+    # source temperature, so the fluid closure against the wall oscillates
+    # (loop gain near -0.5) and the PR-envelope edge moves with the fluid
+    # temperature. R410A at a 10 degC wall used to end cycle_invalid here.
+    model = GroundSourceHeatPump(ref="R410A")
+    row = steady(model, -1.0e6, 20.0, 10.0)
+    assert row["converged"] and row["failure_reason"] == "none"
+    assert row["capacity_clamped"] == "max"
+    assert 0 < row["Q_ref_iu [W]"] == pytest.approx(row["Q_max [W]"], rel=1e-9)
+    assert row["T_bhe [°C]"] == pytest.approx(10.0, abs=1e-4)
+    assert 1.0 < row["cop_sys [-]"] < 10.0
+
+
 def test_unsolvable_point_returns_off_state_with_reason():
     # A pressure-ratio ceiling just above the floor leaves no valid cycle for
     # a 0 -> 20 degC lift.

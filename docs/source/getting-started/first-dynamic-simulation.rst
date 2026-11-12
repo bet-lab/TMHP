@@ -147,8 +147,9 @@ controller. A 1-minute step resolves typical hot-water draws; 10–15 min
 steps (common co-simulation exchange intervals) are fine for daily or
 annual energy.
 
-The heat pump never heats the tank past 100 °C, whatever the bounds; a
-band set above 100 °C is moved down to end there. If heat from another
+The constructors refuse set points outside 0–100 °C, and the heat pump
+never heats the tank past 100 °C even when a minimum run time (below)
+holds it past the upper bound. If heat from another
 source (for example a solar collector loop without a high limit) takes
 the tank above 100 °C anyway, a ``RuntimeWarning`` says so: the lumped
 tank has no boiling or relief valve.

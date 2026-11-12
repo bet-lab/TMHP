@@ -60,6 +60,13 @@ over the step. ``min_on_time_s`` / ``min_off_time_s`` (default 0) hold
 the compressor to a minimum run and rest time. See
 :ref:`time-step-and-thermostat`.
 
+On a step the compressor runs only part of, the ground history and the
+borehole wall take the step-average extraction (the ground's step-mean
+response); the borehole resistance and the loop temperature difference,
+which store no heat, act on the running extraction, so the reported fluid
+temperatures and the source the next cycle sees are those of the running
+machine.
+
 The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
 it sets the shortest lag time tabulated for the g-function (never below
 one hour; shorter lags are interpolated linearly from zero). Pass the

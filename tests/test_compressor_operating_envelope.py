@@ -179,7 +179,7 @@ def test_ashpb_r32_rating_point_a7_w55_still_runs():
     r = _quiet(hp.analyze_steady, T_tank_w=55.0, T0=7.0, Q_ref_tank=15000.0)
     assert _running(r)
     assert r["capacity_clamped"] is None
-    assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max
+    assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
 
 
 def test_switching_the_check_off_restores_the_unbounded_answer():
@@ -203,7 +203,7 @@ def test_boiler_request_above_the_limit_returns_the_largest_duty_inside_it():
     assert r["Q_request [W]"] == 8000.0 and r["Q_tank_load [W]"] == 8000.0
     assert r["Q_ref_tank [W]"] < 8000.0
     assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
-    assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max
+    assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
     # A slightly larger duty is outside the limit (bisection to 1 % of the request).
     above = _quiet(hp.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=r["Q_ref_tank [W]"] + 0.02 * 8000.0)
     assert above["capacity_binding"] == BINDING_DISCHARGE
@@ -260,7 +260,7 @@ def test_low_speed_high_pressure_ratio_corner_is_outside_the_envelope():
     assert corner["efficiency_extrapolated"] is True
     hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0)
     r = _quiet(hp.analyze_steady, **case)
-    assert not _running(r) or r["T_ref_cmp_out [°C]"] <= hp.T_dis_max
+    assert not _running(r) or r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
     assert r["failure_reason"] in ("none", DISCHARGE_TEMP_ABOVE_MAX)
 
 

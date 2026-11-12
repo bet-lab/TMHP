@@ -135,11 +135,20 @@ def _series(ax, g, col, color, label=None, norm=None, ls="solid", scale=1.0):
     """Filled markers = continuous modulation; open markers = speed floor."""
     mod, floor = _split(g)
     f = 1.0 if norm is None else norm
-    ax.plot(100 * mod.PLR_requested, mod[col] * scale / f, ls=ls, lw=dm.lw(0),
-            color=color, marker="o", ms=MS, label=label)
+    ax.plot(
+        100 * mod.PLR_requested, mod[col] * scale / f, ls=ls, lw=dm.lw(0), color=color, marker="o", ms=MS, label=label
+    )
     if len(floor):
-        ax.plot(100 * floor.PLR_requested, floor[col] * scale / f, ls="none",
-                marker="o", ms=MS, mfc="white", mec=color, mew=HAIRLINE)
+        ax.plot(
+            100 * floor.PLR_requested,
+            floor[col] * scale / f,
+            ls="none",
+            marker="o",
+            ms=MS,
+            mfc="white",
+            mec=color,
+            mew=HAIRLINE,
+        )
 
 
 def _plr_axis(ax, xlabel: bool = True, step: float = 20.0) -> None:
@@ -191,8 +200,9 @@ def _fit_step(values, step: float, pad: float = 0.0, max_ticks: int | None = Non
     return lo, hi, s
 
 
-def _axis(ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol=1, xlabel=True,
-          max_ticks: int | None = None) -> None:
+def _axis(
+    ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol=1, xlabel=True, max_ticks: int | None = None
+) -> None:
     lo, hi, step = _fit_step(values, step, max_ticks=max_ticks)
     ax.set_ylabel(ylabel)
     ax.set_ylim(lo, hi)
@@ -200,8 +210,7 @@ def _axis(ax, values, ylabel: str, step: float, *, title=None, legend=None, ncol
     if title:
         ax.set_title(title, fontsize=dm.fs(-2), loc="left")
     if legend:
-        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5), ncol=ncol,
-                  handlelength=1.6, columnspacing=1.0)
+        ax.legend(loc=legend, frameon=False, fontsize=dm.fs(-3.5), ncol=ncol, handlelength=1.6, columnspacing=1.0)
     _plr_axis(ax, xlabel)
 
 
@@ -228,14 +237,15 @@ def fig1(d, case: str) -> None:
         mod, _ = _split(g)
         comp += list(mod.COP_comp)
         sysv += list(mod.COP_sys)
-    _axis(axes[0], comp, "Compressor COP  $Q/E_{comp}$ [-]", 0.5,
-          title=CASE_LABEL[case], legend="lower left", ncol=2)
-    _axis(axes[1], sysv, "System COP  $Q/(E_{comp}+E_{fan})$ [-]", 0.5,
-          title="Same rows, fan power included")
+    _axis(axes[0], comp, "Compressor COP  $Q/E_{comp}$ [-]", 0.5, title=CASE_LABEL[case], legend="lower left", ncol=2)
+    _axis(axes[1], sysv, "System COP  $Q/(E_{comp}+E_{fan})$ [-]", 0.5, title="Same rows, fan power included")
     for ax, letter in zip(axes, "ab", strict=True):
         panel_letter(ax, letter)
-    _source(d[(d["pass"] == "fixed_disp") & (d.case == case)],
-            ["COP_comp", "COP_sys", "W_comp", "W_fan", "W_tot"], f"{tag}1_cop_vs_plr.csv")
+    _source(
+        d[(d["pass"] == "fixed_disp") & (d.case == case)],
+        ["COP_comp", "COP_sys", "W_comp", "W_fan", "W_tot"],
+        f"{tag}1_cop_vs_plr.csv",
+    )
     _save(fig, f"{tag}1_cop_vs_plr", mt="6%")
 
 
@@ -255,10 +265,22 @@ def fig2(d, case: str) -> None:
             base = float(mod.loc[mod.PLR_requested.idxmax(), col])
             _series(axes[i], g, col, REF_COLOR[ref], label=ref if i == 0 else None, norm=base)
             vals[i] += list(mod[col] / base)
-    _axis(axes[0], vals[0], "$COP_{comp}^{*} = COP_{comp}(PLR)/COP_{comp}(1)$", 0.1,
-          title=CASE_LABEL[case], legend="lower left", ncol=2)
-    _axis(axes[1], vals[1], "$COP_{sys}^{*} = COP_{sys}(PLR)/COP_{sys}(1)$", 0.1,
-          title="Same normalisation, fan power included")
+    _axis(
+        axes[0],
+        vals[0],
+        "$COP_{comp}^{*} = COP_{comp}(PLR)/COP_{comp}(1)$",
+        0.1,
+        title=CASE_LABEL[case],
+        legend="lower left",
+        ncol=2,
+    )
+    _axis(
+        axes[1],
+        vals[1],
+        "$COP_{sys}^{*} = COP_{sys}(PLR)/COP_{sys}(1)$",
+        0.1,
+        title="Same normalisation, fan power included",
+    )
     for ax, letter in zip(axes, "ab", strict=True):
         ax.axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
         panel_letter(ax, letter)
@@ -279,16 +301,18 @@ def fig3(d, case: str) -> None:
         mod, _ = _split(g)
         n += list(mod.n_star)
         p += list(mod.r_p)
-    _axis(axes[0], n, "Relative speed  $n^{*}=N/N_{rated}$ [-]", 0.25,
-          title=CASE_LABEL[case], legend="upper left", ncol=2)
-    _axis(axes[1], p, "Pressure ratio  $r_p=p_{dis}/p_{suc}$ [-]", 0.25,
-          title="Same rows, compressor lift")
+    _axis(
+        axes[0], n, "Relative speed  $n^{*}=N/N_{rated}$ [-]", 0.25, title=CASE_LABEL[case], legend="upper left", ncol=2
+    )
+    _axis(axes[1], p, "Pressure ratio  $r_p=p_{dis}/p_{suc}$ [-]", 0.25, title="Same rows, compressor lift")
     axes[0].axhline(1.0, color=COLORS["muted"], lw=HAIRLINE, ls=":", zorder=0)
     for ax, letter in zip(axes, "ab", strict=True):
         panel_letter(ax, letter)
-    _source(d[(d["pass"] == "fixed_disp") & (d.case == case)],
-            ["n_star", "N", "r_p", "p_suc", "p_dis", "T_evap_sat", "T_cond_sat", "m_ref"],
-            f"{tag}3_operating_point.csv")
+    _source(
+        d[(d["pass"] == "fixed_disp") & (d.case == case)],
+        ["n_star", "N", "r_p", "p_suc", "p_dis", "T_evap_sat", "T_cond_sat", "m_ref"],
+        f"{tag}3_operating_point.csv",
+    )
     _save(fig, f"{tag}3_operating_point", mt="6%")
 
 
@@ -340,26 +364,56 @@ def fig4(d, case: str) -> None:
         cb.ax.tick_params(labelsize=dm.fs(-4))
         cb.outline.set_linewidth(HAIRLINE)
         # outside the compressor-map fitting domain the laws extrapolate
-        for lo, hi, vertical in ((n_lo, FIT_DOMAIN_N_STAR[0], True), (FIT_DOMAIN_N_STAR[1], n_hi, True),
-                                 (p_lo, FIT_DOMAIN_PR[0], False), (FIT_DOMAIN_PR[1], p_hi, False)):
+        for lo, hi, vertical in (
+            (n_lo, FIT_DOMAIN_N_STAR[0], True),
+            (FIT_DOMAIN_N_STAR[1], n_hi, True),
+            (p_lo, FIT_DOMAIN_PR[0], False),
+            (FIT_DOMAIN_PR[1], p_hi, False),
+        ):
             if hi <= lo:
                 continue
             if vertical:
-                ax.axvspan(lo, hi, facecolor="white", alpha=0.45, hatch="////",
-                           edgecolor=COLORS["muted"], linewidth=0.0, zorder=2)
+                ax.axvspan(
+                    lo,
+                    hi,
+                    facecolor="white",
+                    alpha=0.45,
+                    hatch="////",
+                    edgecolor=COLORS["muted"],
+                    linewidth=0.0,
+                    zorder=2,
+                )
             else:
-                ax.axhspan(lo, hi, facecolor="white", alpha=0.45, hatch="////",
-                           edgecolor=COLORS["muted"], linewidth=0.0, zorder=2)
+                ax.axhspan(
+                    lo,
+                    hi,
+                    facecolor="white",
+                    alpha=0.45,
+                    hatch="////",
+                    edgecolor=COLORS["muted"],
+                    linewidth=0.0,
+                    zorder=2,
+                )
         for ref in _refs_present(d, "fixed_disp", case):
             g = _rows(d, "fixed_disp", case, ref)
             mod, floor = _split(g)
-            ax.plot(mod.n_star, mod.r_p, lw=dm.lw(0), color=REF_COLOR[ref], zorder=4,
-                    label=ref if key == "eta_v" else None)
+            ax.plot(
+                mod.n_star, mod.r_p, lw=dm.lw(0), color=REF_COLOR[ref], zorder=4, label=ref if key == "eta_v" else None
+            )
             if len(floor):
                 ax.plot(floor.n_star, floor.r_p, lw=dm.lw(0), ls=":", color=REF_COLOR[ref], zorder=4)
             marks = mod[mod.PLR_requested.isin(PLR_MARKS)]
-            ax.plot(marks.n_star, marks.r_p, ls="none", marker="o", ms=MS,
-                    mfc="white", mec=REF_COLOR[ref], mew=HAIRLINE, zorder=5)
+            ax.plot(
+                marks.n_star,
+                marks.r_p,
+                ls="none",
+                marker="o",
+                ms=MS,
+                mfc="white",
+                mec=REF_COLOR[ref],
+                mew=HAIRLINE,
+                zorder=5,
+            )
         ax.set_xlim(n_lo, n_hi)
         ax.set_ylim(p_lo, p_hi)
         # Limits come from the sweep, so the default locator is free to put
@@ -369,15 +423,34 @@ def fig4(d, case: str) -> None:
         ax.set_xlabel("$n^{*}$ [-]")
         # The panel name sits inside the axes: a set_title here would collide
         # with the figure-level caption at this aspect ratio.
-        ax.text(0.97, 0.96, ETA_TITLE[key], transform=ax.transAxes, ha="right", va="top",
-                fontsize=dm.fs(-3), zorder=6,
-                bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none", "pad": 1.5})
+        ax.text(
+            0.97,
+            0.96,
+            ETA_TITLE[key],
+            transform=ax.transAxes,
+            ha="right",
+            va="top",
+            fontsize=dm.fs(-3),
+            zorder=6,
+            bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none", "pad": 1.5},
+        )
         ax.tick_params(labelsize=dm.fs(-3.5))
     axes[0].set_ylabel("$r_p$ [-]")
-    axes[0].legend(loc="lower right", frameon=False, fontsize=dm.fs(-4), ncol=2,
-                   handlelength=1.2, columnspacing=0.8, labelspacing=0.25)
-    fig.suptitle(f"{CASE_LABEL[case]} — hatched: outside the compressor-map fitting domain",
-                 fontsize=dm.fs(-2), x=0.01, ha="left")
+    axes[0].legend(
+        loc="lower right",
+        frameon=False,
+        fontsize=dm.fs(-4),
+        ncol=2,
+        handlelength=1.2,
+        columnspacing=0.8,
+        labelspacing=0.25,
+    )
+    fig.suptitle(
+        f"{CASE_LABEL[case]} — hatched: outside the compressor-map fitting domain",
+        fontsize=dm.fs(-2),
+        x=0.01,
+        ha="left",
+    )
     _save(fig, f"{tag}4_efficiency_surface", mt="8%")
 
 
@@ -387,8 +460,7 @@ def fig4(d, case: str) -> None:
 def fig5(d, case: str) -> None:
     tag = CASE_TAG[case]
     refs = _refs_present(d, "fixed_disp", case)
-    fig, axes = plt.subplots(2, 3, figsize=dm.figsize("16cm", 0.62),
-                             gridspec_kw={"wspace": 0.62, "hspace": 0.62})
+    fig, axes = plt.subplots(2, 3, figsize=dm.figsize("16cm", 0.62), gridspec_kw={"wspace": 0.62, "hspace": 0.62})
     flat = axes.ravel()
     pmax = max(float(_rows(d, "fixed_disp", case, r).W_tot.max()) for r in refs)
     lo, hi, step = _fit_step([0.0, pmax], 100.0, max_ticks=4)
@@ -399,22 +471,22 @@ def fig5(d, case: str) -> None:
         ax.fill_between(x, g.W_comp, g.W_tot, color=COLORS["muted"], alpha=0.75, lw=0, label="$E_{fan}$")
         mod, floor = _split(g)
         if len(floor):
-            ax.axvspan(0, 100 * float(floor.PLR_requested.max()), facecolor=COLORS["band20"],
-                       alpha=0.35, lw=0, zorder=0)
+            ax.axvspan(
+                0, 100 * float(floor.PLR_requested.max()), facecolor=COLORS["band20"], alpha=0.35, lw=0, zorder=0
+            )
         ax.set_ylim(lo, hi)
         ax.set_yticks(ticks(lo, hi, step))
         ax.set_title(ref, fontsize=dm.fs(-2.5), loc="left")
         _plr_axis(ax, xlabel=False, step=25.0)
         ax.tick_params(labelsize=dm.fs(-3.5))
         tw = ax.twinx()
-        tw.plot(x, 100 * g.fan_fraction, color=COLORS["hot"], lw=dm.lw(-0.5), ls="dashed",
-                label="$E_{fan}/E_{tot}$")
+        tw.plot(x, 100 * g.fan_fraction, color=COLORS["hot"], lw=dm.lw(-0.5), ls="dashed", label="$E_{fan}/E_{tot}$")
         tw.set_ylim(0, 30)
         tw.set_yticks(ticks(0, 30, 10))
         tw.tick_params(labelsize=dm.fs(-3.5), colors=COLORS["hot"])
         if ax in (flat[2], flat[5]):
             tw.set_ylabel("$E_{fan}/E_{tot}$ [%]", fontsize=dm.fs(-3), color=COLORS["hot"])
-    for ax in flat[len(refs):]:
+    for ax in flat[len(refs) :]:
         ax.set_visible(False)
     for ax in (flat[3], flat[4], flat[5]):
         if ax.get_visible():
@@ -422,13 +494,15 @@ def fig5(d, case: str) -> None:
     flat[0].set_ylabel("Power [W]", fontsize=dm.fs(-3))
     flat[3].set_ylabel("Power [W]", fontsize=dm.fs(-3))
     h, lab = flat[0].get_legend_handles_labels()
-    flat[0].legend(h, lab, loc="lower right", frameon=False, fontsize=dm.fs(-4),
-                   handlelength=1.2, labelspacing=0.25)
-    fig.suptitle(f"{CASE_LABEL[case]} — shaded band: at the compressor speed floor",
-                 fontsize=dm.fs(-2), x=0.01, ha="left")
-    _source(d[(d["pass"] == "fixed_disp") & (d.case == case)],
-            ["W_comp", "W_fan", "W_ou_fan", "W_iu_fan", "W_tot", "fan_fraction"],
-            f"{tag}5_power_split.csv")
+    flat[0].legend(h, lab, loc="lower right", frameon=False, fontsize=dm.fs(-4), handlelength=1.2, labelspacing=0.25)
+    fig.suptitle(
+        f"{CASE_LABEL[case]} — shaded band: at the compressor speed floor", fontsize=dm.fs(-2), x=0.01, ha="left"
+    )
+    _source(
+        d[(d["pass"] == "fixed_disp") & (d.case == case)],
+        ["W_comp", "W_fan", "W_ou_fan", "W_iu_fan", "W_tot", "fan_fraction"],
+        f"{tag}5_power_split.csv",
+    )
     _save(fig, f"{tag}5_power_split", mt="8%")
 
 
@@ -454,12 +528,24 @@ def figS1(d, m) -> None:
         ax.tick_params(axis="y", labelsize=dm.fs(-3.5))
         ax.grid(True, axis="y", alpha=0.25, linewidth=GRIDLINE)
         plr = 100 * float(g.PLR_common.iloc[0])
-        ax.text(0.03, 0.96, f"{CASE_TAG[case]}  {case.replace('_', ' ')}\nread at {plr:.0f} % PLR",
-                transform=ax.transAxes, ha="left", va="top", fontsize=dm.fs(-3.5), linespacing=1.4)
+        ax.text(
+            0.03,
+            0.96,
+            f"{CASE_TAG[case]}  {case.replace('_', ' ')}\nread at {plr:.0f} % PLR",
+            transform=ax.transAxes,
+            ha="left",
+            va="top",
+            fontsize=dm.fs(-3.5),
+            linespacing=1.4,
+        )
     axes[0].set_ylabel("COP(low PLR) / COP(rated) [-]")
     axes[0].legend(loc="upper right", frameon=False, fontsize=dm.fs(-4), handlelength=1.2)
-    fig.suptitle("Same machine (R32 displacement), every fluid read at the deepest PLR they all modulate at",
-                 fontsize=dm.fs(-2), x=0.01, ha="left")
+    fig.suptitle(
+        "Same machine (R32 displacement), every fluid read at the deepest PLR they all modulate at",
+        fontsize=dm.fs(-2),
+        x=0.01,
+        ha="left",
+    )
     sub.to_csv(OUT_DIR / "S1_shape_summary.csv", index=False)
     _save(fig, "S1_shape_summary", mt="8%")
 
@@ -493,15 +579,25 @@ def figS2(d, m) -> None:
         sa = float(np.nanmax(va[keep]) - np.nanmin(va[keep]))
         sb = float(np.nanmax(vb[keep]) - np.nanmin(vb[keep]))
         ra = float(np.corrcoef(a.reindex(keep).n_star_rated, va[keep])[0, 1])
-        ax.text(0.03, 0.97,
-                f"{CASE_TAG[case]}  {case.replace('_', ' ')}\n"
-                f"spread without R407C  {sa:.3f} $\\to$ {sb:.3f},  $r(n^{{*}}_{{rated}})$ = {ra:+.2f}",
-                transform=ax.transAxes, ha="left", va="top", fontsize=dm.fs(-3.5), linespacing=1.4)
+        ax.text(
+            0.03,
+            0.97,
+            f"{CASE_TAG[case]}  {case.replace('_', ' ')}\n"
+            f"spread without R407C  {sa:.3f} $\\to$ {sb:.3f},  $r(n^{{*}}_{{rated}})$ = {ra:+.2f}",
+            transform=ax.transAxes,
+            ha="left",
+            va="top",
+            fontsize=dm.fs(-3.5),
+            linespacing=1.4,
+        )
     axes[0].set_ylabel("$R_{comp}$ at common low PLR [-]")
-    axes[0].legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5), handlelength=1.2,
-                   labelspacing=0.25)
-    fig.suptitle("Control: with R32's displacement the fluids separate along rated $n^{*}$;  size each machine and they merge",
-                 fontsize=dm.fs(-2), x=0.01, ha="left")
+    axes[0].legend(loc="lower right", frameon=False, fontsize=dm.fs(-4.5), handlelength=1.2, labelspacing=0.25)
+    fig.suptitle(
+        "Control: with R32's displacement the fluids separate along rated $n^{*}$;  size each machine and they merge",
+        fontsize=dm.fs(-2),
+        x=0.01,
+        ha="left",
+    )
     _save(fig, "S2_sizing_control", mt="8%")
 
 
@@ -526,8 +622,14 @@ def figS3(d) -> None:
             if mod.empty:
                 continue
             i = mod.PLR_requested.idxmax()
-            _series(ax, g, "COP_cycle", REF_COLOR[ref], norm=float(mod.loc[i, "COP_cycle"]),
-                    label=ref if case == CASES[0] else None)
+            _series(
+                ax,
+                g,
+                "COP_cycle",
+                REF_COLOR[ref],
+                norm=float(mod.loc[i, "COP_cycle"]),
+                label=ref if case == CASES[0] else None,
+            )
             _series(ax, g, "eta_oi", REF_COLOR[ref], norm=float(mod.loc[i, "eta_oi"]), ls="dashed")
             vals += list(mod.COP_cycle / mod.loc[i, "COP_cycle"]) + list(mod.eta_oi / mod.loc[i, "eta_oi"])
         lo, hi, step = _fit_step(vals, 0.05)
@@ -538,11 +640,22 @@ def figS3(d) -> None:
         ax.tick_params(axis="y", labelsize=dm.fs(-3.5))
         _plr_axis(ax)
     axes[0].set_ylabel("Value / value at rated [-]")
-    axes[0].legend(loc="lower left", frameon=False, fontsize=dm.fs(-4), ncol=2,
-                   handlelength=1.2, columnspacing=0.8, labelspacing=0.25)
-    fig.suptitle("Machine sized per fluid — solid: isentropic-cycle COP $Q/(\\dot m\\,\\Delta h_{is})$;  "
-                 "dashed: $\\eta_{is}\\eta_{em}$",
-                 fontsize=dm.fs(-2), x=0.01, ha="left")
+    axes[0].legend(
+        loc="lower left",
+        frameon=False,
+        fontsize=dm.fs(-4),
+        ncol=2,
+        handlelength=1.2,
+        columnspacing=0.8,
+        labelspacing=0.25,
+    )
+    fig.suptitle(
+        "Machine sized per fluid — solid: isentropic-cycle COP $Q/(\\dot m\\,\\Delta h_{is})$;  "
+        "dashed: $\\eta_{is}\\eta_{em}$",
+        fontsize=dm.fs(-2),
+        x=0.01,
+        ha="left",
+    )
     _save(fig, "S3_decomposition", mt="10%")
 
 

@@ -25,15 +25,14 @@ import pandas as pd
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-
 from scripts.visualization._dmpl_common import (  # noqa: E402
     COLORS,
-    GRIDLINE,
     HAIRLINE,
     finalize,
     panel_letter,
     ticks,
 )
+
 from validation.diagnostics.professor_summary_figures import (  # noqa: E402
     _grid,
     _style,

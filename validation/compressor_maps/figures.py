@@ -306,10 +306,28 @@ def fig_eta_overview(df: pd.DataFrame, out: Path) -> None:
     pr = np.linspace(1.0, 8.0, 100)
     f_vol = make_eta_vol(1.0)
     panels = (
-        (axes[0], df[~df.vdisp_suspect], "eta_vol", lambda x, ns: f_vol(x, ns), (0.6, 1.05), 0.1,
-         "Volumetric efficiency η_vol [-]", "lower left", "a"),
-        (axes[1], df, "eta_oi", eta_oi_product, (0.3, 0.9), 0.1,
-         "η_isen · η_em, electrical-to-isentropic [-]", "upper right", "b"),
+        (
+            axes[0],
+            df[~df.vdisp_suspect],
+            "eta_vol",
+            lambda x, ns: f_vol(x, ns),
+            (0.6, 1.05),
+            0.1,
+            "Volumetric efficiency η_vol [-]",
+            "lower left",
+            "a",
+        ),
+        (
+            axes[1],
+            df,
+            "eta_oi",
+            eta_oi_product,
+            (0.3, 0.9),
+            0.1,
+            "η_isen · η_em, electrical-to-isentropic [-]",
+            "upper right",
+            "b",
+        ),
     )
     sc = None
     for ax, d, col, fit, (lo, hi), step, label, loc, letter in panels:

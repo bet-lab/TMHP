@@ -50,15 +50,17 @@ def tasks() -> list[dict]:
         for duty, bc in DUTIES:
             for t_out in bc["outdoor"]:
                 for f in FRACTIONS:
-                    out.append({
-                        "config": cfg,
-                        "family": "fan_floor_map",
-                        "condition": f"{duty}_{t_out:g}",
-                        "duty": duty,
-                        "T_outdoor": float(t_out),
-                        "T_room": float(bc["room"]),
-                        "plr_request": float(f),
-                    })
+                    out.append(
+                        {
+                            "config": cfg,
+                            "family": "fan_floor_map",
+                            "condition": f"{duty}_{t_out:g}",
+                            "duty": duty,
+                            "T_outdoor": float(t_out),
+                            "T_room": float(bc["room"]),
+                            "plr_request": float(f),
+                        }
+                    )
     return out
 
 
@@ -68,8 +70,10 @@ def check(df: pd.DataFrame) -> None:
     ref = ref[ref.failure_reason == "none"]
     base = df[(df.config == "baseline") & (df.failure_reason == "none")]
     j = base.merge(
-        ref, left_on=["duty", "T_outdoor", "PLR_request"],
-        right_on=["duty", "t_outdoor_C", "plr_request"], suffixes=("", "_ref"),
+        ref,
+        left_on=["duty", "T_outdoor", "PLR_request"],
+        right_on=["duty", "t_outdoor_C", "plr_request"],
+        suffixes=("", "_ref"),
     )
     d = (j.COP_sys - j.cop_sys).abs() / j.cop_sys * 100
     print(f"baseline vs plr_map_ashp: n = {len(j)}, max |dCOP| = {d.max():.3f} %, mean {d.mean():.3f} %")

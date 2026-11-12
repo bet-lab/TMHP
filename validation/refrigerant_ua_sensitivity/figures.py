@@ -185,7 +185,9 @@ def fig02(d) -> None:
             legend="upper left" if letter == "a" else None,
         )
         panel_letter(ax, letter)
-    _source(sub, ["ua_ratio_ou", "ua_ratio_iu", "UA_ou", "UA_iu", "x_ref", "fan_fraction_ou"], "fig02_ua_ratio_vs_plr.csv")
+    _source(
+        sub, ["ua_ratio_ou", "ua_ratio_iu", "UA_ou", "UA_iu", "x_ref", "fan_fraction_ou"], "fig02_ua_ratio_vs_plr.csv"
+    )
     _save(fig, "02_ua_ratio_vs_plr", mt="5%")
 
 
@@ -380,7 +382,9 @@ def fig07(d) -> None:
                         ha="center",
                         va="center",
                         fontsize=dm.fs(-3),
-                        color="white" if (cmap == "viridis" and rel < 0.55) or (cmap != "viridis" and rel > 0.55) else "black",
+                        color="white"
+                        if (cmap == "viridis" and rel < 0.55) or (cmap != "viridis" and rel > 0.55)
+                        else "black",
                     )
             ax.set_xticks(np.arange(piv.shape[1]) + 0.5)
             ax.set_xticklabels([f"{c:g}" for c in piv.columns])
@@ -392,7 +396,11 @@ def fig07(d) -> None:
             ref = b.dCOP_low_pct if col == "dCOP_low_pct" else b.lowload_rise_pct
             ax.set_title(
                 f"{duty.capitalize()} — baseline {ref:.2f} %"
-                + ("  (peak to lowest continuous PLR)" if col == "dCOP_low_pct" else "  (COP$_{low}$/COP$_{rated}$ − 1)"),
+                + (
+                    "  (peak to lowest continuous PLR)"
+                    if col == "dCOP_low_pct"
+                    else "  (COP$_{low}$/COP$_{rated}$ − 1)"
+                ),
                 fontsize=dm.fs(-2),
                 loc="left",
             )

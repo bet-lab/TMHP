@@ -87,8 +87,13 @@ The room temperature supplied to ``analyze_steady`` is used by both the cycle
 and the indoor HX and appears unchanged in the output. Omitting it uses the
 constructor's ``T_a_room``; candidate evaluations do not overwrite this setting.
 
-For GSHP, ``T_bhe_wall`` fixes the wall temperature for the steady snapshot;
-its default is the model's current wall temperature (initially ``Ts``).
+For GSHP, ``T_bhe_wall`` fixes the wall temperature for the steady snapshot,
+and the fluid leaving the borefield is closed against it through Rb* and the
+loop flow, in the coupled solver and in the standard fixed-flow solver alike.
+When it is omitted, the coupled solver uses the model's current wall
+temperature (initially ``Ts``), while the standard solver keeps the model's
+current fluid outlet temperature ``T_bhe_f_out`` (initially ``Ts``) as a fixed
+source-fluid boundary.
 For GSHPB, ``T_source`` retains its existing meaning as prescribed BHE outlet
 fluid temperature. Supply ``T_bhe_wall`` to close the borehole wall/fluid balance
 and make flow-dependent Rb* affect the cycle. Without it, the fixed source-fluid

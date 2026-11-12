@@ -13,7 +13,12 @@ DATA = REPO_ROOT / "validation" / "data"
 
 
 def main() -> None:
-    en14825_trend.main()
+    en14825_trend.main()  # reads --jobs from the command line
+    write_stamp()
+
+
+def write_stamp() -> None:
+    """Record which coefficient set produced the trend files."""
     stamp = {
         "product": "en14825_seasonal_trend/air_to_water",
         "coefficient_version": COEFFICIENT_VERSION,

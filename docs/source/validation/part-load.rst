@@ -95,16 +95,18 @@ Two different curves
 Panel (a) — fixed temperatures
 ------------------------------
 
-Hold the source and sink where they are and take load away. COP rises, for the
-heat-exchanger reason alone: with the three efficiencies frozen at their rated
-values the 9 kW air-to-water model gains about 11 % between full load and the
-speed floor at 40 %. The low-speed compressor loss eats into that rise -- with
-the ``v2026-09-24`` correlations, whose leakage term grows with pressure ratio,
-it takes back about half of it at 7/42.5 °C (net +5 to +6 %) and all of it at
-high lift (−7/32.5 °C: a plateau from 40 % load down to the floor). The
-air-to-air model at pressure ratios near 2 keeps most of the heat-exchanger
-gain (+20 to +24 % at the floor). None of these shapes is prescribed; they are
-the balance of the two effects (``validation/fixed_boundary_plr/decompose``).
+Hold the source and sink where they are and take load away. With the shipped
+compressor efficiencies the 9 kW air-to-water model gains 3.3 % between full
+load and the speed floor (reached at 44 % load) at 7 °C air / 35 °C water,
+1.2 % at 7/45 °C, and stays flat at −7/45 °C (COP 2.73 at full load, 2.77 from
+75 % load down to the floor at 33 %). Two effects set those shapes: the heat
+exchangers grow large relative to the duty, which raises COP, and the
+compressor loses efficiency at low speed, which takes it back. Their balance
+was measured with the earlier ``v2026-09-24`` correlations
+(``validation/fixed_boundary_plr/decompose``): with the three efficiencies
+frozen at their rated values the same model gains about 11 % between full load
+and the speed floor, and the air-to-air model at pressure ratios near 2 kept
++20 to +24 %. None of these shapes is prescribed.
 
 Below that the curve turns over, and the efficiency correlations are not the
 cause: a test gates the claim that wherever the modelled COP falls materially
@@ -142,11 +144,15 @@ below its peak, the compressor speed equals ``rps_min``.
     continuous-operation figure at the minimum capacity, not a part-load COP.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
+    At −7 °C air and 45 °C water the requests below the floor currently fail
+    with ``hx_not_converged`` rather than resolving to the minimum-capacity
+    point, so that curve stops at the floor.
+
 Panel (b) — the certification trajectory
 ----------------------------------------
 
-This is the curve that has to match, and it does: the modelled trajectory rises
-monotonically A → D and sits inside the certified band.
+This is the curve that has to match: the modelled trajectory rises
+monotonically A → D and sits inside the certified band from B to D.
 
 .. list-table::
     :header-rows: 1
@@ -162,38 +168,38 @@ monotonically A → D and sits inside the certified band.
       - −7 °C / 34 °C
       - 5.28 kW
       - 5.28 kW
-      - 3.53
+      - 3.65
       - 2.99 (2.61–3.35)
     * - B
       - +2 °C / 30 °C
       - 3.24 kW
-      - 3.24 kW
-      - 4.99
+      - 3.72 kW
+      - 4.84
       - 4.53 (4.13–5.01)
     * - C
       - +7 °C / 27 °C
       - 2.10 kW
-      - 3.50 kW
-      - 6.24
+      - 4.25 kW
+      - 5.88
       - 6.16 (5.37–6.82)
     * - D
       - +12 °C / 24 °C
       - 0.90 kW
-      - 4.00 kW
-      - 8.08
+      - 4.84 kW
+      - 7.55
       - 7.88 (6.40–8.97)
 
 The model runs optimistic at the cold end — above the 90th percentile at A —
 and sits inside the band elsewhere: between the 75th and 90th percentiles at B,
-between the median and the 75th at C and D. That is reported as it stands; no
-coefficient is adjusted to move it.
+between the 25th percentile and the median at C and D. That is reported as it
+stands; no coefficient is adjusted to move it.
 
 .. admonition:: One result nobody put in by hand
     :class: note
 
-    Look at the *delivered* column. At points C and D the modelled machine
+    Look at the *delivered* column. At points B, C and D the modelled machine
     cannot modulate down to the required load and delivers more than the test
-    point asks for — 4.00 kW where 0.90 kW is required.
+    point asks for — 4.84 kW where 0.90 kW is required.
 
     Certified machines do the same thing. 55 % of Keymark records declare a
     *higher* heat output at point D than at point C, which is the signature of

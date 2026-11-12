@@ -42,11 +42,16 @@ compressor descriptions are therefore run through the identical trajectory:
 
 Run
 ---
-``uv run python -m validation.analysis.en14825_trend``
+``uv run python -m validation.analysis.en14825_trend [--jobs N]``
+
+``--jobs`` spreads the trajectories and the ablation's catalogue runs over N
+processes; the output is the same as the serial run's.
 """
 
 from __future__ import annotations
 
+import argparse
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -251,7 +256,8 @@ def trajectory(
                 "plr": load_ratio,
                 "t_outdoor_C": t_outdoor,
                 "lwt_C": lwt,
-                "rps": float(result["cmp_rpm [rpm]"]) / 60.0,
+                # A failed point carries no speed (#102); keep the row, NaN speed.
+                "rps": float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0,
                 "clamped": result.get("capacity_clamped") is not None,
                 "cop": float(result["cop_sys [-]"]) if ok else float("nan"),
                 "failure_reason": result.get("failure_reason", "none"),
@@ -291,10 +297,10 @@ def parity_under(variant: Variant) -> dict:
     catalogue parity set answers that half, so both are reported together and
     a coefficient set has to survive both.
     """
-    from validation.parity.run import run_catalog
     from validation.parity.spec import load_all
 
-    frames = [run_catalog(catalog, variant.kwargs) for catalog in load_all()]
+    slugs = [catalog.slug for catalog in load_all()]
+    frames = list(_map(_catalog_under, [variant.key] * len(slugs), slugs))
     df = pd.concat(frames, ignore_index=True)
     usable = df[df.usable]
     water = usable[usable.model_class == "ASHPB"]
@@ -308,10 +314,59 @@ def parity_under(variant: Variant) -> dict:
     }
 
 
+#: Worker pool for ``--jobs N``. Tasks are addressed by variant key, not by
+#: :class:`Variant`, because the legacy forms are loaded from a file and do not
+#: pickle; each worker rebuilds :func:`variants`. ``map`` keeps input order, so
+#: the written CSVs are the same as a serial run's.
+_POOL: ProcessPoolExecutor | None = None
+
+
+def _map(fn, *iterables):
+    return _POOL.map(fn, *iterables) if _POOL is not None else map(fn, *iterables)
+
+
+def _variant(key: str) -> Variant:
+    return next(v for v in variants() if v.key == key)
+
+
+def _catalog_under(key: str, slug: str) -> pd.DataFrame:
+    from validation.parity.run import run_catalog
+    from validation.parity.spec import load_all
+
+    return run_catalog(load_all(slug)[0], _variant(key).kwargs)
+
+
+def _trajectory_by_key(key: str, capacity_w: float, refrigerant: str, application: str, oversizing: float):
+    return trajectory(_variant(key), capacity_w, refrigerant, application, oversizing)
+
+
 def main() -> None:
+    global _POOL
+    parser = argparse.ArgumentParser(description="EN 14825 trend and coefficient ablation")
+    parser.add_argument("--jobs", type=int, default=1, help="worker processes (default 1: serial)")
+    args = parser.parse_args()
+    if args.jobs > 1:
+        _POOL = ProcessPoolExecutor(max_workers=args.jobs)
+    try:
+        _main()
+    finally:
+        if _POOL is not None:
+            _POOL.shutdown()
+
+
+def _main() -> None:
     all_points: list[dict] = []
     verdicts: list[dict] = []
     declared = pd.read_csv(DECLARED_CSV)
+
+    tasks = [
+        (variant.key, capacity_w, refrigerant, application, oversizing)
+        for application in ("low", "medium")
+        for variant in variants()
+        for capacity_w, refrigerant in CONFIGURATIONS
+        for oversizing in OVERSIZING
+    ]
+    trajectories = iter(_map(_trajectory_by_key, *zip(*tasks, strict=True)))
 
     for application in ("low", "medium"):
         reference = certified_reference(application)
@@ -324,7 +379,7 @@ def main() -> None:
         for variant in variants():
             for capacity_w, refrigerant in CONFIGURATIONS:
                 for oversizing in OVERSIZING:
-                    rows = trajectory(variant, capacity_w, refrigerant, application, oversizing)
+                    rows = next(trajectories)
                     all_points.extend(rows)
                     frame = pd.DataFrame(rows)
                     result = score(frame, reference)

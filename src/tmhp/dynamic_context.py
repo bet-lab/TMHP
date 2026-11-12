@@ -26,6 +26,7 @@ __all__ = [
     "EVENT_TIME_TOL_S",
     "StepContext",
     "TEMPERATURE_TOL_K",
+    "bound_tolerance",
     "Subsystem",
     "SubsystemExergy",
     "check_hp_schedule_active",
@@ -350,6 +351,18 @@ TEMPERATURE_TOL_K: float = 1e-6
 EVENT_TIME_TOL_S: float = 1e-6
 
 
+def bound_tolerance(T_lower: float, T_upper: float) -> float:
+    """Width [K] for the bound comparisons of a ``[T_lower, T_upper]`` band.
+
+    ``TEMPERATURE_TOL_K``, but at most a quarter of the band, so the "at the
+    lower bound" and "at the upper bound" tests never overlap: with an
+    overlap the lower test, checked first, would keep the call on at the
+    upper bound and the compressor would run past it. A degenerate band
+    (``T_lower >= T_upper``) gets no width (exact comparisons).
+    """
+    return min(TEMPERATURE_TOL_K, max(0.0, 0.25 * (T_upper - T_lower)))
+
+
 def determine_heat_source_on_off(
     T_tank_w_C: float,
     T_lower: float,
@@ -380,11 +393,12 @@ def determine_heat_source_on_off(
     bool
         Whether the heat source should run this timestep.
     """
-    # Bounds compared with TEMPERATURE_TOL_K: a tank that ended the previous
-    # step on a bound is at it, whatever the root solve's last digits.
-    if T_tank_w_C <= T_lower + TEMPERATURE_TOL_K:
+    # Bounds compared with a width (bound_tolerance): a tank that ended the
+    # previous step on a bound is at it, whatever the root solve's last digits.
+    tol = bound_tolerance(T_lower, T_upper)
+    if T_tank_w_C <= T_lower + tol:
         is_on: bool = True
-    elif T_tank_w_C >= T_upper - TEMPERATURE_TOL_K:
+    elif T_tank_w_C >= T_upper - tol:
         is_on = False
     else:
         is_on = is_on_prev
@@ -565,6 +579,8 @@ def simulate_thermostat_step(
     of the step that balances the tank there.
     """
     T_hi = min(T_upper, T_limit_C)
+    # Bound width for this band (never more than a quarter of it).
+    tol = bound_tolerance(T_lower, T_hi)
     (T_a, P_a), (T_b, P_b) = free_heat
     slope = (P_b - P_a) / (T_b - T_a) if T_b != T_a else 0.0
     p_const = P_a - slope * T_a
@@ -592,9 +608,9 @@ def simulate_thermostat_step(
         # temperature, so a call that disagrees with the bounds cannot run
         # the compressor past them.
         if scheduled:
-            if tw <= T_lower + TEMPERATURE_TOL_K:
+            if tw <= T_lower + tol:
                 call = True
-            elif tw >= T_hi - TEMPERATURE_TOL_K:
+            elif tw >= T_hi - tol:
                 call = False
         if not scheduled:
             call = False
@@ -641,14 +657,14 @@ def simulate_thermostat_step(
                 events.append((_time_to_reach(tw, T_limit_C, drive, slope, C), T_limit_C))
             if age < min_on_time_s - EVENT_TIME_TOL_S:
                 events.append((min_on_time_s - age, None))
-            if want and tw < T_hi - TEMPERATURE_TOL_K:
+            if want and tw < T_hi - tol:
                 events.append((_time_to_reach(tw, T_hi, drive, slope, C), T_hi))
         else:
             if want and not unavailable and age < min_off_time_s - EVENT_TIME_TOL_S:
                 events.append((min_off_time_s - age, None))
-            if scheduled and not call and tw > T_lower + TEMPERATURE_TOL_K:
+            if scheduled and not call and tw > T_lower + tol:
                 events.append((_time_to_reach(tw, T_lower, drive, slope, C), T_lower))
-            if scheduled and call and tw < T_hi - TEMPERATURE_TOL_K:
+            if scheduled and call and tw < T_hi - tol:
                 events.append((_time_to_reach(tw, T_hi, drive, slope, C), T_hi))
         step, target = min((e for e in events if e[0] >= 0.0), key=lambda e: e[0])
         if step >= rem - EVENT_TIME_TOL_S:
@@ -817,7 +833,7 @@ def resolve_step_operation(
         # Ran from t = 0 and stopped once at the upper bound: confirm with the
         # implicit full-step solve that the tank really gets there.
         T_end = _solve_tank_end(residual_free, q, dt, C_tank)
-        if T_end is not None and T_end - 273.15 < T_hi - TEMPERATURE_TOL_K:
+        if T_end is not None and T_end - 273.15 < T_hi - bound_tolerance(T_lower, T_hi):
             run = InStepRun(1.0, True, True, True, run.starts, age_through, run.T_on_mean_C, False, T0_C)
     elif (
         not run.running_start
@@ -830,7 +846,7 @@ def resolve_step_operation(
         # Started a moment before the step end at the lower bound: confirm
         # the tank really cools that far within the step.
         T_end = _solve_tank_end(residual_free, 0.0, dt, C_tank)
-        if T_end is not None and T_end - 273.15 > T_lower + TEMPERATURE_TOL_K:
+        if T_end is not None and T_end - 273.15 > T_lower + bound_tolerance(T_lower, T_hi):
             return InStepRun(0.0, False, False, False, 0, age_through, None, False), None
     return run, cycle_result
 

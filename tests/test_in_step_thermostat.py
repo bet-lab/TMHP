@@ -144,6 +144,25 @@ def test_bound_comparisons_ignore_root_solve_noise():
         assert run.runtime_fraction == 0.0 and run.starts == 0 and not run.running_start
 
 
+@pytest.mark.parametrize("band", [1e-4, 2e-6, 1e-6, 1e-7, 1e-9])
+def test_narrow_band_keeps_the_upper_bound(band):
+    """The bound width never exceeds a quarter of the band, so a band narrower
+    than TEMPERATURE_TOL_K still stops at its upper bound and restarts at its lower one."""
+    from tmhp.dynamic_context import bound_tolerance, determine_heat_source_on_off
+
+    lo, hi = 60.0, 60.0 + band
+    assert bound_tolerance(lo, hi) <= 0.25 * (hi - lo)
+    sched = [(0.0, 24.0)]
+    assert determine_heat_source_on_off(hi, lo, hi, True, 12.0, sched) is False
+    assert determine_heat_source_on_off(lo, lo, hi, False, 12.0, sched) is True
+    free = ((60.0, -3000.0), (61.0, -3000.0))
+    run = _sim(T_start_C=lo, T_lower=lo, T_upper=hi, free_heat=free)
+    # Heat balance at the band: 10 kW on, 3 kW drawn -> 30 % duty, never past it.
+    assert run.runtime_fraction == pytest.approx(0.3, rel=1e-3)
+    run = _sim(T_start_C=hi, call_start=True, running_prev=True, phase_age_s=600.0, T_lower=lo, T_upper=hi)
+    assert run.runtime_fraction == 0.0 and not run.call_end
+
+
 def test_event_at_the_step_end_belongs_to_the_next_step():
     """An upper-bound hit within EVENT_TIME_TOL_S of the step end is not counted in this step."""
     # 10 kW, no loss, C = 6e5 J/K: 50 -> 65 °C takes exactly 900 s.

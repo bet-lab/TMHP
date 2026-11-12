@@ -161,3 +161,54 @@ def test_summary_refuses_leftover_files_without_a_catalogue(harness, tmp_path: P
     _record(tmp_path, "fake_old").write_text("{}")
     with pytest.raises(SystemExit, match="provenance/fake_old.json"):
         harness.main(["--summarize-only", "--results-dir", str(tmp_path)])
+
+
+def test_an_interrupted_rerun_never_leaves_an_old_record_vouching_for_a_new_csv(
+    harness, tmp_path: Path, monkeypatch
+) -> None:
+    """A rerun that dies after writing the CSV but before its record must fail closed."""
+    _parallel(harness, tmp_path)
+    old_record = _record(tmp_path, "fake_b").read_text()
+    old_csv = (tmp_path / "fake_b.csv").read_bytes()
+
+    real_replace = run._replace_atomically
+
+    def die_on_the_record(path, write):
+        if path.suffix == ".json":
+            raise KeyboardInterrupt("interrupted between the CSV and its record")
+        real_replace(path, write)
+
+    # A rerun under different code: the new CSV differs from the old one.
+    monkeypatch.setattr(
+        run,
+        "_run_point",
+        lambda model, catalog, point: {
+            "failure_reason": "none",
+            "cop_sys [-]": 9.0,
+            "E_tot [W]": 100.0,
+        },
+    )
+    monkeypatch.setattr(run, "_replace_atomically", die_on_the_record)
+    with pytest.raises(KeyboardInterrupt):
+        harness.main(["--unit", "fake_b", "--no-summary", "--results-dir", str(tmp_path)])
+    monkeypatch.setattr(run, "_replace_atomically", real_replace)
+
+    assert (tmp_path / "fake_b.csv").read_bytes() != old_csv, "the new CSV did land"
+    assert not _record(tmp_path, "fake_b").exists(), f"the old record survived: {old_record[:60]}"
+    assert not list(tmp_path.glob(".*.tmp")) and not list((tmp_path / "provenance").glob(".*.tmp"))
+    with pytest.raises(SystemExit, match="no provenance record for fake_b"):
+        harness.main(["--summarize-only", "--results-dir", str(tmp_path)])
+
+
+def test_an_interrupted_csv_write_keeps_the_old_csv_and_drops_its_record(harness, tmp_path: Path, monkeypatch) -> None:
+    _parallel(harness, tmp_path)
+    old_csv = (tmp_path / "fake_a.csv").read_bytes()
+
+    def die(path, write):
+        raise KeyboardInterrupt("interrupted while writing the CSV")
+
+    monkeypatch.setattr(run, "_replace_atomically", die)
+    with pytest.raises(KeyboardInterrupt):
+        harness.main(["--unit", "fake_a", "--no-summary", "--results-dir", str(tmp_path)])
+    assert (tmp_path / "fake_a.csv").read_bytes() == old_csv, "no half-written CSV"
+    assert not _record(tmp_path, "fake_a").exists()

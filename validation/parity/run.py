@@ -43,6 +43,7 @@ import datetime
 import hashlib
 import json
 import math
+import os
 import platform
 import subprocess
 from pathlib import Path
@@ -298,18 +299,35 @@ def source_state() -> dict:
     }
 
 
+def _replace_atomically(path: Path, write) -> None:
+    """``write(tmp)`` then rename over ``path``: a reader sees the old file or the new one, never half."""
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        write(tmp)
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def write_unit(results_dir: Path, catalog: Catalog, df: pd.DataFrame, state: dict) -> None:
-    """Write one unit's CSV and the provenance of the run that produced it."""
-    df.to_csv(results_dir / f"{catalog.slug}.csv", index=False)
+    """Write one unit's CSV and the provenance of the run that produced it.
+
+    The order makes an interrupted write fail closed. The old record is removed
+    before the CSV is touched, and the new record is written only after the new
+    CSV is in place, so an old record can never vouch for a new CSV: a crash in
+    between leaves a CSV with no record, which :func:`summarize` refuses.
+    """
+    record_path = _provenance_path(results_dir, catalog.slug)
+    record_path.parent.mkdir(parents=True, exist_ok=True)
+    record_path.unlink(missing_ok=True)
+    _replace_atomically(results_dir / f"{catalog.slug}.csv", lambda tmp: df.to_csv(tmp, index=False))
     record = {
         "slug": catalog.slug,
         **state,
         "catalog_blob": _git("rev-parse", f"HEAD:validation/catalogs/{catalog.slug}.yaml"),
         "run_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
     }
-    path = _provenance_path(results_dir, catalog.slug)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(record, indent=1) + "\n")
+    _replace_atomically(record_path, lambda tmp: tmp.write_text(json.dumps(record, indent=1) + "\n"))
 
 
 def _read_unit_results(catalogs: list[Catalog], results_dir: Path) -> tuple[list[pd.DataFrame], list[dict]]:

@@ -28,6 +28,22 @@ from ._families import (
     t_evap_sat,
 )
 
+
+class KnownDefectObserved(Exception):  # noqa: N818 - reads as an event, not an error kind
+    """The specific #96 defect a test is about was observed.
+
+    Deliberately *not* an ``AssertionError`` subclass: ``xfail`` marks use
+    ``raises=KnownDefectObserved`` so that an unrelated ``assert`` (in the
+    test or in model code) still fails the test instead of being absorbed.
+    """
+
+
+def expect(condition: object, message: object) -> None:
+    """Assert the behaviour a #96 defect breaks; raise :class:`KnownDefectObserved` if absent."""
+    if not condition:
+        raise KnownDefectObserved(str(message))
+
+
 ENERGY_BALANCE_RTOL = 0.005
 CARNOT_RTOL = 1e-3
 TEMPERATURE_TOL_K = 0.05

@@ -17,18 +17,20 @@ import pytest
 import tmhp
 from tmhp.constants import c_w, rho_w
 
-from ._checks import check_running_cycle
+from ._checks import KnownDefectObserved, check_running_cycle, expect
 from ._families import FAMILIES, SteadyCase, is_reported_running, num
 
 
 def defect(defect_id: str, why: str) -> pytest.MarkDecorator:
     """Strict xfail that absorbs only the asserted defect.
 
-    ``raises=AssertionError`` keeps any other exception (KeyError, solver
-    crash, ...) a hard failure, and scenario preconditions use
-    :func:`require` (``pytest.fail``), which the mark does not absorb either.
+    Only the statement that asserts the defect raises
+    :class:`KnownDefectObserved` (via :func:`expect`). Every other failure —
+    a plain ``assert`` elsewhere in the test, an ``AssertionError`` or other
+    exception from model code, a failed scenario precondition
+    (:func:`require`) — is not absorbed by the mark and fails the test.
     """
-    return pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"#96 {defect_id}: {why}")
+    return pytest.mark.xfail(strict=True, raises=KnownDefectObserved, reason=f"#96 {defect_id}: {why}")
 
 
 def require(condition: object, message: str) -> None:
@@ -80,7 +82,7 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
                     continue
                 if not 0.0 < value <= 1.0:
                     bad.append((name, round(float(pr), 2), round(float(rps), 1), round(value, 4)))
-    assert not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}"
+    expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 
 @defect("C2", "A-7/W55 R32 returns cycle_invalid because eta_is < 0 inside the speed range")
@@ -88,8 +90,8 @@ def test_c2_ashpb_r32_solves_a7_w55():
     fam = FAMILIES["ASHPB"]
     case = SteadyCase(T_source=-7.0, T_demand=55.0, load_W=7500.0)
     _, r = fam.run("R32", case)
-    assert is_reported_running(r), f"failure_reason={r.get('failure_reason')!r} Q={r.get('Q_ref_tank [W]')}"
-    assert num(r, "Q_ref_tank [W]") > 0.5 * case.load_W
+    expect(is_reported_running(r), f"failure_reason={r.get('failure_reason')!r} Q={r.get('Q_ref_tank [W]')}")
+    expect(num(r, "Q_ref_tank [W]") > 0.5 * case.load_W, 'num(r, "Q_ref_tank [W]") > 0.5 * case.load_W')
     assert check_running_cycle(fam, r, case) == []
 
 
@@ -98,21 +100,21 @@ def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
     _, r = FAMILIES["WSHPB"].run("R134a", SteadyCase(T_source=5.0, T_demand=65.0, load_W=6400.0))
     eta = num(r, "eta_cmp_isen [-]")
     degenerate = is_reported_running(r) and math.isfinite(eta) and eta < 0.2
-    assert not degenerate, f"eta_is={eta:.4g} Q={num(r, 'Q_ref_tank [W]'):.0f} W reported as success"
+    expect(not degenerate, f"eta_is={eta:.4g} Q={num(r, 'Q_ref_tank [W]'):.0f} W reported as success")
 
 
 @defect("C6", "R32 tank 60 / outdoor 0 °C / 15 kW reports 201.6 °C discharge as success")
 def test_c6_ashpb_discharge_temperature_limit():
     _, r = FAMILIES["ASHPB"].run("R32", SteadyCase(T_source=0.0, T_demand=60.0, load_W=15000.0))
     T_dis = num(r, "T_ref_cmp_out [°C]")
-    assert (not is_reported_running(r)) or T_dis <= 150.0, f"T_cmp_out={T_dis:.1f} °C reported as success"
+    expect((not is_reported_running(r)) or T_dis <= 150.0, f"T_cmp_out={T_dis:.1f} °C reported as success")
 
 
 @defect("C11", "WSHPB has no superheat cap: suction is +1.6 K above the source fluid")
 def test_c11_wshpb_suction_not_hotter_than_source():
     _, r = FAMILIES["WSHPB"].run("R32", SteadyCase(T_source=-5.0, T_demand=55.0, load_W=400.0))
     require(is_reported_running(r), f"expected a running result, got {r.get('failure_reason')!r}")
-    assert num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05
+    expect(num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05, 'num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05')
 
 
 @defect("C4", "GSHP heating 3 kW returns hx_not_converged; air side 1,592 W vs refrigerant 3,000 W")
@@ -120,12 +122,12 @@ def test_c4_gshp_heating_converges_with_consistent_indoor_balance():
     # The issue's call leaves T_bhe_wall at its default, so call the model directly.
     model = FAMILIES["GSHP-heat"].build("R32")
     r = model.analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0)
-    assert r["converged"] is True and r["failure_reason"] == "none", r["failure_reason"]
+    expect(r["converged"] is True and r["failure_reason"] == "none", r["failure_reason"])
     Q_ref = num(r, "Q_ref_iu [W]")
     Q_air = num(r, "Q_a_iu_out [W]") - num(r, "Q_a_iu_in [W]")
     E_fan = num(r, "E_iu_fan [W]", 0.0)
     # Air gains the refrigerant heat; at most the fan heat on top.
-    assert Q_ref * 0.98 <= Q_air <= (Q_ref + E_fan) * 1.02, f"Q_air={Q_air:.0f} Q_ref={Q_ref:.0f} E_fan={E_fan:.0f}"
+    expect(Q_ref * 0.98 <= Q_air <= (Q_ref + E_fan) * 1.02, f"Q_air={Q_air:.0f} Q_ref={Q_ref:.0f} E_fan={E_fan:.0f}")
 
 
 @defect("C4b", "GSHP.analyze_steady ignores T_bhe_wall (5 and 25 °C give identical results)")
@@ -133,7 +135,7 @@ def test_c4b_gshp_borehole_wall_temperature_changes_result():
     cold = FAMILIES["GSHP-heat"].build("R32").analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=5.0)
     warm = FAMILIES["GSHP-heat"].build("R32").analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=25.0)
     keys = ("T_ref_evap_sat [°C]", "T_bhe_f_out [°C]", "E_cmp [W]")
-    assert any(abs(num(cold, k) - num(warm, k)) > 0.1 for k in keys), {k: (cold.get(k), warm.get(k)) for k in keys}
+    expect(any(abs(num(cold, k) - num(warm, k)) > 0.1 for k in keys), {k: (cold.get(k), warm.get(k)) for k in keys})
 
 
 # ---------------------------------------------------------------------------
@@ -168,9 +170,9 @@ def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     off = _off_rows(df)
     require(off.any(), "scenario must contain a step without a running cycle")
     q_load = np.nan_to_num(df["Q_tank_load [W]"].to_numpy(dtype=float))
-    assert np.all(q_load[off] == 0.0), f"Q_tank_load on cycle-less rows: {q_load[off].tolist()}"
+    expect(np.all(q_load[off] == 0.0), f"Q_tank_load on cycle-less rows: {q_load[off].tolist()}")
     bal = _tank_balance(df, m.C_tank, 50.0, dt)
-    assert abs(bal["residual_J"]) < 0.01 * max(bal["heat_J"], 1.0), bal
+    expect(abs(bal["residual_J"]) < 0.01 * max(bal["heat_J"], 1.0), bal)
 
 
 @pytest.mark.parametrize(
@@ -192,7 +194,7 @@ def test_t14_off_rows_have_nan_cop(family):
     require(off.any(), "scenario must contain an off row")
     for key in ("cop_ref [-]", "cop_sys [-]"):
         leaked = df.loc[off, key].to_numpy(dtype=float)
-        assert np.all(np.isnan(leaked)), f"{key} on off rows: {leaked.tolist()}"
+        expect(np.all(np.isnan(leaked)), f"{key} on off rows: {leaked.tolist()}")
 
 
 def _tank_balance(df, C_tank, T_init, dt, **kw):
@@ -231,10 +233,10 @@ def test_t1_partial_fill_conserves_mass_and_energy():
     m = tmhp.AirSourceHeatPumpBoiler(tank_always_full=False)
     df, _ = _ashpb_dynamic(m, 3.0, 600, 60.0, lambda h: np.where(h < 1.0, 8.0, 0.0), T0=5.0)
     T = df["T_tank_w [°C]"].to_numpy(dtype=float)
-    assert np.all((T > 0.0) & (T < 100.0)), f"tank temperature range {T.min():.1f}..{T.max():.1f} °C"
+    expect(np.all((T > 0.0) & (T < 100.0)), f"tank temperature range {T.min():.1f}..{T.max():.1f} °C")
     bal = _tank_balance(df, m.C_tank, 60.0, 600, always_full=False)
-    assert abs(bal["mass_residual"]) < 0.01, bal
-    assert abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal
+    expect(abs(bal["mass_residual"]) < 0.01, bal)
+    expect(abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal)
 
 
 @defect("T2", "UV lamp heat enters the tank twice (Q_contribution and E_subsystem)")
@@ -248,7 +250,7 @@ def test_t2_uv_lamp_heat_enters_tank_once():
     lamp_J = float(df["E_uv [W]"].sum() * dt)
     require(lamp_J == pytest.approx(P * on_s, rel=1e-6), f"lamp energy {lamp_J:.0f} J != P*t")
     tank_gain_J = m.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(df["Q_tank_loss [W]"].sum() * dt)
-    assert tank_gain_J == pytest.approx(P * on_s, rel=0.02), f"tank gained {tank_gain_J / 1e3:.0f} kJ"
+    expect(tank_gain_J == pytest.approx(P * on_s, rel=0.02), f"tank gained {tank_gain_J / 1e3:.0f} kJ")
 
 
 @pytest.mark.parametrize(
@@ -266,7 +268,7 @@ def test_t3_collector_geometry_changes_gain(kwargs):
         return r["Q_stc_w_out"] - r["Q_stc_w_in"]
 
     base, changed = gain(), gain(**kwargs)
-    assert abs(changed - base) > 0.01 * abs(base), f"{kwargs}: {base:.1f} W -> {changed:.1f} W"
+    expect(abs(changed - base) > 0.01 * abs(base), f"{kwargs}: {base:.1f} W -> {changed:.1f} W")
 
 
 def test_t5_reference_stratified_tank_conserves_energy():
@@ -305,7 +307,7 @@ def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature()
         over = T_after[heated] - T_cond
         if over.size and over.max() > 0.5:
             bad.append((i, round(T_cond, 1), round(float(T_after[heated].max()), 1)))
-    assert not bad, f"(step, T_cond_sat, hottest heated node): {bad}"
+    expect(not bad, f"(step, T_cond_sat, hottest heated node): {bad}")
 
 
 def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) -> float:
@@ -323,7 +325,7 @@ def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) 
 def test_t5_hybrid_tank_stores_injected_heat():
     from tmhp.hybrid_tank import HybridStratifiedTank
 
-    assert _charge_storage_ratio(HybridStratifiedTank) >= 0.95
+    expect(_charge_storage_ratio(HybridStratifiedTank) >= 0.95, "_charge_storage_ratio(HybridStratifiedTank) >= 0.95")
 
 
 @defect("T6", "dt 60 s vs 600 s: 2.75 vs 5.0 kWh and 78 °C peak (setpoint 65 °C)")
@@ -335,8 +337,8 @@ def test_t6_ashpb_time_step_independence():
         out[dt] = (float(df["Q_ref_tank [W]"].fillna(0.0).sum() * dt), float(df["T_tank_w [°C]"].max()))
         upper = m.T_tank_w_upper_bound
     (q60, tmax60), (q600, tmax600) = out[60], out[600]
-    assert abs(q600 - q60) < 0.05 * q60, f"heat input {q60 / 3.6e6:.2f} vs {q600 / 3.6e6:.2f} kWh"
-    assert max(tmax60, tmax600) <= upper + 2.0, f"peak {tmax60:.1f} / {tmax600:.1f} °C, upper bound {upper}"
+    expect(abs(q600 - q60) < 0.05 * q60, f"heat input {q60 / 3.6e6:.2f} vs {q600 / 3.6e6:.2f} kWh")
+    expect(max(tmax60, tmax600) <= upper + 2.0, f"peak {tmax60:.1f} / {tmax600:.1f} °C, upper bound {upper}")
 
 
 @defect("T8", "STC preheat reports 1.74 kWh collected but only ~0.99 kWh reaches the tank")
@@ -360,7 +362,7 @@ def test_t8_stc_preheat_reported_gain_reaches_tank():
     reported_J = float(((df["Q_stc_w_out [W]"] - df["Q_stc_w_in [W]"]).to_numpy() * active).sum() * dt)
     # Heat the tank received beyond the refrigerant heat and a 15 °C inflow = preheat delivered.
     delivered_J = _tank_balance(df, m.C_tank, 60.0, dt)["residual_J"]
-    assert delivered_J == pytest.approx(reported_J, rel=0.05), (reported_J / 3.6e6, delivered_J / 3.6e6)
+    expect(delivered_J == pytest.approx(reported_J, rel=0.05), (reported_J / 3.6e6, delivered_J / 3.6e6))
 
 
 @pytest.mark.parametrize(
@@ -387,7 +389,7 @@ def test_t9_stc_tank_respects_high_limit(cls_name):
         I_DN_schedule=lambda n: _flat(n, 900.0),
         I_dH_schedule=lambda n: _flat(n, 120.0),
     )
-    assert df["T_tank_w [°C]"].max() <= 90.0
+    expect(df["T_tank_w [°C]"].max() <= 90.0, 'df["T_tank_w [°C]"].max() <= 90.0')
 
 
 def _energyplus_mains_temperature_C(T_avg_C: float, dT_max_C: float, day_of_year: int) -> float:
@@ -419,7 +421,7 @@ def test_t11_mains_temperature_matches_energyplus():
     for date in ("2026-01-15", "2026-04-15", "2026-08-20", "2026-10-15"):
         doy = pd.Timestamp(date).dayofyear
         ref = _energyplus_mains_temperature_C(monthly.mean(), monthly.max() - monthly.min(), doy)
-        assert calc_cold_water_temp(df, date) == pytest.approx(ref, abs=0.5), date
+        expect(calc_cold_water_temp(df, date) == pytest.approx(ref, abs=0.5), date)
 
 
 @defect("T12", "ASHPB_PV_ESS keeps the battery SOC between analyze_dynamic calls")
@@ -443,7 +445,10 @@ def test_t12_pv_ess_analyze_dynamic_is_repeatable():
     first = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     second = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     numeric = first.select_dtypes("number").columns
-    pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
+    try:
+        pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
+    except AssertionError as exc:  # only the comparison itself is the T12 defect
+        raise KnownDefectObserved(str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -484,7 +489,7 @@ def test_g1_evaporator_below_source_fluid_in_same_row(run):
     require(running.any(), "no running row")
     T_ev = df.loc[running, "T_ref_evap_sat [°C]"].to_numpy(dtype=float)
     T_fluid = df.loc[running, "T_bhe_f_out [°C]"].to_numpy(dtype=float)
-    assert np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True))
+    expect(np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True)))
 
 
 @defect("G3", "g(t) is extrapolated linearly past t_max_s: +55 % at 12 x t_max")
@@ -500,7 +505,7 @@ def test_g3_gfunction_beyond_t_max_matches_pygfunction():
     times = np.array([4.0, 12.0]) * t_max
     ref = gt.gfunction.gFunction(field, alpha, time=times, boundary_condition="UBWT").gFunc / (2 * np.pi * k_s)
     ours = np.array([float(g(t)) for t in times])
-    assert np.allclose(ours, ref, rtol=0.05), (ours, ref)
+    expect(np.allclose(ours, ref, rtol=0.05), (ours, ref))
 
 
 def _pygfunction_single_u(m_flow: float, cp: float, mu: float, rho: float, k_f: float):
@@ -544,7 +549,7 @@ def test_g6_uniform_heat_flux_effective_resistance(lpm):
     _, R_b_pyg, R_a = _pygfunction_single_u(m_flow, cp, mu, rho, k_f)
     # Hellström (1991): R_b* = R_b + H^2 / (3 R_a (m cp)^2) for uniform heat flux.
     ref = R_b_pyg + H**2 / (3.0 * R_a * (m_flow * cp) ** 2)
-    assert ours == pytest.approx(ref, rel=0.02)
+    expect(ours == pytest.approx(ref, rel=0.02), "ours == pytest.approx(ref, rel=0.02)")
 
 
 @pytest.mark.parametrize("lpm", [4.0, 8.0])
@@ -588,6 +593,7 @@ def test_g8_empirical_gshp_never_reports_negative_power_or_cop():
         flagged = getattr(m, "failure_reason", "none") not in (None, "none") or getattr(m, "converged", True) is False
         if flagged:
             continue
-        assert m.E_cmp >= 0.0 and m.COP > 0.0, (
-            f"E_cmp={m.E_cmp:.0f} W COP={m.COP:.2f} at T_f_out={m.T_f_out - 273.15:.1f} °C"
+        expect(
+            m.E_cmp >= 0.0 and m.COP > 0.0,
+            f"E_cmp={m.E_cmp:.0f} W COP={m.COP:.2f} at T_f_out={m.T_f_out - 273.15:.1f} °C",
         )

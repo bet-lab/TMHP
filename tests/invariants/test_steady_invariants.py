@@ -32,7 +32,7 @@ import pytest
 
 from tmhp.reference_state import ReferenceStateError
 
-from ._checks import check_steady
+from ._checks import KnownDefectObserved, check_steady, expect
 from ._families import FAMILIES, SteadyCase
 
 REFRIGERANTS = ("R32", "R290", "R410A", "R134a")
@@ -63,7 +63,10 @@ _EXPECTED_TAGS: dict[str, set[str]] = {
     "C4": {"failed_with_heat"},
     "C11": {"suction_vs_source"},
 }
-_EXPECTED_ERROR: dict[str, type[BaseException]] = {"C1": ReferenceStateError}
+# Defects that show up as a constructor failure: (exception type, text that identifies it).
+_EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {
+    "C1": (ReferenceStateError, "Compressor efficiencies must be finite and positive"),
+}
 _WHY = {
     "C1": "constructor cannot bracket the B0/W55 reference: raw efficiency fit <= 0 in the speed range",
     "C4": "GSHP returns heat and power with converged=False / failure_reason='hx_not_converged'",
@@ -103,9 +106,8 @@ def _grid():
             ids = _known_ids(family, ref, (T_source, T_demand, plr))
             if ids:
                 reason = "; ".join(f"#96 {i}: {_WHY[i]}" for i in ids)
-                errors = {_EXPECTED_ERROR.get(i, AssertionError) for i in ids}
-                assert len(errors) == 1, ids
-                marks.append(pytest.mark.xfail(strict=True, raises=errors.pop(), reason=reason))
+                # Only KnownDefectObserved is absorbed; any other failure stays a failure.
+                marks.append(pytest.mark.xfail(strict=True, raises=KnownDefectObserved, reason=reason))
             yield pytest.param(
                 family,
                 ref,
@@ -124,7 +126,7 @@ def test_known_failures_reference_grid_points():
         assert ref in REFRIGERANTS
         for defect_id, points in by_id.items():
             assert defect_id in _WHY
-            assert (defect_id in _EXPECTED_TAGS) != (defect_id in _EXPECTED_ERROR), defect_id
+            assert (defect_id in _EXPECTED_TAGS) != (defect_id in _EXPECTED_CTOR_ERROR), defect_id
             for s, d, p in points:
                 assert s in sources and d in demands and p in PART_LOAD, (family, ref, s, d, p)
                 assert (family, ref, s, d, p) not in _EXCLUDED
@@ -133,17 +135,26 @@ def test_known_failures_reference_grid_points():
 @pytest.mark.parametrize(("family", "ref", "T_source", "T_demand", "plr"), list(_grid()))
 def test_steady_invariants(family, ref, T_source, T_demand, plr):
     fam = FAMILIES[family]
-    model = fam.build(ref)
+    known = _known_ids(family, ref, (T_source, T_demand, plr))
+    try:
+        model = fam.build(ref)
+    except Exception as exc:
+        for defect_id in known:
+            error_type, text = _EXPECTED_CTOR_ERROR.get(defect_id, (type(None), ""))
+            if isinstance(exc, error_type) and text in str(exc):
+                raise KnownDefectObserved(f"#96 {defect_id}: {exc}") from exc
+        raise
     rated = float(model.hp_capacity)
     case = SteadyCase(T_source=T_source, T_demand=T_demand, load_W=plr * rated)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         result = fam.call(model, case)
     violations = check_steady(fam, result, case, rated)
-    known = _known_ids(family, ref, (T_source, T_demand, plr))
     allowed = set().union(*(_EXPECTED_TAGS.get(i, set()) for i in known))
     unexpected = [v for v in violations if v.split(":", 1)[0] not in allowed]
     if known and unexpected:
-        # pytest.fail is not an AssertionError, so the xfail(raises=AssertionError) mark cannot absorb it.
+        # pytest.fail is not KnownDefectObserved, so the xfail mark cannot absorb it.
         pytest.fail("violations outside the known #96 defect:\n" + "\n".join(unexpected))
+    if known:
+        expect(violations == [], "\n".join(violations))
     assert violations == [], "\n".join(violations)

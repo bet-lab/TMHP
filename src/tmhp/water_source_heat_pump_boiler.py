@@ -545,11 +545,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_water_actual = eps * m_dot_cp_b * (T_water_in_K - T_water_sat_K)
         err = Q_ref_water - Q_water_actual
 
-        # Penalize if cycle evap load exceeds physics limit
-        penalty = 0.0
-        if Q_ref_water > Q_water_actual:
-            penalty = 1e4 * (Q_ref_water - Q_water_actual) ** 2
-
         # 5. BHE state
         Q_bhe = Q_ref_water - self.E_pmp
         Q_bhe_unit = Q_bhe / self.H_b
@@ -569,7 +564,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "converged": converged_rps,
                 "converged_rps": converged_rps,
                 "capacity_clamped": capacity_clamped,
-                "_penalty": penalty,
                 "err_Q_water [W]": err,
                 "T_ref_evap_sat [°C]": cu.K2C(cycle_states.get("T_ref_evap_sat_K", np.nan)),
                 "T_ref_cond_sat_v [°C]": cu.K2C(cycle_states.get("T_ref_cond_sat_l_K", np.nan)),
@@ -813,7 +807,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
 
-        r.pop("_penalty", None)
         # Diagnostic of the steady solve, not a time-series quantity: keep it on
         # the analyze_steady dict and out of the dynamic frame (an object column
         # of None/str breaks numeric frame comparisons downstream).

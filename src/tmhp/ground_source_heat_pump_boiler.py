@@ -592,7 +592,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     "converged": True,
                     "converged_rps": True,
                     "capacity_clamped": None,
-                    "_penalty": 0.0,
                     "err_Q_ground [W]": 0.0,
                     # Temperatures [°C]
                     "T_tank_w [°C]": T_tank_w,
@@ -741,11 +740,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
         Q_ground_actual = eps * m_dot_cp_b * (T_ground_in_K - T_ground_sat_K)
 
-        # Penalize if cycle evap load exceeds physics limit
-        penalty = 0.0
-        if Q_ref_ground > Q_ground_actual:
-            penalty = 1e4 * (Q_ref_ground - Q_ground_actual) ** 2
-
         # 5. BHE state
         Q_bhe = Q_ref_ground - loop["E_pmp"]
         Q_bhe_unit = calc_borefield_linear_load(Q_bhe, self.n_boreholes, self.H_b)
@@ -765,7 +759,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "converged": converged_rps,
                 "converged_rps": converged_rps,
                 "capacity_clamped": capacity_clamped,
-                "_penalty": penalty,
                 "err_Q_ground [W]": Q_ref_ground - Q_ground_actual,
                 "T_ref_evap_sat [°C]": cu.K2C(cs.get("T_ref_evap_sat_K", np.nan)),
                 "T_ref_cond_sat_v [°C]": cu.K2C(cs.get("T_ref_cond_sat_l_K", np.nan)),
@@ -1134,7 +1127,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
 
-        r.pop("_penalty", None)
         # Diagnostic of the steady solve, not a time-series quantity: keep it on
         # the analyze_steady dict and out of the dynamic frame (an object column
         # of None/str breaks numeric frame comparisons downstream).

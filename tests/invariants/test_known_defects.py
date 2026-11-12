@@ -500,7 +500,6 @@ def test_g1_evaporator_below_source_fluid_in_same_row(run):
     expect(np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True)))
 
 
-@defect("G3", "g(t) is extrapolated linearly past t_max_s: +55 % at 12 x t_max")
 def test_g3_gfunction_beyond_t_max_matches_pygfunction():
     import pygfunction as gt
 
@@ -533,7 +532,6 @@ def _pygfunction_single_u(m_flow: float, cp: float, mu: float, rho: float, k_f: 
 
 
 @pytest.mark.parametrize("lpm", [4.0, 8.0])
-@defect("G6", "uniform_heat_flux R_b* uses (2 m cp)^2 and the delta-circuit R12 instead of R_a")
 def test_g6_uniform_heat_flux_effective_resistance(lpm):
     from tmhp.borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
 
@@ -587,7 +585,6 @@ def test_g6_reference_uniform_temperature_matches_pygfunction(lpm):
     assert ours == pytest.approx(pipe.effective_borehole_thermal_resistance(m_flow, cp), rel=0.02)
 
 
-@defect("G8", "empirical GSHP extrapolates the curve fit to negative COP and compressor power")
 def test_g8_empirical_gshp_never_reports_negative_power_or_cop():
     from tmhp.gshp_empirical import GroundSourceHeatPumpEmpirical
 

@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from . import calc_util as cu
+from ._validation import validate_ctor
 from .air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
 from .subsystems import EnergyStorageSystem, PhotovoltaicSystem
 
@@ -55,6 +56,7 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         T_inv_K: float = 313.15,
         **kwargs,
     ) -> None:
+        validate_ctor("PV_ESS", locals())
         if not isinstance(pv, PhotovoltaicSystem):
             raise TypeError("pv must be a PhotovoltaicSystem instance")
         super().__init__(**kwargs)

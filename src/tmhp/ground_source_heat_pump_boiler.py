@@ -48,6 +48,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning
+from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
@@ -74,7 +75,7 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .g_function import precompute_gfunction
-from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
+from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler, reset_ground_coupler
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -233,6 +234,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ground_hx_fluid_exponent: float = 0.8,
         ground_hx_refrigerant_exponent: float = 0.8,
     ) -> None:
+        validate_ctor("GSHPB", locals())
         ground_rates = resolve_ground_flow_rates(
             default_ref_lpm=24,
             legacy_ref_lpm=dV_b_f_lpm,
@@ -1364,6 +1366,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         result_save_csv_path=None,
         T_sur_schedule=None,
     ) -> pd.DataFrame:
+        validate_dynamic(locals())
 
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
@@ -1402,7 +1405,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.Q_bhe = 0.0
 
         # Initialise the ground coupler's pulse-history state for this run.
-        self._ground_coupler.reset(tN, time)
+        reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
 
         # Initialise the stratified tank profile (uniform at the init temp).
         if self._tank is not None:
@@ -1600,6 +1603,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             ``hp_is_on=False``, ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN
             COP. No unsolved point is returned with cycle numbers.
         """
+        validate_steady(locals())
         import contextlib
         import warnings
 
@@ -1723,6 +1727,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if result is not None:
             # Steady state doesn't have tank loss because we don't solve tank mass/energy balance
             result["Q_tank_loss [W]"] = 0.0
+            result.setdefault("failure_reason", "none")  # zero load: a valid off result, not a failure
             result["tank_level [-]"] = 1.0  # steady-state: always_full
 
         if result is None:

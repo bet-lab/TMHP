@@ -63,29 +63,34 @@ Summary
         sides are close enough for the transfer to hold
       - ``en328_inversion``
     * - Compressor displacement
-      - ``V = Q̇ / (Δh · ρ · η_vol · n_rated)``
-      - Pure fluid property from CoolProp at a declared rating point; rated
-        speed inverted from nine machines with published displacement
+      - Fixed 42 cm³/rev per 9 kW of nameplate, any refrigerant
+        (``default_displacement``)
+      - The constant TMHP has always carried. The refrigerant-aware rule
+        ``V = Q̇ / (Δh · ρ · η_vol · n_rated)`` derived below is available as
+        ``refrigerant_aware_displacement`` but is not the default; which of the
+        two ships is under review
       - ``compressor_speed``
-    * - Isentropic efficiency
-      - ``(1.1660 − 0.0832 · PR − 0.7017 / PR) · (1 − 0.0237 (PR − 1) · max(0, 1/n* − 1)) / eta_em``
-      - Pressure-ratio shape of the electrical-to-isentropic product and its
-        low-speed leakage interaction, fitted within machines on standalone
-        compressor data (76 machines, 131 speed records); divided by the
-        electro-mechanical efficiency so the product is reproduced
-      - ``compressor_maps.fit``
-    * - Volumetric efficiency
-      - ``1 − 0.0260 (PR − 1) − 0.0223 · max(0, 1/n* − 1)``
-      - Clearance re-expansion plus the extra leakage fraction at low relative
-        speed ``n* = n / n_rated``; leave-one-compressor-out MAPE 5.9 %
-      - ``compressor_maps.fit``
-    * - Electro-mechanical efficiency
-      - ``0.941 × n*(1 + 0.026)/(n* + 0.026) × m(PR)``
-      - Saturating drive-loss shape at the drive-only floor measured by
-        Ossorio & Navarro-Peris on three inverters, a motor-load factor
-        ``m(PR)`` and the level from the measured discharge-temperature split
-        of Cuevas & Lebrun (PR 3, n* 1)
-      - ``compressor_maps.fit``
+    * - Compressor efficiencies (volumetric, isentropic, electro-mechanical)
+      - Coefficients ``BITZER-three-C3-absolute-N-2026-10-06``: each
+        ``b0 + b1·PR + b2·N + b3·PR² + b4·N² + b5·PR·N`` with ``N`` the shaft
+        speed in rev/s
+      - Three independent quadratic fits to BITZER scroll calculation data
+        (9 machines, 3,899 points, superheat/subcooling 10/0 K)
+      - ``validation/coefficients/BITZER-three-C3-absolute-N-2026-10-06/``
+    * - Efficiency guards
+      - ``0 < η ≤ 1``; fitted box PR 1.50–7.15, N 33.8–72.5 rev/s
+      - Above one is set to one, nonpositive is infeasible. Outside the box:
+        held at the boundary towards high PR and high N, continued along the
+        boundary slope towards low PR (to 1) and low N (to 15 rev/s) only where
+        that lowers the efficiency
+      - :mod:`tmhp.compressor_efficiency`
+    * - Pressure-ratio limit
+      - ``PR_cycle_max`` 11 (air-to-air), 20 (air-to-water)
+      - Operating points above it are rejected. 11 is the air-conditioning
+        scroll self-unload limit, above the ratio near 7 a split unit reaches
+        lifting from −15 °C outdoor air; air-to-water keeps 20 for
+        high-temperature hot water
+      - —
     * - Rated outdoor air flow
       - 720 m³/h per kW (air-to-air), 540 (air-to-water)
       - Manufacturer specifications for the respective product classes
@@ -97,12 +102,18 @@ Every ``Reproduce`` entry is a module under ``validation/extraction/`` or
     uv run python -m validation.extraction.<name>
     uv run python -m validation.compressor_maps.<name>
 
-The compressor coefficients are frozen as version ``v2026-09-24``
-(:data:`tmhp.compressor_efficiency.COEFFICIENT_VERSION`); the archive under
-``validation/coefficients/v2026-09-24/`` holds the data list, the fits, the
-cross-validation, the selection table and the isentropic/electro-mechanical
-split.  The previous version ``v2026-09-15b`` is kept alongside for the
-before/after comparison.
+The shipped compressor coefficients are version
+``BITZER-three-C3-absolute-N-2026-10-06``
+(:data:`tmhp.compressor_efficiency.COEFFICIENT_VERSION`), from the
+`BITZER three-efficiency study <https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d>`_
+of 2026-10-06; ``validation/coefficients/BITZER-three-C3-absolute-N-2026-10-06/``
+holds the coefficients and the fitted surfaces. The previous correlations,
+version ``v2026-09-24``, remain in :mod:`tmhp.compressor_efficiency_legacy`, and
+``validation/coefficients/v2026-09-24/`` holds their data list, fits,
+cross-validation, selection table and isentropic/electro-mechanical split.
+The `Compressor efficiency`_ section below documents how those earlier
+correlations were derived; it is the record of that work, not a description of
+what ships.
 
 
 Heat-exchanger conductance
@@ -114,8 +125,10 @@ The problem
 ``AirSourceHeatPump`` generates both coil conductances from a single declared
 capacity. What has to be established is therefore a capacity-normalised rule
 and a ratio — not any particular machine's conductance. Before this work the
-code carried ``hp_capacity / 10`` and a ratio of ``0.8`` with no citation
-anywhere, in the source or in the manuscript.
+code carried a divisor of 10 and a ratio of ``0.8`` with no citation anywhere,
+in the source or in the manuscript. The derived rule below replaced the
+divisor; a merge on 2026-10-06 put the uncited value back by accident, and the
+derived rule was restored on 2026-11-12.
 
 Why catalogue inversion is not a fit
 ------------------------------------
@@ -230,14 +243,17 @@ to every quantity it had to declare rather than read.
     hardware, not measurement noise.
 
     The validation set shows what it costs. Backing the conductance out of each
-    machine's own rating point, the five Daikin splits imply ``Q/3.7`` to
-    ``Q/6.0`` — all inside — while the two Fujitsu splits imply ``Q/7.6`` and
-    ``Q/8.5``, just outside the low-conductance end. Their nameplate
-    efficiencies differ accordingly: EER 5.41 down to 3.23 across the seven.
+    machine's own cooling rating point with the shipped defaults, the two
+    largest Daikin splits imply ``Q/3.8`` and ``Q/5.6`` — inside — while the
+    three smaller ones need more conductance than the band's high end (``Q/2.6``
+    for the 3.5 kW unit; none in ``Q/2``–``Q/16`` closes the gap for the 2.0 and
+    2.5 kW units), and the two Fujitsu splits imply ``Q/7.1`` and ``Q/8.7``, at
+    and beyond the low-conductance end. Their nameplate efficiencies differ
+    accordingly: EER 5.41 down to 3.23 across the seven.
 
-    So a single vendor-neutral default describes a typical machine near the
-    efficient end of current practice, and **will over-predict a
-    lower-efficiency product line**. If you know the machine, pass
+    So a single vendor-neutral default describes a typical machine, and **will
+    under-predict a high-efficiency product line and over-predict a
+    lower-efficiency one**. If you know the machine, pass
     ``UA_ou_rated``. :doc:`index` decomposes the rest of that residual, which
     is not all conductance.
 
@@ -278,7 +294,10 @@ Both :math:`\Delta h` and :math:`\rho_1` come from CoolProp at a declared
 rating point, so the dependence on the working fluid is pure fluid property
 rather than a tabulated coefficient. That dependence is not small: per kilowatt
 of nameplate the displacement runs from about 3.9 cm³/rev for R32 to 10.4 for
-R1234yf. The constant this replaced took no account of the fluid at all.
+R1234yf. The default constant (42 cm³/rev per 9 kW) takes no account of the
+fluid at all; this rule is available as
+:func:`tmhp.compressor_speed.refrigerant_aware_displacement` and is not yet the
+default.
 
 The rating point is declared per equipment class — EN 14511 A7/W35 for
 air-to-water, ISO 5151 T1 for air-to-air — and the rated speed is the one
@@ -332,6 +351,15 @@ treated as such.
 
 Compressor efficiency
 =====================
+
+.. admonition:: This section is the record of the ``v2026-09-24`` correlations
+    :class: note
+
+    The correlations derived below shipped from 2026-09-24 to 2026-10-06 and
+    remain in :mod:`tmhp.compressor_efficiency_legacy`. TMHP now ships the
+    BITZER fits listed in the `Summary`_, with the range and validity-domain
+    guards described there. The method, data and selection rules below are
+    kept because the comparison in the next section still uses them.
 
 A variable-speed compressor loses work in three distinguishable places, and
 TMHP keeps them separate because they act on different outputs: the isentropic
@@ -504,8 +532,9 @@ the certified measurements.
 Does the coefficient set survive both tests?
 --------------------------------------------
 
-The three correlations were fitted on compressor measurements, not on heat
-pumps. Whether that was worth anything is a separate question with two halves:
+Every compressor description here was fitted on compressor measurements, not
+on heat pumps. Whether that was worth anything is a separate question with two
+halves:
 
 * **Shape.** EN 14825 lowers the required duty and the flow temperature together
   across four test points, and Heat Pump Keymark publishes what real machines
@@ -514,7 +543,8 @@ pumps. Whether that was worth anything is a separate question with two halves:
 * **Level.** A set can sit on the certified median and still miss every
   individual machine. That is what the catalogue parity set answers (:doc:`index`).
 
-Four compressor descriptions were run through both, identically:
+Four compressor descriptions were run through both, identically, with the
+current model code:
 
 .. figure:: ../_static/validation_en14825_verdict.svg
     :alt: Three panels: EN 14825 trajectories for the low- and
@@ -538,71 +568,79 @@ Four compressor descriptions were run through both, identically:
 
     * - ``ideal``
       - all three efficiencies pinned at 1.0 — what ASHP did before this work
-      - 47.9 %
-      - +47.9 %
+      - 48.2 %
+      - +48.2 %
 
     * - ``constant``
-      - the adopted correlations frozen at their rated point, no speed dependence
-      - 15.4 %
-      - +12.2 %
+      - the ``v2026-09-24`` correlations frozen at their rated point, no speed
+        dependence
+      - 16.1 %
+      - +13.4 %
 
     * - ``legacy-v1``
       - the pre-refit defaults: ``0.90 − 0.02 PR``, the one-machine leakage term,
         the Guth speed shape at 0.80 (``validation/coefficients/v1-legacy/``)
       - 7.3 %
-      - -1.6 %
+      - −1.6 %
 
     * - **``defaults``**
-      - **what TMHP ships — coefficients ``v2026-09-24``**
-      - **8.2 %**
-      - **+1.5 %**
+      - **what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
+        with their guards**
+      - **10.3 %**
+      - **+5.6 %**
 
-Parity figures are the ten adopted air-to-water units (153 points); the held
-Fujitsu catalogues are excluded from every headline.
+Parity figures are the ten adopted air-to-water units; the held Fujitsu
+catalogues are excluded from every headline. The ``defaults`` row is the
+air-to-water row of :doc:`index`.
 
 Three things to read off it.
 
-**The coefficients carry most of the model.** An ideal compressor is
-47.9 % out on the catalogues; removing only the speed dependence
-costs 7.3 points of MAPE.
+**The compressor description carries most of the model.** An ideal compressor
+is 48.2 % out on the catalogues and a speed-independent one 16.1 %. The shipped
+fits come to 10.3 % with a +5.6 % bias, three points behind the pre-refit
+``legacy-v1`` set on this comparison.
 
 **The shape passes, at every configuration.** Across fifteen combinations of
 capacity, refrigerant and sizing ratio the modelled COP rises at every step
-A → D in all fifteen low-temperature runs (96.9 % of the 9,062 certified
-low-temperature records do the same), and the A-to-D gradient lands inside the
-certified p10–p90 in all thirty runs: median 2.48 modelled
-against 2.63 certified for the low-temperature application, 2.93
-against 2.86 for the medium-temperature one. The refit made the low-temperature
-gradient flatter than before (2.70): the fitted product falls
-below a pressure ratio of about 2.5 — under-compression in a scroll with a
-fixed built-in volume ratio — and point D runs near ``PR = 1.6``.
+A → D in all fifteen runs of each application (96.9 % of the 9,062 certified
+low-temperature records and 98.7 % of the 9,044 medium-temperature ones do the
+same), and the A-to-D gradient lands inside the certified p10–p90 in all thirty
+runs: median 2.07 modelled against 2.63 certified for the low-temperature
+application — near the p10 of 2.02 — and 2.75 against 2.86 for the
+medium-temperature one. The modelled trajectory is flatter than the certified
+median.
 
-**The level sits above the median, and the sign is predicted.** Read as
-percentiles of the certified population, the low-temperature trajectory sits
-at the 94 / 91 / 69 / 83th percentile at points A / B / C / D and the medium-temperature
-one at 85 / 93 / 88 / 89. Certified COP is measured with defrost and, at the light
-points, with on/off cycling; TMHP models neither, so a model above the median
-is the expected direction. Points A and B sit near the 90th percentile — one
-decile higher than the pre-refit set, the same signal as the +1.1 % air-to-water
-parity bias: the compressor population the coefficients come from is the
-efficient side of the heat-pump population. Neither result moves a coefficient;
-both are recorded (:doc:`index`).
+**The level misses at both ends of the low-temperature trajectory.** Read as
+percentiles of the certified population, the R32 low-temperature trajectory
+sits at the 94 / 79 / 31 / 38th percentile at points A / B / C / D, and the
+medium-temperature one at 63 / 90 / 66 / 51. Point A of the low-temperature
+application lies above the 90th percentile in every configuration, so no
+low-temperature run passes the level criterion; three medium-temperature runs
+(the R410A ones) pass all three. Certified COP is measured with defrost and, at
+the light points, with on/off cycling; TMHP models neither, which would put a
+model above the median. Points C and D sit below it anyway. Neither result
+moves a coefficient; both are recorded (:doc:`index`).
 
 .. admonition:: What changed on the medium-temperature trajectory
     :class: note
 
-    The previous edition of this page marked point C of the medium-temperature
+    An earlier edition of this page marked point C of the medium-temperature
     application as an artefact: every description dropped to 77 % of the
     certified median there because the operating-point search starved the
     outdoor coil below the compressor speed floor. That search now scores
     candidates by electrical input per unit of heat delivered
     (:mod:`tmhp._opt_utils`), and the point sits in line with its neighbours
-    (88th percentile). See :doc:`part-load`.
+    (66th percentile). See :doc:`part-load`.
 
 Reproduce both halves with::
 
-    uv run python -m validation.en14825_seasonal_trend.air_to_water
-    uv run python3 scripts/validation/en14825_verdict_figure.py
+    uv run python -m validation.en14825_seasonal_trend.air_to_water --jobs 6
+    uv run python -m scripts.validation.en14825_verdict_figure
+
+or regenerate everything with ``scripts/regen-validation.sh``. The study reads
+the certified population from ``validation/data/keymark_en14825_declared.csv``,
+which is not committed; ``validation.extraction.keymark_declared`` builds it
+from the hplib archive listed in ``validation/registry/sources.yaml``.
 
 
 Provenance
@@ -631,9 +669,10 @@ checksum is running on identical bytes, and everything under
 
 .. note::
 
-   The numerical fits and validation results on this page archive the
-   2026-09-24 model. Production compressor defaults now follow the
+   The compressor-efficiency derivation above (`Compressor efficiency`_)
+   archives the 2026-09-24 correlations. The shipped defaults follow the
    `BITZER three-efficiency Notion study <https://app.notion.com/p/3ee6947d125d80f4830ffcb408fa647d>`_
-   (2026-10-06), with three independent quadratic fits in pressure ratio
-   and absolute shaft speed N [rev/s]. Historical scores are not validation
-   scores for the new defaults.
+   (2026-10-06): three independent quadratic fits in pressure ratio and
+   absolute shaft speed N [rev/s], with the guards in the `Summary`_. The
+   comparison in the previous section and the results on :doc:`index` are for
+   those shipped defaults.

@@ -23,6 +23,8 @@ from tmhp import GroundSourceHeatPumpBoiler  # noqa: E402
 from tmhp.constants import c_w, rho_w  # noqa: E402
 from tmhp.ground_coupling import AggregateGFunctionCoupler, GroundCoupler  # noqa: E402
 
+from ._ground_oracle import step_mean_superposition  # noqa: E402
+
 
 def _gshpb() -> GroundSourceHeatPumpBoiler:
     return GroundSourceHeatPumpBoiler(
@@ -35,32 +37,25 @@ def _gshpb() -> GroundSourceHeatPumpBoiler:
     )
 
 
-def _legacy_dT_sequence(
+def _reference_dT_sequence(
     g_interp: Callable[[np.ndarray], np.ndarray],
     time_arr: np.ndarray,
     q_seq: np.ndarray,
     tol: float = 1e-6,
 ) -> np.ndarray:
-    """Verbatim replica of the legacy ``_compute_bhe_superposition`` dT loop.
+    """Pulse logic of the coupler with the step-mean response from quadrature.
 
-    Serves as the independent oracle: the refactored coupler must match this
-    sequence exactly for any load history.
+    Independent oracle: pulses are registered when the load changes by more
+    than ``tol`` and each step reports the mean rise over ``[t_n, t_n + dt]``
+    (#96 G4), integrated by ``scipy.integrate.quad``.
     """
     pulses = np.zeros(len(q_seq))
     q_old = 0.0
-    out = []
     for n, q in enumerate(q_seq):
         if abs(q - q_old) > tol:
             pulses[n] = q - q_old
             q_old = q
-        idx = np.flatnonzero(pulses[: n + 1])
-        if len(idx) > 0:
-            dQ = pulses[idx]
-            tau = np.maximum(time_arr[n] - time_arr[idx], 1e-6)
-            out.append(float(np.dot(dQ, g_interp(tau))))
-        else:
-            out.append(0.0)
-    return np.array(out)
+    return step_mean_superposition(g_interp, time_arr, pulses, float(time_arr[1] - time_arr[0]))
 
 
 @pytest.fixture(scope="module")
@@ -73,20 +68,40 @@ def test_default_coupler_satisfies_protocol(gshpb):
     assert isinstance(gshpb._ground_coupler, GroundCoupler)
 
 
-def test_aggregate_coupler_byte_identical_to_legacy(gshpb):
-    """The default coupler reproduces the legacy pulse-superposition exactly."""
+@pytest.mark.parametrize("dt", [600.0, 3600.0])
+def test_aggregate_coupler_matches_step_mean_superposition(gshpb, dt):
+    """The default coupler is the step-mean pulse superposition (fast path and fallback)."""
     g = gshpb._gfunc_interp
-    time_arr = np.arange(0, 100) * 3600.0
+    time_arr = np.arange(0, 100) * dt
     rng = np.random.default_rng(0)
     # A load history with many on/off transitions exercises the pulse logic.
     q_seq = np.where(rng.random(100) < 0.5, 0.0, 40.0)
 
-    ref = _legacy_dT_sequence(g, time_arr, q_seq)
+    ref = _reference_dT_sequence(g, time_arr, q_seq)
 
     coupler = AggregateGFunctionCoupler(g)
     coupler.reset(len(q_seq), time_arr)
     got = np.array([coupler.wall_temperature_rise(n, time_arr, float(q)) for n, q in enumerate(q_seq)])
-    assert np.array_equal(got, ref)
+    np.testing.assert_allclose(got, ref, rtol=0.0, atol=1e-12)
+
+    # A time array that is not the one passed to reset takes the direct path.
+    coupler.reset(len(q_seq), time_arr)
+    other = time_arr.copy()
+    other[-1] += 1.0
+    direct = np.array([coupler.wall_temperature_rise(n, other, float(q)) for n, q in enumerate(q_seq[:-1])])
+    np.testing.assert_allclose(direct, ref[:-1], rtol=0.0, atol=1e-12)
+
+
+def test_current_step_pulse_contributes_its_step_mean(gshpb):
+    """#96 G4: a step's own load warms/cools its wall by q · ḡ(0; dt), not by g(0) ≈ 0."""
+    g = gshpb._gfunc_interp
+    time_arr = np.arange(4) * 3600.0
+    coupler = AggregateGFunctionCoupler(g)
+    coupler.reset(len(time_arr), time_arr)
+    rise = coupler.wall_temperature_rise(0, time_arr, 25.0)
+    # g is linear from (0, 0) to (3600 s, g(3600 s)) on this grid: the hourly mean is half.
+    assert rise == pytest.approx(25.0 * 0.5 * float(g(3600.0)), rel=1e-12)
+    assert rise > 0.3  # ~0.39 K at 25 W/m for this field; the old start-of-step value was ~1e-10 K
 
 
 def test_injected_coupler_overrides_default():
@@ -110,7 +125,10 @@ def test_injected_coupler_overrides_default():
     assert gshpb._ground_coupler is spy
 
 
-# Single-borehole golden captured at ea02dc9 before the field normalization fix.
+# Single-borehole golden. First captured at ea02dc9 (step-start response,
+# g(0) for the step's own pulse); re-captured for #96 G4, where every step
+# reports the mean over [t_n, t_n + dt] including its own pulse. The values
+# are also checked against an independent quadrature oracle below.
 # Multi-borehole behavior is checked against analytic balances in test_ground_loop.
 _GOLDEN = {
     "T_bhe [°C]": [
@@ -118,72 +136,72 @@ _GOLDEN = {
         16.0,
         16.0,
         16.0,
-        15.999999999709138,
-        14.952893967837952,
-        14.359900026538678,
-        14.899576456553033,
-        15.240836024030267,
-        15.419276268609517,
-        15.52938085956007,
-        14.772490299702099,
-        15.088046467474117,
-        15.327383954941867,
-        15.456058944079423,
-        15.539240307505013,
+        15.476446983901642,
+        14.625799474175674,
+        14.620086020642868,
+        15.091478334754209,
+        15.338135500311445,
+        15.478184859427497,
+        15.152988443883014,
+        14.90719289185651,
+        15.222383462939103,
+        15.39727515321736,
+        15.500219394996735,
+        15.569794659918099,
     ],
     "T_bhe_f [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        10.473382101904576,
-        10.084959636017913,
-        14.359900026538696,
-        14.899576456553007,
-        15.240836024030273,
-        15.419276268609508,
-        11.138939105018892,
-        14.772490299702099,
-        15.0880464674741,
-        15.327383954941865,
-        15.456058944079416,
-        15.539240307504997,
+        9.949829086097111,
+        9.757865142355627,
+        14.620086020642873,
+        15.091478334754186,
+        15.338135500311466,
+        15.478184859427472,
+        10.762546689341832,
+        14.907192891856539,
+        15.222383462939092,
+        15.397275153217379,
+        15.500219394996748,
+        15.569794659918102,
     ],
     "T_bhe_f_in [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        8.465654147940256,
-        8.31652041753307,
-        14.359900026538696,
-        14.899576456553007,
-        15.240836024030273,
-        15.419276268609508,
-        9.543964962814073,
-        14.772490299702099,
-        15.0880464674741,
-        15.327383954941865,
-        15.456058944079416,
-        15.539240307504997,
+        7.942101132132791,
+        7.989425923870783,
+        14.620086020642873,
+        15.091478334754186,
+        15.338135500311466,
+        15.478184859427472,
+        9.167572547137013,
+        14.907192891856539,
+        15.222383462939092,
+        15.397275153217379,
+        15.500219394996748,
+        15.569794659918102,
     ],
     "T_bhe_f_out [°C]": [
         16.0,
         16.0,
         16.0,
         16.0,
-        12.481110055868896,
-        11.853398854502757,
-        14.359900026538696,
-        14.899576456553007,
-        15.240836024030273,
-        15.419276268609508,
-        12.733913247223711,
-        14.772490299702099,
-        15.0880464674741,
-        15.327383954941865,
-        15.456058944079416,
-        15.539240307504997,
+        11.957557040061431,
+        11.52630436084047,
+        14.620086020642873,
+        15.091478334754186,
+        15.338135500311466,
+        15.478184859427472,
+        12.357520831546651,
+        14.907192891856539,
+        15.222383462939092,
+        15.397275153217379,
+        15.500219394996748,
+        15.569794659918102,
     ],
 }
 
@@ -224,6 +242,11 @@ def test_archived_bhe_load_response_matches_golden():
     for col, golden in _GOLDEN.items():
         assert col in df.columns
         np.testing.assert_allclose(df[col].to_numpy(), np.array(golden), rtol=0.0, atol=1e-12)
+
+    loads_per_m = np.array([_ARCHIVED_BHE_LOAD_W.get(n, 0.0) for n in range(len(time_arr))])
+    loads_per_m /= gshpb.total_borehole_length
+    oracle = gshpb.Ts - step_mean_superposition(gshpb._gfunc_interp, time_arr, np.diff(np.r_[0.0, loads_per_m]), 3600.0)
+    np.testing.assert_allclose(df["T_bhe [°C]"].to_numpy(), oracle, rtol=0.0, atol=1e-12)
 
 
 def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch):
@@ -278,8 +301,7 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     time_arr = np.arange(tN) * 3600.0
     loads_per_m = df["Q_bhe [W]"].to_numpy() / gshpb.total_borehole_length
     increments = np.diff(np.r_[0.0, loads_per_m])
-    lags = np.maximum(time_arr[:, None] - time_arr[None, :], 1e-6)
-    response = np.tril(gshpb._gfunc_interp(lags)) @ increments
+    response = step_mean_superposition(gshpb._gfunc_interp, time_arr, increments, 3600.0)
     wall_C = gshpb.Ts - response
     mean_C = wall_C - loads_per_m * gshpb.R_b
     capacity_rate = df["dV_bhe_f [m3/s]"].to_numpy() * rho_w * c_w

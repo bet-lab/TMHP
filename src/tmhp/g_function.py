@@ -146,6 +146,153 @@ def G_FLS(t: float | np.ndarray, ks: float, as_: float, rb: float, H: float) -> 
     return result
 
 
+class GFunction:
+    """Dimensional g-function ``g(t)`` [m·K/W] of a rectangular bore field.
+
+    Built by :func:`precompute_gfunction`; callable like the
+    ``scipy.interpolate.interp1d`` it replaces (``g(t)`` for a scalar or an
+    array of times [s]).
+
+    **Values.** pygfunction is evaluated on a log-spaced grid from
+    ``t_min = 3600 s`` to the horizon, with ``g(0) = 0`` prepended;
+    between nodes the value is interpolated linearly in ``t`` (relative error
+    ≤ 7e-4 against direct pygfunction evaluation for the default grid
+    density). Below ``t_min`` the value is the straight line from ``(0, 0)``
+    to the first node: the model has no grout or fluid heat capacity, so the
+    response in the first hour is only approximate.
+
+    **Horizon.** The grid ends at ``1.5 * t_max_s``. A request beyond it does
+    *not* extrapolate: the grid is recomputed by pygfunction to cover the
+    request (at least twice the previous horizon, keeping the node density per
+    decade). For a 10×10 field this costs about 0.2 s. A simulation longer than
+    ``t_max_s`` therefore gets the same values it would have got with a larger
+    ``t_max_s``.
+
+    **Step mean.** :meth:`step_mean` returns ``(1/dt) ∫_τ^{τ+dt} g(s) ds``,
+    integrated exactly for the piecewise-linear ``g``. This is the response a
+    time-stepping model needs when its step ``n`` represents the interval
+    ``[t_n, t_n + dt]`` and a load pulse starts at ``t_i``: the mean wall
+    temperature over the step is ``T_s - Σ Δq_i · step_mean(t_n - t_i, dt)``.
+    It includes the step's own pulse (``τ = 0``) and gives the same interval
+    means for any ``dt`` that divides the load's own resolution.
+    """
+
+    #: Minimum node density of the log-spaced grid [nodes per decade].
+    POINTS_PER_DECADE = 24.0
+
+    def __init__(
+        self,
+        N_1: int,
+        N_2: int,
+        B: float,
+        H_b: float,
+        D_b: float,
+        r_b: float,
+        alpha_s: float,
+        k_s: float,
+        t_max_s: float,
+        dt_s: float,
+        boundary_condition: str = "UBWT",
+        num: int = 100,
+    ) -> None:
+        if not HAS_PYGFUNCTION:
+            raise ImportError(
+                "pygfunction is not installed. Run `uv pip install pygfunction` to use multi-borehole features."
+            )
+        bc = boundary_condition.upper()
+        if bc not in ("UBWT", "UHTR"):
+            raise ValueError(f"boundary_condition must be 'UBWT' or 'UHTR', got {boundary_condition!r}")
+        if not (np.isfinite(t_max_s) and t_max_s > 0 and np.isfinite(dt_s) and dt_s > 0):
+            raise ValueError("t_max_s and dt_s must be positive and finite")
+        self._field = dict(N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b)
+        self.alpha_s = float(alpha_s)
+        self.k_s = float(k_s)
+        self.boundary_condition = bc
+        # Kept for reference only: the grid and every response are independent
+        # of the step the model was constructed with (the run's own step is
+        # passed to step_mean), so a model built with one dt_s and run with
+        # another gives the same answer as one built with the run's dt_s.
+        self.dt_s = float(dt_s)
+        # Evaluate from 1 hour to bypass the short-term numerical noise (Fo < 0.1)
+        # of the finite line source BEM discretization. Fixed, not max(dt_s, 1 h):
+        # a dt-dependent first node made g on [0, dt_s] a straight line.
+        self.t_min = 3600.0
+        self.n_builds = 0
+        self._build(float(t_max_s) * 1.5, int(num))
+
+    # -- grid -------------------------------------------------------------
+    def _build(self, t_end: float, num: int) -> None:
+        t_end = max(t_end, self.t_min * 1.01)
+        times = np.geomspace(self.t_min, t_end, num=num)
+        field = gt.borefield.Borefield.rectangle_field(**self._field)
+        gfunc_obj = gt.gfunction.gFunction(field, self.alpha_s, time=times, boundary_condition=self.boundary_condition)
+        g_vals = np.asarray(gfunc_obj.gFunc, dtype=float) / (2 * np.pi * self.k_s)
+        # Prepend g(0) = 0: the first hour is the line from the origin.
+        self.x = np.concatenate(([0.0], times))
+        self.y = np.concatenate(([0.0], g_vals))
+        self.t_end = float(self.x[-1])
+        self._slope = np.diff(self.y) / np.diff(self.x)
+        self._cum = np.concatenate(([0.0], np.cumsum(0.5 * (self.y[:-1] + self.y[1:]) * np.diff(self.x))))
+        self.n_builds += 1
+
+    def ensure_horizon(self, t: float) -> None:
+        """Recompute the grid so that it covers time ``t`` [s] (no-op if it already does)."""
+        t = float(t)
+        if not np.isfinite(t):
+            raise ValueError("g-function requested at a non-finite time")
+        if t <= self.t_end:
+            return
+        t_end = max(1.5 * t, 2.0 * self.t_end)
+        decades = np.log10(t_end / self.t_min)
+        num = max(len(self.x) - 1, int(np.ceil(self.POINTS_PER_DECADE * decades)) + 1)
+        self._build(t_end, num)
+
+    # -- evaluation ---------------------------------------------------------
+    def __call__(self, t):
+        t_arr = np.asarray(t, dtype=float)
+        if t_arr.size:
+            self.ensure_horizon(float(np.max(t_arr)))
+        return np.interp(t_arr, self.x, self.y)
+
+    def _integral(self, t: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """``∫_0^t g`` split as (node part, in-segment part) to limit cancellation."""
+        k = np.clip(np.searchsorted(self.x, t, side="right") - 1, 0, len(self.x) - 2)
+        s = t - self.x[k]
+        return k, self.y[k] * s + 0.5 * self._slope[k] * s * s
+
+    def step_mean(self, tau, dt: float):
+        """Mean of ``g`` over ``[tau, tau + dt]`` [m·K/W], exact for the interpolated ``g``."""
+        dt = float(dt)
+        if not (np.isfinite(dt) and dt > 0):
+            raise ValueError("dt must be positive and finite")
+        tau_arr = np.maximum(np.asarray(tau, dtype=float), 0.0)
+        if tau_arr.size:
+            self.ensure_horizon(float(np.max(tau_arr)) + dt)
+        k_a, loc_a = self._integral(tau_arr)
+        k_b, loc_b = self._integral(tau_arr + dt)
+        return ((self._cum[k_b] - self._cum[k_a]) + (loc_b - loc_a)) / dt
+
+
+# Gauss–Legendre nodes for the step mean of an arbitrary g(t) callable.
+_GL_NODES, _GL_WEIGHTS = np.polynomial.legendre.leggauss(8)
+
+
+def g_step_mean(g, tau, dt: float):
+    """Step-mean response ``(1/dt) ∫_τ^{τ+dt} g(s) ds`` for any g-function callable.
+
+    Uses :meth:`GFunction.step_mean` (exact) when available; any other
+    callable ``g(t)`` (a user or test g-function) is integrated with an
+    8-point Gauss–Legendre rule per step.
+    """
+    method = getattr(g, "step_mean", None)
+    if method is not None:
+        return method(tau, dt)
+    tau_arr = np.maximum(np.asarray(tau, dtype=float), 0.0)
+    nodes = tau_arr[..., None] + 0.5 * dt * (_GL_NODES + 1.0)
+    vals = np.asarray(g(nodes.reshape(-1)), dtype=float).reshape(nodes.shape)
+    return 0.5 * vals @ _GL_WEIGHTS
+
+
 def precompute_gfunction(
     N_1: int,
     N_2: int,
@@ -158,12 +305,14 @@ def precompute_gfunction(
     t_max_s: float,
     dt_s: float,
     boundary_condition: str = "UBWT",
-) -> interp1d:
-    """Precompute g-function using pygfunction and return an interpolator.
+) -> GFunction:
+    """Precompute the g-function with pygfunction and return it as a callable.
 
     Creates a rectangular borehole field and computes the g-function
-    for log-spaced time steps up to t_max_s (plus an extra margin).
-    Returns a callable `interp1d` object predicting the g-function [mK/W].
+    for log-spaced time steps up to ``1.5 * t_max_s``. Returns a
+    :class:`GFunction` mapping time [s] to the g-function [mK/W]; a request
+    past that horizon recomputes the grid instead of extrapolating (see
+    :class:`GFunction`).
 
     The g-function is built from the finite line source (FLS) solution
     of Claesson and Javed (2011), extended to boreholes at different
@@ -198,9 +347,12 @@ def precompute_gfunction(
     k_s : float
         Ground thermal conductivity [W/mK].
     t_max_s : float
-        Maximum simulation time [s].
+        Expected simulation length [s]. The grid covers ``1.5 * t_max_s``;
+        longer requests trigger a recompute, never an extrapolation.
     dt_s : float
-        Simulation timestep [s].
+        Construction timestep [s], kept on the result as ``dt_s``. It does not
+        shape the grid (first node always 3600 s) or any response: time-stepping
+        hosts pass their run's step to :meth:`GFunction.step_mean`.
     boundary_condition : str, optional
         Axial boundary condition along the borehole. Either ``'UBWT'``
         (uniform borehole wall temperature) or ``'UHTR'`` (uniform heat
@@ -208,8 +360,9 @@ def precompute_gfunction(
 
     Returns
     -------
-    scipy.interpolate.interp1d
-        Interpolator function mapping `time [s]` to `g-function [mK/W]`.
+    GFunction
+        Callable mapping `time [s]` to `g-function [mK/W]`, with
+        :meth:`GFunction.step_mean` for time-stepping models.
 
     References
     ----------
@@ -221,39 +374,38 @@ def precompute_gfunction(
     generate g-functions for geothermal bore fields. International
     Journal of Heat and Mass Transfer, 70, 641-650.
     """
+    return GFunction(
+        N_1=N_1,
+        N_2=N_2,
+        B=B,
+        H_b=H_b,
+        D_b=D_b,
+        r_b=r_b,
+        alpha_s=alpha_s,
+        k_s=k_s,
+        t_max_s=t_max_s,
+        dt_s=dt_s,
+        boundary_condition=boundary_condition,
+    )
 
-    if not HAS_PYGFUNCTION:
-        raise ImportError(
-            "pygfunction is not installed. Run `uv pip install pygfunction` to use multi-borehole features."
-        )
 
-    bc = boundary_condition.upper()
-    if bc not in ("UBWT", "UHTR"):
-        raise ValueError(f"boundary_condition must be 'UBWT' or 'UHTR', got {boundary_condition!r}")
-
-    # Evaluate from 1 hour to bypass the short-term numerical noise (Fo < 0.1)
-    # of the finite line source BEM discretization.
-    # The first point is safely evaluated at 3600s where the numerical noise floor is cleared.
-    t_min = max(dt_s, 3600.0)
-    times = np.geomspace(t_min, t_max_s * 1.5, num=100)
-
-    boreField = gt.borefield.Borefield.rectangle_field(N_1=N_1, N_2=N_2, B_1=B, B_2=B, H=H_b, D=D_b, r_b=r_b)
-
-    gfunc_obj = gt.gfunction.gFunction(boreField, alpha_s, time=times, boundary_condition=bc)
-    g_vals_dim = gfunc_obj.gFunc / (2 * np.pi * k_s)
-
-    # Prepend 0.0 for t=0.
-    # This automatically provides a noise-free linear interpolation for any dt < 3600s !
-    times = np.concatenate(([0.0], times))
-    g_vals_dim = np.concatenate(([0.0], g_vals_dim))
-
-    # Create interpolator
-    return interp1d(times, g_vals_dim, kind="linear", bounds_error=False, fill_value="extrapolate")
+# ---------------------------------------------------------------------------
+# Moving finite line source (MFLS) — UNUSED, UNVERIFIED
+# ---------------------------------------------------------------------------
+# ``chi_mfls``, ``G_MFLS_Field`` and ``precompute_gfunction_mls`` are not called
+# anywhere in tmhp (checked 2026-11-13, #96) and their accuracy has never been
+# checked against a reference MFLS solution. ``precompute_gfunction_mls`` still
+# extrapolates linearly past ``1.5 * t_max_s`` (the defect fixed for
+# :func:`precompute_gfunction`). Kept until the co-authors confirm whether any
+# external work uses them; do not rely on them.
 
 
 def chi_mfls(s, r, H, x_prime, U, alpha_s, z0=0):
     """
     Helper function for MFLS (Moving Finite Line Source) G-function calculation.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Kept pending co-author confirmation.
 
     Ref: Molina-Giraldo et al. (2011), "A moving finite line source model
     to simulate borehole heat exchangers with groundwater advection"
@@ -280,6 +432,9 @@ def G_MFLS_Field(
     c_s: float,
 ) -> np.ndarray:
     """Calculate the spatial superposition of the MFLS response for a bore field.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Kept pending co-author confirmation.
 
     Parameters
     ----------
@@ -368,7 +523,13 @@ def precompute_gfunction_mls(
     t_max_s: float,
     dt_s: float,
 ) -> interp1d:
-    """Precompute the MFLS g-function and return an interpolator."""
+    """Precompute the MFLS g-function and return an interpolator.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Unlike :func:`precompute_gfunction`, the returned
+       interpolator extrapolates linearly in time past ``1.5 * t_max_s``.
+       Kept pending co-author confirmation.
+    """
     if not HAS_PYGFUNCTION:
         raise ImportError("pygfunction is not installed.")
 

@@ -9,6 +9,20 @@ step looks the way it does without having to inspect the cycle
 internals. This page is the reference for what each value means and
 when to branch on it.
 
+Invalid input versus an unsolvable point
+========================================
+
+The two are kept apart. An input outside its physical range — NaN or infinity,
+a negative capacity, UA, flow or load, an efficiency outside (0, 1], a
+temperature that cannot be °C (a kelvin value such as ``Ts=300``), a lower tank
+set point above the upper one, a schedule whose length is not the step count, or
+a ``simulation_period_sec`` that ``dt_s`` does not divide — raises
+``ValueError`` before anything is computed, with the message
+``"<name> must be …, got <value>"``. Valid inputs for which no cycle closes are
+not errors: they return a result whose ``failure_reason`` says why. A zero boiler
+load (``Q_ref_tank = 0``) is valid and returns the off result with
+``failure_reason == "none"``; a negative or NaN one is invalid.
+
 The values
 ==========
 

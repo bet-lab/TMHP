@@ -100,10 +100,14 @@ Inspecting the run
    print(Counter(df["failure_reason"]))
 
 The ``Counter`` gives a quick view of how many steps hit each
-diagnostic. For a sensible system at moderate ambient, almost
-every step should be ``none`` — see
-:doc:`../concepts/failure-reason-semantics` for what the other
-values mean.
+diagnostic. ``none`` marks a step on which the heat pump ran or was not
+called; any other value marks a step on which it was called but its
+cycle could not be solved, so the row carries no heat or power. With the
+default R32 machine every step of this run is ``none``. A machine pushed
+outside what its cycle can reach — a tank set point that would need
+condensing above the refrigerant's critical point, for instance — shows
+its failed steps here. See :doc:`../concepts/failure-reason-semantics`
+for what each value means.
 
 Where to go next
 ================

@@ -32,17 +32,25 @@ Common to all families
     * - ``hx_not_converged``
       - HX residual exceeded tolerance, but the cycle itself
         produced a state.
-      - Yes — numbers are usable but should be treated as
-        approximate. ``converged == False``.
+      - Depends on the family. GSHPB, WSHPB, ASHP and every
+        ``analyze_dynamic`` row: no — off-mode (``E_cmp = 0``,
+        ``Q_ref_tank = 0``, NaN COP). ASHPB ``analyze_steady``: no —
+        only the HX diagnostics, without duty or power keys. GSHP
+        ``analyze_steady``: yes — the unconverged cycle state, to be
+        treated as approximate. ``converged == False`` throughout.
     * - ``optimizer_failed``
       - SciPy couldn't satisfy its own success criteria, even
         though the cycle returned a state.
-      - Yes — numbers exist, but the evaporating-temperature
-        choice is not provably optimal.
+      - Depends on the family. GSHPB, WSHPB, ASHP and every
+        ``analyze_dynamic`` row: no — off-mode. ASHPB and GSHP
+        ``analyze_steady``: yes — numbers exist, but the
+        evaporating-temperature choice is not provably optimal.
     * - ``cycle_invalid``
       - The cycle itself was infeasible at the requested
-        operating point. The model falls back to off-mode
-        (``E_cmp = 0``, ``Q_ref_tank = 0``).
+        operating point, or the solved cycle is not an operating
+        point (``failure_detail`` says which check rejected it). The
+        model falls back to off-mode (``E_cmp = 0``,
+        ``Q_ref_tank = 0``).
       - No — only off-mode placeholders.
     * - ``pr_above_max``
       - The compressor pressure ratio exceeded ``PR_cycle_max``
@@ -111,6 +119,34 @@ also appear).
       - The ground heat exchanger could not supply the required evaporator
         duty at any approach temperature in the search band.
 
+``failure_detail``
+------------------
+
+A boiler (ASHPB, GSHPB, WSHPB) ``analyze_steady`` result whose cycle the
+solver accepted but which is not an operating point is reported as
+``cycle_invalid`` and carries one more key, ``failure_detail``, naming the
+check (``tmhp.dynamic_context.unphysical_cycle_detail``):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 35 65
+
+    * - ``failure_detail``
+      - Means
+    * - ``duty_or_power_undefined``
+      - Delivered heat or compressor power is non-finite or not positive.
+    * - ``discharge_state_undefined``
+      - The compressor discharge temperature or enthalpy is non-finite —
+        typically a low isentropic efficiency at a high pressure ratio,
+        which puts the discharge enthalpy outside the refrigerant's
+        equation-of-state range.
+    * - ``min_speed_duty_above_capacity``
+      - The compressor sits on its speed floor (``capacity_clamped ==
+        "min"``) yet delivers more than the nameplate ``hp_capacity``.
+
+The key is present only on those results; it is not a dynamic-frame
+column.
+
 ``pr_below_min`` is *not* a ``failure_reason`` value. A pressure ratio
 below ``PR_cycle_min`` is clamped to the floor and the cycle is still
 solved; it only prints a ``[PR guard]`` message and sets
@@ -131,6 +167,14 @@ directly. Off-mode rows have ``E_cmp [W] == 0``:
 This is robust across all ``failure_reason`` values and is
 also the recommended check inside ``analyze_dynamic``, where
 ``failure_reason`` is per-step.
+
+The ``analyze_dynamic`` frames of ASHPB, GSHPB and WSHPB carry a
+``failure_reason`` column. A step on which the thermostat did not call
+for heat, or on which the compressor ran, is ``none``. A step that was
+called but whose cycle could not be solved carries the reason and is an
+off-mode row: ``hp_is_on == False``, ``converged == False``, zero heat and
+power, NaN COP, and no heat into the tank or out of the ground. The call
+for heat persists, so the next step tries again.
 
 **"Did the model warn me about anything?"** Look at
 ``failure_reason`` directly:
@@ -173,9 +217,12 @@ the recommended lever to pull when you hit each one.
     :color: warning
 
     The HX residual didn't drop below tolerance inside the inner
-    iteration, but the cycle still produced a state. The result
-    is usable as an approximation — ``converged`` is set to
-    ``False`` so you can filter rows downstream.
+    iteration, but the cycle still produced a state. Only GSHP's
+    ``analyze_steady`` returns that state, as an approximation; GSHPB,
+    WSHPB, ASHP and every ``analyze_dynamic`` row report an off-mode
+    row with zero heat and power, and ASHPB's ``analyze_steady``
+    returns only the HX diagnostics. ``converged`` is ``False`` so you
+    can filter rows downstream.
 
     **What to do.** Treat ``converged`` as the source of truth
     for "trust this row?" decisions. If the rate of
@@ -189,9 +236,11 @@ the recommended lever to pull when you hit each one.
 
     The outer SciPy optimiser exited with ``success == False``.
     The cycle still has a state at the optimiser's best
-    ``dT_ref_evap``, just not a provably optimal one.
+    ``dT_ref_evap``, just not a provably optimal one. ASHPB and GSHP
+    ``analyze_steady`` return that state; GSHPB, WSHPB, ASHP and every
+    ``analyze_dynamic`` row report an off-mode row instead.
 
-    **What to do.** The numbers are reasonable but not
+    **What to do.** Where numbers are returned they are reasonable but not
     optimisation-grade — fine for most aggregations, suspect for
     point-comparison work. Wider initial bounds on
     ``dT_ref_evap`` usually clears this.
@@ -201,9 +250,10 @@ the recommended lever to pull when you hit each one.
     :color: danger
 
     ``_calc_state`` raised, or returned a non-dict, at the
-    requested ``T_tank_w`` / ``T0`` / ``Q_ref_tank``. The model
-    falls back to off-mode placeholders (``E_cmp = 0``,
-    ``Q_ref_tank = 0``).
+    requested ``T_tank_w`` / ``T0`` / ``Q_ref_tank`` — or, for the
+    boilers, returned a state that is not an operating point (see
+    ``failure_detail`` above). The model falls back to off-mode
+    placeholders (``E_cmp = 0``, ``Q_ref_tank = 0``).
 
     **What to do.** Usually the requested duty is unreachable
     for the given geometry. Consider increasing the design
@@ -258,9 +308,13 @@ Off-mode fallback
 =================
 
 When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"`` or
-``"t_cond_below_t_in"``, the steady-state path
+``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
+ground-coupled path, for every reason other than ``"none"`` — the
+steady-state path
 emits a ``RuntimeWarning`` and substitutes an off-mode result:
-``hp_is_on = False``, all power and duty fields zeroed. This keeps
+``hp_is_on = False``, all power and duty fields zeroed. In
+``analyze_dynamic`` every called-but-unsolved step of ASHPB, GSHPB and
+WSHPB becomes the same kind of off-mode row. This keeps
 ``analyze_dynamic`` rows aligned (one row per step, regardless of
 feasibility) so the resulting DataFrame is safe to vectorise over.
 
@@ -268,7 +322,8 @@ Where this is defined in the code
 =================================
 
 The diagnostic flag is set inside ``analyze_steady`` for the five
-core models. See the docstrings under:
+core models, and per step inside ``analyze_dynamic`` for ASHPB, GSHPB
+and WSHPB. See the docstrings under:
 
 - :doc:`../models/ashpb`
 - :doc:`../models/gshpb`

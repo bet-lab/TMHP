@@ -171,7 +171,6 @@ def _gshpb_failing_run():
     return m, df, dt
 
 
-@defect("B1", "GSHPB puts the requested Q_tank_load (8 kW) into the tank on steps where the cycle failed")
 def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     m, df, dt = _gshpb_failing_run()
     off = _off_rows(df)
@@ -182,13 +181,7 @@ def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     expect(abs(bal["residual_J"]) < 0.01 * max(bal["heat_J"], 1.0), bal)
 
 
-@pytest.mark.parametrize(
-    "family",
-    [
-        pytest.param("GSHPB", marks=defect("T14", "GSHPB forward-fills cop_* into off rows")),
-        pytest.param("WSHPB", marks=defect("T14", "WSHPB forward-fills cop_* into off rows")),
-    ],
-)
+@pytest.mark.parametrize("family", ["GSHPB", "WSHPB"])
 def test_t14_off_rows_have_nan_cop(family):
     dt, n = 600, 4
     if family == "GSHPB":

@@ -1,13 +1,27 @@
 """ASHPB Scenario: Heat Pump driven by PV + ESS with Grid/Dump integration.
 
-Energy routing (all logic lives here, subsystems are pure physics):
+Energy routing (all logic lives in :func:`tmhp.subsystems.route_pv_ess`,
+the subsystems are pure physics):
 
-1. PV generation  → ``pv.calc_performance()``
-2. DC routing:
+1. PV generation  → ``pv.calc_performance()`` (array output ``E_pv_out``, then the
+   charge controller: ``E_ctrl_out = eta_ctrl · E_pv_out``)
+2. DC routing of ``E_ctrl_out``:
    - PV surplus   → ``ess.charge()``; leftover → dump
    - PV deficit   → ``ess.discharge()``; leftover →  grid import
-3. Inverter conversion loss applied to DC supply
+3. Inverter conversion loss applied to the DC supply (PV direct + battery discharge)
 4. Grid import covers any remaining AC shortfall
+
+There is **no grid export**: DC power that neither the load nor the battery can
+take is discarded and reported as ``E_dump [W]``.
+
+Per-step balances (every term is a result column, [W])::
+
+    E_pv_out  = Q_l_ctrl + E_pv_to_inv + E_ess_chg + E_dump
+    E_tot     = E_inv_out + E_grid_import            (AC load)
+    E_inv_out = eta_inv · (E_pv_to_inv + E_ess_dis),  Q_l_inv = (1-eta_inv)·(...)
+    E_ess_chg - E_ess_dis = C_ess_max·ΔSOC_ess/dt + Q_l_ess
+
+``E_tot`` is the whole electric draw: compressor + outdoor fan + UV lamp.
 
 .. note::
    See the project paper for the orchestration logic and energy/exergy
@@ -16,13 +30,20 @@ Energy routing (all logic lives here, subsystems are pure physics):
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
-from . import calc_util as cu
 from ._validation import validate_ctor
 from .air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
-from .subsystems import EnergyStorageSystem, PhotovoltaicSystem
+from .dynamic_context import DynamicState
+from .subsystems import (
+    EnergyStorageSystem,
+    PhotovoltaicSystem,
+    add_uv_power_to_e_tot,
+    pv_ess_postprocess,
+    pv_ess_result_columns,
+    route_pv_ess,
+    single_count_uv_heat,
+)
 
 
 class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
@@ -33,6 +54,11 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
     No 1-step lag: the PV energy is allocated to the exact
     HP load produced in the same timestep.
 
+    The battery state of charge belongs to a run: it is restored to
+    ``ess.SOC_init`` when a run starts (``make_initial_state``, which both
+    ``analyze_dynamic`` and an external ``step()`` driver call), so repeating a
+    run on the same model reproduces it.
+
     Parameters
     ----------
     pv : PhotovoltaicSystem
@@ -40,7 +66,7 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
     ess : EnergyStorageSystem
         Pure-physics battery model with ``charge()`` / ``discharge()``.
     eta_inv : float
-        Inverter DC→AC efficiency [–].
+        Inverter DC→AC efficiency [–], ``0 < eta_inv <= 1``.
     T_inv_K : float
         Inverter temperature for entropy calculation [K].
     **kwargs
@@ -67,6 +93,13 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         # expose pv so analyze_dynamic supplies I_DN / I_dH context
         self.pv = pv
 
+    # ── per-run state ─────────────────────────────────────────────
+
+    def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:
+        """Start of a run: tank state as the base class, battery back at ``SOC_init``."""
+        self._ess.reset()
+        return super().make_initial_state(T_tank_w_init_C, tank_level_init)
+
     # ── hook overrides ────────────────────────────────────────────
 
     def _needs_solar_input(self) -> bool:
@@ -83,9 +116,10 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         dt,
         T_tank_w_in_K,
     ) -> dict[str, dict]:
-        # Intentionally empty: PV is called after HP load is known.
+        # PV is called after the HP load is known; only attached subsystems
+        # (e.g. a UV lamp) are stepped here.
         self._current_dt = dt
-        return {}
+        return single_count_uv_heat(super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K))
 
     def _augment_results(
         self,
@@ -96,87 +130,22 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         T_solved_K: float,
     ) -> dict:
         """Resolve PV/ESS/Grid routing after HP load is known."""
-        # 1. Base HP results
+        # 1. Base HP results (+ attached subsystems such as UV)
         hp_res = super()._augment_results(base_result, ctx, ctrl, sub_states, T_solved_K)
 
-        # 2. HP AC load this step [W] (NaN-safe)
-        e_cmp = float(hp_res.get("E_cmp [W]", 0.0))
-        e_ou_fan = float(hp_res.get("E_ou_fan [W]", 0.0))
-        E_hp_load = (0.0 if np.isnan(e_cmp) else e_cmp) + (0.0 if np.isnan(e_ou_fan) else e_ou_fan)
+        # 2. Electric load this step [W]: compressor + outdoor fan + UV lamp (NaN-safe)
+        E_load = add_uv_power_to_e_tot(hp_res)
 
         # 3. PV generation (pure physics)
         dt = getattr(self, "_current_dt", 3600.0)
         T0_K = ctx.T0_K
         pv_r = self._pv.calc_performance(ctx.I_DN, ctx.I_dH, T0_K)
-        E_ctrl_out: float = pv_r["E_ctrl_out"]  # DC from charge controller
 
-        # 4. DC required at inverter input to satisfy HP AC load
-        E_dc_req: float = E_hp_load / self._eta_inv if self._eta_inv > 0 else 0.0
+        # 4. Route the DC power and settle the AC side
+        route = route_pv_ess(pv_r, self._ess, E_load, self._eta_inv, dt, T0_K)
 
-        # 5. Route DC power  (3-way split: HP-off | PV surplus | PV deficit)
-        if E_hp_load == 0.0:
-            # ── HP off: route all PV to ESS, dump overflow ──────────────
-            E_dc_to_inv = 0.0
-            ess_r = self._ess.charge(E_ctrl_out, dt, T0_K)
-            E_dump = max(0.0, E_ctrl_out - ess_r["E_ess_chg"])
-            E_grid_import = 0.0
-        elif E_ctrl_out >= E_dc_req:
-            # ── HP on + PV surplus: supply HP, charge ESS with excess ───
-            E_dc_to_inv = E_dc_req
-            E_dc_excess = E_ctrl_out - E_dc_req
-            ess_r = self._ess.charge(E_dc_excess, dt, T0_K)
-            E_dump = max(0.0, E_dc_excess - ess_r["E_ess_chg"])
-            E_grid_import = 0.0
-        else:
-            # ── HP on + PV deficit: discharge ESS, then fall back to grid
-            E_dc_to_inv_from_pv = E_ctrl_out
-            E_ess_needed = E_dc_req - E_dc_to_inv_from_pv
-            ess_r = self._ess.discharge(E_ess_needed, dt, T0_K)
-            E_dc_to_inv = E_dc_to_inv_from_pv + ess_r["E_ess_dis"]
-            E_dump = 0.0
-            # Remaining AC shortfall supplied by grid
-            E_inv_out_available = self._eta_inv * E_dc_to_inv
-            E_grid_import = max(0.0, E_hp_load - E_inv_out_available)
-
-        # 6. Inverter physics
-        E_inv_out = min(self._eta_inv * E_dc_to_inv + E_grid_import, E_hp_load)
-        Q_l_inv = (1.0 - self._eta_inv) * E_dc_to_inv
-        S_l_inv = Q_l_inv / self._T_inv_K
-        X_l_inv = Q_l_inv - S_l_inv * T0_K
-        X_c_inv = S_l_inv * T0_K
-
-        # 7. Assemble result dict
-        pv_cols = {
-            "I_sol_pv [W/m2]": pv_r["I_sol_pv"],
-            "T_pv [°C]": cu.K2C(pv_r["T_pv_K"]),
-            "eta_pv [-]": pv_r.get("eta_pv", np.nan),
-            "E_pv_out [W]": pv_r["E_pv_out"],
-            "E_ctrl_out [W]": E_ctrl_out,
-            "X_sol [W]": pv_r["X_sol"],
-            "X_pv_out [W]": pv_r["X_pv_out"],
-            "X_ctrl_out [W]": pv_r["X_ctrl_out"],
-            "X_c_pv [W]": pv_r["X_c_pv"],
-            "X_c_ctrl [W]": pv_r["X_c_ctrl"],
-            "X_l_pv [W]": pv_r["X_l_pv"],
-            "X_l_ctrl [W]": pv_r["X_l_ctrl"],
-        }
-        ess_cols = {
-            "E_ess_chg [W]": ess_r["E_ess_chg"],
-            "E_ess_dis [W]": ess_r["E_ess_dis"],
-            "SOC_ess [-]": ess_r["SOC_ess"],
-            "X_c_ess [W]": ess_r["X_c_ess"],
-            "X_l_ess [W]": ess_r["X_l_ess"],
-        }
-        route_cols = {
-            "E_inv_out [W]": E_inv_out,
-            "E_grid_import [W]": E_grid_import,
-            "E_dump [W]": E_dump,
-            "X_c_inv [W]": X_c_inv,
-            "X_l_inv [W]": X_l_inv,
-        }
-        hp_res.update(pv_cols)
-        hp_res.update(ess_cols)
-        hp_res.update(route_cols)
+        # 5. Result columns
+        hp_res.update(pv_ess_result_columns(pv_r, route, self._eta_inv, self._T_inv_K, T0_K))
         return hp_res
 
     # ── post-processing ───────────────────────────────────────────
@@ -186,19 +155,4 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
             return df
 
         df = super()._postprocess(df)
-
-        # System exergy input: Solar exergy + Grid (= pure electricity = exergy)
-        df["X_tot_sys [W]"] = df["X_sol [W]"].fillna(0) + df["E_grid_import [W]"].fillna(0)
-        if "X_uv [W]" in df.columns:
-            df["X_tot_sys [W]"] += df["X_uv [W]"].fillna(0)
-
-        # Total exergy destruction across system (all Xc_ components)
-        df["Xc_sys_tot [W]"] = df.filter(regex=r"^Xc_").sum(axis=1)
-
-        # Grid COP: useful heat / grid electricity drawn
-        df["cop_grid [-]"] = df["Q_tank_w_out [W]"] / df["E_grid_import [W]"].replace(0, np.nan)
-
-        # System exergy efficiency
-        df["ex_eff_sys [-]"] = (df["Xst_tank [W]"] + df["X_tank_w_out [W]"]) / df["X_tot_sys [W]"].replace(0, np.nan)
-
-        return df
+        return pv_ess_postprocess(df)

@@ -39,7 +39,7 @@ import pandas as pd
 from . import calc_util as cu
 from .air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
 from .constants import c_w, rho_w
-from .subsystems import SolarThermalCollector
+from .subsystems import SolarThermalCollector, warn_if_uv_ignored
 
 if TYPE_CHECKING:
     from .dynamic_context import ControlState, StepContext
@@ -100,6 +100,7 @@ class ASHPB_STC_tank(AirSourceHeatPumpBoiler):
         self._stc: SolarThermalCollector = stc
         # Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.
         self.stc = stc
+        warn_if_uv_ignored(self)
 
     # ------------------------------------------------------------------
     # Hook: subsystem step

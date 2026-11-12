@@ -111,8 +111,10 @@ step by step:
 
 The plugin memoizes the solve on rounded inputs, because the plant solver
 re-calls it with identical inputs many times per timestep, and it converts the
-delivered heat into the outlet-temperature actuator with
-``T_out = T_in + Q_ref_tank / (mdot * cp)``.
+heat put into the loop into the outlet-temperature actuator with
+``T_out = T_in + q_loop / (mdot * cp)`` (see
+:ref:`ep-metered-power` for how ``q_loop`` and the metered electricity follow
+from the solved cycle).
 
 IDF wiring
 ==========
@@ -171,18 +173,20 @@ non-zero status instead of computing with bad values.
      - Source-side air temperature ``T0`` for the ASHPB cycle solve.
    * - TMHP -> EnergyPlus
      - Outlet temperature actuator
-     - Inlet temperature plus delivered heat divided by ``m_dot * cp``,
-       clamped inside the liquid-water property range.
+     - Inlet temperature plus the heat put into the loop (``q_loop``, never
+       more than the load request) divided by ``m_dot * cp``, at most
+       ``TOUT_MAX`` (95 °C).
    * - TMHP -> EnergyPlus
      - Mass-flow actuator
      - Requests design flow when load is present and EnergyPlus has not
        yet provided loop flow.
    * - TMHP -> EnergyPlus
      - ``tmhp_E_cmp_J``
-     - Timestep compressor electricity in joules.
+     - Timestep electricity of the whole system (compressor **and** outdoor
+       fan, ``E_tot``) in joules. The name is historical.
    * - TMHP -> EnergyPlus
      - ``tmhp_E_cmp_W``
-     - Optional instantaneous compressor power in watts.
+     - Optional instantaneous system electricity (``E_tot``) in watts.
 
 Configuration
 =============
@@ -206,13 +210,42 @@ variables:
    * - ``TMHP_LOOP_DESIGN_VDOT``
      - Design loop volume flow in ``m3/s``. Default ``0.003``.
    * - ``TMHP_EPLUS_ECMP_ENERGY_GLOBAL``
-     - Plugin global receiving timestep energy in joules. Default
-       ``tmhp_E_cmp_J``.
+     - Plugin global receiving the timestep system electricity (``E_tot``) in
+       joules. Default ``tmhp_E_cmp_J``.
    * - ``TMHP_EPLUS_ECMP_POWER_GLOBAL``
-     - Optional plugin global receiving instantaneous power in watts.
-       Default ``tmhp_E_cmp_W``.
+     - Optional plugin global receiving the instantaneous system electricity
+       in watts. Default ``tmhp_E_cmp_W``.
    * - ``TMHP_PLUGIN_LOG``
      - Optional path for per-call and convergence-tally logging.
+
+.. _ep-metered-power:
+
+Metered electricity and delivered heat
+======================================
+
+The metered power is the **system total** ``E_tot`` of the solved cycle,
+compressor plus outdoor fan. The heat handed to the plant loop and the metered
+power always belong to the same operating state:
+
+.. code-block:: text
+
+   q_loop  = min(Q_cycle, load request, m_dot * cp * (TOUT_MAX - T_in))
+   E_meter = E_tot * q_loop / Q_cycle
+
+``Q_cycle`` and ``E_tot`` are the heat and electricity of the solved, continuously
+running cycle; ``q_loop / Q_cycle`` is the share of the timestep it runs.
+
+* **Minimum-speed clamp.** A variable-speed machine cannot deliver less than its
+  minimum-speed capacity. At a small part load the solved cycle can deliver several
+  times the request (e.g. 6.8 kW for 1.5 kW). EnergyPlus documents
+  ``Load Request for Plant Connection N`` as the desired operating capacity of a
+  connection that meets the loop load, and the loop outlet temperature fixes the heat
+  the loop receives, so delivering ``Q_cycle`` would overheat the loop and its
+  storage tank. The plugin therefore treats the clamp as on/off cycling: the
+  time-averaged heat equals the request and the electricity is scaled by the same
+  duty fraction. No cycling-degradation penalty is applied.
+* **Outlet limit.** Heat that would push the outlet above ``TOUT_MAX`` is not
+  delivered, and the electricity that would have produced it is not metered.
 
 Why this uses ``analyze_steady()``
 ==================================

@@ -33,15 +33,15 @@ import numpy as np
 import pandas as pd
 
 from . import calc_util as cu
+from ._run_reset import GroundSourceHeatPumpBoilerRun
 from .constants import c_w, rho_w
-from .ground_source_heat_pump_boiler import GroundSourceHeatPumpBoiler
-from .subsystems import SolarThermalCollector
+from .subsystems import SolarThermalCollector, warn_if_uv_ignored
 
 if TYPE_CHECKING:
     from .dynamic_context import ControlState, StepContext
 
 
-class GSHPB_STC_tank(GroundSourceHeatPumpBoiler):
+class GSHPB_STC_tank(GroundSourceHeatPumpBoilerRun):
     """GSHPB + SolarThermalCollector in *tank_circuit* placement.
 
     Physical configuration
@@ -91,6 +91,7 @@ class GSHPB_STC_tank(GroundSourceHeatPumpBoiler):
         self._stc: SolarThermalCollector = stc
         # Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.
         self.stc = stc
+        warn_if_uv_ignored(self)
 
     # ------------------------------------------------------------------
     # Hook: subsystem step

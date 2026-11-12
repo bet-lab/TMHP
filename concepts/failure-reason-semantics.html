@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-13T03:30:04+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T05:10:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -360,40 +360,74 @@ duty at any approach temperature in the search band.</p></td>
 </section>
 <section id="failure-detail">
 <h3><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code><a class="headerlink" href="#failure-detail" title="Link to this heading">¶</a></h3>
+<p>Two kinds of failure carry one more key, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>, that says which
+check failed.</p>
 <p>A boiler (ASHPB, GSHPB, WSHPB) <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result whose cycle the
 solver accepted but which is not an operating point is reported as
-<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> and carries one more key, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>, naming the
-check (<code class="docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail</span></code>):</p>
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>; <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code> names the check
+(<code class="docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail</span></code>). An ASHPB
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> result reported as <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> because no outdoor
+approach lets the outdoor coil carry the evaporator duty within the fan’s flow
+limits names the limit it fails at. The outdoor-approach search solves the band
+of approaches the fan can serve from the coil’s capacity margins at its largest
+and smallest airflow; these values say why that band is empty.</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 35.0%" />
-<col style="width: 65.0%" />
+<col style="width: 32.0%" />
+<col style="width: 18.0%" />
+<col style="width: 50.0%" />
 </colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code></p></th>
+<th class="head"><p>With <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code></p></th>
 <th class="head"><p>Means</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">duty_or_power_undefined</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
 <td><p>Delivered heat or compressor power is non-finite or not positive.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_state_undefined</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
 <td><p>The compressor discharge temperature or enthalpy is non-finite —
 typically a low isentropic efficiency at a high pressure ratio,
 which puts the discharge enthalpy outside the refrigerant’s
 equation-of-state range.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_speed_duty_above_capacity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code></p></td>
 <td><p>The compressor sits on its speed floor (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span>
 <span class="pre">&quot;min&quot;</span></code>) yet delivers more than the nameplate <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">outdoor_coil_short_at_max_airflow</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> (ASHPB)</p></td>
+<td><p>At every outdoor approach the cycle reaches (up to the
+pressure-ratio ceiling or the 20 K search bound), the outdoor coil
+absorbs less than the evaporator duty even at the fan’s largest
+flow. A larger <code class="docutils literal notranslate"><span class="pre">UA_ou_rated</span></code> or <code class="docutils literal notranslate"><span class="pre">dV_fan_a_max</span></code>, or a smaller
+request, moves the point into range.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">outdoor_coil_excess_at_min_airflow</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> (ASHPB)</p></td>
+<td><p>At every outdoor approach, down to 1 K, the outdoor coil absorbs more
+than the evaporator duty even at the fan’s smallest flow: the fan
+cannot turn down far enough. A smaller <code class="docutils literal notranslate"><span class="pre">dV_fan_a_min</span></code> moves the
+point into range; a real unit would cycle its fan.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">outdoor_coil_no_band</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> (ASHPB)</p></td>
+<td><p>The coil is short at the largest flow at some approaches and in
+excess at the smallest flow at others, with no approach in between
+at which the fan can carry the duty.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>The key is present only on those results; it is not a dynamic-frame
-column.</p>
+<p>The key is present only on those results, and only on <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
+dicts; it is not a dynamic-frame column (an <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> row that could
+not be solved carries <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> alone).</p>
 <p><code class="docutils literal notranslate"><span class="pre">pr_below_min</span></code> is <em>not</em> a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> value. A pressure ratio
 below <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> is clamped to the floor and the cycle is still
 solved; it only prints a <code class="docutils literal notranslate"><span class="pre">[PR</span> <span class="pre">guard]</span></code> message and sets
@@ -461,7 +495,8 @@ can filter rows downstream.</p>
 for “trust this row?” decisions. If the rate of
 <code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> is uncomfortably high, oversize the
 affected HX (design ε-NTU or area) so the iteration has
-more headroom near phase boundaries.</p>
+more headroom near phase boundaries. On ASHPB, <code class="docutils literal notranslate"><span class="pre">failure_detail</span></code>
+says which fan limit the outdoor coil fails at (see above).</p>
 </div>
 </details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
 <summary class="sd-summary-title sd-card-header sd-bg-warning sd-bg-text-warning">

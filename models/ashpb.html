@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T05:10:19+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1164,10 +1164,14 @@ the SciPy optimiser both succeeded.</p></li>
 <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or
 <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, only on a rejected solved cycle) —
-which check of
-<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code> made
-the point <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, failures only) — on
+<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, which check of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code> rejected a
+solved cycle; on <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, which fan limit the
+outdoor coil fails at every approach the cycle reaches
+(<code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil_short_at_max_airflow&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil_excess_at_min_airflow&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil_no_band&quot;</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code> (str | None) — <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when the
 requested duty was below what the compressor delivers at
 <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and the cycle was solved at that floor instead,

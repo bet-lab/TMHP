@@ -260,8 +260,8 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     accepted = []
     solve = gshpb._solve_cycle_at
 
-    def record_state(ctx, T_tank_w, runtime_fraction=1.0):
-        result = solve(ctx, T_tank_w, runtime_fraction)
+    def record_state(ctx, T_tank_w, runtime_fraction=1.0, **kwargs):
+        result = solve(ctx, T_tank_w, runtime_fraction, **kwargs)
         if result.get("hp_is_on", False):
             accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result.copy()))
         return result

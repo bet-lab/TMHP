@@ -84,8 +84,9 @@ Common to all families
         duties down to the speed floor. A request that a *smaller* duty meets is
         not a failure: it returns that duty with ``capacity_clamped ==
         "max"`` and ``capacity_binding == "discharge_temperature"``. A
-        dynamic boiler step whose cycle exceeds the limit is an off step
-        with this reason (the step does not reduce its duty).
+        dynamic boiler step does the same: it runs at the reduced duty (its
+        run time and step-average heat follow from it) and is an off step
+        with this reason only when no duty fits.
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
 

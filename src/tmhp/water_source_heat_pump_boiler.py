@@ -36,6 +36,7 @@ from .compressor_envelope import (
     check_pr_envelope,
     discharge_controlled,
     envelope_violation,
+    reduce_duty_within_envelope,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -781,9 +782,16 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row carrying the reason the call
-        could not run; see :meth:`GroundSourceHeatPumpBoiler._solve_cycle_at`.
+        could not run; see :meth:`GroundSourceHeatPumpBoiler._solve_cycle_at`
+        (including the duty reduction outside the discharge limit).
         """
-        Q_tank_load = self.hp_capacity
+        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity)
+        return reduce_duty_within_envelope(
+            self, result, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q), self.hp_capacity
+        )
+
+    def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_tank_load: float) -> dict:
+        """:meth:`_solve_cycle_at` for a requested duty ``Q_tank_load`` [W]."""
         T0_C = cu.K2C(ctx.T0_K)
         flow_state = self._step_flow_state(ctx, T_tank_w)
         opt_res = self._optimize_operation(T_tank_w, Q_tank_load, T0_C, flow_state=flow_state)

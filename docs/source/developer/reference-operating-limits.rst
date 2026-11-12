@@ -308,8 +308,17 @@ How each family answers a point the control cannot hold:
   the off state carries ``discharge_temp_above_max``. The discharge
   temperature is not monotone in the duty (at low speed the efficiency
   falls), so this is the boundary nearest the request.
-* **Boiler dynamic steps** are off steps with ``discharge_temp_above_max``
-  when the control cannot hold the limit; the step does not reduce its duty.
+* **Boiler dynamic steps** answer the same way. Each step solves its cycle
+  once (at the mean tank temperature of its run, see
+  :func:`tmhp.dynamic_context.resolve_step_operation`): held by the control
+  if possible, otherwise at the largest duty inside the limit, whose heat then
+  sets the run time and the step-average rates (the tank reaches its upper
+  bound later); a step with no duty inside the limit is an off step with
+  ``discharge_temp_above_max``. The start-temperature retry of that function
+  applies the same reduction. A step that needs the reduction costs one cycle
+  solve per ladder rung and bisection point: 24 h of the default R32 boiler
+  on a cold day (outdoor −8 to 0 °C, dt 600 s) took 9.9 solves per called
+  step and 24 min, against 1 solve and 6 s without the limit.
 
 Steady results of every family carry ``efficiency_extrapolated`` (bool):
 the point lies outside the (PR, N) box of a default efficiency fit. Scalar

@@ -69,8 +69,9 @@ Discharge temperature (``T_dis_max``)
     ``analyze_steady`` then tries smaller duties (:func:`steady_envelope`) and
     returns the largest one inside the limit the same way, or the off state
     with ``failure_reason='discharge_temp_above_max'`` when even a small duty
-    exceeds it. A dynamic boiler step that exceeds the limit is an off step
-    with that reason.
+    exceeds it. A dynamic boiler step does the same with its one cycle solve
+    per step (:func:`reduce_duty_within_envelope`): it runs at the reduced
+    duty, or is an off step with that reason when no duty fits.
 
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
@@ -130,6 +131,7 @@ __all__ = [
     "default_rps_max",
     "efficiency_extrapolated_at",
     "steady_envelope",
+    "reduce_duty_within_envelope",
     "X_SUCTION_MIN_DEFAULT",
     "resolve_x_suction_min",
     "discharge_controlled",
@@ -609,6 +611,55 @@ def _reduce_to_envelope(solve: Callable[[float], dict], request: float, delivere
     return lo_r
 
 
+def reduce_duty_within_envelope(
+    model: Any,
+    result: dict,
+    solve: Callable[[float], Any],
+    request: float,
+    delivered_key: str = "Q_ref_tank [W]",
+) -> dict:
+    """The largest duty inside the discharge limit when ``result`` is refused for it.
+
+    ``result`` is the solve at ``request``; ``solve(q)`` solves the same
+    point at duty ``q``. When ``result`` failed with
+    :data:`DISCHARGE_TEMP_ABOVE_MAX` (even under the discharge-temperature
+    control), smaller duties are tried (:func:`_reduce_to_envelope`) and the
+    largest that runs is returned with ``capacity_clamped='max'``,
+    ``capacity_binding='discharge_temperature'``, ``Q_max [W]`` and
+    ``Q_request [W]``; otherwise ``result`` is returned. The boilers use it
+    for ``analyze_steady`` (:func:`steady_envelope`) and for each dynamic
+    step's cycle, so a step runs at the same reduced duty as the steady
+    solve -- its run time and step-average heat follow from that duty. The
+    trial solves run silently.
+    """
+    if not (request > 0 and math.isfinite(request) and result.get("failure_reason") == DISCHARGE_TEMP_ABOVE_MAX):
+        return result
+
+    def quiet(q: float) -> dict:
+        with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
+            warnings.simplefilter("ignore")
+            out = solve(q)
+        return out if isinstance(out, dict) else {}
+
+    reduced = _reduce_to_envelope(quiet, request, delivered_key)
+    if reduced is None:
+        return result
+    reduced.update(
+        {
+            "capacity_clamped": "max",
+            "capacity_binding": BINDING_DISCHARGE,
+            "Q_max [W]": _delivered(reduced, delivered_key),
+            "Q_request [W]": request,
+        }
+    )
+    for key in _REQUEST_KEYS:
+        if key in reduced:
+            reduced[key] = request
+    if "PLR_request [-]" in reduced and getattr(model, "hp_capacity", 0) > 0:
+        reduced["PLR_request [-]"] = request / model.hp_capacity
+    return reduced
+
+
 def steady_envelope(duty_arg: str | None = None, delivered_key: str = "Q_ref_tank [W]") -> Callable[[_F], _F]:
     """Decorate an ``analyze_steady`` with the envelope's steady-state reporting.
 
@@ -643,31 +694,13 @@ def steady_envelope(duty_arg: str | None = None, delivered_key: str = "Q_ref_tan
                 and result.get("failure_reason") == DISCHARGE_TEMP_ABOVE_MAX
             ):
 
-                def solve(q: float) -> dict:
+                def solve(q: float) -> Any:
                     arguments = dict(bound.arguments)
                     arguments[duty_arg] = q
                     trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
-                    with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
-                        warnings.simplefilter("ignore")
-                        out = function(*trial.args, **trial.kwargs)
-                    return out if isinstance(out, dict) else {}
+                    return function(*trial.args, **trial.kwargs)
 
-                reduced = _reduce_to_envelope(solve, request, delivered_key)
-                if reduced is not None:
-                    result = reduced
-                    result.update(
-                        {
-                            "capacity_clamped": "max",
-                            "capacity_binding": BINDING_DISCHARGE,
-                            "Q_max [W]": _delivered(reduced, delivered_key),
-                            "Q_request [W]": request,
-                        }
-                    )
-                    for key in _REQUEST_KEYS:
-                        if key in result:
-                            result[key] = request
-                    if "PLR_request [-]" in result and getattr(self, "hp_capacity", 0) > 0:
-                        result["PLR_request [-]"] = request / self.hp_capacity
+                result = reduce_duty_within_envelope(self, result, solve, request, delivered_key)
             _annotate(self, result)
             if want_dict:
                 return result

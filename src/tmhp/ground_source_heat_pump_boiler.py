@@ -57,6 +57,7 @@ from .compressor_envelope import (
     check_pr_envelope,
     discharge_controlled,
     envelope_violation,
+    reduce_duty_within_envelope,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -1116,9 +1117,22 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         The condenser heat is what the solved cycle delivers, never the
         requested capacity. ``runtime_fraction`` is the expected run time of
         the step, for the coupled ground-flow path (see
-        :meth:`_ground_flow_result`).
+        :meth:`_ground_flow_result`). Outside the discharge limit the step
+        runs at the largest duty inside it, as ``analyze_steady`` does
+        (:func:`reduce_duty_within_envelope`).
         """
-        Q_tank_load = self.hp_capacity
+        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity, runtime_fraction)
+        return reduce_duty_within_envelope(
+            self,
+            result,
+            lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction),
+            self.hp_capacity,
+        )
+
+    def _solve_cycle_at_duty(
+        self, ctx: StepContext, T_tank_w: float, Q_tank_load: float, runtime_fraction: float = 1.0
+    ) -> dict:
+        """:meth:`_solve_cycle_at` for a requested duty ``Q_tank_load`` [W]."""
         if self._ground_settings["active"]:
             return self._ground_flow_result(ctx, T_tank_w, Q_tank_load, runtime_fraction)
 

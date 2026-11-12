@@ -60,6 +60,7 @@ from .compressor_envelope import (
     discharge_controlled,
     envelope_excess,
     envelope_violation,
+    reduce_duty_within_envelope,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -1717,8 +1718,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         A running result (``failure_reason='none'``), or an off-mode row (no
         heat, no power, NaN COP) carrying the reason the call could not run.
+        Outside the discharge limit the step runs at the largest duty inside
+        it, as ``analyze_steady`` does (:func:`reduce_duty_within_envelope`).
         """
-        Q_ref_tank: float = self.hp_capacity
+        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity)
+        return reduce_duty_within_envelope(
+            self, result, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q), self.hp_capacity
+        )
+
+    def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_ref_tank: float) -> dict:
+        """:meth:`_solve_cycle_at` for a requested duty ``Q_ref_tank`` [W]."""
         flow_state = self._step_flow_state(ctx, T_tank_w)
         opt = self._optimize_operation(
             T_tank_w,

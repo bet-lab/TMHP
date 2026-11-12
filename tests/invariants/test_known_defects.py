@@ -22,7 +22,19 @@ from ._families import FAMILIES, SteadyCase, is_reported_running, num
 
 
 def defect(defect_id: str, why: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, reason=f"#96 {defect_id}: {why}")
+    """Strict xfail that absorbs only the asserted defect.
+
+    ``raises=AssertionError`` keeps any other exception (KeyError, solver
+    crash, ...) a hard failure, and scenario preconditions use
+    :func:`require` (``pytest.fail``), which the mark does not absorb either.
+    """
+    return pytest.mark.xfail(strict=True, raises=AssertionError, reason=f"#96 {defect_id}: {why}")
+
+
+def require(condition: object, message: str) -> None:
+    """Scenario precondition; failing it is a broken test, never the expected defect."""
+    if not condition:
+        pytest.fail(f"scenario precondition failed: {message}")
 
 
 @pytest.fixture(autouse=True)
@@ -99,7 +111,7 @@ def test_c6_ashpb_discharge_temperature_limit():
 @defect("C11", "WSHPB has no superheat cap: suction is +1.6 K above the source fluid")
 def test_c11_wshpb_suction_not_hotter_than_source():
     _, r = FAMILIES["WSHPB"].run("R32", SteadyCase(T_source=-5.0, T_demand=55.0, load_W=400.0))
-    assert is_reported_running(r)
+    require(is_reported_running(r), f"expected a running result, got {r.get('failure_reason')!r}")
     assert num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05
 
 
@@ -154,7 +166,7 @@ def _gshpb_failing_run():
 def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     m, df, dt = _gshpb_failing_run()
     off = _off_rows(df)
-    assert off.any(), "scenario must contain a step without a running cycle"
+    require(off.any(), "scenario must contain a step without a running cycle")
     q_load = np.nan_to_num(df["Q_tank_load [W]"].to_numpy(dtype=float))
     assert np.all(q_load[off] == 0.0), f"Q_tank_load on cycle-less rows: {q_load[off].tolist()}"
     bal = _tank_balance(df, m.C_tank, 50.0, dt)
@@ -177,7 +189,7 @@ def test_t14_off_rows_have_nan_cop(family):
         m = tmhp.WaterSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400.0)
         df = m.analyze_dynamic(n * dt, dt, 50.0, np.zeros(n), _flat(n, 5.0), T_source_w_schedule=_flat(n, 8.0))
     off = _off_rows(df)
-    assert off.any(), "scenario must contain an off row"
+    require(off.any(), "scenario must contain an off row")
     for key in ("cop_ref [-]", "cop_sys [-]"):
         leaked = df.loc[off, key].to_numpy(dtype=float)
         assert np.all(np.isnan(leaked)), f"{key} on off rows: {leaked.tolist()}"
@@ -234,7 +246,7 @@ def test_t2_uv_lamp_heat_enters_tank_once():
     m = tmhp.AirSourceHeatPumpBoiler(uv=uv, hp_on_schedule=[(0.0, 0.0)])
     df, _ = _ashpb_dynamic(m, 3.0, dt, 50.0, None, T0=20.0)
     lamp_J = float(df["E_uv [W]"].sum() * dt)
-    assert lamp_J == pytest.approx(P * on_s, rel=1e-6)
+    require(lamp_J == pytest.approx(P * on_s, rel=1e-6), f"lamp energy {lamp_J:.0f} J != P*t")
     tank_gain_J = m.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(df["Q_tank_loss [W]"].sum() * dt)
     assert tank_gain_J == pytest.approx(P * on_s, rel=0.02), f"tank gained {tank_gain_J / 1e3:.0f} kJ"
 
@@ -282,7 +294,7 @@ def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature()
     draw = np.zeros(n)
     draw[:3] = 12.0 / 60000.0  # cool the bottom so the top stays hot
     df = m.analyze_dynamic(n * dt, dt, 60.0, draw, _flat(n, 5.0))
-    assert len(record) == len(df)
+    require(len(record) == len(df), f"{len(record)} tank steps for {len(df)} rows")
     bad = []
     for i, (q, T_after) in enumerate(record):
         row = df.iloc[i]
@@ -344,7 +356,7 @@ def test_t8_stc_preheat_reported_gain_reaches_tank():
         I_dH_schedule=lambda n: _flat(n, 100.0),
     )
     active = df["stc_active [-]"].astype(bool).to_numpy()
-    assert active.any()
+    require(active.any(), "collector never active")
     reported_J = float(((df["Q_stc_w_out [W]"] - df["Q_stc_w_in [W]"]).to_numpy() * active).sum() * dt)
     # Heat the tank received beyond the refrigerant heat and a 15 °C inflow = preheat delivered.
     delivered_J = _tank_balance(df, m.C_tank, 60.0, dt)["residual_J"]
@@ -469,7 +481,7 @@ def _gshpb_cold_ground():
 def test_g1_evaporator_below_source_fluid_in_same_row(run):
     df = run()
     running = ~_off_rows(df)
-    assert running.any()
+    require(running.any(), "no running row")
     T_ev = df.loc[running, "T_ref_evap_sat [°C]"].to_numpy(dtype=float)
     T_fluid = df.loc[running, "T_bhe_f_out [°C]"].to_numpy(dtype=float)
     assert np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True))

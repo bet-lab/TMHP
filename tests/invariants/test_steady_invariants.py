@@ -30,6 +30,8 @@ import warnings
 
 import pytest
 
+from tmhp.reference_state import ReferenceStateError
+
 from ._checks import check_steady
 from ._families import FAMILIES, SteadyCase
 
@@ -54,6 +56,14 @@ _ALL_GSHP_POINTS = {
     "GSHP-heat": [(s, d, p) for s in (0, 5, 15) for d in (18, 24) for p in PART_LOAD],
     "GSHP-cool": [(s, d, p) for s in (22, 26, 30) for d in (15, 25) for p in PART_LOAD],
 }
+# What each grid defect is allowed to produce. A known-failing point that shows any
+# *other* violation (or a different exception) fails hard instead of hiding behind
+# its xfail mark.
+_EXPECTED_TAGS: dict[str, set[str]] = {
+    "C4": {"failed_with_heat"},
+    "C11": {"suction_vs_source"},
+}
+_EXPECTED_ERROR: dict[str, type[BaseException]] = {"C1": ReferenceStateError}
 _WHY = {
     "C1": "constructor cannot bracket the B0/W55 reference: raw efficiency fit <= 0 in the speed range",
     "C4": "GSHP returns heat and power with converged=False / failure_reason='hx_not_converged'",
@@ -93,7 +103,9 @@ def _grid():
             ids = _known_ids(family, ref, (T_source, T_demand, plr))
             if ids:
                 reason = "; ".join(f"#96 {i}: {_WHY[i]}" for i in ids)
-                marks.append(pytest.mark.xfail(strict=True, reason=reason))
+                errors = {_EXPECTED_ERROR.get(i, AssertionError) for i in ids}
+                assert len(errors) == 1, ids
+                marks.append(pytest.mark.xfail(strict=True, raises=errors.pop(), reason=reason))
             yield pytest.param(
                 family,
                 ref,
@@ -112,6 +124,7 @@ def test_known_failures_reference_grid_points():
         assert ref in REFRIGERANTS
         for defect_id, points in by_id.items():
             assert defect_id in _WHY
+            assert (defect_id in _EXPECTED_TAGS) != (defect_id in _EXPECTED_ERROR), defect_id
             for s, d, p in points:
                 assert s in sources and d in demands and p in PART_LOAD, (family, ref, s, d, p)
                 assert (family, ref, s, d, p) not in _EXCLUDED
@@ -127,4 +140,10 @@ def test_steady_invariants(family, ref, T_source, T_demand, plr):
         warnings.simplefilter("ignore")
         result = fam.call(model, case)
     violations = check_steady(fam, result, case, rated)
+    known = _known_ids(family, ref, (T_source, T_demand, plr))
+    allowed = set().union(*(_EXPECTED_TAGS.get(i, set()) for i in known))
+    unexpected = [v for v in violations if v.split(":", 1)[0] not in allowed]
+    if known and unexpected:
+        # pytest.fail is not an AssertionError, so the xfail(raises=AssertionError) mark cannot absorb it.
+        pytest.fail("violations outside the known #96 defect:\n" + "\n".join(unexpected))
     assert violations == [], "\n".join(violations)

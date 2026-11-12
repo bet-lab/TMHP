@@ -27,6 +27,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
+from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
@@ -175,6 +176,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         UA_cond_design: float | None = None,
         UA_evap_design: float | None = None,
     ) -> None:
+        validate_ctor("WSHPB", locals())
         if refrigerant is not None:
             import warnings
 
@@ -897,6 +899,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         result_save_csv_path=None,
         T_sur_schedule=None,
     ) -> pd.DataFrame:
+        validate_dynamic(locals())
         from scipy.optimize import fsolve
 
         time = np.arange(0, simulation_period_sec, dt_s)
@@ -1225,6 +1228,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN COP. No unsolved point
             is returned with cycle numbers.
         """
+        validate_steady(locals())
         import contextlib
         import warnings
 
@@ -1313,6 +1317,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if result:
             # Steady state doesn't have tank loss because we don't solve tank mass/energy balance
             result["Q_tank_loss [W]"] = 0.0
+            result.setdefault("failure_reason", "none")  # zero load: a valid off result, not a failure
             result["tank_level [-]"] = 1.0  # steady-state: always_full
 
         if return_dict:

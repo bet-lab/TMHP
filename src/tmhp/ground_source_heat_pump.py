@@ -36,6 +36,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
+from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
@@ -46,7 +47,7 @@ from .enex_functions import (
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
-from .g_function import precompute_gfunction
+from .g_function import g_step_mean, precompute_gfunction
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -285,6 +286,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
     ):
+        validate_ctor("GSHP", locals())
         ground_rates = resolve_ground_flow_rates(
             default_ref_lpm=20.04,
             legacy_ref_lpm=dV_b_f_lpm,
@@ -1668,9 +1670,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         pulses_idx = np.flatnonzero(Q_bhe_unit_pulse[: n + 1])
         if len(pulses_idx) > 0:
             dQ = Q_bhe_unit_pulse[pulses_idx]
-            tau = time_arr[n] - time_arr[pulses_idx]
-            tau = np.maximum(tau, 1e-6)
-            g_n_array = self._gfunc_interp(tau)
+            # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
+            g_n_array = g_step_mean(self._gfunc_interp, time_arr[n] - time_arr[pulses_idx], self.dt)
             dT_bhe = float(np.dot(dQ, g_n_array))
         else:
             dT_bhe = 0.0
@@ -1756,6 +1757,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ValueError
             For a non-finite load, temperature or flow input.
         """
+        validate_steady(locals())
         if T_a_room is None:
             T_a_room = self.T_a_room
         _require_finite(
@@ -1834,6 +1836,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         result_save_csv_path: str | None = None,
     ) -> pd.DataFrame:
         """Time-stepping dynamic simulation with BHE superposition."""
+        validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
 
@@ -1889,7 +1892,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                         float(
                             np.dot(
                                 Q_bhe_unit_pulse[idx],
-                                self._gfunc_interp(np.maximum(time[step] - time[idx], 1e-6)),
+                                g_step_mean(self._gfunc_interp, time[step] - time[idx], dt_s),
                             )
                         )
                         if len(idx)
@@ -1897,7 +1900,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     )
                     delta = q_total / self.total_borehole_length - previous_q
                     if abs(delta) > 1e-6:
-                        rise += float(delta * self._gfunc_interp(np.array([1e-6]))[0])
+                        rise += float(delta * g_step_mean(self._gfunc_interp, np.array([0.0]), dt_s)[0])
                     return self.Ts_K - rise
 
                 hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)

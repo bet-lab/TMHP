@@ -33,6 +33,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.linalg import solve_banded
 
+from ._validation import validate_ctor, validate_tank_step
 from .constants import c_w, k_w, rho_w
 
 
@@ -50,6 +51,7 @@ class HybridStratifiedTank:
         rho: float = rho_w,
         cp: float = c_w,
     ) -> None:
+        validate_ctor("TANK", locals())
         if int(n_nodes) < 1:
             raise ValueError(f"n_nodes must be >= 1 — got {n_nodes}")
         if volume <= 0.0 or height <= 0.0:
@@ -113,6 +115,7 @@ class HybridStratifiedTank:
         frozen-reference thermocline; draw/idle/mixed flow uses the standard
         continuous multi-node update (the barrier is destroyed).
         """
+        validate_tank_step(locals())
         n = self.n
         mc_dt = self.m_node * self.cp / dt
         G = self.G

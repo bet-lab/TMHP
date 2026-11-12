@@ -2,8 +2,10 @@
 
 Provides empirical COP correlations for:
 - Air source heat pumps (cooling and heating modes)
-- Ground source heat pumps (modified Carnot model)
+- Ground source heat pumps (EnergyPlus water-to-air EquationFit curves)
 """
+
+import math
 
 from . import calc_util as cu
 
@@ -82,11 +84,101 @@ def calc_ASHP_heating_COP(T0, Q_r_int, Q_r_max):
     return COP
 
 
+# ---------------------------------------------------------------------------
+# Water-to-air heat pump, EnergyPlus EquationFit (ClimateMaster TCH072_GLHP)
+# ---------------------------------------------------------------------------
+# Source: EnergyPlus ``datasets/WaterToAirHeatPumps.idf`` (NREL/EnergyPlus,
+# last update July 2022), objects ``TCH072_GLHP_{CLG,HTG}_{CAPFT,PWRFT}``,
+# "performance curve based on 15% methanol antifreeze solution". Rated:
+#   cooling 70.29 kBtu/h, EER 14.35 at 77 °F EWT, 80.6/66.2 °F entering air;
+#   heating 56.14 kBtu/h, COP 3.42 at 32 °F EWT, 68/59 °F entering air.
+# Curve:QuadLinear  ratio = C1 + C2 w + C3 x + C4 y + C5 z with
+#   w = T_wb / T_ref (cooling) or T_db / T_ref (heating) of the entering air,
+#   x = T_w,in / T_ref (entering source water), T_ref = 283 K,
+#   y = V_air / V_air,rated, z = V_w / V_w,rated.
+# The curves give the *full-load* capacity and power at those conditions;
+# EnergyPlus meets a smaller load by cycling the coil (run-time fraction), so
+# y is the air-flow ratio while the compressor runs, not a part-load ratio.
+
+GSHP_EQFIT_COEFFS = {
+    "CLG_CAPFT": (-4.34283983721389, 7.95908762160623, -2.81781371834254, 0.107825995086305, -9.96686960975482e-3),
+    "CLG_PWRFT": (-6.07162009581271, 0.751024641964602, 5.74078006772573, 0.248287540581677, 3.53588794377984e-3),
+    "HTG_CAPFT": (-4.71139387014587, -1.80505473458221, 7.61053388144077, 0.260726814057021, -2.22820319308267e-2),
+    "HTG_PWRFT": (-5.12615627602834, 4.59939579763495, 1.45764440263458, -4.61795048261089e-2, 4.3384414360512e-3),
+}
+GSHP_EQFIT_T_REF_K = 283.0
+GSHP_EQFIT_COP_REF = {"cooling": 14.35 / 3.412, "heating": 3.42}
+
+#: Fitted domain of each curve variable, copied from the IDF ``Minimum/Maximum
+#: Value of w, x, y, z`` fields (dimensionless, ×283 K for temperatures).
+#: In °C: cooling entering wet-bulb 9.85–23.73, cooling EWT 9.85–48.72;
+#: heating entering dry-bulb 9.85–26.51, heating EWT −1.25–32.06.
+GSHP_EQFIT_DOMAIN = {
+    "cooling": {"w": (1.0, 1.04905), "x": (1.0, 1.13734), "y": (0.75, 1.25), "z": (0.5, 1.0)},
+    "heating": {"w": (1.0, 1.05886), "x": (0.96076, 1.07848), "y": (0.75, 1.25), "z": (0.5, 1.0)},
+}
+
+
+class EquationFitRangeError(ValueError):
+    """An EquationFit curve was asked to evaluate outside its fitted domain."""
+
+    def __init__(self, variable: str, value: float, bounds: tuple[float, float], mode: str) -> None:
+        self.variable = variable
+        self.value = value
+        self.bounds = bounds
+        self.mode = mode
+        lo, hi = bounds
+        super().__init__(
+            f"GSHP EquationFit ({mode}): {variable}={value:.5f} outside the fitted range [{lo}, {hi}]"
+            + (f" (= {value * GSHP_EQFIT_T_REF_K - 273.15:.2f} °C)" if variable in ("w", "x") else "")
+        )
+
+
+def gshp_equation_fit_ratios(T_a_iu_in_K, T_f_out_K, dV_a_ratio, mode, dV_w_ratio=1.0):
+    """Capacity and power ratios of the TCH072_GLHP EquationFit curves.
+
+    Raises :class:`EquationFitRangeError` (a ``ValueError``) when any curve
+    variable lies outside the fitted domain :data:`GSHP_EQFIT_DOMAIN`; the
+    curves are never extrapolated. Inside the domain both ratios are positive
+    (checked at the domain corners: capacity 0.51–1.93, power 0.67–1.50).
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(capacity_ratio, power_ratio)`` relative to the rated point.
+    """
+    if mode not in GSHP_EQFIT_DOMAIN:
+        raise ValueError(f"mode must be 'cooling' or 'heating', got {mode!r}")
+    values = (T_a_iu_in_K, T_f_out_K, dV_a_ratio, dV_w_ratio)
+    if not all(math.isfinite(float(v)) for v in values):
+        raise ValueError("GSHP EquationFit inputs must be finite")
+    if mode == "cooling":
+        from CoolProp.HumidAirProp import HAPropsSI
+
+        # Entering-air wet-bulb at 50 % relative humidity.
+        w = HAPropsSI("Twb", "T", T_a_iu_in_K, "RH", 0.5, "P", 101325) / GSHP_EQFIT_T_REF_K
+        prefix = "CLG"
+    else:
+        w = T_a_iu_in_K / GSHP_EQFIT_T_REF_K
+        prefix = "HTG"
+    x = T_f_out_K / GSHP_EQFIT_T_REF_K
+    point = {"w": w, "x": x, "y": float(dV_a_ratio), "z": float(dV_w_ratio)}
+    for name, value in point.items():
+        lo, hi = GSHP_EQFIT_DOMAIN[mode][name]
+        if not lo - 1e-12 <= value <= hi + 1e-12:
+            raise EquationFitRangeError(name, value, (lo, hi), mode)
+
+    def _quad_linear(c):
+        return c[0] + c[1] * w + c[2] * x + c[3] * point["y"] + c[4] * point["z"]
+
+    return _quad_linear(GSHP_EQFIT_COEFFS[f"{prefix}_CAPFT"]), _quad_linear(GSHP_EQFIT_COEFFS[f"{prefix}_PWRFT"])
+
+
 def calc_GSHP_COP(T_a_iu_in_K, T_f_out_K, dV_a_ratio, mode):
     """Calculate COP for a Ground Source Heat Pump.
 
     Uses the EnergyPlus ``Coil:*:WaterToAir:EquationFit`` model
-    (Equation-Fit Method).
+    (Equation-Fit Method), ``COP = COP_ref · CAP_ratio / PWR_ratio``.
 
     References
     ----------
@@ -109,88 +201,26 @@ def calc_GSHP_COP(T_a_iu_in_K, T_f_out_K, dV_a_ratio, mode):
         Source-side inlet water temperature [K] — water returning from the
         borehole *to* the heat pump (``T_w,in`` in EnergyPlus notation).
     dV_a_ratio : float
-        Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
-        V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]
+        Air flow ratio while the compressor runs, ``V_a / V_a,rated`` [-]
+        (fitted range 0.75–1.25). It is **not** a part-load ratio: the curve
+        describes full-load operation and a part load is met by cycling.
     mode : str
         "cooling" or "heating"
-
-    Units
-    -----
-    Temperatures : K
-    Flow rates   : m³/s
-    Heat/Power   : W
 
     Returns
     -------
     float
-        COP (dimensionless). Polynomial model is unconditionally stable—
-        no ValueError on temperature inversion.
+        Full-load COP (dimensionless), always positive inside the fitted
+        domain; 0.0 for any other ``mode``.
+
+    Raises
+    ------
+    EquationFitRangeError
+        (a ``ValueError``) when the entering-air temperature, the entering
+        water temperature or the air-flow ratio is outside the fitted domain
+        :data:`GSHP_EQFIT_DOMAIN`. The curves are not extrapolated.
     """
-    from CoolProp.HumidAirProp import HAPropsSI
-
-    # ------------------------------------------------------------------
-    # TCH072_GLHP coefficients  (EnergyPlus WaterToAirHeatPumps.idf)
-    # Curve:QuadLinear — [C1, C2(w), C3(x), C4(y), C5(z)]
-    # w = T_wb(clg) / T_a_iu_in(htg) / T_ref
-    # x = T_f_out (= T_w,in) / T_ref
-    # y = V_a / V_a_ref
-    # z = V_w / V_w_ref
-    # T_ref = 283 K  (EnergyPlus Eng. Ref.)
-    # ------------------------------------------------------------------
-    _COEFFS = {
-        "CLG_CAPFT": [-4.34283983721389, 7.95908762160623, -2.81781371834254, 0.107825995086305, -9.96686960975482e-3],
-        "CLG_PWRFT": [-6.07162009581271, 0.751024641964602, 5.74078006772573, 0.248287540581677, 3.53588794377984e-3],
-        "HTG_CAPFT": [-4.71139387014587, -1.80505473458221, 7.61053388144077, 0.260726814057021, -2.22820319308267e-2],
-        "HTG_PWRFT": [-5.12615627602834, 4.59939579763495, 1.45764440263458, -4.61795048261089e-2, 4.3384414360512e-3],
-    }
-    _T_REF = 283  # [K] EnergyPlus fixed reference temperature
-    _COP_REF_CLG = 14.35 / 3.412  # EER 14.35 → COP ≈ 4.207
-    _COP_REF_HTG = 3.42  # Rated heating COP from IDF
-    _V_W_RATIO = 1.0  # Ground-loop water flow ratio (constant-speed pump)
-
-    def _quad_linear(coeffs, x2, x3, x4, x5=1.0):
-        c = coeffs
-        return c[0] + c[1] * x2 + c[2] * x3 + c[3] * x4 + c[4] * x5
-
-    if mode == "cooling":
-        # T_a_iu_in_K (dry-bulb) → convert to wet-bulb for cooling curve (RH=50%)
-        T_wb_K = HAPropsSI("Twb", "T", T_a_iu_in_K, "RH", 0.5, "P", 101325)
-
-        cap_ratio = _quad_linear(
-            _COEFFS["CLG_CAPFT"],
-            T_wb_K / _T_REF,  # w = T_wb / T_ref
-            T_f_out_K / _T_REF,  # x = T_f_out (T_w,in) / T_ref
-            dV_a_ratio,  # y = V_a / V_a_ref
-            _V_W_RATIO,  # z = V_w / V_w_ref
-        )
-        pwr_ratio = _quad_linear(
-            _COEFFS["CLG_PWRFT"],
-            T_wb_K / _T_REF,
-            T_f_out_K / _T_REF,
-            dV_a_ratio,
-            _V_W_RATIO,
-        )
-        COP = _COP_REF_CLG * cap_ratio / pwr_ratio
-
-    elif mode == "heating":
-        # T_a_iu_in_K (dry-bulb) used directly for heating curve
-        cap_ratio = _quad_linear(
-            _COEFFS["HTG_CAPFT"],
-            T_a_iu_in_K / _T_REF,  # w = T_a_iu_in / T_ref
-            T_f_out_K / _T_REF,  # x = T_f_out (T_w,in) / T_ref
-            dV_a_ratio,
-            _V_W_RATIO,
-        )
-        pwr_ratio = _quad_linear(
-            _COEFFS["HTG_PWRFT"],
-            T_a_iu_in_K / _T_REF,
-            T_f_out_K / _T_REF,
-            dV_a_ratio,
-            _V_W_RATIO,
-        )
-        COP = _COP_REF_HTG * cap_ratio / pwr_ratio
-
-    else:
-        COP = 0.0
-
-    return COP
+    if mode not in ("cooling", "heating"):
+        return 0.0
+    cap_ratio, pwr_ratio = gshp_equation_fit_ratios(T_a_iu_in_K, T_f_out_K, dV_a_ratio, mode)
+    return GSHP_EQFIT_COP_REF[mode] * cap_ratio / pwr_ratio

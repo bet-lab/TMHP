@@ -99,8 +99,9 @@ fluid temperature. Supply ``T_bhe_wall`` to close the borehole wall/fluid balanc
 and make flow-dependent Rb* affect the cycle. Without it, the fixed source-fluid
 boundary is retained, and Rb* affects the inferred wall temperature only.
 
-In dynamic simulations, each candidate uses the current-time ground response
-without committing a load pulse. Only the selected operating point updates
+In dynamic simulations, each candidate uses the ground response averaged over
+the current step, including the candidate's own load, without committing a
+load pulse. Only the selected operating point updates
 history. An external GSHPB ground coupler must provide the optional
 ``preview_wall_temperature_rise(n, time_arr, q_unit)`` method to use the new
 coupled flow mode; legacy couplers still work with the default model.
@@ -110,8 +111,18 @@ Module boundaries and assumptions
 
 * ``g_function`` and ``ground_coupling`` describe ground-to-wall response.
   Loads are extraction-positive W/m; cooling heat rejection is negative.
-* ``borehole`` describes wall-to-fluid resistance in m K/W. The existing
-  local-resistance and axial-correction model is preserved. ``variable_Rb``
+  A step reports the wall-temperature rise averaged over ``[t_n, t_n + dt]``
+  (step-mean g-function, own load included); an external coupler should
+  return the same quantity, and receives the run's step length when its
+  ``reset`` accepts a ``dt_s`` keyword. The step is always the run's own
+  ``dt_s``, never the constructor's. Times past the precomputed horizon recompute the
+  g-function rather than extrapolate it.
+* ``borehole`` describes wall-to-fluid resistance in m K/W. The local
+  resistance ``R_b`` and the internal pipe-to-pipe resistance ``R_a`` come
+  from the multipole method; the axial correction is Hellström's
+  ``R_b η coth η`` (``uniform_temperature``, identical to pygfunction) or
+  ``R_b + H² / (3 R_a (ṁ c_p)²)`` (``uniform_heat_flux``), with
+  ``η = H / (ṁ c_p √(R_b R_a))``. ``variable_Rb``
   precomputes 101 flow-grid values, including rated flow, and uses PCHIP with
   no extrapolation. A fixed user ``R_b`` override cannot be combined with it.
 * ``pump`` uses Darcy–Weisbach with laminar/Haaland friction. Identical U-tubes

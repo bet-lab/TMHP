@@ -260,8 +260,8 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     accepted = []
     solve = gshpb._solve_cycle_at
 
-    def record_state(ctx, T_tank_w):
-        result = solve(ctx, T_tank_w)
+    def record_state(ctx, T_tank_w, runtime_fraction=1.0):
+        result = solve(ctx, T_tank_w, runtime_fraction)
         if result.get("hp_is_on", False):
             accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result.copy()))
         return result
@@ -312,9 +312,15 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     increments = np.diff(np.r_[0.0, loads_per_m])
     response = step_mean_superposition(gshpb._gfunc_interp, time_arr, increments, 3600.0)
     wall_C = gshpb.Ts - response
-    mean_C = wall_C - loads_per_m * gshpb.R_b
+    # The wall answers the step-average load (#108); the borehole resistance and
+    # the loop temperature difference act on the running load (average / run time).
+    fraction = df["runtime_fraction [-]"].to_numpy()
+    running_per_m = np.divide(loads_per_m, fraction, out=np.zeros(tN), where=fraction > 0)
+    mean_C = wall_C - running_per_m * gshpb.R_b
     capacity_rate = df["dV_bhe_f [m3/s]"].to_numpy() * rho_w * c_w
-    half_rise = np.divide(df["Q_bhe [W]"].to_numpy(), 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0)
+    half_rise = np.divide(
+        running_per_m * gshpb.total_borehole_length, 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0
+    )
     for column, expected in (
         ("T_bhe [°C]", wall_C),
         ("T_bhe_f [°C]", mean_C),

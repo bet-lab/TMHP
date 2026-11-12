@@ -55,7 +55,9 @@ from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
     ControlState,
+    CycleCarry,
     CycleSolveOutcome,
+    KnownCycleFailure,
     StepContext,
     check_hp_schedule_active,
     delivered_tank_heat,
@@ -65,7 +67,6 @@ from .dynamic_context import (
     step_hp_result,
     tank_mass_energy_residual,
     unphysical_cycle_detail,
-    validate_min_cycle_times,
     warn_if_tank_boiling,
 )
 from .enex_functions import (
@@ -98,6 +99,11 @@ from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
+
+
+def _known_failure(hint: object) -> KnownCycleFailure | None:
+    """The remembered search failure ``resolve_step_operation`` passes as a hint, if any."""
+    return hint if isinstance(hint, KnownCycleFailure) else None
 
 
 class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -315,7 +321,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.hp_capacity = hp_capacity
         self.hp_on_schedule = hp_on_schedule or [(0.0, 24.0)]
-        self.min_on_time_s, self.min_off_time_s = validate_min_cycle_times(min_on_time_s, min_off_time_s)
+        # Validated by validate_ctor (finite, >= 0).
+        self.min_on_time_s: float = float(min_on_time_s)
+        self.min_off_time_s: float = float(min_off_time_s)
         self.dV_mix_w_out_max = dV_mix_w_out_max
         self.T_tank_w_upper_bound = T_tank_w_upper_bound
         self.T_tank_w_lower_bound = T_tank_w_lower_bound
@@ -1043,14 +1051,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             T_mix_w_out_K=self.T_mix_w_out_K,
         )
 
-    def _ground_flow_result(self, ctx: StepContext, T_tank_w: float, Q_tank_load: float) -> dict:
-        """Coupled ground-flow solve (``ground_flow_control`` active) for one request."""
+    def _ground_flow_result(
+        self, ctx: StepContext, T_tank_w: float, Q_tank_load: float, runtime_fraction: float = 1.0
+    ) -> dict:
+        """Coupled ground-flow solve (``ground_flow_control`` active) for one request.
+
+        The borehole wall answers the step-average load (the coupler's
+        step-mean response, #108): a compressor that runs ``runtime_fraction``
+        of the step loads the ground with that fraction of its running
+        extraction. The fluid-to-wall resistance and the loop temperature
+        difference act on the running extraction inside the flow solve.
+        """
         preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
         if preview is None:
             raise ValueError("Coupled ground flow requires a coupler with preview_wall_temperature_rise")
+        fraction = min(1.0, max(0.0, float(runtime_fraction)))
 
         def wall_response(q_total):
-            return self.Ts_K - preview(ctx.n, self.time, q_total / self.total_borehole_length)
+            return self.Ts_K - preview(ctx.n, self.time, fraction * q_total / self.total_borehole_length)
 
         return self._solve_ground_flow(
             T_tank_w,
@@ -1069,17 +1087,32 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         perf.update({"converged": True, "failure_reason": "none"})
         return perf
 
-    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
+    def _solve_cycle_at(
+        self,
+        ctx: StepContext,
+        T_tank_w: float,
+        runtime_fraction: float = 1.0,
+        known_failure: KnownCycleFailure | None = None,
+    ) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row (no heat to the tank, no heat
         from the ground, no power) carrying the reason the call could not run.
         The condenser heat is what the solved cycle delivers, never the
-        requested capacity.
+        requested capacity. ``runtime_fraction`` is the expected run time of
+        the step, for the coupled ground-flow path (see
+        :meth:`_ground_flow_result`). ``known_failure`` is a search failure
+        the previous step observed at or below ``T_tank_w`` under the same
+        source conditions: the failure row is built without searching.
         """
         Q_tank_load = self.hp_capacity
+        if known_failure is not None:
+            flow_state = self._step_flow_state(ctx, T_tank_w)
+            return self._failed_cycle_result(
+                T_tank_w, cu.K2C(ctx.T0_K), flow_state, known_failure.reason, known_failure.detail
+            )
         if self._ground_settings["active"]:
-            return self._ground_flow_result(ctx, T_tank_w, Q_tank_load)
+            return self._ground_flow_result(ctx, T_tank_w, Q_tank_load, runtime_fraction)
 
         T0_C = cu.K2C(ctx.T0_K)
         flow_state = self._step_flow_state(ctx, T_tank_w)
@@ -1216,9 +1249,15 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result: dict,
         hp_is_on: bool,
     ) -> None:
+        # Step-mean convention (#108): the ground history and the wall take the
+        # step-average extraction (the row's Q_bhe). The borehole resistance and
+        # the loop temperature difference have no storage and act while the
+        # compressor runs, so the fluid temperatures use the running extraction.
         Q_bhe_unit = (
             calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
         )
+        fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if hp_is_on else 0.0
+        Q_bhe_unit_run = Q_bhe_unit / fraction if fraction > 0.0 else 0.0
 
         # Ground thermal response (pulse-history temporal superposition) is
         # delegated to the swappable ground coupler; the default reproduces the
@@ -1229,13 +1268,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
+        T_bhe_f_K = T_bhe_K - Q_bhe_unit_run * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
         m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
 
         # Assume symmetrical temperature approach around average BHE fluid temperature
-        dT_bhe_f_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
+        Q_bhe_run = Q_bhe_unit_run * self.total_borehole_length
+        dT_bhe_f_half = float((Q_bhe_run / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_bhe_f_half
         self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
         T_bhe_f_out_K = T_bhe_f_K + dT_bhe_f_half
@@ -1417,6 +1457,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
+        cycle_carry: CycleCarry | None = None
         is_refilling = False
 
         self.T_bhe_f = self.Ts
@@ -1424,6 +1465,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_bhe_f_in = self.Ts
         self.T_bhe_f_in_K = self.Ts_K
         self.T_bhe_f_out = self.Ts
+        # The first step's evaporator reads the Kelvin value: reset it too, or a
+        # second run starts from the first run's last source temperature (#96 T13).
+        self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
 
         # Initialise the ground coupler's pulse-history state for this run.
@@ -1520,7 +1564,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
             # reaches the lower bound, not for whole steps.
-            run, cycle_result, _ = resolve_step_operation(
+            run, cycle_result, cycle_carry = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
                 running_prev=running_prev,
@@ -1541,10 +1585,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     tank_level=tank_level_solve,
                     sub_states=sub_states,
                 ),
-                solve_cycle=lambda T_C, _hint, ctx=ctx: (self._solve_cycle_at(ctx, T_C), None),
+                solve_cycle=lambda T_C, hint, fraction, ctx=ctx: (
+                    self._solve_cycle_at(ctx, T_C, fraction, known_failure=_known_failure(hint)),
+                    None,
+                ),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
+                conditions=(float(ctx.T0), cu.K2C(self.T_bhe_f_out_K), float(self.T_bhe)),
+                carried=cycle_carry,
+                remember_failures=True,
             )
             hp_result = step_hp_result(
                 run,

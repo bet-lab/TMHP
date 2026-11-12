@@ -68,7 +68,6 @@ from .dynamic_context import (
     step_hp_result,
     tank_mass_energy_residual,
     unphysical_cycle_detail,
-    validate_min_cycle_times,
     warn_if_tank_boiling,
 )
 from .enex_functions import (
@@ -364,7 +363,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # --- 6. HP operating schedule ---
         self.hp_on_schedule: list[tuple[float, float]] = hp_on_schedule
-        self.min_on_time_s, self.min_off_time_s = validate_min_cycle_times(min_on_time_s, min_off_time_s)
+        # Validated by validate_ctor (finite, >= 0).
+        self.min_on_time_s: float = float(min_on_time_s)
+        self.min_off_time_s: float = float(min_off_time_s)
 
         # --- 7. Subsystems ---
         self.stc: SolarThermalCollector | None = stc
@@ -1733,7 +1734,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             residual_free=self._build_residual_fn(
                 ctx, ctrl_free, dt_s, T_tank_w_in_K_n, T_sup_w_K_n, tank_level, sub_states
             ),
-            solve_cycle=lambda T_C, x_hint: self._solve_cycle_at(ctx, T_C, x_hint),
+            solve_cycle=lambda T_C, x_hint, _fraction: self._solve_cycle_at(ctx, T_C, x_hint),
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,

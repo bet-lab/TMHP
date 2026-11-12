@@ -22,7 +22,9 @@ __all__ = [
     "ControlState",
     "CycleSolveOutcome",
     "DynamicState",
+    "CycleCarry",
     "InStepRun",
+    "KnownCycleFailure",
     "StepContext",
     "Subsystem",
     "SubsystemExergy",
@@ -38,7 +40,6 @@ __all__ = [
     "tank_free_heat_rate",
     "tank_mass_energy_residual",
     "unphysical_cycle_detail",
-    "validate_min_cycle_times",
     "warn_if_tank_boiling",
 ]
 
@@ -174,10 +175,10 @@ class DynamicState:
         Time the compressor has been in its current running state (on or
         off) at the end of the previous step [s]; ``inf`` at the start of a
         run. Read by the minimum on/off time rules.
-    cycle_carry : tuple | None
-        ``(conditions, x)`` of a run still going at the end of the previous
-        step: the operating point the next step starts its cycle search from
-        (see :func:`resolve_step_operation`).
+    cycle_carry : CycleCarry | None
+        What the previous step's cycle hands this one: the operating point
+        of a run still going, or a remembered search failure (see
+        :func:`resolve_step_operation`).
     """
 
     T_tank_w_K: float
@@ -187,7 +188,7 @@ class DynamicState:
     dV_tank_w_out_prev: float
     hp_running_prev: bool = False
     hp_phase_age_s: float = math.inf
-    cycle_carry: tuple | None = None
+    cycle_carry: CycleCarry | None = None
 
 
 # ------------------------------------------------------------------
@@ -388,9 +389,9 @@ T_WATER_BOIL_C: float = 100.0
 """Boiling point of the stored water at atmospheric pressure [°C].
 
 The heat pump never drives a tank past it: the in-step thermostat treats it as
-an absolute cut-out on top of the upper set point (it only matters when a
-minimum on-time holds the compressor past the set point, or when the set point
-itself is at or above it).
+an absolute cut-out on top of the upper set point. Constructors already refuse
+set points above 100 °C (:mod:`tmhp._validation`); the cut-out matters when a
+minimum on-time holds the compressor past the set point.
 """
 
 
@@ -540,8 +541,9 @@ def simulate_thermostat_step(
         delays a start the call asks for.
     T_limit_C : float
         Absolute cut-out [°C]; the effective upper bound is
-        ``min(T_upper, T_limit_C)``. A band set above it is shifted down to
-        end there, keeping its width.
+        ``min(T_upper, T_limit_C)``. The constructors refuse bounds above
+        100 °C, so the cut-out acts when a minimum run time holds the
+        compressor past the upper bound.
 
     More than 1000 switching events in one step (a band too narrow for the
     step) are closed by the fast-cycling limit: the tank holds the
@@ -549,7 +551,6 @@ def simulate_thermostat_step(
     of the step that balances the tank there.
     """
     T_hi = min(T_upper, T_limit_C)
-    T_lower = T_lower - max(0.0, T_upper - T_limit_C)
     (T_a, P_a), (T_b, P_b) = free_heat
     slope = (P_b - P_a) / (T_b - T_a) if T_b != T_a else 0.0
     p_const = P_a - slope * T_a
@@ -652,6 +653,46 @@ def simulate_thermostat_step(
     )
 
 
+@dataclass(frozen=True)
+class KnownCycleFailure:
+    """A failed cycle search the next step may stand on instead of searching again."""
+
+    reason: str
+    detail: str | None = None
+
+
+#: Failure reasons whose cause only worsens as the tank (condensing side) warms:
+#: a cycle that has no operating point at tank temperature T has none above it.
+CYCLE_MONOTONE_FAILURES: frozenset[str] = frozenset({"cycle_invalid", "pr_above_max"})
+
+
+@dataclass(frozen=True)
+class CycleCarry:
+    """What one step hands the next about its cycle (see :func:`resolve_step_operation`).
+
+    ``x``: the operating-point search variable of a run still going at the
+    step end. ``T_fail`` / ``failure``: the lowest tank temperature [°C] at
+    which a search found no operating point for a reason in
+    :data:`CYCLE_MONOTONE_FAILURES`. ``conditions`` are the step's source-side
+    conditions (e.g. outdoor or source-fluid temperature [°C]) when it was
+    observed.
+    """
+
+    conditions: tuple[float, ...]
+    x: float | None = None
+    T_fail: float | None = None
+    failure: KnownCycleFailure | None = None
+
+    def within(self, conditions: tuple[float, ...], tol: float) -> bool:
+        return len(self.conditions) == len(conditions) and all(
+            abs(a - b) <= tol for a, b in zip(self.conditions, conditions, strict=True)
+        )
+
+
+CYCLE_FAILURE_MEMORY_TOLERANCE_K: float = 0.1
+"""Largest change [K] of the source-side conditions for which a step stands on
+the previous search's failure instead of searching again."""
+
 CYCLE_REUSE_TOLERANCE_K: float = 0.5
 """Largest change [K] of a step's cycle conditions (outdoor or source
 temperature) for which a run carried over from the previous step starts from
@@ -699,8 +740,9 @@ def resolve_step_operation(
     min_on_time_s: float = 0.0,
     min_off_time_s: float = 0.0,
     conditions: tuple[float, ...] = (),
-    carried: tuple[tuple[float, ...], float] | None = None,
-) -> tuple[InStepRun, dict | None, tuple[tuple[float, ...], float] | None]:
+    carried: CycleCarry | None = None,
+    remember_failures: bool = False,
+) -> tuple[InStepRun, dict | None, CycleCarry | None]:
     """Compressor operation in one step and the cycle it ran.
 
     ``residual_free(T_K)`` is the boiler's own implicit tank residual built
@@ -721,15 +763,26 @@ def resolve_step_operation(
        again with the heat that cycle delivers (zero if it has no operating
        point).
 
-    ``solve_cycle(T_C, x_hint)`` returns ``(result, x)``: the cycle and the
+    ``solve_cycle(T_C, x_hint, runtime_fraction)`` returns ``(result, x)``:
+    the cycle (``runtime_fraction`` is the run time the first pass expects,
+    for boilers whose source responds to the step-average load) and the
     value of the boiler's operating-point search variable it settled on
     (``None`` if the boiler has none to share). A run that goes on past the
-    step end returns ``(conditions, x)`` as a carry; the next step passes it
-    back as ``carried``, and while the same run continues and every
+    step end returns a :class:`CycleCarry` with ``x``; the next step passes
+    it back as ``carried``, and while the same run continues and every
     condition (e.g. outdoor temperature [°C]) is within
     ``CYCLE_REUSE_TOLERANCE_K`` the boiler may start from ``x`` (evaluate
     the cycle there at the new tank temperature and search again only if
     that is not an operating point) instead of searching from scratch.
+
+    With ``remember_failures``, a step whose search found no operating point
+    for a reason in :data:`CYCLE_MONOTONE_FAILURES` carries that failure
+    (lowest failing tank temperature, reason). While the conditions stay
+    within ``CYCLE_FAILURE_MEMORY_TOLERANCE_K`` of the search that observed
+    it, later steps pass a :class:`KnownCycleFailure` as ``x_hint`` for any
+    tank temperature at or above it, and the boiler builds the failure row
+    without searching: what the search would return when feasibility is
+    monotone in tank temperature.
 
     Returns the :class:`InStepRun`, the cycle result (``None`` if the
     compressor never had to run in this step) and the carry for the next
@@ -777,30 +830,63 @@ def resolve_step_operation(
         min_off_time_s=min_off_time_s,
     )
     provisional = simulate_thermostat_step(Q_on=Q_request, **kwargs)  # type: ignore[arg-type]
+    memory = carried if carried is not None and carried.failure is not None else None
     if provisional.T_on_mean_C is None:
-        return provisional, None, None
-    hint = None
+        return provisional, None, memory
+    hint: object = None
     if (
         carried is not None
+        and carried.x is not None
         and running_prev
         and provisional.running_start
-        and len(carried[0]) == len(conditions)
-        and all(abs(a - b) <= CYCLE_REUSE_TOLERANCE_K for a, b in zip(carried[0], conditions, strict=True))
+        and carried.within(conditions, CYCLE_REUSE_TOLERANCE_K)
     ):
-        hint = carried[1]
+        hint = carried.x
+    known = (
+        memory
+        if remember_failures and memory is not None and memory.within(conditions, CYCLE_FAILURE_MEMORY_TOLERANCE_K)
+        else None
+    )
+
+    def attempt(T_C: float, x_hint: object) -> tuple[dict, float | None, bool]:
+        """Solve at ``T_C``; a remembered failure at or below ``T_C`` stands in for the search."""
+        if known is not None and known.T_fail is not None and known.T_fail <= T_C:
+            result, _ = solve_cycle(T_C, known.failure, provisional.runtime_fraction)
+            return result, None, True
+        result, x = solve_cycle(T_C, x_hint, provisional.runtime_fraction)
+        return result, x, False
+
     T_eval = provisional.T_on_mean_C
-    cycle_result, x_used = solve_cycle(T_eval, hint)
+    cycle_result, x_used, from_memory = attempt(T_eval, hint)
     q = delivered_tank_heat(cycle_result)
+    failed_at = [T_eval]
     T_first = provisional.T_on_first_C
     if q <= 0.0 and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
         # No operating point at the mean temperature (an envelope that closes
         # as the tank warms): the cycle that starts the run, when the run
         # starts well below the mean (a nearby start would fail the same way).
-        retry, x_retry = solve_cycle(T_first, None)
+        retry, x_retry, retry_from_memory = attempt(T_first, None)
         if delivered_tank_heat(retry) > 0.0:
             cycle_result, q, x_used = retry, delivered_tank_heat(retry), x_retry
+        else:
+            failed_at.append(T_first)
+            from_memory = from_memory and retry_from_memory
     run = simulate_thermostat_step(Q_on=q, **kwargs)  # type: ignore[arg-type]
-    carry = (tuple(conditions), x_used) if (run.running_end and q > 0.0 and x_used is not None) else None
+    carry: CycleCarry | None = None
+    if q > 0.0:
+        if run.running_end and x_used is not None:
+            carry = CycleCarry(tuple(conditions), x=x_used)
+    elif remember_failures:
+        reason = str(cycle_result.get("failure_reason", ""))
+        if from_memory and known is not None:
+            carry = known  # keep the conditions of the search that observed it
+        elif reason in CYCLE_MONOTONE_FAILURES:
+            detail = cycle_result.get("failure_detail")
+            carry = CycleCarry(
+                tuple(conditions),
+                T_fail=min(failed_at),
+                failure=KnownCycleFailure(reason, None if detail is None else str(detail)),
+            )
 
     T_hi = min(T_upper, T_WATER_BOIL_C)
     age_through = (phase_age_s if running_prev == run.running_start else 0.0) + dt
@@ -810,7 +896,7 @@ def resolve_step_operation(
         T_end = _solve_tank_end(residual_free, q, dt, C_tank)
         if T_end is not None and T_end - 273.15 < T_hi:
             run = InStepRun(1.0, True, True, True, run.starts, age_through, run.T_on_mean_C, False, T0_C)
-            carry = (tuple(conditions), x_used) if x_used is not None else None
+            carry = CycleCarry(tuple(conditions), x=x_used) if x_used is not None else None
     elif (
         not run.running_start
         and run.running_end
@@ -823,19 +909,8 @@ def resolve_step_operation(
         # the tank really cools that far within the step.
         T_end = _solve_tank_end(residual_free, 0.0, dt, C_tank)
         if T_end is not None and T_end - 273.15 > T_lower:
-            return InStepRun(0.0, False, False, False, 0, age_through, None, False), None, None
+            return InStepRun(0.0, False, False, False, 0, age_through, None, False), None, memory
     return run, cycle_result, carry
-
-
-def validate_min_cycle_times(min_on_time_s: float, min_off_time_s: float) -> tuple[float, float]:
-    """Check minimum compressor run/rest times [s]: finite and non-negative."""
-    out = []
-    for name, value in (("min_on_time_s", min_on_time_s), ("min_off_time_s", min_off_time_s)):
-        v = float(value)
-        if not math.isfinite(v) or v < 0.0:
-            raise ValueError(f"{name} must be a finite number >= 0, got {value!r}")
-        out.append(v)
-    return out[0], out[1]
 
 
 TANK_BOILING_WARNING = (

@@ -32,7 +32,6 @@ from tmhp.dynamic_context import (
     T_WATER_BOIL_C,
     TANK_BOILING_WARNING,
     simulate_thermostat_step,
-    validate_min_cycle_times,
 )
 
 from .invariants._checks import tank_energy_residual
@@ -112,8 +111,8 @@ def test_event_model_minimum_times_and_cut_out():
     # ... but never past the boiling cut-out.
     run = _sim(T_start_C=95.0, T_lower=90.0, T_upper=99.0, min_on_time_s=3600.0, free_heat=((90.0, 0.0), (99.0, 0.0)))
     assert run.runtime_fraction * 3600.0 == pytest.approx(C * (T_WATER_BOIL_C - 95.0) / 10_000.0)
-    # A band set above 100 °C is shifted to end there (110-120 -> 90-100 °C).
-    run = _sim(T_upper=120.0, T_lower=110.0, T_start_C=90.0, free_heat=((90.0, -500.0), (120.0, -500.0)))
+    # A set point at 100 °C (the largest the constructors accept) stops there.
+    run = _sim(T_upper=100.0, T_lower=95.0, T_start_C=90.0, free_heat=((90.0, -500.0), (100.0, -500.0)))
     assert run.runtime_fraction * 3600.0 == pytest.approx(C * 10.0 / 9_500.0, rel=1e-9)
     assert not run.call_end and run.starts == 1
     # Minimum rest delays the start the call asks for.
@@ -135,13 +134,18 @@ def test_event_model_without_cycle_keeps_the_call():
     assert run.call_end and not run.running_end and run.starts == 0
 
 
-def test_min_cycle_times_validated():
-    assert validate_min_cycle_times(0, 180) == (0.0, 180.0)
-    for bad in (-1.0, math.nan, math.inf):
-        with pytest.raises(ValueError):
-            validate_min_cycle_times(bad, 0.0)
-    with pytest.raises(ValueError):
-        AirSourceHeatPumpBoiler(min_off_time_s=-5.0)
+@pytest.mark.parametrize("cls", [AirSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler])
+@pytest.mark.parametrize("name", ["min_on_time_s", "min_off_time_s"])
+@pytest.mark.parametrize("bad", [-1.0, math.nan, math.inf])
+def test_min_cycle_times_validated(cls, name, bad):
+    with pytest.raises(ValueError, match=name):
+        cls(**{name: bad})
+
+
+def test_set_point_above_boiling_is_refused():
+    """#106 bounds the set points to liquid water, so the band never reaches past 100 °C."""
+    with pytest.raises(ValueError, match="T_tank_w_upper_bound"):
+        AirSourceHeatPumpBoiler(T_tank_w_upper_bound=110.0, T_tank_w_lower_bound=100.0)
 
 
 # ---------------------------------------------------------------------------

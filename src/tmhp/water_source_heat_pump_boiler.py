@@ -34,7 +34,9 @@ from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
     ControlState,
+    CycleCarry,
     CycleSolveOutcome,
+    KnownCycleFailure,
     StepContext,
     check_hp_schedule_active,
     delivered_tank_heat,
@@ -44,7 +46,6 @@ from .dynamic_context import (
     step_hp_result,
     tank_mass_energy_residual,
     unphysical_cycle_detail,
-    validate_min_cycle_times,
     warn_if_tank_boiling,
 )
 from .enex_functions import (
@@ -59,6 +60,11 @@ from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
+
+
+def _known_failure(hint: object) -> KnownCycleFailure | None:
+    """The remembered search failure ``resolve_step_operation`` passes as a hint, if any."""
+    return hint if isinstance(hint, KnownCycleFailure) else None
 
 
 class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -223,7 +229,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.hp_capacity = hp_capacity
         self.hp_on_schedule = hp_on_schedule or [(0.0, 24.0)]
-        self.min_on_time_s, self.min_off_time_s = validate_min_cycle_times(min_on_time_s, min_off_time_s)
+        # Validated by validate_ctor (finite, >= 0).
+        self.min_on_time_s: float = float(min_on_time_s)
+        self.min_off_time_s: float = float(min_off_time_s)
         self.dV_mix_w_out_max = dV_mix_w_out_max
         self.T_tank_w_upper_bound = T_tank_w_upper_bound
         self.T_tank_w_lower_bound = T_tank_w_lower_bound
@@ -750,13 +758,20 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         perf["failure_reason"] = "none"
         return perf
 
-    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
+    def _solve_cycle_at(
+        self, ctx: StepContext, T_tank_w: float, known_failure: KnownCycleFailure | None = None
+    ) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
         A running result, or an off-mode row carrying the reason the call
         could not run; see :meth:`GroundSourceHeatPumpBoiler._solve_cycle_at`.
         """
         Q_tank_load = self.hp_capacity
+        if known_failure is not None:
+            flow_state = self._step_flow_state(ctx, T_tank_w)
+            return self._failed_cycle_result(
+                T_tank_w, cu.K2C(ctx.T0_K), flow_state, known_failure.reason, known_failure.detail
+            )
         T0_C = cu.K2C(ctx.T0_K)
         flow_state = self._step_flow_state(ctx, T_tank_w)
         opt_res = self._optimize_operation(T_tank_w, Q_tank_load, T0_C, flow_state=flow_state)
@@ -936,12 +951,16 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
+        cycle_carry: CycleCarry | None = None
         is_refilling = False
 
         self.T_bhe = self.Ts
         self.T_bhe_f_in = self.Ts
         self.T_bhe_f_in_K = self.Ts_K
         self.T_bhe_f_out = self.Ts
+        # The first step's evaporator reads the Kelvin value: reset it too, or a
+        # second run starts from the first run's last source temperature (#96 T13).
+        self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
 
         # DHW schedule handling: direct m³/s flow array
@@ -1051,7 +1070,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
             # reaches the lower bound, not for whole steps.
-            run, cycle_result, _ = resolve_step_operation(
+            run, cycle_result, cycle_carry = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
                 running_prev=running_prev,
@@ -1064,10 +1083,16 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 C_next=self.C_tank * max(0.001, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=res_fn_free,
-                solve_cycle=lambda T_C, _hint, ctx=ctx: (self._solve_cycle_at(ctx, T_C), None),
+                solve_cycle=lambda T_C, hint, _fraction, ctx=ctx: (
+                    self._solve_cycle_at(ctx, T_C, known_failure=_known_failure(hint)),
+                    None,
+                ),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
+                conditions=(float(ctx.T0), cu.K2C(self.T_bhe_f_out_K), float(T_source_w_n)),
+                carried=cycle_carry,
+                remember_failures=True,
             )
             hp_result = step_hp_result(
                 run,
@@ -1128,9 +1153,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
             level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
 
-            # Heat extraction calculation for reporting
+            # Heat extraction: the row reports the step average; the pipe
+            # resistance and loop temperature difference act while the
+            # compressor runs, so the fluid temperatures use the running load.
             Q_bhe_unit = hp_result.get("Q_bhe [W]", 0.0) / self.H_b if hp_is_on else 0.0
             self.Q_bhe = Q_bhe_unit * self.H_b
+            fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if hp_is_on else 0.0
+            Q_bhe_unit = Q_bhe_unit / fraction if fraction > 0.0 else 0.0
             m_cp_b = c_w * rho_w * self.dV_b_f_m3s
 
             # Infinite heat capacity boundary (River/Lake), no ground interference
@@ -1142,7 +1171,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             self.T_bhe_f = cu.K2C(T_bhe_f_K)
 
             # Assume symmetrical temperature approach around average BHE fluid temperature
-            dT_bhe_f_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
+            dT_bhe_f_half = float((Q_bhe_unit * self.H_b / m_cp_b) / 2) if m_cp_b > 0 else 0.0
             self.T_bhe_f_in_K = T_bhe_f_K - dT_bhe_f_half
             self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
             T_bhe_f_out_K = T_bhe_f_K + dT_bhe_f_half

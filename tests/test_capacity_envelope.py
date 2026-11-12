@@ -123,8 +123,16 @@ def test_heating_ceiling_rises_with_outdoor_temperature(hp):
     # would pin the artefact. What stays pinned is the thing the test is named
     # for: the ceiling moves, and moves a lot. A fixed cap would hold both ends
     # at exactly 1.00.
+    #
+    # How much it moves depends on the compressor efficiency map. The refrigerant
+    # mass flow at the speed ceiling falls by about 1.5x from +2 to -15 degC, but
+    # the heating duty falls less because the adiabatic compressor turns its
+    # losses into delivered heat: on the BITZER defaults the cold ceiling runs at
+    # PR 7.0 with eta_is 0.44 (discharge 140 degC) and the ratio is 1.21; on the
+    # v2026-09-24 correlations this test was first written against it was 1.39
+    # (eta_is 0.57). 1.15 keeps the property and leaves the map open (#96).
     assert mild["Q_max [W]"] > UNIT["hp_capacity"]
-    assert mild["Q_max [W]"] / cold["Q_max [W]"] > 1.3
+    assert mild["Q_max [W]"] / cold["Q_max [W]"] > 1.15
 
 
 def test_cooling_ceiling_falls_with_outdoor_temperature(hp):

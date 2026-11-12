@@ -120,7 +120,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap)
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 5.0,
+        # 5.0 rejected ordinary cold-weather heating: a split unit lifting from
+        # -15 degC outdoor air to a 27 degC room runs at a pressure ratio near
+        # 7, and Daikin publishes performance down to -20 degC. The guard is a
+        # sanity bound, not a performance model, so it is set at the AC-scroll
+        # self-unload limit cited in `compressor_envelope` (~11:1) rather than
+        # below the equipment's own published envelope. The boiler models keep
+        # a looser 20 because high-temperature domestic hot water genuinely
+        # reaches that ratio through vapour injection.
+        PR_cycle_max: float = 11.0,
         # Compressor speed search bounds [rev/s]
         rps_min: float = 15.0,
         rps_max: float = 150.0,
@@ -243,11 +251,49 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
+        # Outdoor-coil conductance per watt of nameplate cooling capacity.
+        #
+        # Derived, not chosen. Air-coil catalogues rate an entire range at one
+        # declared condition, so inverting them gives conductance per unit duty
+        # that is comparable across capacities by construction -- and for a
+        # coil whose refrigerant side changes phase that inversion is an
+        # identity, with no parameter fitted. Two rating standards written by
+        # different committees for different applications (EN 328 SC2 for unit
+        # coolers, 352 models across four manufacturers; ENV 327 for air-cooled
+        # condensers, 1,062 models across two) place their populations in the
+        # same band of UA per unit duty, 0.11-0.23 W/K per W, although the air
+        # flow per kilowatt they adopt differs by a factor of 2.4.
+        #
+        # Converting the condenser band to the nameplate basis needs the factor
+        # `1 + 1/EER`, because the nameplate is the indoor coil's cooling duty
+        # while the outdoor coil rejects that duty plus the compressor work
+        # (1.29-1.35 across the reference units). The result is
+        # UA/Q_cool = 0.19, i.e. `hp_capacity / 5`.
+        #
+        # An independent route -- computing the conductance straight from the
+        # outdoor-coil geometry that Trane prints for twelve Precedent packaged
+        # heat pumps, through the Wang/Chi/Chang (2000) plain-fin correlation
+        # and Schmidt fin efficiency -- gives Q/6.8 with a declared
+        # refrigerant-side film coefficient of 2500 W/(m^2 K) and Q/4.3 with
+        # that resistance removed, bracketing the value above. The two routes
+        # share neither inputs nor method.
+        #
+        # See validation/extraction/ua_transfer_law.py to regenerate all of it.
+        # Established for dry, round-tube-plate-fin coils; frosted operation,
+        # microchannel coils and residential mini-splits are outside the
+        # evidence and stated as such in the documentation.
         if UA_ou_rated is None:
-            self.UA_ou_rated = hp_capacity / 10.0
+            self.UA_ou_rated = hp_capacity / 5.0
         else:
             self.UA_ou_rated = UA_ou_rated
 
+        # Both faces are air coils sharing the same equivalent approach, so
+        # their conductance ratio is their duty ratio, `1 / (1 + 1/EER)`. That
+        # is 0.73-0.78 across the twelve reference units and 0.78-0.80 at the
+        # EER of current equipment, so 0.8 is derived rather than assumed.
+        # In cooling the indoor coil runs wet, which makes a sensible-basis UA
+        # an underestimate; the ratio rises above 0.8 when the latent load is
+        # large.
         if UA_iu_rated is None:
             self.UA_iu_rated = self.UA_ou_rated * 0.8
         else:

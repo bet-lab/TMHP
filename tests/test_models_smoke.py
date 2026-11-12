@@ -304,7 +304,12 @@ def test_ashp_custom_pr_and_rps():
 def test_ashp_default_pr_and_rps():
     ashp = AirSourceHeatPump(ref="R32", UA_ou_rated=3000.0, UA_iu_rated=3000.0)
     assert ashp.PR_cycle_min == 1.5
-    assert ashp.PR_cycle_max == 5.0
+    # Raised from 5.0: a split unit lifting from -15 degC outdoor air to a warm
+    # room runs a pressure ratio near 7, and manufacturers publish performance
+    # down to -20 degC, so the old ceiling rejected ordinary cold-weather
+    # heating. 11 is the AC-scroll self-unload limit cited in
+    # `compressor_envelope`.
+    assert ashp.PR_cycle_max == 11.0
     assert ashp.rps_min == 15.0
     assert ashp.rps_max == 150.0
 

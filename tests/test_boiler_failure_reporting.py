@@ -12,7 +12,9 @@ used to hand back a state they had not solved:
 * ASHPB dynamic discarding the optimiser outcome, leaving called-but-unsolved
   steps as ``hp_is_on=True`` rows with NaN heat, power and COP;
 * no per-step ``failure_reason`` column in the dynamic frames although the
-  docs branch on it.
+  docs branch on it;
+* GSHPB/WSHPB forward-filling the dynamic frame, which copied the last
+  running step's COP and cycle state into every off row.
 
 The dynamic scenarios start each default machine just below its hysteresis
 floor for a few 300 s steps: enough to reach the tank temperature above which
@@ -285,3 +287,35 @@ def test_dynamic_frame_reports_failure_reason_per_step(run: str, request: pytest
     assert (reasons[ran] == "none").all()
     assert (reasons != "none").any(), "scenario must contain called-but-unsolved steps"
     assert not df.loc[reasons != "none", "converged"].astype(bool).any()
+
+
+# --------------------------------------------------------------------------
+# Item 3: no forward fill into off rows
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "run",
+    [
+        pytest.param(name, marks=pytest.mark.xdist_group(name.replace("_failing_run", "-failing-run")))
+        for name in _FAILING_RUNS
+    ],
+)
+def test_off_rows_carry_no_performance_figures(run: str, request: pytest.FixtureRequest) -> None:
+    """No COP or compressor state is carried into rows where nothing ran.
+
+    GSHPB and WSHPB used to forward-fill the whole frame, copying the last
+    running step's COP, efficiencies and refrigerant states into every off
+    row (daily mean cop_sys 2.00 instead of 2.12 on the default GSHPB).
+    """
+    _model, df, _dt = request.getfixturevalue(run)
+    off = ~df["hp_is_on"].astype(bool)
+    assert off.any() and (~off).any()
+    for key in ("cop_ref [-]", "cop_sys [-]"):
+        assert df.loc[off, key].isna().all(), key
+        assert df.loc[~off, key].notna().all(), key
+    # Compressor descriptors of a stopped machine: absent (NaN) or zero.
+    for key in ("eta_cmp_isen [-]", "cmp_rps [rev/s]", "cmp_rpm [rpm]", "pr_cmp [-]"):
+        if key in df.columns:
+            values = df.loc[off, key].to_numpy(dtype=float)
+            assert np.all(np.isnan(values) | (values == 0.0)), key

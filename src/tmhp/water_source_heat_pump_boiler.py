@@ -1090,8 +1090,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_K = T_solved_K
             tank_level = level_next
 
+        # No forward fill: a NaN here is a quantity that does not exist on that
+        # step (COP, compressor and refrigerant states while the compressor is
+        # stopped). Tank, source and flow columns are written on every step.
         results_df = pd.DataFrame(results_data)
-        results_df.ffill(inplace=True)
         results_df = self._postprocess(results_df)
 
         if result_save_csv_path:

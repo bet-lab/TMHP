@@ -39,18 +39,57 @@ def calc_uv_lamp_power(
     Returns
     -------
     float
-        Instantaneous lamp power [W] (0 or ``lamp_watts``).
+        Instantaneous lamp power [W] (0 or ``lamp_watts``). For the power
+        over a time step use :func:`calc_uv_lamp_energy` / ``dt``.
     """
     if num_switching <= 0 or lamp_watts <= 0:
         return 0.0
 
     time_in_period = current_time_s % period_sec
-    interval = (period_sec - num_switching * exposure_sec) / (num_switching + 1)
-    for i in range(num_switching):
-        start_time = interval * (i + 1) + i * exposure_sec
-        if start_time <= time_in_period < start_time + exposure_sec:
+    for a, b in _uv_on_windows(period_sec, num_switching, exposure_sec):
+        if a <= time_in_period < b:
             return lamp_watts
     return 0.0
+
+
+def _uv_on_windows(period_sec: float, num_switching: int, exposure_sec: float) -> list[tuple[float, float]]:
+    """On-intervals ``[start, end)`` of the lamp within one period [s] (evenly spaced)."""
+    interval = (period_sec - num_switching * exposure_sec) / (num_switching + 1)
+    return [
+        (interval * (i + 1) + i * exposure_sec, interval * (i + 1) + (i + 1) * exposure_sec)
+        for i in range(num_switching)
+    ]
+
+
+def calc_uv_lamp_energy(
+    start_time_s: float,
+    dt_s: float,
+    period_sec: float,
+    num_switching: int,
+    exposure_sec: float,
+    lamp_watts: float,
+) -> float:
+    """Lamp energy [J] over the step ``[start_time_s, start_time_s + dt_s)``.
+
+    The on-time of the switching schedule of :func:`calc_uv_lamp_power`
+    integrated over the step, for any step length (shorter or longer than
+    an exposure or a period). Divided by ``dt_s`` it is the step-average
+    power, so a run's lamp energy does not depend on the time step (a
+    sample at the step start would count a whole step whenever an exposure
+    covers that instant and nothing when it falls between two samples).
+    """
+    if num_switching <= 0 or lamp_watts <= 0 or exposure_sec <= 0 or dt_s <= 0:
+        return 0.0
+    windows = _uv_on_windows(period_sec, num_switching, exposure_sec)
+    t0, t1 = float(start_time_s), float(start_time_s) + float(dt_s)
+    k0 = math.floor(t0 / period_sec)
+    k1 = math.floor(t1 / period_sec)
+    on = 0.0
+    for k in range(k0, k1 + 1):
+        base = k * period_sec
+        for a, b in windows:
+            on += max(0.0, min(t1, base + b) - max(t0, base + a))
+    return lamp_watts * on
 
 
 def get_uv_params_from_turbidity(turbidity_ntu: float) -> dict:

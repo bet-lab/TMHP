@@ -521,7 +521,7 @@ def test_pv_ess_battery_starts_every_run_at_its_initial_state(runs):
 
 @pytest.mark.parametrize("name", PV_ESS_NAMES)
 def test_pv_ess_uv_lamp_heat_enters_the_tank_once(name):
-    """With the heat pump off the tank gains exactly the lamp energy (not twice)."""
+    """With the heat pump off the tank gains the lamp's heat to the water once (not twice)."""
     dt, n = 600, 18  # one full 3 h lamp period
     kw = {"uv": UVLamp(lamp_watts=1000.0, exposure_sec=600.0, num_switching=1, period_sec=3 * 3600)}
     if name == "ASHPB_PV_ESS":
@@ -546,4 +546,5 @@ def test_pv_ess_uv_lamp_heat_enters_the_tank_once(name):
     lamp_J = float(col(df, "E_uv [W]").sum() * dt)
     assert lamp_J == pytest.approx(1000.0 * 600.0, rel=1e-6)
     gain_J = model.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(col(df, "Q_tank_loss [W]").sum() * dt)
-    assert gain_J == pytest.approx(lamp_J, rel=0.02)
+    fraction = kw["uv"].heat_to_water_fraction
+    assert gain_J == pytest.approx(fraction * lamp_J, rel=0.02)

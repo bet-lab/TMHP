@@ -236,7 +236,8 @@ def test_t1_partial_fill_conserves_mass_and_energy():
     expect(abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal)
 
 
-@defect("T2", "UV lamp heat enters the tank twice (Q_contribution and E_subsystem)")
+# T2 fixed: UVLamp.step reports the lamp power once (E_subsystem) and takes the share that
+# does not reach the water off through Q_contribution; was 1,200 kJ for a 600 kJ lamp run.
 def test_t2_uv_lamp_heat_enters_tank_once():
     from tmhp.subsystems import UVLamp
 

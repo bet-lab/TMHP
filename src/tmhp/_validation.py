@@ -480,6 +480,7 @@ CTOR_SPECS: dict[str, dict[str, str]] = {
         "exposure_sec": "nonneg",
         "num_switching": "int_pos",
         "period_sec": "pos",
+        "heat_to_water_fraction": "frac",
     },
     "PV_ESS": {"eta_inv": "eff", "T_inv_K": "T_K"},
     "TANK": {

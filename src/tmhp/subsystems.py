@@ -778,20 +778,6 @@ def warn_if_uv_ignored(model: object) -> None:
         )
 
 
-def single_count_uv_heat(sub_states: dict) -> dict:
-    """Make the UV lamp heat enter the tank balance once.
-
-    ``UVLamp.step`` reports the lamp power both as ``Q_contribution`` and as
-    ``E_subsystem``, and the tank residual adds both (defect T2).  Where a step
-    carries both with the same value, keep ``E_subsystem`` only.  Once
-    ``UVLamp.step`` reports the heat once this is a no-op.
-    """
-    uv = sub_states.get("uv")
-    if uv and uv.get("Q_contribution", 0.0) and uv.get("Q_contribution") == uv.get("E_subsystem"):
-        sub_states["uv"] = {**uv, "Q_contribution": 0.0}
-    return sub_states
-
-
 def pv_ess_result_columns(
     pv_result: dict,
     route: dict,
@@ -897,10 +883,24 @@ def pv_ess_postprocess(df: pd.DataFrame) -> pd.DataFrame:
 class UVLamp:
     """UV disinfection lamp subsystem.
 
-    The lamp switches on periodically (``num_switching``
-    times per ``period_sec``, each for ``exposure_sec``).
-    All electrical input is converted to heat inside the
-    tank (``Q_contribution = E_uv``).
+    The lamp switches on periodically (``num_switching`` times per
+    ``period_sec``, each for ``exposure_sec``, evenly spaced). Each step
+    reports the lamp's **step-average** power, the switching schedule
+    integrated over the step (:func:`tmhp.uv_treatment.calc_uv_lamp_energy`),
+    so the energy does not depend on the time step.
+
+    Heat: ``heat_to_water_fraction`` of the lamp power ends up in the tank
+    water. A low-pressure mercury lamp in a quartz sleeve inside the tank
+    turns about a third of its input into 254 nm UV-C and the rest into heat
+    and visible light; the water and the tank wall absorb all of it. Its
+    ballast (electronic, about 90 % efficient) sits in the control box
+    outside the tank, so the default is 0.9. Set 1.0 for a lamp and ballast
+    both inside the tank boundary.
+
+    Step protocol: ``E_subsystem`` is the lamp's electric power; the tank
+    balance adds it as heat, and ``Q_contribution = -(1 - fraction)·E_uv`` takes
+    off the part that leaves the tank boundary, so the tank gains
+    ``fraction·E_uv`` once.
 
     Parameters
     ----------
@@ -912,15 +912,23 @@ class UVLamp:
         Number of on-cycles per period.
     period_sec : float
         Switching period [s] (default 3 h = 10 800 s).
+    heat_to_water_fraction : float
+        Share of the lamp's electric power that heats the tank water [-].
     """
 
     lamp_watts: float = 0.0
     exposure_sec: float = 0.0
     num_switching: int = 1
     period_sec: float = 3 * cu.h2s
+    heat_to_water_fraction: float = 0.9
 
     def __post_init__(self) -> None:
         validate_ctor("UV", vars(self))
+        if self.num_switching * self.exposure_sec > self.period_sec:
+            raise ValueError(
+                f"num_switching * exposure_sec must not exceed period_sec, got "
+                f"{self.num_switching} x {self.exposure_sec} s > {self.period_sec} s"
+            )
 
     def step(
         self,
@@ -929,18 +937,24 @@ class UVLamp:
         dt: float,
         T_tank_w_in_K: float,
     ) -> dict:
-        """Compute UV lamp state for one timestep."""
-        from .uv_treatment import calc_uv_lamp_power
+        """Step-average lamp power and the heat it gives the tank."""
+        from .uv_treatment import calc_uv_lamp_energy
 
-        E_uv: float = calc_uv_lamp_power(
-            ctx.current_time_s,
-            self.period_sec,
-            self.num_switching,
-            self.exposure_sec,
-            self.lamp_watts,
+        E_uv: float = (
+            calc_uv_lamp_energy(
+                ctx.current_time_s,
+                dt,
+                self.period_sec,
+                self.num_switching,
+                self.exposure_sec,
+                self.lamp_watts,
+            )
+            / dt
+            if dt > 0
+            else 0.0
         )
         return {
-            "Q_contribution": E_uv,
+            "Q_contribution": -(1.0 - self.heat_to_water_fraction) * E_uv,
             "E_subsystem": E_uv,
             "T_tank_w_in_override_K": None,
             "E_uv": E_uv,
@@ -953,10 +967,10 @@ class UVLamp:
         step_state: dict,
         T_solved_K: float,
     ) -> dict:
-        """Report UV power for DataFrame output."""
+        """Report the step-average UV power and its heat to the tank."""
         E_uv: float = step_state.get("E_uv", 0.0)
         if E_uv > 0 or self.lamp_watts > 0:
-            return {"E_uv [W]": E_uv}
+            return {"E_uv [W]": E_uv, "Q_uv_tank [W]": self.heat_to_water_fraction * E_uv}
         return {}
 
     def calc_exergy(

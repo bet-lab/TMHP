@@ -24,6 +24,12 @@ extend it the same way ASHPB's do:
 - :class:`tmhp.GSHPB_STC_routed`
 - :class:`tmhp.GSHPB_PV_ESS`
 
+All variants report ``E_tot [W]`` as the whole electric draw: compressor
+``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop pump ``E_stc_pump``
+(preheat, tank, ground, routed) + the UV lamp ``E_uv`` (``GSHPB_PV_ESS``; the STC
+variants do not simulate a ``uv=`` lamp and warn if one is passed). A model run
+twice with the same inputs gives the same result.
+
 Base usage
 ==========
 
@@ -193,6 +199,12 @@ STC with stratified tank
 STC to ground loop
 ------------------
 
+Besides ``Q_solar_ground`` the result carries the collector columns of the tank
+variant (``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
+``Q_l_stc``, ``T_stc_*``, ``dV_stc``, ``E_stc_pump``), so the collector balance
+``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc`` and
+``Q_stc_w_out - Q_stc_w_in = Q_solar_ground`` can be checked step by step.
+
 .. autoclass:: tmhp.GSHPB_STC_ground
     :members:
     :show-inheritance:
@@ -201,6 +213,13 @@ STC to ground loop
 STC routed between tank and ground
 ----------------------------------
 
+The result carries the same collector columns as :class:`~tmhp.GSHPB_STC_tank`.
+While the collector is active, every step closes
+``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc`` and
+``Q_stc_w_out - Q_stc_w_in = Q_solar_tank + Q_solar_ground`` (one of the two is
+zero). On the tank route the collector is reported at the solved tank
+temperature, i.e. the heat that entered the tank balance.
+
 .. autoclass:: tmhp.GSHPB_STC_routed
     :members:
     :show-inheritance:
@@ -208,6 +227,12 @@ STC routed between tank and ground
 
 PV + ESS
 --------
+
+Routing and balances are the same as for :class:`~tmhp.ASHPB_PV_ESS` (see
+:doc:`ashpb`): no grid export (surplus is ``E_dump``), every loss is a column
+(``Q_l_ctrl``, ``Q_l_inv``, ``Q_l_ess``) and each step closes
+``E_pv_out = Q_l_ctrl + E_pv_to_inv + E_ess_chg + E_dump`` and
+``E_tot = E_inv_out + E_grid_import`` with ``E_tot = E_cmp + E_pmp + E_uv``.
 
 .. autoclass:: tmhp.GSHPB_PV_ESS
     :members:

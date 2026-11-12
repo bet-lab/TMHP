@@ -42,7 +42,7 @@ import contextlib
 import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -52,7 +52,13 @@ from tqdm import tqdm
 from . import calc_util as cu
 from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
-from .compressor_envelope import check_pr_envelope
+from .compressor_envelope import (
+    PR_CYCLE_MAX_SINGLE_STAGE,
+    check_pr_envelope,
+    discharge_violation,
+    resolve_discharge_temp_max,
+    steady_envelope,
+)
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .dynamic_context import (
@@ -152,16 +158,13 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         T_sur: float = 20.0,
         # Cycle guard: minimum condenser-to-evaporator saturation lift [K].
         dT_hx_min: float = 0.5,
-        # Compressor pressure-ratio envelope (PR = P_cond / P_evap).
-        # High-lift DHW validation points reach PR 16-18 (condensing
-        # 55-75 degC from a 0-12 degC source), so the default boiler ceiling is
-        # 20 here
-        # (unlike the space-conditioning ASHP/GSHP, which cap at 5).
+        # Compressor pressure-ratio envelope (PR = P_cond / P_evap); the
+        # ceiling is the single-stage scroll limit (see compressor_envelope).
         PR_cycle_min: float = 1.5,
-        PR_cycle_max: float = 20.0,
-        # Compressor speed search bounds [rev/s]
+        PR_cycle_max: float = PR_CYCLE_MAX_SINGLE_STAGE,
+        # Compressor speed bounds [rev/s]; rps_max=None -> default_rps_max(rps_rated)
         rps_min: float = 15.0,
-        rps_max: float = 150.0,
+        rps_max: float | None = None,
         # Deprecated compat arguments:
         V_disp_cmp: float | None = None,
         eta_cmp_electro_mech: float | Callable | None = None,
@@ -180,6 +183,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_ref: float | None = None,
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
+        T_dis_max: float | Literal["auto"] | None = "auto",
     ):
         if dV_fan_a_ref is not None:
             dV_fan_a_rated = dV_fan_a_ref
@@ -220,7 +224,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float = rps_max
+        self.rps_max: float | None = rps_max
+        # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
+        self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
         # Records the PR-envelope event of the most recent _calc_state call
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
@@ -955,6 +961,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
         T_tank_w: float,
@@ -996,8 +1003,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``,
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
-              ``"pr_above_max"``, ``"hx_not_converged"``, or
-              ``"optimizer_failed"``.
+              ``"pr_above_max"``, ``"discharge_temp_above_max"`` (even a
+              reduced duty exceeds ``T_dis_max``), ``"hx_not_converged"``,
+              or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, only on a rejected solved cycle) —
               which check of
               :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
@@ -1010,7 +1018,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               request simply lay outside the machine's deliverable band, which
               a real inverter unit answers by running at its limit and cycling.
               Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
-              to recover the shortfall or excess.
+              to recover the shortfall or excess. A ``"max"`` point carries
+              ``"capacity_binding"``: ``"compressor"`` (``rps_max``) or
+              ``"discharge_temperature"`` (the request exceeded ``T_dis_max``
+              and the largest duty inside it is returned, with ``"Q_max [W]"``).
+            - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
+              is evaluated outside its data at this point.
 
             An infeasible cycle, or a solved cycle that is not an operating
             point, falls back to an off-mode state (``E_cmp = 0``,
@@ -1062,9 +1075,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # discharge state, speed-floor duty above the nameplate) is
             # rejected like an infeasible one; see unphysical_cycle_detail.
             invalid_detail: str | None = None
+            envelope_reason: str | None = None
             if isinstance(result, dict) and result.get("hp_is_on") and result.get("converged", False):
                 invalid_detail = unphysical_cycle_detail(result, self.hp_capacity)
-                if invalid_detail is not None:
+                if invalid_detail is None:
+                    envelope_reason = discharge_violation(result, self.T_dis_max)
+                if invalid_detail is not None or envelope_reason is not None:
                     result = None
 
             # Pressure-ratio envelope hint for the final operating point
@@ -1095,6 +1111,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             if result is None or not isinstance(result, dict):
                 if invalid_detail is not None:
                     failure_reason = "cycle_invalid"
+                elif envelope_reason is not None:
+                    failure_reason = envelope_reason
                 elif cycle_failure_reason is not None:
                     failure_reason = cycle_failure_reason
                 elif pr_event is not None and pr_event[0] == "pr_above_max":
@@ -1323,7 +1341,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return "optimizer_failed"
         if unphysical_cycle_detail(solved, self.hp_capacity) is not None:
             return "cycle_invalid"
-        return None
+        return discharge_violation(solved, self.T_dis_max)
 
     def _assemble_core_results(
         self,

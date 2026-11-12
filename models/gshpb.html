@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-13T00:12:45+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -912,20 +912,24 @@ balance or tracking dynamic flows.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><p>Cycle state plus diagnostic flags. Notable keys:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;converged&quot;</span></code> (bool) — True only when the HX optimisation and
-the SciPy optimiser both succeeded.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;converged&quot;</span></code> (bool) — True only when the evaporator approach
+closed the ground heat exchanger and the cycle is an operating
+point.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> for a solved point;
+otherwise <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> (no cycle, or a cycle that is
+not an operating point, see
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code>),
+<code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code> (pressure-ratio ceiling),
+<code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> (the ground heat exchanger cannot
+carry the duty at any approach) or <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.
+With the coupled ground-flow controller the reasons of
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.ground_flow_control</span></code> apply.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, failures only) — which check
+rejected a <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code> point.</p></li>
 </ul>
-<p>Important: GSHPB frequently reports
-<code class="docutils literal notranslate"><span class="pre">failure_reason=&quot;hx_not_converged&quot;</span></code> on realistic operating
-points because its inner NTU/HX residual tolerance is strict.
-The returned <code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code> / <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>
-<strong>are still usable</strong> in that case — only <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>
-forces an off-mode fallback (E_cmp=0, COP=NaN). Branch on
-<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span> <span class="pre">&gt;</span> <span class="pre">0</span></code> rather than <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code> if
-you only want to discard truly broken results.</p>
+<p>Every reason other than <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> comes with an off-mode state:
+<code class="docutils literal notranslate"><span class="pre">hp_is_on=False</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span> <span class="pre">=</span> <span class="pre">E_cmp</span> <span class="pre">[W]</span> <span class="pre">=</span> <span class="pre">0</span></code> and NaN
+COP. No unsolved point is returned with cycle numbers.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>

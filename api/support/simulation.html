@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-10-06T22:38:42+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -336,6 +336,64 @@ sentinel (inflow resolved inside residual).</p>
 
 <dl class="py class">
 <dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">CycleSolveOutcome</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">success</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detail</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#CycleSolveOutcome"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Outcome of a boiler’s evaporator-approach search for one request.</p>
+<p><code class="docutils literal notranslate"><span class="pre">success</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code> only when the returned approach <code class="docutils literal notranslate"><span class="pre">x</span></code> gives a
+cycle that closes both heat exchangers and passes
+<code class="xref py py-func docutils literal notranslate"><span class="pre">unphysical_cycle_detail()</span></code>. Otherwise <code class="docutils literal notranslate"><span class="pre">x</span></code> is NaN and
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> says why (<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>, <code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code>,
+<code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code> or <code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code>); <code class="docutils literal notranslate"><span class="pre">detail</span></code> refines
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> when the cycle existed but was not an operating point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>success</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>failure_reason</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>detail</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">success</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">x</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">failure_reason</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">detail</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">success</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_reason</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">detail</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>success</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>x</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>failure_reason</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>detail</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls (#165 P0).</p>
@@ -382,7 +440,9 @@ an external co-simulation master (FMI/EnergyPlus) and re-run independently.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">hp_is_on_prev</span></span></dt>
-<dd><p>Heat-pump on/off state from the previous step (cycling hysteresis).</p>
+<dd><p>Call for heat from the previous step (cycling hysteresis). A step
+whose cycle could not be solved keeps the call, so the next step
+retries instead of waiting for the tank to reach its lower bound.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bool</p>
@@ -934,6 +994,23 @@ the result DataFrame and adjust system-level totals.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">delivered_tank_heat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#delivered_tank_heat"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Condenser heat a step puts into the tank [W].</p>
+<p>The heat the solved cycle rejects (<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>), and zero unless
+the compressor actually ran. Never the requested capacity: a request the
+cycle could not meet delivers nothing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">determine_heat_source_on_off</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hour_of_day</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#determine_heat_source_on_off"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Hysteresis-based heat-source on/off decision.</p>
 <dl class="field-list simple">
@@ -1020,6 +1097,56 @@ overrides are read from <code class="docutils literal notranslate"><span class="
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">unphysical_cycle_detail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#unphysical_cycle_detail"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Explain why a cycle state the solver accepted is not an operating point.</p>
+<p>The boiler solvers accept a cycle once its compressor speed meets the
+requested duty (or clamps onto a speed bound). That acceptance says
+nothing about whether the state itself exists. This check rejects the
+states that cannot be a running machine; <code class="docutils literal notranslate"><span class="pre">None</span></code> means the state passes.</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;duty_or_power_undefined&quot;</span></code></dt><dd><p>Delivered heat or compressor power is non-finite or not positive.
+A running compressor does work on the refrigerant and the condenser
+rejects at least that work, so both must be positive numbers.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;discharge_state_undefined&quot;</span></code></dt><dd><p>The compressor discharge temperature or enthalpy is non-finite. The
+delivered heat is <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">(h_discharge</span> <span class="pre">-</span> <span class="pre">h_liquid)</span></code>; without a
+discharge state that heat has no thermodynamic basis. A low isentropic
+efficiency at a high pressure ratio produces it: <code class="docutils literal notranslate"><span class="pre">h_isen</span> <span class="pre">-</span> <span class="pre">h_suction</span></code>
+is divided by the efficiency and the discharge enthalpy leaves the
+refrigerant’s equation-of-state range (with the guarded default fit,
+R32 at PR 7-11 and eta_is 0.14-0.25; with an unguarded fit, eta_is
+near zero).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">&quot;min_speed_duty_above_capacity&quot;</span></code></dt><dd><p>The compressor clamped onto its speed floor (the request was below
+the duty available there) and yet delivers more than the nameplate
+<code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>. Mass flow is proportional to speed, so at
+<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> (below the speed at which <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> is rated) the
+compressor pumps the least refrigerant it can; delivering more heat
+than at the rated speed then needs a specific condensing duty several
+times the rated one. That is the signature of the same efficiency
+collapse, not of a real machine. The condenser cannot carry it
+either: its approach temperature was sized for the requested duty,
+so the surplus has no driving temperature difference across the tank
+heat exchanger. <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> is the bound because it is the only
+capacity the model knows the machine to have; no tolerance is added
+beyond floating-point noise.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>hp_capacity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1827,7 +1954,7 @@ Absorbance, UV Intensity, and Exposure Time</em>.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 06, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

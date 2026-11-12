@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Your first dynamic simulation runs analyze_dynamic with flat schedules — a clean sanity check, but real runs almost never look like that. This tutorial assembles a more representative 24-hour scena..." />
 
-    <meta property="article:modified_time" content="2026-09-13T15:43:05+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -275,10 +275,14 @@ into pandas / Excel without re-running the simulation.</p>
 </span></pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">Counter</span></code> gives a quick view of how many steps hit each
-diagnostic. For a sensible system at moderate ambient, almost
-every step should be <code class="docutils literal notranslate"><span class="pre">none</span></code> — see
-<a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a> for what the other
-values mean.</p>
+diagnostic. <code class="docutils literal notranslate"><span class="pre">none</span></code> marks a step on which the heat pump ran or was not
+called; any other value marks a step on which it was called but its
+cycle could not be solved, so the row carries no heat or power. With the
+default R32 machine every step of this run is <code class="docutils literal notranslate"><span class="pre">none</span></code>. A machine pushed
+outside what its cycle can reach — a tank set point that would need
+condensing above the refrigerant’s critical point, for instance — shows
+its failed steps here. See <a class="reference internal" href="../concepts/failure-reason-semantics.html"><span class="doc">failure_reason semantics</span></a>
+for what each value means.</p>
 </section>
 <section id="where-to-go-next">
 <h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading">¶</a></h2>
@@ -294,7 +298,7 @@ passing the longer <code class="docutils literal notranslate"><span class="pre">
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Sep 13, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

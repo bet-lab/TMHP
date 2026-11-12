@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T00:12:45+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1117,7 +1117,12 @@ with the shared water specific heat <code class="docutils literal notranslate"><
 the SciPy optimiser both succeeded.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_reason&quot;</span></code> (str) — one of <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code>,
 <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;failure_detail&quot;</span></code> (str, only on a rejected solved cycle) —
+which check of
+<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.unphysical_cycle_detail()</span></code> made
+the point <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">&quot;capacity_clamped&quot;</span></code> (str | None) — <code class="docutils literal notranslate"><span class="pre">&quot;min&quot;</span></code> when the
 requested duty was below what the compressor delivers at
 <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> and the cycle was solved at that floor instead,
@@ -1128,12 +1133,12 @@ a real inverter unit answers by running at its limit and cycling.
 Compare <code class="docutils literal notranslate"><span class="pre">&quot;Q_ref_tank</span> <span class="pre">[W]&quot;</span></code> against <code class="docutils literal notranslate"><span class="pre">&quot;Q_ref_tank_request</span> <span class="pre">[W]&quot;</span></code>
 to recover the shortfall or excess.</p></li>
 </ul>
-<p>ASHPB returns the cycle numbers (<code class="docutils literal notranslate"><span class="pre">E_cmp</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>, …)
-whenever <code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> produced a dict at all. A
-<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> of <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> therefore does not
-invalidate the result: it only means the HX residual exceeded
-tolerance and the converged flag is False. Off-mode fallback
-(E_cmp=0) only occurs when the cycle itself was infeasible.</p>
+<p>An infeasible cycle, or a solved cycle that is not an operating
+point, falls back to an off-mode state (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>). <code class="docutils literal notranslate"><span class="pre">&quot;hx_not_converged&quot;</span></code> (the outdoor coil
+did not converge) returns only the coil diagnostics, without
+duty or power keys. <code class="docutils literal notranslate"><span class="pre">&quot;optimizer_failed&quot;</span></code> returns the cycle
+numbers at the optimiser’s best point with <code class="docutils literal notranslate"><span class="pre">converged=False</span></code>.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>

@@ -280,6 +280,9 @@ _TANK_CONTROL = {
     "tank_level_lower_bound": "frac",
     "tank_level_upper_bound": "frac",
     "dV_tank_w_in_refill": "pos",
+    # Minimum compressor run / rest time of the in-step thermostat [s].
+    "min_on_time_s": "nonneg",
+    "min_off_time_s": "nonneg",
 }
 _CYCLE = {
     "V_cmp_ref": "pos",

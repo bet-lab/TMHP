@@ -49,6 +49,38 @@ Base usage
        Q_ref_tank=8_000,
    )
 
+Dynamic operation
+=================
+
+``analyze_dynamic`` follows the tank thermostat (``T_tank_w_lower_bound``
+/ ``T_tank_w_upper_bound``, 55 / 65 °C) inside each step: a step reports
+the fraction of it the compressor ran (``runtime_fraction [-]``), its
+starts (``hp_starts [-]``), and heat, power and ground heat averaged
+over the step. ``min_on_time_s`` / ``min_off_time_s`` (default 0) hold
+the compressor to a minimum run and rest time. See
+:ref:`time-step-and-thermostat`.
+
+On a step the compressor runs only part of, loads are kept by source: the
+compressor extracts only while it runs, a solar collector charging the
+ground (``GSHPB_STC_ground``, ``GSHPB_STC_routed``) injects for the whole
+step. The ground history and the borehole wall take the step-average net
+load (the ground's step-mean response). The reported fluid temperatures
+``T_bhe_f*`` are step-time averages -- the borehole resistance and loop
+temperature difference are linear in the load, so continuous in the run
+fraction and equal to the injection-only state when the compressor does
+not run; the next cycle reads that outlet (one-step source lag).
+``T_bhe_f*_running`` are the fluid while the compressor runs (its running
+extraction net of the injection), which the evaporator's source-side
+exergy uses.
+
+The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
+it sets the shortest lag time tabulated for the g-function (never below
+one hour; shorter lags are interpolated linearly from zero). Pass the
+simulation step to ``analyze_dynamic``. Hourly steps keep the tank
+within its bounds, but they average hot-water draws over the hour; use
+10–15 min steps or shorter when the draw profile matters.
+
+
 Source-side mechanics
 =====================
 

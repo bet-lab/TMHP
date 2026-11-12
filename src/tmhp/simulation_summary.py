@@ -5,6 +5,21 @@ Simulation summary output functions.
 import pandas as pd
 
 
+def _running(df: pd.DataFrame, column: str, active_mask: pd.Series) -> pd.Series:
+    """Values of a step-average rate column while the compressor runs.
+
+    Dynamic results report heat, power and air flow averaged over each step
+    (the running value times ``runtime_fraction [-]``); statistics of the
+    running machine divide that back out. Frames without the column (steady
+    results) are already running values.
+    """
+    values = df.loc[active_mask, column]
+    if "runtime_fraction [-]" not in df.columns:
+        return values
+    fraction = df.loc[active_mask, "runtime_fraction [-]"].astype(float)
+    return values / fraction.where(fraction > 0)
+
+
 def _print_convergence_status(df: pd.DataFrame) -> None:
     """Print convergence statistics."""
     # 1. Convergence Status
@@ -34,7 +49,7 @@ def _print_fan_stats(
 ) -> None:
     """Print fan flow rate, velocity, pressure, power, and efficiency ratio."""
     # 3. Fan Flow Rate Statistics
-    fan_active = df.loc[active_mask, "dV_ou_a [m3/s]"]
+    fan_active = _running(df, "dV_ou_a [m3/s]", active_mask)
     print("[Fan Flow Rate]")
     if not fan_active.empty:
         fan_avg = fan_active.mean()
@@ -73,7 +88,7 @@ def _print_fan_stats(
         print("-" * 50)
 
     # 4. Fan Power Statistics
-    fan_p_active = df.loc[active_mask, "E_ou_fan [W]"]
+    fan_p_active = _running(df, "E_ou_fan [W]", active_mask)
     print("[Fan Power Use]")
     if not fan_p_active.empty:
         print(f"  - Min: {fan_p_active.min():.1f} W | Max: {fan_p_active.max():.1f} W")

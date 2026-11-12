@@ -88,16 +88,26 @@ Inspecting the run
 
    # Energy balance over the day
    E_cmp_kWh   = df["E_cmp [W]"].sum() * dt_s / 3.6e6
+   E_tot_kWh   = df["E_tot [W]"].sum() * dt_s / 3.6e6
    Q_cond_kWh  = df["Q_ref_tank [W]"].sum() * dt_s / 3.6e6
-   cop_sys_avg = df["cop_sys [-]"].mean()
+   cop_sys_day = Q_cond_kWh / E_tot_kWh
 
    print(f"Total compressor energy  : {E_cmp_kWh:5.2f} kWh")
    print(f"Total condenser duty     : {Q_cond_kWh:5.2f} kWh")
-   print(f"Daily-average COP_sys    : {cop_sys_avg:5.2f}")
+   print(f"Daily COP_sys            : {cop_sys_day:5.2f}")
+   print(f"Compressor run time      : {df['runtime_fraction [-]'].sum() * dt_s / 3600:5.2f} h, "
+         f"{int(df['hp_starts [-]'].sum())} starts")
 
    # When did the heat pump struggle?
    from collections import Counter
    print(Counter(df["failure_reason"]))
+
+Heat and power columns are averages over each step (the running cycle
+times ``runtime_fraction [-]``), so summing them times ``dt_s`` gives
+energy, and the daily COP is the ratio of the sums; ``cop_sys [-]`` on a
+row is the COP of the cycle while it ran. See
+:ref:`time-step-and-thermostat` for how the compressor's run time inside
+a step is found.
 
 The ``Counter`` gives a quick view of how many steps hit each
 diagnostic. ``none`` marks a step on which the heat pump ran or was not

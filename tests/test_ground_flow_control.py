@@ -227,13 +227,21 @@ def test_dynamic_hx_uses_current_wall_and_selected_flow(cls):
     if cls is GroundSourceHeatPump:
         frame = model.analyze_dynamic(7200, 3600, [-4000, -4000], [7, 7], [20, 20])
     else:
+        # From 40 °C the boiler reaches its upper bound part-way through the
+        # first hour. The row reports pump power averaged over the step (the
+        # running value times runtime_fraction) and the source fluid while the
+        # compressor runs (T_bhe_f_out_running), so the running HX balance
+        # closes from the row.
         frame = model.analyze_dynamic(7200, 3600, 40, [0, 0], [7, 7])
+        assert 0.0 < frame.iloc[0]["runtime_fraction [-]"] < 1.0
     assert frame.iloc[0]["converged"]
     for _, row in frame.iterrows():
         if not row["hp_is_on"]:
             continue
+        fraction = row.get("runtime_fraction [-]", 1.0)
         mass = row["dV_bhe_f [m3/s]"] * rho_w
-        source = row["T_bhe_f_out [°C]"] + row["E_pmp [W]"] / (mass * c_w)
+        outlet = row.get("T_bhe_f_out_running [°C]", row["T_bhe_f_out [°C]"])
+        source = outlet + row["E_pmp [W]"] / fraction / (mass * c_w)
         available = calc_phase_change_hx_capacity(row["UA_ground [W/K]"], mass, c_w, source, row["T_ref_evap_sat [°C]"])
         assert available == pytest.approx(row["Q_ref_required [W]"], abs=0.1)
 

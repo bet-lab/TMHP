@@ -19,8 +19,13 @@ Verification strategy (TDD characterization gate):
 The dynamic golden and idempotence checks share only the first trajectory,
 with one fresh model per scenario; the public-step run stays independent.
 
-Bit-identity tolerance: rtol=1e-9 (a pure code extraction must not change
-the math; the tolerance only absorbs %.17g CSV round-trip noise).
+Golden tolerance: rtol=1e-6, atol=1e-7. The step kernel must reproduce the
+recorded trajectory, but the outdoor-approach search solves the fan-limit
+edge of the feasible band as a root (to 1e-8 K), and that root lands a few
+1e-9 K apart on Linux and macOS: the goldens recorded on macOS / Python 3.14
+differed from Linux by 5e-9 K in ``T_ref_cmp_in`` (relative 4.6e-8). The
+tolerance sits two orders above that solver noise and far below any change
+in the physics (a control or cycle change moves these columns by 1e-3 or more).
 """
 
 from __future__ import annotations
@@ -51,8 +56,8 @@ def _assert_frames_close(df: pd.DataFrame, golden: pd.DataFrame) -> None:
             np.testing.assert_allclose(
                 d.to_numpy(dtype=float),
                 g.to_numpy(dtype=float),
-                rtol=1e-9,
-                atol=1e-12,
+                rtol=1e-6,
+                atol=1e-7,
                 equal_nan=True,
                 err_msg=f"column {col!r} diverged",
             )

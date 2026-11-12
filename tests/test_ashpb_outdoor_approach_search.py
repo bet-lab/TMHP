@@ -1,0 +1,141 @@
+"""ASHPB outdoor-approach search: band from the fan-limit coil margins (#96 C2).
+
+The outdoor fan modulates between its flow limits, so only a band of outdoor
+approaches carries the evaporator duty. The search solves that band's edges as
+roots of the coil capacity margins and minimises inside it; a bounded Brent
+over the whole range never found a band that its first probes missed.
+"""
+
+from __future__ import annotations
+
+import math
+import warnings
+
+import numpy as np
+import pytest
+
+from tmhp import AirSourceHeatPumpBoiler
+from tmhp._opt_utils import margin_feasible_interval
+from tmhp.air_source_heat_pump_boiler import OUTDOOR_COIL_EXCESS, OUTDOOR_COIL_SHORT
+from tmhp.dynamic_context import unphysical_cycle_detail
+
+_FLOW_STATE = {
+    "dV_mix_w_out [m3/s]": 0.0,
+    "dV_tank_w_out [m3/s]": 0.0,
+    "dV_tank_w_in [m3/s]": 0.0,
+    "dV_mix_sup_w_in [m3/s]": 0.0,
+}
+
+
+@pytest.fixture(autouse=True)
+def _quiet():
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        yield
+
+
+def _steady(model: AirSourceHeatPumpBoiler, **point) -> dict:
+    result = model.analyze_steady(**point)
+    assert isinstance(result, dict)
+    return result
+
+
+def _assert_running(model: AirSourceHeatPumpBoiler, result: dict) -> None:
+    assert result["failure_reason"] == "none"
+    assert result["converged"] is True
+    assert result["hp_is_on"] is True
+    assert unphysical_cycle_detail(result, model.hp_capacity) is None
+    assert model.dV_fan_a_min - 1e-12 <= result["dV_ou_a [m3/s]"] <= model.dV_fan_a_max + 1e-12
+
+
+@pytest.mark.parametrize("request_W", [3000.0, 7500.0])
+def test_cold_hot_water_point_inside_a_narrow_band_is_solved(request_W):
+    # A-7/W55: below ~2.3 K the coil cannot absorb the duty at full airflow,
+    # above ~7.5 K it over-absorbs at minimum airflow; both requests returned
+    # hx_not_converged before.
+    model = AirSourceHeatPumpBoiler(ref="R32")
+    result = _steady(model, T_tank_w=55.0, T0=-7.0, Q_ref_tank=request_W)
+    _assert_running(model, result)
+    approach = result["T0 [°C]"] - result["T_ref_evap_sat [°C]"]
+    assert 2.0 < approach < 7.5
+
+
+def test_search_is_not_beaten_by_a_dense_scan():
+    """The band search returns at least as good a point as a 0.1 K scan of the range."""
+    model = AirSourceHeatPumpBoiler(ref="R32")
+    point = {"T_tank_w": 55.0, "Q_ref_tank": 7500.0, "T0": -7.0}
+    opt = model._optimize_operation(point["T_tank_w"], point["Q_ref_tank"], point["T0"], flow_state=_FLOW_STATE)
+    best_scan = math.inf
+    for x in np.arange(1.0, 20.0 + 1e-9, 0.1):
+        perf = model._calc_state(float(x), point["T_tank_w"], point["Q_ref_tank"], point["T0"], flow_state=_FLOW_STATE)
+        if perf is None or not perf.get("converged", False) or unphysical_cycle_detail(perf, model.hp_capacity):
+            continue
+        best_scan = min(best_scan, perf["E_tot [W]"])
+    assert math.isfinite(best_scan)
+    assert opt.fun <= best_scan + 1e-6
+
+
+def test_request_below_minimum_speed_delivers_the_floor_capacity():
+    """Same convention as ASHP and GSHP: run at rps_min, mark 'min', stay within the nameplate."""
+    model = AirSourceHeatPumpBoiler(ref="R32")
+    result = _steady(model, T_tank_w=50.0, T0=-7.0, Q_ref_tank=750.0)
+    _assert_running(model, result)
+    assert result["capacity_clamped"] == "min"
+    assert result["cmp_rpm [rpm]"] == pytest.approx(60.0 * model.rps_min)
+    assert 750.0 < result["Q_ref_tank [W]"] <= model.hp_capacity
+    assert result["Q_ref_tank_request [W]"] == 750.0
+
+
+@pytest.mark.parametrize("min_fraction", [0.99, 0.999])
+def test_narrow_fan_range_still_finds_the_band(min_fraction):
+    model = AirSourceHeatPumpBoiler(ref="R32", dV_fan_a_min=min_fraction * 15000.0 * 0.00015)
+    result = _steady(model, T_tank_w=50.0, T0=7.0, Q_ref_tank=10000.0)
+    _assert_running(model, result)
+    assert result["Q_ref_tank [W]"] == pytest.approx(10000.0, rel=1e-9)
+
+
+def test_coil_short_at_every_approach_is_named():
+    # UA_ou 1/14 of the default: even at full airflow and the largest approach
+    # the cycle reaches, the outdoor coil absorbs less than the duty.
+    model = AirSourceHeatPumpBoiler(ref="R32", UA_ou_rated=150.0)
+    result = _steady(model, T_tank_w=50.0, T0=7.0, Q_ref_tank=10000.0)
+    assert result["failure_reason"] == "hx_not_converged"
+    assert result["failure_detail"] == OUTDOOR_COIL_SHORT
+    assert result["converged"] is False
+
+
+def test_coil_excess_at_every_approach_is_named():
+    # The fan cannot turn down below 9 m3/s, and at that flow the coil
+    # absorbs more than the cycle hands it even at a 1 K approach.
+    model = AirSourceHeatPumpBoiler(ref="R32", dV_fan_a_rated=10.0, dV_fan_a_min=9.0, UA_ou_rated=3.0e4)
+    result = _steady(model, T_tank_w=30.0, T0=15.0, Q_ref_tank=3000.0)
+    assert result["failure_reason"] == "hx_not_converged"
+    assert result["failure_detail"] == OUTDOOR_COIL_EXCESS
+    assert result["converged"] is False
+
+
+def test_samples_narrow_the_bracket_without_moving_the_roots():
+    calls: list[float] = []
+
+    def capacity(x: float) -> float:
+        calls.append(x)
+        return x - 2.3
+
+    def excess(x: float) -> float:
+        calls.append(x)
+        return x - 7.4
+
+    plain = margin_feasible_interval(capacity, excess, 1.0, 20.0, xtol=1e-10)
+    calls.clear()
+    # Samples outside [lower, upper] are ignored.
+    sampled = margin_feasible_interval(capacity, excess, 1.0, 20.0, xtol=1e-10, samples=[5.75, 10.5, 15.25, 0.5, 25])
+    assert plain is not None and sampled is not None
+    assert sampled == pytest.approx(plain, abs=1e-9)
+    assert sampled == pytest.approx((2.3, 7.4), abs=1e-9)
+    # Both roots were solved inside their sampled cells, [1, 5.75] and [5.75, 10.5].
+    assert all(x <= 10.5 or x in (15.25, 20.0) for x in calls)
+
+
+def test_samples_keep_an_empty_band_empty():
+    assert margin_feasible_interval(lambda x: x - 30.0, lambda x: x - 40.0, 1.0, 20.0, samples=[5.0, 10.0]) is None
+    assert margin_feasible_interval(lambda x: x + 5.0, lambda x: x + 1.0, 1.0, 20.0, samples=[5.0, 10.0]) is None

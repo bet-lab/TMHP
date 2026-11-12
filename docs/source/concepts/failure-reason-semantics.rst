@@ -136,30 +136,61 @@ also appear).
 ``failure_detail``
 ------------------
 
+Two kinds of failure carry one more key, ``failure_detail``, that says which
+check failed.
+
 A boiler (ASHPB, GSHPB, WSHPB) ``analyze_steady`` result whose cycle the
 solver accepted but which is not an operating point is reported as
-``cycle_invalid`` and carries one more key, ``failure_detail``, naming the
-check (``tmhp.dynamic_context.unphysical_cycle_detail``):
+``cycle_invalid``; ``failure_detail`` names the check
+(``tmhp.dynamic_context.unphysical_cycle_detail``). An ASHPB
+``analyze_steady`` result reported as ``hx_not_converged`` because no outdoor
+approach lets the outdoor coil carry the evaporator duty within the fan's flow
+limits names the limit it fails at. The outdoor-approach search solves the band
+of approaches the fan can serve from the coil's capacity margins at its largest
+and smallest airflow; these values say why that band is empty.
 
 .. list-table::
     :header-rows: 1
-    :widths: 35 65
+    :widths: 32 18 50
 
     * - ``failure_detail``
+      - With ``failure_reason``
       - Means
     * - ``duty_or_power_undefined``
+      - ``cycle_invalid``
       - Delivered heat or compressor power is non-finite or not positive.
     * - ``discharge_state_undefined``
+      - ``cycle_invalid``
       - The compressor discharge temperature or enthalpy is non-finite —
         typically a low isentropic efficiency at a high pressure ratio,
         which puts the discharge enthalpy outside the refrigerant's
         equation-of-state range.
     * - ``min_speed_duty_above_capacity``
+      - ``cycle_invalid``
       - The compressor sits on its speed floor (``capacity_clamped ==
         "min"``) yet delivers more than the nameplate ``hp_capacity``.
+    * - ``outdoor_coil_short_at_max_airflow``
+      - ``hx_not_converged`` (ASHPB)
+      - At every outdoor approach the cycle reaches (up to the
+        pressure-ratio ceiling or the 20 K search bound), the outdoor coil
+        absorbs less than the evaporator duty even at the fan's largest
+        flow. A larger ``UA_ou_rated`` or ``dV_fan_a_max``, or a smaller
+        request, moves the point into range.
+    * - ``outdoor_coil_excess_at_min_airflow``
+      - ``hx_not_converged`` (ASHPB)
+      - At every outdoor approach, down to 1 K, the outdoor coil absorbs more
+        than the evaporator duty even at the fan's smallest flow: the fan
+        cannot turn down far enough. A smaller ``dV_fan_a_min`` moves the
+        point into range; a real unit would cycle its fan.
+    * - ``outdoor_coil_no_band``
+      - ``hx_not_converged`` (ASHPB)
+      - The coil is short at the largest flow at some approaches and in
+        excess at the smallest flow at others, with no approach in between
+        at which the fan can carry the duty.
 
-The key is present only on those results; it is not a dynamic-frame
-column.
+The key is present only on those results, and only on ``analyze_steady``
+dicts; it is not a dynamic-frame column (an ``analyze_dynamic`` row that could
+not be solved carries ``failure_reason`` alone).
 
 ``pr_below_min`` is *not* a ``failure_reason`` value. A pressure ratio
 below ``PR_cycle_min`` is clamped to the floor and the cycle is still
@@ -242,7 +273,8 @@ the recommended lever to pull when you hit each one.
     for "trust this row?" decisions. If the rate of
     ``hx_not_converged`` is uncomfortably high, oversize the
     affected HX (design ε-NTU or area) so the iteration has
-    more headroom near phase boundaries.
+    more headroom near phase boundaries. On ASHPB, ``failure_detail``
+    says which fan limit the outdoor coil fails at (see above).
 
 .. dropdown:: ``optimizer_failed`` — SciPy didn't satisfy its own criteria
     :icon: alert

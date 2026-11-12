@@ -1055,7 +1055,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
             # reaches the lower bound, not for whole steps.
-            run, cycle_result, _ = resolve_step_operation(
+            run, cycle_result = resolve_step_operation(
                 T_start_K=ctx.T_tank_w_K,
                 call_start=call_start,
                 running_prev=running_prev,
@@ -1068,7 +1068,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 C_next=self.C_tank * max(0.001, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=res_fn_free,
-                solve_cycle=lambda T_C, _hint, _fraction, ctx=ctx: (self._solve_cycle_at(ctx, T_C), None),
+                solve_cycle=lambda T_C, _fraction, ctx=ctx: self._solve_cycle_at(ctx, T_C),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,

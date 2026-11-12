@@ -124,8 +124,35 @@ def test_event_model_minimum_times_and_cut_out():
 def test_event_model_fast_cycling_limit():
     """A band far narrower than the step resolves to the heat-balance duty."""
     free = ((60.0, -3000.0), (61.0, -3000.0))
-    run = _sim(T_start_C=60.0, T_lower=60.0, T_upper=60.0 + 1e-7, free_heat=free)
+    # 1e-4 K band (above the 1e-6 K bound tolerance): ~1e5 switchings an hour.
+    run = _sim(T_start_C=60.0, T_lower=60.0, T_upper=60.0 + 1e-4, free_heat=free)
     assert run.runtime_fraction == pytest.approx(0.3, rel=1e-3)
+
+
+def test_bound_comparisons_ignore_root_solve_noise():
+    """A tank that ends a step on a bound gives the same call on every platform (#109 lesson)."""
+    from tmhp.dynamic_context import TEMPERATURE_TOL_K, determine_heat_source_on_off
+
+    for noise in (-1e-9, 0.0, 1e-9):
+        assert determine_heat_source_on_off(65.0 + noise, 60.0, 65.0, True, 12.0, [(0.0, 24.0)]) is False
+        assert determine_heat_source_on_off(60.0 + noise, 60.0, 65.0, False, 12.0, [(0.0, 24.0)]) is True
+    assert TEMPERATURE_TOL_K <= 1e-6
+    # Starting a step on the upper bound (either side of it by root-solve noise)
+    # never gives a sliver of a run or a start.
+    for noise in (-1e-9, 1e-9):
+        run = _sim(T_start_C=65.0 + noise, call_start=True, running_prev=True, phase_age_s=600.0)
+        assert run.runtime_fraction == 0.0 and run.starts == 0 and not run.running_start
+
+
+def test_event_at_the_step_end_belongs_to_the_next_step():
+    """An upper-bound hit within EVENT_TIME_TOL_S of the step end is not counted in this step."""
+    # 10 kW, no loss, C = 6e5 J/K: 50 -> 65 °C takes exactly 900 s.
+    for dt in (900.0 - 1e-9, 900.0 + 1e-9):
+        run = _sim(dt=dt)
+        # Still running at the end with the call already off: the next step
+        # stops it at t = 0. Both sides of the boundary give the same values.
+        assert run.running_end and not run.call_end and run.starts == 1, dt
+        assert run.runtime_fraction == 1.0
 
 
 def test_event_model_without_cycle_keeps_the_call():

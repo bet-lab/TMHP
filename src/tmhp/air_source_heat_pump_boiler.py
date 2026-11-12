@@ -41,7 +41,6 @@ configured through constructor parameters.
 import contextlib
 import math
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -211,16 +210,6 @@ class _OutdoorSearch:
         if all(m_min > 0.0 for _, m_min in margins):
             return OUTDOOR_COIL_EXCESS
         return OUTDOOR_COIL_NO_BAND
-
-
-@dataclass
-class _Settled:
-    """Stand-in optimiser outcome for a cycle evaluated at a known operating point."""
-
-    success = True
-
-
-_SETTLED = _Settled()
 
 
 class AirSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -1672,44 +1661,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result["failure_reason"] = "none"
         return hp_result
 
-    def _solve_cycle_at(
-        self, ctx: StepContext, T_tank_w: float, x_hint: float | None = None
-    ) -> tuple[dict, float | None]:
+    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
         """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
-        Returns ``(result, dT_ref_ou)``: a running result
-        (``failure_reason='none'``) with the outdoor-coil approach it runs
-        at, or an off-mode row (no heat, no power, NaN COP) carrying the
-        reason the call could not run, and ``None``.
-
-        ``x_hint`` is the approach of the same run in the previous step. The
-        cycle is evaluated there first; if that is an operating point that
-        meets the request it is kept (the specific-energy objective is flat
-        around its minimum, and a run's approach barely moves from one step
-        to the next), otherwise the full search runs. This keeps one search
-        per run instead of one per step.
+        A running result (``failure_reason='none'``), or an off-mode row (no
+        heat, no power, NaN COP) carrying the reason the call could not run.
         """
         Q_ref_tank: float = self.hp_capacity
         flow_state = self._step_flow_state(ctx, T_tank_w)
-        if x_hint is not None and math.isfinite(x_hint):
-            hinted = self._calc_state(float(x_hint), T_tank_w, Q_ref_tank, ctx.T0, flow_state=flow_state)
-            if (
-                self._active_step_failure(_SETTLED, hinted) is None
-                and hinted is not None
-                and float(hinted.get("Q_ref_tank [W]", 0.0)) >= Q_ref_tank * (1.0 - 1e-9)
-            ):
-                assert hinted is not None
-                hinted["failure_reason"] = "none"
-                return hinted, float(x_hint)
         opt = self._optimize_operation(
             T_tank_w,
             Q_ref_tank,
             ctx.T0,
             flow_state=flow_state,
         )
-        x = float(getattr(opt, "x", 5.0))
         solved = self._calc_state(
-            x,
+            float(getattr(opt, "x", 5.0)),
             T_tank_w,
             Q_ref_tank,
             ctx.T0,
@@ -1720,14 +1687,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             assert solved is not None
             hp_result = solved
             hp_result["failure_reason"] = "none"
-            return hp_result, x
+            return hp_result
         # Called but not solved: the compressor does not run. Report an
         # off-mode row (no heat, no power, NaN COP) with the reason instead
         # of a half-filled active row.
         off_result = self._calc_state(5.0, T_tank_w, 0.0, ctx.T0, flow_state=flow_state)
         hp_result = off_result if off_result is not None else {"hp_is_on": False}
         hp_result.update({"converged": False, "failure_reason": reason})
-        return hp_result, None
+        return hp_result
 
     def _active_step_failure(self, opt: object, solved: dict | None) -> str | None:
         """Why a called step has no operating point, or ``None`` if it has one.
@@ -2106,7 +2073,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # only until the tank reaches the upper bound, and starts when it
         # reaches the lower bound, instead of holding its start-of-step state
         # for the whole step (#96 T6).
-        run, cycle_result, cycle_carry = resolve_step_operation(
+        run, cycle_result = resolve_step_operation(
             T_start_K=ctx.T_tank_w_K,
             call_start=call_start,
             running_prev=state.hp_running_prev,
@@ -2121,12 +2088,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             residual_free=self._build_residual_fn(
                 ctx, ctrl_free, dt_s, T_tank_w_in_K_n, T_sup_w_K_n, tank_level, sub_states
             ),
-            solve_cycle=lambda T_C, x_hint, _fraction: self._solve_cycle_at(ctx, T_C, x_hint),
+            solve_cycle=lambda T_C, _fraction: self._solve_cycle_at(ctx, T_C),
             Q_request=self.hp_capacity,
             min_on_time_s=self.min_on_time_s,
             min_off_time_s=self.min_off_time_s,
-            conditions=(float(ctx.T0),),
-            carried=state.cycle_carry,
         )
         hp_result = step_hp_result(
             run,
@@ -2199,7 +2164,6 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_out_prev=self.dV_tank_w_out,
             hp_running_prev=run.running_end,
             hp_phase_age_s=run.phase_age_end_s,
-            cycle_carry=cycle_carry,
         )
         return new_state, r
 

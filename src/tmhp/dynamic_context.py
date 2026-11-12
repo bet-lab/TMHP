@@ -22,9 +22,10 @@ __all__ = [
     "ControlState",
     "CycleSolveOutcome",
     "DynamicState",
-    "CycleCarry",
     "InStepRun",
+    "EVENT_TIME_TOL_S",
     "StepContext",
+    "TEMPERATURE_TOL_K",
     "Subsystem",
     "SubsystemExergy",
     "check_hp_schedule_active",
@@ -174,10 +175,6 @@ class DynamicState:
         Time the compressor has been in its current running state (on or
         off) at the end of the previous step [s]; ``inf`` at the start of a
         run. Read by the minimum on/off time rules.
-    cycle_carry : CycleCarry | None
-        What the previous step's cycle hands this one: the operating point
-        of a run still going, or a remembered search failure (see
-        :func:`resolve_step_operation`).
     """
 
     T_tank_w_K: float
@@ -187,7 +184,6 @@ class DynamicState:
     dV_tank_w_out_prev: float
     hp_running_prev: bool = False
     hp_phase_age_s: float = math.inf
-    cycle_carry: CycleCarry | None = None
 
 
 # ------------------------------------------------------------------
@@ -337,6 +333,23 @@ def check_hp_schedule_active(
     return any(start_hour <= hour < end_hour for start_hour, end_hour in hp_on_schedule)
 
 
+#: Temperature width [K] within which the tank counts as *at* a thermostat
+#: bound. The tank temperature at a step boundary comes from an implicit
+#: root solve, so a tank that ends a step on a bound lands a few 1e-9 K on
+#: either side of it depending on the platform's floating-point path. An
+#: exact comparison then turns the next step's call -- and with it
+#: ``hp_is_on`` and ``hp_starts [-]`` -- on or off by machine. 1e-6 K is far
+#: above that noise and far below anything a thermostat resolves.
+TEMPERATURE_TOL_K: float = 1e-6
+
+#: Time width [s] within which a switching event counts as at the step end
+#: (it then happens at the start of the next step). Event times carry the
+#: same root-solve noise (~1e-10 s for a 15 kW / 151 L tank per 1e-9 K), and
+#: without this width a stop or start right at a step boundary would be
+#: counted in one step or the next by platform.
+EVENT_TIME_TOL_S: float = 1e-6
+
+
 def determine_heat_source_on_off(
     T_tank_w_C: float,
     T_lower: float,
@@ -367,9 +380,11 @@ def determine_heat_source_on_off(
     bool
         Whether the heat source should run this timestep.
     """
-    if T_tank_w_C <= T_lower:
+    # Bounds compared with TEMPERATURE_TOL_K: a tank that ended the previous
+    # step on a bound is at it, whatever the root solve's last digits.
+    if T_tank_w_C <= T_lower + TEMPERATURE_TOL_K:
         is_on: bool = True
-    elif T_tank_w_C >= T_upper:
+    elif T_tank_w_C >= T_upper - TEMPERATURE_TOL_K:
         is_on = False
     else:
         is_on = is_on_prev
@@ -569,10 +584,17 @@ def simulate_thermostat_step(
 
     for n_events in range(1_000_001):
         # --- instantaneous transitions at (t, tw) ---
-        if t > 0.0 and scheduled:
-            if tw <= T_lower:
+        # Every comparison with a bound or a minimum time carries
+        # TEMPERATURE_TOL_K / EVENT_TIME_TOL_S (see their definitions): the
+        # booleans and counts this loop produces must not depend on the last
+        # digits of a root solve.
+        # At t = 0 this repeats the caller's hysteresis on the start
+        # temperature, so a call that disagrees with the bounds cannot run
+        # the compressor past them.
+        if scheduled:
+            if tw <= T_lower + TEMPERATURE_TOL_K:
                 call = True
-            elif tw >= T_hi:
+            elif tw >= T_hi - TEMPERATURE_TOL_K:
                 call = False
         if not scheduled:
             call = False
@@ -580,13 +602,19 @@ def simulate_thermostat_step(
             break  # a start at the step end belongs to the next step
         want = call and scheduled
         if running:
-            if not scheduled or tw >= T_limit_C or (not want and age >= min_on_time_s):
+            if (
+                not scheduled
+                or tw >= T_limit_C - TEMPERATURE_TOL_K
+                or (not want and age >= min_on_time_s - EVENT_TIME_TOL_S)
+            ):
                 running, age = False, 0.0
             elif q_on <= 0.0:
                 # Running at the end of the previous step but no cycle exists
                 # at this step's conditions: the compressor stops.
                 running, age, unavailable = False, 0.0, True
-        elif want and age >= min_off_time_s and not unavailable and tw < T_limit_C:
+        elif (
+            want and age >= min_off_time_s - EVENT_TIME_TOL_S and not unavailable and tw < T_limit_C - TEMPERATURE_TOL_K
+        ):
             if q_on > 0.0:
                 running, age = True, 0.0
                 starts += 1
@@ -609,20 +637,23 @@ def simulate_thermostat_step(
         # (time to the event, threshold it reaches or None)
         events: list[tuple[float, float | None]] = [(rem, None)]
         if running:
-            if tw < T_limit_C:
+            if tw < T_limit_C - TEMPERATURE_TOL_K:
                 events.append((_time_to_reach(tw, T_limit_C, drive, slope, C), T_limit_C))
-            if age < min_on_time_s:
+            if age < min_on_time_s - EVENT_TIME_TOL_S:
                 events.append((min_on_time_s - age, None))
-            if want and tw < T_hi:
+            if want and tw < T_hi - TEMPERATURE_TOL_K:
                 events.append((_time_to_reach(tw, T_hi, drive, slope, C), T_hi))
         else:
-            if want and not unavailable and age < min_off_time_s:
+            if want and not unavailable and age < min_off_time_s - EVENT_TIME_TOL_S:
                 events.append((min_off_time_s - age, None))
-            if scheduled and not call and tw > T_lower:
+            if scheduled and not call and tw > T_lower + TEMPERATURE_TOL_K:
                 events.append((_time_to_reach(tw, T_lower, drive, slope, C), T_lower))
-            if scheduled and call and tw < T_hi:
+            if scheduled and call and tw < T_hi - TEMPERATURE_TOL_K:
                 events.append((_time_to_reach(tw, T_hi, drive, slope, C), T_hi))
         step, target = min((e for e in events if e[0] >= 0.0), key=lambda e: e[0])
+        if step >= rem - EVENT_TIME_TOL_S:
+            # An event at the step end belongs to the next step (EVENT_TIME_TOL_S).
+            step, target = rem, None
         T_new = _advance(tw, step, drive, slope, C)
         if target is not None and step < rem:
             # Land exactly on the threshold this event reaches so the
@@ -650,30 +681,6 @@ def simulate_thermostat_step(
         heat_unavailable=unavailable,
         T_on_first_C=tw_on_first,
     )
-
-
-@dataclass(frozen=True)
-class CycleCarry:
-    """What one step hands the next about its cycle (see :func:`resolve_step_operation`).
-
-    ``x``: the operating-point search variable of a run still going at the
-    step end; ``conditions``: the step's source-side conditions (e.g. outdoor
-    temperature [°C]) it was found at.
-    """
-
-    conditions: tuple[float, ...]
-    x: float | None = None
-
-    def within(self, conditions: tuple[float, ...], tol: float) -> bool:
-        return len(self.conditions) == len(conditions) and all(
-            abs(a - b) <= tol for a, b in zip(self.conditions, conditions, strict=True)
-        )
-
-
-CYCLE_REUSE_TOLERANCE_K: float = 0.5
-"""Largest change [K] of a step's cycle conditions (outdoor or source
-temperature) for which a run carried over from the previous step starts from
-that step's operating point (see :func:`resolve_step_operation`)."""
 
 
 CYCLE_RETRY_SPAN_K: float = 1.0
@@ -716,9 +723,7 @@ def resolve_step_operation(
     Q_request: float,
     min_on_time_s: float = 0.0,
     min_off_time_s: float = 0.0,
-    conditions: tuple[float, ...] = (),
-    carried: CycleCarry | None = None,
-) -> tuple[InStepRun, dict | None, CycleCarry | None]:
+) -> tuple[InStepRun, dict | None]:
     """Compressor operation in one step and the cycle it ran.
 
     ``residual_free(T_K)`` is the boiler's own implicit tank residual built
@@ -739,21 +744,15 @@ def resolve_step_operation(
        again with the heat that cycle delivers (zero if it has no operating
        point).
 
-    ``solve_cycle(T_C, x_hint, runtime_fraction)`` returns ``(result, x)``:
-    the cycle (``runtime_fraction`` is the run time the first pass expects,
-    for boilers whose source responds to the step-average load) and the
-    value of the boiler's operating-point search variable it settled on
-    (``None`` if the boiler has none to share). A run that goes on past the
-    step end returns a :class:`CycleCarry` with ``x``; the next step passes
-    it back as ``carried``, and while the same run continues and every
-    condition (e.g. outdoor temperature [°C]) is within
-    ``CYCLE_REUSE_TOLERANCE_K`` the boiler may start from ``x`` (evaluate
-    the cycle there at the new tank temperature and search again only if
-    that is not an operating point) instead of searching from scratch.
+    ``solve_cycle(T_C, runtime_fraction)`` returns the boiler's cycle result
+    at tank temperature ``T_C``; ``runtime_fraction`` is the run time the
+    first pass expects, for boilers whose source responds to the
+    step-average load. Each step searches its operating point from scratch:
+    starting from the previous step's point would change which candidates
+    the search evaluates, and so its optimum.
 
-    Returns the :class:`InStepRun`, the cycle result (``None`` if the
-    compressor never had to run in this step) and the carry for the next
-    step (``None`` if there is none).
+    Returns the :class:`InStepRun` and the cycle result (``None`` if the
+    compressor never had to run in this step).
 
     When the linearised model puts a switching event within round-off of the
     step end, the implicit solve of the full step decides: a step the
@@ -798,29 +797,19 @@ def resolve_step_operation(
     )
     provisional = simulate_thermostat_step(Q_on=Q_request, **kwargs)  # type: ignore[arg-type]
     if provisional.T_on_mean_C is None:
-        return provisional, None, None
-    hint = None
-    if (
-        carried is not None
-        and carried.x is not None
-        and running_prev
-        and provisional.running_start
-        and carried.within(conditions, CYCLE_REUSE_TOLERANCE_K)
-    ):
-        hint = carried.x
+        return provisional, None
     T_eval = provisional.T_on_mean_C
-    cycle_result, x_used = solve_cycle(T_eval, hint, provisional.runtime_fraction)
+    cycle_result = solve_cycle(T_eval, provisional.runtime_fraction)
     q = delivered_tank_heat(cycle_result)
     T_first = provisional.T_on_first_C
     if q <= 0.0 and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
         # No operating point at the mean temperature (an envelope that closes
         # as the tank warms): the cycle that starts the run, when the run
         # starts well below the mean (a nearby start would fail the same way).
-        retry, x_retry = solve_cycle(T_first, None, provisional.runtime_fraction)
+        retry = solve_cycle(T_first, provisional.runtime_fraction)
         if delivered_tank_heat(retry) > 0.0:
-            cycle_result, q, x_used = retry, delivered_tank_heat(retry), x_retry
+            cycle_result, q = retry, delivered_tank_heat(retry)
     run = simulate_thermostat_step(Q_on=q, **kwargs)  # type: ignore[arg-type]
-    carry = CycleCarry(tuple(conditions), x=x_used) if (run.running_end and q > 0.0 and x_used is not None) else None
 
     T_hi = min(T_upper, T_WATER_BOIL_C)
     age_through = (phase_age_s if running_prev == run.running_start else 0.0) + dt
@@ -828,9 +817,8 @@ def resolve_step_operation(
         # Ran from t = 0 and stopped once at the upper bound: confirm with the
         # implicit full-step solve that the tank really gets there.
         T_end = _solve_tank_end(residual_free, q, dt, C_tank)
-        if T_end is not None and T_end - 273.15 < T_hi:
+        if T_end is not None and T_end - 273.15 < T_hi - TEMPERATURE_TOL_K:
             run = InStepRun(1.0, True, True, True, run.starts, age_through, run.T_on_mean_C, False, T0_C)
-            carry = CycleCarry(tuple(conditions), x=x_used) if x_used is not None else None
     elif (
         not run.running_start
         and run.running_end
@@ -842,9 +830,9 @@ def resolve_step_operation(
         # Started a moment before the step end at the lower bound: confirm
         # the tank really cools that far within the step.
         T_end = _solve_tank_end(residual_free, 0.0, dt, C_tank)
-        if T_end is not None and T_end - 273.15 > T_lower:
-            return InStepRun(0.0, False, False, False, 0, age_through, None, False), None, None
-    return run, cycle_result, carry
+        if T_end is not None and T_end - 273.15 > T_lower + TEMPERATURE_TOL_K:
+            return InStepRun(0.0, False, False, False, 0, age_through, None, False), None
+    return run, cycle_result
 
 
 TANK_BOILING_WARNING = (

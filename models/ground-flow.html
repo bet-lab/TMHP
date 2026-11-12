@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-11-13T00:12:45+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:58:41+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -277,8 +277,9 @@ For GSHPB, <code class="docutils literal notranslate"><span class="pre">T_source
 fluid temperature. Supply <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> to close the borehole wall/fluid balance
 and make flow-dependent Rb* affect the cycle. Without it, the fixed source-fluid
 boundary is retained, and Rb* affects the inferred wall temperature only.</p>
-<p>In dynamic simulations, each candidate uses the current-time ground response
-without committing a load pulse. Only the selected operating point updates
+<p>In dynamic simulations, each candidate uses the ground response averaged over
+the current step, including the candidate’s own load, without committing a
+load pulse. Only the selected operating point updates
 history. An external GSHPB ground coupler must provide the optional
 <code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise(n,</span> <span class="pre">time_arr,</span> <span class="pre">q_unit)</span></code> method to use the new
 coupled flow mode; legacy couplers still work with the default model.</p>
@@ -287,9 +288,19 @@ coupled flow mode; legacy couplers still work with the default model.</p>
 <h2>Module boundaries and assumptions<a class="headerlink" href="#module-boundaries-and-assumptions" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">g_function</span></code> and <code class="docutils literal notranslate"><span class="pre">ground_coupling</span></code> describe ground-to-wall response.
-Loads are extraction-positive W/m; cooling heat rejection is negative.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">borehole</span></code> describes wall-to-fluid resistance in m K/W. The existing
-local-resistance and axial-correction model is preserved. <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code>
+Loads are extraction-positive W/m; cooling heat rejection is negative.
+A step reports the wall-temperature rise averaged over <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code>
+(step-mean g-function, own load included); an external coupler should
+return the same quantity, and receives the run’s step length when its
+<code class="docutils literal notranslate"><span class="pre">reset</span></code> accepts a <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> keyword. The step is always the run’s own
+<code class="docutils literal notranslate"><span class="pre">dt_s</span></code>, never the constructor’s. Times past the precomputed horizon recompute the
+g-function rather than extrapolate it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borehole</span></code> describes wall-to-fluid resistance in m K/W. The local
+resistance <code class="docutils literal notranslate"><span class="pre">R_b</span></code> and the internal pipe-to-pipe resistance <code class="docutils literal notranslate"><span class="pre">R_a</span></code> come
+from the multipole method; the axial correction is Hellström’s
+<code class="docutils literal notranslate"><span class="pre">R_b</span> <span class="pre">η</span> <span class="pre">coth</span> <span class="pre">η</span></code> (<code class="docutils literal notranslate"><span class="pre">uniform_temperature</span></code>, identical to pygfunction) or
+<code class="docutils literal notranslate"><span class="pre">R_b</span> <span class="pre">+</span> <span class="pre">H²</span> <span class="pre">/</span> <span class="pre">(3</span> <span class="pre">R_a</span> <span class="pre">(ṁ</span> <span class="pre">c_p)²)</span></code> (<code class="docutils literal notranslate"><span class="pre">uniform_heat_flux</span></code>), with
+<code class="docutils literal notranslate"><span class="pre">η</span> <span class="pre">=</span> <span class="pre">H</span> <span class="pre">/</span> <span class="pre">(ṁ</span> <span class="pre">c_p</span> <span class="pre">√(R_b</span> <span class="pre">R_a))</span></code>. <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code>
 precomputes 101 flow-grid values, including rated flow, and uses PCHIP with
 no extrapolation. A fixed user <code class="docutils literal notranslate"><span class="pre">R_b</span></code> override cannot be combined with it.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pump</span></code> uses Darcy–Weisbach with laminar/Haaland friction. Identical U-tubes

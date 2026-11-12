@@ -175,151 +175,261 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="5"><span class="sd">physics, so the response backend becomes swappable behind one small contract:</span>
 </span><span data-line="6">
 </span><span data-line="7"><span class="sd">- :class:`AggregateGFunctionCoupler` (default) wraps a single field-average</span>
-</span><span data-line="8"><span class="sd">  g-function interpolator ``g(tau)`` [m·K/W] and reproduces the legacy inline</span>
-</span><span data-line="9"><span class="sd">  temporal superposition **byte-for-byte**.</span>
-</span><span data-line="10"><span class="sd">- External packages (e.g. ``geolink``) can implement the :class:`GroundCoupler`</span>
-</span><span data-line="11"><span class="sd">  protocol with a *resolved multi-borehole network* response — replacing the</span>
-</span><span data-line="12"><span class="sd">  single lumped g-function with full borehole-to-borehole superposition —</span>
-</span><span data-line="13"><span class="sd">  *without this package depending on them* (dependency inversion: ``tmhp``</span>
-</span><span data-line="14"><span class="sd">  defines the abstraction it needs; the richer implementation lives elsewhere</span>
-</span><span data-line="15"><span class="sd">  and is injected).</span>
-</span><span data-line="16">
-</span><span data-line="17"><span class="sd">Contract</span>
-</span><span data-line="18"><span class="sd">--------</span>
-</span><span data-line="19"><span class="sd">A coupler owns the ground-load *pulse history*. The host</span>
-</span><span data-line="20"><span class="sd">(:class:`~tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler`) calls</span>
-</span><span data-line="21"><span class="sd">:meth:`GroundCoupler.reset` once per simulation and</span>
-</span><span data-line="22"><span class="sd">:meth:`GroundCoupler.wall_temperature_rise` once per timestep with the current</span>
-</span><span data-line="23"><span class="sd">per-length ground load ``q_unit`` [W/m]; the coupler returns the borehole-wall</span>
-</span><span data-line="24"><span class="sd">temperature *rise* magnitude ``dT`` [K].</span>
-</span><span data-line="25">
-</span><span data-line="26"><span class="sd">Sign convention (matches the legacy GSHPB)</span>
-</span><span data-line="27"><span class="sd">------------------------------------------</span>
-</span><span data-line="28"><span class="sd">``q_unit &gt; 0`` denotes heat *extraction* from the ground; the returned ``dT`` is</span>
-</span><span data-line="29"><span class="sd">the positive magnitude such that the disturbed wall temperature is</span>
-</span><span data-line="30"><span class="sd">``T_wall = T_undisturbed - dT``. (Note this is the opposite sign labelling from</span>
-</span><span data-line="31"><span class="sd">``geolink``&#39;s ``q&#39; &gt; 0`` = injection convention; a ``geolink`` coupler maps the</span>
-</span><span data-line="32"><span class="sd">sign at its boundary so the value returned here keeps the extraction-positive</span>
-</span><span data-line="33"><span class="sd">meaning.)</span>
-</span><span data-line="34"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="35">
-</span><span data-line="36"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="37">
-</span><span data-line="38"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span>
-</span><span data-line="39">
-</span><span data-line="40"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span data-line="41">
-</span><span data-line="42">
+</span><span data-line="8"><span class="sd">  g-function ``g(tau)`` [m·K/W] and superposes load pulses with its</span>
+</span><span data-line="9"><span class="sd">  step-mean response (the same convention as the inline superposition of</span>
+</span><span data-line="10"><span class="sd">  :class:`~tmhp.GroundSourceHeatPump` and</span>
+</span><span data-line="11"><span class="sd">  :class:`~tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical`).</span>
+</span><span data-line="12"><span class="sd">- External packages (e.g. ``geolink``) can implement the :class:`GroundCoupler`</span>
+</span><span data-line="13"><span class="sd">  protocol with a *resolved multi-borehole network* response — replacing the</span>
+</span><span data-line="14"><span class="sd">  single lumped g-function with full borehole-to-borehole superposition —</span>
+</span><span data-line="15"><span class="sd">  *without this package depending on them* (dependency inversion: ``tmhp``</span>
+</span><span data-line="16"><span class="sd">  defines the abstraction it needs; the richer implementation lives elsewhere</span>
+</span><span data-line="17"><span class="sd">  and is injected).</span>
+</span><span data-line="18">
+</span><span data-line="19"><span class="sd">Contract</span>
+</span><span data-line="20"><span class="sd">--------</span>
+</span><span data-line="21"><span class="sd">A coupler owns the ground-load *pulse history*. The host</span>
+</span><span data-line="22"><span class="sd">(:class:`~tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler`) calls</span>
+</span><span data-line="23"><span class="sd">:meth:`GroundCoupler.reset` once per simulation and</span>
+</span><span data-line="24"><span class="sd">:meth:`GroundCoupler.wall_temperature_rise` once per timestep with the current</span>
+</span><span data-line="25"><span class="sd">per-length ground load ``q_unit`` [W/m]; the coupler returns the borehole-wall</span>
+</span><span data-line="26"><span class="sd">temperature *rise* magnitude ``dT`` [K].</span>
+</span><span data-line="27">
+</span><span data-line="28"><span class="sd">Time convention: step ``n`` stands for the interval ``[t_n, t_n + dt]`` and</span>
+</span><span data-line="29"><span class="sd">the returned ``dT`` is the wall-temperature rise *averaged over that</span>
+</span><span data-line="30"><span class="sd">interval*, including the response to the step&#39;s own load ``q_unit``. An</span>
+</span><span data-line="31"><span class="sd">external backend should return the same quantity so that results do not</span>
+</span><span data-line="32"><span class="sd">depend on which backend is injected.</span>
+</span><span data-line="33">
+</span><span data-line="34"><span class="sd">Sign convention (matches the legacy GSHPB)</span>
+</span><span data-line="35"><span class="sd">------------------------------------------</span>
+</span><span data-line="36"><span class="sd">``q_unit &gt; 0`` denotes heat *extraction* from the ground; the returned ``dT`` is</span>
+</span><span data-line="37"><span class="sd">the positive magnitude such that the disturbed wall temperature is</span>
+</span><span data-line="38"><span class="sd">``T_wall = T_undisturbed - dT``. (Note this is the opposite sign labelling from</span>
+</span><span data-line="39"><span class="sd">``geolink``&#39;s ``q&#39; &gt; 0`` = injection convention; a ``geolink`` coupler maps the</span>
+</span><span data-line="40"><span class="sd">sign at its boundary so the value returned here keeps the extraction-positive</span>
+</span><span data-line="41"><span class="sd">meaning.)</span>
+</span><span data-line="42"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="45">
+</span><span data-line="46"><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+</span><span data-line="47"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">runtime_checkable</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="50">
+</span><span data-line="51"><span class="kn">from</span><span class="w"> </span><span class="nn">.g_function</span><span class="w"> </span><span class="kn">import</span> <span class="n">g_step_mean</span>
+</span><span data-line="52">
+</span><span data-line="53">
 <div class="viewcode-block" id="GroundCoupler">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler">[docs]</a>
-</span><span data-line="43"><span class="nd">@runtime_checkable</span>
-</span><span data-line="44"><span class="k">class</span><span class="w"> </span><span class="nc">GroundCoupler</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-</span><span data-line="45"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pluggable ground-response backend for BHE temporal superposition.&quot;&quot;&quot;</span>
-</span><span data-line="46">
+</span><span data-line="54"><span class="nd">@runtime_checkable</span>
+</span><span data-line="55"><span class="k">class</span><span class="w"> </span><span class="nc">GroundCoupler</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span data-line="56"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Pluggable ground-response backend for BHE temporal superposition.&quot;&quot;&quot;</span>
+</span><span data-line="57">
 <div class="viewcode-block" id="GroundCoupler.reset">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler.reset">[docs]</a>
-</span><span data-line="47">    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="48"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise pulse-history state for a simulation of ``n_steps`` steps.</span>
-</span><span data-line="49">
-</span><span data-line="50"><span class="sd">        Parameters</span>
-</span><span data-line="51"><span class="sd">        ----------</span>
-</span><span data-line="52"><span class="sd">        n_steps : int</span>
-</span><span data-line="53"><span class="sd">            Number of timesteps in the upcoming simulation.</span>
-</span><span data-line="54"><span class="sd">        time_arr : np.ndarray</span>
-</span><span data-line="55"><span class="sd">            Absolute time of each step [s] (uniform grid). Backends that</span>
-</span><span data-line="56"><span class="sd">            precompute a response matrix at fixed times use this.</span>
-</span><span data-line="57"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="58">        <span class="o">...</span></div>
+</span><span data-line="58">    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="59"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialise pulse-history state for a simulation of ``n_steps`` steps.</span>
+</span><span data-line="60">
+</span><span data-line="61"><span class="sd">        A backend may also accept a keyword ``dt_s`` (the run&#39;s step length</span>
+</span><span data-line="62"><span class="sd">        [s]); :func:`reset_ground_coupler` passes it when the signature</span>
+</span><span data-line="63"><span class="sd">        allows, which is the only way to know the step length of a one-step</span>
+</span><span data-line="64"><span class="sd">        run.</span>
+</span><span data-line="65">
+</span><span data-line="66"><span class="sd">        Parameters</span>
+</span><span data-line="67"><span class="sd">        ----------</span>
+</span><span data-line="68"><span class="sd">        n_steps : int</span>
+</span><span data-line="69"><span class="sd">            Number of timesteps in the upcoming simulation.</span>
+</span><span data-line="70"><span class="sd">        time_arr : np.ndarray</span>
+</span><span data-line="71"><span class="sd">            Absolute time of each step [s] (uniform grid). Backends that</span>
+</span><span data-line="72"><span class="sd">            precompute a response matrix at fixed times use this.</span>
+</span><span data-line="73"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="74">        <span class="o">...</span></div>
 
-</span><span data-line="59">
+</span><span data-line="75">
 <div class="viewcode-block" id="GroundCoupler.wall_temperature_rise">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise">[docs]</a>
-</span><span data-line="60">    <span class="k">def</span><span class="w"> </span><span class="nf">wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="61"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Borehole-wall temperature rise [K] at step ``n`` for load ``q_unit``.</span>
-</span><span data-line="62">
-</span><span data-line="63"><span class="sd">        Parameters</span>
-</span><span data-line="64"><span class="sd">        ----------</span>
-</span><span data-line="65"><span class="sd">        n : int</span>
-</span><span data-line="66"><span class="sd">            Current step index (0-based).</span>
-</span><span data-line="67"><span class="sd">        time_arr : np.ndarray</span>
-</span><span data-line="68"><span class="sd">            Absolute time of each step [s] (same array passed to :meth:`reset`).</span>
-</span><span data-line="69"><span class="sd">        q_unit : float</span>
-</span><span data-line="70"><span class="sd">            Per-length ground load at this step [W/m], extraction-positive.</span>
-</span><span data-line="71"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="72">        <span class="o">...</span></div>
+</span><span data-line="76">    <span class="k">def</span><span class="w"> </span><span class="nf">wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="77"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Borehole-wall temperature rise [K] at step ``n`` for load ``q_unit``.</span>
+</span><span data-line="78">
+</span><span data-line="79"><span class="sd">        Parameters</span>
+</span><span data-line="80"><span class="sd">        ----------</span>
+</span><span data-line="81"><span class="sd">        n : int</span>
+</span><span data-line="82"><span class="sd">            Current step index (0-based).</span>
+</span><span data-line="83"><span class="sd">        time_arr : np.ndarray</span>
+</span><span data-line="84"><span class="sd">            Absolute time of each step [s] (same array passed to :meth:`reset`).</span>
+</span><span data-line="85"><span class="sd">        q_unit : float</span>
+</span><span data-line="86"><span class="sd">            Per-length ground load at this step [W/m], extraction-positive.</span>
+</span><span data-line="87"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="88">        <span class="o">...</span></div>
 </div>
 
-</span><span data-line="73">
-</span><span data-line="74">
+</span><span data-line="89">
+</span><span data-line="90">
 <div class="viewcode-block" id="AggregateGFunctionCoupler">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler">[docs]</a>
-</span><span data-line="75"><span class="k">class</span><span class="w"> </span><span class="nc">AggregateGFunctionCoupler</span><span class="p">:</span>
-</span><span data-line="76"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Single field-average g-function temporal superposition (legacy default).</span>
-</span><span data-line="77">
-</span><span data-line="78"><span class="sd">    Reproduces the legacy ``_compute_bhe_superposition`` inner loop exactly:</span>
-</span><span data-line="79"><span class="sd">    a pulse is recorded whenever the per-length load changes by more than</span>
-</span><span data-line="80"><span class="sd">    ``pulse_tol``, and the pulse train is convolved with ``g(tau)``.</span>
-</span><span data-line="81">
-</span><span data-line="82"><span class="sd">    Parameters</span>
-</span><span data-line="83"><span class="sd">    ----------</span>
-</span><span data-line="84"><span class="sd">    g_interp : Callable[[np.ndarray], np.ndarray]</span>
-</span><span data-line="85"><span class="sd">        Field-average g-function interpolator mapping lag time ``tau`` [s] to</span>
-</span><span data-line="86"><span class="sd">        the dimensional response ``g`` [m·K/W].</span>
-</span><span data-line="87"><span class="sd">    pulse_tol : float, optional</span>
-</span><span data-line="88"><span class="sd">        Minimum load change [W/m] that registers a new pulse (default 1e-6).</span>
-</span><span data-line="89"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="90">
+</span><span data-line="91"><span class="k">class</span><span class="w"> </span><span class="nc">AggregateGFunctionCoupler</span><span class="p">:</span>
+</span><span data-line="92"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Single field-average g-function temporal superposition (default backend).</span>
+</span><span data-line="93">
+</span><span data-line="94"><span class="sd">    A pulse is recorded whenever the per-length load changes by more than</span>
+</span><span data-line="95"><span class="sd">    ``pulse_tol``; the pulse train is convolved with the **step-mean**</span>
+</span><span data-line="96"><span class="sd">    response ``ḡ(τ; dt) = (1/dt) ∫_τ^{τ+dt} g`` (:func:`~tmhp.g_function.g_step_mean`).</span>
+</span><span data-line="97"><span class="sd">    The value returned for step ``n`` is therefore the mean wall-temperature</span>
+</span><span data-line="98"><span class="sd">    rise over the interval ``[t_n, t_n + dt]``, including the response to the</span>
+</span><span data-line="99"><span class="sd">    step&#39;s own load. (Before #96 G4 the pulse train was evaluated at the step</span>
+</span><span data-line="100"><span class="sd">    *start*, ``g(t_n - t_i)``, so the current step&#39;s pulse contributed</span>
+</span><span data-line="101"><span class="sd">    ``g(0) ≈ 0`` and the wall was reported up to ~0.8 K too warm at</span>
+</span><span data-line="102"><span class="sd">    25 W/m with hourly steps.)</span>
+</span><span data-line="103">
+</span><span data-line="104"><span class="sd">    On a uniform time grid the step-mean responses for every lag are computed</span>
+</span><span data-line="105"><span class="sd">    once in :meth:`reset` and each step is a contiguous dot product; a</span>
+</span><span data-line="106"><span class="sd">    different time array passed later falls back to direct evaluation with</span>
+</span><span data-line="107"><span class="sd">    the same step length. A non-uniform grid is rejected at :meth:`reset`.</span>
+</span><span data-line="108">
+</span><span data-line="109"><span class="sd">    Parameters</span>
+</span><span data-line="110"><span class="sd">    ----------</span>
+</span><span data-line="111"><span class="sd">    g_interp : Callable[[np.ndarray], np.ndarray]</span>
+</span><span data-line="112"><span class="sd">        Field-average g-function mapping lag time ``tau`` [s] to the</span>
+</span><span data-line="113"><span class="sd">        dimensional response ``g`` [m·K/W]. A</span>
+</span><span data-line="114"><span class="sd">        :class:`~tmhp.g_function.GFunction` is integrated exactly; any other</span>
+</span><span data-line="115"><span class="sd">        callable by Gauss–Legendre quadrature.</span>
+</span><span data-line="116"><span class="sd">    pulse_tol : float, optional</span>
+</span><span data-line="117"><span class="sd">        Minimum load change [W/m] that registers a new pulse (default 1e-6).</span>
+</span><span data-line="118"><span class="sd">    dt_s : float, optional</span>
+</span><span data-line="119"><span class="sd">        Fixed step length [s] for every run. Normally omitted: the host passes</span>
+</span><span data-line="120"><span class="sd">        the run&#39;s own step length to :meth:`reset` (``dt_s=``). The step</span>
+</span><span data-line="121"><span class="sd">        length is never taken from how the g-function was built.</span>
+</span><span data-line="122"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="123">
 <div class="viewcode-block" id="AggregateGFunctionCoupler.__init__">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__">[docs]</a>
-</span><span data-line="91">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_interp</span><span class="p">,</span> <span class="n">pulse_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="92">        <span class="bp">self</span><span class="o">.</span><span class="n">_g</span> <span class="o">=</span> <span class="n">g_interp</span>
-</span><span data-line="93">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pulse_tol</span><span class="p">)</span>
-</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+</span><span data-line="124">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g_interp</span><span class="p">,</span> <span class="n">pulse_tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="125">        <span class="bp">self</span><span class="o">.</span><span class="n">_g</span> <span class="o">=</span> <span class="n">g_interp</span>
+</span><span data-line="126">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">pulse_tol</span><span class="p">)</span>
+</span><span data-line="127">        <span class="bp">self</span><span class="o">.</span><span class="n">_dt_fixed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">dt_s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt_s</span><span class="p">)</span>
+</span><span data-line="128">        <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt_fixed</span>
+</span><span data-line="129">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</span><span data-line="130">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="131">        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="132">        <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-</span><span data-line="96">
+</span><span data-line="133">
 <div class="viewcode-block" id="AggregateGFunctionCoupler.reset">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.reset">[docs]</a>
-</span><span data-line="97">    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>
-</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+</span><span data-line="134">    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="135"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Start a run of ``n_steps`` steps on the uniform grid ``time_arr`` [s].</span>
+</span><span data-line="136">
+</span><span data-line="137"><span class="sd">        The step length is, in order: ``dt_s`` given here (the run&#39;s own</span>
+</span><span data-line="138"><span class="sd">        step), the constructor ``dt_s``, the spacing of ``time_arr``. A</span>
+</span><span data-line="139"><span class="sd">        one-step grid without either raises; a grid whose spacing is not</span>
+</span><span data-line="140"><span class="sd">        uniform or differs from the step length raises, since the</span>
+</span><span data-line="141"><span class="sd">        step-mean response assumes every step lasts ``dt``.</span>
+</span><span data-line="142"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="143">        <span class="n">time_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">time_arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="144">        <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>
+</span><span data-line="145">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="146">        <span class="n">dt</span> <span class="o">=</span> <span class="n">dt_s</span> <span class="k">if</span> <span class="n">dt_s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt_fixed</span>
+</span><span data-line="147">        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_arr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+</span><span data-line="148">            <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">time_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="149">        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="150">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="151">                <span class="s2">&quot;AggregateGFunctionCoupler needs the run&#39;s positive step length: pass reset(..., dt_s=) &quot;</span>
+</span><span data-line="152">                <span class="s2">&quot;(a one-step time grid does not define it)&quot;</span>
+</span><span data-line="153">            <span class="p">)</span>
+</span><span data-line="154">        <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+</span><span data-line="155">        <span class="bp">self</span><span class="o">.</span><span class="n">_time</span> <span class="o">=</span> <span class="n">time_arr</span>
+</span><span data-line="156">        <span class="n">lags</span> <span class="o">=</span> <span class="n">time_arr</span> <span class="o">-</span> <span class="n">time_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_arr</span><span class="p">)</span> <span class="k">else</span> <span class="n">time_arr</span>
+</span><span data-line="157">        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">lags</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">time_arr</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-9</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="p">):</span>
+</span><span data-line="158">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="159">                <span class="sa">f</span><span class="s2">&quot;time grid must be uniform with spacing dt_s=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> s &quot;</span>
+</span><span data-line="160">                <span class="sa">f</span><span class="s2">&quot;(got spacings </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">time_arr</span><span class="p">),</span><span class="w"> </span><span class="mi">9</span><span class="p">))[:</span><span class="mi">4</span><span class="p">]</span><span class="si">}</span><span class="s2"> s)&quot;</span>
+</span><span data-line="161">            <span class="p">)</span>
+</span><span data-line="162">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">time_arr</span><span class="p">)</span> <span class="o">==</span> <span class="n">n_steps</span> <span class="ow">and</span> <span class="n">n_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="163">            <span class="c1"># ḡ for lag k·dt, stored reversed so that the response at step n is</span>
+</span><span data-line="164">            <span class="c1"># one contiguous dot product: Σ_i p_i ḡ[n-i] = p[:n+1] · rev[N-1-n:].</span>
+</span><span data-line="165">            <span class="n">gbar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g_step_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">,</span> <span class="n">lags</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="166">            <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">gbar</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="167">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="168">            <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-</span><span data-line="100">
+</span><span data-line="169">
+</span><span data-line="170">    <span class="k">def</span><span class="w"> </span><span class="nf">_history_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">upto</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="171"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Σ_{i&lt;upto} p_i ḡ(t_n - t_i): response at step ``n`` to the first ``upto`` pulses.&quot;&quot;&quot;</span>
+</span><span data-line="172">        <span class="k">if</span> <span class="n">upto</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="173">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="174">        <span class="n">rev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span>
+</span><span data-line="175">        <span class="n">known</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time</span>
+</span><span data-line="176">        <span class="k">if</span> <span class="n">rev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">known</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">time_arr</span> <span class="ow">is</span> <span class="n">known</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">time_arr</span><span class="p">,</span> <span class="n">known</span><span class="p">)):</span>
+</span><span data-line="177">            <span class="bp">self</span><span class="o">.</span><span class="n">_time</span> <span class="o">=</span> <span class="n">time_arr</span>  <span class="c1"># identity fast path from now on</span>
+</span><span data-line="178">            <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rev</span><span class="p">)</span>
+</span><span data-line="179">            <span class="c1"># ḡ[n-i] for i = 0..upto-1  -&gt;  rev[N-1-n+i]</span>
+</span><span data-line="180">            <span class="n">start</span> <span class="o">=</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n</span>
+</span><span data-line="181">            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span><span class="n">upto</span><span class="p">],</span> <span class="n">rev</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">upto</span><span class="p">]))</span>
+</span><span data-line="182">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span><span class="n">upto</span><span class="p">])</span>
+</span><span data-line="183">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="184">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="185">        <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">time_arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">time_arr</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span>
+</span><span data-line="186">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">g_step_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="p">())))</span>
+</span><span data-line="187">
+</span><span data-line="188">    <span class="k">def</span><span class="w"> </span><span class="nf">_step</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="189">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="190">            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;call reset() before evaluating the ground response&quot;</span><span class="p">)</span>
+</span><span data-line="191">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dt</span>
+</span><span data-line="192">
+</span><span data-line="193">    <span class="k">def</span><span class="w"> </span><span class="nf">_current_response</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="194">        <span class="n">rev</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gbar_rev</span>
+</span><span data-line="195">        <span class="k">if</span> <span class="n">rev</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="196">            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rev</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="197">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g_step_mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="p">()))[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="198">
 <div class="viewcode-block" id="AggregateGFunctionCoupler.preview_wall_temperature_rise">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise">[docs]</a>
-</span><span data-line="101">    <span class="k">def</span><span class="w"> </span><span class="nf">preview_wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="102"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate an uncommitted candidate without modifying load history.</span>
-</span><span data-line="103">
-</span><span data-line="104"><span class="sd">        Optional extension for coupled flow control; the original GroundCoupler</span>
-</span><span data-line="105"><span class="sd">        protocol remains unchanged for legacy external backends.</span>
-</span><span data-line="106"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="107">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span><span class="n">n</span><span class="p">])</span>
-</span><span data-line="108">        <span class="n">rise</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="109">            <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="n">time_arr</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="mf">1e-6</span><span class="p">))))</span>
-</span><span data-line="110">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-</span><span data-line="111">            <span class="k">else</span> <span class="mf">0.0</span>
-</span><span data-line="112">        <span class="p">)</span>
-</span><span data-line="113">        <span class="n">delta</span> <span class="o">=</span> <span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span>
-</span><span data-line="114">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span><span class="p">:</span>
-</span><span data-line="115">            <span class="n">rise</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">delta</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1e-6</span><span class="p">]))[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="116">        <span class="k">return</span> <span class="n">rise</span></div>
+</span><span data-line="199">    <span class="k">def</span><span class="w"> </span><span class="nf">preview_wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="200"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate an uncommitted candidate without modifying load history.</span>
+</span><span data-line="201">
+</span><span data-line="202"><span class="sd">        Optional extension for coupled flow control; the original GroundCoupler</span>
+</span><span data-line="203"><span class="sd">        protocol remains unchanged for legacy external backends.</span>
+</span><span data-line="204"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="205">        <span class="n">rise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_rise</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</span><span data-line="206">        <span class="n">delta</span> <span class="o">=</span> <span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span>
+</span><span data-line="207">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span><span class="p">:</span>
+</span><span data-line="208">            <span class="n">rise</span> <span class="o">+=</span> <span class="n">delta</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_response</span><span class="p">()</span>
+</span><span data-line="209">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">rise</span><span class="p">)</span></div>
 
-</span><span data-line="117">
+</span><span data-line="210">
 <div class="viewcode-block" id="AggregateGFunctionCoupler.wall_temperature_rise">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise">[docs]</a>
-</span><span data-line="118">    <span class="k">def</span><span class="w"> </span><span class="nf">wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="119">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span><span class="p">:</span>
-</span><span data-line="120">            <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span>
-</span><span data-line="121">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span> <span class="o">=</span> <span class="n">q_unit</span>
-</span><span data-line="122">
-</span><span data-line="123">        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[:</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
-</span><span data-line="124">        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="125">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="126">
-</span><span data-line="127">        <span class="n">dQ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-</span><span data-line="128">        <span class="n">tau</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">time_arr</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">-</span> <span class="n">time_arr</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="mf">1e-6</span><span class="p">)</span>
-</span><span data-line="129">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dQ</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_g</span><span class="p">(</span><span class="n">tau</span><span class="p">)))</span></div>
+</span><span data-line="211">    <span class="k">def</span><span class="w"> </span><span class="nf">wall_temperature_rise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">q_unit</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="212">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pulse_tol</span><span class="p">:</span>
+</span><span data-line="213">            <span class="bp">self</span><span class="o">.</span><span class="n">_pulses</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">q_unit</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span>
+</span><span data-line="214">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_old</span> <span class="o">=</span> <span class="n">q_unit</span>
+</span><span data-line="215">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_rise</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
 </div>
+
+</span><span data-line="216">
+</span><span data-line="217">
+<div class="viewcode-block" id="reset_ground_coupler">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.ground_coupling.reset_ground_coupler">[docs]</a>
+</span><span data-line="218"><span class="k">def</span><span class="w"> </span><span class="nf">reset_ground_coupler</span><span class="p">(</span><span class="n">coupler</span><span class="p">:</span> <span class="n">GroundCoupler</span><span class="p">,</span> <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="219"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Reset ``coupler`` for a run, giving it the run&#39;s step length when it accepts one.</span>
+</span><span data-line="220">
+</span><span data-line="221"><span class="sd">    Hosts call this instead of ``coupler.reset(n_steps, time_arr)`` so that the</span>
+</span><span data-line="222"><span class="sd">    step-mean response always uses the step of the run being simulated, not</span>
+</span><span data-line="223"><span class="sd">    the step the g-function was built for (#96 G4 follow-up). An external</span>
+</span><span data-line="224"><span class="sd">    coupler whose ``reset`` takes only ``(n_steps, time_arr)`` is called the</span>
+</span><span data-line="225"><span class="sd">    old way.</span>
+</span><span data-line="226"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="227">    <span class="n">params</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]</span>
+</span><span data-line="228">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="229">        <span class="n">params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">coupler</span><span class="o">.</span><span class="n">reset</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</span><span data-line="230">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>  <span class="c1"># builtins / C callables without a signature</span>
+</span><span data-line="231">        <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="232">    <span class="n">accepts_dt</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;dt_s&quot;</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">)</span>
+</span><span data-line="233">    <span class="k">if</span> <span class="n">accepts_dt</span><span class="p">:</span>
+</span><span data-line="234">        <span class="n">coupler</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">n_steps</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">,</span> <span class="n">dt_s</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">dt_s</span><span class="p">))</span>  <span class="c1"># type: ignore[call-arg]</span>
+</span><span data-line="235">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="236">        <span class="n">coupler</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">n_steps</span><span class="p">,</span> <span class="n">time_arr</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

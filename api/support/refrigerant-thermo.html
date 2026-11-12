@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="CoolProp-backed state-point helpers, cycle-level analysis (compression ratio, isentropic efficiency, COP), compressor operating-envelope guards, and COP correlations. Refrigerant state points: Refr..." />
 
-    <meta property="article:modified_time" content="2026-11-12T23:39:30+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:58:41+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -162,6 +162,12 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#module-tmhp.cop">COP correlations</a><ul>
 <li><a class="reference internal" href="#tmhp.cop.calc_ASHP_cooling_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_cooling_COP()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cop.calc_ASHP_heating_COP"><code class="docutils literal notranslate"><span class="pre">calc_ASHP_heating_COP()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cop.GSHP_EQFIT_DOMAIN"><code class="docutils literal notranslate"><span class="pre">GSHP_EQFIT_DOMAIN</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cop.EquationFitRangeError"><code class="docutils literal notranslate"><span class="pre">EquationFitRangeError</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.cop.EquationFitRangeError.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.cop.gshp_equation_fit_ratios"><code class="docutils literal notranslate"><span class="pre">gshp_equation_fit_ratios()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cop.calc_GSHP_COP"><code class="docutils literal notranslate"><span class="pre">calc_GSHP_COP()</span></code></a></li>
 </ul>
 </li>
@@ -500,7 +506,7 @@ electricity-consumption columns.</p>
 <p>Heat pump Coefficient of Performance (COP) models.</p>
 <p>Provides empirical COP correlations for:
 - Air source heat pumps (cooling and heating modes)
-- Ground source heat pumps (modified Carnot model)</p>
+- Ground source heat pumps (EnergyPlus water-to-air EquationFit curves)</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.cop.calc_ASHP_cooling_COP">
 <span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_ASHP_cooling_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_int_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_a_ext_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_r_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">COP_ref</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#calc_ASHP_cooling_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.calc_ASHP_cooling_COP" title="Link to this definition">¶</a></dt>
@@ -557,12 +563,71 @@ electricity-consumption columns.</p>
 </div>
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.cop.GSHP_EQFIT_DOMAIN">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">GSHP_EQFIT_DOMAIN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'cooling':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.04905),</span> <span class="pre">'x':</span> <span class="pre">(1.0,</span> <span class="pre">1.13734),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)},</span> <span class="pre">'heating':</span> <span class="pre">{'w':</span> <span class="pre">(1.0,</span> <span class="pre">1.05886),</span> <span class="pre">'x':</span> <span class="pre">(0.96076,</span> <span class="pre">1.07848),</span> <span class="pre">'y':</span> <span class="pre">(0.75,</span> <span class="pre">1.25),</span> <span class="pre">'z':</span> <span class="pre">(0.5,</span> <span class="pre">1.0)}}</span></span><a class="headerlink" href="#tmhp.cop.GSHP_EQFIT_DOMAIN" title="Link to this definition">¶</a></dt>
+<dd><p>Fitted domain of each curve variable, copied from the IDF <code class="docutils literal notranslate"><span class="pre">Minimum/Maximum</span>
+<span class="pre">Value</span> <span class="pre">of</span> <span class="pre">w,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z</span></code> fields (dimensionless, ×283 K for temperatures).
+In °C: cooling entering wet-bulb 9.85–23.73, cooling EWT 9.85–48.72;
+heating entering dry-bulb 9.85–26.51, heating EWT −1.25–32.06.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="tmhp.cop.EquationFitRangeError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">EquationFitRangeError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#EquationFitRangeError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.EquationFitRangeError" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></p>
+<p>An EquationFit curve was asked to evaluate outside its fitted domain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cop.EquationFitRangeError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#EquationFitRangeError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.EquationFitRangeError.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>value</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>bounds</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>mode</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cop.gshp_equation_fit_ratios">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">gshp_equation_fit_ratios</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_w_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#gshp_equation_fit_ratios"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.gshp_equation_fit_ratios" title="Link to this definition">¶</a></dt>
+<dd><p>Capacity and power ratios of the TCH072_GLHP EquationFit curves.</p>
+<p>Raises <a class="reference internal" href="#tmhp.cop.EquationFitRangeError" title="tmhp.cop.EquationFitRangeError"><code class="xref py py-class docutils literal notranslate"><span class="pre">EquationFitRangeError</span></code></a> (a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) when any curve
+variable lies outside the fitted domain <a class="reference internal" href="#tmhp.cop.GSHP_EQFIT_DOMAIN" title="tmhp.cop.GSHP_EQFIT_DOMAIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">GSHP_EQFIT_DOMAIN</span></code></a>; the
+curves are never extrapolated. Inside the domain both ratios are positive
+(checked at the domain corners: capacity 0.51–1.93, power 0.67–1.50).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">(capacity_ratio,</span> <span class="pre">power_ratio)</span></code> relative to the rated point.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple[float, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.cop.calc_GSHP_COP">
 <span class="sig-prename descclassname"><span class="pre">tmhp.cop.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cop.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate COP for a Ground Source Heat Pump.</p>
 <p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
-(Equation-Fit Method).</p>
+(Equation-Fit Method), <code class="docutils literal notranslate"><span class="pre">COP</span> <span class="pre">=</span> <span class="pre">COP_ref</span> <span class="pre">·</span> <span class="pre">CAP_ratio</span> <span class="pre">/</span> <span class="pre">PWR_ratio</span></code>.</p>
 <p class="rubric">References</p>
 <p>EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,
 Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop
@@ -580,22 +645,23 @@ For cooling, internally converted to wet-bulb (T_wb) via CoolProp
 assuming RH = 50%.</p></li>
 <li><p><strong>T_f_out_K</strong> (<em>float</em>) – Source-side inlet water temperature [K] — water returning from the
 borehole <em>to</em> the heat pump (<code class="docutils literal notranslate"><span class="pre">T_w,in</span></code> in EnergyPlus notation).</p></li>
-<li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
-V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</p></li>
+<li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Air flow ratio while the compressor runs, <code class="docutils literal notranslate"><span class="pre">V_a</span> <span class="pre">/</span> <span class="pre">V_a,rated</span></code> [-]
+(fitted range 0.75–1.25). It is <strong>not</strong> a part-load ratio: the curve
+describes full-load operation and a part load is met by cycling.</p></li>
 <li><p><strong>mode</strong> (<em>str</em>) – “cooling” or “heating”</p></li>
-<li><p><strong>Units</strong></p></li>
-<li><p><strong>-----</strong></p></li>
-<li><p><strong>Temperatures</strong> (<em>K</em>)</p></li>
-<li><p><strong>rates</strong> (<em>Flow</em>)</p></li>
-<li><p><strong>Heat/Power</strong> (<em>W</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>COP (dimensionless). Polynomial model is unconditionally stable—
-no ValueError on temperature inversion.</p>
+<dd class="field-even"><p>Full-load COP (dimensionless), always positive inside the fitted
+domain; 0.0 for any other <code class="docutils literal notranslate"><span class="pre">mode</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#tmhp.cop.EquationFitRangeError" title="tmhp.cop.EquationFitRangeError"><strong>EquationFitRangeError</strong></a> – (a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) when the entering-air temperature, the entering
+    water temperature or the air-flow ratio is outside the fitted domain
+    <a class="reference internal" href="#tmhp.cop.GSHP_EQFIT_DOMAIN" title="tmhp.cop.GSHP_EQFIT_DOMAIN"><code class="xref py py-data docutils literal notranslate"><span class="pre">GSHP_EQFIT_DOMAIN</span></code></a>. The curves are not extrapolated.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1148,7 +1214,7 @@ process-wide cache, so identical constructions solve once.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

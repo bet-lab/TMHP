@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:58:41+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1665,7 +1665,7 @@ custom settings may explicitly supply an independent <code class="docutils liter
 <span class="sig-prename descclassname"><span class="pre">tmhp.enex_functions.</span></span><span class="sig-name descname"><span class="pre">calc_GSHP_COP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_a_iu_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_f_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_a_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cop.html#calc_GSHP_COP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.enex_functions.calc_GSHP_COP" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate COP for a Ground Source Heat Pump.</p>
 <p>Uses the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Coil:*:WaterToAir:EquationFit</span></code> model
-(Equation-Fit Method).</p>
+(Equation-Fit Method), <code class="docutils literal notranslate"><span class="pre">COP</span> <span class="pre">=</span> <span class="pre">COP_ref</span> <span class="pre">·</span> <span class="pre">CAP_ratio</span> <span class="pre">/</span> <span class="pre">PWR_ratio</span></code>.</p>
 <p class="rubric">References</p>
 <p>EnergyPlus Engineering Reference, Ch. 16.5.10.2 (Eq. 16.412–16.418,
 Tang 2005). Dataset: TCH072_GLHP (ClimateMaster 6-ton, Ground Loop
@@ -1683,22 +1683,23 @@ For cooling, internally converted to wet-bulb (T_wb) via CoolProp
 assuming RH = 50%.</p></li>
 <li><p><strong>T_f_out_K</strong> (<em>float</em>) – Source-side inlet water temperature [K] — water returning from the
 borehole <em>to</em> the heat pump (<code class="docutils literal notranslate"><span class="pre">T_w,in</span></code> in EnergyPlus notation).</p></li>
-<li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Load-side air volumetric flow ratio: V_a / V_a_ref  [-]
-V_a_ref = Q_rated / (rho_a * c_a * 10K)  [m³/s]</p></li>
+<li><p><strong>dV_a_ratio</strong> (<em>float</em>) – Air flow ratio while the compressor runs, <code class="docutils literal notranslate"><span class="pre">V_a</span> <span class="pre">/</span> <span class="pre">V_a,rated</span></code> [-]
+(fitted range 0.75–1.25). It is <strong>not</strong> a part-load ratio: the curve
+describes full-load operation and a part load is met by cycling.</p></li>
 <li><p><strong>mode</strong> (<em>str</em>) – “cooling” or “heating”</p></li>
-<li><p><strong>Units</strong></p></li>
-<li><p><strong>-----</strong></p></li>
-<li><p><strong>Temperatures</strong> (<em>K</em>)</p></li>
-<li><p><strong>rates</strong> (<em>Flow</em>)</p></li>
-<li><p><strong>Heat/Power</strong> (<em>W</em>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>COP (dimensionless). Polynomial model is unconditionally stable—
-no ValueError on temperature inversion.</p>
+<dd class="field-even"><p>Full-load COP (dimensionless), always positive inside the fitted
+domain; 0.0 for any other <code class="docutils literal notranslate"><span class="pre">mode</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>float</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="refrigerant-thermo.html#tmhp.cop.EquationFitRangeError" title="tmhp.cop.EquationFitRangeError"><strong>EquationFitRangeError</strong></a> – (a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) when the entering-air temperature, the entering
+    water temperature or the air-flow ratio is outside the fitted domain
+    <code class="xref py py-data docutils literal notranslate"><span class="pre">GSHP_EQFIT_DOMAIN</span></code>. The curves are not extrapolated.</p>
 </dd>
 </dl>
 </dd></dl>

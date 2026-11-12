@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-10-07T22:39:11+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:58:41+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -166,6 +166,14 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.g_function.f"><code class="docutils literal notranslate"><span class="pre">f()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.chi"><code class="docutils literal notranslate"><span class="pre">chi()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.G_FLS"><code class="docutils literal notranslate"><span class="pre">G_FLS()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.g_function.GFunction"><code class="docutils literal notranslate"><span class="pre">GFunction</span></code></a><ul>
+<li><a class="reference internal" href="#tmhp.g_function.GFunction.POINTS_PER_DECADE"><code class="docutils literal notranslate">POINTS_PER_DECADE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.g_function.GFunction.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.g_function.GFunction.ensure_horizon"><code class="docutils literal notranslate">ensure_horizon()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.g_function.GFunction.step_mean"><code class="docutils literal notranslate">step_mean()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tmhp.g_function.g_step_mean"><code class="docutils literal notranslate"><span class="pre">g_step_mean()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.precompute_gfunction"><code class="docutils literal notranslate"><span class="pre">precompute_gfunction()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.chi_mfls"><code class="docutils literal notranslate"><span class="pre">chi_mfls()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.g_function.G_MFLS_Field"><code class="docutils literal notranslate"><span class="pre">G_MFLS_Field()</span></code></a></li>
@@ -191,6 +199,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.reset_ground_coupler"><code class="docutils literal notranslate"><span class="pre">reset_ground_coupler()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -584,13 +593,131 @@ array for multiple time values.</p>
 </dl>
 </dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="tmhp.g_function.GFunction">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">GFunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'UBWT'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#GFunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.GFunction" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Dimensional g-function <code class="docutils literal notranslate"><span class="pre">g(t)</span></code> [m·K/W] of a rectangular bore field.</p>
+<p>Built by <a class="reference internal" href="#tmhp.g_function.precompute_gfunction" title="tmhp.g_function.precompute_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">precompute_gfunction()</span></code></a>; callable like the
+<code class="docutils literal notranslate"><span class="pre">scipy.interpolate.interp1d</span></code> it replaces (<code class="docutils literal notranslate"><span class="pre">g(t)</span></code> for a scalar or an
+array of times [s]).</p>
+<p><strong>Values.</strong> pygfunction is evaluated on a log-spaced grid from
+<code class="docutils literal notranslate"><span class="pre">t_min</span> <span class="pre">=</span> <span class="pre">3600</span> <span class="pre">s</span></code> to the horizon, with <code class="docutils literal notranslate"><span class="pre">g(0)</span> <span class="pre">=</span> <span class="pre">0</span></code> prepended;
+between nodes the value is interpolated linearly in <code class="docutils literal notranslate"><span class="pre">t</span></code> (relative error
+≤ 7e-4 against direct pygfunction evaluation for the default grid
+density). Below <code class="docutils literal notranslate"><span class="pre">t_min</span></code> the value is the straight line from <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code>
+to the first node: the model has no grout or fluid heat capacity, so the
+response in the first hour is only approximate.</p>
+<p><strong>Horizon.</strong> The grid ends at <code class="docutils literal notranslate"><span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">t_max_s</span></code>. A request beyond it does
+<em>not</em> extrapolate: the grid is recomputed by pygfunction to cover the
+request (at least twice the previous horizon, keeping the node density per
+decade). For a 10×10 field this costs about 0.2 s. A simulation longer than
+<code class="docutils literal notranslate"><span class="pre">t_max_s</span></code> therefore gets the same values it would have got with a larger
+<code class="docutils literal notranslate"><span class="pre">t_max_s</span></code>.</p>
+<p><strong>Step mean.</strong> <a class="reference internal" href="#tmhp.g_function.GFunction.step_mean" title="tmhp.g_function.GFunction.step_mean"><code class="xref py py-meth docutils literal notranslate"><span class="pre">step_mean()</span></code></a> returns <code class="docutils literal notranslate"><span class="pre">(1/dt)</span> <span class="pre">∫_τ^{τ+dt}</span> <span class="pre">g(s)</span> <span class="pre">ds</span></code>,
+integrated exactly for the piecewise-linear <code class="docutils literal notranslate"><span class="pre">g</span></code>. This is the response a
+time-stepping model needs when its step <code class="docutils literal notranslate"><span class="pre">n</span></code> represents the interval
+<code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code> and a load pulse starts at <code class="docutils literal notranslate"><span class="pre">t_i</span></code>: the mean wall
+temperature over the step is <code class="docutils literal notranslate"><span class="pre">T_s</span> <span class="pre">-</span> <span class="pre">Σ</span> <span class="pre">Δq_i</span> <span class="pre">·</span> <span class="pre">step_mean(t_n</span> <span class="pre">-</span> <span class="pre">t_i,</span> <span class="pre">dt)</span></code>.
+It includes the step’s own pulse (<code class="docutils literal notranslate"><span class="pre">τ</span> <span class="pre">=</span> <span class="pre">0</span></code>) and gives the same interval
+means for any <code class="docutils literal notranslate"><span class="pre">dt</span></code> that divides the load’s own resolution.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>num</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.g_function.GFunction.POINTS_PER_DECADE">
+<span class="sig-name descname"><span class="pre">POINTS_PER_DECADE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">24.0</span></span><a class="headerlink" href="#tmhp.g_function.GFunction.POINTS_PER_DECADE" title="Link to this definition">¶</a></dt>
+<dd><p>Minimum node density of the log-spaced grid [nodes per decade].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.g_function.GFunction.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'UBWT'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#GFunction.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.GFunction.__init__" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>N_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>N_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>B</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>H_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>D_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>num</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.g_function.GFunction.ensure_horizon">
+<span class="sig-name descname"><span class="pre">ensure_horizon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#GFunction.ensure_horizon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.GFunction.ensure_horizon" title="Link to this definition">¶</a></dt>
+<dd><p>Recompute the grid so that it covers time <code class="docutils literal notranslate"><span class="pre">t</span></code> [s] (no-op if it already does).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.g_function.GFunction.step_mean">
+<span class="sig-name descname"><span class="pre">step_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#GFunction.step_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.GFunction.step_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Mean of <code class="docutils literal notranslate"><span class="pre">g</span></code> over <code class="docutils literal notranslate"><span class="pre">[tau,</span> <span class="pre">tau</span> <span class="pre">+</span> <span class="pre">dt]</span></code> [m·K/W], exact for the interpolated <code class="docutils literal notranslate"><span class="pre">g</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.g_function.g_step_mean">
+<span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">g_step_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#g_step_mean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.g_step_mean" title="Link to this definition">¶</a></dt>
+<dd><p>Step-mean response <code class="docutils literal notranslate"><span class="pre">(1/dt)</span> <span class="pre">∫_τ^{τ+dt}</span> <span class="pre">g(s)</span> <span class="pre">ds</span></code> for any g-function callable.</p>
+<p>Uses <a class="reference internal" href="#tmhp.g_function.GFunction.step_mean" title="tmhp.g_function.GFunction.step_mean"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GFunction.step_mean()</span></code></a> (exact) when available; any other
+callable <code class="docutils literal notranslate"><span class="pre">g(t)</span></code> (a user or test g-function) is integrated with an
+8-point Gauss–Legendre rule per step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.g_function.precompute_gfunction">
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">precompute_gfunction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'UBWT'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#precompute_gfunction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.precompute_gfunction" title="Link to this definition">¶</a></dt>
-<dd><p>Precompute g-function using pygfunction and return an interpolator.</p>
+<dd><p>Precompute the g-function with pygfunction and return it as a callable.</p>
 <p>Creates a rectangular borehole field and computes the g-function
-for log-spaced time steps up to t_max_s (plus an extra margin).
-Returns a callable <cite>interp1d</cite> object predicting the g-function [mK/W].</p>
+for log-spaced time steps up to <code class="docutils literal notranslate"><span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">t_max_s</span></code>. Returns a
+<a class="reference internal" href="#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">GFunction</span></code></a> mapping time [s] to the g-function [mK/W]; a request
+past that horizon recomputes the grid instead of extrapolating (see
+<a class="reference internal" href="#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">GFunction</span></code></a>).</p>
 <p>The g-function is built from the finite line source (FLS) solution
 of Claesson and Javed (2011), extended to boreholes at different
 vertical positions by Cimmino and Bernier (2014).  Because a
@@ -616,18 +743,22 @@ realistic of the two for a circulated borehole.</p></li>
 <li><p><strong>r_b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Borehole radius [m].</p></li>
 <li><p><strong>alpha_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal diffusivity [m²/s].</p></li>
 <li><p><strong>k_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Ground thermal conductivity [W/mK].</p></li>
-<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Maximum simulation time [s].</p></li>
-<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Simulation timestep [s].</p></li>
+<li><p><strong>t_max_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Expected simulation length [s]. The grid covers <code class="docutils literal notranslate"><span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">t_max_s</span></code>;
+longer requests trigger a recompute, never an extrapolation.</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Construction timestep [s], kept on the result as <code class="docutils literal notranslate"><span class="pre">dt_s</span></code>. It does not
+shape the grid (first node always 3600 s) or any response: time-stepping
+hosts pass their run’s step to <a class="reference internal" href="#tmhp.g_function.GFunction.step_mean" title="tmhp.g_function.GFunction.step_mean"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GFunction.step_mean()</span></code></a>.</p></li>
 <li><p><strong>boundary_condition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Axial boundary condition along the borehole. Either <code class="docutils literal notranslate"><span class="pre">'UBWT'</span></code>
 (uniform borehole wall temperature) or <code class="docutils literal notranslate"><span class="pre">'UHTR'</span></code> (uniform heat
 transfer rate). Default is <code class="docutils literal notranslate"><span class="pre">'UBWT'</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Interpolator function mapping <cite>time [s]</cite> to <cite>g-function [mK/W]</cite>.</p>
+<dd class="field-even"><p>Callable mapping <cite>time [s]</cite> to <cite>g-function [mK/W]</cite>, with
+<a class="reference internal" href="#tmhp.g_function.GFunction.step_mean" title="tmhp.g_function.GFunction.step_mean"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GFunction.step_mean()</span></code></a> for time-stepping models.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">interp1d</span></code></span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">GFunction</span></code></a></span></p>
 </dd>
 </dl>
 <p class="rubric">References</p>
@@ -643,6 +774,11 @@ Journal of Heat and Mass Transfer, 70, 641-650.</p>
 <dt class="sig sig-object py" id="tmhp.g_function.chi_mfls">
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">chi_mfls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_prime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#chi_mfls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.chi_mfls" title="Link to this definition">¶</a></dt>
 <dd><p>Helper function for MFLS (Moving Finite Line Source) G-function calculation.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Unused in tmhp and not verified against a reference MFLS
+solution (#96). Kept pending co-author confirmation.</p>
+</div>
 <p>Ref: Molina-Giraldo et al. (2011), “A moving finite line source model
 to simulate borehole heat exchangers with groundwater advection”</p>
 </dd></dl>
@@ -651,6 +787,11 @@ to simulate borehole heat exchangers with groundwater advection”</p>
 <dt class="sig sig-object py" id="tmhp.g_function.G_MFLS_Field">
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">G_MFLS_Field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boreholes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#G_MFLS_Field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.G_MFLS_Field" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the spatial superposition of the MFLS response for a bore field.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Unused in tmhp and not verified against a reference MFLS
+solution (#96). Kept pending co-author confirmation.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -679,6 +820,13 @@ to simulate borehole heat exchangers with groundwater advection”</p>
 <dt class="sig sig-object py" id="tmhp.g_function.precompute_gfunction_mls">
 <span class="sig-prename descclassname"><span class="pre">tmhp.g_function.</span></span><span class="sig-name descname"><span class="pre">precompute_gfunction_mls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">v_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta_gw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/g_function.html#precompute_gfunction_mls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.g_function.precompute_gfunction_mls" title="Link to this definition">¶</a></dt>
 <dd><p>Precompute the MFLS g-function and return an interpolator.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Unused in tmhp and not verified against a reference MFLS
+solution (#96). Unlike <a class="reference internal" href="#tmhp.g_function.precompute_gfunction" title="tmhp.g_function.precompute_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">precompute_gfunction()</span></code></a>, the returned
+interpolator extrapolates linearly in time past <code class="docutils literal notranslate"><span class="pre">1.5</span> <span class="pre">*</span> <span class="pre">t_max_s</span></code>.
+Kept pending co-author confirmation.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -787,8 +935,10 @@ temperature responds to a history of ground loads) from the heat-pump cycle
 physics, so the response backend becomes swappable behind one small contract:</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="tmhp.ground_coupling.AggregateGFunctionCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AggregateGFunctionCoupler</span></code></a> (default) wraps a single field-average
-g-function interpolator <code class="docutils literal notranslate"><span class="pre">g(tau)</span></code> [m·K/W] and reproduces the legacy inline
-temporal superposition <strong>byte-for-byte</strong>.</p></li>
+g-function <code class="docutils literal notranslate"><span class="pre">g(tau)</span></code> [m·K/W] and superposes load pulses with its
+step-mean response (the same convention as the inline superposition of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> and
+<a class="reference internal" href="../../models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical" title="tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpEmpirical</span></code></a>).</p></li>
 <li><p>External packages (e.g. <code class="docutils literal notranslate"><span class="pre">geolink</span></code>) can implement the <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler" title="tmhp.ground_coupling.GroundCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a>
 protocol with a <em>resolved multi-borehole network</em> response — replacing the
 single lumped g-function with full borehole-to-borehole superposition —
@@ -804,6 +954,11 @@ and is injected).</p></li>
 <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise" title="tmhp.ground_coupling.GroundCoupler.wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundCoupler.wall_temperature_rise()</span></code></a> once per timestep with the current
 per-length ground load <code class="docutils literal notranslate"><span class="pre">q_unit</span></code> [W/m]; the coupler returns the borehole-wall
 temperature <em>rise</em> magnitude <code class="docutils literal notranslate"><span class="pre">dT</span></code> [K].</p>
+<p>Time convention: step <code class="docutils literal notranslate"><span class="pre">n</span></code> stands for the interval <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code> and
+the returned <code class="docutils literal notranslate"><span class="pre">dT</span></code> is the wall-temperature rise <em>averaged over that
+interval</em>, including the response to the step’s own load <code class="docutils literal notranslate"><span class="pre">q_unit</span></code>. An
+external backend should return the same quantity so that results do not
+depend on which backend is injected.</p>
 </section>
 <section id="sign-convention-matches-the-legacy-gshpb">
 <h3>Sign convention (matches the legacy GSHPB)<a class="headerlink" href="#sign-convention-matches-the-legacy-gshpb" title="Link to this heading">¶</a></h3>
@@ -823,6 +978,10 @@ meaning.)</p>
 <dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler.reset">
 <span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#GroundCoupler.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.GroundCoupler.reset" title="Link to this definition">¶</a></dt>
 <dd><p>Initialise pulse-history state for a simulation of <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> steps.</p>
+<p>A backend may also accept a keyword <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> (the run’s step length
+[s]); <a class="reference internal" href="#tmhp.ground_coupling.reset_ground_coupler" title="tmhp.ground_coupling.reset_ground_coupler"><code class="xref py py-func docutils literal notranslate"><span class="pre">reset_ground_coupler()</span></code></a> passes it when the signature
+allows, which is the only way to know the step length of a one-step
+run.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -864,39 +1023,64 @@ precompute a response matrix at fixed times use this.</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">AggregateGFunctionCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">AggregateGFunctionCoupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Single field-average g-function temporal superposition (legacy default).</p>
-<p>Reproduces the legacy <code class="docutils literal notranslate"><span class="pre">_compute_bhe_superposition</span></code> inner loop exactly:
-a pulse is recorded whenever the per-length load changes by more than
-<code class="docutils literal notranslate"><span class="pre">pulse_tol</span></code>, and the pulse train is convolved with <code class="docutils literal notranslate"><span class="pre">g(tau)</span></code>.</p>
+<p>Single field-average g-function temporal superposition (default backend).</p>
+<p>A pulse is recorded whenever the per-length load changes by more than
+<code class="docutils literal notranslate"><span class="pre">pulse_tol</span></code>; the pulse train is convolved with the <strong>step-mean</strong>
+response <code class="docutils literal notranslate"><span class="pre">ḡ(τ;</span> <span class="pre">dt)</span> <span class="pre">=</span> <span class="pre">(1/dt)</span> <span class="pre">∫_τ^{τ+dt}</span> <span class="pre">g</span></code> (<a class="reference internal" href="#tmhp.g_function.g_step_mean" title="tmhp.g_function.g_step_mean"><code class="xref py py-func docutils literal notranslate"><span class="pre">g_step_mean()</span></code></a>).
+The value returned for step <code class="docutils literal notranslate"><span class="pre">n</span></code> is therefore the mean wall-temperature
+rise over the interval <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code>, including the response to the
+step’s own load. (Before #96 G4 the pulse train was evaluated at the step
+<em>start</em>, <code class="docutils literal notranslate"><span class="pre">g(t_n</span> <span class="pre">-</span> <span class="pre">t_i)</span></code>, so the current step’s pulse contributed
+<code class="docutils literal notranslate"><span class="pre">g(0)</span> <span class="pre">≈</span> <span class="pre">0</span></code> and the wall was reported up to ~0.8 K too warm at
+25 W/m with hourly steps.)</p>
+<p>On a uniform time grid the step-mean responses for every lag are computed
+once in <a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> and each step is a contiguous dot product; a
+different time array passed later falls back to direct evaluation with
+the same step length. A non-uniform grid is rejected at <a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>g_interp</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em>) – Field-average g-function interpolator mapping lag time <code class="docutils literal notranslate"><span class="pre">tau</span></code> [s] to
-the dimensional response <code class="docutils literal notranslate"><span class="pre">g</span></code> [m·K/W].</p></li>
+<li><p><strong>g_interp</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em>) – Field-average g-function mapping lag time <code class="docutils literal notranslate"><span class="pre">tau</span></code> [s] to the
+dimensional response <code class="docutils literal notranslate"><span class="pre">g</span></code> [m·K/W]. A
+<a class="reference internal" href="#tmhp.g_function.GFunction" title="tmhp.g_function.GFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">GFunction</span></code></a> is integrated exactly; any other
+callable by Gauss–Legendre quadrature.</p></li>
 <li><p><strong>pulse_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Minimum load change [W/m] that registers a new pulse (default 1e-6).</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Fixed step length [s] for every run. Normally omitted: the host passes
+the run’s own step length to <a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">dt_s=</span></code>). The step
+length is never taken from how the g-function was built.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">g_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pulse_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>pulse_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pulse_tol</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.reset">
-<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Start a run of <code class="docutils literal notranslate"><span class="pre">n_steps</span></code> steps on the uniform grid <code class="docutils literal notranslate"><span class="pre">time_arr</span></code> [s].</p>
+<p>The step length is, in order: <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> given here (the run’s own
+step), the constructor <code class="docutils literal notranslate"><span class="pre">dt_s</span></code>, the spacing of <code class="docutils literal notranslate"><span class="pre">time_arr</span></code>. A
+one-step grid without either raises; a grid whose spacing is not
+uniform or differs from the step length raises, since the
+step-mean response assumes every step lasts <code class="docutils literal notranslate"><span class="pre">dt</span></code>.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_steps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
 <li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -944,11 +1128,35 @@ protocol remains unchanged for legacy external backends.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.reset_ground_coupler">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">reset_ground_coupler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coupler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#reset_ground_coupler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.reset_ground_coupler" title="Link to this definition">¶</a></dt>
+<dd><p>Reset <code class="docutils literal notranslate"><span class="pre">coupler</span></code> for a run, giving it the run’s step length when it accepts one.</p>
+<p>Hosts call this instead of <code class="docutils literal notranslate"><span class="pre">coupler.reset(n_steps,</span> <span class="pre">time_arr)</span></code> so that the
+step-mean response always uses the step of the run being simulated, not
+the step the g-function was built for (#96 G4 follow-up). An external
+coupler whose <code class="docutils literal notranslate"><span class="pre">reset</span></code> takes only <code class="docutils literal notranslate"><span class="pre">(n_steps,</span> <span class="pre">time_arr)</span></code> is called the
+old way.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coupler</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler" title="tmhp.ground_coupling.GroundCoupler"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a></span>)</p></li>
+<li><p><strong>n_steps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 07, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

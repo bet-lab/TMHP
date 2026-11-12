@@ -325,428 +325,604 @@ data-aria-dark="Switch to auto color mode">
 
 </span><span data-line="147">
 </span><span data-line="148">
+<div class="viewcode-block" id="GFunction">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.GFunction">[docs]</a>
+</span><span data-line="149"><span class="k">class</span><span class="w"> </span><span class="nc">GFunction</span><span class="p">:</span>
+</span><span data-line="150"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Dimensional g-function ``g(t)`` [m·K/W] of a rectangular bore field.</span>
+</span><span data-line="151">
+</span><span data-line="152"><span class="sd">    Built by :func:`precompute_gfunction`; callable like the</span>
+</span><span data-line="153"><span class="sd">    ``scipy.interpolate.interp1d`` it replaces (``g(t)`` for a scalar or an</span>
+</span><span data-line="154"><span class="sd">    array of times [s]).</span>
+</span><span data-line="155">
+</span><span data-line="156"><span class="sd">    **Values.** pygfunction is evaluated on a log-spaced grid from</span>
+</span><span data-line="157"><span class="sd">    ``t_min = 3600 s`` to the horizon, with ``g(0) = 0`` prepended;</span>
+</span><span data-line="158"><span class="sd">    between nodes the value is interpolated linearly in ``t`` (relative error</span>
+</span><span data-line="159"><span class="sd">    ≤ 7e-4 against direct pygfunction evaluation for the default grid</span>
+</span><span data-line="160"><span class="sd">    density). Below ``t_min`` the value is the straight line from ``(0, 0)``</span>
+</span><span data-line="161"><span class="sd">    to the first node: the model has no grout or fluid heat capacity, so the</span>
+</span><span data-line="162"><span class="sd">    response in the first hour is only approximate.</span>
+</span><span data-line="163">
+</span><span data-line="164"><span class="sd">    **Horizon.** The grid ends at ``1.5 * t_max_s``. A request beyond it does</span>
+</span><span data-line="165"><span class="sd">    *not* extrapolate: the grid is recomputed by pygfunction to cover the</span>
+</span><span data-line="166"><span class="sd">    request (at least twice the previous horizon, keeping the node density per</span>
+</span><span data-line="167"><span class="sd">    decade). For a 10×10 field this costs about 0.2 s. A simulation longer than</span>
+</span><span data-line="168"><span class="sd">    ``t_max_s`` therefore gets the same values it would have got with a larger</span>
+</span><span data-line="169"><span class="sd">    ``t_max_s``.</span>
+</span><span data-line="170">
+</span><span data-line="171"><span class="sd">    **Step mean.** :meth:`step_mean` returns ``(1/dt) ∫_τ^{τ+dt} g(s) ds``,</span>
+</span><span data-line="172"><span class="sd">    integrated exactly for the piecewise-linear ``g``. This is the response a</span>
+</span><span data-line="173"><span class="sd">    time-stepping model needs when its step ``n`` represents the interval</span>
+</span><span data-line="174"><span class="sd">    ``[t_n, t_n + dt]`` and a load pulse starts at ``t_i``: the mean wall</span>
+</span><span data-line="175"><span class="sd">    temperature over the step is ``T_s - Σ Δq_i · step_mean(t_n - t_i, dt)``.</span>
+</span><span data-line="176"><span class="sd">    It includes the step&#39;s own pulse (``τ = 0``) and gives the same interval</span>
+</span><span data-line="177"><span class="sd">    means for any ``dt`` that divides the load&#39;s own resolution.</span>
+</span><span data-line="178"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="179">
+</span><span data-line="180">    <span class="c1">#: Minimum node density of the log-spaced grid [nodes per decade].</span>
+</span><span data-line="181">    <span class="n">POINTS_PER_DECADE</span> <span class="o">=</span> <span class="mf">24.0</span>
+</span><span data-line="182">
+<div class="viewcode-block" id="GFunction.__init__">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.GFunction.__init__">[docs]</a>
+</span><span data-line="183">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="184">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="185">        <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="186">        <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="187">        <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="188">        <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="189">        <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="190">        <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="191">        <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="192">        <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="193">        <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="194">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="195">        <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span><span class="p">,</span>
+</span><span data-line="196">        <span class="n">num</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+</span><span data-line="197">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="198">        <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="199">            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+</span><span data-line="200">                <span class="s2">&quot;pygfunction is not installed. Run `uv pip install pygfunction` to use multi-borehole features.&quot;</span>
+</span><span data-line="201">            <span class="p">)</span>
+</span><span data-line="202">        <span class="n">bc</span> <span class="o">=</span> <span class="n">boundary_condition</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+</span><span data-line="203">        <span class="k">if</span> <span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;UBWT&quot;</span><span class="p">,</span> <span class="s2">&quot;UHTR&quot;</span><span class="p">):</span>
+</span><span data-line="204">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;boundary_condition must be &#39;UBWT&#39; or &#39;UHTR&#39;, got </span><span class="si">{</span><span class="n">boundary_condition</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="205">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">t_max_s</span><span class="p">)</span> <span class="ow">and</span> <span class="n">t_max_s</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt_s</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dt_s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="206">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;t_max_s and dt_s must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="207">        <span class="bp">self</span><span class="o">.</span><span class="n">_field</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B_2</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D_b</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span>
+</span><span data-line="208">        <span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha_s</span><span class="p">)</span>
+</span><span data-line="209">        <span class="bp">self</span><span class="o">.</span><span class="n">k_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">k_s</span><span class="p">)</span>
+</span><span data-line="210">        <span class="bp">self</span><span class="o">.</span><span class="n">boundary_condition</span> <span class="o">=</span> <span class="n">bc</span>
+</span><span data-line="211">        <span class="c1"># Kept for reference only: the grid and every response are independent</span>
+</span><span data-line="212">        <span class="c1"># of the step the model was constructed with (the run&#39;s own step is</span>
+</span><span data-line="213">        <span class="c1"># passed to step_mean), so a model built with one dt_s and run with</span>
+</span><span data-line="214">        <span class="c1"># another gives the same answer as one built with the run&#39;s dt_s.</span>
+</span><span data-line="215">        <span class="bp">self</span><span class="o">.</span><span class="n">dt_s</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt_s</span><span class="p">)</span>
+</span><span data-line="216">        <span class="c1"># Evaluate from 1 hour to bypass the short-term numerical noise (Fo &lt; 0.1)</span>
+</span><span data-line="217">        <span class="c1"># of the finite line source BEM discretization. Fixed, not max(dt_s, 1 h):</span>
+</span><span data-line="218">        <span class="c1"># a dt-dependent first node made g on [0, dt_s] a straight line.</span>
+</span><span data-line="219">        <span class="bp">self</span><span class="o">.</span><span class="n">t_min</span> <span class="o">=</span> <span class="mf">3600.0</span>
+</span><span data-line="220">        <span class="bp">self</span><span class="o">.</span><span class="n">n_builds</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="221">        <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t_max_s</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="p">))</span></div>
+
+</span><span data-line="222">
+</span><span data-line="223">    <span class="c1"># -- grid -------------------------------------------------------------</span>
+</span><span data-line="224">    <span class="k">def</span><span class="w"> </span><span class="nf">_build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">num</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="225">        <span class="n">t_end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">t_end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_min</span> <span class="o">*</span> <span class="mf">1.01</span><span class="p">)</span>
+</span><span data-line="226">        <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_min</span><span class="p">,</span> <span class="n">t_end</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">num</span><span class="p">)</span>
+</span><span data-line="227">        <span class="n">field</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">rectangle_field</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_field</span><span class="p">)</span>
+</span><span data-line="228">        <span class="n">gfunc_obj</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">gfunction</span><span class="o">.</span><span class="n">gFunction</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha_s</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">boundary_condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary_condition</span><span class="p">)</span>
+</span><span data-line="229">        <span class="n">g_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">gfunc_obj</span><span class="o">.</span><span class="n">gFunc</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_s</span><span class="p">)</span>
+</span><span data-line="230">        <span class="c1"># Prepend g(0) = 0: the first hour is the line from the origin.</span>
+</span><span data-line="231">        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">times</span><span class="p">))</span>
+</span><span data-line="232">        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">g_vals</span><span class="p">))</span>
+</span><span data-line="233">        <span class="bp">self</span><span class="o">.</span><span class="n">t_end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="234">        <span class="bp">self</span><span class="o">.</span><span class="n">_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+</span><span data-line="235">        <span class="bp">self</span><span class="o">.</span><span class="n">_cum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">))))</span>
+</span><span data-line="236">        <span class="bp">self</span><span class="o">.</span><span class="n">n_builds</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span data-line="237">
+<div class="viewcode-block" id="GFunction.ensure_horizon">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.GFunction.ensure_horizon">[docs]</a>
+</span><span data-line="238">    <span class="k">def</span><span class="w"> </span><span class="nf">ensure_horizon</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="239"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Recompute the grid so that it covers time ``t`` [s] (no-op if it already does).&quot;&quot;&quot;</span>
+</span><span data-line="240">        <span class="n">t</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</span><span data-line="241">        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+</span><span data-line="242">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;g-function requested at a non-finite time&quot;</span><span class="p">)</span>
+</span><span data-line="243">        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_end</span><span class="p">:</span>
+</span><span data-line="244">            <span class="k">return</span>
+</span><span data-line="245">        <span class="n">t_end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">t</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_end</span><span class="p">)</span>
+</span><span data-line="246">        <span class="n">decades</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">t_end</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_min</span><span class="p">)</span>
+</span><span data-line="247">        <span class="n">num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">POINTS_PER_DECADE</span> <span class="o">*</span> <span class="n">decades</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span><span data-line="248">        <span class="bp">self</span><span class="o">.</span><span class="n">_build</span><span class="p">(</span><span class="n">t_end</span><span class="p">,</span> <span class="n">num</span><span class="p">)</span></div>
+
+</span><span data-line="249">
+</span><span data-line="250">    <span class="c1"># -- evaluation ---------------------------------------------------------</span>
+</span><span data-line="251">    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+</span><span data-line="252">        <span class="n">t_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span data-line="253">        <span class="k">if</span> <span class="n">t_arr</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+</span><span data-line="254">            <span class="bp">self</span><span class="o">.</span><span class="n">ensure_horizon</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">t_arr</span><span class="p">)))</span>
+</span><span data-line="255">        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">t_arr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</span><span data-line="256">
+</span><span data-line="257">    <span class="k">def</span><span class="w"> </span><span class="nf">_integral</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+</span><span data-line="258"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``∫_0^t g`` split as (node part, in-segment part) to limit cancellation.&quot;&quot;&quot;</span>
+</span><span data-line="259">        <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+</span><span data-line="260">        <span class="n">s</span> <span class="o">=</span> <span class="n">t</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+</span><span data-line="261">        <span class="k">return</span> <span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">s</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slope</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">s</span>
+</span><span data-line="262">
+<div class="viewcode-block" id="GFunction.step_mean">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.GFunction.step_mean">[docs]</a>
+</span><span data-line="263">    <span class="k">def</span><span class="w"> </span><span class="nf">step_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span data-line="264"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean of ``g`` over ``[tau, tau + dt]`` [m·K/W], exact for the interpolated ``g``.&quot;&quot;&quot;</span>
+</span><span data-line="265">        <span class="n">dt</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+</span><span data-line="266">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="267">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dt must be positive and finite&quot;</span><span class="p">)</span>
+</span><span data-line="268">        <span class="n">tau_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="269">        <span class="k">if</span> <span class="n">tau_arr</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+</span><span data-line="270">            <span class="bp">self</span><span class="o">.</span><span class="n">ensure_horizon</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">tau_arr</span><span class="p">))</span> <span class="o">+</span> <span class="n">dt</span><span class="p">)</span>
+</span><span data-line="271">        <span class="n">k_a</span><span class="p">,</span> <span class="n">loc_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integral</span><span class="p">(</span><span class="n">tau_arr</span><span class="p">)</span>
+</span><span data-line="272">        <span class="n">k_b</span><span class="p">,</span> <span class="n">loc_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integral</span><span class="p">(</span><span class="n">tau_arr</span> <span class="o">+</span> <span class="n">dt</span><span class="p">)</span>
+</span><span data-line="273">        <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_cum</span><span class="p">[</span><span class="n">k_b</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cum</span><span class="p">[</span><span class="n">k_a</span><span class="p">])</span> <span class="o">+</span> <span class="p">(</span><span class="n">loc_b</span> <span class="o">-</span> <span class="n">loc_a</span><span class="p">))</span> <span class="o">/</span> <span class="n">dt</span></div>
+</div>
+
+</span><span data-line="274">
+</span><span data-line="275">
+</span><span data-line="276"><span class="c1"># Gauss–Legendre nodes for the step mean of an arbitrary g(t) callable.</span>
+</span><span data-line="277"><span class="n">_GL_NODES</span><span class="p">,</span> <span class="n">_GL_WEIGHTS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polynomial</span><span class="o">.</span><span class="n">legendre</span><span class="o">.</span><span class="n">leggauss</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+</span><span data-line="278">
+</span><span data-line="279">
+<div class="viewcode-block" id="g_step_mean">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.g_step_mean">[docs]</a>
+</span><span data-line="280"><span class="k">def</span><span class="w"> </span><span class="nf">g_step_mean</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+</span><span data-line="281"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Step-mean response ``(1/dt) ∫_τ^{τ+dt} g(s) ds`` for any g-function callable.</span>
+</span><span data-line="282">
+</span><span data-line="283"><span class="sd">    Uses :meth:`GFunction.step_mean` (exact) when available; any other</span>
+</span><span data-line="284"><span class="sd">    callable ``g(t)`` (a user or test g-function) is integrated with an</span>
+</span><span data-line="285"><span class="sd">    8-point Gauss–Legendre rule per step.</span>
+</span><span data-line="286"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="287">    <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="s2">&quot;step_mean&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="288">    <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="289">        <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+</span><span data-line="290">    <span class="n">tau_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tau</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="291">    <span class="n">nodes</span> <span class="o">=</span> <span class="n">tau_arr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="n">_GL_NODES</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="292">    <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span data-line="293">    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">vals</span> <span class="o">@</span> <span class="n">_GL_WEIGHTS</span></div>
+
+</span><span data-line="294">
+</span><span data-line="295">
 <div class="viewcode-block" id="precompute_gfunction">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.precompute_gfunction">[docs]</a>
-</span><span data-line="149"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_gfunction</span><span class="p">(</span>
-</span><span data-line="150">    <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span><span data-line="151">    <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span><span data-line="152">    <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="153">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="154">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="155">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="156">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="157">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="158">    <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="159">    <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="160">    <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span><span class="p">,</span>
-</span><span data-line="161"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">interp1d</span><span class="p">:</span>
-</span><span data-line="162"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute g-function using pygfunction and return an interpolator.</span>
-</span><span data-line="163">
-</span><span data-line="164"><span class="sd">    Creates a rectangular borehole field and computes the g-function</span>
-</span><span data-line="165"><span class="sd">    for log-spaced time steps up to t_max_s (plus an extra margin).</span>
-</span><span data-line="166"><span class="sd">    Returns a callable `interp1d` object predicting the g-function [mK/W].</span>
-</span><span data-line="167">
-</span><span data-line="168"><span class="sd">    The g-function is built from the finite line source (FLS) solution</span>
-</span><span data-line="169"><span class="sd">    of Claesson and Javed (2011), extended to boreholes at different</span>
-</span><span data-line="170"><span class="sd">    vertical positions by Cimmino and Bernier (2014).  Because a</span>
-</span><span data-line="171"><span class="sd">    borehole has finite length, the wall temperature is not uniform</span>
-</span><span data-line="172"><span class="sd">    along its depth, so an axial boundary condition must be assumed:</span>
-</span><span data-line="173">
-</span><span data-line="174"><span class="sd">    - ``&#39;UHTR&#39;`` (uniform heat transfer rate): every depth exchanges the</span>
-</span><span data-line="175"><span class="sd">      same heat per unit length; the wall temperature then varies with</span>
-</span><span data-line="176"><span class="sd">      depth and the g-function is its depth-average.</span>
-</span><span data-line="177"><span class="sd">    - ``&#39;UBWT&#39;`` (uniform borehole wall temperature): the wall is at a</span>
-</span><span data-line="178"><span class="sd">      single temperature over the whole depth and the heat flux varies</span>
-</span><span data-line="179"><span class="sd">      instead.  This is Eskilson&#39;s original definition and is the more</span>
-</span><span data-line="180"><span class="sd">      realistic of the two for a circulated borehole.</span>
-</span><span data-line="181">
-</span><span data-line="182"><span class="sd">    Parameters</span>
-</span><span data-line="183"><span class="sd">    ----------</span>
-</span><span data-line="184"><span class="sd">    N_1 : int</span>
-</span><span data-line="185"><span class="sd">        Number of boreholes in x-direction.</span>
-</span><span data-line="186"><span class="sd">    N_2 : int</span>
-</span><span data-line="187"><span class="sd">        Number of boreholes in y-direction.</span>
-</span><span data-line="188"><span class="sd">    B : float</span>
-</span><span data-line="189"><span class="sd">        Borehole spacing [m].</span>
-</span><span data-line="190"><span class="sd">    H_b : float</span>
-</span><span data-line="191"><span class="sd">        Borehole depth/length [m].</span>
-</span><span data-line="192"><span class="sd">    D_b : float</span>
-</span><span data-line="193"><span class="sd">        Buried depth [m].</span>
-</span><span data-line="194"><span class="sd">    r_b : float</span>
-</span><span data-line="195"><span class="sd">        Borehole radius [m].</span>
-</span><span data-line="196"><span class="sd">    alpha_s : float</span>
-</span><span data-line="197"><span class="sd">        Ground thermal diffusivity [m²/s].</span>
-</span><span data-line="198"><span class="sd">    k_s : float</span>
-</span><span data-line="199"><span class="sd">        Ground thermal conductivity [W/mK].</span>
-</span><span data-line="200"><span class="sd">    t_max_s : float</span>
-</span><span data-line="201"><span class="sd">        Maximum simulation time [s].</span>
-</span><span data-line="202"><span class="sd">    dt_s : float</span>
-</span><span data-line="203"><span class="sd">        Simulation timestep [s].</span>
-</span><span data-line="204"><span class="sd">    boundary_condition : str, optional</span>
-</span><span data-line="205"><span class="sd">        Axial boundary condition along the borehole. Either ``&#39;UBWT&#39;``</span>
-</span><span data-line="206"><span class="sd">        (uniform borehole wall temperature) or ``&#39;UHTR&#39;`` (uniform heat</span>
-</span><span data-line="207"><span class="sd">        transfer rate). Default is ``&#39;UBWT&#39;``.</span>
-</span><span data-line="208">
-</span><span data-line="209"><span class="sd">    Returns</span>
-</span><span data-line="210"><span class="sd">    -------</span>
-</span><span data-line="211"><span class="sd">    scipy.interpolate.interp1d</span>
-</span><span data-line="212"><span class="sd">        Interpolator function mapping `time [s]` to `g-function [mK/W]`.</span>
-</span><span data-line="213">
-</span><span data-line="214"><span class="sd">    References</span>
-</span><span data-line="215"><span class="sd">    ----------</span>
-</span><span data-line="216"><span class="sd">    Claesson, J., &amp; Javed, S. (2011). An analytical method to calculate</span>
-</span><span data-line="217"><span class="sd">    borehole fluid temperatures for time scales from minutes to decades.</span>
-</span><span data-line="218"><span class="sd">    ASHRAE Transactions, 117(2), 279-288.</span>
-</span><span data-line="219">
-</span><span data-line="220"><span class="sd">    Cimmino, M., &amp; Bernier, M. (2014). A semi-analytical method to</span>
-</span><span data-line="221"><span class="sd">    generate g-functions for geothermal bore fields. International</span>
-</span><span data-line="222"><span class="sd">    Journal of Heat and Mass Transfer, 70, 641-650.</span>
-</span><span data-line="223"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="224">
-</span><span data-line="225">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
-</span><span data-line="226">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-</span><span data-line="227">            <span class="s2">&quot;pygfunction is not installed. Run `uv pip install pygfunction` to use multi-borehole features.&quot;</span>
-</span><span data-line="228">        <span class="p">)</span>
-</span><span data-line="229">
-</span><span data-line="230">    <span class="n">bc</span> <span class="o">=</span> <span class="n">boundary_condition</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
-</span><span data-line="231">    <span class="k">if</span> <span class="n">bc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;UBWT&quot;</span><span class="p">,</span> <span class="s2">&quot;UHTR&quot;</span><span class="p">):</span>
-</span><span data-line="232">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;boundary_condition must be &#39;UBWT&#39; or &#39;UHTR&#39;, got </span><span class="si">{</span><span class="n">boundary_condition</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="233">
-</span><span data-line="234">    <span class="c1"># Evaluate from 1 hour to bypass the short-term numerical noise (Fo &lt; 0.1)</span>
-</span><span data-line="235">    <span class="c1"># of the finite line source BEM discretization.</span>
-</span><span data-line="236">    <span class="c1"># The first point is safely evaluated at 3600s where the numerical noise floor is cleared.</span>
-</span><span data-line="237">    <span class="n">t_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">dt_s</span><span class="p">,</span> <span class="mf">3600.0</span><span class="p">)</span>
-</span><span data-line="238">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">t_min</span><span class="p">,</span> <span class="n">t_max_s</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
-</span><span data-line="239">
-</span><span data-line="240">    <span class="n">boreField</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">rectangle_field</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B_2</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D_b</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span>
-</span><span data-line="241">
-</span><span data-line="242">    <span class="n">gfunc_obj</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">gfunction</span><span class="o">.</span><span class="n">gFunction</span><span class="p">(</span><span class="n">boreField</span><span class="p">,</span> <span class="n">alpha_s</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">times</span><span class="p">,</span> <span class="n">boundary_condition</span><span class="o">=</span><span class="n">bc</span><span class="p">)</span>
-</span><span data-line="243">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">gfunc_obj</span><span class="o">.</span><span class="n">gFunc</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">k_s</span><span class="p">)</span>
-</span><span data-line="244">
-</span><span data-line="245">    <span class="c1"># Prepend 0.0 for t=0.</span>
-</span><span data-line="246">    <span class="c1"># This automatically provides a noise-free linear interpolation for any dt &lt; 3600s !</span>
-</span><span data-line="247">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">times</span><span class="p">))</span>
-</span><span data-line="248">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">g_vals_dim</span><span class="p">))</span>
-</span><span data-line="249">
-</span><span data-line="250">    <span class="c1"># Create interpolator</span>
-</span><span data-line="251">    <span class="k">return</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">g_vals_dim</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span></div>
+</span><span data-line="296"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_gfunction</span><span class="p">(</span>
+</span><span data-line="297">    <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="298">    <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="299">    <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="300">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="301">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="302">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="303">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="304">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="305">    <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="306">    <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="307">    <span class="n">boundary_condition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;UBWT&quot;</span><span class="p">,</span>
+</span><span data-line="308"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GFunction</span><span class="p">:</span>
+</span><span data-line="309"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute the g-function with pygfunction and return it as a callable.</span>
+</span><span data-line="310">
+</span><span data-line="311"><span class="sd">    Creates a rectangular borehole field and computes the g-function</span>
+</span><span data-line="312"><span class="sd">    for log-spaced time steps up to ``1.5 * t_max_s``. Returns a</span>
+</span><span data-line="313"><span class="sd">    :class:`GFunction` mapping time [s] to the g-function [mK/W]; a request</span>
+</span><span data-line="314"><span class="sd">    past that horizon recomputes the grid instead of extrapolating (see</span>
+</span><span data-line="315"><span class="sd">    :class:`GFunction`).</span>
+</span><span data-line="316">
+</span><span data-line="317"><span class="sd">    The g-function is built from the finite line source (FLS) solution</span>
+</span><span data-line="318"><span class="sd">    of Claesson and Javed (2011), extended to boreholes at different</span>
+</span><span data-line="319"><span class="sd">    vertical positions by Cimmino and Bernier (2014).  Because a</span>
+</span><span data-line="320"><span class="sd">    borehole has finite length, the wall temperature is not uniform</span>
+</span><span data-line="321"><span class="sd">    along its depth, so an axial boundary condition must be assumed:</span>
+</span><span data-line="322">
+</span><span data-line="323"><span class="sd">    - ``&#39;UHTR&#39;`` (uniform heat transfer rate): every depth exchanges the</span>
+</span><span data-line="324"><span class="sd">      same heat per unit length; the wall temperature then varies with</span>
+</span><span data-line="325"><span class="sd">      depth and the g-function is its depth-average.</span>
+</span><span data-line="326"><span class="sd">    - ``&#39;UBWT&#39;`` (uniform borehole wall temperature): the wall is at a</span>
+</span><span data-line="327"><span class="sd">      single temperature over the whole depth and the heat flux varies</span>
+</span><span data-line="328"><span class="sd">      instead.  This is Eskilson&#39;s original definition and is the more</span>
+</span><span data-line="329"><span class="sd">      realistic of the two for a circulated borehole.</span>
+</span><span data-line="330">
+</span><span data-line="331"><span class="sd">    Parameters</span>
+</span><span data-line="332"><span class="sd">    ----------</span>
+</span><span data-line="333"><span class="sd">    N_1 : int</span>
+</span><span data-line="334"><span class="sd">        Number of boreholes in x-direction.</span>
+</span><span data-line="335"><span class="sd">    N_2 : int</span>
+</span><span data-line="336"><span class="sd">        Number of boreholes in y-direction.</span>
+</span><span data-line="337"><span class="sd">    B : float</span>
+</span><span data-line="338"><span class="sd">        Borehole spacing [m].</span>
+</span><span data-line="339"><span class="sd">    H_b : float</span>
+</span><span data-line="340"><span class="sd">        Borehole depth/length [m].</span>
+</span><span data-line="341"><span class="sd">    D_b : float</span>
+</span><span data-line="342"><span class="sd">        Buried depth [m].</span>
+</span><span data-line="343"><span class="sd">    r_b : float</span>
+</span><span data-line="344"><span class="sd">        Borehole radius [m].</span>
+</span><span data-line="345"><span class="sd">    alpha_s : float</span>
+</span><span data-line="346"><span class="sd">        Ground thermal diffusivity [m²/s].</span>
+</span><span data-line="347"><span class="sd">    k_s : float</span>
+</span><span data-line="348"><span class="sd">        Ground thermal conductivity [W/mK].</span>
+</span><span data-line="349"><span class="sd">    t_max_s : float</span>
+</span><span data-line="350"><span class="sd">        Expected simulation length [s]. The grid covers ``1.5 * t_max_s``;</span>
+</span><span data-line="351"><span class="sd">        longer requests trigger a recompute, never an extrapolation.</span>
+</span><span data-line="352"><span class="sd">    dt_s : float</span>
+</span><span data-line="353"><span class="sd">        Construction timestep [s], kept on the result as ``dt_s``. It does not</span>
+</span><span data-line="354"><span class="sd">        shape the grid (first node always 3600 s) or any response: time-stepping</span>
+</span><span data-line="355"><span class="sd">        hosts pass their run&#39;s step to :meth:`GFunction.step_mean`.</span>
+</span><span data-line="356"><span class="sd">    boundary_condition : str, optional</span>
+</span><span data-line="357"><span class="sd">        Axial boundary condition along the borehole. Either ``&#39;UBWT&#39;``</span>
+</span><span data-line="358"><span class="sd">        (uniform borehole wall temperature) or ``&#39;UHTR&#39;`` (uniform heat</span>
+</span><span data-line="359"><span class="sd">        transfer rate). Default is ``&#39;UBWT&#39;``.</span>
+</span><span data-line="360">
+</span><span data-line="361"><span class="sd">    Returns</span>
+</span><span data-line="362"><span class="sd">    -------</span>
+</span><span data-line="363"><span class="sd">    GFunction</span>
+</span><span data-line="364"><span class="sd">        Callable mapping `time [s]` to `g-function [mK/W]`, with</span>
+</span><span data-line="365"><span class="sd">        :meth:`GFunction.step_mean` for time-stepping models.</span>
+</span><span data-line="366">
+</span><span data-line="367"><span class="sd">    References</span>
+</span><span data-line="368"><span class="sd">    ----------</span>
+</span><span data-line="369"><span class="sd">    Claesson, J., &amp; Javed, S. (2011). An analytical method to calculate</span>
+</span><span data-line="370"><span class="sd">    borehole fluid temperatures for time scales from minutes to decades.</span>
+</span><span data-line="371"><span class="sd">    ASHRAE Transactions, 117(2), 279-288.</span>
+</span><span data-line="372">
+</span><span data-line="373"><span class="sd">    Cimmino, M., &amp; Bernier, M. (2014). A semi-analytical method to</span>
+</span><span data-line="374"><span class="sd">    generate g-functions for geothermal bore fields. International</span>
+</span><span data-line="375"><span class="sd">    Journal of Heat and Mass Transfer, 70, 641-650.</span>
+</span><span data-line="376"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="377">    <span class="k">return</span> <span class="n">GFunction</span><span class="p">(</span>
+</span><span data-line="378">        <span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span>
+</span><span data-line="379">        <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">,</span>
+</span><span data-line="380">        <span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span>
+</span><span data-line="381">        <span class="n">H_b</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span>
+</span><span data-line="382">        <span class="n">D_b</span><span class="o">=</span><span class="n">D_b</span><span class="p">,</span>
+</span><span data-line="383">        <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">,</span>
+</span><span data-line="384">        <span class="n">alpha_s</span><span class="o">=</span><span class="n">alpha_s</span><span class="p">,</span>
+</span><span data-line="385">        <span class="n">k_s</span><span class="o">=</span><span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="386">        <span class="n">t_max_s</span><span class="o">=</span><span class="n">t_max_s</span><span class="p">,</span>
+</span><span data-line="387">        <span class="n">dt_s</span><span class="o">=</span><span class="n">dt_s</span><span class="p">,</span>
+</span><span data-line="388">        <span class="n">boundary_condition</span><span class="o">=</span><span class="n">boundary_condition</span><span class="p">,</span>
+</span><span data-line="389">    <span class="p">)</span></div>
 
-</span><span data-line="252">
-</span><span data-line="253">
+</span><span data-line="390">
+</span><span data-line="391">
+</span><span data-line="392"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="393"><span class="c1"># Moving finite line source (MFLS) — UNUSED, UNVERIFIED</span>
+</span><span data-line="394"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="395"><span class="c1"># ``chi_mfls``, ``G_MFLS_Field`` and ``precompute_gfunction_mls`` are not called</span>
+</span><span data-line="396"><span class="c1"># anywhere in tmhp (checked 2026-11-13, #96) and their accuracy has never been</span>
+</span><span data-line="397"><span class="c1"># checked against a reference MFLS solution. ``precompute_gfunction_mls`` still</span>
+</span><span data-line="398"><span class="c1"># extrapolates linearly past ``1.5 * t_max_s`` (the defect fixed for</span>
+</span><span data-line="399"><span class="c1"># :func:`precompute_gfunction`). Kept until the co-authors confirm whether any</span>
+</span><span data-line="400"><span class="c1"># external work uses them; do not rely on them.</span>
+</span><span data-line="401">
+</span><span data-line="402">
 <div class="viewcode-block" id="chi_mfls">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.chi_mfls">[docs]</a>
-</span><span data-line="254"><span class="k">def</span><span class="w"> </span><span class="nf">chi_mfls</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">alpha_s</span><span class="p">,</span> <span class="n">z0</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-</span><span data-line="255"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="256"><span class="sd">    Helper function for MFLS (Moving Finite Line Source) G-function calculation.</span>
-</span><span data-line="257">
-</span><span data-line="258"><span class="sd">    Ref: Molina-Giraldo et al. (2011), &quot;A moving finite line source model</span>
-</span><span data-line="259"><span class="sd">    to simulate borehole heat exchangers with groundwater advection&quot;</span>
-</span><span data-line="260"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="261">    <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="262">        <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="263">    <span class="n">val</span> <span class="o">=</span> <span class="n">chi</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">z0</span><span class="p">)</span>
-</span><span data-line="264">
-</span><span data-line="265">    <span class="c1"># Advective multiplier</span>
-</span><span data-line="266">    <span class="n">adv_mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">U</span> <span class="o">*</span> <span class="n">x_prime</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">alpha_s</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">U</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">16</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha_s</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
-</span><span data-line="267">    <span class="k">return</span> <span class="n">val</span> <span class="o">*</span> <span class="n">adv_mult</span></div>
+</span><span data-line="403"><span class="k">def</span><span class="w"> </span><span class="nf">chi_mfls</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">alpha_s</span><span class="p">,</span> <span class="n">z0</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+</span><span data-line="404"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="405"><span class="sd">    Helper function for MFLS (Moving Finite Line Source) G-function calculation.</span>
+</span><span data-line="406">
+</span><span data-line="407"><span class="sd">    .. warning:: Unused in tmhp and not verified against a reference MFLS</span>
+</span><span data-line="408"><span class="sd">       solution (#96). Kept pending co-author confirmation.</span>
+</span><span data-line="409">
+</span><span data-line="410"><span class="sd">    Ref: Molina-Giraldo et al. (2011), &quot;A moving finite line source model</span>
+</span><span data-line="411"><span class="sd">    to simulate borehole heat exchangers with groundwater advection&quot;</span>
+</span><span data-line="412"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="413">    <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="414">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="415">    <span class="n">val</span> <span class="o">=</span> <span class="n">chi</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">z0</span><span class="p">)</span>
+</span><span data-line="416">
+</span><span data-line="417">    <span class="c1"># Advective multiplier</span>
+</span><span data-line="418">    <span class="n">adv_mult</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="n">U</span> <span class="o">*</span> <span class="n">x_prime</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">alpha_s</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">U</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">16</span> <span class="o">*</span> <span class="p">(</span><span class="n">alpha_s</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">)))</span>
+</span><span data-line="419">    <span class="k">return</span> <span class="n">val</span> <span class="o">*</span> <span class="n">adv_mult</span></div>
 
-</span><span data-line="268">
-</span><span data-line="269">
+</span><span data-line="420">
+</span><span data-line="421">
 <div class="viewcode-block" id="G_MFLS_Field">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.G_MFLS_Field">[docs]</a>
-</span><span data-line="270"><span class="k">def</span><span class="w"> </span><span class="nf">G_MFLS_Field</span><span class="p">(</span>
-</span><span data-line="271">    <span class="n">times</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-</span><span data-line="272">    <span class="n">boreholes</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
-</span><span data-line="273">    <span class="n">v_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="274">    <span class="n">theta_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="275">    <span class="n">rho_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="276">    <span class="n">c_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="277">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="278">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="279">    <span class="n">rho_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="280">    <span class="n">c_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="281"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span data-line="282"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the spatial superposition of the MFLS response for a bore field.</span>
-</span><span data-line="283">
-</span><span data-line="284"><span class="sd">    Parameters</span>
-</span><span data-line="285"><span class="sd">    ----------</span>
-</span><span data-line="286"><span class="sd">    times : np.ndarray</span>
-</span><span data-line="287"><span class="sd">        Array of time values [s]</span>
-</span><span data-line="288"><span class="sd">    boreholes : list</span>
-</span><span data-line="289"><span class="sd">        List of pygfunction Borehole objects</span>
-</span><span data-line="290"><span class="sd">    v_gw : float</span>
-</span><span data-line="291"><span class="sd">        Darcy velocity of groundwater [m/s]</span>
-</span><span data-line="292"><span class="sd">    theta_gw : float</span>
-</span><span data-line="293"><span class="sd">        Direction of groundwater flow [rad]</span>
-</span><span data-line="294"><span class="sd">    rho_w : float</span>
-</span><span data-line="295"><span class="sd">        Density of groundwater [kg/m³]</span>
-</span><span data-line="296"><span class="sd">    c_w : float</span>
-</span><span data-line="297"><span class="sd">        Specific heat capacity of groundwater [J/kgK]</span>
-</span><span data-line="298"><span class="sd">    alpha_s : float</span>
-</span><span data-line="299"><span class="sd">        Ground thermal diffusivity [m²/s]</span>
-</span><span data-line="300"><span class="sd">    k_s : float</span>
-</span><span data-line="301"><span class="sd">        Ground thermal conductivity [W/mK]</span>
-</span><span data-line="302"><span class="sd">    rho_s : float</span>
-</span><span data-line="303"><span class="sd">        Density of ground [kg/m³]</span>
-</span><span data-line="304"><span class="sd">    c_s : float</span>
-</span><span data-line="305"><span class="sd">        Specific heat capacity of ground [J/kgK]</span>
-</span><span data-line="306">
-</span><span data-line="307"><span class="sd">    Returns</span>
-</span><span data-line="308"><span class="sd">    -------</span>
-</span><span data-line="309"><span class="sd">    np.ndarray</span>
-</span><span data-line="310"><span class="sd">        Dimensional g-values for the entire field over time [mK/W]</span>
-</span><span data-line="311"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="312">    <span class="n">U</span> <span class="o">=</span> <span class="n">v_gw</span> <span class="o">*</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">c_w</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho_s</span> <span class="o">*</span> <span class="n">c_s</span><span class="p">)</span>
-</span><span data-line="313">    <span class="n">N_bh</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">boreholes</span><span class="p">)</span>
-</span><span data-line="314">
-</span><span data-line="315">    <span class="n">field_g_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
-</span><span data-line="316">    <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">k_s</span><span class="p">)</span>
-</span><span data-line="317">
-</span><span data-line="318">    <span class="c1"># Evaluate integrals for each pair</span>
-</span><span data-line="319">    <span class="c1"># To optimize, we loop through times and pairs</span>
-</span><span data-line="320">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boreholes</span><span class="p">):</span>
-</span><span data-line="321">        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">b_j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boreholes</span><span class="p">):</span>
-</span><span data-line="322">            <span class="n">dx</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">b_j</span><span class="o">.</span><span class="n">x</span>
-</span><span data-line="323">            <span class="n">dy</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">b_j</span><span class="o">.</span><span class="n">y</span>
-</span><span data-line="324">            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-</span><span data-line="325">
-</span><span data-line="326">            <span class="c1"># Using r_b for self-response</span>
-</span><span data-line="327">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
-</span><span data-line="328">                <span class="n">r</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">r_b</span>
-</span><span data-line="329">                <span class="n">x_prime</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="330">            <span class="k">else</span><span class="p">:</span>
-</span><span data-line="331">                <span class="n">x_prime</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta_gw</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta_gw</span><span class="p">)</span>
-</span><span data-line="332">
-</span><span data-line="333">            <span class="n">H</span> <span class="o">=</span> <span class="n">b_j</span><span class="o">.</span><span class="n">H</span>
-</span><span data-line="334">            <span class="n">D</span> <span class="o">=</span> <span class="n">b_j</span><span class="o">.</span><span class="n">D</span>
-</span><span data-line="335">
-</span><span data-line="336">            <span class="k">for</span> <span class="n">t_idx</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
-</span><span data-line="337">                <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="338">                    <span class="k">continue</span>
-</span><span data-line="339">                <span class="n">lbs</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">alpha_s</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
-</span><span data-line="340">
-</span><span data-line="341">                <span class="c1"># Single integration from lbs to infinity</span>
-</span><span data-line="342">                <span class="c1"># For high limits, quad works effectively</span>
-</span><span data-line="343">                <span class="n">integral_val</span> <span class="o">=</span> <span class="n">integrate</span><span class="o">.</span><span class="n">quad</span><span class="p">(</span><span class="n">chi_mfls</span><span class="p">,</span> <span class="n">lbs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">alpha_s</span><span class="p">,</span> <span class="n">D</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span><span data-line="344">
-</span><span data-line="345">                <span class="c1"># Each source influences target, so we accumulate the dimensional temp rise</span>
-</span><span data-line="346">                <span class="n">field_g_vals</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">integral_val</span>
-</span><span data-line="347">
-</span><span data-line="348">    <span class="c1"># Average temperature response of the field</span>
-</span><span data-line="349">    <span class="n">field_g_vals</span> <span class="o">/=</span> <span class="n">N_bh</span>
-</span><span data-line="350">    <span class="k">return</span> <span class="n">field_g_vals</span></div>
+</span><span data-line="422"><span class="k">def</span><span class="w"> </span><span class="nf">G_MFLS_Field</span><span class="p">(</span>
+</span><span data-line="423">    <span class="n">times</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="424">    <span class="n">boreholes</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+</span><span data-line="425">    <span class="n">v_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="426">    <span class="n">theta_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="427">    <span class="n">rho_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="428">    <span class="n">c_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="429">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="430">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="431">    <span class="n">rho_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="432">    <span class="n">c_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="433"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span data-line="434"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the spatial superposition of the MFLS response for a bore field.</span>
+</span><span data-line="435">
+</span><span data-line="436"><span class="sd">    .. warning:: Unused in tmhp and not verified against a reference MFLS</span>
+</span><span data-line="437"><span class="sd">       solution (#96). Kept pending co-author confirmation.</span>
+</span><span data-line="438">
+</span><span data-line="439"><span class="sd">    Parameters</span>
+</span><span data-line="440"><span class="sd">    ----------</span>
+</span><span data-line="441"><span class="sd">    times : np.ndarray</span>
+</span><span data-line="442"><span class="sd">        Array of time values [s]</span>
+</span><span data-line="443"><span class="sd">    boreholes : list</span>
+</span><span data-line="444"><span class="sd">        List of pygfunction Borehole objects</span>
+</span><span data-line="445"><span class="sd">    v_gw : float</span>
+</span><span data-line="446"><span class="sd">        Darcy velocity of groundwater [m/s]</span>
+</span><span data-line="447"><span class="sd">    theta_gw : float</span>
+</span><span data-line="448"><span class="sd">        Direction of groundwater flow [rad]</span>
+</span><span data-line="449"><span class="sd">    rho_w : float</span>
+</span><span data-line="450"><span class="sd">        Density of groundwater [kg/m³]</span>
+</span><span data-line="451"><span class="sd">    c_w : float</span>
+</span><span data-line="452"><span class="sd">        Specific heat capacity of groundwater [J/kgK]</span>
+</span><span data-line="453"><span class="sd">    alpha_s : float</span>
+</span><span data-line="454"><span class="sd">        Ground thermal diffusivity [m²/s]</span>
+</span><span data-line="455"><span class="sd">    k_s : float</span>
+</span><span data-line="456"><span class="sd">        Ground thermal conductivity [W/mK]</span>
+</span><span data-line="457"><span class="sd">    rho_s : float</span>
+</span><span data-line="458"><span class="sd">        Density of ground [kg/m³]</span>
+</span><span data-line="459"><span class="sd">    c_s : float</span>
+</span><span data-line="460"><span class="sd">        Specific heat capacity of ground [J/kgK]</span>
+</span><span data-line="461">
+</span><span data-line="462"><span class="sd">    Returns</span>
+</span><span data-line="463"><span class="sd">    -------</span>
+</span><span data-line="464"><span class="sd">    np.ndarray</span>
+</span><span data-line="465"><span class="sd">        Dimensional g-values for the entire field over time [mK/W]</span>
+</span><span data-line="466"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="467">    <span class="n">U</span> <span class="o">=</span> <span class="n">v_gw</span> <span class="o">*</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">c_w</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">rho_s</span> <span class="o">*</span> <span class="n">c_s</span><span class="p">)</span>
+</span><span data-line="468">    <span class="n">N_bh</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">boreholes</span><span class="p">)</span>
+</span><span data-line="469">
+</span><span data-line="470">    <span class="n">field_g_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
+</span><span data-line="471">    <span class="n">factor</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">k_s</span><span class="p">)</span>
+</span><span data-line="472">
+</span><span data-line="473">    <span class="c1"># Evaluate integrals for each pair</span>
+</span><span data-line="474">    <span class="c1"># To optimize, we loop through times and pairs</span>
+</span><span data-line="475">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boreholes</span><span class="p">):</span>
+</span><span data-line="476">        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">b_j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boreholes</span><span class="p">):</span>
+</span><span data-line="477">            <span class="n">dx</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">x</span> <span class="o">-</span> <span class="n">b_j</span><span class="o">.</span><span class="n">x</span>
+</span><span data-line="478">            <span class="n">dy</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">y</span> <span class="o">-</span> <span class="n">b_j</span><span class="o">.</span><span class="n">y</span>
+</span><span data-line="479">            <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</span><span data-line="480">
+</span><span data-line="481">            <span class="c1"># Using r_b for self-response</span>
+</span><span data-line="482">            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">j</span><span class="p">:</span>
+</span><span data-line="483">                <span class="n">r</span> <span class="o">=</span> <span class="n">b_i</span><span class="o">.</span><span class="n">r_b</span>
+</span><span data-line="484">                <span class="n">x_prime</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="485">            <span class="k">else</span><span class="p">:</span>
+</span><span data-line="486">                <span class="n">x_prime</span> <span class="o">=</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta_gw</span><span class="p">)</span> <span class="o">+</span> <span class="n">dy</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta_gw</span><span class="p">)</span>
+</span><span data-line="487">
+</span><span data-line="488">            <span class="n">H</span> <span class="o">=</span> <span class="n">b_j</span><span class="o">.</span><span class="n">H</span>
+</span><span data-line="489">            <span class="n">D</span> <span class="o">=</span> <span class="n">b_j</span><span class="o">.</span><span class="n">D</span>
+</span><span data-line="490">
+</span><span data-line="491">            <span class="k">for</span> <span class="n">t_idx</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">times</span><span class="p">):</span>
+</span><span data-line="492">                <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="493">                    <span class="k">continue</span>
+</span><span data-line="494">                <span class="n">lbs</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">alpha_s</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+</span><span data-line="495">
+</span><span data-line="496">                <span class="c1"># Single integration from lbs to infinity</span>
+</span><span data-line="497">                <span class="c1"># For high limits, quad works effectively</span>
+</span><span data-line="498">                <span class="n">integral_val</span> <span class="o">=</span> <span class="n">integrate</span><span class="o">.</span><span class="n">quad</span><span class="p">(</span><span class="n">chi_mfls</span><span class="p">,</span> <span class="n">lbs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">x_prime</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">alpha_s</span><span class="p">,</span> <span class="n">D</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="499">
+</span><span data-line="500">                <span class="c1"># Each source influences target, so we accumulate the dimensional temp rise</span>
+</span><span data-line="501">                <span class="n">field_g_vals</span><span class="p">[</span><span class="n">t_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">factor</span> <span class="o">*</span> <span class="n">integral_val</span>
+</span><span data-line="502">
+</span><span data-line="503">    <span class="c1"># Average temperature response of the field</span>
+</span><span data-line="504">    <span class="n">field_g_vals</span> <span class="o">/=</span> <span class="n">N_bh</span>
+</span><span data-line="505">    <span class="k">return</span> <span class="n">field_g_vals</span></div>
 
-</span><span data-line="351">
-</span><span data-line="352">
+</span><span data-line="506">
+</span><span data-line="507">
 <div class="viewcode-block" id="precompute_gfunction_mls">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.precompute_gfunction_mls">[docs]</a>
-</span><span data-line="353"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_gfunction_mls</span><span class="p">(</span>
-</span><span data-line="354">    <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span><span data-line="355">    <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-</span><span data-line="356">    <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="357">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="358">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="359">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="360">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="361">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="362">    <span class="n">rho_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="363">    <span class="n">c_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="364">    <span class="n">v_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="365">    <span class="n">theta_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="366">    <span class="n">rho_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="367">    <span class="n">c_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="368">    <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="369">    <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="370"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">interp1d</span><span class="p">:</span>
-</span><span data-line="371"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute the MFLS g-function and return an interpolator.&quot;&quot;&quot;</span>
-</span><span data-line="372">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
-</span><span data-line="373">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
-</span><span data-line="374">
-</span><span data-line="375">    <span class="n">t_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">dt_s</span><span class="p">,</span> <span class="mf">3600.0</span><span class="p">)</span>
-</span><span data-line="376">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">t_min</span><span class="p">,</span> <span class="n">t_max_s</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-</span><span data-line="377">
-</span><span data-line="378">    <span class="n">boreField</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">rectangle_field</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B_2</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D_b</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span>
-</span><span data-line="379">
-</span><span data-line="380">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">G_MFLS_Field</span><span class="p">(</span>
-</span><span data-line="381">        <span class="n">times</span><span class="o">=</span><span class="n">times</span><span class="p">,</span>
-</span><span data-line="382">        <span class="n">boreholes</span><span class="o">=</span><span class="n">boreField</span><span class="o">.</span><span class="n">to_boreholes</span><span class="p">(),</span>
-</span><span data-line="383">        <span class="n">v_gw</span><span class="o">=</span><span class="n">v_gw</span><span class="p">,</span>
-</span><span data-line="384">        <span class="n">theta_gw</span><span class="o">=</span><span class="n">theta_gw</span><span class="p">,</span>
-</span><span data-line="385">        <span class="n">rho_w</span><span class="o">=</span><span class="n">rho_w</span><span class="p">,</span>
-</span><span data-line="386">        <span class="n">c_w</span><span class="o">=</span><span class="n">c_w</span><span class="p">,</span>
-</span><span data-line="387">        <span class="n">alpha_s</span><span class="o">=</span><span class="n">alpha_s</span><span class="p">,</span>
-</span><span data-line="388">        <span class="n">k_s</span><span class="o">=</span><span class="n">k_s</span><span class="p">,</span>
-</span><span data-line="389">        <span class="n">rho_s</span><span class="o">=</span><span class="n">rho_s</span><span class="p">,</span>
-</span><span data-line="390">        <span class="n">c_s</span><span class="o">=</span><span class="n">c_s</span><span class="p">,</span>
-</span><span data-line="391">    <span class="p">)</span>
-</span><span data-line="392">
-</span><span data-line="393">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">times</span><span class="p">))</span>
-</span><span data-line="394">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">g_vals_dim</span><span class="p">))</span>
-</span><span data-line="395">
-</span><span data-line="396">    <span class="k">return</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">g_vals_dim</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span></div>
+</span><span data-line="508"><span class="k">def</span><span class="w"> </span><span class="nf">precompute_gfunction_mls</span><span class="p">(</span>
+</span><span data-line="509">    <span class="n">N_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="510">    <span class="n">N_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="511">    <span class="n">B</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="512">    <span class="n">H_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="513">    <span class="n">D_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="514">    <span class="n">r_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="515">    <span class="n">alpha_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="516">    <span class="n">k_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="517">    <span class="n">rho_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="518">    <span class="n">c_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="519">    <span class="n">v_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="520">    <span class="n">theta_gw</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="521">    <span class="n">rho_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="522">    <span class="n">c_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="523">    <span class="n">t_max_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="524">    <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="525"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">interp1d</span><span class="p">:</span>
+</span><span data-line="526"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Precompute the MFLS g-function and return an interpolator.</span>
+</span><span data-line="527">
+</span><span data-line="528"><span class="sd">    .. warning:: Unused in tmhp and not verified against a reference MFLS</span>
+</span><span data-line="529"><span class="sd">       solution (#96). Unlike :func:`precompute_gfunction`, the returned</span>
+</span><span data-line="530"><span class="sd">       interpolator extrapolates linearly in time past ``1.5 * t_max_s``.</span>
+</span><span data-line="531"><span class="sd">       Kept pending co-author confirmation.</span>
+</span><span data-line="532"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="533">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="534">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="535">
+</span><span data-line="536">    <span class="n">t_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">dt_s</span><span class="p">,</span> <span class="mf">3600.0</span><span class="p">)</span>
+</span><span data-line="537">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">geomspace</span><span class="p">(</span><span class="n">t_min</span><span class="p">,</span> <span class="n">t_max_s</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span><span data-line="538">
+</span><span data-line="539">    <span class="n">boreField</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">borefield</span><span class="o">.</span><span class="n">Borefield</span><span class="o">.</span><span class="n">rectangle_field</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="n">N_1</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="n">N_2</span><span class="p">,</span> <span class="n">B_1</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B_2</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="n">H_b</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">D_b</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b</span><span class="p">)</span>
+</span><span data-line="540">
+</span><span data-line="541">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">G_MFLS_Field</span><span class="p">(</span>
+</span><span data-line="542">        <span class="n">times</span><span class="o">=</span><span class="n">times</span><span class="p">,</span>
+</span><span data-line="543">        <span class="n">boreholes</span><span class="o">=</span><span class="n">boreField</span><span class="o">.</span><span class="n">to_boreholes</span><span class="p">(),</span>
+</span><span data-line="544">        <span class="n">v_gw</span><span class="o">=</span><span class="n">v_gw</span><span class="p">,</span>
+</span><span data-line="545">        <span class="n">theta_gw</span><span class="o">=</span><span class="n">theta_gw</span><span class="p">,</span>
+</span><span data-line="546">        <span class="n">rho_w</span><span class="o">=</span><span class="n">rho_w</span><span class="p">,</span>
+</span><span data-line="547">        <span class="n">c_w</span><span class="o">=</span><span class="n">c_w</span><span class="p">,</span>
+</span><span data-line="548">        <span class="n">alpha_s</span><span class="o">=</span><span class="n">alpha_s</span><span class="p">,</span>
+</span><span data-line="549">        <span class="n">k_s</span><span class="o">=</span><span class="n">k_s</span><span class="p">,</span>
+</span><span data-line="550">        <span class="n">rho_s</span><span class="o">=</span><span class="n">rho_s</span><span class="p">,</span>
+</span><span data-line="551">        <span class="n">c_s</span><span class="o">=</span><span class="n">c_s</span><span class="p">,</span>
+</span><span data-line="552">    <span class="p">)</span>
+</span><span data-line="553">
+</span><span data-line="554">    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">times</span><span class="p">))</span>
+</span><span data-line="555">    <span class="n">g_vals_dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">g_vals_dim</span><span class="p">))</span>
+</span><span data-line="556">
+</span><span data-line="557">    <span class="k">return</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">g_vals_dim</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">)</span></div>
 
-</span><span data-line="397">
-</span><span data-line="398">
+</span><span data-line="558">
+</span><span data-line="559">
 <div class="viewcode-block" id="air_dynamic_viscosity">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.g_function.air_dynamic_viscosity">[docs]</a>
-</span><span data-line="399"><span class="k">def</span><span class="w"> </span><span class="nf">air_dynamic_viscosity</span><span class="p">(</span><span class="n">T_K</span><span class="p">):</span>
-</span><span data-line="400"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="401"><span class="sd">    Calculate air dynamic viscosity using Sutherland&#39;s formula.</span>
-</span><span data-line="402">
-</span><span data-line="403"><span class="sd">    Parameters</span>
-</span><span data-line="404"><span class="sd">    ----------</span>
-</span><span data-line="405"><span class="sd">    T_K : float</span>
-</span><span data-line="406"><span class="sd">        Temperature [K]</span>
-</span><span data-line="407">
-</span><span data-line="408"><span class="sd">    Returns</span>
-</span><span data-line="409"><span class="sd">    -------</span>
-</span><span data-line="410"><span class="sd">    float</span>
-</span><span data-line="411"><span class="sd">        Dynamic viscosity [Pa·s]</span>
-</span><span data-line="412">
-</span><span data-line="413"><span class="sd">    Reference: Sutherland&#39;s formula for air</span>
-</span><span data-line="414"><span class="sd">    mu = mu0 * (T/T0)^1.5 * (T0 + S) / (T + S)</span>
-</span><span data-line="415"><span class="sd">    where mu0 = 1.716e-5 Pa·s at T0 = 273.15 K, S = 110.4 K</span>
-</span><span data-line="416"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="417">    <span class="n">T0</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Reference temperature [K]</span>
-</span><span data-line="418">    <span class="n">mu0</span> <span class="o">=</span> <span class="mf">1.716e-5</span>  <span class="c1"># Reference viscosity [Pa·s] at T0</span>
-</span><span data-line="419">    <span class="n">S</span> <span class="o">=</span> <span class="mf">110.4</span>  <span class="c1"># Sutherland constant [K] for air</span>
-</span><span data-line="420">
-</span><span data-line="421">    <span class="n">mu</span> <span class="o">=</span> <span class="n">mu0</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_K</span> <span class="o">/</span> <span class="n">T0</span><span class="p">)</span> <span class="o">**</span> <span class="mf">1.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">T0</span> <span class="o">+</span> <span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">T_K</span> <span class="o">+</span> <span class="n">S</span><span class="p">))</span>
-</span><span data-line="422">    <span class="k">return</span> <span class="n">mu</span></div>
+</span><span data-line="560"><span class="k">def</span><span class="w"> </span><span class="nf">air_dynamic_viscosity</span><span class="p">(</span><span class="n">T_K</span><span class="p">):</span>
+</span><span data-line="561"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="562"><span class="sd">    Calculate air dynamic viscosity using Sutherland&#39;s formula.</span>
+</span><span data-line="563">
+</span><span data-line="564"><span class="sd">    Parameters</span>
+</span><span data-line="565"><span class="sd">    ----------</span>
+</span><span data-line="566"><span class="sd">    T_K : float</span>
+</span><span data-line="567"><span class="sd">        Temperature [K]</span>
+</span><span data-line="568">
+</span><span data-line="569"><span class="sd">    Returns</span>
+</span><span data-line="570"><span class="sd">    -------</span>
+</span><span data-line="571"><span class="sd">    float</span>
+</span><span data-line="572"><span class="sd">        Dynamic viscosity [Pa·s]</span>
+</span><span data-line="573">
+</span><span data-line="574"><span class="sd">    Reference: Sutherland&#39;s formula for air</span>
+</span><span data-line="575"><span class="sd">    mu = mu0 * (T/T0)^1.5 * (T0 + S) / (T + S)</span>
+</span><span data-line="576"><span class="sd">    where mu0 = 1.716e-5 Pa·s at T0 = 273.15 K, S = 110.4 K</span>
+</span><span data-line="577"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="578">    <span class="n">T0</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Reference temperature [K]</span>
+</span><span data-line="579">    <span class="n">mu0</span> <span class="o">=</span> <span class="mf">1.716e-5</span>  <span class="c1"># Reference viscosity [Pa·s] at T0</span>
+</span><span data-line="580">    <span class="n">S</span> <span class="o">=</span> <span class="mf">110.4</span>  <span class="c1"># Sutherland constant [K] for air</span>
+</span><span data-line="581">
+</span><span data-line="582">    <span class="n">mu</span> <span class="o">=</span> <span class="n">mu0</span> <span class="o">*</span> <span class="p">((</span><span class="n">T_K</span> <span class="o">/</span> <span class="n">T0</span><span class="p">)</span> <span class="o">**</span> <span class="mf">1.5</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">T0</span> <span class="o">+</span> <span class="n">S</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">T_K</span> <span class="o">+</span> <span class="n">S</span><span class="p">))</span>
+</span><span data-line="583">    <span class="k">return</span> <span class="n">mu</span></div>
 
-</span><span data-line="423">
-</span><span data-line="424">
+</span><span data-line="584">
+</span><span data-line="585">
 <div class="viewcode-block" id="air_prandtl_number">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.g_function.air_prandtl_number">[docs]</a>
-</span><span data-line="425"><span class="k">def</span><span class="w"> </span><span class="nf">air_prandtl_number</span><span class="p">(</span><span class="n">T_K</span><span class="p">):</span>
-</span><span data-line="426"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="427"><span class="sd">    Calculate air Prandtl number.</span>
-</span><span data-line="428">
-</span><span data-line="429"><span class="sd">    Parameters</span>
-</span><span data-line="430"><span class="sd">    ----------</span>
-</span><span data-line="431"><span class="sd">    T_K : float</span>
-</span><span data-line="432"><span class="sd">        Temperature [K]</span>
-</span><span data-line="433">
-</span><span data-line="434"><span class="sd">    Returns</span>
-</span><span data-line="435"><span class="sd">    -------</span>
-</span><span data-line="436"><span class="sd">    float</span>
-</span><span data-line="437"><span class="sd">        Prandtl number [-]</span>
-</span><span data-line="438">
-</span><span data-line="439"><span class="sd">    Note: Pr ≈ 0.71 for air at typical temperatures (20-50°C)</span>
-</span><span data-line="440"><span class="sd">    Temperature dependence is weak, so using constant value.</span>
-</span><span data-line="441"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="442">    <span class="c1"># Pr = mu * cp / k</span>
-</span><span data-line="443">    <span class="c1"># For air: Pr ≈ 0.71 (weak temperature dependence)</span>
-</span><span data-line="444">    <span class="k">return</span> <span class="mf">0.71</span></div>
+</span><span data-line="586"><span class="k">def</span><span class="w"> </span><span class="nf">air_prandtl_number</span><span class="p">(</span><span class="n">T_K</span><span class="p">):</span>
+</span><span data-line="587"><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="588"><span class="sd">    Calculate air Prandtl number.</span>
+</span><span data-line="589">
+</span><span data-line="590"><span class="sd">    Parameters</span>
+</span><span data-line="591"><span class="sd">    ----------</span>
+</span><span data-line="592"><span class="sd">    T_K : float</span>
+</span><span data-line="593"><span class="sd">        Temperature [K]</span>
+</span><span data-line="594">
+</span><span data-line="595"><span class="sd">    Returns</span>
+</span><span data-line="596"><span class="sd">    -------</span>
+</span><span data-line="597"><span class="sd">    float</span>
+</span><span data-line="598"><span class="sd">        Prandtl number [-]</span>
+</span><span data-line="599">
+</span><span data-line="600"><span class="sd">    Note: Pr ≈ 0.71 for air at typical temperatures (20-50°C)</span>
+</span><span data-line="601"><span class="sd">    Temperature dependence is weak, so using constant value.</span>
+</span><span data-line="602"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="603">    <span class="c1"># Pr = mu * cp / k</span>
+</span><span data-line="604">    <span class="c1"># For air: Pr ≈ 0.71 (weak temperature dependence)</span>
+</span><span data-line="605">    <span class="k">return</span> <span class="mf">0.71</span></div>
 
-</span><span data-line="445">
-</span><span data-line="446">
+</span><span data-line="606">
+</span><span data-line="607">
 <div class="viewcode-block" id="calc_submerged_coil_thermal_resistance">
 <a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.g_function.calc_submerged_coil_thermal_resistance">[docs]</a>
-</span><span data-line="447"><span class="k">def</span><span class="w"> </span><span class="nf">calc_submerged_coil_thermal_resistance</span><span class="p">(</span>
-</span><span data-line="448">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="449">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="450">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="451">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="452">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="453">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="454">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="455">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="456">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="457">    <span class="n">v_river</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span data-line="458"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="459"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</span>
-</span><span data-line="460">
-</span><span data-line="461"><span class="sd">    Uses the Churchill-Bernstein correlation for cross-flow forced convection over a cylinder</span>
-</span><span data-line="462"><span class="sd">    to estimate the external (river water) convective heat transfer coefficient.</span>
-</span><span data-line="463"><span class="sd">    It tricks pygfunction&#39;s SingleUTube model into capturing this pure pipe resistance</span>
-</span><span data-line="464"><span class="sd">    without any ground thermal mass by assigning exceptionally high thermal conductivities</span>
-</span><span data-line="465"><span class="sd">    to the grout and ground.</span>
-</span><span data-line="466">
-</span><span data-line="467"><span class="sd">    Parameters</span>
-</span><span data-line="468"><span class="sd">    ----------</span>
-</span><span data-line="469"><span class="sd">    r_out : float</span>
-</span><span data-line="470"><span class="sd">        Pipe outer radius [m]</span>
-</span><span data-line="471"><span class="sd">    r_in : float</span>
-</span><span data-line="472"><span class="sd">        Pipe inner radius [m]</span>
-</span><span data-line="473"><span class="sd">    D_s : float</span>
-</span><span data-line="474"><span class="sd">        Shank spacing (half distance between pipes) [m]</span>
-</span><span data-line="475"><span class="sd">    k_p : float</span>
-</span><span data-line="476"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
-</span><span data-line="477"><span class="sd">    m_flow_pipe : float</span>
-</span><span data-line="478"><span class="sd">        Mass flow rate per pipe [kg/s]</span>
-</span><span data-line="479"><span class="sd">    rho_f : float</span>
-</span><span data-line="480"><span class="sd">        Internal fluid density [kg/m³]</span>
-</span><span data-line="481"><span class="sd">    mu_f : float</span>
-</span><span data-line="482"><span class="sd">        Internal fluid dynamic viscosity [Pa·s]</span>
-</span><span data-line="483"><span class="sd">    cp_f : float</span>
-</span><span data-line="484"><span class="sd">        Internal fluid specific heat capacity [J/kgK]</span>
-</span><span data-line="485"><span class="sd">    k_f : float</span>
-</span><span data-line="486"><span class="sd">        Internal fluid thermal conductivity [W/mK]</span>
-</span><span data-line="487"><span class="sd">    v_river : float</span>
-</span><span data-line="488"><span class="sd">        Velocity of the river water cross-flow [m/s]</span>
-</span><span data-line="489">
-</span><span data-line="490"><span class="sd">    Returns</span>
-</span><span data-line="491"><span class="sd">    -------</span>
-</span><span data-line="492"><span class="sd">    float</span>
-</span><span data-line="493"><span class="sd">        Thermal resistance of the submerged coil [mK/W].</span>
-</span><span data-line="494"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="495">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
-</span><span data-line="496">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
-</span><span data-line="497">
-</span><span data-line="498">    <span class="c1"># 1. Convective resistance inside the pipe</span>
-</span><span data-line="499">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="500">        <span class="n">h_in</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
-</span><span data-line="501">            <span class="n">m_flow_pipe</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
-</span><span data-line="502">        <span class="p">)</span>
-</span><span data-line="503">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_in</span><span class="p">)</span>
-</span><span data-line="504">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="505">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">10.0</span>
-</span><span data-line="506">
-</span><span data-line="507">    <span class="c1"># 2. Conduction resistance of the pipe wall</span>
-</span><span data-line="508">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
-</span><span data-line="509">
-</span><span data-line="510">    <span class="c1"># 3. External (river water) convective resistance</span>
-</span><span data-line="511">    <span class="c1"># Reference river properties at ~15 degC</span>
-</span><span data-line="512">    <span class="n">rho_w</span> <span class="o">=</span> <span class="mf">999.1</span>
-</span><span data-line="513">    <span class="n">mu_w</span> <span class="o">=</span> <span class="mf">0.001138</span>
-</span><span data-line="514">    <span class="n">cp_w</span> <span class="o">=</span> <span class="mf">4187.0</span>
-</span><span data-line="515">    <span class="n">k_w</span> <span class="o">=</span> <span class="mf">0.589</span>
-</span><span data-line="516">
-</span><span data-line="517">    <span class="n">D_out</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_out</span>
-</span><span data-line="518">    <span class="n">Re_D</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">v_river</span> <span class="o">*</span> <span class="n">D_out</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu_w</span>
-</span><span data-line="519">    <span class="n">Pr</span> <span class="o">=</span> <span class="p">(</span><span class="n">cp_w</span> <span class="o">*</span> <span class="n">mu_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">k_w</span>
-</span><span data-line="520">
-</span><span data-line="521">    <span class="k">if</span> <span class="n">Re_D</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">&gt;=</span> <span class="mf">0.2</span><span class="p">:</span>
-</span><span data-line="522">        <span class="n">Nu</span> <span class="o">=</span> <span class="p">(</span>
-</span><span data-line="523">            <span class="mf">0.3</span>
-</span><span data-line="524">            <span class="o">+</span> <span class="p">(</span><span class="mf">0.62</span> <span class="o">*</span> <span class="n">Re_D</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">))</span>
-</span><span data-line="525">            <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.4</span> <span class="o">/</span> <span class="n">Pr</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.25</span>
-</span><span data-line="526">            <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Re_D</span> <span class="o">/</span> <span class="mf">282000.0</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">5</span> <span class="o">/</span> <span class="mi">8</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.8</span>
-</span><span data-line="527">        <span class="p">)</span>
-</span><span data-line="528">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="529">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">10.0</span>
-</span><span data-line="530">
-</span><span data-line="531">    <span class="n">h_ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nu</span> <span class="o">*</span> <span class="n">k_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">D_out</span>
-</span><span data-line="532">    <span class="n">R_conv_ext</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_out</span> <span class="o">*</span> <span class="n">h_ext</span><span class="p">)</span>
-</span><span data-line="533">
-</span><span data-line="534">    <span class="c1"># 4. Total fluid-to-river equivalent resistance</span>
-</span><span data-line="535">    <span class="n">R_fp_total</span> <span class="o">=</span> <span class="n">R_conv_in</span> <span class="o">+</span> <span class="n">R_cond</span> <span class="o">+</span> <span class="n">R_conv_ext</span>
-</span><span data-line="536">
-</span><span data-line="537">    <span class="c1"># 5. The Pygfunction Trick</span>
-</span><span data-line="538">    <span class="c1"># We assign a massive conductivity to nullify the grout/ground resistance</span>
-</span><span data-line="539">    <span class="n">k_g_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="540">    <span class="n">k_s_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
-</span><span data-line="541">
-</span><span data-line="542">    <span class="c1"># Set up a dummy borehole around the submerged U-tube structure</span>
-</span><span data-line="543">    <span class="n">r_b_trick</span> <span class="o">=</span> <span class="n">D_s</span> <span class="o">+</span> <span class="n">r_out</span> <span class="o">+</span> <span class="mf">0.01</span>
-</span><span data-line="544">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b_trick</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="545">
-</span><span data-line="546">    <span class="c1"># The two legs of the U-tube</span>
-</span><span data-line="547">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
-</span><span data-line="548">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s_trick</span><span class="p">,</span> <span class="n">k_g_trick</span><span class="p">,</span> <span class="n">R_fp_total</span><span class="p">)</span>
-</span><span data-line="549">
-</span><span data-line="550">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">())</span></div>
+</span><span data-line="608"><span class="k">def</span><span class="w"> </span><span class="nf">calc_submerged_coil_thermal_resistance</span><span class="p">(</span>
+</span><span data-line="609">    <span class="n">r_out</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="610">    <span class="n">r_in</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="611">    <span class="n">D_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="612">    <span class="n">k_p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="613">    <span class="n">m_flow_pipe</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="614">    <span class="n">rho_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="615">    <span class="n">mu_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="616">    <span class="n">cp_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="617">    <span class="n">k_f</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="618">    <span class="n">v_river</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+</span><span data-line="619"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="620"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the local thermal resistance [mK/W] of a submerged surface water heat exchanger coil.</span>
+</span><span data-line="621">
+</span><span data-line="622"><span class="sd">    Uses the Churchill-Bernstein correlation for cross-flow forced convection over a cylinder</span>
+</span><span data-line="623"><span class="sd">    to estimate the external (river water) convective heat transfer coefficient.</span>
+</span><span data-line="624"><span class="sd">    It tricks pygfunction&#39;s SingleUTube model into capturing this pure pipe resistance</span>
+</span><span data-line="625"><span class="sd">    without any ground thermal mass by assigning exceptionally high thermal conductivities</span>
+</span><span data-line="626"><span class="sd">    to the grout and ground.</span>
+</span><span data-line="627">
+</span><span data-line="628"><span class="sd">    Parameters</span>
+</span><span data-line="629"><span class="sd">    ----------</span>
+</span><span data-line="630"><span class="sd">    r_out : float</span>
+</span><span data-line="631"><span class="sd">        Pipe outer radius [m]</span>
+</span><span data-line="632"><span class="sd">    r_in : float</span>
+</span><span data-line="633"><span class="sd">        Pipe inner radius [m]</span>
+</span><span data-line="634"><span class="sd">    D_s : float</span>
+</span><span data-line="635"><span class="sd">        Shank spacing (half distance between pipes) [m]</span>
+</span><span data-line="636"><span class="sd">    k_p : float</span>
+</span><span data-line="637"><span class="sd">        Pipe thermal conductivity [W/mK]</span>
+</span><span data-line="638"><span class="sd">    m_flow_pipe : float</span>
+</span><span data-line="639"><span class="sd">        Mass flow rate per pipe [kg/s]</span>
+</span><span data-line="640"><span class="sd">    rho_f : float</span>
+</span><span data-line="641"><span class="sd">        Internal fluid density [kg/m³]</span>
+</span><span data-line="642"><span class="sd">    mu_f : float</span>
+</span><span data-line="643"><span class="sd">        Internal fluid dynamic viscosity [Pa·s]</span>
+</span><span data-line="644"><span class="sd">    cp_f : float</span>
+</span><span data-line="645"><span class="sd">        Internal fluid specific heat capacity [J/kgK]</span>
+</span><span data-line="646"><span class="sd">    k_f : float</span>
+</span><span data-line="647"><span class="sd">        Internal fluid thermal conductivity [W/mK]</span>
+</span><span data-line="648"><span class="sd">    v_river : float</span>
+</span><span data-line="649"><span class="sd">        Velocity of the river water cross-flow [m/s]</span>
+</span><span data-line="650">
+</span><span data-line="651"><span class="sd">    Returns</span>
+</span><span data-line="652"><span class="sd">    -------</span>
+</span><span data-line="653"><span class="sd">    float</span>
+</span><span data-line="654"><span class="sd">        Thermal resistance of the submerged coil [mK/W].</span>
+</span><span data-line="655"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="656">    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_PYGFUNCTION</span><span class="p">:</span>
+</span><span data-line="657">        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;pygfunction is not installed.&quot;</span><span class="p">)</span>
+</span><span data-line="658">
+</span><span data-line="659">    <span class="c1"># 1. Convective resistance inside the pipe</span>
+</span><span data-line="660">    <span class="k">if</span> <span class="n">m_flow_pipe</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="661">        <span class="n">h_in</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">convective_heat_transfer_coefficient_circular_pipe</span><span class="p">(</span>
+</span><span data-line="662">            <span class="n">m_flow_pipe</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">mu_f</span><span class="p">,</span> <span class="n">rho_f</span><span class="p">,</span> <span class="n">k_f</span><span class="p">,</span> <span class="n">cp_f</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span>
+</span><span data-line="663">        <span class="p">)</span>
+</span><span data-line="664">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_in</span> <span class="o">*</span> <span class="n">h_in</span><span class="p">)</span>
+</span><span data-line="665">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="666">        <span class="n">R_conv_in</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span data-line="667">
+</span><span data-line="668">    <span class="c1"># 2. Conduction resistance of the pipe wall</span>
+</span><span data-line="669">    <span class="n">R_cond</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">conduction_thermal_resistance_circular_pipe</span><span class="p">(</span><span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">k_p</span><span class="p">)</span>
+</span><span data-line="670">
+</span><span data-line="671">    <span class="c1"># 3. External (river water) convective resistance</span>
+</span><span data-line="672">    <span class="c1"># Reference river properties at ~15 degC</span>
+</span><span data-line="673">    <span class="n">rho_w</span> <span class="o">=</span> <span class="mf">999.1</span>
+</span><span data-line="674">    <span class="n">mu_w</span> <span class="o">=</span> <span class="mf">0.001138</span>
+</span><span data-line="675">    <span class="n">cp_w</span> <span class="o">=</span> <span class="mf">4187.0</span>
+</span><span data-line="676">    <span class="n">k_w</span> <span class="o">=</span> <span class="mf">0.589</span>
+</span><span data-line="677">
+</span><span data-line="678">    <span class="n">D_out</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">r_out</span>
+</span><span data-line="679">    <span class="n">Re_D</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_w</span> <span class="o">*</span> <span class="n">v_river</span> <span class="o">*</span> <span class="n">D_out</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu_w</span>
+</span><span data-line="680">    <span class="n">Pr</span> <span class="o">=</span> <span class="p">(</span><span class="n">cp_w</span> <span class="o">*</span> <span class="n">mu_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">k_w</span>
+</span><span data-line="681">
+</span><span data-line="682">    <span class="k">if</span> <span class="n">Re_D</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">&gt;=</span> <span class="mf">0.2</span><span class="p">:</span>
+</span><span data-line="683">        <span class="n">Nu</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="684">            <span class="mf">0.3</span>
+</span><span data-line="685">            <span class="o">+</span> <span class="p">(</span><span class="mf">0.62</span> <span class="o">*</span> <span class="n">Re_D</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">))</span>
+</span><span data-line="686">            <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.4</span> <span class="o">/</span> <span class="n">Pr</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.25</span>
+</span><span data-line="687">            <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="p">(</span><span class="n">Re_D</span> <span class="o">/</span> <span class="mf">282000.0</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">5</span> <span class="o">/</span> <span class="mi">8</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.8</span>
+</span><span data-line="688">        <span class="p">)</span>
+</span><span data-line="689">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="690">        <span class="n">Nu</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span data-line="691">
+</span><span data-line="692">    <span class="n">h_ext</span> <span class="o">=</span> <span class="p">(</span><span class="n">Nu</span> <span class="o">*</span> <span class="n">k_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">D_out</span>
+</span><span data-line="693">    <span class="n">R_conv_ext</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">r_out</span> <span class="o">*</span> <span class="n">h_ext</span><span class="p">)</span>
+</span><span data-line="694">
+</span><span data-line="695">    <span class="c1"># 4. Total fluid-to-river equivalent resistance</span>
+</span><span data-line="696">    <span class="n">R_fp_total</span> <span class="o">=</span> <span class="n">R_conv_in</span> <span class="o">+</span> <span class="n">R_cond</span> <span class="o">+</span> <span class="n">R_conv_ext</span>
+</span><span data-line="697">
+</span><span data-line="698">    <span class="c1"># 5. The Pygfunction Trick</span>
+</span><span data-line="699">    <span class="c1"># We assign a massive conductivity to nullify the grout/ground resistance</span>
+</span><span data-line="700">    <span class="n">k_g_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="701">    <span class="n">k_s_trick</span> <span class="o">=</span> <span class="mf">1e6</span>
+</span><span data-line="702">
+</span><span data-line="703">    <span class="c1"># Set up a dummy borehole around the submerged U-tube structure</span>
+</span><span data-line="704">    <span class="n">r_b_trick</span> <span class="o">=</span> <span class="n">D_s</span> <span class="o">+</span> <span class="n">r_out</span> <span class="o">+</span> <span class="mf">0.01</span>
+</span><span data-line="705">    <span class="n">borehole</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">boreholes</span><span class="o">.</span><span class="n">Borehole</span><span class="p">(</span><span class="n">H</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="n">r_b_trick</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="706">
+</span><span data-line="707">    <span class="c1"># The two legs of the U-tube</span>
+</span><span data-line="708">    <span class="n">pos</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="p">(</span><span class="n">D_s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span>
+</span><span data-line="709">    <span class="n">pipe</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">pipes</span><span class="o">.</span><span class="n">SingleUTube</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">r_in</span><span class="p">,</span> <span class="n">r_out</span><span class="p">,</span> <span class="n">borehole</span><span class="p">,</span> <span class="n">k_s_trick</span><span class="p">,</span> <span class="n">k_g_trick</span><span class="p">,</span> <span class="n">R_fp_total</span><span class="p">)</span>
+</span><span data-line="710">
+</span><span data-line="711">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">pipe</span><span class="o">.</span><span class="n">local_borehole_thermal_resistance</span><span class="p">())</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

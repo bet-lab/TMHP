@@ -385,8 +385,23 @@ def test_room_temperature_is_an_input():
 def test_non_finite_inputs_raise():
     m = GroundSourceHeatPumpEmpirical(sim_hours=4)
     m.Q_r_iu, m.T0 = float("nan"), 0.0
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Q_r_iu must be"):
         m.system_update()
+
+
+def test_impossible_input_raises_but_out_of_fit_input_is_a_result():
+    """#106 policy: an impossible input is a ValueError; an off-curve operating point is a failure_reason."""
+    m = GroundSourceHeatPumpEmpirical(sim_hours=4, T_g=10.0)
+    m.Q_r_iu, m.T0, m.T_a_room = -8000.0, 0.0, 300.0  # a kelvin value in a degC slot
+    with pytest.raises(ValueError, match="T_a_room must be"):
+        m.system_update()
+    m.T_a_room = 30.0  # possible, but above the 26.51 °C heating fit
+    m.system_update()
+    assert m.failure_reason == "outside_curve_domain"
+    cold = GroundSourceHeatPumpEmpirical(sim_hours=4, T_g=-20.0)  # possible ground, far below the fit
+    cold.Q_r_iu, cold.T0 = -4000.0, -10.0
+    cold.system_update()
+    assert cold.failure_reason == "outside_curve_domain"
 
 
 def test_no_negative_power_or_cop_on_a_grid():

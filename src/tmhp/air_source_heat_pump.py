@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
+from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
@@ -167,6 +168,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
     ):
+        validate_ctor("ASHP", locals())
         import warnings
 
         if dV_ou_fan_a_ref is not None:
@@ -1210,6 +1212,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             in that case. Treat ``failure_reason != "none"`` as "do not
             trust the numbers".
         """
+        validate_steady(locals())
         import warnings
 
         if T_a_room is None:
@@ -1371,6 +1374,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         pd.DataFrame
             Per-timestep result DataFrame.
         """
+        validate_dynamic(locals())
         time: np.ndarray = np.arange(0, simulation_period_sec, dt_s)
         tN: int = len(time)
 

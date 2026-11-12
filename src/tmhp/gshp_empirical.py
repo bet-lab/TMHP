@@ -20,6 +20,7 @@ import numpy as np
 
 from . import calc_util as cu
 from . import g_function as gf
+from ._validation import validate_ctor, validate_steady
 from .constants import c_a, c_w, k_w, rho_a, rho_w
 from .cop import (
     GSHP_EQFIT_COP_REF,
@@ -116,6 +117,7 @@ class GroundSourceHeatPumpEmpirical:
     T_a_room: float | None = None
 
     def __post_init__(self):
+        validate_ctor("GSHP_EMPIRICAL", vars(self))
         # Initialize historical and temporal states
         self.time = 0.0
         self.dt_sec = self.dt_hours * 3600.0
@@ -213,18 +215,18 @@ class GroundSourceHeatPumpEmpirical:
           available capacity ``Q_cap`` and ``None`` otherwise.
         - ``Q_iu`` — the load actually served [W], signed like ``Q_r_iu``.
 
+        A physically impossible input (non-finite ``Q_r_iu``; ``T0`` or
+        ``T_a_room`` outside −90..100 °C) is a caller error and raises
+        :class:`ValueError` (:mod:`tmhp._validation`). A valid input whose
+        operating point lies outside the curve fit is a *result*: the step is
+        reported with ``failure_reason = "outside_curve_domain"``, never raised.
+
         Raises
         ------
         ValueError
-            For a non-finite ``Q_r_iu``, ``T0`` or ``T_a_room``.
+            ``"<name> must be …, got <value>"`` for an impossible input.
         """
-        if not hasattr(self, "T0"):
-            raise AttributeError("T0 must be provided before system_update().")
-        for name in ("Q_r_iu", "T0"):
-            if not math.isfinite(float(getattr(self, name))):
-                raise ValueError(f"{name} must be finite")
-        if self.T_a_room is not None and not math.isfinite(float(self.T_a_room)):
-            raise ValueError("T_a_room must be finite")
+        validate_steady(vars(self))
 
         # Unit conversion
         dV_f_m3s = self.dV_f * cu.s2m * cu.L2m3  # Nominal flow rate [m³/s]

@@ -918,7 +918,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         _use_solar = self._needs_solar_input()
 
-        for n in tqdm(range(tN), desc="GSHPB Simulating"):
+        for n in tqdm(range(tN), desc="WSHPB Simulating"):
             t_s = time[n]
             hr = t_s * cu.s2h
             hour_of_day = (t_s % (24 * 3600)) * cu.s2h

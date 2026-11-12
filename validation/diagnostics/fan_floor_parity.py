@@ -93,8 +93,22 @@ def main() -> None:
         frames = list(ex.map(_run, tasks))
     df = pd.concat(frames, ignore_index=True)
     df = df[(df.usable.astype(str) == "True") & (df.status == "adopted")]
-    keep = ["slug", "unit", "model_class", "refrigerant", "rating_standard", "mode",
-            "t_source_C", "t_sink_C", "q_kW", "cop_target", "cop_pred", "n_star", "pr_cmp", "p_min_frac"]
+    keep = [
+        "slug",
+        "unit",
+        "model_class",
+        "refrigerant",
+        "rating_standard",
+        "mode",
+        "t_source_C",
+        "t_sink_C",
+        "q_kW",
+        "cop_target",
+        "cop_pred",
+        "n_star",
+        "pr_cmp",
+        "p_min_frac",
+    ]
     df = df[keep]
     OUT.mkdir(parents=True, exist_ok=True)
     df.to_csv(CSV, index=False)
@@ -102,7 +116,9 @@ def main() -> None:
     for m, g in df.groupby("p_min_frac"):
         for mc, gg in g.groupby("model_class"):
             e = (gg.cop_pred - gg.cop_target) / gg.cop_target * 100
-            print(f"  P_min {m:.2f}  {mc:5s}  n = {len(gg):4d}  MAPE {np.abs(e).mean():5.2f} %  bias {e.mean():+6.2f} %")
+            print(
+                f"  P_min {m:.2f}  {mc:5s}  n = {len(gg):4d}  MAPE {np.abs(e).mean():5.2f} %  bias {e.mean():+6.2f} %"
+            )
     check(df)
 
 

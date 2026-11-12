@@ -15,9 +15,17 @@ instead of smearing across nodes. This is the charge-only thermocline form
 (Cruz-Loredo Eq. 7): discharge/idle destroys the barrier and the model reverts to
 the standard continuous multi-node behaviour.
 
-Targets the **plant / ground-truth** role (high fidelity, non-smooth); the smooth
-:class:`~tmhp.stratified_tank.StratifiedTank` (Cadau) targets the MPC-internal
-role. Same geometry/units conventions as ``StratifiedTank`` (node 0 = top/hot).
+.. warning::
+
+   **Experimental — do not use as a plant / ground-truth reference.** The
+   thermocline front advances by at most one node per step, so when the charge
+   volume in one step exceeds one node's volume the model loses energy
+   (diagnosed: only 32-58 % of the injected heat is stored, see issue #96).
+   Use it only for front-shape studies at small time steps. The smooth
+   :class:`~tmhp.stratified_tank.StratifiedTank` (Cadau) targets the
+   MPC-internal role.
+
+Same geometry/units conventions as ``StratifiedTank`` (node 0 = top/hot).
 """
 
 from __future__ import annotations

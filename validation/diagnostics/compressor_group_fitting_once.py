@@ -264,9 +264,7 @@ def _cv_one(k: str) -> tuple[str, np.ndarray, np.ndarray]:
     if MODE == "pooled":
         th = fit_pooled(fn, t0, lo, hi, pr[~m], n[~m], y[~m], w[~m], F_SCALE[kind])
     else:
-        th, _, _ = fit_fe(
-            fn, t0, lo, hi, pr[~m], n[~m], y[~m], w[~m], keys[~m], F_SCALE[kind], warm=_CV.get("warm")
-        )
+        th, _, _ = fit_fe(fn, t0, lo, hi, pr[~m], n[~m], y[~m], w[~m], keys[~m], F_SCALE[kind], warm=_CV.get("warm"))
     p = fn(th, pr[m], n[m])
     ps = np.full(p.shape, np.nan)
     if len(np.unique(nrps[m])) >= 2:
@@ -537,9 +535,7 @@ def sweep_metrics(df: pd.DataFrame) -> pd.DataFrame:
         )
     out = pd.DataFrame(rows)
     base = out[out.group == "pooled"].set_index("case")
-    out["d_cop_rated_pct"] = [
-        100 * (r.cop_rated / base.loc[r.case, "cop_rated"] - 1) for r in out.itertuples()
-    ]
+    out["d_cop_rated_pct"] = [100 * (r.cop_rated / base.loc[r.case, "cop_rated"] - 1) for r in out.itertuples()]
     out["d_cop_low_pct"] = [100 * (r.cop_low / base.loc[r.case, "cop_low"] - 1) for r in out.itertuples()]
     out.to_csv(OUT_DIR / "plr_group_metrics.csv", index=False)
     return out

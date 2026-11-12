@@ -39,6 +39,9 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     # change 1e-8) when the evaporator-approach search switched to the
     # specific-energy objective: the bounded optimiser stops at a marginally
     # different approach although the modulating point is physically the same.
+    # The optimiser result is not bit-reproducible across platforms: macOS /
+    # Python 3.14 differs from Linux by a relative 4.3e-8, so the golden values
+    # are compared at rel=1e-6 (still far tighter than any physical change).
     baseline = {
         "Q_ref_tank [W]": 10000.0,
         "E_cmp [W]": 3460.8732881861606,
@@ -47,7 +50,7 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     assert omitted["converged"] is True
     assert omitted["failure_reason"] == "none"
     for key, expected in baseline.items():
-        assert omitted[key] == pytest.approx(expected, rel=1e-9)
+        assert omitted[key] == pytest.approx(expected, rel=1e-6)
         assert explicit_none[key] == pytest.approx(omitted[key], rel=1e-12)
 
 

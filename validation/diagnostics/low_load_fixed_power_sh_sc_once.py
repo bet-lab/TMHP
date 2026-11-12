@@ -206,9 +206,7 @@ def run_point(task: dict) -> list[dict]:
             x = (float(opt.x[0]), float(opt.x[1]))
             perf: dict | None = None
             try:
-                perf = m._calc_state(
-                    dT_ref_evap=x[0], dT_ref_cond=x[1], Q_r_iu=sign * q_req, T0=t_out, T_a_room=t_room
-                )
+                perf = m._calc_state(dT_ref_evap=x[0], dT_ref_cond=x[1], Q_r_iu=sign * q_req, T0=t_out, T_a_room=t_room)
             except Exception:  # noqa: BLE001 -- mirrors analyze_steady's suppress
                 perf = None
     finally:
@@ -440,7 +438,16 @@ def _figures(df: pd.DataFrame) -> None:
         mod, floor, ceil = split(g)
         ax.plot(pct(mod.PLR_request), mod[col], ls=ls, lw=dm.lw(0), color=color, marker=marker, ms=ms, label=label)
         if marker and len(floor):
-            ax.plot(pct(floor.PLR_request), floor[col], ls="none", marker=marker, ms=ms, mfc="white", mec=color, mew=HAIRLINE)
+            ax.plot(
+                pct(floor.PLR_request),
+                floor[col],
+                ls="none",
+                marker=marker,
+                ms=ms,
+                mfc="white",
+                mec=color,
+                mew=HAIRLINE,
+            )
         elif len(floor):
             ax.plot(pct(floor.PLR_request), floor[col], ls=(0, (1, 2)), lw=dm.lw(0), color=color)
         if len(ceil):
@@ -473,11 +480,7 @@ def _figures(df: pd.DataFrame) -> None:
 
     def sel(mode: str, sh: float, sc: float, cond: str, w: float = 0.0) -> pd.DataFrame:
         return df[
-            (df.sh_sc_mode == mode)
-            & (df.SH_set == sh)
-            & (df.SC_set == sc)
-            & (df.condition == cond)
-            & (df.W_fixed == w)
+            (df.sh_sc_mode == mode) & (df.SH_set == sh) & (df.SC_set == sc) & (df.condition == cond) & (df.W_fixed == w)
         ]
 
     # -- 01 fixed power: COP vs PLR --------------------------------------
@@ -504,7 +507,14 @@ def _figures(df: pd.DataFrame) -> None:
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.34))
     for ax, cond, letter in zip(axes, CONDS, "abc", strict=True):
         for w in W_FIXED[1:]:
-            curve(ax, sel("mode_A", *CURRENT, cond, w), "fixed_power_fraction", cond_color[cond], label=f"{w:g} W", ls=w_ls[w])
+            curve(
+                ax,
+                sel("mode_A", *CURRENT, cond, w),
+                "fixed_power_fraction",
+                cond_color[cond],
+                label=f"{w:g} W",
+                ls=w_ls[w],
+            )
         xaxis(ax)
         ax.set_ylim(0, 0.2)
         ax.set_yticks(ticks(0, 0.2, 0.05))
@@ -564,8 +574,13 @@ def _figures(df: pd.DataFrame) -> None:
     # -- 04..08 case comparisons, mode A solid / mode B dashed ------------
     def case_panels(name: str, quantities: list[tuple[str, str, tuple | None, float | None]], margins: dict) -> None:
         nq = len(quantities)
-        fig, axes = plt.subplots(nq, 3, figsize=dm.figsize("17cm", 0.30 * nq + 0.06), squeeze=False,
-                                 gridspec_kw={"wspace": 0.42, "hspace": 0.45})
+        fig, axes = plt.subplots(
+            nq,
+            3,
+            figsize=dm.figsize("17cm", 0.30 * nq + 0.06),
+            squeeze=False,
+            gridspec_kw={"wspace": 0.42, "hspace": 0.45},
+        )
         for i, (col, ylab, ylim, ystep) in enumerate(quantities):
             for j, cond in enumerate(CONDS):
                 ax = axes[i][j]
@@ -576,7 +591,14 @@ def _figures(df: pd.DataFrame) -> None:
                 for p in CASE_ORDER:
                     curve(ax, sel("mode_B", p[0], p[1], cond), col, case_color[p], ls=(0, (3, 1.5)), marker="")
                 for p in CASE_ORDER:
-                    curve(ax, sel("mode_A", p[0], p[1], cond), col, case_color[p], label=SETPOINTS[p] if (i == 0 and j == 0) else None, ms=MS * 0.75)
+                    curve(
+                        ax,
+                        sel("mode_A", p[0], p[1], cond),
+                        col,
+                        case_color[p],
+                        label=SETPOINTS[p] if (i == 0 and j == 0) else None,
+                        ms=MS * 0.75,
+                    )
                 xaxis(ax, label=(i == nq - 1))
                 if ylim is not None:
                     ax.set_ylim(*ylim)
@@ -587,7 +609,14 @@ def _figures(df: pd.DataFrame) -> None:
                     ax.set_title(cond_title[cond], fontsize=dm.fs(-2.5), loc="left")
                 panel_letter(ax, "abcdefghi"[i * 3 + j], x=-0.30, y=1.06)
         axes[0][0].legend(loc="best", frameon=False, fontsize=dm.fs(-5), ncol=2)
-        axes[0][2].text(0.03, 0.04, "solid: mode A (clipped)\ndashed: mode B (constrained)", transform=axes[0][2].transAxes, fontsize=dm.fs(-4.5), va="bottom")
+        axes[0][2].text(
+            0.03,
+            0.04,
+            "solid: mode A (clipped)\ndashed: mode B (constrained)",
+            transform=axes[0][2].transAxes,
+            fontsize=dm.fs(-4.5),
+            va="bottom",
+        )
         save(fig, name, **margins)
 
     case_panels(
@@ -597,7 +626,10 @@ def _figures(df: pd.DataFrame) -> None:
     )
     case_panels(
         "05_approach_vs_plr",
-        [(r"dT_ref_evap", r"$\Delta T_{approach,evap}$ [K]", (0, 20), 4.0), ("dT_ref_cond", r"$\Delta T_{approach,cond}$ [K]", (0, 20), 4.0)],
+        [
+            (r"dT_ref_evap", r"$\Delta T_{approach,evap}$ [K]", (0, 20), 4.0),
+            ("dT_ref_cond", r"$\Delta T_{approach,cond}$ [K]", (0, 20), 4.0),
+        ],
         {"mt": "6%", "ml": "3%"},
     )
     case_panels(
@@ -605,17 +637,27 @@ def _figures(df: pd.DataFrame) -> None:
         [("T_evap", r"$T_{evap}$ [°C]", None, None), ("T_cond", r"$T_{cond}$ [°C]", None, None)],
         {"mt": "6%", "ml": "3%"},
     )
-    case_panels("07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {"mt": "10%", "ml": "3%"})
+    case_panels(
+        "07_pressure_ratio_vs_plr", [("r_p", r"Pressure ratio $r_p$ [-]", None, None)], {"mt": "10%", "ml": "3%"}
+    )
     case_panels("08_nstar_vs_plr", [("n_star", r"Relative speed $n^*$ [-]", (0, 1.6), 0.4)], {"mt": "10%", "ml": "3%"})
 
     # -- 09 SH/SC COP, one row per mode ----------------------------------
-    fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False,
-                             gridspec_kw={"wspace": 0.40, "hspace": 0.45})
+    fig, axes = plt.subplots(
+        2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False, gridspec_kw={"wspace": 0.40, "hspace": 0.45}
+    )
     for i, (mode, mlab) in enumerate((("mode_A", "mode A — shipped clipping"), ("mode_B", "mode B — constrained"))):
         for j, cond in enumerate(CONDS):
             ax = axes[i][j]
             for p in CASE_ORDER:
-                curve(ax, sel(mode, p[0], p[1], cond), "COP_sys", case_color[p], label=SETPOINTS[p] if (i == 0 and j == 0) else None, ms=MS * 0.8)
+                curve(
+                    ax,
+                    sel(mode, p[0], p[1], cond),
+                    "COP_sys",
+                    case_color[p],
+                    label=SETPOINTS[p] if (i == 0 and j == 0) else None,
+                    ms=MS * 0.8,
+                )
             xaxis(ax, label=(i == 1))
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
             ax.set_title(f"{cond_title[cond]} — {mlab}", fontsize=dm.fs(-3), loc="left")
@@ -625,15 +667,23 @@ def _figures(df: pd.DataFrame) -> None:
 
     # -- 10 / 11 SH-only and SC-only -------------------------------------
     def split_fig(name: str, pairs: list[tuple[float, float]], fixed_txt: str, label_fn) -> None:
-        fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False,
-                                 gridspec_kw={"wspace": 0.40, "hspace": 0.45})
+        fig, axes = plt.subplots(
+            2, 3, figsize=dm.figsize("17cm", 0.62), squeeze=False, gridspec_kw={"wspace": 0.40, "hspace": 0.45}
+        )
         cmap = plt.get_cmap("viridis")
         cols = [cmap(0.1 + 0.75 * k / max(len(pairs) - 1, 1)) for k in range(len(pairs))]
         for i, (mode, mlab) in enumerate((("mode_A", "mode A"), ("mode_B", "mode B"))):
             for j, cond in enumerate(CONDS):
                 ax = axes[i][j]
                 for p, c in zip(pairs, cols, strict=True):
-                    curve(ax, sel(mode, p[0], p[1], cond), "COP_sys", c, label=label_fn(p) if (i == 0 and j == 0) else None, ms=MS * 0.8)
+                    curve(
+                        ax,
+                        sel(mode, p[0], p[1], cond),
+                        "COP_sys",
+                        c,
+                        label=label_fn(p) if (i == 0 and j == 0) else None,
+                        ms=MS * 0.8,
+                    )
                 xaxis(ax, label=(i == 1))
                 ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
                 ax.set_title(f"{cond_title[cond]} — {mlab}, {fixed_txt}", fontsize=dm.fs(-3), loc="left")
@@ -670,10 +720,7 @@ def main() -> None:
     want = set(a.only or ["sim", "fig"])
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     started = datetime.now(UTC).isoformat()
-    if "sim" in want:
-        df = simulate(a.jobs)
-    else:
-        df = pd.read_csv(OUT_DIR / CSV_NAME)
+    df = simulate(a.jobs) if "sim" in want else pd.read_csv(OUT_DIR / CSV_NAME)
     rep = check(df)
     print(json.dumps(rep, indent=2, ensure_ascii=False))
     if "fig" in want:

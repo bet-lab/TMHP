@@ -11,8 +11,7 @@ Usage
 -----
 ::
 
-    from enex_analysis import SolarThermalCollector
-    from enex_analysis.gshpb_stc_tank import GSHPB_STC_tank
+    from tmhp import SolarThermalCollector, GSHPB_STC_tank
 
     stc = SolarThermalCollector(A_stc=4.0)
     model = GSHPB_STC_tank(

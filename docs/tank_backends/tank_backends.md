@@ -2,8 +2,15 @@
 
 > tmhp `GroundSourceHeatPumpBoiler`의 저탕탱크를 **교체 가능한 백엔드**로 분리하고
 > 3종을 구현·비교한다. 단일노드 lumped(기본·경량), 다노드 성층 smooth(Cadau 2019,
-> MPC-internal), 하이브리드 thermocline(De la Cruz-Loredo 2023, plant ground-truth).
+> MPC-internal), 하이브리드 thermocline(De la Cruz-Loredo 2023, **실험용**).
 > 재현: `.venv/bin/python docs/tank_backends/compare_tank_backends.py`.
+
+> **경고 — `HybridStratifiedTank` 는 실험용이며 기준 해(plant/ground-truth)로 쓰지 않는다.**
+> 온도 전선(thermocline)이 스텝당 한 노드만 전진하도록 구현돼 있어, 한 스텝의 충전량이
+> 노드 하나의 부피를 넘으면 에너지를 잃는다. 진단에서 주입열의 32–58 % 만 탱크에 저장되는 것이
+> 확인됐다(`src/tmhp/hybrid_tank.py` 의 `_charge_thermocline` 과 충전 분기, #96).
+> 이 백엔드로 만든 결과를 기준 해로 삼았다면 다시 확인한다. 아래 §2 의 선명도 비교(front 폭)는
+> 에너지 보존이 아니라 전선 모양만 본 것이다.
 
 ---
 
@@ -13,7 +20,7 @@
 |---|---|---|---|---|
 | **lumped** | 단일노드 완전혼합 | T 하나 | 최저충실·경량 | 기본값. 단순 시뮬·하위호환(byte-identical) |
 | **stratified** (`StratifiedTank`) | Cadau 2019 1-D 다노드 유한체적 | T[N] (연속) | **매끄러움**(implicit tridiagonal) | MPC 내부모델(LTV/QP·미분가능) |
-| **hybrid** (`HybridStratifiedTank`) | Cruz-Loredo 2023 hybrid thermocline | T[N] + y_th | **비매끄러움**·고충실 | plant/ground-truth |
+| **hybrid** (`HybridStratifiedTank`) | Cruz-Loredo 2023 hybrid thermocline | T[N] + y_th | **비매끄러움** | **실험용** — 충전량이 한 스텝에 노드 하나 부피를 넘으면 에너지를 잃는다(#96). 기준 해로 쓰지 않는다 |
 
 GSHPB에서 `tank_model="lumped"`(기본) 또는 `"stratified"`로 선택한다. lumped 경로는
 완전히 보존되어 기존 결과와 **byte-identical**이다.
@@ -34,8 +41,10 @@ implicit tridiagonal**로 적분 → 무조건 안정·smooth(MPC 적합). N=1�
 thermocline, Eq.7; 방출·유휴는 barrier 소멸→표준으로 복귀).
 
 > 하이브리드는 front 선명도를 위해 **충전 중 엄격한 스텝별 에너지보존을 의도적으로
-> 포기**한다(논문도 에너지보존이 아닌 실험온도 정확도로 검증). 따라서 plant
-> ground-truth용이며, MPC 내부모델로는 매끄러운 Cadau를 쓴다.
+> 포기**한다(논문도 에너지보존이 아닌 실험온도 정확도로 검증). 그런데 현재 구현은 전선이
+> 스텝당 한 노드만 전진하므로(`hybrid_tank.py`), 한 스텝에 노드 하나 부피보다 많이 충전하면
+> 손실이 의도한 수준을 넘어 주입열의 32–58 % 만 저장된다(#96). 기준 해로 쓰지 않고, MPC
+> 내부모델로는 매끄러운 Cadau를 쓴다.
 
 ---
 
@@ -86,10 +95,12 @@ front가 하단에서 상승)하다 급강. 45°C 이상 유지 시간:
 |---|---|
 | 단순 시뮬·하위호환·탱크 내부동특성 무관 | **lumped**(기본) |
 | MPC 내부예측모델(매끄러움·미분가능 필요) | **stratified**(Cadau) |
-| plant/ground-truth, 급격 thermocline 충실 재현, MPC 검증 데이터 | **hybrid**(Cruz-Loredo) |
+| 전선 모양 연구(스텝당 충전량이 노드 하나 부피보다 작은 작은 dt 에 한정) | **hybrid**(Cruz-Loredo, 실험용) |
 
-geolink×tmhp 결합 MPC 연구(G3)에서 hybrid를 plant로, stratified를 MPC 내부모델로 쓰는
-two-backend 구성을 의도한다.
+기준 해(plant/ground-truth)가 필요하면 hybrid 를 쓰지 않는다. 탱크 에너지 수지 잔차를 직접
+확인한 뒤 stratified 를 쓰거나 실측 데이터를 쓴다. 당초 geolink×tmhp 결합 MPC 연구(G3)는 hybrid 를
+plant로, stratified 를 MPC 내부모델로 쓰는 two-backend 구성을 의도했으나, 위 결함이 고쳐지기
+전에는 이 구성을 쓰지 않는다(#96).
 
 ---
 

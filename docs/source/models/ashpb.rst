@@ -59,16 +59,39 @@ Base usage
 Default compressor efficiencies
 ===============================
 
-A bare ``AirSourceHeatPumpBoiler`` uses the paper-validated compressor
-relations below, where ``r_p`` is pressure ratio and ``rps`` is compressor
-speed in revolutions per second:
+A bare ``AirSourceHeatPumpBoiler`` evaluates three independent
+second-order polynomials from :mod:`tmhp.compressor_efficiency`
+(coefficient set ``BITZER-three-C3-absolute-N-2026-10-06``, a scroll-compressor
+fit to manufacturer calculation data):
 
-- volumetric: ``1.0 - 0.020 * (r_p - 1.0)``
-- isentropic: ``0.90 - 0.02 * r_p``
-- combined electromechanical: ``0.80 - 3.0e-5 * (rps - 55.0) ** 2``
+.. math::
+
+   \eta = b_0 + b_1\,PR + b_2\,N + b_3\,PR^2 + b_4\,N^2 + b_5\,PR\,N
+
+Here :math:`PR` is the pressure ratio and :math:`N` is the physical shaft
+speed in rev/s (``rps``); there is no relative-speed normalisation. The
+same form is used for the volumetric (``eta_cmp_vol``), isentropic
+(``eta_cmp_isen``) and effective electromechanical (``eta_cmp``)
+efficiencies, each with its own coefficients, which are listed in
+``validation/coefficients/BITZER-three-C3-absolute-N-2026-10-06/coefficients.csv``
+and in the tuple constants of the module. The design notes are in
+``docs/notes/compressor-bitzer-defaults.md``.
+
+.. warning::
+
+   The fit covers pressure ratio 1.50–7.15 and shaft speed
+   33.8–72.5 rev/s (the convex hull of 3,899 scroll data points). The
+   model's default search range (``rps_min``/``rps_max`` = 15/150 rev/s,
+   ``PR_cycle_max`` = 20) lies well outside it. Extrapolating the polynomial
+   outside the fitted range is not reliable: it can return an isentropic
+   efficiency near zero or negative, and a volumetric or electromechanical
+   efficiency above 1. A guard for this is being added (#96).
 
 An explicitly supplied float or callable for the corresponding constructor
-argument overrides these defaults.
+argument overrides these defaults. The earlier linear correlations
+(``1.0 - 0.020 * (r_p - 1.0)`` and similar) survive only as
+``tmhp.compressor_efficiency_legacy`` and in the
+``equipment_presets`` module; they are not the default.
 
 Source-side mechanics
 =====================
@@ -303,7 +326,9 @@ API reference
 Validation
 ==========
 
-ASHPB has been benchmarked against the Samsung EHS Mono HT Quiet R32
-14 kW catalogue across 15 operating points. See
-:doc:`../validation/index` for the parity plot and per-point
-comparison.
+ASHPB runs in the shared catalogue parity harness together with the
+air-to-air ASHP: 17 manufacturer units are registered and 15 are adopted
+into the headline figures (the Samsung EHS Mono HT Quiet R32 14 kW unit is
+one of them). The earlier 15-point Samsung comparison used a dedicated
+parameter set and is superseded. See :doc:`../validation/index` for the
+parity plot, per-unit results and the held catalogues.

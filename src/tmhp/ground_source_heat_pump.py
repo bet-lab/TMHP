@@ -36,6 +36,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
+from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
@@ -285,6 +286,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
     ):
+        validate_ctor("GSHP", locals())
         ground_rates = resolve_ground_flow_rates(
             default_ref_lpm=20.04,
             legacy_ref_lpm=dV_b_f_lpm,
@@ -1756,6 +1758,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ValueError
             For a non-finite load, temperature or flow input.
         """
+        validate_steady(locals())
         if T_a_room is None:
             T_a_room = self.T_a_room
         _require_finite(
@@ -1834,6 +1837,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         result_save_csv_path: str | None = None,
     ) -> pd.DataFrame:
         """Time-stepping dynamic simulation with BHE superposition."""
+        validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
 

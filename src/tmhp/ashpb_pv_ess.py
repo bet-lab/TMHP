@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from ._validation import validate_ctor
 from .air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
 from .dynamic_context import DynamicState
 from .subsystems import (
@@ -81,10 +82,9 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         T_inv_K: float = 313.15,
         **kwargs,
     ) -> None:
+        validate_ctor("PV_ESS", locals())
         if not isinstance(pv, PhotovoltaicSystem):
             raise TypeError("pv must be a PhotovoltaicSystem instance")
-        if not 0.0 < eta_inv <= 1.0:
-            raise ValueError(f"eta_inv must be in (0, 1], got {eta_inv!r}")
         super().__init__(**kwargs)
         self._pv = pv
         self._ess = ess if ess is not None else EnergyStorageSystem()

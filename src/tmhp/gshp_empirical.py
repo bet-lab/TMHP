@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from . import calc_util as cu
 from . import g_function as gf
+from ._validation import validate_ctor, validate_steady
 from .constants import c_a, c_w, k_w, rho_a, rho_w
 from .cop import calc_GSHP_COP
 from .g_function import precompute_gfunction
@@ -82,6 +83,7 @@ class GroundSourceHeatPumpEmpirical:
     T0: float = 20.0
 
     def __post_init__(self):
+        validate_ctor("GSHP_EMPIRICAL", vars(self))
         # Initialize historical and temporal states
         self.time = 0.0
         self.dt_sec = self.dt_hours * 3600.0
@@ -140,6 +142,7 @@ class GroundSourceHeatPumpEmpirical:
         and ``T0``.  The method computes COP, temperatures, fan
         power, and component exergy balances.
         """
+        validate_steady(vars(self))
         # Unit conversion
         dV_f_m3s = self.dV_f * cu.s2m * cu.L2m3  # Nominal flow rate [m³/s]
 

@@ -8,7 +8,9 @@ wrong.
 
 from __future__ import annotations
 
+import argparse
 import sys
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import dartwork_mpl as dm
@@ -55,7 +57,21 @@ def band_divisors() -> np.ndarray:
     return (1.0 / ua_over_q_cool).to_numpy()
 
 
+def _sweeps(jobs: int) -> list[list[float]]:
+    """Cooling COP over ``SWEEP`` for every machine; ``jobs > 1`` solves in parallel, same values."""
+    tasks = [(plate, "cooling", d) for plate in NAMEPLATES for d in SWEEP]
+    if jobs > 1:
+        with ProcessPoolExecutor(max_workers=jobs) as pool:
+            cops = list(pool.map(predicted_cop, *zip(*tasks, strict=True)))
+    else:
+        cops = [predicted_cop(*task) for task in tasks]
+    return [cops[i * len(SWEEP) : (i + 1) * len(SWEEP)] for i in range(len(NAMEPLATES))]
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description="validation_residuals figure")
+    parser.add_argument("--jobs", type=int, default=1, help="worker processes for panel (a) (default 1)")
+    sweeps = _sweeps(parser.parse_args().jobs)
     apply_style("report", hashsalt="tmhp.validation.residual")
     # The back-out is a root find over a model solve, so it is minutes of work.
     # Reuse what `validation.analysis.residual_decomposition` already wrote.
@@ -68,8 +84,7 @@ def main() -> None:
 
     # --- (a) the back-out itself ------------------------------------------
     ax = axes[0]
-    for plate in NAMEPLATES:
-        cops = [predicted_cop(plate, "cooling", d) for d in SWEEP]
+    for plate, cops in zip(NAMEPLATES, sweeps, strict=True):
         colour = MAKER_COLOR[plate.manufacturer]
         ax.plot(SWEEP, cops, color=colour, linewidth=dm.lw(0), alpha=0.85)
         ax.axhline(plate.eer, color=colour, linestyle=":", linewidth=HAIRLINE, alpha=0.6)

@@ -658,6 +658,12 @@ temperature) for which a run carried over from the previous step starts from
 that step's operating point (see :func:`resolve_step_operation`)."""
 
 
+CYCLE_RETRY_SPAN_K: float = 1.0
+"""A step whose cycle has no operating point at the run's mean tank
+temperature retries at the run's start temperature when that is more than
+this much colder [K] (see :func:`resolve_step_operation`)."""
+
+
 def _solve_tank_end(residual_free, Q: float, dt: float, C_tank: float) -> float | None:
     """End-of-step tank temperature [K] for a constant heat-source rate ``Q``."""
     from scipy.optimize import brentq
@@ -786,9 +792,10 @@ def resolve_step_operation(
     cycle_result, x_used = solve_cycle(T_eval, hint)
     q = delivered_tank_heat(cycle_result)
     T_first = provisional.T_on_first_C
-    if q <= 0.0 and T_first is not None and abs(T_first - T_eval) > 1e-9:
+    if q <= 0.0 and T_first is not None and T_eval - T_first > CYCLE_RETRY_SPAN_K:
         # No operating point at the mean temperature (an envelope that closes
-        # as the tank warms): the cycle that starts the run.
+        # as the tank warms): the cycle that starts the run, when the run
+        # starts well below the mean (a nearby start would fail the same way).
         retry, x_retry = solve_cycle(T_first, None)
         if delivered_tank_heat(retry) > 0.0:
             cycle_result, q, x_used = retry, delivered_tank_heat(retry), x_retry

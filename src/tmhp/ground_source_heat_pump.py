@@ -30,10 +30,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import OBJ_INFEASIBLE, grid_bounded_minimize, operating_point_objective
+from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
@@ -85,6 +86,87 @@ def _require_finite(**values: float | None) -> None:
             finite = False
         if not finite:
             raise ValueError(f"{name} must be a finite number, got {value!r}")
+
+
+#: Signed indoor-coil capacity margins at the fan flow limits (row keys).
+_IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
+_IU_MARGIN_AT_MIN_FLOW = "iu_hx_min_flow_margin [W]"
+
+
+class _IndoorSearch:
+    """Cached candidate operating points over the indoor approach for one request.
+
+    Each candidate closes the ground side (:meth:`GroundSourceHeatPump.
+    _close_ground_side`) and is ranked on the three-band objective. Calling the
+    instance returns that objective, so it can be handed to a scalar minimiser.
+    """
+
+    def __init__(
+        self,
+        model: GroundSourceHeatPump,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | None,
+        warm: dict[str, float] | None = None,
+    ) -> None:
+        self.model = model
+        self.Q_r_iu, self.T0, self.T_a_room, self.wall_K = Q_r_iu, T0, T_a_room, wall_K
+        self.rows: dict[float, tuple[float, str, dict | None]] = {}
+        self.warm: dict[str, float] = dict(warm or {})
+        self.pr_ceiling_seen = False
+
+    def entry(self, load_approach: float) -> tuple[float, str, dict | None]:
+        load_approach = float(load_approach)
+        if load_approach not in self.rows:
+            model = self.model
+            status, row, g, T_out = model._close_ground_side(
+                load_approach, self.Q_r_iu, self.T0, self.T_a_room, self.wall_K, self.warm
+            )
+            if status == "invalid" and model._last_pr_event is not None:
+                self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
+            value = OBJ_INFEASIBLE
+            if row is not None and status in model._BALANCED:
+                self.warm.update(g=g, T_out=T_out)
+                row = {
+                    **row,
+                    "ground_approach [K]": g,
+                    "indoor_approach [K]": load_approach,
+                    "ground_balance": status,
+                }
+                if (
+                    row.get("converged", False)
+                    and row.get("converged_rps", True)
+                    and row.get("indoor_heat_direction_valid", True)
+                ):
+                    value = operating_point_objective(
+                        float(row["E_tot [W]"]),
+                        float(row["Q_ref_iu [W]"]),
+                        self.Q_r_iu,
+                        row.get("capacity_clamped"),
+                    )
+            self.rows[load_approach] = (value, status, row)
+        return self.rows[load_approach]
+
+    def __call__(self, load_approach: float) -> float:
+        return self.entry(load_approach)[0]
+
+    def feasible(self, load_approach: float) -> bool:
+        return self.entry(load_approach)[0] < OBJ_INFEASIBLE
+
+    def balanced(self, load_approach: float) -> bool:
+        _, status, row = self.entry(load_approach)
+        return row is not None and status in self.model._BALANCED and _IU_MARGIN_AT_MAX_FLOW in row
+
+    def margin(self, load_approach: float, key: str) -> float:
+        if not self.balanced(load_approach):
+            raise ValueError("No balanced cycle at this indoor approach")
+        row = self.entry(load_approach)[2]
+        assert row is not None
+        return float(row[key])
+
+    def best(self) -> tuple[float, str, dict | None]:
+        return min(self.rows.values(), key=lambda item: item[0])
 
 
 class GroundSourceHeatPump(ReferenceStateMixin):
@@ -1060,12 +1142,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
     #: Ground-side approach search range [K]; the coupled solver uses the same.
     _GROUND_APPROACH_BOUNDS: tuple[float, float] = (1.0, 20.0)
-    #: Indoor-approach grid used before the bounded refinement, and the denser
-    #: fallback grid paid only when the coarse one finds no feasible point.
+    #: Coarse indoor-approach samples. They only locate the feasible band; its
+    #: edges are then solved from the fan capacity margins, so a band narrower
+    #: than the spacing (narrow or fixed fan range) is not missed.
     _INDOOR_GRID_POINTS = 7
-    _INDOOR_FALLBACK_POINTS = 19
-    #: Indoor-approach grid used when testing whether a duty can be delivered.
-    _CAPACITY_GRID_POINTS = 9
+    #: Root tolerance for band edges and the inward step taken off them [K].
+    _BAND_EDGE_XTOL_K = 1e-7
+    _BAND_EDGE_STEP_K = 1e-6
+    #: Resolution of the edge between ground-balanced and unbalanced approaches [K].
+    _BALANCED_EDGE_TOL_K = 1e-3
     _GROUND_CLOSURE_MAX_ITER = 24
     #: Width [K] to which the approach at the compressor envelope edge is resolved.
     _ENVELOPE_APPROACH_TOL_K = 1e-2
@@ -1226,9 +1311,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         The indoor approach is the free control (the fan modulates); the
         ground-side approach follows from the ground HX balance
-        (:meth:`_close_ground_side`). A coarse grid over the indoor approach
-        finds a feasible basin before a bounded refinement, and candidates are
-        ranked on the three-band objective of
+        (:meth:`_close_ground_side`). The indoor approaches the fan can serve
+        form one band, found from the signed coil capacity margins at the fan
+        flow limits (:meth:`_search_indoor`), and candidates in it are ranked
+        on the three-band objective of
         :func:`~tmhp._opt_utils.operating_point_objective`: specific energy
         below the capacity ceiling (raw power would pick the starved coil at
         the compressor's minimum speed), largest delivery at ``rps_max``.
@@ -1238,50 +1324,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         returns the off state with ``converged=False`` and the reason: no heat,
         no power, NaN COP.
         """
-        lo_i, hi_i = self.indoor_approach_min_K, self.indoor_approach_max_K
-        rows: dict[float, tuple[float, str, dict | None]] = {}
-        warm: dict[str, float] = {}
-        pr_ceiling_seen = False
-
-        def evaluate(load_approach: float) -> float:
-            nonlocal pr_ceiling_seen
-            load_approach = float(load_approach)
-            if load_approach not in rows:
-                status, row, g, T_out = self._close_ground_side(load_approach, Q_r_iu, T0, T_a_room, wall_K, warm)
-                if status == "invalid" and self._last_pr_event is not None:
-                    pr_ceiling_seen = pr_ceiling_seen or self._last_pr_event[0] == "pr_above_max"
-                value = OBJ_INFEASIBLE
-                if row is not None and status in self._BALANCED:
-                    warm.update(g=g, T_out=T_out)
-                    row = {
-                        **row,
-                        "ground_approach [K]": g,
-                        "indoor_approach [K]": load_approach,
-                        "ground_balance": status,
-                    }
-                    if (
-                        row.get("converged", False)
-                        and row.get("converged_rps", True)
-                        and row.get("indoor_heat_direction_valid", True)
-                    ):
-                        value = operating_point_objective(
-                            float(row["E_tot [W]"]),
-                            float(row["Q_ref_iu [W]"]),
-                            Q_r_iu,
-                            row.get("capacity_clamped"),
-                        )
-                rows[load_approach] = (value, status, row)
-            return rows[load_approach][0]
-
-        grid_bounded_minimize(evaluate, lo_i, hi_i, n_grid=self._INDOOR_GRID_POINTS, xatol=1e-2)
-        if min(value for value, _, _ in rows.values()) >= OBJ_INFEASIBLE:
-            # Paid only when the coarse grid found nothing: a narrow feasible
-            # band (fan limits on one side, ground HX on the other) can fall
-            # between the coarse points.
-            for x in np.linspace(lo_i, hi_i, self._INDOOR_FALLBACK_POINTS):
-                evaluate(float(x))
-
-        value, _, row = min(rows.values(), key=lambda item: item[0])
+        search = _IndoorSearch(self, Q_r_iu, T0, T_a_room, wall_K)
+        self._search_indoor(search)
+        rows = search.rows
+        value, _, row = search.best()
         if value < OBJ_INFEASIBLE and row is not None:
             result = dict(row)
             result.update({"converged": True, "failure_reason": "none", "Q_request [W]": Q_r_iu})
@@ -1294,7 +1340,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             r is not None and status in self._BALANCED and not r.get("converged", False)
             for _, status, r in rows.values()
         )
-        if indoor_limited or "ground_limit" in statuses:
+        # Only a coil that cannot carry the duty even at its largest airflow is
+        # a capacity limit; one that over-delivers at its smallest airflow at
+        # every approach cannot turn down, and a smaller duty will not help.
+        indoor_short = any(
+            r is not None and status in self._BALANCED and float(r.get(_IU_MARGIN_AT_MAX_FLOW, 0.0)) < 0.0
+            for _, status, r in rows.values()
+        )
+        if indoor_short or "ground_limit" in statuses:
             ceiling = self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, wall_K)
             if ceiling is not None:
                 return ceiling
@@ -1302,11 +1355,145 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             reason = "hx_not_converged"
         elif "ground_limit" in statuses:
             reason = "ground_hx_capacity_insufficient"
-        elif pr_ceiling_seen:
+        elif search.pr_ceiling_seen:
             reason = "pr_above_max"
         else:
             reason = "cycle_invalid"
         return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)
+
+    def _balanced_cell(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
+        """Shrink ``[a, b]`` to its ground-balanced part (one end must be balanced)."""
+        good_a, good_b = search.balanced(a), search.balanced(b)
+        if good_a and good_b:
+            return a, b
+        if not (good_a or good_b):
+            return None
+        good, bad = (a, b) if good_a else (b, a)
+        while abs(bad - good) > self._BALANCED_EDGE_TOL_K:
+            mid = 0.5 * (good + bad)
+            if search.balanced(mid):
+                good = mid
+            else:
+                bad = mid
+        return (a, good) if good_a else (good, b)
+
+    def _fan_band(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
+        """Indoor approaches in ``[a, b]`` at which the fan can carry the duty.
+
+        At a larger approach the coil carries more heat at any airflow, so the
+        signed capacity margin at the maximum fan flow rises from negative
+        (cannot carry the duty) and the margin at the minimum flow rises
+        through zero (cannot turn down far enough). The band between the two
+        roots is solved, not sampled.
+        """
+        # Both margins rise with the approach: a band needs the minimum-flow
+        # margin <= 0 at the left end and the maximum-flow margin >= 0 at the
+        # right end. Check what the balanced ends already tell before paying
+        # for the ground-balance edge.
+        if search.balanced(a) and search.margin(a, _IU_MARGIN_AT_MIN_FLOW) > 0.0:
+            return None
+        if search.balanced(b) and search.margin(b, _IU_MARGIN_AT_MAX_FLOW) < 0.0:
+            return None
+        cell = self._balanced_cell(search, a, b)
+        if cell is None:
+            return None
+        with contextlib.suppress(ValueError, RuntimeError):
+            return margin_feasible_interval(
+                lambda x: search.margin(x, _IU_MARGIN_AT_MAX_FLOW),
+                lambda x: search.margin(x, _IU_MARGIN_AT_MIN_FLOW),
+                cell[0],
+                cell[1],
+                xtol=self._BAND_EDGE_XTOL_K,
+            )
+        return None
+
+    def _sample_band(
+        self,
+        search: _IndoorSearch,
+        band: tuple[float, float],
+        accept: Callable[[float], bool] | None,
+    ) -> None:
+        """Search a fan band: its inward-stepped edges, then the interior.
+
+        Without ``accept`` the interior is minimised; with it the band is only
+        probed (edges and middle) for an accepted point.
+        """
+        lo, hi = band
+        step = self._BAND_EDGE_STEP_K
+        check = accept if accept is not None else search.feasible
+        if hi - lo <= 2.0 * step:
+            # A single point: equal fan limits, or a band at solver resolution.
+            for x in (0.5 * (lo + hi), lo, hi):
+                if check(x):
+                    return
+            return
+        lo, hi = lo + step, hi - step
+        if accept is not None:
+            for x in (lo, hi, 0.5 * (lo + hi)):
+                if accept(x):
+                    return
+            return
+        search(lo)
+        search(hi)
+        minimize_scalar(
+            search,
+            bounds=(lo, hi),
+            method="bounded",
+            options={"xatol": min(1e-2, (hi - lo) / 20.0), "maxiter": 25},
+        )
+
+    def _search_indoor(
+        self,
+        search: _IndoorSearch,
+        *,
+        seed: float | None = None,
+        accept: Callable[[float], bool] | None = None,
+    ) -> None:
+        """Locate the feasible indoor-approach band and search it.
+
+        Coarse samples locate the band. Its edges come from the fan capacity
+        margins (:meth:`_fan_band`), so an empty sample set is never taken as
+        proof that no operating point exists. Without ``accept`` the band
+        around the best sample is searched for the least objective; with it
+        the search stops at the first accepted point.
+        """
+        lo_i, hi_i = self.indoor_approach_min_K, self.indoor_approach_max_K
+        if accept is not None and seed is not None and accept(seed):
+            return
+        for x in np.linspace(lo_i, hi_i, self._INDOOR_GRID_POINTS):
+            if accept is not None and accept(float(x)):
+                return
+            search(float(x))
+        samples = sorted(x for x in search.rows if lo_i <= x <= hi_i)
+        feasible = [x for x in samples if search.feasible(x)]
+        if feasible:
+            best = min(feasible, key=search)
+            k = samples.index(best)
+            left = samples[k - 1] if k > 0 else best
+            right = samples[k + 1] if k + 1 < len(samples) else best
+            lo: float = left
+            hi: float = right
+            if not search.feasible(left):
+                band = self._fan_band(search, left, best)
+                lo = band[0] if band is not None else best
+            if not search.feasible(right):
+                band = self._fan_band(search, best, right)
+                hi = band[1] if band is not None else best
+            if hi > lo:
+                self._sample_band(search, (lo, hi), accept)
+            if accept is None:
+                return
+        for a, b in zip(samples, samples[1:], strict=False):
+            if accept is None and (search.feasible(a) or search.feasible(b)):
+                continue
+            band = self._fan_band(search, a, b)
+            if band is None:
+                continue
+            self._sample_band(search, band, accept)
+            if accept is None and search.best()[0] < OBJ_INFEASIBLE:
+                return
+            if accept is not None and any(accept(x) for x in search.rows if band[0] <= x <= band[1]):
+                return
 
     def _duty_deliverable(
         self,
@@ -1317,26 +1504,22 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         seed: float | None,
         warm: dict[str, float] | None = None,
     ) -> tuple[float | None, dict | None]:
-        """First indoor approach at which this duty is met exactly, if any."""
-        candidates = [] if seed is None else [seed]
-        candidates += [
-            float(x)
-            for x in np.linspace(self.indoor_approach_min_K, self.indoor_approach_max_K, self._CAPACITY_GRID_POINTS)
-        ]
-        warm = dict(warm or {})
-        for load_approach in candidates:
-            status, row, g, T_out = self._close_ground_side(load_approach, Q_r_iu, T0, T_a_room, wall_K, warm)
-            if row is None or status not in self._BALANCED:
-                continue
-            warm.update(g=g, T_out=T_out)
-            if not (row.get("converged", False) and row.get("converged_rps", True)):
-                continue
-            if row.get("capacity_clamped") is not None:
-                continue
-            if abs(float(row["Q_ref_iu [W]"]) - abs(Q_r_iu)) > 1e-6 * abs(Q_r_iu):
-                continue
-            row = {**row, "ground_approach [K]": g, "indoor_approach [K]": load_approach, "ground_balance": status}
-            return load_approach, row
+        """An indoor approach at which this duty is met exactly, if one exists."""
+        search = _IndoorSearch(self, Q_r_iu, T0, T_a_room, wall_K, warm)
+
+        def exact(load_approach: float) -> bool:
+            value, _, row = search.entry(load_approach)
+            return (
+                value < OBJ_INFEASIBLE
+                and row is not None
+                and row.get("capacity_clamped") is None
+                and abs(float(row["Q_ref_iu [W]"]) - abs(Q_r_iu)) <= 1e-6 * abs(Q_r_iu)
+            )
+
+        self._search_indoor(search, seed=seed, accept=exact)
+        for x in search.rows:
+            if exact(x):
+                return x, search.entry(x)[2]
         return None, None
 
     @staticmethod
@@ -1357,8 +1540,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         """Largest deliverable duty below the request, reported as a ceiling.
 
         A ladder of trial duties brackets the ceiling and a bisection closes on
-        it, each duty tested over the indoor-approach grid. Returns ``None``
-        when no duty below the request can be delivered exactly.
+        it. Each duty is tested by the fan-band search (:meth:`_search_indoor`),
+        so a narrow fan range does not turn into an artificial ceiling. Returns
+        ``None`` when no duty below the request can be delivered exactly.
         """
         sign = -1.0 if Q_r_iu < 0 else 1.0
         request = abs(Q_r_iu)

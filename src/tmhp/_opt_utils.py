@@ -13,15 +13,14 @@ import warnings
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 
-import numpy as np
-from scipy.optimize import minimize_scalar
+from scipy.optimize import brentq
 
 __all__ = [
     "ignore_minpack_progress_warning",
     "safe_float_attr",
     "specific_energy_objective",
     "operating_point_objective",
-    "grid_bounded_minimize",
+    "margin_feasible_interval",
     "DEFAULT_SHORTFALL_TOLERANCE",
     "PENALTY",
     "OBJ_CAPACITY_LIMITED",
@@ -161,39 +160,33 @@ def operating_point_objective(
     return specific_energy_objective(E_tot, delivered, request, Q_storable, penalty=OBJ_INFEASIBLE)
 
 
-def grid_bounded_minimize(
-    objective: Callable[[float], float],
+def margin_feasible_interval(
+    capacity_margin: Callable[[float], float],
+    excess_margin: Callable[[float], float],
     lower: float,
     upper: float,
     *,
-    n_grid: int = 7,
-    xatol: float = 1e-2,
-    maxiter: int = 25,
-    infeasible: float = OBJ_INFEASIBLE,
-) -> tuple[float, float]:
-    """Coarse grid pre-scan, then a bounded Brent refinement around its best cell.
+    xtol: float = 1e-7,
+) -> tuple[float, float] | None:
+    """Sub-interval of ``[lower, upper]`` where a modulated flow can carry a duty.
 
-    A local search started from one fixed point cannot leave a region where
-    every candidate returns the same infeasibility sentinel; the grid finds a
-    feasible basin first. Returns ``(x, f)`` of the best point evaluated
-    anywhere (grid or refinement); ``f >= infeasible`` means none was feasible.
+    ``capacity_margin(x)`` is the signed duty margin at the largest flow
+    (``>= 0``: the duty can be carried) and ``excess_margin(x)`` the margin at
+    the smallest flow (``<= 0``: the flow can still be turned down to the
+    duty). Both must be nondecreasing in ``x``, as a heat exchanger's capacity
+    at a fixed flow grows with its temperature difference, and
+    ``excess_margin <= capacity_margin`` (less flow carries less heat).
+
+    The band edges are solved as roots, not sampled, so a band narrower than
+    any grid spacing is still found -- down to a single point when both flow
+    limits coincide. Returns ``None`` when the band is empty.
     """
-    if not (math.isfinite(lower) and math.isfinite(upper) and lower < upper) or n_grid < 2:
-        raise ValueError("Require finite lower < upper and at least two grid points")
-    best_x, best_f = math.nan, math.inf
-
-    def tracked(x: float) -> float:
-        nonlocal best_x, best_f
-        value = float(objective(float(x)))
-        if value < best_f:
-            best_x, best_f = float(x), value
-        return value
-
-    grid = np.linspace(lower, upper, n_grid)
-    values = [tracked(float(x)) for x in grid]
-    index = int(np.argmin(values))
-    if values[index] >= infeasible:
-        return best_x, best_f
-    left, right = float(grid[max(0, index - 1)]), float(grid[min(n_grid - 1, index + 1)])
-    minimize_scalar(tracked, bounds=(left, right), method="bounded", options={"xatol": xatol, "maxiter": maxiter})
-    return best_x, best_f
+    if not (math.isfinite(lower) and math.isfinite(upper) and lower <= upper):
+        raise ValueError("Require finite lower <= upper")
+    if capacity_margin(upper) < 0.0 or excess_margin(lower) > 0.0:
+        return None
+    low = lower if capacity_margin(lower) >= 0.0 else float(brentq(capacity_margin, lower, upper, xtol=xtol))
+    high = upper if excess_margin(upper) <= 0.0 else float(brentq(excess_margin, lower, upper, xtol=xtol))
+    if low > high + 10.0 * xtol:
+        return None
+    return low, max(low, high)

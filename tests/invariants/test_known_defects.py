@@ -95,7 +95,6 @@ def test_c2_ashpb_r32_solves_a7_w55():
     assert check_running_cycle(fam, r, case) == []
 
 
-@defect("C5", "R134a W65/S5 returns Q=90,957 W with eta_is=0.0032 and failure_reason='none'")
 def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
     _, r = FAMILIES["WSHPB"].run("R134a", SteadyCase(T_source=5.0, T_demand=65.0, load_W=6400.0))
     eta = num(r, "eta_cmp_isen [-]")
@@ -164,7 +163,6 @@ def _gshpb_failing_run():
     return m, df, dt
 
 
-@defect("B1", "GSHPB puts the requested Q_tank_load (8 kW) into the tank on steps where the cycle failed")
 def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     m, df, dt = _gshpb_failing_run()
     off = _off_rows(df)
@@ -175,13 +173,7 @@ def test_b1_gshpb_failed_cycle_puts_no_heat_in_tank():
     expect(abs(bal["residual_J"]) < 0.01 * max(bal["heat_J"], 1.0), bal)
 
 
-@pytest.mark.parametrize(
-    "family",
-    [
-        pytest.param("GSHPB", marks=defect("T14", "GSHPB forward-fills cop_* into off rows")),
-        pytest.param("WSHPB", marks=defect("T14", "WSHPB forward-fills cop_* into off rows")),
-    ],
-)
+@pytest.mark.parametrize("family", ["GSHPB", "WSHPB"])
 def test_t14_off_rows_have_nan_cop(family):
     dt, n = 600, 4
     if family == "GSHPB":

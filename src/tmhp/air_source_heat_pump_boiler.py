@@ -979,7 +979,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``,
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
-              ``"hx_not_converged"``, or ``"optimizer_failed"``.
+              ``"pr_above_max"``, ``"hx_not_converged"``, or
+              ``"optimizer_failed"``.
+            - ``"failure_detail"`` (str, only on a rejected solved cycle) —
+              which check of
+              :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
+              the point ``"cycle_invalid"``.
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead,
@@ -990,12 +995,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
               to recover the shortfall or excess.
 
-            ASHPB returns the cycle numbers (``E_cmp``, ``Q_ref_tank``, ...)
-            whenever ``_calc_state`` produced a dict at all. A
-            ``failure_reason`` of ``"hx_not_converged"`` therefore does not
-            invalidate the result: it only means the HX residual exceeded
-            tolerance and the converged flag is False. Off-mode fallback
-            (E_cmp=0) only occurs when the cycle itself was infeasible.
+            An infeasible cycle, or a solved cycle that is not an operating
+            point, falls back to an off-mode state (``E_cmp = 0``,
+            ``Q_ref_tank = 0``). ``"hx_not_converged"`` (the outdoor coil
+            did not converge) returns only the coil diagnostics, without
+            duty or power keys. ``"optimizer_failed"`` returns the cycle
+            numbers at the optimiser's best point with ``converged=False``.
         """
         import warnings
 

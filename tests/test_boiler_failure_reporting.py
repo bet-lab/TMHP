@@ -257,11 +257,19 @@ def wshpb_failing_run():
 
 
 def _documented_failure_reasons() -> set[str]:
-    """The values tabled in docs/source/concepts/failure-reason-semantics.rst."""
+    """The values tabled in docs/source/concepts/failure-reason-semantics.rst.
+
+    Every ``list-table`` whose first header cell is ``Value`` lists
+    ``failure_reason`` values (the ``failure_detail`` table is headed
+    differently and is not included).
+    """
     doc = Path(__file__).resolve().parents[1] / "docs/source/concepts/failure-reason-semantics.rst"
-    table = doc.read_text(encoding="utf-8").split("The four values", 1)[1].split("How to branch on it", 1)[0]
-    reasons = set(re.findall(r"^    \* - ``([a-z_]+)``", table, flags=re.MULTILINE))
-    assert reasons == {"none", "hx_not_converged", "optimizer_failed", "cycle_invalid"}
+    reasons: set[str] = set()
+    for table in doc.read_text(encoding="utf-8").split(".. list-table::")[1:]:
+        rows = re.findall(r"^    \* - (.+)$", table, flags=re.MULTILINE)
+        if rows and rows[0].strip() == "Value":
+            reasons |= {m.group(1) for row in rows[1:] if (m := re.fullmatch(r"``([a-z_]+)``", row.strip()))}
+    assert {"none", "hx_not_converged", "optimizer_failed", "cycle_invalid"} <= reasons
     return reasons
 
 

@@ -52,9 +52,9 @@ plane, with the sun position of each hour.
 
 | policy        | solar→ground [kWh] | solar→tank [kWh] | T_bhe mean [°C] | T_bhe min [°C] | T_bhe end [°C] |
 | ------------- | ------------------ | ---------------- | --------------- | -------------- | -------------- |
-| always-ground | 216.2              | 0.0              | 16.7            | 15.3           | 16.4           |
+| always-ground | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
 | always-tank   | 0.0                | 19.9             | 15.6            | 15.1           | 15.4           |
-| greedy        | 216.2              | 0.0              | 16.7            | 15.3           | 16.4           |
+| greedy        | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
 
 (Model of 2026-11-13: collector on its own plane with the ISO 9806 efficiency and
 the 85 °C storage limit, #96 T3/T9. The table in the first version of this note

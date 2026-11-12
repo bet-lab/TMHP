@@ -136,6 +136,10 @@ class _SunFacingSurface:
     def _surface(self) -> tuple[float, float]:  # pragma: no cover - abstract
         raise NotImplementedError
 
+    def _beam_b0(self) -> float:  # pragma: no cover - abstract
+        """ASHRAE incidence-angle coefficient ``b0`` of the beam on this surface."""
+        raise NotImplementedError
+
     def _check_site(self) -> None:
         if self.sky_model not in ("isotropic", "haydavies", "perez"):
             raise ValueError(f"sky_model must be 'isotropic', 'haydavies' or 'perez', got {self.sky_model!r}")
@@ -157,6 +161,10 @@ class _SunFacingSurface:
         most 10 min and the components are averaged over the sunlit samples
         (the step average of a measured DNI includes the dark part of a
         sunrise/sunset step as zero, so its sunlit part carries it).
+        ``beam_iam`` is the beam times its incidence-angle modifier, taken
+        sample by sample before averaging: the modifier is nonlinear and
+        clipped, so applying it to the mean angle would lose the beam of a
+        step in which the sun grazes the surface or passes behind it.
 
         A DNI above 1 W/m² while the sun is below the horizon for the whole
         step contradicts the site or clock (``latitude``, ``longitude``,
@@ -167,6 +175,7 @@ class _SunFacingSurface:
         """
         doy0 = start_day_of_year(self.start_time, self.utc_offset_h)
         tilt, surf_az = self._surface()
+        b0 = self._beam_b0()
         if dt_s is None or dt_s <= 0:
             times = [float(time_s)]
         else:
@@ -178,19 +187,19 @@ class _SunFacingSurface:
             zen, az = solar_position(
                 doy, latitude=self.latitude, longitude=self.longitude, utc_offset_h=self.utc_offset_h
             )
-            samples.append(
-                plane_of_array_irradiance(
-                    I_DN,
-                    I_dH,
-                    zenith=zen,
-                    azimuth=az,
-                    tilt=tilt,
-                    surface_azimuth=surf_az,
-                    albedo=self.albedo,
-                    sky_model=self.sky_model,
-                    day_of_year=doy,
-                )
+            sample = plane_of_array_irradiance(
+                I_DN,
+                I_dH,
+                zenith=zen,
+                azimuth=az,
+                tilt=tilt,
+                surface_azimuth=surf_az,
+                albedo=self.albedo,
+                sky_model=self.sky_model,
+                day_of_year=doy,
             )
+            sample["beam_iam"] = ashrae_iam(sample["aoi"], b0) * sample["beam"]
+            samples.append(sample)
         sunlit = [s for s in samples if s["zenith"] < 90.0]
         if not sunlit:
             if I_DN > 1.0:
@@ -202,7 +211,7 @@ class _SunFacingSurface:
                     stacklevel=2,
                 )
             return samples[len(samples) // 2]
-        keys = ("beam", "sky", "ground", "total", "aoi", "ghi", "zenith", "dni_used")
+        keys = ("beam", "beam_iam", "sky", "ground", "total", "aoi", "ghi", "zenith", "dni_used")
         return {k: float(np.mean([s[k] for s in sunlit])) for k in keys}
 
 
@@ -396,6 +405,9 @@ class SolarThermalCollector(_SunFacingSurface):
     def _surface(self) -> tuple[float, float]:
         return self.stc_tilt, self.stc_azimuth
 
+    def _beam_b0(self) -> float:
+        return float(self.b0_stc)
+
     # ----------------------------------------------------------
     # Physics helpers
     # ----------------------------------------------------------
@@ -422,7 +434,9 @@ class SolarThermalCollector(_SunFacingSurface):
     def absorbed_irradiance(self, plane: dict) -> float:
         """Irradiance the absorber turns into heat, ``η0·(K_b·G_b + K_d·G_d)`` [W/m²]."""
         K_b, K_sky, K_gnd = self.incidence_modifiers(plane["aoi"])
-        return float(self.eta0_stc * (K_b * plane["beam"] + K_sky * plane["sky"] + K_gnd * plane["ground"]))
+        # A plane from plane_irradiance carries the beam already modified sample by sample.
+        G_b = plane["beam_iam"] if "beam_iam" in plane else K_b * plane["beam"]
+        return float(self.eta0_stc * (G_b + K_sky * plane["sky"] + K_gnd * plane["ground"]))
 
     def stagnation_temperature_K(self, plane: dict, T0_K: float) -> float:
         """Absorber temperature with no flow [K] (all absorbed heat lost)."""
@@ -639,6 +653,9 @@ class PhotovoltaicSystem(_SunFacingSurface):
     def _surface(self) -> tuple[float, float]:
         return self.pv_tilt, self.pv_azimuth
 
+    def _beam_b0(self) -> float:
+        return float(self.b0_pv)
+
     def calc_performance(
         self,
         I_DN: float,
@@ -681,9 +698,9 @@ class PhotovoltaicSystem(_SunFacingSurface):
                 )
             plane = self.plane_irradiance(I_DN, I_dH, time_s)
         T0 = max(1e-3, T0_K)
-        K_b = ashrae_iam(plane["aoi"], self.b0_pv)
         K_sky, K_gnd = diffuse_iam(self.pv_tilt, self.b0_pv)
-        G_b = K_b * plane["beam"]
+        # A plane from plane_irradiance carries the beam already modified sample by sample.
+        G_b = plane["beam_iam"] if "beam_iam" in plane else ashrae_iam(plane["aoi"], self.b0_pv) * plane["beam"]
         G_d = K_sky * plane["sky"] + K_gnd * plane["ground"]
         I_sol = G_b + G_d
 

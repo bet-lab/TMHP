@@ -19,7 +19,13 @@ import tmhp
 from tmhp import calc_util as cu
 from tmhp.constants import c_w, rho_w
 from tmhp.subsystems import PhotovoltaicSystem, SolarThermalCollector, UVLamp
-from tmhp.weather import decompose_ghi_to_poa, plane_of_array_irradiance, solar_position, start_day_of_year
+from tmhp.weather import (
+    ashrae_iam,
+    decompose_ghi_to_poa,
+    plane_of_array_irradiance,
+    solar_position,
+    start_day_of_year,
+)
 
 SEOUL = pvlib.location.Location(37.57, 126.98, "Asia/Seoul")
 
@@ -230,6 +236,31 @@ def test_pv_geometry_changes_the_output():
     assert out(pv_azimuth=0.0) < 0.5 * base
 
 
+def test_incidence_modifier_is_applied_before_averaging_the_step():
+    """A step in which the sun passes behind the surface keeps the beam it had
+    while in front: the modifier is applied to each sub-sample, not to the mean
+    angle (an east-facing wall, 12:00-13:00 at the equinox: the mean incidence
+    angle is ~90°, whose modifier is 0, while the first samples still see the sun)."""
+    pv = PhotovoltaicSystem(pv_tilt=90.0, pv_azimuth=90.0, albedo=0.0, start_time="2026-03-20")
+    t0, dt = 12 * 3600.0, 3600.0
+    plane = pv.plane_irradiance(800.0, 0.0, t0, dt)
+    sub = [pv.plane_irradiance(800.0, 0.0, t0 + (k + 0.5) * dt / 6) for k in range(6)]
+    sunlit = [s for s in sub if s["zenith"] < 90.0]
+    expected = float(np.mean([ashrae_iam(s["aoi"], pv.b0_pv) * s["beam"] for s in sunlit]))
+    assert expected > 5.0  # some of the hour has the sun in front of the wall
+    assert plane["beam_iam"] == pytest.approx(expected, rel=1e-12)
+    assert ashrae_iam(plane["aoi"], pv.b0_pv) * plane["beam"] < 0.5 * expected  # what the mean angle would give
+    # the collector and the PV array both use the per-sample value
+    stc = SolarThermalCollector(stc_tilt=90.0, stc_azimuth=90.0, albedo=0.0, start_time="2026-03-20")
+    p_stc = stc.plane_irradiance(800.0, 0.0, t0, dt)
+    assert stc.absorbed_irradiance(p_stc) == pytest.approx(stc.eta0_stc * p_stc["beam_iam"], rel=1e-12)
+    out = pv.calc_performance(800.0, 0.0, 293.15, plane=plane)
+    assert out["E_pv_out"] > 0.0
+    # a single instant is unchanged: modifier of that angle times that beam
+    one = pv.plane_irradiance(800.0, 0.0, 9 * 3600.0)
+    assert one["beam_iam"] == pytest.approx(ashrae_iam(one["aoi"], pv.b0_pv) * one["beam"], rel=1e-15)
+
+
 # ---------------------------------------------------------------------------
 # scenario classes: preheat (T8), tank-loop high limit (T9), second law
 # ---------------------------------------------------------------------------
@@ -283,6 +314,25 @@ def test_preheat_collector_gain_enters_the_tank_through_its_inflow(preheat_day):
     np.testing.assert_allclose(df.loc[active, "T_stc_w_in [°C]"], T_SUP)
     np.testing.assert_allclose(df.loc[active, "dV_stc [m3/s]"], df.loc[active, "dV_tank_w_in [m3/s]"], rtol=1e-12)
     assert (df["E_stc_pump [W]"] == 0.0).all()
+
+
+def test_preheat_mixer_cold_side_exergy_is_at_the_mains_temperature(preheat_day):
+    """Only the tank make-up passes through the collector; the mixing valve's cold
+    side is unheated mains water, so its exergy is evaluated at the mains
+    temperature in both families (GSHPB's base model uses the tank-inlet column)."""
+    from tmhp.thermodynamics import calc_exergy_flow
+
+    _, _, df = preheat_day
+    cold = df["dV_mix_sup_w_in [m3/s]"].fillna(0.0)
+    heated = df["stc_active [-]"].astype(bool) & (cold > 0.0) & (df["T_tank_w_in [°C]"] > T_SUP + 1.0)
+    assert heated.any()  # preheated make-up while the valve draws cold water
+    T0_K = cu.C2K(df["T0 [°C]"])
+    at_mains = calc_exergy_flow(c_w * rho_w * cold, cu.C2K(T_SUP), T0_K)
+    np.testing.assert_allclose(df["X_mix_sup_w_in [W]"], at_mains, rtol=1e-12, atol=1e-12)
+    xc = df["X_tank_w_out [W]"].fillna(0.0) + at_mains - df["X_mix_w_out [W]"].fillna(0.0)
+    known = df["Xc_mix [W]"].notna()  # ASHPB leaves the idle valve as NaN
+    assert known[heated].all()
+    np.testing.assert_allclose(df.loc[known, "Xc_mix [W]"], xc[known], rtol=1e-9, atol=1e-9)
 
 
 @pytest.fixture(scope="module", params=["ASHPB_STC_tank", "GSHPB_STC_tank", "GSHPB_STC_ground", "GSHPB_STC_routed"])

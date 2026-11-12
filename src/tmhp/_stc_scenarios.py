@@ -521,4 +521,32 @@ class STCPreheat(STCScenario):
 
     def _postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
         df = super()._postprocess(df)  # type: ignore[misc]
-        return self._stc_exergy(df, tank_boundary=False)
+        df = self._stc_exergy(df, tank_boundary=False)
+        return self._mixer_cold_side_exergy(df)
+
+    @staticmethod
+    def _mixer_cold_side_exergy(df: pd.DataFrame) -> pd.DataFrame:
+        """Exergy of the mixing valve's cold side at the mains temperature.
+
+        Only the tank make-up passes through the collector; the valve's cold
+        side takes unheated mains water. A base model that evaluates
+        ``X_mix_sup_w_in`` at ``T_tank_w_in`` (GSHPB) would credit that water
+        with the preheat, so it is re-evaluated at the mains temperature
+        (``T_stc_w_in``) and ``Xc_mix`` follows. Unchanged where the base model
+        already uses the mains temperature (ASHPB).
+        """
+        from .thermodynamics import calc_exergy_flow
+
+        need = {"X_mix_sup_w_in [W]", "Xc_mix [W]", "dV_mix_sup_w_in [m3/s]", "T_stc_w_in [°C]", "T0 [°C]"}
+        if not need <= set(df.columns):
+            return df
+        x_base = df["X_mix_sup_w_in [W]"]
+        x_mains = calc_exergy_flow(
+            c_w * rho_w * df["dV_mix_sup_w_in [m3/s]"].fillna(0),
+            cu.C2K(df["T_stc_w_in [°C]"]),
+            cu.C2K(df["T0 [°C]"]),
+        )
+        x_mains = x_mains.where(df["T_stc_w_in [°C]"].notna(), x_base)  # rows without a collector record
+        df["Xc_mix [W]"] = df["Xc_mix [W]"] + (x_mains.fillna(0) - x_base.fillna(0))
+        df["X_mix_sup_w_in [W]"] = x_mains
+        return df

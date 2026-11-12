@@ -56,11 +56,16 @@ from .dynamic_context import (
     ControlState,
     CycleSolveOutcome,
     StepContext,
+    check_hp_schedule_active,
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
+    resolve_step_operation,
+    step_hp_result,
     tank_mass_energy_residual,
     unphysical_cycle_detail,
+    validate_min_cycle_times,
+    warn_if_tank_boiling,
 )
 from .enex_functions import (
     calc_mixing_valve_flows,
@@ -103,6 +108,21 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     analytical condenser temperature relations.
     """
 
+    # Heat and power rates of the running cycle; a step reports them
+    # multiplied by the fraction of the step the compressor ran. Ground-loop
+    # flows stay at their running values (an off step reports the nominal
+    # loop flow too).
+    _RUNTIME_SCALED_KEYS: tuple[str, ...] = (
+        "E_cmp [W]",
+        "E_cmp_plus_pmp [W]",
+        "E_pmp [W]",
+        "E_tot [W]",
+        "Q_bhe [W]",
+        "Q_ref_ground [W]",
+        "Q_ref_tank [W]",
+        "Q_tank_load [W]",
+        "m_dot_ref [kg/s]",
+    )
     _RATING_FAMILY = "GSHPB"
     _RATING_DEFAULT_MODE = "heating"
 
@@ -168,6 +188,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_tank_w_in_refill: float = 0.001,
         # 8. Operation Schedule
         hp_on_schedule: list[tuple[float, float]] | None = None,
+        min_on_time_s: float = 0.0,
+        min_off_time_s: float = 0.0,
         # 9. Subsystems
         stc: SolarThermalCollector | None = None,
         pv=None,
@@ -291,6 +313,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.hp_capacity = hp_capacity
         self.hp_on_schedule = hp_on_schedule or [(0.0, 24.0)]
+        self.min_on_time_s, self.min_off_time_s = validate_min_cycle_times(min_on_time_s, min_off_time_s)
         self.dV_mix_w_out_max = dV_mix_w_out_max
         self.T_tank_w_upper_bound = T_tank_w_upper_bound
         self.T_tank_w_lower_bound = T_tank_w_lower_bound
@@ -989,60 +1012,75 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             result["failure_detail"] = detail
         return result
 
-    def _determine_hp_state(self, ctx: StepContext, is_on_prev: bool) -> tuple[bool, dict, float]:
-        """Thermostat decision and cycle solve for one step.
+    def _thermostat_call(self, ctx: StepContext, is_on_prev: bool) -> bool:
+        """Thermostat call for heat at the start of the step.
 
-        Returns ``(call_for_heat, hp_result, Q_ref_tank)``. ``call_for_heat``
-        is the hysteresis state carried to the next step. ``hp_result``
-        reports whether the compressor actually ran (``hp_is_on``) and, if it
-        was called but could not run, why (``failure_reason``).
-        ``Q_ref_tank`` is the condenser heat the solved cycle delivers to the
-        tank -- zero when it did not run, never the requested capacity.
+        Hysteresis on the tank temperature with the operating schedule
+        applied (and no call when ``hp_capacity`` is below the off
+        tolerance). :func:`tmhp.dynamic_context.resolve_step_operation`
+        follows the call through the step.
         """
-        T_tank_w = cu.K2C(ctx.T_tank_w_K)
-
-        hp_is_on = determine_heat_source_on_off(
-            T_tank_w_C=T_tank_w,
+        call = determine_heat_source_on_off(
+            T_tank_w_C=cu.K2C(ctx.T_tank_w_K),
             T_lower=self.T_tank_w_lower_bound,
             T_upper=self.T_tank_w_upper_bound,
             is_on_prev=is_on_prev,
             hour_of_day=ctx.hour_of_day,
             on_schedule=self.hp_on_schedule,
         )
+        return call and self.hp_capacity > self.Q_tank_LOAD_OFF_TOL
 
-        Q_tank_load = self.hp_capacity if hp_is_on else 0.0
-
-        flow_state = self._calc_tank_flow_context(
+    def _step_flow_state(self, ctx: StepContext, T_tank_w: float) -> dict:
+        """Mixing-valve flows of the step evaluated at tank temperature ``T_tank_w`` [°C]."""
+        # The step-start temperature keeps its exact Kelvin value.
+        T_tank_w_K = ctx.T_tank_w_K if T_tank_w == cu.K2C(ctx.T_tank_w_K) else cu.C2K(T_tank_w)
+        return self._calc_tank_flow_context(
             dV_mix_w_out=ctx.dV_mix_w_out,
-            T_tank_w_K=ctx.T_tank_w_K,
+            T_tank_w_K=T_tank_w_K,
             T_tank_w_in_K=self.T_tank_w_in_K,
             T_mix_w_out_K=self.T_mix_w_out_K,
         )
 
+    def _ground_flow_result(self, ctx: StepContext, T_tank_w: float, Q_tank_load: float) -> dict:
+        """Coupled ground-flow solve (``ground_flow_control`` active) for one request."""
+        preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
+        if preview is None:
+            raise ValueError("Coupled ground flow requires a coupler with preview_wall_temperature_rise")
+
+        def wall_response(q_total):
+            return self.Ts_K - preview(ctx.n, self.time, q_total / self.total_borehole_length)
+
+        return self._solve_ground_flow(
+            T_tank_w,
+            Q_tank_load,
+            cu.K2C(ctx.T0_K),
+            flow_state=self._step_flow_state(ctx, T_tank_w),
+            wall_response=wall_response,
+        )
+
+    def _off_cycle_result(self, ctx: StepContext, T_tank_w: float) -> dict:
+        """Off-mode row (compressor stopped, nothing asked of it) at ``T_tank_w`` [°C]."""
         if self._ground_settings["active"]:
-            preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
-            if preview is None:
-                raise ValueError("Coupled ground flow requires a coupler with preview_wall_temperature_rise")
+            return self._ground_flow_result(ctx, T_tank_w, 0.0)
+        flow_state = self._step_flow_state(ctx, T_tank_w)
+        perf = self._calc_state(5.0, T_tank_w, 0.0, cu.K2C(ctx.T0_K), flow_state=flow_state) or {}
+        perf.update({"converged": True, "failure_reason": "none"})
+        return perf
 
-            def wall_response(q_total):
-                return self.Ts_K - preview(ctx.n, self.time, q_total / self.total_borehole_length)
+    def _solve_cycle_at(self, ctx: StepContext, T_tank_w: float) -> dict:
+        """Cycle delivering ``hp_capacity`` to a tank at ``T_tank_w`` [°C].
 
-            perf = self._solve_ground_flow(
-                T_tank_w,
-                Q_tank_load,
-                cu.K2C(ctx.T0_K),
-                flow_state=flow_state,
-                wall_response=wall_response,
-            )
-            return hp_is_on, perf, delivered_tank_heat(perf)
+        A running result, or an off-mode row (no heat to the tank, no heat
+        from the ground, no power) carrying the reason the call could not run.
+        The condenser heat is what the solved cycle delivers, never the
+        requested capacity.
+        """
+        Q_tank_load = self.hp_capacity
+        if self._ground_settings["active"]:
+            return self._ground_flow_result(ctx, T_tank_w, Q_tank_load)
 
         T0_C = cu.K2C(ctx.T0_K)
-        call_for_heat = Q_tank_load > self.Q_tank_LOAD_OFF_TOL
-        if not call_for_heat:
-            perf = self._calc_state(5.0, T_tank_w, 0.0, T0_C, flow_state=flow_state) or {}
-            perf.update({"converged": True, "failure_reason": "none"})
-            return False, perf, 0.0
-
+        flow_state = self._step_flow_state(ctx, T_tank_w)
         opt_res = self._optimize_operation(T_tank_w, Q_tank_load, T0_C, flow_state=flow_state)
         solved = (
             self._calc_state(opt_res.x, T_tank_w, Q_tank_load, T0_C, flow_state=flow_state) if opt_res.success else None
@@ -1051,11 +1089,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # The compressor did not run: no condenser heat to the tank, no
             # heat drawn from the ground, no power.
             reason = opt_res.failure_reason if not opt_res.success else "cycle_invalid"
-            perf = self._failed_cycle_result(T_tank_w, T0_C, flow_state, reason, opt_res.detail)
-        else:
-            perf = solved
-            perf.update({"converged": True, "failure_reason": "none"})
-        return True, perf, delivered_tank_heat(perf)
+            return self._failed_cycle_result(T_tank_w, T0_C, flow_state, reason, opt_res.detail)
+        solved.update({"converged": True, "failure_reason": "none"})
+        return solved
 
     # =============================================================
     # Hooks
@@ -1376,6 +1412,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T_tank_w_K = cu.C2K(T_tank_w_init_C)
         tank_level = tank_level_init
         is_on_prev = False
+        running_prev = False
+        phase_age_s = math.inf
         is_refilling = False
 
         self.T_bhe_f = self.Ts
@@ -1435,9 +1473,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             # The thermostat call carries the hysteresis; the compressor runs
             # only when the cycle was solved, and only then heats the tank and
             # loads the ground.
-            call_for_heat, hp_result, Q_ref_tank = self._determine_hp_state(ctx, is_on_prev)
-            is_on_prev = call_for_heat
-            hp_is_on = bool(hp_result.get("hp_is_on", False))
+            call_start = self._thermostat_call(ctx, is_on_prev)
+            T_start_C = cu.K2C(ctx.T_tank_w_K)
 
             # Refill logic
             flow_state_guess = self._calc_tank_flow_context(
@@ -1459,14 +1496,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 is_refilling=is_refilling,
             )
 
-            ctrl = ControlState(
-                is_on=hp_is_on,
-                Q_heat_source=Q_ref_tank,
-                dV_tank_w_in_ctrl=dV_tank_w_in_ctrl,
-            )
-
-            # --- Phase B: Implicit Solving ---
-            sub_states = self._run_subsystems(ctx, ctrl, dt_s, T_sup_w_K_n)
+            # Heat-source-free control state: subsystems do not depend on the
+            # compressor, and the free tank balance is read from its residual.
+            ctrl_free = ControlState(is_on=False, Q_heat_source=0.0, dV_tank_w_in_ctrl=dV_tank_w_in_ctrl)
+            sub_states = self._run_subsystems(ctx, ctrl_free, dt_s, T_sup_w_K_n)
 
             alp_prev: float = min(
                 1.0,
@@ -1476,11 +1509,58 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 ),
             )
             dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
-            dV_tank_w_in_prev = dV_tank_w_out_prev if ctrl.dV_tank_w_in_ctrl is None else ctrl.dV_tank_w_in_ctrl
+            dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
             tank_vol_change_prev = (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s
             level_next_approx = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_prev / self.V_tank_full))
             tank_level_solve = max(0.001, level_next_approx)
 
+            # Thermostat events inside the step (#96 T6): the compressor runs
+            # until the tank reaches the upper bound and starts when it
+            # reaches the lower bound, not for whole steps.
+            run, cycle_result, _ = resolve_step_operation(
+                T_start_K=ctx.T_tank_w_K,
+                call_start=call_start,
+                running_prev=running_prev,
+                phase_age_s=phase_age_s,
+                scheduled=check_hp_schedule_active(ctx.hour_of_day, self.hp_on_schedule),
+                T_lower=self.T_tank_w_lower_bound,
+                T_upper=self.T_tank_w_upper_bound,
+                dt=dt_s,
+                C_curr=self.C_tank * max(0.001, ctx.tank_level),
+                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_tank=self.C_tank,
+                residual_free=self._build_residual_fn(
+                    ctx=ctx,
+                    ctrl=ctrl_free,
+                    dt_s=dt_s,
+                    T_tank_w_in_K_n=T_sup_w_K_n,
+                    T_sup_w_K_n=T_sup_w_K_n,
+                    tank_level=tank_level_solve,
+                    sub_states=sub_states,
+                ),
+                solve_cycle=lambda T_C, _hint, ctx=ctx: (self._solve_cycle_at(ctx, T_C), None),
+                Q_request=self.hp_capacity,
+                min_on_time_s=self.min_on_time_s,
+                min_off_time_s=self.min_off_time_s,
+            )
+            hp_result = step_hp_result(
+                run,
+                cycle_result,
+                lambda ctx=ctx, T_start_C=T_start_C: self._off_cycle_result(ctx, T_start_C),
+                self._RUNTIME_SCALED_KEYS,
+            )
+            is_on_prev = run.call_end
+            running_prev = run.running_end
+            phase_age_s = run.phase_age_end_s
+            hp_is_on = bool(hp_result.get("hp_is_on", False))
+
+            ctrl = ControlState(
+                is_on=hp_is_on,
+                Q_heat_source=delivered_tank_heat(hp_result),
+                dV_tank_w_in_ctrl=dV_tank_w_in_ctrl,
+            )
+
+            # --- Phase B: Implicit Solving ---
             # Tank update — swappable backend. Lumped keeps the legacy implicit
             # fsolve path (byte-identical); stratified advances the multi-node tank.
             if self._tank is None:
@@ -1495,6 +1575,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 )
             else:
                 T_solved_K, flow_state_final, level_next = self._solve_stratified_tank(ctx, ctrl, dt_s, T_sup_w_K_n)
+            warn_if_tank_boiling(T_solved_K)
 
             # --- Phase C: BHE Temporal Superposition ---
             self._compute_bhe_superposition(

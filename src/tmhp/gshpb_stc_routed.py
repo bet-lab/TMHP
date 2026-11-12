@@ -30,6 +30,20 @@ falling back to ``off`` if infeasible.
 
 With zero irradiance the collector is inactive and results reduce to the base
 GSHPB exactly (only extra reporting columns are added).
+
+Energy accounting
+-----------------
+The result carries the collector columns of :class:`~tmhp.GSHPB_STC_tank`
+(``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
+``Q_l_stc``, ``T_stc_*`` …).  While the collector is active every step closes::
+
+    Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc
+    Q_stc_w_out - Q_stc_w_in = Q_solar_tank + Q_solar_ground
+
+(exclusive routing: one of the two terms is zero).  On the tank route the
+collector is reported at the *solved* tank temperature, i.e. the heat that
+actually entered the tank balance.  ``E_tot [W]`` includes the collector-loop
+pump ``E_stc_pump [W]``.
 """
 
 from __future__ import annotations
@@ -38,9 +52,9 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, cast
 
 from . import calc_util as cu
+from ._run_reset import GroundSourceHeatPumpBoilerRun
 from .constants import c_w, rho_w
-from .ground_source_heat_pump_boiler import GroundSourceHeatPumpBoiler
-from .subsystems import SolarThermalCollector
+from .subsystems import SolarThermalCollector, stc_result_columns, warn_if_uv_ignored
 
 if TYPE_CHECKING:
     import numpy as np
@@ -62,7 +76,7 @@ def default_solar_router(*, T_tank_w: float, T_tank_lower: float, **_: Any) -> s
     return "tank" if T_tank_w < T_tank_lower else "ground"
 
 
-class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
+class GSHPB_STC_routed(GroundSourceHeatPumpBoilerRun):
     """GSHPB + SolarThermalCollector with a per-timestep ground/tank router."""
 
     def __init__(
@@ -81,6 +95,11 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
         self.stc = stc  # enables I_DN/I_dH schedules in analyze_dynamic
         self._router = solar_router if solar_router is not None else default_solar_router
         self._q_solar_ground_W: float = 0.0
+        warn_if_uv_ignored(self)
+
+    def _reset_run_state(self) -> None:
+        super()._reset_run_state()
+        self._q_solar_ground_W = 0.0
 
     # ------------------------------------------------------------------
     def _needs_solar_input(self) -> bool:
@@ -250,12 +269,26 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoiler):
         state = sub_states.get("stc", {})
         route = state.get("route", "off")
         sr = state.get("stc_result", {})
+        if route == "tank":
+            # The tank balance evaluated the collector at the solved tank
+            # temperature; report that evaluation, not the start-of-step probe.
+            sr = self._stc.calc_performance(
+                I_DN_stc=ctx.I_DN,
+                I_dH_stc=ctx.I_dH,
+                T_stc_w_in_K=T_solved_K,
+                T0_K=ctx.T0_K,
+                is_active=bool(state.get("stc_active", False)),
+            )
+        e_pump = float(state.get("E_stc_pump", 0.0))
         q_net = float(sr.get("Q_stc_w_out", 0.0)) - float(sr.get("Q_stc_w_in", 0.0))
         r["solar_route [-]"] = route
         r["stc_active [-]"] = bool(state.get("stc_active", False))
         r["Q_solar_tank [W]"] = q_net if route == "tank" else 0.0
         r["Q_solar_ground [W]"] = float(state.get("Q_solar_ground", 0.0))
-        r["E_stc_pump [W]"] = float(state.get("E_stc_pump", 0.0))
-        if "T_stc_w_out_K" in sr:
-            r["T_stc_w_out [°C]"] = cu.K2C(float(sr["T_stc_w_out_K"]))
+        r["E_stc_pump [W]"] = e_pump
+        # The collector-loop pump is electricity the system draws.
+        r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + e_pump
+        r["I_DN_stc [W/m2]"] = ctx.I_DN
+        r["I_dH_stc [W/m2]"] = ctx.I_dH
+        r.update(stc_result_columns(sr, sr.get("T_stc_w_in_K", ctx.T_tank_w_K), self._stc.dV_stc_w))
         return r

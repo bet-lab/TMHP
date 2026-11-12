@@ -28,6 +28,7 @@ import pytest
 pytest.importorskip("pygfunction")
 
 import tmhp  # noqa: E402
+from tmhp import calc_util as cu  # noqa: E402
 from tmhp.subsystems import (  # noqa: E402
     GRID_IMPORT_FLOOR_W,
     EnergyStorageSystem,
@@ -40,8 +41,18 @@ from tmhp.subsystems import (  # noqa: E402
 
 DT = 3600
 N = 24
-CLASS_NAMES = ["ASHPB_PV_ESS", "GSHPB_PV_ESS"]
+CLASS_NAMES = [
+    "ASHPB_STC_preheat",
+    "ASHPB_STC_tank",
+    "ASHPB_PV_ESS",
+    "GSHPB_STC_preheat",
+    "GSHPB_STC_tank",
+    "GSHPB_STC_ground",
+    "GSHPB_STC_routed",
+    "GSHPB_PV_ESS",
+]
 PV_ESS_NAMES = ["ASHPB_PV_ESS", "GSHPB_PV_ESS"]
+STC_NAMES = [n for n in CLASS_NAMES if "STC" in n]
 
 _GROUND = dict(N_1=2, N_2=1, H_b=100.0, dt_s=float(DT), t_max_s=200 * 3600.0)
 
@@ -328,6 +339,26 @@ def test_e_tot_is_the_sum_of_every_electric_draw(runs, name):
     np.testing.assert_allclose(col(df, "E_tot [W]"), expected, rtol=1e-12, atol=1e-9)
 
 
+@pytest.mark.parametrize("name", [n for n in STC_NAMES if n != "ASHPB_STC_preheat"])
+def test_collector_pump_power_is_reported_and_counted(runs, name):
+    """Precondition for the E_tot test above: the pump runs and its power is in E_tot."""
+    _, df, _ = runs[name]
+    pump = col(df, "E_stc_pump [W]")
+    assert (pump > 0).any(), "collector pump never ran"
+    aux = "E_ou_fan [W]" if name.startswith("ASHPB") else "E_pmp [W]"
+    without_pump = col(df, "E_cmp [W]") + col(df, aux)
+    np.testing.assert_allclose(col(df, "E_tot [W]") - without_pump, pump, rtol=1e-12, atol=1e-9)
+
+
+def test_ashpb_stc_preheat_pump_is_excluded_by_assumption():
+    """Mains pressure drives the preheat loop: no pump power, and the caller's collector is untouched."""
+    stc = _stc()
+    model = tmhp.ASHPB_STC_preheat(stc=stc)
+    assert model._stc.E_stc_pump == 0.0
+    assert stc.E_stc_pump == 60.0
+    assert model.stc is model._stc
+
+
 def test_pv_ess_with_uv_lamp_includes_lamp_in_e_tot(runs):
     for name in PV_ESS_NAMES:
         _, df, _ = runs[name]
@@ -337,6 +368,12 @@ def test_pv_ess_with_uv_lamp_includes_lamp_in_e_tot(runs):
         np.testing.assert_allclose(
             col(df, "E_tot [W]") - lamp, col(df, "E_cmp [W]") + col(df, aux), rtol=1e-12, atol=1e-9
         )
+
+
+@pytest.mark.parametrize("name", STC_NAMES)
+def test_stc_scenarios_warn_when_the_uv_lamp_cannot_be_simulated(name):
+    with pytest.warns(UserWarning, match="uv"):
+        build(name, uv=True)
 
 
 @pytest.mark.parametrize("name", PV_ESS_NAMES)
@@ -349,6 +386,101 @@ def test_pv_ess_scenarios_accept_the_uv_lamp_silently(name):
 # ---------------------------------------------------------------------------
 # collector heat accounting
 # ---------------------------------------------------------------------------
+
+_TANK_COLLECTOR_COLUMNS = [
+    "I_sol_stc [W/m2]",
+    "Q_sol_stc [W]",
+    "S_sol_stc [W/K]",
+    "X_sol_stc [W]",
+    "Q_stc_w_out [W]",
+    "Q_stc_pump_w_out [W]",
+    "Q_stc_w_in [W]",
+    "Q_l_stc [W]",
+    "dV_stc [m3/s]",
+    "T_stc_w_out [°C]",
+    "T_stc_pump_w_out [°C]",
+    "T_stc_w_in [°C]",
+    "T_stc [°C]",
+    "E_stc_pump [W]",
+    "stc_active [-]",
+]
+
+
+def test_ground_and_routed_report_the_collector_columns_of_the_tank_variant(runs):
+    tank_cols = set(runs["GSHPB_STC_tank"][1].columns)
+    for name in ("GSHPB_STC_ground", "GSHPB_STC_routed"):
+        cols = set(runs[name][1].columns)
+        missing = [c for c in _TANK_COLLECTOR_COLUMNS if c not in cols]
+        assert not missing, f"{name} lacks {missing}"
+    assert set(_TANK_COLLECTOR_COLUMNS) <= tank_cols
+
+
+@pytest.mark.parametrize("name", ["GSHPB_STC_tank", "GSHPB_STC_ground", "GSHPB_STC_routed"])
+def test_collector_absorbed_heat_equals_carried_plus_lost(runs, name):
+    _, df, _ = runs[name]
+    active = df["stc_active [-]"].astype(bool).to_numpy()
+    assert active.any(), "collector never active"
+    carried = col(df, "Q_stc_w_out [W]") - col(df, "Q_stc_w_in [W]")
+    np.testing.assert_allclose(
+        (carried + col(df, "Q_l_stc [W]"))[active], col(df, "Q_sol_stc [W]")[active], rtol=1e-9, atol=1e-6
+    )
+
+
+def _forced_router(**state) -> str:
+    """Tank in the morning, ground in the afternoon: both routes get used."""
+    return "tank" if state["hour_of_day"] < 12.0 else "ground"
+
+
+@pytest.fixture(scope="module")
+def routed_run():
+    model = tmhp.GSHPB_STC_routed(stc=_stc(), solar_router=_forced_router, **_GROUND)
+    return model, run(model), run(model)
+
+
+def test_routed_collector_heat_goes_to_exactly_the_routed_sink(routed_run):
+    """Collected = to tank + to ground, every step; the two sinks are exclusive."""
+    _, df, _ = routed_run
+    route = df["solar_route [-]"].to_numpy()
+    assert {"tank", "ground"} <= set(route), f"routes used: {set(route)}"
+    active = df["stc_active [-]"].astype(bool).to_numpy()
+    carried = col(df, "Q_stc_w_out [W]") - col(df, "Q_stc_w_in [W]")
+    to_tank = col(df, "Q_solar_tank [W]")
+    to_ground = col(df, "Q_solar_ground [W]")
+    np.testing.assert_allclose((to_tank + to_ground)[active], carried[active], rtol=1e-9, atol=1e-6)
+    assert not ((to_tank != 0) & (to_ground != 0)).any()
+    assert (to_tank[route == "tank"][active[route == "tank"]] > 0).all()
+    assert (to_ground[route == "ground"][active[route == "ground"]] > 0).all()
+    inactive = ~active
+    assert (to_tank[inactive] == 0).all() and (to_ground[inactive] == 0).all()
+
+
+def test_routed_tank_route_reports_the_collector_at_the_solved_tank_temperature(routed_run):
+    """The heat reported for the tank is the heat the tank balance took (evaluated at T^{n+1})."""
+    model, df, _ = routed_run
+    rows = df[(df["solar_route [-]"] == "tank") & df["stc_active [-]"].astype(bool)]
+    assert len(rows) > 0
+    for _, row in rows.iterrows():
+        ref = model._stc.calc_performance(
+            I_DN_stc=row["I_DN_stc [W/m2]"],
+            I_dH_stc=row["I_dH_stc [W/m2]"],
+            T_stc_w_in_K=cu.C2K(row["T_tank_w [°C]"]),
+            T0_K=cu.C2K(row["T0 [°C]"]),
+        )
+        assert row["Q_solar_tank [W]"] == pytest.approx(ref["Q_stc_w_out"] - ref["Q_stc_w_in"], rel=1e-9)
+        assert row["T_stc_w_in [°C]"] == pytest.approx(row["T_tank_w [°C]"])
+
+
+def test_routed_and_ground_pump_runs_only_when_the_collector_is_active(routed_run):
+    _, df, _ = routed_run
+    pump = col(df, "E_stc_pump [W]")
+    active = df["stc_active [-]"].astype(bool).to_numpy()
+    assert (pump[active] == 60.0).all() and (pump[~active] == 0.0).all()
+
+
+def test_routed_repeats_with_forced_router(routed_run):
+    _, first, second = routed_run
+    numeric = first.select_dtypes("number").columns
+    pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
 
 
 # ---------------------------------------------------------------------------

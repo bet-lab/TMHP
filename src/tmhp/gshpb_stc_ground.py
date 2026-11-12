@@ -33,12 +33,20 @@ GSHPB exactly.
 from __future__ import annotations
 
 from . import calc_util as cu
-from .ground_source_heat_pump_boiler import GroundSourceHeatPumpBoiler
-from .subsystems import SolarThermalCollector
+from ._run_reset import GroundSourceHeatPumpBoilerRun
+from .subsystems import SolarThermalCollector, stc_result_columns, warn_if_uv_ignored
 
 
-class GSHPB_STC_ground(GroundSourceHeatPumpBoiler):
-    """GSHPB + SolarThermalCollector in *ground-loop* (borehole) placement."""
+class GSHPB_STC_ground(GroundSourceHeatPumpBoilerRun):
+    """GSHPB + SolarThermalCollector in *ground-loop* (borehole) placement.
+
+    ``E_tot [W]`` is the whole electric draw: compressor + source-loop pump +
+    the collector-loop pump ``E_stc_pump [W]`` (which runs whenever the
+    collector is active).  Every step the collector balance closes::
+
+        Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc
+        Q_stc_w_out - Q_stc_w_in = Q_solar_ground       (all heat goes to the ground)
+    """
 
     def __init__(self, *, stc: SolarThermalCollector, **kwargs) -> None:
         if not isinstance(stc, SolarThermalCollector):
@@ -49,6 +57,11 @@ class GSHPB_STC_ground(GroundSourceHeatPumpBoiler):
         self._stc: SolarThermalCollector = stc
         self.stc = stc  # enables I_DN/I_dH schedules in analyze_dynamic
         self._q_solar_ground_W: float = 0.0
+        warn_if_uv_ignored(self)
+
+    def _reset_run_state(self) -> None:
+        super()._reset_run_state()
+        self._q_solar_ground_W = 0.0
 
     # ------------------------------------------------------------------
     def _needs_solar_input(self) -> bool:
@@ -120,11 +133,14 @@ class GSHPB_STC_ground(GroundSourceHeatPumpBoiler):
 
     def _augment_results(self, r: dict, ctx, ctrl, sub_states, T_solved_K) -> dict:
         state = sub_states.get("stc", {})
+        sr = state.get("stc_result", {})
+        e_pump = float(state.get("E_stc_pump", 0.0))
         r["stc_active [-]"] = bool(state.get("stc_active", False))
         r["Q_solar_ground [W]"] = float(state.get("Q_solar_ground", 0.0))
-        r["E_stc_pump [W]"] = float(state.get("E_stc_pump", 0.0))
-        sr = state.get("stc_result", {})
-        if "Q_sol_stc" in sr:
-            r["Q_sol_stc [W]"] = float(sr["Q_sol_stc"])
-            r["T_stc_w_out [°C]"] = cu.K2C(float(sr["T_stc_w_out_K"]))
+        r["E_stc_pump [W]"] = e_pump
+        # The collector-loop pump is electricity the system draws.
+        r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + e_pump
+        r["I_DN_stc [W/m2]"] = ctx.I_DN
+        r["I_dH_stc [W/m2]"] = ctx.I_dH
+        r.update(stc_result_columns(sr, sr.get("T_stc_w_in_K", cu.C2K(self.T_bhe)), self._stc.dV_stc_w))
         return r

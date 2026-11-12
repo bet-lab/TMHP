@@ -102,12 +102,12 @@ Inspecting the run
 The ``Counter`` gives a quick view of how many steps hit each
 diagnostic. ``none`` marks a step on which the heat pump ran or was not
 called; any other value marks a step on which it was called but its
-cycle could not be solved, so the row carries no heat or power. In this
-run, with the default R32 machine, the steps called while the tank is
-above about 58 °C and the outdoor air is near or below 3 °C report
-``cycle_invalid`` (roughly 570 of the 1,440 steps), and the tank coasts
-on its stored heat until the air warms. See
-:doc:`../concepts/failure-reason-semantics` for what each value means.
+cycle could not be solved, so the row carries no heat or power. With the
+default R32 machine every step of this run is ``none``. A machine pushed
+outside what its cycle can reach — a tank set point that would need
+condensing above the refrigerant's critical point, for instance — shows
+its failed steps here. See :doc:`../concepts/failure-reason-semantics`
+for what each value means.
 
 Where to go next
 ================

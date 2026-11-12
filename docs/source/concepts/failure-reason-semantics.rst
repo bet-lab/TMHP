@@ -137,7 +137,9 @@ check (``tmhp.dynamic_context.unphysical_cycle_detail``):
       - Delivered heat or compressor power is non-finite or not positive.
     * - ``discharge_state_undefined``
       - The compressor discharge temperature or enthalpy is non-finite —
-        typically an isentropic efficiency near zero.
+        typically a low isentropic efficiency at a high pressure ratio,
+        which puts the discharge enthalpy outside the refrigerant's
+        equation-of-state range.
     * - ``min_speed_duty_above_capacity``
       - The compressor sits on its speed floor (``capacity_clamped ==
         "min"``) yet delivers more than the nameplate ``hp_capacity``.

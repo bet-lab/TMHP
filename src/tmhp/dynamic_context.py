@@ -395,9 +395,12 @@ def unphysical_cycle_detail(result: Mapping[str, Any], hp_capacity: float) -> st
     ``"discharge_state_undefined"``
         The compressor discharge temperature or enthalpy is non-finite. The
         delivered heat is ``m_dot * (h_discharge - h_liquid)``; without a
-        discharge state that heat has no thermodynamic basis. This is what an
-        isentropic efficiency near zero produces: ``h_isen - h_suction`` is
-        divided by it and the enthalpy leaves the equation-of-state range.
+        discharge state that heat has no thermodynamic basis. A low isentropic
+        efficiency at a high pressure ratio produces it: ``h_isen - h_suction``
+        is divided by the efficiency and the discharge enthalpy leaves the
+        refrigerant's equation-of-state range (with the guarded default fit,
+        R32 at PR 7-11 and eta_is 0.14-0.25; with an unguarded fit, eta_is
+        near zero).
     ``"min_speed_duty_above_capacity"``
         The compressor clamped onto its speed floor (the request was below
         the duty available there) and yet delivers more than the nameplate

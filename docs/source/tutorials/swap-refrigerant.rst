@@ -4,8 +4,10 @@ Swap refrigerants
 
 The refrigerant is a constructor argument on every released
 cycle-resolved model family in TMHP. Changing it requires no
-recalibration and no manufacturer data — pick any name CoolProp
-recognises and the library re-solves the cycle from first principles.
+recalibration and no manufacturer data — pick a CoolProp pure or
+pseudo-pure refrigerant whose cycle stays subcritical and the library
+re-solves the cycle from first principles. R744 (CO\ :sub:`2`) and
+user-defined ``HEOS::`` mixtures are not supported (see below).
 That's the single most concrete way to see what "refrigerant-agnostic"
 means in this library.
 
@@ -211,6 +213,9 @@ Reference table
       - −78 (subl.)
       - n/a
       - Transcritical sanitary hot water (60–90 °C), supermarket refrigeration.
+        **Not supported by TMHP**: the cycle assumes subcritical
+        compression, and the boiler families fail on R744 with a CoolProp
+        ``ValueError``.
 
     * - **R717**
       - NH\ :sub:`3` (ammonia)
@@ -446,10 +451,13 @@ Refrigerant catalogue
         *Watch outs*: very high operating pressures (~100 bar on
         the gas-cooler side) — requires purpose-built compressors,
         heat exchangers, and instrumentation. Sub-cooler /
-        expander details dominate COP; can't be analysed with a
-        subcritical-condenser model — see
-        :doc:`../concepts/refrigerant-and-coolprop` for how
-        TMHP currently treats this case.
+        expander details dominate COP. TMHP does **not** support it:
+        the cycle assumes subcritical single-stage compression, and the
+        boiler families (``AirSourceHeatPumpBoiler`` and the ground- and
+        water-source counterparts) raise a CoolProp ``ValueError`` in
+        ``analyze_steady`` because the condensing temperature exceeds the
+        critical temperature — see
+        :doc:`../concepts/refrigerant-and-coolprop`.
 
         *Typical use*: sanitary-water heat pumps (Japan, Europe),
         commercial / supermarket refrigeration, transport
@@ -496,9 +504,9 @@ guide:
     for service of existing installs.
 
 *Domestic DHW heat pump (LWT 55–65 °C)*
-    R32 or R290 for subcritical designs; R744 for the
-    very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
-    pattern.
+    R32 or R290 for subcritical designs. R744 is the usual choice for
+    the very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
+    pattern, but TMHP cannot model it.
 
 *High-temperature industrial heat pump (LWT 80–95 °C)*
     R1234ze(E), R134a, or R717 (ammonia). R600a is occasionally
@@ -514,9 +522,10 @@ guide:
 
 *Transcritical sanitary hot water (≥ 65 °C, cold return)*
     R744 — the only mainstream refrigerant whose cycle is
-    optimised for this duty. Not subcritical, so the
-    TMHP result is a sanity check rather than a design;
-    see :doc:`../concepts/refrigerant-and-coolprop`.
+    optimised for this duty. The cycle is transcritical, which TMHP
+    does not support (``analyze_steady`` fails with a CoolProp
+    ``ValueError``); use a dedicated transcritical model and see
+    :doc:`../concepts/refrigerant-and-coolprop`.
 
 *Industrial refrigeration and process cooling*
     R717 (ammonia) is the workhorse. R744 (CO\ :sub:`2`) is the

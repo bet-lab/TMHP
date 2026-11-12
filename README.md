@@ -8,13 +8,13 @@ _Refrigerant-agnostic · condition-agnostic · integration-ready · first-princi
 
 [![Python](https://img.shields.io/badge/python-≥3.10-3776AB?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](#license)
-[![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://bet-lab.github.io/tmhp/)
+[![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://bet-lab.github.io/TMHP/)
 [![CoolProp](https://img.shields.io/badge/powered%20by-CoolProp-orange.svg)](http://www.coolprop.org)
 
-[**Documentation**](https://bet-lab.github.io/tmhp/) ·
-[**Quick start**](https://bet-lab.github.io/tmhp/getting-started/) ·
-[**Integrations**](https://bet-lab.github.io/tmhp/integrations/) ·
-[**Validation**](https://bet-lab.github.io/tmhp/validation/) ·
+[**Documentation**](https://bet-lab.github.io/TMHP/) ·
+[**Quick start**](https://bet-lab.github.io/TMHP/getting-started/) ·
+[**Integrations**](https://bet-lab.github.io/TMHP/integrations/) ·
+[**Validation**](https://bet-lab.github.io/TMHP/validation/) ·
 Sister project: [**Energy-Exergy Analysis Engine**](https://github.com/bet-lab/enex-analysis-engine)
 
 </div>
@@ -32,7 +32,7 @@ TMHP is now also an integration package. The same cycle-resolved heat-pump core 
 | What you need | What TMHP gives you |
 | --- | --- |
 | Physics beyond catalogue curves | Refrigerant state points, compressor work, heat exchangers, COP, and convergence diagnostics from a shared thermodynamic cycle core |
-| Refrigerant and operating-point studies | Any CoolProp-supported refrigerant can be swapped at runtime without re-fitting empirical coefficients |
+| Refrigerant and operating-point studies | Subcritical-cycle CoolProp pure and pseudo-pure refrigerants (R32, R290, R410A, R134a, …) can be swapped at runtime without re-fitting empirical coefficients |
 | Building-simulation coupling | EnergyPlus Python Plugin support for plant-loop surrogate modeling |
 | Tool-to-tool co-simulation | FMI 2.0 and FMI 3.0 FMU export for the current ASHPB `step()` adapter, aligned with the shared cycle core |
 | Reproducible validation | Shared catalogue parity harness applies shipped defaults with source provenance and explicit evidence limits |
@@ -46,7 +46,7 @@ Most building-energy simulators (EnergyPlus, TRNSYS, and friends) model a heat p
 | Curve-fit models                                      | This library                                             |
 | ----------------------------------------------------- | -------------------------------------------------------- |
 | Tied to the operating range of the original test data | Explores operating points within model and compressor limits          |
-| Refrigerant is baked into the coefficients            | Any CoolProp-supported refrigerant, swappable at runtime |
+| Refrigerant is baked into the coefficients            | Any subcritical-cycle CoolProp refrigerant, swappable at runtime |
 | Refrigerant state is hidden                           | Full thermodynamic state at every cycle node             |
 | Requires re-fitting for every new unit                | One model class, parameterized by geometry & components  |
 
@@ -60,9 +60,9 @@ TMHP keeps the heat-pump thermodynamics in one reusable model boundary instead o
 
 | Integration path | Use it when | TMHP boundary |
 | --- | --- | --- |
-| [Native Python](https://bet-lab.github.io/tmhp/getting-started/) | You are running design studies, validation, notebooks, or regression tests directly in Python | `analyze_steady()` and `analyze_dynamic()` across released model families; `step()` for the current ASHPB dynamic adapter boundary |
-| [EnergyPlus Python Plugin](https://bet-lab.github.io/tmhp/integrations/energyplus-python.html) | EnergyPlus should keep the IDF, schedules, plant loop, tank state, meters, and reporting | TMHP answers each plant-solver request through the current steady ASHPB reference adapter |
-| [FMI FMU](https://bet-lab.github.io/tmhp/integrations/fmu.html) | A co-simulation master such as FMPy, Modelica tooling, OMSimulator, Dymola, or Simulink should drive the heat pump as an external component | TMHP provides separate FMI 2.0 and FMI 3.0 adapters over the current ASHPB dynamic boundary: weather, draw, tank, power, heat, COP, and diagnostics |
+| [Native Python](https://bet-lab.github.io/TMHP/getting-started/) | You are running design studies, validation, notebooks, or regression tests directly in Python | `analyze_steady()` and `analyze_dynamic()` across released model families; `step()` for the current ASHPB dynamic adapter boundary |
+| [EnergyPlus Python Plugin](https://bet-lab.github.io/TMHP/integrations/energyplus-python.html) | EnergyPlus should keep the IDF, schedules, plant loop, tank state, meters, and reporting | TMHP answers each plant-solver request through the current steady ASHPB reference adapter |
+| [FMI FMU](https://bet-lab.github.io/TMHP/integrations/fmu.html) | A co-simulation master such as FMPy, Modelica tooling, OMSimulator, Dymola, or Simulink should drive the heat pump as an external component | TMHP provides separate FMI 2.0 and FMI 3.0 adapters over the current ASHPB dynamic boundary: weather, draw, tank, power, heat, COP, and diagnostics |
 
 This makes TMHP useful for whole-building studies, model-based controls, refrigerant screening, heat-pump component benchmarking, and cross-tool validation while keeping the core package independent of any one simulator.
 
@@ -78,11 +78,11 @@ This makes TMHP useful for whole-building studies, model-based controls, refrige
 
 <br/><br/>
 
-<a href="https://bet-lab.github.io/tmhp/concepts/cycle-architecture.html">
+<a href="https://bet-lab.github.io/TMHP/concepts/cycle-architecture.html">
   <img src="docs/source/_static/cycle-architecture.svg" alt="Cycle architecture: source → evaporator → compressor → condenser → expander, with a cycle-closure solver optimizing the evaporating-side approach temperature and compressor speed" width="900">
 </a>
 
-<sub><i>Shared cycle architecture — bold blocks are reused across ASHPB, GSHPB, WSHPB, ASHP, and GSHP. <a href="https://bet-lab.github.io/tmhp/concepts/cycle-architecture.html">Open the interactive version →</a></i></sub>
+<sub><i>Shared cycle architecture — bold blocks are reused across ASHPB, GSHPB, WSHPB, ASHP, and GSHP. <a href="https://bet-lab.github.io/TMHP/concepts/cycle-architecture.html">Open the interactive version →</a></i></sub>
 
 </div>
 
@@ -142,7 +142,7 @@ uv sync --extra integrations  # pythonfmu, pythonfmu3, and fmpy for FMU adapters
 
 The EnergyPlus Python Plugin adapter uses `pyenergyplus`, which is bundled with an EnergyPlus installation rather than published on PyPI.
 
-See the [installation guide](https://bet-lab.github.io/tmhp/getting-started/installation.html) for the full per-group breakdown and the CI-equivalent `--locked` workflow.
+See the [installation guide](https://bet-lab.github.io/TMHP/getting-started/installation.html) for the full per-group breakdown and the CI-equivalent `--locked` workflow.
 
 ---
 
@@ -173,14 +173,14 @@ print(f"Evap sat. temp.   : {result['T_ref_evap_sat [°C]']:.1f} °C")
 print(f"Cond sat. temp.   : {result['T_ref_cond_sat_v [°C]']:.1f} °C")
 ```
 
-Select a refrigerant with `ref`. R744 needs an explicit rated speed because the default DHW rating condition is above its critical temperature; the cycle remains subcritical.
+Select a refrigerant with `ref`. The cycle assumes subcritical single-stage compression. Refrigerants that go supercritical at DHW temperatures (R744 / CO₂) and user-defined `HEOS::` mixtures are not supported: on the boiler families `analyze_steady` with R744 fails with a CoolProp `ValueError` because the condensing temperature exceeds the critical temperature.
 
 ```python
 from tmhp import AirSourceHeatPumpBoiler
 
 ashpb_r290 = AirSourceHeatPumpBoiler(ref="R290")    # propane
-ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)  # CO₂: explicit rated speed
 ashpb_r410 = AirSourceHeatPumpBoiler(ref="R410A")
+ashpb_r134a = AirSourceHeatPumpBoiler(ref="R134a")
 ```
 
 ### Time-stepping dynamic simulation
@@ -351,9 +351,9 @@ Jo, H. & Choi, W., *“Thermodynamic Modeling of Refrigerant Cycle in an Air-Sou
 
 ## Documentation
 
-The full documentation — getting-started guide, concept pages, tutorials, API reference, and validation report — lives at **<https://bet-lab.github.io/tmhp/>**.
+The full documentation — getting-started guide, concept pages, tutorials, API reference, and validation report — lives at **<https://bet-lab.github.io/TMHP/>**.
 
-If you're new to the library, start with the [getting-started guide](https://bet-lab.github.io/tmhp/getting-started/) for a three-step path from `uv sync` to your first dynamic simulation.
+If you're new to the library, start with the [getting-started guide](https://bet-lab.github.io/TMHP/getting-started/) for a three-step path from `uv sync` to your first dynamic simulation.
 
 ---
 

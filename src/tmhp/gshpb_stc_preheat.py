@@ -11,8 +11,7 @@ Usage
 -----
 ::
 
-    from enex_analysis import SolarThermalCollector
-    from enex_analysis.gshpb_stc_preheat import GSHPB_STC_preheat
+    from tmhp import SolarThermalCollector, GSHPB_STC_preheat
 
     stc = SolarThermalCollector(A_stc=4.0)
     model = GSHPB_STC_preheat(

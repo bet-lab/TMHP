@@ -91,9 +91,9 @@ curve fits and no per-unit recalibration.
         :link: validation/index
         :link-type: doc
 
-        The ASHPB reference case benchmarked against 15 Samsung
-        EHS catalogue points — parity plot, per-point table,
-        reproducibility.
+        Shipped defaults run against registered manufacturer
+        catalogues (17 units registered, 15 adopted; air-to-water and
+        air-to-air) — parity plot, per-unit table, reproducibility.
 
     .. grid-item-card:: Visualize
         :link: tutorials/visualize-the-cycle

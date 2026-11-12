@@ -46,11 +46,11 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import brentq, minimize_scalar
+from scipy.optimize import OptimizeResult, brentq, minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
+from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
@@ -82,6 +82,135 @@ from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector
 from .thermodynamics import calc_energy_flow
+
+#: Objective tiers above the specific-energy scale of
+#: :func:`~tmhp._opt_utils.specific_energy_objective` (a feasible candidate
+#: ranks below ``PENALTY``, one short of the request at the speed ceiling
+#: between ``PENALTY`` and ``2 PENALTY``). Ordered so the search never prefers
+#: a worse class of candidate, and so that among candidates none of which is an
+#: operating point it returns the one closest to being one.
+_OBJ_UNPHYSICAL = 3.0 * PENALTY  # solved cycle, not an operating point
+_OBJ_SPEED_UNSOLVED = 3.5 * PENALTY  # compressor speed root did not settle
+_OBJ_COIL_UNMATCHED = 4.0 * PENALTY  # outdoor coil cannot carry the duty (+ deficit [W])
+_OBJ_NO_CYCLE = 5.0 * PENALTY  # no refrigerant cycle at this approach
+
+OUTDOOR_COIL_SHORT = "outdoor_coil_short_at_max_airflow"
+OUTDOOR_COIL_EXCESS = "outdoor_coil_excess_at_min_airflow"
+OUTDOOR_COIL_NO_BAND = "outdoor_coil_no_band"
+
+
+class _NoCycle(Exception):
+    """A coil margin was asked for at an approach with no refrigerant cycle."""
+
+
+class _OutdoorSearch:
+    """Cached evaluations of one ASHPB request over the outdoor approach.
+
+    Each approach is evaluated once; the coarse samples, the margin roots and
+    the minimiser share the cache. Calling the object returns the objective.
+    """
+
+    def __init__(
+        self,
+        model: "AirSourceHeatPumpBoiler",
+        T_tank_w: float,
+        Q_ref_tank: float,
+        T0: float,
+        flow_state: dict,
+        m_dot_w: float | None,
+    ) -> None:
+        self.model = model
+        self.T_tank_w = T_tank_w
+        self.Q_ref_tank = Q_ref_tank
+        self.T0 = T0
+        self.flow_state = flow_state
+        self.m_dot_w = m_dot_w
+        # Surplus is credited only while the tank has thermal headroom to
+        # store it (see `_opt_utils.specific_energy_objective`).
+        self.storable = math.inf if T_tank_w < model.T_tank_w_upper_bound - 0.5 else 0.0
+        #: approach -> (objective, max-flow margin [W], min-flow margin [W])
+        self.rows: dict[float, tuple[float, float, float]] = {}
+
+    def entry(self, x: float) -> tuple[float, float, float]:
+        x = float(x)
+        hit = self.rows.get(x)
+        if hit is not None:
+            return hit
+        diag: dict = {}
+        try:
+            perf = self.model._calc_state(
+                dT_ref_ou=x,
+                T_tank_w=self.T_tank_w,
+                Q_ref_tank=self.Q_ref_tank,
+                T0=self.T0,
+                flow_state=self.flow_state,
+                m_dot_w=self.m_dot_w,
+                hx_diag=diag,
+            )
+        except (ValueError, ArithmeticError):
+            perf = None
+        m_max = float(diag.get("max_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
+        m_min = float(diag.get("min_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
+        row = (self._rank(perf, m_max, m_min), m_max, m_min)
+        self.rows[x] = row
+        return row
+
+    def _rank(self, perf: dict | None, m_max: float, m_min: float) -> float:
+        if perf is None or not (math.isfinite(m_max) and math.isfinite(m_min)):
+            return _OBJ_NO_CYCLE
+        if not perf.get("converged", False):
+            if "_hx_diag" in perf:
+                deficit = max(-m_max, m_min, 0.0)
+                return _OBJ_COIL_UNMATCHED + min(deficit, 0.5 * PENALTY)
+            return _OBJ_SPEED_UNSOLVED
+        if unphysical_cycle_detail(perf, self.model.hp_capacity) is not None:
+            return _OBJ_UNPHYSICAL
+        return specific_energy_objective(
+            float(perf.get("E_tot [W]", math.nan)),
+            float(perf.get("Q_ref_tank [W]", 0.0)),
+            self.Q_ref_tank,
+            self.storable,
+        )
+
+    def __call__(self, x: float) -> float:
+        return self.entry(x)[0]
+
+    def feasible(self, x: float) -> bool:
+        """A solved operating point (possibly short of the request at ``rps_max``)."""
+        return self.entry(x)[0] < _OBJ_UNPHYSICAL
+
+    def has_cycle(self, x: float) -> bool:
+        return math.isfinite(self.entry(x)[1])
+
+    def margin_max_flow(self, x: float) -> float:
+        value = self.entry(x)[1]
+        if not math.isfinite(value):
+            raise _NoCycle
+        return value
+
+    def margin_min_flow(self, x: float) -> float:
+        value = self.entry(x)[2]
+        if not math.isfinite(value):
+            raise _NoCycle
+        return value
+
+    def best(self) -> tuple[float, float]:
+        """``(objective, approach)`` of the best candidate evaluated so far."""
+        value, x = min((row[0], x) for x, row in self.rows.items())
+        return value, x
+
+    def coil_failure(self) -> str | None:
+        """Why the outdoor coil carries the duty at no evaluated approach, if it does not."""
+        margins = [(m_max, m_min) for _, m_max, m_min in self.rows.values() if math.isfinite(m_max)]
+        if not margins:
+            return None
+        if any(m_max >= 0.0 and m_min <= 0.0 for m_max, m_min in margins):
+            return None
+        if all(m_max < 0.0 for m_max, _ in margins):
+            return OUTDOOR_COIL_SHORT
+        if all(m_min > 0.0 for _, m_min in margins):
+            return OUTDOOR_COIL_EXCESS
+        return OUTDOOR_COIL_NO_BAND
 
 
 @dataclass
@@ -404,6 +533,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         *,
         flow_state: dict,
         m_dot_w: float | None = None,
+        hx_diag: dict | None = None,
     ) -> dict | None:
         """Evaluate refrigerant cycle at a given operating point.
 
@@ -425,6 +555,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             Circulating-water mass flow rate [kg/s]. ``None`` preserves the
             standalone fixed-UA approach calculation. The water specific heat
             is the shared constant ``c_w`` (``tmhp.constants``).
+        hx_diag : dict | None
+            When given, receives the outdoor-coil solution of an active
+            cycle, including its signed capacity margins at the fan flow
+            limits (``min_flow_capacity_margin_W``,
+            ``max_flow_capacity_margin_W``) that the outdoor-approach search
+            solves its band edges from. Left untouched when no cycle exists.
 
         Returns
         -------
@@ -804,6 +940,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             is_active=True,
             exponent=self.n_ou,
         )
+        if hx_diag is not None:
+            hx_diag.update(HX_perf_ou)
 
         if HX_perf_ou.get("converged", True) is False:
             return {
@@ -818,6 +956,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         dV_ou_a: float = HX_perf_ou["dV_fan"]
         v_ou_a: float = dV_ou_a / self.A_cross
+        # The flags say where the fan runs, not which branch the coil solve took.
+        # At an optimum on a fan limit the coil balance is a root at that limit,
+        # and the airflow lands a few 1e-9 either side of it depending on the
+        # platform; a relative 1e-6 band makes both report the limit.
+        at_min_airflow = bool(HX_perf_ou.get("min_limit", False)) or dV_ou_a <= self.dV_fan_a_min * (1.0 + 1e-6)
+        at_max_airflow = bool(HX_perf_ou.get("max_limit", False)) or dV_ou_a >= self.dV_fan_a_max * (1.0 - 1e-6)
         T_ou_a_mid: float = HX_perf_ou["T_ou_a_mid"]
         Q_ou_a: float = HX_perf_ou["Q_ou_air"]
 
@@ -881,8 +1025,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "epsilon_ou [-]": HX_perf_ou.get("epsilon", np.nan),
                 "PLR_request [-]": (Q_ref_tank / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 "PLR_delivered [-]": (Q_ref_tank_calc / self.hp_capacity if self.hp_capacity > 0 else np.nan),
-                "fan_flow_min_limit": HX_perf_ou.get("min_limit", False),
-                "fan_flow_max_limit": HX_perf_ou.get("max_limit", False),
+                "fan_flow_min_limit": at_min_airflow,
+                "fan_flow_max_limit": at_max_airflow,
                 # Temperatures [°C]
                 "T_ou_a_in [°C]": T0,
                 "T_ou_a_mid [°C]": T_ou_a_mid,
@@ -925,6 +1069,39 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         return result
 
+    # -------------------------------------------------------------
+    # Outdoor-approach search
+    # -------------------------------------------------------------
+
+    #: Outdoor (evaporator) approach search range [K].
+    _OUTDOOR_APPROACH_BOUNDS: tuple[float, float] = (1.0, 20.0)
+    #: Coarse outdoor-approach samples. They only locate the band the fan can
+    #: serve; its edges are solved from the coil capacity margins at the fan
+    #: flow limits, so a band narrower than the spacing is not missed.
+    _OUTDOOR_GRID_POINTS = 5
+    #: Tolerance of the first solve of the band edges [K]. Candidates start
+    #: this far inside them; an edge is solved to ``_BAND_EDGE_XTOL_K`` (and
+    #: the candidate stepped ``_BAND_EDGE_STEP_K`` off it) only when the best
+    #: candidate sits on it.
+    _BAND_COARSE_XTOL_K = 5e-2
+    _BAND_EDGE_XTOL_K = 1e-8
+    _BAND_EDGE_STEP_K = 2e-8
+    #: Resolution of the edge between approaches with and without a cycle [K].
+    _CYCLE_EDGE_TOL_K = 1e-3
+    #: In-band candidates are no farther apart than the band width over this.
+    #: The objective is not unimodal in the band -- the guarded efficiency fit
+    #: has kinks (PR 7.15, 33.8 and 72.5 rev/s) and the speed floor another --
+    #: so the minimiser starts from the best of these, not from the band.
+    _BAND_SCAN_INTERVALS = 4
+    #: Tolerance of the minimisation around the best candidate [K]. Below it
+    #: the objective is flat to the inner solvers' noise.
+    _BAND_XATOL_K = 1e-5
+    #: Scan valleys polished: those within this fraction of the best, at most this many.
+    _VALLEY_SPREAD = 1e-2
+    _MAX_VALLEYS = 3
+    #: Distance inside a band edge at which an edge minimum is checked [K].
+    _EDGE_PROBE_K = 1e-3
+
     def _optimize_operation(
         self,
         T_tank_w: float,
@@ -933,8 +1110,20 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         *,
         flow_state: dict,
         m_dot_w: float | None = None,
-    ):
-        """Find min-power operating point (Brent 1-D).
+    ) -> OptimizeResult:
+        """Find the least specific-energy operating point over the outdoor approach.
+
+        The outdoor fan modulates between its flow limits, so only a band of
+        outdoor approaches can carry the evaporator duty: below it the coil
+        cannot absorb the duty even at the largest airflow, above it the coil
+        absorbs more than the duty even at the smallest airflow. The band's
+        edges are the roots of the coil capacity margins at those two flows
+        (:func:`~tmhp._opt_utils.margin_feasible_interval`); coarse samples
+        only locate it (:meth:`_search_outdoor`). Candidates in the band are
+        ranked on :func:`~tmhp._opt_utils.specific_energy_objective`, and a
+        solved cycle that is not an operating point
+        (:func:`~tmhp.dynamic_context.unphysical_cycle_detail`) is never
+        preferred to one that is.
 
         Parameters
         ----------
@@ -952,36 +1141,226 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         Returns
         -------
         scipy.optimize.OptimizeResult
+            ``x`` is the outdoor approach [K] of the best candidate and
+            ``fun`` its objective. ``success`` is ``True`` once the search
+            ran; whether ``x`` is an operating point is read from the cycle
+            state there, as before. ``failure_detail`` is set when no
+            approach lets the outdoor coil carry the duty:
+            ``"outdoor_coil_short_at_max_airflow"`` (it absorbs too little
+            even at the largest airflow at every approach the cycle reaches),
+            ``"outdoor_coil_excess_at_min_airflow"`` (it absorbs too much even
+            at the smallest airflow), or ``"outdoor_coil_no_band"`` (the two
+            limits leave no approach between them); otherwise ``None``.
         """
-
-        def _objective(dT_ref_ou: float) -> float:
-            perf: dict | None = self._calc_state(
-                dT_ref_ou=dT_ref_ou,
-                T_tank_w=T_tank_w,
-                Q_ref_tank=Q_ref_tank,
-                T0=T0,
-                flow_state=flow_state,
-                m_dot_w=m_dot_w,
-            )
-            if perf is None or not perf.get("converged", False):
-                return PENALTY
-
-            # Specific energy over candidates that meet the request. Below the
-            # compressor speed floor the candidates deliver different heat, and
-            # minimising raw E_tot would pick the one that starves the outdoor
-            # coil (see `_opt_utils`). Surplus is credited only while the tank
-            # has thermal headroom to store it.
-            E_tot: float = float(perf.get("E_tot [W]", PENALTY))
-            delivered = float(perf.get("Q_ref_tank [W]", 0.0))
-            storable = math.inf if T_tank_w < self.T_tank_w_upper_bound - 0.5 else 0.0
-            return specific_energy_objective(E_tot, delivered, Q_ref_tank, storable)
-
-        return minimize_scalar(
-            _objective,
-            bounds=(1.0, 20.0),
-            method="bounded",
-            options={"maxiter": 200, "xatol": 1e-6},
+        search = _OutdoorSearch(self, T_tank_w, Q_ref_tank, T0, flow_state, m_dot_w)
+        self._search_outdoor(search)
+        value, x = search.best()
+        return OptimizeResult(
+            x=x,
+            fun=value,
+            success=True,
+            nfev=len(search.rows),
+            failure_detail=search.coil_failure() if value >= _OBJ_UNPHYSICAL else None,
         )
+
+    def _cycle_cell(self, search: "_OutdoorSearch", a: float, b: float) -> tuple[float, float] | None:
+        """Shrink ``[a, b]`` to its part where a cycle exists (one end must have one)."""
+        good_a, good_b = search.has_cycle(a), search.has_cycle(b)
+        if good_a and good_b:
+            return a, b
+        if not (good_a or good_b):
+            return None
+        good, bad = (a, b) if good_a else (b, a)
+        while abs(bad - good) > self._CYCLE_EDGE_TOL_K:
+            mid = 0.5 * (good + bad)
+            if search.has_cycle(mid):
+                good = mid
+            else:
+                bad = mid
+        return (a, good) if good_a else (good, b)
+
+    def _coarse_bands(self, search: "_OutdoorSearch") -> list[tuple[float, float, float, float]]:
+        """Outdoor-approach bands the fan can serve, edges solved coarsely.
+
+        The sampled approaches are split into runs that have a refrigerant
+        cycle (the pressure-ratio ceiling or a condensing temperature below
+        the tank removes it at the ends of the range); each run is extended
+        to where its cycle ends. A larger approach lowers the evaporating
+        temperature, so the coil absorbs more heat at any airflow while the
+        cycle hands it less (more of the condenser duty comes from compressor
+        work): the signed margin at the maximum fan flow rises from negative
+        (the coil is short) and the margin at the minimum flow rises through
+        zero (the fan cannot turn down far enough). The band is the interval
+        between the two roots. Returns ``(low, high, run_low, run_high)``
+        per band, with ``low``/``high`` within ``_BAND_COARSE_XTOL_K`` of the
+        roots unless they are the run ends.
+        """
+        samples = sorted(search.rows)
+        runs: list[tuple[float, float]] = []
+        i = 0
+        while i < len(samples):
+            if not search.has_cycle(samples[i]):
+                i += 1
+                continue
+            j = i
+            while j + 1 < len(samples) and search.has_cycle(samples[j + 1]):
+                j += 1
+            first, last = samples[i], samples[j]
+            if i > 0:
+                cell = self._cycle_cell(search, samples[i - 1], first)
+                first = cell[0] if cell is not None else first
+            if j + 1 < len(samples):
+                cell = self._cycle_cell(search, last, samples[j + 1])
+                last = cell[1] if cell is not None else last
+            runs.append((first, last))
+            i = j + 1
+        bands = []
+        for first, last in runs:
+            band = self._band_edges(search, first, last, self._BAND_COARSE_XTOL_K)
+            if band is not None:
+                bands.append((band[0], band[1], first, last))
+        return bands
+
+    def _band_edges(
+        self, search: "_OutdoorSearch", first: float, last: float, xtol: float
+    ) -> tuple[float, float] | None:
+        """:func:`margin_feasible_interval` on ``[first, last]``, brackets narrowed by the cache."""
+        known = [x for x in search.rows if first < x < last and search.has_cycle(x)]
+        with contextlib.suppress(_NoCycle, ValueError, RuntimeError, StopIteration):
+            return margin_feasible_interval(
+                search.margin_max_flow,
+                search.margin_min_flow,
+                first,
+                last,
+                xtol=xtol,
+                samples=known,
+            )
+        return None
+
+    def _minimize_in_band(self, search: "_OutdoorSearch", band: tuple[float, float, float, float]) -> None:
+        """Scan a band, then polish its best valleys.
+
+        Candidates are spread over the band no farther apart than
+        ``1 / _BAND_SCAN_INTERVALS`` of its width (cached samples count). The
+        scan's local minima within ``_VALLEY_SPREAD`` of the best are polished
+        (:meth:`_polish_valley`), at most ``_MAX_VALLEYS`` of them: the
+        objective has more than one valley, and the sampled values of two
+        valleys can rank them the wrong way round.
+        """
+        lo_c, hi_c, first, last = band
+        coarse = 1.01 * self._BAND_COARSE_XTOL_K
+        # A coarse root is within `coarse` of the true edge; a run end is exact.
+        lo = lo_c if lo_c <= first else lo_c + coarse
+        hi = hi_c if hi_c >= last else hi_c - coarse
+        if hi - lo <= 2.0 * coarse:
+            precise = self._band_edges(search, first, last, self._BAND_EDGE_XTOL_K)
+            if precise is not None:
+                self._sample_precise_band(search, precise)
+            return
+        search(lo)
+        search(hi)
+        width = (hi - lo) / self._BAND_SCAN_INTERVALS
+        points = sorted(x for x in search.rows if lo <= x <= hi)
+        for a, b in zip(points, points[1:], strict=False):
+            n = math.ceil((b - a) / width - 1e-9)
+            for k in range(1, n):
+                search(a + k * (b - a) / n)
+        points = sorted(x for x in search.rows if lo <= x <= hi)
+        values = [search(x) for x in points]
+        valleys = [
+            k
+            for k in range(len(points))
+            if (k == 0 or values[k] <= values[k - 1]) and (k + 1 == len(points) or values[k] <= values[k + 1])
+        ]
+        best = min(values[k] for k in valleys)
+        if best >= _OBJ_UNPHYSICAL:
+            return
+        valleys = sorted(
+            (k for k in valleys if values[k] <= best + self._VALLEY_SPREAD * abs(best)), key=values.__getitem__
+        )
+        for k in valleys[: self._MAX_VALLEYS]:
+            self._polish_valley(search, points, k, first, last)
+
+    def _polish_valley(self, search: "_OutdoorSearch", points: list[float], k: int, first: float, last: float) -> None:
+        """Refine the valley of the band scan at ``points[k]``.
+
+        A valley on a band edge first gets the edge solved precisely, plus a
+        probe ``_EDGE_PROBE_K`` inside it. Within the valley's window (its
+        scan neighbours, or the solved edge) the best candidate is then
+        either on the window's end -- the edge is the minimum -- or bracketed
+        by its neighbours, and a Brent minimisation starts from that triple.
+        """
+        x = points[k]
+        lo_w = points[k - 1] if k > 0 else x
+        hi_w = points[k + 1] if k + 1 < len(points) else x
+        if k == 0:
+            if x > first:
+                solved = self._band_edges(search, first, x, self._BAND_EDGE_XTOL_K)
+                if solved is not None and solved[0] + self._BAND_EDGE_STEP_K < x:
+                    lo_w = solved[0] + self._BAND_EDGE_STEP_K
+                    search(lo_w)
+            search(min(lo_w + self._EDGE_PROBE_K, hi_w))
+        if k + 1 == len(points):
+            if x < last:
+                solved = self._band_edges(search, x, last, self._BAND_EDGE_XTOL_K)
+                if solved is not None and solved[1] - self._BAND_EDGE_STEP_K > x:
+                    hi_w = solved[1] - self._BAND_EDGE_STEP_K
+                    search(hi_w)
+            search(max(hi_w - self._EDGE_PROBE_K, lo_w))
+        window = sorted(p for p in search.rows if lo_w <= p <= hi_w)
+        j = min(range(len(window)), key=lambda i: (search(window[i]), window[i]))
+        if j == 0 or j + 1 == len(window):
+            return
+        a, b, c = window[j - 1], window[j], window[j + 1]
+        try:
+            minimize_scalar(
+                search,
+                bracket=(a, b, c),
+                method="brent",
+                options={"xtol": self._BAND_XATOL_K / max(abs(b), 1.0), "maxiter": 30},
+            )
+        except ValueError:
+            # Ties with a neighbour: no strict bracketing triple.
+            minimize_scalar(
+                search,
+                bounds=(a, c),
+                method="bounded",
+                options={"xatol": min(self._BAND_XATOL_K, (c - a) / 20.0), "maxiter": 30},
+            )
+
+    def _sample_precise_band(self, search: "_OutdoorSearch", band: tuple[float, float]) -> None:
+        """Search a band whose edges are solved precisely: its inward-stepped edges, then the interior."""
+        lo, hi = band
+        step = self._BAND_EDGE_STEP_K
+        if hi - lo <= 2.0 * step:
+            # A single point: equal fan limits, or a band at solver resolution.
+            for x in (0.5 * (lo + hi), lo, hi):
+                if search.feasible(x):
+                    return
+            return
+        lo, hi = lo + step, hi - step
+        search(lo)
+        search(hi)
+        minimize_scalar(
+            search,
+            bounds=(lo, hi),
+            method="bounded",
+            options={"xatol": min(self._BAND_XATOL_K, (hi - lo) / 20.0), "maxiter": 30},
+        )
+
+    def _search_outdoor(self, search: "_OutdoorSearch") -> None:
+        """Locate the outdoor-approach bands the fan can serve and minimise over them.
+
+        Coarse samples locate the band; its edges come from the coil capacity
+        margins (:meth:`_coarse_bands`), so a band that no sample falls into
+        is still found. Each band is then scanned and minimised
+        (:meth:`_minimize_in_band`).
+        """
+        lo_x, hi_x = self._OUTDOOR_APPROACH_BOUNDS
+        for x in np.linspace(lo_x, hi_x, self._OUTDOOR_GRID_POINTS):
+            search(float(x))
+        for band in self._coarse_bands(search):
+            self._minimize_in_band(search, band)
 
     # =============================================================
     # Steady-state analysis
@@ -1030,10 +1409,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
               ``"pr_above_max"``, ``"hx_not_converged"``, or
               ``"optimizer_failed"``.
-            - ``"failure_detail"`` (str, only on a rejected solved cycle) —
-              which check of
-              :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
-              the point ``"cycle_invalid"``.
+            - ``"failure_detail"`` (str, failures only) — on
+              ``"cycle_invalid"``, which check of
+              :func:`tmhp.dynamic_context.unphysical_cycle_detail` rejected a
+              solved cycle; on ``"hx_not_converged"``, which fan limit the
+              outdoor coil fails at every approach the cycle reaches
+              (``"outdoor_coil_short_at_max_airflow"``,
+              ``"outdoor_coil_excess_at_min_airflow"`` or
+              ``"outdoor_coil_no_band"``).
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead,
@@ -1191,6 +1574,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 # cycle / HX returned a usable answer.
                 result["converged"] = opt_success and result.get("converged", True)
                 result["failure_reason"] = failure_reason
+                coil_detail = getattr(opt_result, "failure_detail", None)
+                if failure_reason == "hx_not_converged" and coil_detail is not None:
+                    # Which fan limit the outdoor coil fails at every approach.
+                    result["failure_detail"] = coil_detail
 
         if result is None or not isinstance(result, dict):
             raise RuntimeError("Simulation failed to produce a valid result dictionary.")

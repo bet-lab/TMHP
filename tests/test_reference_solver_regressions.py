@@ -7,6 +7,7 @@ import pytest
 
 from tmhp import AirSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
 from tmhp.air_source_heat_pump import OBJ_INFEASIBLE
+from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
 from tmhp.reference_state import ReferenceStateError, _evaluable_bracket, _root_in_bracket
 
 
@@ -41,7 +42,10 @@ def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser
     expected_evap = state.condition.source.conductance * (state.condition.source.T_in_C - state.T_evap_sat_C)
     assert state.Q_cond == pytest.approx(8000, rel=1e-9)
     assert state.Q_evap == pytest.approx(expected_evap, rel=1e-9)
-    assert hp.eta_cmp_isen.raw(state.pressure_ratio, hp.rps_max) < 0 < hp.eta_cmp_isen(state.pressure_ratio, hp.rps_max)
+    # The rated speed is searched up to RATED_SPEED_SEARCH_MAX (150 rev/s); the
+    # raw fit is negative there and the guard keeps it positive.
+    top = RATED_SPEED_SEARCH_MAX
+    assert hp.eta_cmp_isen.raw(state.pressure_ratio, top) < 0 < hp.eta_cmp_isen(state.pressure_ratio, top)
 
 
 def _capacity_probe(mode, *, binding="cycle", other=80.0, ceiling_error=False, ceiling=100.0):
@@ -128,6 +132,7 @@ def test_incomplete_or_unneeded_ceiling_keeps_original_failure(parameters):
 def test_boiler_final_balance_is_checked_again_after_the_root(cls, side, error, required, converged, accepted):
     hp = object.__new__(cls)
     hp.hp_capacity = 8000.0
+    hp.T_dis_max = None  # the stub states carry no discharge temperature
 
     def calc_state(*args, **inputs):
         final = bool(args)

@@ -162,8 +162,11 @@ def test_explicit_rated_speed_keeps_former_results(cls):
         eta_cmp=make_eta_em(fixed),
         rps_rated=fixed,
     )
-    new = build(cls, rps_rated=fixed)
-    old = build(cls, **legacy)
+    # The fixed speed is far below the default R134a boiler's ~90 rev/s rating,
+    # so the derived ceiling (2 x 40) could not deliver hp_capacity; this test
+    # is about the efficiency factories, so keep the former speed bound.
+    new = build(cls, rps_rated=fixed, rps_max=150.0)
+    old = build(cls, **legacy, rps_max=150.0)
     if cls is AirSourceHeatPump:
         args = dict(Q_r_iu=3000, T0=33, T_a_room=26, verbose=False)
     elif cls is GroundSourceHeatPump:

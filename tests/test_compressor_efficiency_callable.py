@@ -58,7 +58,8 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
     gas = mass * (row["h_ref_cmp_out [J/kg]"] - row["h_ref_cmp_in [J/kg]"])
     assert row["E_cmp [W]"] == pytest.approx(gas / expected[2])
     if kind == "pr_speed":
-        assert all((pr, speed) in calls for calls in seen)
+        # Speed is read back through cmp_rpm / 60, so compare to rounding.
+        assert all(any(p == pytest.approx(pr) and s == pytest.approx(speed) for p, s in calls) for calls in seen)
         assert len({r for _, r in seen[0]}) > 2
 
 

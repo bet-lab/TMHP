@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 import tmhp
+from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
 from tmhp.constants import c_w, rho_w
 
 from ._checks import KnownDefectObserved, check_running_cycle, expect
@@ -62,7 +63,9 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     from tmhp import compressor_efficiency as ce
 
     rps_lo = min(f.cls.__init__.__kwdefaults__.get("rps_min", 15.0) for f in FAMILIES.values())
-    rps_hi = max(f.cls.__init__.__kwdefaults__.get("rps_max", 150.0) for f in FAMILIES.values())
+    # rps_max defaults to None (derived from the rated speed); the rated-speed
+    # search itself evaluates the efficiencies up to RATED_SPEED_SEARCH_MAX.
+    rps_hi = max(f.cls.__init__.__kwdefaults__.get("rps_max") or RATED_SPEED_SEARCH_MAX for f in FAMILIES.values())
     pr_hi = max(f.cls.__init__.__kwdefaults__.get("PR_cycle_max", 20.0) for f in FAMILIES.values())
     functions = {
         "eta_vol_default": ce.eta_vol_default,
@@ -109,7 +112,8 @@ def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
     expect(not degenerate, f"eta_is={eta:.4g} Q={num(r, 'Q_ref_tank [W]'):.0f} W reported as success")
 
 
-@defect("C6", "R32 tank 60 / outdoor 0 °C / 15 kW reports 201.6 °C discharge as success")
+# C6 fixed by the compressor operating envelope (T_dis_max, R32 150 °C): the point
+# discharged at 201.6 °C and is now discharge_temp_above_max (no smaller duty runs).
 def test_c6_ashpb_discharge_temperature_limit():
     _, r = FAMILIES["ASHPB"].run("R32", SteadyCase(T_source=0.0, T_demand=60.0, load_W=15000.0))
     T_dis = num(r, "T_ref_cmp_out [°C]")
@@ -118,7 +122,11 @@ def test_c6_ashpb_discharge_temperature_limit():
 
 @defect("C11", "WSHPB has no superheat cap: suction is +1.6 K above the source fluid")
 def test_c11_wshpb_suction_not_hotter_than_source():
-    _, r = FAMILIES["WSHPB"].run("R32", SteadyCase(T_source=-5.0, T_demand=55.0, load_W=400.0))
+    # The speed-floor point discharges above the R32 limit and is refused by the
+    # compressor envelope; the defect is in the suction state, so look at it with
+    # the discharge check off.
+    case = SteadyCase(T_source=-5.0, T_demand=55.0, load_W=400.0)
+    _, r = FAMILIES["WSHPB"].run("R32", case, T_dis_max=None)
     require(is_reported_running(r), f"expected a running result, got {r.get('failure_reason')!r}")
     expect(num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05, 'num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05')
 

@@ -189,10 +189,10 @@ _STEADY_FLOW = {
 }
 
 
-def _ashpb():
+def _ashpb(**kwargs):
     from tmhp import AirSourceHeatPumpBoiler
 
-    return AirSourceHeatPumpBoiler(ref="R32")
+    return AirSourceHeatPumpBoiler(ref="R32", **kwargs)
 
 
 def _pr_and_speed(row: dict) -> tuple[float, float]:
@@ -200,8 +200,12 @@ def _pr_and_speed(row: dict) -> tuple[float, float]:
 
 
 def test_a_minus7_w55_full_load_is_solved_at_the_held_boundary():
-    """Before the guard eta_is was negative at PR 9.8 and every load at A-7/W55 was cycle_invalid."""
-    hp = _ashpb()
+    """Before the guard eta_is was negative at PR 9.8 and every load at A-7/W55 was cycle_invalid.
+
+    The efficiency guard is tested with the discharge limit off: at 271 C the
+    point is outside the compressor envelope (test_compressor_operating_envelope).
+    """
+    hp = _ashpb(T_dis_max=None)
     row = hp.analyze_steady(T_tank_w=55, T0=-7, Q_ref_tank=15000)
     assert row["failure_reason"] == "none"
     pr, speed = _pr_and_speed(row)
@@ -211,7 +215,7 @@ def test_a_minus7_w55_full_load_is_solved_at_the_held_boundary():
     assert row["eta_cmp_vol [-]"] == pytest.approx(_cap(hp.eta_cmp_vol.raw(PR_FIT_MAX, speed)), rel=1e-12)
     assert row["Q_ref_tank [W]"] == pytest.approx(15000, rel=1e-6)
     # Observed 2026-11-12: PR 9.77, 45.6 rev/s, eta_is 0.374, discharge 271 C, COP_sys 1.73.
-    # The discharge temperature is what a compressor envelope must refuse (issue #96, step 3).
+    # The discharge temperature is what the compressor envelope refuses (T_dis_max, default on).
     assert row["eta_cmp_isen [-]"] == pytest.approx(0.374, abs=0.005)
     assert row["T_ref_cmp_out [°C]"] == pytest.approx(271.4, abs=2.0)
 
@@ -230,7 +234,7 @@ def test_a_minus7_w55_half_load_has_a_valid_cycle_after_the_guard():
 
 
 def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
-    hp = _ashpb()
+    hp = _ashpb(T_dis_max=None)  # 201.6 C: refused by default (test_compressor_operating_envelope)
     row = hp.analyze_steady(T_tank_w=60, T0=0, Q_ref_tank=15000)
     pr, speed = _pr_and_speed(row)
     assert not efficiency_extrapolated(hp.eta_cmp_isen, pr, speed)
@@ -238,4 +242,4 @@ def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
     # Observed before and after the guard: PR 6.41, 35.4 rev/s, eta_is 0.449, discharge 201.6 C.
     assert row["eta_cmp_isen [-]"] == pytest.approx(0.449, abs=0.002)
     assert row["T_ref_cmp_out [°C]"] == pytest.approx(201.6, abs=1.0)
-    # Reported as success above 150 °C discharge: tests/invariants C6.
+    # With the default T_dis_max (R32 150 °C) the point is refused: tests/invariants C6.

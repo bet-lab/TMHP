@@ -57,8 +57,6 @@ from .constants import c_w, rho_w
 from .subsystems import SolarThermalCollector, stc_result_columns, warn_if_uv_ignored
 
 if TYPE_CHECKING:
-    import numpy as np
-
     from .dynamic_context import ControlState, StepContext
 
 _ROUTES = ("ground", "tank", "off")
@@ -243,20 +241,9 @@ class GSHPB_STC_routed(GroundSourceHeatPumpBoilerRun):
 
         return residual
 
-    def _compute_bhe_superposition(
-        self,
-        n: int,
-        time_arr: np.ndarray,
-        hp_result: dict[str, Any],
-        hp_is_on: bool,
-    ) -> None:
-        """Inject solar heat into the ground only on the ground route (q_sol != 0)."""
-        q_sol = self._q_solar_ground_W
-        if q_sol != 0.0:
-            base_q = hp_result.get("Q_bhe [W]", 0.0) if hp_is_on else 0.0
-            hp_result["Q_bhe [W]"] = base_q - q_sol  # extraction-positive convention
-            hp_is_on = True  # drive the ground response even when the HP is off
-        super()._compute_bhe_superposition(n, time_arr, hp_result, hp_is_on)
+    def _ground_injection_W(self) -> float:
+        """Solar heat the collector loop injects into the borehole field this step [W]."""
+        return self._q_solar_ground_W
 
     def _augment_results(
         self,

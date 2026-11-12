@@ -258,16 +258,16 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
 
     gshpb = _historical_efficiency_plant()
     accepted = []
-    determine = gshpb._determine_hp_state
+    solve = gshpb._solve_cycle_at
 
-    def record_state(ctx, is_on_prev):
-        result = determine(ctx, is_on_prev)
-        if result[0]:
-            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result[1].copy()))
+    def record_state(ctx, T_tank_w, runtime_fraction=1.0, **kwargs):
+        result = solve(ctx, T_tank_w, runtime_fraction, **kwargs)
+        if result.get("hp_is_on", False):
+            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result.copy()))
         return result
 
     # Observe the actual solver return without replacing any physical result.
-    monkeypatch.setattr(gshpb, "_determine_hp_state", record_state)
+    monkeypatch.setattr(gshpb, "_solve_cycle_at", record_state)
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
         df = gshpb.analyze_dynamic(
@@ -278,7 +278,13 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
             T0_schedule=T0,
         )
 
-    assert [n for n, _, _ in accepted] == [4, 5, 10]
+    # The thermostat acts inside each hour: the compressor starts when the
+    # draw cools the tank to its lower bound (steps 3 and 9, not one hour
+    # later) and stops at the upper bound. Step 4 starts above the cycle's
+    # envelope (no operating point near 56-65 °C on this plant), runs nothing
+    # and retries in step 5.
+    assert [n for n, _, _ in accepted] == [3, 5, 9, 10]
+    assert df["T_tank_w [°C]"].max() <= gshpb.T_tank_w_upper_bound
     for n, source_outlet_C, state in accepted:
         assert state["converged"] and state["converged_rps"]
         C = state["dV_bhe_f [m3/s]"] * rho_w * c_w
@@ -294,7 +300,10 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
             Q_source + state["E_cmp [W]"] * state["eta_cmp [-]"], rel=1e-9, abs=1e-9
         )
         assert state["Q_bhe [W]"] == pytest.approx(Q_source - state["E_pmp [W]"], rel=1e-9, abs=1e-9)
-        assert df["Q_bhe [W]"].iloc[n] == state["Q_bhe [W]"]
+        # The row reports the step average: the running cycle times its run time.
+        fraction = df["runtime_fraction [-]"].iloc[n]
+        assert 0.0 < fraction <= 1.0
+        assert df["Q_bhe [W]"].iloc[n] == pytest.approx(state["Q_bhe [W]"] * fraction, rel=1e-12, abs=0)
 
     # Independent Duhamel superposition as a dense causal response matrix:
     # the real cycle's total field load is converted to W/m exactly once.
@@ -303,6 +312,10 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     increments = np.diff(np.r_[0.0, loads_per_m])
     response = step_mean_superposition(gshpb._gfunc_interp, time_arr, increments, 3600.0)
     wall_C = gshpb.Ts - response
+    # The wall answers the step-average load (#108). The reported fluid
+    # temperatures are step-time averages, i.e. the borehole resistance and
+    # loop temperature difference at the average load; the *_running columns
+    # are the fluid while the compressor runs (average / run time).
     mean_C = wall_C - loads_per_m * gshpb.R_b
     capacity_rate = df["dV_bhe_f [m3/s]"].to_numpy() * rho_w * c_w
     half_rise = np.divide(df["Q_bhe [W]"].to_numpy(), 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0)
@@ -313,3 +326,12 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
         ("T_bhe_f_out [°C]", mean_C + half_rise),
     ):
         np.testing.assert_allclose(df[column], expected, rtol=0.0, atol=1e-12)
+    fraction = df["runtime_fraction [-]"].to_numpy()
+    ran = fraction > 0
+    running_per_m = loads_per_m[ran] / fraction[ran]
+    run_mean_C = wall_C[ran] - running_per_m * gshpb.R_b
+    run_half = running_per_m * gshpb.total_borehole_length / (2 * capacity_rate[ran])
+    np.testing.assert_allclose(df["T_bhe_f_running [°C]"][ran], run_mean_C, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(df["T_bhe_f_in_running [°C]"][ran], run_mean_C - run_half, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(df["T_bhe_f_out_running [°C]"][ran], run_mean_C + run_half, rtol=0.0, atol=1e-12)
+    assert df.loc[~ran, "T_bhe_f_out_running [°C]"].isna().all()

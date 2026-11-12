@@ -56,6 +56,14 @@ Base usage
    # construction.
    # df = ashpb.analyze_dynamic(...)
 
+In a dynamic run the compressor cycles between ``T_tank_w_lower_bound``
+and ``T_tank_w_upper_bound`` (60 / 65 °C). The thermostat is followed
+inside each step, so a step reports the fraction of it the compressor ran
+(``runtime_fraction [-]``), its starts (``hp_starts [-]``) and heat and
+power averaged over the step; ``min_on_time_s`` / ``min_off_time_s``
+(default 0) hold the compressor to a minimum run and rest time. See
+:ref:`time-step-and-thermostat`.
+
 Default compressor efficiencies
 ===============================
 

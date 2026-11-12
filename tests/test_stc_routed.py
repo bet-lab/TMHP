@@ -133,7 +133,22 @@ def test_force_tank_route_charges_tank_only():
 
 def test_routing_is_exclusive_never_both():
     """Across the day the default router never charges ground and tank at once."""
-    df = _run(_routed_gshpb(stc=_stc(), T_tank_w_lower_bound=60.0), sun=True)
+    # The router sends solar to the tank when a sunny step starts below the
+    # lower bound. The heat pump now restarts inside the step at that bound,
+    # so only a draw it cannot keep up with (9 L/min at 10-12 h against
+    # 8 kW) leaves the tank below it at a step start.
+    model = _routed_gshpb(stc=_stc(), T_tank_w_lower_bound=60.0)
+    dhw, T0, I_DN, I_dH = _schedules(True)
+    dhw[[10, 11]] = 1.5e-4
+    df = model.analyze_dynamic(
+        simulation_period_sec=_tN * 3600.0,
+        dt_s=3600.0,
+        T_tank_w_init_C=56.0,
+        dhw_usage_schedule=dhw,
+        T0_schedule=T0,
+        I_DN_schedule=I_DN,
+        I_dH_schedule=I_dH,
+    )
     both = (df["Q_solar_tank [W]"].to_numpy() > 0.0) & (df["Q_solar_ground [W]"].to_numpy() > 0.0)
     assert not both.any()
     # and the day actually exercises both destinations (otherwise the test is vacuous)

@@ -21,9 +21,11 @@ is left **unchanged** (byte-identical). This subclass:
 
 - ``_run_subsystems``: evaluates the collector at the ground-fluid inlet and
   stores the net solar heat ``Q_solar`` [W] to inject into the ground.
-- ``_compute_bhe_superposition``: subtracts ``Q_solar`` from the HP ground load
-  (net ``Q_bhe = HP extraction − solar injection``) before the standard ground
-  superposition, so a net injection warms the borehole field. The tank energy
+- ``_ground_injection_W``: hands ``Q_solar`` to the base ground superposition,
+  which subtracts it from the HP ground load (net ``Q_bhe = HP extraction −
+  solar injection``), so a net injection warms the borehole field. The
+  injection flows for the whole step, the HP extraction only while the
+  compressor runs. The tank energy
   balance is untouched (solar heat does not enter the tank in this scenario).
 
 With zero irradiance the collector is inactive and results reduce to the base
@@ -122,14 +124,9 @@ class GSHPB_STC_ground(GroundSourceHeatPumpBoilerRun):
             }
         }
 
-    def _compute_bhe_superposition(self, n, time_arr, hp_result, hp_is_on) -> None:
-        """Inject the solar heat into the ground (net = HP extraction − solar)."""
-        q_sol = self._q_solar_ground_W
-        if q_sol != 0.0:
-            base_q = hp_result.get("Q_bhe [W]", 0.0) if hp_is_on else 0.0
-            hp_result["Q_bhe [W]"] = base_q - q_sol  # extraction-positive convention
-            hp_is_on = True  # drive the ground response even when the HP is off
-        super()._compute_bhe_superposition(n, time_arr, hp_result, hp_is_on)
+    def _ground_injection_W(self) -> float:
+        """Solar heat the collector loop injects into the borehole field this step [W]."""
+        return self._q_solar_ground_W
 
     def _augment_results(self, r: dict, ctx, ctrl, sub_states, T_solved_K) -> dict:
         state = sub_states.get("stc", {})

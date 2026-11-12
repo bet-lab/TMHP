@@ -325,7 +325,8 @@ def test_t5_hybrid_tank_stores_injected_heat():
     expect(_charge_storage_ratio(HybridStratifiedTank) >= 0.95, "_charge_storage_ratio(HybridStratifiedTank) >= 0.95")
 
 
-@defect("T6", "dt 60 s vs 600 s: 2.75 vs 5.0 kWh and 78 °C peak (setpoint 65 °C)")
+# T6 fixed by resolving the thermostat inside each step (dynamic_context.resolve_step_operation):
+# was dt 60 s vs 600 s 2.75 vs 5.0 kWh and a 78 °C peak against the 65 °C set point.
 def test_t6_ashpb_time_step_independence():
     out = {}
     for dt in (60, 600):
@@ -478,21 +479,15 @@ def _repeat_gshp():
     return lambda: m.analyze_dynamic(n * 3600, 3600, _flat(n, 3000.0), _flat(n, 8.0))
 
 
-_T13_WHY = (
-    "analyze_dynamic resets T_bhe_f_out (°C) but not T_bhe_f_out_K, which the first step reads: "
-    "the second run's first row differs (one line in the model file; the GSHPB scenario classes "
-    "restore it themselves)"
-)
-
-
 @pytest.mark.parametrize(
     "make_run",
     [
         pytest.param(_repeat_ashpb, id="ASHPB"),
         pytest.param(_repeat_ashp, id="ASHP"),
         pytest.param(_repeat_gshp, id="GSHP"),
-        pytest.param(_repeat_gshpb, id="GSHPB", marks=defect("T13", _T13_WHY)),
-        pytest.param(_repeat_wshpb, id="WSHPB", marks=defect("T13", _T13_WHY)),
+        # T13 fixed: analyze_dynamic now also resets T_bhe_f_out_K.
+        pytest.param(_repeat_gshpb, id="GSHPB"),
+        pytest.param(_repeat_wshpb, id="WSHPB"),
     ],
 )
 def test_t13_same_model_same_inputs_same_result(make_run):

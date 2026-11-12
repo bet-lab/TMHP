@@ -287,22 +287,26 @@ initial dependency set.
      - Mains make-up water temperature in degrees Celsius.
    * - Output
      - ``E_cmp``
-     - Compressor electric power in watts.
+     - Compressor electric power in watts, averaged over the
+       communication step.
    * - Output
      - ``E_tot``
-     - Total system electric power in watts.
+     - Total system electric power in watts, averaged over the
+       communication step.
    * - Output
      - ``Q_ref_tank``
-     - Refrigerant-to-tank heat transfer in watts.
+     - Refrigerant-to-tank heat transfer in watts, averaged over the
+       communication step.
    * - Output
      - ``cop_sys``
-     - System COP including auxiliary loads.
+     - System COP including auxiliary loads, of the cycle while it ran
+       (equal to ``Q_ref_tank / E_tot``).
    * - Output
      - ``T_tank_w``
-     - Updated tank-water temperature in degrees Celsius.
+     - Tank-water temperature at the end of the step in degrees Celsius.
    * - Output
      - ``hp_is_on``
-     - Whether the heat pump is active for this step.
+     - Whether the compressor ran at any time during the step.
    * - Output
      - ``converged``
      - Whether the TMHP cycle solve accepted the step result.
@@ -331,7 +335,12 @@ Relationship to native Python simulation
 
 The FMU path is intentionally aligned with native dynamic simulation:
 each ``do_step`` call maps to one public
-:meth:`~tmhp.AirSourceHeatPumpBoiler.step` call. For smoke testing,
+:meth:`~tmhp.AirSourceHeatPumpBoiler.step` call. Inside that call the
+tank thermostat is followed to its switching events, so a 10–15 min
+communication interval does not run the compressor past the tank's upper
+set point; the heat and power outputs are the averages over the
+interval, and multiplying them by the step size gives energy (see
+:ref:`time-step-and-thermostat`). For smoke testing,
 compare FMU outputs against a native ``analyze_dynamic()`` run over the
 same schedule, especially ``E_cmp``, ``E_tot``, ``Q_ref_tank``,
 ``cop_sys``, and ``T_tank_w``.

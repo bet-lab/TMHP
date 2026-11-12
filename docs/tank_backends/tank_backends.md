@@ -322,7 +322,7 @@ geolink×tmhp 결합 MPC 연구(G3)가 의도한 "hybrid 를 plant, stratified �
 | `tmhp.stratified_tank.mix_inversions` | 에너지 보존 순간 역전 혼합(두 백엔드 공통) |
 | `tmhp.hybrid_tank.HybridStratifiedTank` | Cruz-Loredo hybrid thermocline(보존형) |
 | `GroundSourceHeatPumpBoiler(tank_model=...)` | lumped/stratified 선택자 |
-| `tests/test_stratified_tank.py`·`test_hybrid_tank.py`·`test_tank_backend.py` | 격리·통합 검증(88개) |
+| `tests/test_stratified_tank.py`·`test_hybrid_tank.py`·`test_tank_backend.py` | 격리·통합 검증(89개) |
 | `tests/invariants/test_known_defects.py` T5 | 하이브리드 충전 저장률(0.95–1.01) |
 | `docs/tank_backends/compare_tank_backends.py` | 그림 1·2 와 §2.1–2.3 수치 재현 |
 | `docs/tank_backends/physics_checks.py` | §2.4 해석해 대조·시나리오 표 재현 |

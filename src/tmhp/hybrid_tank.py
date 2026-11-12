@@ -249,7 +249,13 @@ class HybridStratifiedTank:
         keep_new = formed and through > 0.0 and self._x_front is not None
         loss_j, mixed = self._diffuse(dt, q_arr, T_amb, allow_merge=not keep_new)
 
-        t_max, over = _flag_overheat(self.T, self.T_boil, "HybridStratifiedTank")
+        # The node holding the barrier reports the mean of its two zones, which can
+        # hide an overheated zone (a thin 101 °C layer over 15 °C water averages
+        # far below boiling), so the zones themselves enter the check.
+        checked = self.T
+        if self._front_node()[1] is not None:
+            checked = np.append(self.T, (self._T_above, self._T_below))
+        t_max, over = _flag_overheat(checked, self.T_boil, "HybridStratifiedTank")
         return {
             "T": self.T.copy(),
             "T_top": float(self.T[0]),

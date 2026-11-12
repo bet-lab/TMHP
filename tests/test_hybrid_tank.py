@@ -281,6 +281,22 @@ def test_overheat_is_flagged_and_warned():
         assert not t.step(60.0, q_source=1000.0)["overheat"]
 
 
+def test_overheat_check_sees_the_zones_of_the_barrier_node():
+    """A thin overheated layer above the barrier is not hidden by the node mean:
+    half a node of 99 °C water over 15 °C water, heated by 2 K, averages ~59 °C
+    while the upper zone is ~101 °C."""
+    t = HybridStratifiedTank(4, _VOL, _H, k_eff=1e-9, ua=0.0)
+    t.reset(15.0)
+    dt = 60.0
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        t.step(dt, charge_flow=0.5 * t.v_node / dt, T_charge=99.0, T_makeup=15.0)
+    with pytest.warns(TankOverheatWarning):
+        out = t.step(dt, q_source=2.0 * t.m_node * t.cp / dt)
+    assert out["T"].max() < 70.0  # the node mean alone would not flag it
+    assert out["overheat"] and out["T_max"] == pytest.approx(101.0, abs=0.1)
+
+
 def test_barrier_dropped_once_both_sides_equalise():
     """Charging a uniformly hot tank with the same temperature leaves no barrier."""
     t = HybridStratifiedTank(10, _VOL, _H, ua=0.0)

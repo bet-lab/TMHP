@@ -20,8 +20,10 @@ single class gates each per step:
 
 Exclusivity is structural: the router returns a single destination, so ground and
 tank are never charged on the same step. The chosen destination is still gated by
-a net-heat-gain feasibility check (collector outlet hotter than that sink),
-falling back to `off` if infeasible.
+the collector-loop controller (outlet at least `dT_stc_off` above that sink, gain
+above the pump power, below boiling, and on the tank route below the storage high
+limit `T_stc_tank_max`, 85 °C, at which charging stops within the step), falling
+back to `off` if the loop would not run.
 
 ```python
 from tmhp import GSHPB_STC_routed, default_solar_router
@@ -41,41 +43,57 @@ accepted so a custom router never breaks on signature drift.
 ## Experiment — three policies, 7-day diurnal run
 
 `compare_routing_policies.py` runs the same 7-day schedule (diurnal sun + morning/
-evening DHW draws) under three policies on a small 2×1 borehole field.
+evening DHW draws) under three policies on a small 2×1 borehole field. The sun is
+a constant 800 W/m² direct-normal plus 120 W/m² diffuse-horizontal from 07:00 to
+18:00; the 6 m² collector (35° south, Seoul, equinox by default) sees it on its own
+plane, with the sun position of each hour.
 
 ![routing policies — ground temperature and solar split](fig1_routing_policies.png)
 
 | policy        | solar→ground [kWh] | solar→tank [kWh] | T_bhe mean [°C] | T_bhe min [°C] | T_bhe end [°C] |
 | ------------- | ------------------ | ---------------- | --------------- | -------------- | -------------- |
-| always-ground | 134.7              | 0.0              | **+9.0**        | −5.3           | **+0.6**       |
-| always-tank   | 0.0                | 120.9            | −23.4           | −49.7          | −32.6          |
-| greedy        | 12.8               | 111.3            | −22.8           | −49.2          | −32.2          |
+| always-ground | 216.2              | 0.0              | 16.7            | 15.3           | 16.4           |
+| always-tank   | 0.0                | 19.9             | 15.6            | 15.1           | 15.4           |
+| greedy        | 216.2              | 0.0              | 16.7            | 15.3           | 16.4           |
+
+(Model of 2026-11-13: collector on its own plane with the ISO 9806 efficiency and
+the 85 °C storage limit, #96 T3/T9. The table in the first version of this note
+showed a borehole wall of −50 °C for the tank and greedy policies (ground and
+brine far below freezing, outside any real operating range). That was an earlier
+state of the model: the same script on main before the solar fixes (`f9a5828`)
+already keeps the wall at 15–16 °C, so those rows are withdrawn, not updated. The same run on the model just before the solar
+fixes gave always-ground 130.6 kWh to the ground, always-tank 74.5 kWh to a tank
+that passed 100 °C, greedy 130.6 kWh to the ground, T_bhe 15.2–16.2 °C.)
 
 Findings:
 
 - **Routing is exclusive and correct.** The solar energy lands wholly in the
   chosen destination; no step charges both (verified in `test_stc_routed.py`).
-- **Ground charging prevents source depletion.** Over a week of heating, the small
-  test field is over-extracted without recharge: `always-tank` and `greedy` drive
-  the borehole wall down to ≈ −50 °C (an over-extracted regime), while
-  `always-ground` holds it warm (mean +9 °C, ending +0.6 °C) — ~33 °C warmer at
-  week's end.
-- **The naive greedy default does *not* protect the source.** Prioritising the
-  tank setpoint, it routes 111 of 124 kWh to the tank and lets the ground deplete
-  almost exactly like `always-tank`. A policy that only chases immediate DHW need
-  is myopic about the seasonal source value — which is precisely the motivation
-  for an MPC that prices ground charging into a multi-step objective (the affine
-  COP map showed the GSHP COP is highly sensitive to source temperature).
+- **The tank is a small sink for a 6 m² collector.** The 100 L tank, kept at
+  60–65 °C by the heat pump, reaches the 85 °C storage limit within about two
+  sunny hours; after that the loop stops (the collector stagnates) and
+  `always-tank` collects only 19.9 kWh in 7 days against 216 kWh for
+  `always-ground`.
+- **The ground stays warm in this short run.** With the heat pump's extraction
+  over a week, the 2×100 m field moves by about 1 K (15.1–16.7 °C wall
+  temperature); ground charging lifts it about 1 K above the tank policies. The
+  week is too short for the seasonal effect that ground charging is for.
+- **The greedy default acts like always-ground here.** It routes to the tank only
+  while the tank is below its lower set point (60 °C here) when the sun is up,
+  which this schedule never produces; a policy that weighs the tank's limited
+  storage against the ground's value needs a multi-step objective (an MPC).
 
 ## Scope / honesty
 
 - **Reported metrics are the directly-measured, unambiguous ones** (solar split,
-  T_bhe trajectory). HP electricity and `cop_sys` are deliberately *not* reported
-  here: over this short horizon the depleted tank/greedy runs push the HP into an
-  over-extracted, unphysically cold regime (`T_bhe_f` below any real evaporating
-  range) where `cop_sys` is unreliable. The economic payoff of ground charging is
-  seasonal and needs a longer run with a properly-sized field and a validated HP
-  envelope — out of scope for this mechanism demo.
+  T_bhe trajectory). HP electricity and `cop_sys` are not reported: the economic
+  payoff of ground charging is seasonal and needs a longer run with a
+  properly-sized field and a validated HP envelope — out of scope for this
+  mechanism demo.
+- **Inputs are synthetic.** A constant beam from 07:00 to 18:00 is not a clear
+  day; real runs take DNI/DHI from weather data
+  (`tmhp.weather.decompose_ghi_to_poa`) with the collector's `start_time` set
+  to the data's first timestamp.
 - Exergy of the solar contribution is not yet attributed in the routed model
   (energy is fully correct; `_postprocess` uses the base GSHPB exergy). The
   dedicated `GSHPB_STC_tank` does the tank-boundary exergy correction; folding a

@@ -26,9 +26,17 @@ extend it the same way ASHPB's do:
 
 All variants report ``E_tot [W]`` as the whole electric draw: compressor
 ``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop pump ``E_stc_pump``
-(preheat, tank, ground, routed) + the UV lamp ``E_uv`` (``GSHPB_PV_ESS``; the STC
-variants do not simulate a ``uv=`` lamp and warn if one is passed). A model run
-twice with the same inputs gives the same result.
+(tank, ground, routed; the mains-driven preheat has none) + the UV lamp ``E_uv``
+(``GSHPB_PV_ESS``; the STC variants do not simulate a ``uv=`` lamp and warn if
+one is passed). A model run twice with the same inputs gives the same result.
+
+The collector, its irradiance inputs (direct-normal ``I_DN`` and
+diffuse-horizontal ``I_dH``, transposed to the collector plane with the sun
+position from ``latitude``/``longitude``/``utc_offset_h``/``start_time``), the
+loop controller with its storage high limit and the preheat circuit are the
+same as for the air-source variants — see :doc:`ashpb`, "Solar inputs and the
+collector model". The STC scenario logic is shared by both families
+(``tmhp._stc_scenarios``).
 
 Base usage
 ==========
@@ -166,10 +174,11 @@ of, or in exclusive alternation with, the tank.
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
          model = GSHPB_STC_preheat(stc=stc, ref="R410A", N_1=1, N_2=1, H_b=150.0)
 
-   .. tab-item:: + STC stratified
+   .. tab-item:: + STC tank loop
 
-      STC charges a separate top node of a stratified tank; the heat
-      pump charges the bottom. Top-of-tank water is drawn first.
+      A pumped collector loop draws tank water, heats it and returns it,
+      under a differential controller with a storage high limit
+      (``T_stc_tank_max``, 85 °C).
 
       .. code-block:: python
 
@@ -231,8 +240,8 @@ STC preheat
     :show-inheritance:
     :no-index:
 
-STC with stratified tank
-------------------------
+STC tank loop
+-------------
 
 .. autoclass:: tmhp.GSHPB_STC_tank
     :members:
@@ -247,6 +256,9 @@ variant (``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
 ``Q_l_stc``, ``T_stc_*``, ``dV_stc``, ``E_stc_pump``), so the collector balance
 ``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc`` and
 ``Q_stc_w_out - Q_stc_w_in = Q_solar_ground`` can be checked step by step.
+The loop runs inside the ``preheat_start_hour``–``preheat_end_hour`` window
+when the collector controller allows it (outlet at least ``dT_stc_off`` above
+the borehole wall, gain above the pump power).
 
 .. autoclass:: tmhp.GSHPB_STC_ground
     :members:
@@ -261,7 +273,8 @@ While the collector is active, every step closes
 ``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc`` and
 ``Q_stc_w_out - Q_stc_w_in = Q_solar_tank + Q_solar_ground`` (one of the two is
 zero). On the tank route the collector is reported at the solved tank
-temperature, i.e. the heat that entered the tank balance.
+temperature, i.e. the heat that entered the tank balance, and charging stops
+at ``T_stc_tank_max`` within the step as in :class:`~tmhp.GSHPB_STC_tank`.
 
 .. autoclass:: tmhp.GSHPB_STC_routed
     :members:

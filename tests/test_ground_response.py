@@ -152,6 +152,85 @@ def test_coupler_requires_a_step_length_for_one_step_grid():
     AggregateGFunctionCoupler(lambda t: np.asarray(t) * 0.0, dt_s=600.0).reset(1, np.array([0.0]))
 
 
+# ---------------------------------------------------------------------------
+# The step mean always uses the run's step, never the construction step
+# ---------------------------------------------------------------------------
+
+
+def test_reset_step_length_comes_from_the_run():
+    g = _single(86400.0, dt=3600.0)  # built for hourly steps
+    one = AggregateGFunctionCoupler(g)
+    one.reset(1, np.array([0.0]), dt_s=600.0)
+    assert one.wall_temperature_rise(0, np.array([0.0]), 25.0) == pytest.approx(25.0 * float(g.step_mean(0.0, 600.0)))
+    # An explicit step that contradicts the grid, or a non-uniform grid, is refused.
+    with pytest.raises(ValueError, match="uniform"):
+        AggregateGFunctionCoupler(g).reset(3, np.array([0.0, 600.0, 1200.0]), dt_s=3600.0)
+    with pytest.raises(ValueError, match="uniform"):
+        AggregateGFunctionCoupler(g).reset(3, np.array([0.0, 600.0, 1800.0]))
+
+
+def test_reset_ground_coupler_passes_dt_only_to_couplers_that_take_it():
+    from tmhp.ground_coupling import reset_ground_coupler
+
+    seen = {}
+
+    class Legacy:
+        def reset(self, n_steps, time_arr):
+            seen["legacy"] = n_steps
+
+        def wall_temperature_rise(self, n, time_arr, q_unit):
+            return 0.0
+
+    class Keyword:
+        def reset(self, n_steps, time_arr, **kwargs):
+            seen["kw"] = kwargs
+
+        def wall_temperature_rise(self, n, time_arr, q_unit):
+            return 0.0
+
+    reset_ground_coupler(Legacy(), 1, np.array([0.0]), 600.0)
+    reset_ground_coupler(Keyword(), 1, np.array([0.0]), 600.0)
+    assert seen == {"legacy": 1, "kw": {"dt_s": 600.0}}
+
+
+def test_gfunction_grid_does_not_depend_on_construction_step():
+    a = _single(86400.0, dt=600.0)
+    b = _single(86400.0, dt=86400.0)
+    np.testing.assert_array_equal(a.x, b.x)
+    np.testing.assert_array_equal(a.y, b.y)
+
+
+_BHE_COLS = ["T_bhe [°C]", "T_bhe_f [°C]", "T_bhe_f_out [°C]", "Q_bhe [W]"]
+
+
+def _gshpb_run(ctor_dt: float, n: int, dt: float):
+    from tmhp import GroundSourceHeatPumpBoiler
+
+    m = GroundSourceHeatPumpBoiler(dt_s=ctor_dt, t_max_s=86400.0)
+    return m.analyze_dynamic(n * dt, dt, 40.0, np.zeros(n), np.full(n, 5.0))[_BHE_COLS].to_numpy(dtype=float)
+
+
+def _gshp_run(ctor_dt: float, n: int, dt: float):
+    from tmhp import GroundSourceHeatPump
+
+    m = GroundSourceHeatPump(dt_s=ctor_dt, t_max_s=86400.0)
+    return m.analyze_dynamic(n * dt, dt, np.full(n, -3000.0), np.zeros(n))[_BHE_COLS].to_numpy(dtype=float)
+
+
+def test_one_step_gshpb_run_matches_first_step_of_a_longer_run():
+    """Codex P2 on #108: a one-step run used the g-function's construction dt (3600 s) instead of 600 s."""
+    one = _gshpb_run(3600.0, 1, 600.0)
+    two = _gshpb_run(3600.0, 2, 600.0)
+    assert one[0, 3] > 0  # the heat pump ran and loaded the ground
+    np.testing.assert_allclose(one[0], two[0], rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize("run", [_gshpb_run, _gshp_run], ids=["GSHPB", "GSHP"])
+@pytest.mark.parametrize(("ctor_dt", "dt", "n"), [(3600.0, 600.0, 1), (86400.0, 600.0, 3), (600.0, 3600.0, 2)])
+def test_construction_step_does_not_change_the_answer(run, ctor_dt, dt, n):
+    np.testing.assert_allclose(run(ctor_dt, n, dt), run(dt, n, dt), rtol=0, atol=1e-12)
+
+
 def test_gshp_inline_superposition_uses_the_coupler_convention():
     from tmhp import GroundSourceHeatPump
 

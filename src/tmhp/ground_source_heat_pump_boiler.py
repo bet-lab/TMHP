@@ -67,7 +67,7 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .g_function import precompute_gfunction
-from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler
+from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler, reset_ground_coupler
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -1386,7 +1386,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.Q_bhe = 0.0
 
         # Initialise the ground coupler's pulse-history state for this run.
-        self._ground_coupler.reset(tN, time)
+        reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
 
         # Initialise the stratified tank profile (uniform at the init temp).
         if self._tank is not None:

@@ -154,7 +154,7 @@ class GFunction:
     array of times [s]).
 
     **Values.** pygfunction is evaluated on a log-spaced grid from
-    ``t_min = max(dt_s, 3600 s)`` to the horizon, with ``g(0) = 0`` prepended;
+    ``t_min = 3600 s`` to the horizon, with ``g(0) = 0`` prepended;
     between nodes the value is interpolated linearly in ``t`` (relative error
     ≤ 7e-4 against direct pygfunction evaluation for the default grid
     density). Below ``t_min`` the value is the straight line from ``(0, 0)``
@@ -208,10 +208,15 @@ class GFunction:
         self.alpha_s = float(alpha_s)
         self.k_s = float(k_s)
         self.boundary_condition = bc
+        # Kept for reference only: the grid and every response are independent
+        # of the step the model was constructed with (the run's own step is
+        # passed to step_mean), so a model built with one dt_s and run with
+        # another gives the same answer as one built with the run's dt_s.
         self.dt_s = float(dt_s)
         # Evaluate from 1 hour to bypass the short-term numerical noise (Fo < 0.1)
-        # of the finite line source BEM discretization.
-        self.t_min = max(float(dt_s), 3600.0)
+        # of the finite line source BEM discretization. Fixed, not max(dt_s, 1 h):
+        # a dt-dependent first node made g on [0, dt_s] a straight line.
+        self.t_min = 3600.0
         self.n_builds = 0
         self._build(float(t_max_s) * 1.5, int(num))
 
@@ -345,7 +350,9 @@ def precompute_gfunction(
         Expected simulation length [s]. The grid covers ``1.5 * t_max_s``;
         longer requests trigger a recompute, never an extrapolation.
     dt_s : float
-        Simulation timestep [s]. The first grid node is ``max(dt_s, 3600)``.
+        Construction timestep [s], kept on the result as ``dt_s``. It does not
+        shape the grid (first node always 3600 s) or any response: time-stepping
+        hosts pass their run's step to :meth:`GFunction.step_mean`.
     boundary_condition : str, optional
         Axial boundary condition along the borehole. Either ``'UBWT'``
         (uniform borehole wall temperature) or ``'UHTR'`` (uniform heat

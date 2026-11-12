@@ -43,6 +43,7 @@ meaning.)
 
 from __future__ import annotations
 
+import inspect
 from typing import Protocol, runtime_checkable
 
 import numpy as np
@@ -64,6 +65,11 @@ class GroundCoupler(Protocol):
         time_arr : np.ndarray
             Absolute time of each step [s] (uniform grid). Backends that
             precompute a response matrix at fixed times use this.
+
+        A backend may also accept a keyword ``dt_s`` (the run's step length
+        [s]); :func:`reset_ground_coupler` passes it when the signature
+        allows, which is the only way to know the step length of a one-step
+        run.
         """
         ...
 
@@ -97,7 +103,8 @@ class AggregateGFunctionCoupler:
 
     On a uniform time grid the step-mean responses for every lag are computed
     once in :meth:`reset` and each step is a contiguous dot product; a
-    non-uniform or foreign time array falls back to direct evaluation.
+    different time array passed later falls back to direct evaluation with
+    the same step length. A non-uniform grid is rejected at :meth:`reset`.
 
     Parameters
     ----------
@@ -109,9 +116,9 @@ class AggregateGFunctionCoupler:
     pulse_tol : float, optional
         Minimum load change [W/m] that registers a new pulse (default 1e-6).
     dt_s : float, optional
-        Step length [s]. Taken from the time grid passed to :meth:`reset`
-        when omitted; required only for a one-step grid without a
-        ``g_interp.dt_s``.
+        Fixed step length [s] for every run. Normally omitted: the host passes
+        the run's own step length to :meth:`reset` (``dt_s=``). The step
+        length is never taken from how the g-function was built.
     """
 
     def __init__(self, g_interp, pulse_tol: float = 1e-6, dt_s: float | None = None) -> None:
@@ -124,20 +131,35 @@ class AggregateGFunctionCoupler:
         self._time: np.ndarray | None = None
         self._gbar_rev: np.ndarray | None = None
 
-    def reset(self, n_steps: int, time_arr: np.ndarray) -> None:
+    def reset(self, n_steps: int, time_arr: np.ndarray, dt_s: float | None = None) -> None:
+        """Start a run of ``n_steps`` steps on the uniform grid ``time_arr`` [s].
+
+        The step length is, in order: ``dt_s`` given here (the run's own
+        step), the constructor ``dt_s``, the spacing of ``time_arr``. A
+        one-step grid without either raises; a grid whose spacing is not
+        uniform or differs from the step length raises, since the
+        step-mean response assumes every step lasts ``dt``.
+        """
         time_arr = np.asarray(time_arr, dtype=float)
         self._pulses = np.zeros(n_steps)
         self._q_old = 0.0
-        dt = self._dt_fixed
-        if dt is None:
-            dt = float(time_arr[1] - time_arr[0]) if len(time_arr) > 1 else getattr(self._g, "dt_s", None)
+        dt = dt_s if dt_s is not None else self._dt_fixed
+        if dt is None and len(time_arr) > 1:
+            dt = float(time_arr[1] - time_arr[0])
         if dt is None or not (np.isfinite(dt) and dt > 0):
-            raise ValueError("AggregateGFunctionCoupler needs a positive step length (pass dt_s for a one-step grid)")
+            raise ValueError(
+                "AggregateGFunctionCoupler needs the run's positive step length: pass reset(..., dt_s=) "
+                "(a one-step time grid does not define it)"
+            )
         self._dt = float(dt)
         self._time = time_arr
         lags = time_arr - time_arr[0] if len(time_arr) else time_arr
-        uniform = len(time_arr) == n_steps and np.allclose(lags, np.arange(len(time_arr)) * self._dt, rtol=1e-9, atol=0)
-        if uniform and n_steps > 0:
+        if not np.allclose(lags, np.arange(len(time_arr)) * self._dt, rtol=1e-9, atol=1e-9 * self._dt):
+            raise ValueError(
+                f"time grid must be uniform with spacing dt_s={self._dt:g} s "
+                f"(got spacings {np.unique(np.round(np.diff(time_arr), 9))[:4]} s)"
+            )
+        if len(time_arr) == n_steps and n_steps > 0:
             # ḡ for lag k·dt, stored reversed so that the response at step n is
             # one contiguous dot product: Σ_i p_i ḡ[n-i] = p[:n+1] · rev[N-1-n:].
             gbar = np.asarray(g_step_mean(self._g, lags, self._dt), dtype=float)
@@ -191,3 +213,24 @@ class AggregateGFunctionCoupler:
             self._pulses[n] = q_unit - self._q_old
             self._q_old = q_unit
         return self._history_rise(n, time_arr, n + 1)
+
+
+def reset_ground_coupler(coupler: GroundCoupler, n_steps: int, time_arr: np.ndarray, dt_s: float) -> None:
+    """Reset ``coupler`` for a run, giving it the run's step length when it accepts one.
+
+    Hosts call this instead of ``coupler.reset(n_steps, time_arr)`` so that the
+    step-mean response always uses the step of the run being simulated, not
+    the step the g-function was built for (#96 G4 follow-up). An external
+    coupler whose ``reset`` takes only ``(n_steps, time_arr)`` is called the
+    old way.
+    """
+    params: list[inspect.Parameter]
+    try:
+        params = list(inspect.signature(coupler.reset).parameters.values())
+    except (TypeError, ValueError):  # builtins / C callables without a signature
+        params = []
+    accepts_dt = any(p.name == "dt_s" or p.kind is inspect.Parameter.VAR_KEYWORD for p in params)
+    if accepts_dt:
+        coupler.reset(n_steps, time_arr, dt_s=float(dt_s))  # type: ignore[call-arg]
+    else:
+        coupler.reset(n_steps, time_arr)

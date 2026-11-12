@@ -113,7 +113,9 @@ Module boundaries and assumptions
   Loads are extraction-positive W/m; cooling heat rejection is negative.
   A step reports the wall-temperature rise averaged over ``[t_n, t_n + dt]``
   (step-mean g-function, own load included); an external coupler should
-  return the same quantity. Times past the precomputed horizon recompute the
+  return the same quantity, and receives the run's step length when its
+  ``reset`` accepts a ``dt_s`` keyword. The step is always the run's own
+  ``dt_s``, never the constructor's. Times past the precomputed horizon recompute the
   g-function rather than extrapolate it.
 * ``borehole`` describes wall-to-fluid resistance in m K/W. The local
   resistance ``R_b`` and the internal pipe-to-pipe resistance ``R_a`` come

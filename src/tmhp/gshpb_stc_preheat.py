@@ -33,15 +33,15 @@ import numpy as np
 import pandas as pd
 
 from . import calc_util as cu
+from ._run_reset import GroundSourceHeatPumpBoilerRun
 from .constants import c_w, rho_w
-from .ground_source_heat_pump_boiler import GroundSourceHeatPumpBoiler
-from .subsystems import SolarThermalCollector
+from .subsystems import SolarThermalCollector, warn_if_uv_ignored
 
 if TYPE_CHECKING:
     from .dynamic_context import ControlState, StepContext
 
 
-class GSHPB_STC_preheat(GroundSourceHeatPumpBoiler):
+class GSHPB_STC_preheat(GroundSourceHeatPumpBoilerRun):
     """GSHPB + SolarThermalCollector in *mains_preheat* placement.
 
     Physical configuration
@@ -91,6 +91,7 @@ class GSHPB_STC_preheat(GroundSourceHeatPumpBoiler):
         self._stc: SolarThermalCollector = stc
         # Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.
         self.stc = stc
+        warn_if_uv_ignored(self)
 
     # ------------------------------------------------------------------
     # Hook: subsystem step
@@ -231,6 +232,9 @@ class GSHPB_STC_preheat(GroundSourceHeatPumpBoiler):
 
         # For mains_preheat: T_stc_w_out = pump outlet (mains supply T)
         T_stc_w_out_K: float = state["stc_result"].get("T_stc_pump_w_out_K", np.nan)
+
+        # The collector-loop pump is electricity the system draws.
+        r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + E_pump
 
         r.update(
             {

@@ -374,6 +374,109 @@ def test_surrogate_uses_legacy_energy_global_when_new_name_missing(monkeypatch):
     assert 9 not in ex.globals
 
 
+def _run_surrogate(monkeypatch, result, *, t_in=50.0, mdot=0.0, load=8000.0, t0=7.0, legacy=False):
+    """One plugin call with a stubbed cycle result; returns (surrogate, fake exchange)."""
+    from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
+
+    plant = TmhpPlantSurrogate()
+    plant._requested = True
+    plant._need = False
+    plant._tally_every = 10_000
+    plant.h = _surrogate_handles(e_cmp_j=-1 if legacy else 8, e_cmp_w=9, e_cmp_legacy=8 if legacy else -1)
+    monkeypatch.setattr(plant, "_solve", lambda *a: dict(result))
+    plant.api = _FakeApi({1: t_in, 2: mdot, 3: CP_WATER, 4: load, 7: t0})
+    assert plant.on_user_defined_component_model(object()) == 0
+    return plant, plant.api.exchange
+
+
+_OK = {"converged": True, "failure_reason": "none"}
+
+
+def test_surrogate_meters_system_total_including_outdoor_fan(monkeypatch):
+    """The metered power is E_tot (compressor + outdoor fan), not the compressor alone."""
+    res = {**_OK, "Q_ref_tank [W]": 6000.0, "E_cmp [W]": 2000.0, "E_ou_fan [W]": 150.0, "E_tot [W]": 2150.0}
+    _, ex = _run_surrogate(monkeypatch, res)
+    assert ex.globals[9] == pytest.approx(2150.0)
+    assert ex.globals[8] == pytest.approx(2150.0 * 3600.0 * 0.25)
+
+
+def test_surrogate_adds_fan_when_result_has_no_e_tot(monkeypatch):
+    res = {**_OK, "Q_ref_tank [W]": 6000.0, "E_cmp [W]": 2000.0, "E_ou_fan [W]": 150.0}
+    _, ex = _run_surrogate(monkeypatch, res)
+    assert ex.globals[9] == pytest.approx(2150.0)
+
+
+def test_surrogate_does_not_deliver_more_heat_than_requested(monkeypatch):
+    """Minimum-speed clamp: the cycle gives 6 kW, EnergyPlus asked for 1.5 kW -> cycling average."""
+    from tmhp.integrations.energyplus_plugin import LOOP_DESIGN_VDOT, RHO_WATER
+
+    res = {
+        **_OK,
+        "capacity_clamped": "min",
+        "Q_ref_tank [W]": 6000.0,
+        "E_cmp [W]": 1900.0,
+        "E_ou_fan [W]": 100.0,
+        "E_tot [W]": 2000.0,
+    }
+    _, ex = _run_surrogate(monkeypatch, res, load=1500.0)
+    m_dot = LOOP_DESIGN_VDOT * RHO_WATER
+    q_loop = m_dot * CP_WATER * (ex.actuators[5] - 50.0)
+    assert q_loop == pytest.approx(1500.0)
+    # metered for the same duty fraction (1500 / 6000) of the minimum-speed state
+    assert ex.globals[9] == pytest.approx(2000.0 * 1500.0 / 6000.0)
+    assert ex.globals[8] == pytest.approx(2000.0 * 0.25 * 3600.0 * 1500.0 / 6000.0)
+
+
+def test_surrogate_does_not_meter_power_for_heat_cut_at_outlet_limit(monkeypatch):
+    """Heat that would push the outlet above TOUT_MAX is neither delivered nor metered."""
+    from tmhp.integrations.energyplus_plugin import LOOP_DESIGN_VDOT, RHO_WATER, TOUT_MAX
+
+    res = {**_OK, "Q_ref_tank [W]": 6000.0, "E_cmp [W]": 1900.0, "E_tot [W]": 2000.0}
+    _, ex = _run_surrogate(monkeypatch, res, t_in=TOUT_MAX - 0.1)
+    m_dot = LOOP_DESIGN_VDOT * RHO_WATER
+    q_loop = m_dot * CP_WATER * (ex.actuators[5] - (TOUT_MAX - 0.1))
+    assert ex.actuators[5] == pytest.approx(TOUT_MAX)
+    assert q_loop < 6000.0
+    assert ex.globals[9] == pytest.approx(2000.0 * q_loop / 6000.0)
+
+
+def test_surrogate_metered_power_and_loop_heat_share_one_operating_state(monkeypatch):
+    """E_meter / q_loop equals the solved state's E_tot / Q for any request."""
+    from tmhp.integrations.energyplus_plugin import LOOP_DESIGN_VDOT, RHO_WATER
+
+    res = {**_OK, "Q_ref_tank [W]": 6000.0, "E_cmp [W]": 1900.0, "E_tot [W]": 2000.0}
+    m_dot = LOOP_DESIGN_VDOT * RHO_WATER
+    for load in (500.0, 3000.0, 6000.0, 9000.0):
+        _, ex = _run_surrogate(monkeypatch, res, load=load)
+        q_loop = m_dot * CP_WATER * (ex.actuators[5] - 50.0)
+        assert q_loop <= min(load, 6000.0) * (1 + 1e-12)
+        assert ex.globals[9] / q_loop == pytest.approx(2000.0 / 6000.0)
+
+
+def test_surrogate_with_real_model_at_minimum_speed_clamp(monkeypatch):
+    """Real ASHPB at a clamped point: loop heat = request, metered power includes the fan."""
+    from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
+
+    plant = TmhpPlantSurrogate()
+    plant._requested = True
+    plant._need = False
+    plant._tally_every = 10_000
+    plant.h = _surrogate_handles()
+    plant.api = _FakeApi({1: 30.0, 2: 3.0, 3: CP_WATER, 4: 1500.0, 7: 7.0})
+    full = plant.hp.analyze_steady(T_tank_w=30.0, T0=7.0, Q_ref_tank=1500.0, m_dot_w=3.0)
+    assert full["capacity_clamped"] == "min" and full["Q_ref_tank [W]"] > 1500.0  # scenario precondition
+    assert full["E_ou_fan [W]"] > 0.0
+
+    assert plant.on_user_defined_component_model(object()) == 0
+
+    ex = plant.api.exchange
+    q_loop = 3.0 * CP_WATER * (ex.actuators[5] - 30.0)
+    assert q_loop == pytest.approx(1500.0)
+    duty = 1500.0 / full["Q_ref_tank [W]"]
+    assert ex.globals[9] == pytest.approx(full["E_tot [W]"] * duty)
+    assert ex.globals[9] > full["E_cmp [W]"] * duty
+
+
 def test_plugin_classes_when_energyplus_available():
     """When pyenergyplus is importable, the two managers are EnergyPlusPlugins
     exposing the user-defined-component callback."""

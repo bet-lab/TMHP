@@ -421,7 +421,7 @@ def test_t11_mains_temperature_matches_energyplus():
         expect(calc_cold_water_temp(df, date) == pytest.approx(ref, abs=0.5), date)
 
 
-@defect("T12", "ASHPB_PV_ESS keeps the battery SOC between analyze_dynamic calls")
+# T12 fixed: the battery state of charge is restored to SOC_init when a run starts.
 def test_t12_pv_ess_analyze_dynamic_is_repeatable():
     import pandas as pd
 
@@ -442,9 +442,69 @@ def test_t12_pv_ess_analyze_dynamic_is_repeatable():
     first = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     second = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     numeric = first.select_dtypes("number").columns
+    pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
+
+
+def _repeat_ashpb():
+    n = 12
+    m = tmhp.AirSourceHeatPumpBoiler()
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0))
+
+
+def _repeat_gshpb():
+    n = 12
+    m = tmhp.GroundSourceHeatPumpBoiler(N_1=2, N_2=1, H_b=100.0, dt_s=3600.0, t_max_s=200 * 3600.0)
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0))
+
+
+def _repeat_wshpb():
+    n = 12
+    m = tmhp.WaterSourceHeatPumpBoiler(dt_s=3600.0, t_max_s=86400.0)
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0), T_source_w_schedule=_flat(n, 10.0))
+
+
+def _repeat_ashp():
+    n = 12
+    m = tmhp.AirSourceHeatPump()
+    return lambda: m.analyze_dynamic(n * 3600, 3600, _flat(n, 3000.0), _flat(n, 8.0))
+
+
+def _repeat_gshp():
+    n = 12
+    m = tmhp.GroundSourceHeatPump(dt_s=3600.0, t_max_s=86400.0, N_1=2, N_2=1, H_b=100.0, hp_capacity=8000)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, _flat(n, 3000.0), _flat(n, 8.0))
+
+
+_T13_WHY = (
+    "analyze_dynamic resets T_bhe_f_out (°C) but not T_bhe_f_out_K, which the first step reads: "
+    "the second run's first row differs (one line in the model file; the GSHPB scenario classes "
+    "restore it themselves)"
+)
+
+
+@pytest.mark.parametrize(
+    "make_run",
+    [
+        pytest.param(_repeat_ashpb, id="ASHPB"),
+        pytest.param(_repeat_ashp, id="ASHP"),
+        pytest.param(_repeat_gshp, id="GSHP"),
+        pytest.param(_repeat_gshpb, id="GSHPB", marks=defect("T13", _T13_WHY)),
+        pytest.param(_repeat_wshpb, id="WSHPB", marks=defect("T13", _T13_WHY)),
+    ],
+)
+def test_t13_same_model_same_inputs_same_result(make_run):
+    """Two ``analyze_dynamic`` calls on one model with the same inputs give the same table."""
+    import pandas as pd
+
+    do_run = make_run()
+    first, second = do_run(), do_run()
+    numeric = first.select_dtypes("number").columns
     try:
         pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
-    except AssertionError as exc:  # only the comparison itself is the T12 defect
+    except AssertionError as exc:  # only the comparison itself is the T13 defect
         raise KnownDefectObserved(str(exc)) from exc
 
 
@@ -489,7 +549,6 @@ def test_g1_evaporator_below_source_fluid_in_same_row(run):
     expect(np.all(T_ev < T_fluid), list(zip(T_ev.round(2), T_fluid.round(2), strict=True)))
 
 
-@defect("G3", "g(t) is extrapolated linearly past t_max_s: +55 % at 12 x t_max")
 def test_g3_gfunction_beyond_t_max_matches_pygfunction():
     import pygfunction as gt
 
@@ -522,7 +581,6 @@ def _pygfunction_single_u(m_flow: float, cp: float, mu: float, rho: float, k_f: 
 
 
 @pytest.mark.parametrize("lpm", [4.0, 8.0])
-@defect("G6", "uniform_heat_flux R_b* uses (2 m cp)^2 and the delta-circuit R12 instead of R_a")
 def test_g6_uniform_heat_flux_effective_resistance(lpm):
     from tmhp.borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
 
@@ -576,7 +634,6 @@ def test_g6_reference_uniform_temperature_matches_pygfunction(lpm):
     assert ours == pytest.approx(pipe.effective_borehole_thermal_resistance(m_flow, cp), rel=0.02)
 
 
-@defect("G8", "empirical GSHP extrapolates the curve fit to negative COP and compressor power")
 def test_g8_empirical_gshp_never_reports_negative_power_or_cop():
     from tmhp.gshp_empirical import GroundSourceHeatPumpEmpirical
 

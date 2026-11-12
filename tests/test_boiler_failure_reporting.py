@@ -4,9 +4,12 @@ Each test pins one way the domestic-hot-water boilers (ASHPB, GSHPB, WSHPB)
 used to hand back a state they had not solved:
 
 * internal solver keys leaking into ``analyze_steady`` results;
-* a compressor clamped onto its speed floor with a collapsed isentropic
-  efficiency (discharge state NaN, duty many times the nameplate) reported
-  as ``failure_reason="none"``;
+* a solved cycle that is not an operating point (collapsed isentropic
+  efficiency: discharge state NaN, duty many times the nameplate) reported
+  as ``failure_reason="none"`` -- tested with a collapsing user efficiency
+  callable, since the default fit is guarded since #101;
+* ASHPB raising CoolProp's ValueError when the condensing temperature
+  passes the critical point;
 * GSHPB putting the requested capacity into the tank on steps whose cycle
   failed (``E_cmp == 0``), which broke the tank energy balance;
 * ASHPB dynamic discarding the optimiser outcome, leaving called-but-unsolved
@@ -16,10 +19,11 @@ used to hand back a state they had not solved:
 * GSHPB/WSHPB forward-filling the dynamic frame, which copied the last
   running step's COP and cycle state into every off row.
 
-The dynamic scenarios start each default machine just below its hysteresis
-floor for a few 300 s steps: enough to reach the tank temperature above which
-the default cycle has no solution, so every run contains both solved and
-called-but-unsolved steps.
+The dynamic scenarios start each machine just below its hysteresis floor for
+a few 300 s steps: enough to reach the tank temperature at which condensing
+at the tank plus the condenser approach would pass the refrigerant's critical
+point, so every run contains both solved and called-but-unsolved steps. That
+failure is physical and does not depend on the compressor-efficiency fit.
 """
 
 from __future__ import annotations
@@ -100,29 +104,74 @@ def test_unphysical_cycle_detail(change: dict, detail: str | None) -> None:
     assert unphysical_cycle_detail({**_GOOD_STATE, **change}, hp_capacity=8000.0) == detail
 
 
-@pytest.mark.parametrize(
-    ("ref", "point"),
-    [
-        # Before #96: Q 90,957 W for a 6.4 kW request, eta_is 0.0032, NaN discharge.
-        ("R134a", {"T_tank_w": 65.0, "T_source": 5.0, "Q_ref_tank": 6400.0, "T0": 10.0}),
-        # Before #96: Q 9,659 W, E_cmp 8,552 W, eta_is 0.068, NaN discharge.
-        ("R410A", {"T_tank_w": 55.0, "T_source": -5.0, "Q_ref_tank": 6400.0, "T0": 10.0}),
-    ],
-)
-def test_wshpb_collapsed_speed_floor_is_reported_as_failure(ref: str, point: dict) -> None:
-    result = _steady(WaterSourceHeatPumpBoiler(ref=ref), **point)
+def _collapse_above(default, pr_limit: float, value: float = 0.003):
+    """A user isentropic-efficiency callable that falls to ``value`` above ``pr_limit``.
+
+    It stays inside (0, 1], so the efficiency guard of ``_eval_eff`` accepts
+    it: what such a fit produces has to be caught by the boiler's own
+    judgement of the solved cycle, whatever efficiency model is plugged in.
+    Set after construction so the rating point keeps the default fit.
+    """
+
+    def eta_isen(pressure_ratio: float, rps: float) -> float:
+        return value if pressure_ratio > pr_limit else default(pressure_ratio, rps)
+
+    return eta_isen
+
+
+# (family, refrigerant, analyze_steady inputs, PR above which eta_is collapses)
+_COLLAPSE_CASES = [
+    # The #96 reproduction points: before the efficiency guard (#101) the raw
+    # fit itself fell to eta_is 0.003-0.08 here and the boilers returned
+    # 9-91 kW with a NaN discharge state as failure_reason='none'.
+    pytest.param(
+        "WSHPB",
+        "R134a",
+        {"T_tank_w": 65.0, "T_source": 5.0, "Q_ref_tank": 6400.0, "T0": 10.0},
+        7.15,
+        id="WSHPB-R134a-65-5",
+    ),
+    pytest.param(
+        "WSHPB",
+        "R410A",
+        {"T_tank_w": 55.0, "T_source": -5.0, "Q_ref_tank": 6400.0, "T0": 10.0},
+        7.15,
+        id="WSHPB-R410A-55-m5",
+    ),
+    pytest.param(
+        "GSHPB",
+        "R410A",
+        {"T_tank_w": 55.0, "T_source": -5.0, "Q_ref_tank": 6400.0, "T0": 10.0},
+        7.15,
+        id="GSHPB-R410A-55-m5",
+    ),
+    # ASHPB's optimiser steers around a partial collapse, so collapse everywhere.
+    pytest.param("ASHPB", "R32", {"T_tank_w": 45.0, "T0": 7.0, "Q_ref_tank": 6000.0}, 0.0, id="ASHPB-R32-45-7"),
+]
+_FAMILY_CLASS = {
+    "ASHPB": AirSourceHeatPumpBoiler,
+    "GSHPB": GroundSourceHeatPumpBoiler,
+    "WSHPB": WaterSourceHeatPumpBoiler,
+}
+
+
+@pytest.mark.parametrize(("family", "ref", "point", "pr_limit"), _COLLAPSE_CASES)
+def test_collapsed_user_efficiency_is_reported_as_failure(family: str, ref: str, point: dict, pr_limit: float) -> None:
+    model = _FAMILY_CLASS[family](ref=ref)
+    model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, pr_limit)
+    result = _steady(model, **point)
     _assert_off_mode_failure(result, "cycle_invalid")
     assert result["failure_detail"] in {"discharge_state_undefined", "min_speed_duty_above_capacity"}
 
 
-def test_gshpb_collapsed_speed_floor_is_reported_as_failure() -> None:
-    # Before #96: Q 8,665 W for a 6.4 kW request at 15 rev/s, eta_is 0.076,
-    # NaN discharge, failure_reason "none". (R134a cannot even be built here:
-    # its B0/W55 rating point does not bracket, so R410A carries the case.)
-    model = GroundSourceHeatPumpBoiler(ref="R410A")
-    result = _steady(model, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=6400.0, T0=10.0)
+def test_ashpb_supercritical_condensing_is_a_failure_not_an_exception() -> None:
+    # R410A condenses at the tank temperature plus a 5 K approach; at a 65 °C
+    # tank and 1.5x the nameplate that is above the 71.3 °C critical point.
+    # CoolProp has no saturation state there and its ValueError used to
+    # escape analyze_steady (on main before #102 as well).
+    model = AirSourceHeatPumpBoiler(ref="R410A")
+    result = _steady(model, T_tank_w=65.0, T0=7.0, Q_ref_tank=1.5 * model.hp_capacity)
     _assert_off_mode_failure(result, "cycle_invalid")
-    assert result["failure_detail"] in {"discharge_state_undefined", "min_speed_duty_above_capacity"}
 
 
 # --------------------------------------------------------------------------
@@ -195,14 +244,17 @@ def test_gshpb_failed_steps_put_no_heat_into_tank_or_ground(gshpb_failing_run) -
 
 @pytest.fixture(scope="module")
 def ashpb_failing_run():
-    """Default ASHPB from just below its hysteresis floor, three 300 s steps.
+    """R410A ASHPB with a 75 °C upper bound, from just below its floor, four 300 s steps.
 
-    The first step heats the tank past ~61 °C, above which the default
-    R134a machine has no cycle at 5 °C outdoor. Before #96 the later steps
-    were ``hp_is_on=True`` rows with NaN heat, power and COP.
+    Two steps heat the 151 L tank from 54.9 to ~69 °C; the tank is still
+    below its upper bound, so the next steps are called, but condensing at
+    the tank plus a 5 K approach would be above the R410A critical point
+    (71.3 °C): there is no cycle. Before #96 such steps were
+    ``hp_is_on=True`` rows with NaN heat, power and COP (or, here, a
+    CoolProp ValueError).
     """
-    dt, n = 300.0, 3
-    model = AirSourceHeatPumpBoiler()
+    dt, n = 300.0, 4
+    model = AirSourceHeatPumpBoiler(ref="R410A", T_tank_w_upper_bound=75.0)
     df = model.analyze_dynamic(
         n * dt,
         dt,

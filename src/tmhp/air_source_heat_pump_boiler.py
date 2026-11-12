@@ -51,7 +51,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, safe_float_attr, specific_energy_objective
-from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
@@ -514,7 +514,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # --- Active state calculations ---
         self._last_cycle_failure_reason = None
 
-        def _cycle(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
+        def _cycle_unchecked(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
             """Refrigerant cycle for one tank-side approach temperature.
 
             ``rps_fixed`` holds the compressor at a given speed instead of
@@ -648,6 +648,23 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_ou": m_dot_i * (cs_i["h_ref_cmp_in [J/kg]"] - cs_i["h_ref_exp_out [J/kg]"]),
                 "E_cmp": m_dot_i * (cs_i["h_ref_cmp_out [J/kg]"] - cs_i["h_ref_cmp_in [J/kg]"]) / eta_em_i,
             }
+
+        def _cycle(dT_tank: float, rps_fixed: float | None = None) -> dict | None:
+            """:func:`_cycle_unchecked`, with no saturation state counted as infeasible.
+
+            A condensing temperature at or above the critical point (tank
+            temperature plus approach, or an approach widened by the closure
+            below) has no saturation state, and CoolProp raises. There is no
+            condenser there, so the cycle is infeasible -- the same answer the
+            GSHPB/WSHPB cycles give -- rather than an error escaping
+            ``analyze_steady`` / ``step()``.
+            """
+            try:
+                return _cycle_unchecked(dT_tank, rps_fixed)
+            except ValueError as exc:
+                if isinstance(exc, InvalidCompressorEfficiency):
+                    raise
+                return None
 
         def _close_tank_hx(state0: dict) -> dict | None:
             """Re-solve the approach against the heat the machine delivers.

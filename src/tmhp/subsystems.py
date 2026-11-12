@@ -24,7 +24,7 @@ Subsystem catalogue
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -33,6 +33,16 @@ from . import calc_util as cu
 from ._validation import check_efficiency, validate_ctor
 from .constants import c_w, k_a, k_D, k_d, rho_w
 from .thermodynamics import calc_energy_flow
+from .weather import (
+    DEFAULT_LATITUDE,
+    DEFAULT_LONGITUDE,
+    DEFAULT_UTC_OFFSET_H,
+    ashrae_iam,
+    diffuse_iam,
+    plane_of_array_irradiance,
+    solar_position,
+    start_day_of_year,
+)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -76,168 +86,378 @@ STC_OFF_STEP: dict = {
 STC_OFF: dict = STC_OFF_STEP
 
 
+#: ISO 9806 collector test flow, 0.02 kg/(s·m²) of collector, as a volume flow
+#: per m² [m³/(s·m²)] (about 1.2 L/(min·m²)). The default collector-loop flow
+#: is this times ``A_stc``: the efficiency coefficients are measured at it.
+STC_SPECIFIC_FLOW_M3S_PER_M2: float = 0.02 / rho_w
+
+#: Construction parameters of the former lumped collector model and their old
+#: defaults. They are accepted with a ``DeprecationWarning`` and converted to the
+#: linear loss coefficient ``a1_stc`` (``a2_stc = 0``).
+_LEGACY_CONSTRUCTION_DEFAULTS: dict[str, float] = {
+    "h_o_stc": 15.0,
+    "h_r_stc": 2.0,
+    "k_ins_stc": 0.03,
+    "x_air_stc": 0.01,
+    "x_ins_stc": 0.05,
+}
+
+
+def _construction_loss_coefficient(h_o: float, h_r: float, k_ins: float, x_air: float, x_ins: float) -> float:
+    """Overall loss coefficient [W/(m²·K)] of the former two-path construction model.
+
+    Top: radiation ‖ air gap, then outside convection; bottom: insulation, then
+    outside convection; the two paths in parallel.
+    """
+    R_air = x_air / k_a
+    R_ins = x_ins / k_ins
+    R_o = 1.0 / h_o
+    R_r = 1.0 / h_r if h_r > 0 else np.inf
+    R1 = (R_r * R_air) / (R_r + R_air) + R_o if np.isfinite(R_r) else R_air + R_o
+    R2 = R_ins + R_o
+    return 1.0 / R1 + 1.0 / R2
+
+
+class _SunFacingSurface:
+    """Site, clock and plane-of-array transposition shared by collector and PV array.
+
+    Subclasses are dataclasses that declare ``latitude``, ``longitude``,
+    ``utc_offset_h``, ``start_time``, ``albedo`` and ``sky_model`` and return
+    their tilt and azimuth from :meth:`_surface`.
+    """
+
+    latitude: float
+    longitude: float
+    utc_offset_h: float
+    start_time: object
+    albedo: float
+    sky_model: str
+
+    def _surface(self) -> tuple[float, float]:  # pragma: no cover - abstract
+        raise NotImplementedError
+
+    def _beam_b0(self) -> float:  # pragma: no cover - abstract
+        """ASHRAE incidence-angle coefficient ``b0`` of the beam on this surface."""
+        raise NotImplementedError
+
+    def _check_site(self) -> None:
+        if self.sky_model not in ("isotropic", "haydavies", "perez"):
+            raise ValueError(f"sky_model must be 'isotropic', 'haydavies' or 'perez', got {self.sky_model!r}")
+        start_day_of_year(self.start_time, self.utc_offset_h)  # parses, or raises
+
+    def plane_irradiance(
+        self,
+        I_DN: float,
+        I_dH: float,
+        time_s: float,
+        dt_s: float | None = None,
+    ) -> dict[str, float]:
+        """Irradiance on this surface [W/m²] for one step.
+
+        ``I_DN`` / ``I_dH`` are the step's direct-normal and diffuse-horizontal
+        irradiance; ``time_s`` is the time after ``start_time`` [s] at which
+        the sun position is taken. With ``dt_s`` the step ``[time_s,
+        time_s + dt_s)`` is sampled at the centres of sub-intervals of at
+        most 10 min and the components are averaged over the sunlit samples
+        (the step average of a measured DNI includes the dark part of a
+        sunrise/sunset step as zero, so its sunlit part carries it).
+        ``beam_iam`` is the beam times its incidence-angle modifier, taken
+        sample by sample before averaging: the modifier is nonlinear and
+        clipped, so applying it to the mean angle would lose the beam of a
+        step in which the sun grazes the surface or passes behind it.
+
+        A DNI above 1 W/m² while the sun is below the horizon for the whole
+        step contradicts the site or clock (``latitude``, ``longitude``,
+        ``utc_offset_h``, ``start_time``): the beam is dropped and a
+        ``UserWarning`` says so.
+
+        Returns the keys of :func:`tmhp.weather.plane_of_array_irradiance`.
+        """
+        doy0 = start_day_of_year(self.start_time, self.utc_offset_h)
+        tilt, surf_az = self._surface()
+        b0 = self._beam_b0()
+        if dt_s is None or dt_s <= 0:
+            times = [float(time_s)]
+        else:
+            n_sub = int(min(12, max(1, np.ceil(dt_s / 600.0))))
+            times = [float(time_s) + (k + 0.5) * dt_s / n_sub for k in range(n_sub)]
+        samples = []
+        for t in times:
+            doy = doy0 + t / 86400.0
+            zen, az = solar_position(
+                doy, latitude=self.latitude, longitude=self.longitude, utc_offset_h=self.utc_offset_h
+            )
+            sample = plane_of_array_irradiance(
+                I_DN,
+                I_dH,
+                zenith=zen,
+                azimuth=az,
+                tilt=tilt,
+                surface_azimuth=surf_az,
+                albedo=self.albedo,
+                sky_model=self.sky_model,
+                day_of_year=doy,
+            )
+            sample["beam_iam"] = ashrae_iam(sample["aoi"], b0) * sample["beam"]
+            samples.append(sample)
+        sunlit = [s for s in samples if s["zenith"] < 90.0]
+        if not sunlit:
+            if I_DN > 1.0:
+                warnings.warn(
+                    "direct-normal irradiance given while the sun is below the horizon at this site and "
+                    "time: the beam is dropped. Check latitude/longitude/utc_offset_h/start_time of the "
+                    "collector or PV array against the irradiance schedule.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            return samples[len(samples) // 2]
+        keys = ("beam", "beam_iam", "sky", "ground", "total", "aoi", "ghi", "zenith", "dni_used")
+        return {k: float(np.mean([s[k] for s in sunlit])) for k in keys}
+
+
 @dataclass
-class SolarThermalCollector:
-    """Solar Thermal Collector (STC) — pure physics engine.
+class SolarThermalCollector(_SunFacingSurface):
+    """Glazed solar thermal collector (STC) — pure physics engine.
 
-    Bundles collector geometry, optical and thermal properties,
-    and pump parameters.  This class is a **stateless physics
-    calculator**: given physical inputs it returns a performance
-    dict.  All simulation orchestration (activation logic,
-    result assembly, exergy calculation) is the responsibility
-    of the scenario class that uses this engine.
+    Bundles the collector (area, orientation, ISO 9806 efficiency), its loop
+    pump and controller settings, and the site and clock used for the sun
+    position. This class is a **stateless physics calculator**: given the
+    irradiance, the inlet and ambient temperatures and the flow it returns a
+    performance dict. Activation and routing are the scenario classes' job.
 
-    The public API consists of:
+    Thermal model
+    -------------
+    Quasi-steady collector efficiency of ISO 9806 / EN 12975 on the mean
+    fluid temperature ``T_m = (T_in + T_out)/2``::
 
-    - :meth:`calc_performance` — single-timestep thermal performance
-    - :meth:`is_preheat_on` — schedule check
+        Q_u = A·[η0·(K_b·G_b + K_d·G_d) − a1·(T_m − T_a) − a2·(T_m − T_a)·|T_m − T_a|]
+        Q_u = ṁ·c_p·(T_out − T_in)
+
+    solved in closed form for ``T_out``. ``G_b`` / ``G_d`` are the beam and
+    diffuse (sky + ground-reflected) irradiance **on the collector plane**,
+    transposed from ``I_DN`` / ``I_dH`` with the sun position of the step
+    (:meth:`plane_irradiance`); ``K_b = 1 − b0·(1/cos θ − 1)`` is the ASHRAE
+    incidence-angle modifier and ``K_d`` the diffuse one (Brandemuehl–Beckman
+    equivalent angles of ``b0`` unless ``K_d_stc`` is given). ``T_a`` is the
+    outdoor temperature ``T0``. ``Q_sol_stc = A·η0·(K_b·G_b + K_d·G_d)`` is
+    the heat absorbed (after optical losses) and the balance
+    ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) + Q_l_stc`` closes exactly. The
+    absolute-value form of the quadratic term keeps the loss odd in
+    ``T_m − T_a``.
+
+    The defaults describe a representative single-glazed selective flat-plate
+    collector (Solar Keymark range η0 0.75–0.82, a1 3–4 W/(m²·K),
+    a2 0.01–0.02 W/(m²·K²), b0 ≈ 0.1); its stagnation temperature at
+    1000 W/m² and 30 °C ambient is about 170 °C. Take ``eta0_stc``,
+    ``a1_stc``, ``a2_stc`` and ``b0_stc`` (or ``K_d_stc``) from a collector
+    datasheet together with the area they refer to.
 
     Parameters
     ----------
     A_stc : float
-        Collector gross area [m²].
+        Collector area [m²] that the efficiency coefficients refer to
+        (aperture or gross, as on the datasheet). Absorption, losses and
+        the default flow scale with it.
     stc_tilt : float
         Tilt from horizontal [°].
     stc_azimuth : float
-        Azimuth angle (180 = south) [°].
-    A_stc_pipe : float
-        Pipe surface area [m²].
-    alpha_stc : float
-        Absorptivity [–].
-    h_o_stc : float
-        External convective coefficient [W/(m²·K)].
-    h_r_stc : float
-        Radiative coefficient [W/(m²·K)].
-    k_ins_stc : float
-        Insulation conductivity [W/(m·K)].
-    x_air_stc : float
-        Air gap thickness [m].
-    x_ins_stc : float
-        Insulation thickness [m].
-    preheat_start_hour : float
-        Preheat window start hour.
-    preheat_end_hour : float
-        Preheat window end hour.
-    dV_stc_w : float
-        Default STC loop flow rate [m³/s].
+        Azimuth of the collector normal, clockwise from north [°] (180 = south).
+    A_stc_pipe : float | None
+        Deprecated alias of ``A_stc`` (it used to be the only area in the
+        heat balance).
+    alpha_stc, h_o_stc, h_r_stc, k_ins_stc, x_air_stc, x_ins_stc : float | None
+        Deprecated construction parameters of the former lumped model.
+        ``alpha_stc`` becomes ``eta0_stc``; the others give the linear loss
+        coefficient ``a1_stc`` of that model (with ``a2_stc = 0``).
+    preheat_start_hour, preheat_end_hour : float
+        Clock window [h] in which the collector may run, used by the preheat,
+        ground and routed scenarios (the tank-loop scenarios are governed by
+        their controller only).
+    dV_stc_w : float | None
+        Collector-loop flow [m³/s] of the pumped loops. ``None`` (default):
+        the ISO 9806 test flow, 0.02 kg/(s·m²) × ``A_stc``. The mains preheat
+        scenario runs the collector at the tank feed instead.
     E_stc_pump : float
-        STC pump rated power [W].
+        Collector-loop pump power [W] while it runs.
+    eta0_stc : float
+        Zero-loss efficiency η0 [-] (normal incidence).
+    a1_stc : float
+        First-order heat-loss coefficient [W/(m²·K)].
+    a2_stc : float
+        Second-order heat-loss coefficient [W/(m²·K²)].
+    b0_stc : float
+        ASHRAE incidence-angle-modifier coefficient [-].
+    K_d_stc : float | None
+        Diffuse incidence-angle modifier [-]; ``None`` derives it from ``b0_stc``.
+    dT_stc_on, dT_stc_off : float
+        Differential controller [K]: the pump starts when the idle collector
+        is ``dT_stc_on`` above the sink, and runs while its outlet stays
+        ``dT_stc_off`` above it.
+    T_stc_tank_max : float
+        Storage high limit [°C]: the collector loop stops charging the tank at
+        this temperature (within the step).
+    T_stc_boil : float
+        Boiling protection [°C]: the loop does not run when the collector
+        outlet would reach this temperature.
+    latitude, longitude : float
+        Site [°], north and east positive. Default Seoul.
+    utc_offset_h : float
+        Local standard time offset from UTC [h] of the run's clock. Default 9 (KST).
+    start_time : str | datetime | None
+        Local standard time of simulation second 0 (anything
+        :class:`pandas.Timestamp` accepts; an aware timestamp is converted).
+        ``None``: 00:00 on 20 March (the equinox, a year-average sun path).
+        The boilers count their hour of day from second 0, so a run starting
+        at local midnight keeps their schedules and the sun in step.
+    albedo : float
+        Ground reflectance [-].
+    sky_model : str
+        Sky-diffuse transposition: ``"perez"`` (default), ``"haydavies"`` or
+        ``"isotropic"``.
     """
 
     # Collector
     A_stc: float = 2.0
     stc_tilt: float = 35.0
     stc_azimuth: float = 180.0
-    A_stc_pipe: float = 2.0
-    alpha_stc: float = 0.95
-    h_o_stc: float = 15.0
-    h_r_stc: float = 2.0
-    k_ins_stc: float = 0.03
-    x_air_stc: float = 0.01
-    x_ins_stc: float = 0.05
+    A_stc_pipe: float | None = None
+    alpha_stc: float | None = None
+    h_o_stc: float | None = None
+    h_r_stc: float | None = None
+    k_ins_stc: float | None = None
+    x_air_stc: float | None = None
+    x_ins_stc: float | None = None
 
     # Pump / schedule
     preheat_start_hour: float = 6.0
     preheat_end_hour: float = 18.0
-    dV_stc_w: float = 0.001
+    dV_stc_w: float | None = None
     E_stc_pump: float = 50.0
+
+    # ISO 9806 efficiency
+    eta0_stc: float = 0.78
+    a1_stc: float = 3.6
+    a2_stc: float = 0.015
+    b0_stc: float = 0.10
+    K_d_stc: float | None = None
+
+    # Loop controller
+    dT_stc_on: float = 6.0
+    dT_stc_off: float = 2.0
+    T_stc_tank_max: float = 85.0
+    T_stc_boil: float = 100.0
+
+    # Site and clock
+    latitude: float = DEFAULT_LATITUDE
+    longitude: float = DEFAULT_LONGITUDE
+    utc_offset_h: float = DEFAULT_UTC_OFFSET_H
+    start_time: object = None
+    albedo: float = 0.2
+    sky_model: str = "perez"
 
     def __post_init__(self) -> None:
         validate_ctor("STC", vars(self))
+        self._check_site()
+        self._apply_legacy_parameters()
+
+    def _apply_legacy_parameters(self) -> None:
+        """Map the deprecated parameters onto the current ones (once)."""
+        defaults = {f.name: f.default for f in fields(self)}
+        if self.A_stc_pipe is not None:
+            warnings.warn(
+                "A_stc_pipe is deprecated: the collector area is A_stc (it is now used for absorption and loss).",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            if self.A_stc != defaults["A_stc"] and self.A_stc != self.A_stc_pipe:
+                raise ValueError(f"give the collector area once: A_stc={self.A_stc}, A_stc_pipe={self.A_stc_pipe}")
+            self.A_stc = float(self.A_stc_pipe)
+            self.A_stc_pipe = None
+        if self.alpha_stc is not None:
+            warnings.warn(
+                "alpha_stc is deprecated: the collector uses the ISO 9806 zero-loss efficiency eta0_stc "
+                "(absorptance x cover transmittance x efficiency factor); alpha_stc is taken as eta0_stc.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            if self.eta0_stc != defaults["eta0_stc"] and self.eta0_stc != self.alpha_stc:
+                raise ValueError("give either eta0_stc or the deprecated alpha_stc, not both")
+            self.eta0_stc = float(self.alpha_stc)
+            self.alpha_stc = None
+        given = {k: getattr(self, k) for k in _LEGACY_CONSTRUCTION_DEFAULTS if getattr(self, k) is not None}
+        if given:
+            warnings.warn(
+                f"{sorted(given)} are deprecated: the collector uses the ISO 9806 loss coefficients "
+                "a1_stc / a2_stc; the construction is converted to a1_stc (a2_stc = 0).",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            if self.a1_stc != defaults["a1_stc"] or self.a2_stc != defaults["a2_stc"]:
+                raise ValueError("give either a1_stc/a2_stc or the deprecated construction parameters, not both")
+            c = {**_LEGACY_CONSTRUCTION_DEFAULTS, **given}
+            self.a1_stc = _construction_loss_coefficient(
+                c["h_o_stc"], c["h_r_stc"], c["k_ins_stc"], c["x_air_stc"], c["x_ins_stc"]
+            )
+            self.a2_stc = 0.0
+            for k in given:
+                setattr(self, k, None)
+
+    def _surface(self) -> tuple[float, float]:
+        return self.stc_tilt, self.stc_azimuth
+
+    def _beam_b0(self) -> float:
+        return float(self.b0_stc)
 
     # ----------------------------------------------------------
     # Physics helpers
     # ----------------------------------------------------------
 
+    @property
+    def loop_flow(self) -> float:
+        """Collector-loop flow of the pumped loops [m³/s] (``dV_stc_w`` or the ISO test flow)."""
+        if self.dV_stc_w is not None:
+            return float(self.dV_stc_w)
+        return self.A_stc * STC_SPECIFIC_FLOW_M3S_PER_M2
+
     def calc_overall_heat_transfer_coeff(self) -> float:
-        """Compute overall U-value from parallel resistances.
+        """Linear heat-loss coefficient ``a1_stc`` [W/(m²·K)] (kept for the former API)."""
+        return float(self.a1_stc)
 
-        The collector has two heat-loss paths in parallel:
+    def incidence_modifiers(self, aoi_deg: float) -> tuple[float, float, float]:
+        """Beam, sky-diffuse and ground-diffuse incidence-angle modifiers [-]."""
+        K_b = ashrae_iam(aoi_deg, self.b0_stc)
+        if self.K_d_stc is not None:
+            return K_b, float(self.K_d_stc), float(self.K_d_stc)
+        K_sky, K_gnd = diffuse_iam(self.stc_tilt, self.b0_stc)
+        return K_b, K_sky, K_gnd
 
-        - **Path 1** (top): radiation gap ‖ air gap → external conv
-        - **Path 2** (bottom): insulation → external conv
+    def absorbed_irradiance(self, plane: dict) -> float:
+        """Irradiance the absorber turns into heat, ``η0·(K_b·G_b + K_d·G_d)`` [W/m²]."""
+        K_b, K_sky, K_gnd = self.incidence_modifiers(plane["aoi"])
+        # A plane from plane_irradiance carries the beam already modified sample by sample.
+        G_b = plane["beam_iam"] if "beam_iam" in plane else K_b * plane["beam"]
+        return float(self.eta0_stc * (G_b + K_sky * plane["sky"] + K_gnd * plane["ground"]))
 
-        Returns
-        -------
-        float
-            Overall heat-loss coefficient [W/(m²·K)].
-        """
-        R_air = self.x_air_stc / k_a
-        R_ins = self.x_ins_stc / self.k_ins_stc
-        R_o = 1.0 / self.h_o_stc
-        R_r = 1.0 / self.h_r_stc
+    def stagnation_temperature_K(self, plane: dict, T0_K: float) -> float:
+        """Absorber temperature with no flow [K] (all absorbed heat lost)."""
+        S = self.absorbed_irradiance(plane)
+        if self.a2_stc > 0:
+            y = 2.0 * S / (self.a1_stc + np.sqrt(self.a1_stc**2 + 4.0 * self.a2_stc * S))
+        elif self.a1_stc > 0:
+            y = S / self.a1_stc
+        else:
+            y = np.inf
+        return float(T0_K + y)
 
-        # Path 1: radiation ‖ air gap (parallel), then + external
-        R1 = (R_r * R_air) / (R_r + R_air) + R_o
-        # Path 2: insulation (series) + external
-        R2 = R_ins + R_o
-
-        # Two paths in parallel
-        return 1.0 / R1 + 1.0 / R2
-
-    def _calc_solar_absorption(
-        self,
-        I_DN_stc: float,
-        I_dH_stc: float,
-    ) -> tuple[float, float]:
-        """Compute total irradiance and absorbed heat.
-
-        Parameters
-        ----------
-        I_DN_stc : float
-            Direct-normal irradiance [W/m²].
-        I_dH_stc : float
-            Diffuse-horizontal irradiance [W/m²].
-
-        Returns
-        -------
-        tuple[float, float]
-            ``(I_sol_stc, Q_sol_stc)`` — total irradiance and
-            absorbed solar heat rate [W].
-        """
-        I_sol = I_DN_stc + I_dH_stc
-        Q_sol = I_sol * self.A_stc_pipe * self.alpha_stc
-        return I_sol, Q_sol
-
-    def _calc_outlet_temperature(
-        self,
-        U_stc: float,
-        G_stc: float,
-        Q_sol_stc: float,
-        Q_stc_w_in: float,
-        T_stc_w_in_K: float,
-        T0_K: float,
-    ) -> tuple[float, float, float]:
-        """Solve for collector outlet and mean plate temps.
-
-        Parameters
-        ----------
-        U_stc : float
-            Overall U-value [W/(m²·K)].
-        G_stc : float
-            Heat capacity flow rate ``c_w · ρ_w · V̇`` [W/K].
-        Q_sol_stc : float
-            Absorbed solar heat [W].
-        Q_stc_w_in : float
-            Inlet energy flow [W].
-        T_stc_w_in_K : float
-            Inlet water temperature [K].
-        T0_K : float
-            Dead-state temperature [K].
-
-        Returns
-        -------
-        tuple[float, float, float]
-            ``(T_stc_w_out_K, T_stc_K, ksi_stc)`` — outlet temp,
-            mean plate temp, and dimensionless parameter.
-        """
-        A_U = max(1e-6, self.A_stc_pipe * U_stc)
-        ksi = np.exp(-A_U / G_stc)
-
-        T_out_K = ksi * T_stc_w_in_K + (1 - ksi) * T0_K + (1 - ksi) * Q_sol_stc / A_U
-        T_stc_K = T0_K + (Q_sol_stc - G_stc * (T_out_K - T_stc_w_in_K)) / A_U
-
-        return T_out_K, T_stc_K, ksi
+    def _resolve_plane(self, I_DN: float, I_dH: float, time_s: float | None, plane: dict | None) -> dict:
+        if plane is not None:
+            return plane
+        if time_s is None:
+            raise TypeError(
+                "SolarThermalCollector.calc_performance needs the time to place the sun: pass time_s "
+                "(seconds after start_time) or plane=collector.plane_irradiance(I_DN, I_dH, time_s)."
+            )
+        return self.plane_irradiance(I_DN, I_dH, time_s)
 
     # ----------------------------------------------------------
     # Main performance calculation
@@ -251,6 +471,9 @@ class SolarThermalCollector:
         T0_K: float,
         dV_stc: float | None = None,
         is_active: bool = True,
+        *,
+        time_s: float | None = None,
+        plane: dict | None = None,
     ) -> dict:
         """Compute STC thermal performance for one timestep.
 
@@ -263,29 +486,45 @@ class SolarThermalCollector:
         T_stc_w_in_K : float
             Inlet water temperature [K].
         T0_K : float
-            Dead-state temperature [K].
+            Outdoor (ambient and dead-state) temperature [K].
         dV_stc : float | None
-            Override flow rate [m³/s]; defaults to
-            ``self.dV_stc_w``.
+            Flow through the collector [m³/s]; defaults to :attr:`loop_flow`.
         is_active : bool
-            If ``False``, return NaN-filled dict.
+            If ``False`` (no flow), the flow terms are NaN; the plane
+            irradiance and the stagnation temperature are still reported.
+        time_s : float | None
+            Time after ``start_time`` [s] at which the sun is placed.
+        plane : dict | None
+            Precomputed :meth:`plane_irradiance` (takes precedence over
+            ``time_s``; the scenario classes compute it once per step).
 
         Returns
         -------
         dict
-            Performance results including:
-            ``I_sol_stc``, ``Q_sol_stc``, ``Q_stc_w_in``,
-            ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
-            ``ksi_stc``, ``T_stc_w_out_K``,
-            ``T_stc_pump_w_out_K``, ``T_stc_w_in_K``,
-            ``T_stc_K``, ``Q_l_stc``.
+            ``I_sol_stc`` (irradiance on the collector plane [W/m²]),
+            ``Q_sol_stc`` (absorbed), ``S_sol_stc``, ``X_sol_stc``,
+            ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
+            ``T_stc_w_out_K``, ``T_stc_pump_w_out_K``, ``T_stc_w_in_K``,
+            ``T_stc_K`` (mean fluid temperature), ``Q_l_stc``, ``eta_stc``,
+            ``aoi_stc``, ``T_stc_stag_K`` and the plane components
+            ``G_stc_beam`` / ``G_stc_sky`` / ``G_stc_ground``.
         """
         if dV_stc is None:
-            dV_stc = self.dV_stc_w
+            dV_stc = self.loop_flow
+        p = self._resolve_plane(I_DN_stc, I_dH_stc, time_s, plane)
+        G_T = float(p["total"])
+        common = {
+            "I_sol_stc": G_T,
+            "aoi_stc": float(p["aoi"]),
+            "G_stc_beam": float(p["beam"]),
+            "G_stc_sky": float(p["sky"]),
+            "G_stc_ground": float(p["ground"]),
+            "T_stc_stag_K": self.stagnation_temperature_K(p, T0_K),
+        }
 
-        if not is_active:
+        if not is_active or dV_stc <= 0:
             return {
-                "I_sol_stc": np.nan,
+                **common,
                 "Q_sol_stc": np.nan,
                 "S_sol_stc": np.nan,
                 "X_sol_stc": np.nan,
@@ -298,64 +537,47 @@ class SolarThermalCollector:
                 "T_stc_w_in_K": T_stc_w_in_K,
                 "T_stc_K": np.nan,
                 "Q_l_stc": np.nan,
+                "eta_stc": np.nan,
             }
 
-        U_stc = self.calc_overall_heat_transfer_coeff()
-        I_sol_stc, Q_sol_stc = self._calc_solar_absorption(
-            I_DN_stc,
-            I_dH_stc,
-        )
-        S_sol_stc = (k_D * I_DN_stc**0.9 + k_d * I_dH_stc**0.9) * self.A_stc_pipe
+        A = self.A_stc
+        S = self.absorbed_irradiance(p)
+        Q_sol_stc = A * S
+        # Radiation entropy of the incident beam and diffuse parts, carried in
+        # proportion to the absorbed share (as the PV array does with alp_pv).
+        s_in = k_D * p["beam"] ** 0.9 + k_d * (p["sky"] + p["ground"]) ** 0.9
+        S_sol_stc = Q_sol_stc * s_in / G_T if G_T > 0 else 0.0
         X_sol_stc = Q_sol_stc - S_sol_stc * T0_K
 
         G_stc = c_w * rho_w * dV_stc
-        Q_stc_w_in = calc_energy_flow(
-            G_stc,
-            T_stc_w_in_K,
-            T0_K,
-        )
+        x = T_stc_w_in_K - T0_K
+        b = 2.0 * G_stc + A * self.a1_stc
+        c = A * S + 2.0 * G_stc * x
+        # Mean-temperature form: A·a2·y|y| + b·y − c = 0 with y = T_m − T_a.
+        y = 2.0 * c / (b + np.sqrt(b * b + 4.0 * A * self.a2_stc * abs(c)))
+        T_out_K = 2.0 * (T0_K + y) - T_stc_w_in_K
+        Q_l_stc = A * (self.a1_stc * y + self.a2_stc * y * abs(y))
 
-        T_out_K, T_stc_K, ksi = self._calc_outlet_temperature(
-            U_stc,
-            G_stc,
-            Q_sol_stc,
-            Q_stc_w_in,
-            T_stc_w_in_K,
-            T0_K,
-        )
-
-        # Pump heat addition
         T_stc_pump_w_out_K = T_out_K + self.E_stc_pump / G_stc
-
-        # Heat transport rates
-        Q_stc_w_out = calc_energy_flow(
-            G_stc,
-            T_out_K,
-            T0_K,
-        )
-        Q_stc_pump_w_out = calc_energy_flow(
-            G_stc,
-            T_stc_pump_w_out_K,
-            T0_K,
-        )
-
-        # Collector heat loss
-        Q_l_stc = self.A_stc_pipe * U_stc * (T_stc_K - T0_K)
+        Q_stc_w_in = calc_energy_flow(G_stc, T_stc_w_in_K, T0_K)
+        Q_stc_w_out = calc_energy_flow(G_stc, T_out_K, T0_K)
+        Q_stc_pump_w_out = calc_energy_flow(G_stc, T_stc_pump_w_out_K, T0_K)
 
         return {
-            "I_sol_stc": I_sol_stc,
+            **common,
             "Q_sol_stc": Q_sol_stc,
             "S_sol_stc": S_sol_stc,
             "X_sol_stc": X_sol_stc,
             "Q_stc_w_in": Q_stc_w_in,
             "Q_stc_w_out": Q_stc_w_out,
             "Q_stc_pump_w_out": Q_stc_pump_w_out,
-            "ksi_stc": ksi,
+            "ksi_stc": np.nan,
             "T_stc_pump_w_out_K": T_stc_pump_w_out_K,
             "T_stc_w_out_K": T_out_K,
             "T_stc_w_in_K": T_stc_w_in_K,
-            "T_stc_K": T_stc_K,
+            "T_stc_K": T0_K + y,
             "Q_l_stc": Q_l_stc,
+            "eta_stc": (Q_stc_w_out - Q_stc_w_in) / (A * G_T) if G_T > 0 else np.nan,
         }
 
     # ----------------------------------------------------------
@@ -382,13 +604,19 @@ class SolarThermalCollector:
 
 
 @dataclass
-class PhotovoltaicSystem:
+class PhotovoltaicSystem(_SunFacingSurface):
     """Photovoltaic System (PV + Charge Controller) — pure physics engine.
 
     Computes PV energy generation from irradiance inputs.  This class
     is a **stateless physics calculator**: given physical inputs it
     returns a performance dict.  All routing logic (ESS charge/discharge,
     Grid import, dump) is the responsibility of the scenario class.
+
+    The array sees the irradiance on its own plane (``A_pv``, ``pv_tilt``,
+    ``pv_azimuth``), transposed from ``I_DN`` / ``I_dH`` with the sun position
+    of the step (:meth:`plane_irradiance`; site and clock as for
+    :class:`SolarThermalCollector`), less the reflection at the module glass
+    (ASHRAE incidence-angle modifier ``b0_pv``, 0.05 as pvlib's default).
 
     The public API:
 
@@ -409,14 +637,33 @@ class PhotovoltaicSystem:
     eta_ctrl: float = 0.95
     T_ctrl_K: float = 308.15
 
+    # Optics, site and clock
+    b0_pv: float = 0.05
+    latitude: float = DEFAULT_LATITUDE
+    longitude: float = DEFAULT_LONGITUDE
+    utc_offset_h: float = DEFAULT_UTC_OFFSET_H
+    start_time: object = None
+    albedo: float = 0.2
+    sky_model: str = "perez"
+
     def __post_init__(self) -> None:
         validate_ctor("PV", vars(self))
+        self._check_site()
+
+    def _surface(self) -> tuple[float, float]:
+        return self.pv_tilt, self.pv_azimuth
+
+    def _beam_b0(self) -> float:
+        return float(self.b0_pv)
 
     def calc_performance(
         self,
         I_DN: float,
         I_dH: float,
         T0_K: float,
+        *,
+        time_s: float | None = None,
+        plane: dict | None = None,
     ) -> dict:
         """Compute PV generation for one timestep.
 
@@ -428,17 +675,34 @@ class PhotovoltaicSystem:
             Diffuse-horizontal irradiance [W/m²].
         T0_K : float
             Dead-state (ambient) temperature [K].
+        time_s : float | None
+            Time after ``start_time`` [s] at which the sun is placed.
+        plane : dict | None
+            Precomputed :meth:`plane_irradiance` (takes precedence).
 
         Returns
         -------
         dict
-            Keys: ``I_sol_pv``, ``T_pv_K``, ``eta_pv_actual``, ``E_pv_out``, ``E_ctrl_out``,
+            Keys: ``I_sol_pv`` (irradiance on the array plane), ``I_eff_pv``
+            (after the incidence-angle modifier), ``T_pv_K``,
+            ``eta_pv``, ``E_pv_out``, ``E_ctrl_out``,
             ``Q_l_pv``, ``Q_l_ctrl``, ``X_sol``, ``X_pv_out``,
             ``X_ctrl_out``, ``X_c_pv``, ``X_c_ctrl``,
             ``X_l_pv``, ``X_l_ctrl``.
         """
+        if plane is None:
+            if time_s is None:
+                raise TypeError(
+                    "PhotovoltaicSystem.calc_performance needs the time to place the sun: pass time_s "
+                    "(seconds after start_time) or plane=pv.plane_irradiance(I_DN, I_dH, time_s)."
+                )
+            plane = self.plane_irradiance(I_DN, I_dH, time_s)
         T0 = max(1e-3, T0_K)
-        I_sol = I_DN + I_dH
+        K_sky, K_gnd = diffuse_iam(self.pv_tilt, self.b0_pv)
+        # A plane from plane_irradiance carries the beam already modified sample by sample.
+        G_b = plane["beam_iam"] if "beam_iam" in plane else ashrae_iam(plane["aoi"], self.b0_pv) * plane["beam"]
+        G_d = K_sky * plane["sky"] + K_gnd * plane["ground"]
+        I_sol = G_b + G_d
 
         # ── PV Cell ──────────────────────────────────────────────
         T_pv_K_approx = T0 + (I_sol * (self.alp_pv - self.eta_pv)) / (2.0 * self.h_o)
@@ -450,7 +714,7 @@ class PhotovoltaicSystem:
         E_pv_out = self.A_pv * eta_pv_actual * I_sol
         Q_l_pv = 2.0 * self.A_pv * self.h_o * (T_pv_K - T0)
 
-        s_sol = k_D * (I_DN**0.9) + k_d * (I_dH**0.9)
+        s_sol = k_D * (G_b**0.9) + k_d * (G_d**0.9)
         S_sol = self.A_pv * self.alp_pv * s_sol
         S_l_pv = (1.0 / T_pv_K) * Q_l_pv if T_pv_K > 0 else 0.0
         S_g_pv = S_l_pv - S_sol  # S_pv_out = 0 (electricity)
@@ -471,7 +735,8 @@ class PhotovoltaicSystem:
         X_c_ctrl = S_g_ctrl * T0
 
         return {
-            "I_sol_pv": I_sol,
+            "I_sol_pv": float(plane["total"]),
+            "I_eff_pv": I_sol,
             "T_pv_K": T_pv_K,
             "eta_pv": eta_pv_actual,
             "E_pv_out": E_pv_out,
@@ -734,29 +999,42 @@ def route_pv_ess(
     }
 
 
-def stc_result_columns(stc_result: dict, T_stc_w_in_K: float, dV_stc: float) -> dict:
+def stc_result_columns(stc_result: dict, T_stc_w_in_K: float, dV_stc: float, fraction: float = 1.0) -> dict:
     """Energy columns of one collector evaluation, named as in ``GSHPB_STC_tank``.
 
-    ``Q_stc_w_out - Q_stc_w_in`` is the heat the collector adds to its fluid and
-    ``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc`` closes the collector
-    balance.  All collector columns are NaN while the collector is inactive.
+    ``fraction`` is the share of the step the loop circulated
+    (``stc_runtime_fraction [-]``); the flow terms are step averages
+    (``fraction`` × running value) and the absorbed heat is the whole step's,
+    so the collector balance ``Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc``
+    closes with the idle part of the step counted as loss (a stagnating
+    collector loses all it absorbs). Temperatures are the running values.
+    The flow terms are NaN while the collector is inactive.
     """
+    f = float(fraction)
     T_out = stc_result.get("T_stc_w_out_K", np.nan)
     T_pump_out = stc_result.get("T_stc_pump_w_out_K", T_out)
+    Q_sol = stc_result.get("Q_sol_stc", np.nan)
+    Q_in = stc_result.get("Q_stc_w_in", np.nan)
+    Q_out = stc_result.get("Q_stc_w_out", np.nan)
+    T_stag = stc_result.get("T_stc_stag_K", np.nan)
     return {
         "I_sol_stc [W/m2]": stc_result.get("I_sol_stc", np.nan),
-        "Q_sol_stc [W]": stc_result.get("Q_sol_stc", np.nan),
+        "aoi_stc [deg]": stc_result.get("aoi_stc", np.nan),
+        "Q_sol_stc [W]": Q_sol,
         "S_sol_stc [W/K]": stc_result.get("S_sol_stc", np.nan),
         "X_sol_stc [W]": stc_result.get("X_sol_stc", np.nan),
-        "Q_stc_w_out [W]": stc_result.get("Q_stc_w_out", np.nan),
-        "Q_stc_pump_w_out [W]": stc_result.get("Q_stc_pump_w_out", np.nan),
-        "Q_stc_w_in [W]": stc_result.get("Q_stc_w_in", np.nan),
-        "Q_l_stc [W]": stc_result.get("Q_l_stc", np.nan),
-        "dV_stc [m3/s]": dV_stc,
+        "Q_stc_w_out [W]": f * Q_out,
+        "Q_stc_pump_w_out [W]": f * stc_result.get("Q_stc_pump_w_out", np.nan),
+        "Q_stc_w_in [W]": f * Q_in,
+        "Q_l_stc [W]": Q_sol - f * (Q_out - Q_in),
+        "eta_stc [-]": f * stc_result.get("eta_stc", np.nan),
+        "stc_runtime_fraction [-]": f if np.isfinite(Q_sol) else 0.0,
+        "dV_stc [m3/s]": f * dV_stc,
         "T_stc_w_out [°C]": cu.K2C(T_out) if not np.isnan(T_out) else np.nan,
         "T_stc_pump_w_out [°C]": cu.K2C(T_pump_out) if not np.isnan(T_pump_out) else np.nan,
         "T_stc_w_in [°C]": cu.K2C(T_stc_w_in_K),
         "T_stc [°C]": cu.K2C(stc_result.get("T_stc_K", np.nan)),
+        "T_stc_stag [°C]": cu.K2C(T_stag) if np.isfinite(T_stag) else np.nan,
     }
 
 
@@ -776,20 +1054,6 @@ def warn_if_uv_ignored(model: object) -> None:
             UserWarning,
             stacklevel=3,
         )
-
-
-def single_count_uv_heat(sub_states: dict) -> dict:
-    """Make the UV lamp heat enter the tank balance once.
-
-    ``UVLamp.step`` reports the lamp power both as ``Q_contribution`` and as
-    ``E_subsystem``, and the tank residual adds both (defect T2).  Where a step
-    carries both with the same value, keep ``E_subsystem`` only.  Once
-    ``UVLamp.step`` reports the heat once this is a no-op.
-    """
-    uv = sub_states.get("uv")
-    if uv and uv.get("Q_contribution", 0.0) and uv.get("Q_contribution") == uv.get("E_subsystem"):
-        sub_states["uv"] = {**uv, "Q_contribution": 0.0}
-    return sub_states
 
 
 def pv_ess_result_columns(
@@ -897,10 +1161,24 @@ def pv_ess_postprocess(df: pd.DataFrame) -> pd.DataFrame:
 class UVLamp:
     """UV disinfection lamp subsystem.
 
-    The lamp switches on periodically (``num_switching``
-    times per ``period_sec``, each for ``exposure_sec``).
-    All electrical input is converted to heat inside the
-    tank (``Q_contribution = E_uv``).
+    The lamp switches on periodically (``num_switching`` times per
+    ``period_sec``, each for ``exposure_sec``, evenly spaced). Each step
+    reports the lamp's **step-average** power, the switching schedule
+    integrated over the step (:func:`tmhp.uv_treatment.calc_uv_lamp_energy`),
+    so the energy does not depend on the time step.
+
+    Heat: ``heat_to_water_fraction`` of the lamp power ends up in the tank
+    water. A low-pressure mercury lamp in a quartz sleeve inside the tank
+    turns about a third of its input into 254 nm UV-C and the rest into heat
+    and visible light; the water and the tank wall absorb all of it. Its
+    ballast (electronic, about 90 % efficient) sits in the control box
+    outside the tank, so the default is 0.9. Set 1.0 for a lamp and ballast
+    both inside the tank boundary.
+
+    Step protocol: ``E_subsystem`` is the lamp's electric power; the tank
+    balance adds it as heat, and ``Q_contribution = -(1 - fraction)·E_uv`` takes
+    off the part that leaves the tank boundary, so the tank gains
+    ``fraction·E_uv`` once.
 
     Parameters
     ----------
@@ -912,15 +1190,23 @@ class UVLamp:
         Number of on-cycles per period.
     period_sec : float
         Switching period [s] (default 3 h = 10 800 s).
+    heat_to_water_fraction : float
+        Share of the lamp's electric power that heats the tank water [-].
     """
 
     lamp_watts: float = 0.0
     exposure_sec: float = 0.0
     num_switching: int = 1
     period_sec: float = 3 * cu.h2s
+    heat_to_water_fraction: float = 0.9
 
     def __post_init__(self) -> None:
         validate_ctor("UV", vars(self))
+        if self.num_switching * self.exposure_sec > self.period_sec:
+            raise ValueError(
+                f"num_switching * exposure_sec must not exceed period_sec, got "
+                f"{self.num_switching} x {self.exposure_sec} s > {self.period_sec} s"
+            )
 
     def step(
         self,
@@ -929,18 +1215,24 @@ class UVLamp:
         dt: float,
         T_tank_w_in_K: float,
     ) -> dict:
-        """Compute UV lamp state for one timestep."""
-        from .uv_treatment import calc_uv_lamp_power
+        """Step-average lamp power and the heat it gives the tank."""
+        from .uv_treatment import calc_uv_lamp_energy
 
-        E_uv: float = calc_uv_lamp_power(
-            ctx.current_time_s,
-            self.period_sec,
-            self.num_switching,
-            self.exposure_sec,
-            self.lamp_watts,
+        E_uv: float = (
+            calc_uv_lamp_energy(
+                ctx.current_time_s,
+                dt,
+                self.period_sec,
+                self.num_switching,
+                self.exposure_sec,
+                self.lamp_watts,
+            )
+            / dt
+            if dt > 0
+            else 0.0
         )
         return {
-            "Q_contribution": E_uv,
+            "Q_contribution": -(1.0 - self.heat_to_water_fraction) * E_uv,
             "E_subsystem": E_uv,
             "T_tank_w_in_override_K": None,
             "E_uv": E_uv,
@@ -953,10 +1245,10 @@ class UVLamp:
         step_state: dict,
         T_solved_K: float,
     ) -> dict:
-        """Report UV power for DataFrame output."""
+        """Report the step-average UV power and its heat to the tank."""
         E_uv: float = step_state.get("E_uv", 0.0)
         if E_uv > 0 or self.lamp_watts > 0:
-            return {"E_uv [W]": E_uv}
+            return {"E_uv [W]": E_uv, "Q_uv_tank [W]": self.heat_to_water_fraction * E_uv}
         return {}
 
     def calc_exergy(

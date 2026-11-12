@@ -128,7 +128,8 @@ Common next moves
 - For solar-coupled or PV/ESS variants, instantiate the corresponding
   subclass (``ASHPB_STC_preheat``, ``ASHPB_STC_tank``, ``ASHPB_PV_ESS``,
   or the GSHPB counterparts) and pass the additional schedules
-  (``I_DN_schedule``, ``I_dH_schedule``, ``T_sup_w_schedule``) as
+  (``I_DN_schedule`` direct-normal and ``I_dH_schedule`` diffuse-horizontal
+  irradiance, ``T_sup_w_schedule``) as
   documented under :doc:`../models/ashpb` and
   :doc:`../models/gshpb`.
 
@@ -169,8 +170,8 @@ annual energy.
 
 The constructors refuse set points outside 0–100 °C, and the heat pump
 never heats the tank past 100 °C even when a minimum run time (below)
-holds it past the upper bound. If heat from another
-source (for example a solar collector loop without a high limit) takes
+holds it past the upper bound; the solar collector loops stop at their own
+storage limit (``T_stc_tank_max``, 85 °C). If heat from another source takes
 the tank above 100 °C anyway, a ``RuntimeWarning`` says so: the lumped
 tank has no boiling or relief valve.
 

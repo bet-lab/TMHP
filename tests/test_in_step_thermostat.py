@@ -336,12 +336,17 @@ def test_minimum_times_change_cycling_only_when_set():
 
 
 def test_heat_from_other_sources_above_boiling_is_not_silent():
-    """GSHPB with a collector loop and no high limit (#96 T9) passes 100 °C: warn."""
-    from tmhp import GSHPB_STC_tank
-    from tmhp.subsystems import SolarThermalCollector
+    """GSHPB with another heat source and no high limit passes 100 °C: warn.
+
+    The collector loops have a storage high limit since #96 T9; a lamp that
+    is always on (and far too large) stands in for any other heat source.
+    """
+    from tmhp import GroundSourceHeatPumpBoiler
+    from tmhp.subsystems import UVLamp
 
     dt, n = 600, 18
-    m = GSHPB_STC_tank(stc=SolarThermalCollector(preheat_start_hour=0.0), dt_s=dt, t_max_s=86400.0)
+    lamp = UVLamp(lamp_watts=20000.0, exposure_sec=3600.0, num_switching=1, period_sec=3600.0)
+    m = GroundSourceHeatPumpBoiler(uv=lamp, hp_on_schedule=[(0.0, 0.0)], dt_s=dt, t_max_s=86400.0)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         df = m.analyze_dynamic(
@@ -350,10 +355,8 @@ def test_heat_from_other_sources_above_boiling_is_not_silent():
             80.0,
             np.zeros(n),
             np.full(n, 25.0),
-            I_DN_schedule=np.full(n, 900.0),
-            I_dH_schedule=np.full(n, 120.0),
             T_sup_w_schedule=np.full(n, T_SUP),
         )
-    assert df["T_tank_w [°C]"].max() > T_WATER_BOIL_C  # T9 is out of scope here
+    assert df["T_tank_w [°C]"].max() > T_WATER_BOIL_C
     assert not df["hp_is_on"].any()
     assert any(str(w.message) == TANK_BOILING_WARNING for w in caught)

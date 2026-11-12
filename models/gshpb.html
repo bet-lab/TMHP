@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-10-08T14:29:14+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -959,19 +959,18 @@ with no dependency on <code class="docutils literal notranslate"><span class="pr
 <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
 <section id="usage">
 <h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
-</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis.gshpb_stc_preheat</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_preheat</span>
-</span><span data-line="3">
-</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
-</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_preheat</span><span class="p">(</span>
-</span><span data-line="6">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
-</span><span data-line="8">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="10">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
-</span><span data-line="11">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
-</span><span data-line="12"><span class="p">)</span>
-</span><span data-line="13"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">GSHPB_STC_preheat</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_preheat</span><span class="p">(</span>
+</span><span data-line="5">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
+</span><span data-line="11"><span class="p">)</span>
+</span><span data-line="12"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </span></pre></div>
 </div>
 </section>
@@ -1037,19 +1036,18 @@ with no dependency on <code class="docutils literal notranslate"><span class="pr
 <code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
 <section id="id5">
 <h3>Usage<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
-</span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">enex_analysis.gshpb_stc_tank</span><span class="w"> </span><span class="kn">import</span> <span class="n">GSHPB_STC_tank</span>
-</span><span data-line="3">
-</span><span data-line="4"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
-</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_tank</span><span class="p">(</span>
-</span><span data-line="6">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
-</span><span data-line="8">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="10">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
-</span><span data-line="11">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
-</span><span data-line="12"><span class="p">)</span>
-</span><span data-line="13"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">GSHPB_STC_tank</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">GSHPB_STC_tank</span><span class="p">(</span>
+</span><span data-line="5">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
+</span><span data-line="7">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
+</span><span data-line="8">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
+</span><span data-line="9">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
+</span><span data-line="10">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
+</span><span data-line="11"><span class="p">)</span>
+</span><span data-line="12"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </span></pre></div>
 </div>
 </section>
@@ -1299,7 +1297,7 @@ control, source boundaries, and feasibility diagnostics.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 08, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

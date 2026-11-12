@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, tank backends, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy stora..." />
 
-    <meta property="article:modified_time" content="2026-07-17T17:12:52+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1076,9 +1076,17 @@ that is <strong>frozen until the thermocline front passes that neighbour’s mid
 instead of smearing across nodes. This is the charge-only thermocline form
 (Cruz-Loredo Eq. 7): discharge/idle destroys the barrier and the model reverts to
 the standard continuous multi-node behaviour.</p>
-<p>Targets the <strong>plant / ground-truth</strong> role (high fidelity, non-smooth); the smooth
-<a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank" title="tmhp.stratified_tank.StratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">StratifiedTank</span></code></a> (Cadau) targets the MPC-internal
-role. Same geometry/units conventions as <code class="docutils literal notranslate"><span class="pre">StratifiedTank</span></code> (node 0 = top/hot).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Experimental — do not use as a plant / ground-truth reference.</strong> The
+thermocline front advances by at most one node per step, so when the charge
+volume in one step exceeds one node’s volume the model loses energy
+(diagnosed: only 32-58 % of the injected heat is stored, see issue #96).
+Use it only for front-shape studies at small time steps. The smooth
+<a class="reference internal" href="#tmhp.stratified_tank.StratifiedTank" title="tmhp.stratified_tank.StratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">StratifiedTank</span></code></a> (Cadau) targets the
+MPC-internal role.</p>
+</div>
+<p>Same geometry/units conventions as <code class="docutils literal notranslate"><span class="pre">StratifiedTank</span></code> (node 0 = top/hot).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.hybrid_tank.HybridStratifiedTank">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.hybrid_tank.</span></span><span class="sig-name descname"><span class="pre">HybridStratifiedTank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_eff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.606</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ua</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4186</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/hybrid_tank.html#HybridStratifiedTank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.hybrid_tank.HybridStratifiedTank" title="Link to this definition">¶</a></dt>
@@ -1160,7 +1168,7 @@ continuous multi-node update (the barrier is destroyed).</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 17, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

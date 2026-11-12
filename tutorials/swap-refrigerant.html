@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/TMHP/tutorials/swap-refrigerant.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises a..." />
+<meta property="og:description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick a CoolProp pure or pseudo-pure..." />
 <meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
-<meta name="description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick any name CoolProp recognises a..." />
+<meta name="description" content="The refrigerant is a constructor argument on every released cycle-resolved model family in TMHP. Changing it requires no recalibration and no manufacturer data — pick a CoolProp pure or pseudo-pure..." />
 
-    <meta property="article:modified_time" content="2026-09-13T15:43:05+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -190,8 +190,10 @@ data-aria-dark="Switch to auto color mode">
 <h1>Swap refrigerants<a class="headerlink" href="#swap-refrigerants" title="Link to this heading">¶</a></h1>
 <p>The refrigerant is a constructor argument on every released
 cycle-resolved model family in TMHP. Changing it requires no
-recalibration and no manufacturer data — pick any name CoolProp
-recognises and the library re-solves the cycle from first principles.
+recalibration and no manufacturer data — pick a CoolProp pure or
+pseudo-pure refrigerant whose cycle stays subcritical and the library
+re-solves the cycle from first principles. R744 (CO<sub>2</sub>) and
+user-defined <code class="docutils literal notranslate"><span class="pre">HEOS::</span></code> mixtures are not supported (see below).
 That’s the single most concrete way to see what “refrigerant-agnostic”
 means in this library.</p>
 <p>This page is both a copy-runnable tutorial — sweep four refrigerants
@@ -1397,7 +1399,10 @@ the heat exchangers are identical.</p></li>
 <td><p>31</p></td>
 <td><p>−78 (subl.)</p></td>
 <td><p>n/a</p></td>
-<td><p>Transcritical sanitary hot water (60–90 °C), supermarket refrigeration.</p></td>
+<td><p>Transcritical sanitary hot water (60–90 °C), supermarket refrigeration.
+<strong>Not supported by TMHP</strong>: the cycle assumes subcritical
+compression, and the boiler families fail on R744 with a CoolProp
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>R717</strong></p></td>
 <td><p>NH<sub>3</sub> (ammonia)</p></td>
@@ -1599,10 +1604,13 @@ reach without compromising COP.</p>
 <p><em>Watch outs</em>: very high operating pressures (~100 bar on
 the gas-cooler side) — requires purpose-built compressors,
 heat exchangers, and instrumentation. Sub-cooler /
-expander details dominate COP; can’t be analysed with a
-subcritical-condenser model — see
-<a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a> for how
-TMHP currently treats this case.</p>
+expander details dominate COP. TMHP does <strong>not</strong> support it:
+the cycle assumes subcritical single-stage compression, and the
+boiler families (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> and the ground- and
+water-source counterparts) raise a CoolProp <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> because the condensing temperature exceeds the
+critical temperature — see
+<a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
 <p><em>Typical use</em>: sanitary-water heat pumps (Japan, Europe),
 commercial / supermarket refrigeration, transport
 refrigeration.</p>
@@ -1643,9 +1651,9 @@ guide:</p>
 systems; R290 for sealed monoblock outdoor units. R410A only
 for service of existing installs.</p>
 </dd>
-<dt><em>Domestic DHW heat pump (LWT 55–65 °C)</em></dt><dd><p>R32 or R290 for subcritical designs; R744 for the
-very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
-pattern.</p>
+<dt><em>Domestic DHW heat pump (LWT 55–65 °C)</em></dt><dd><p>R32 or R290 for subcritical designs. R744 is the usual choice for
+the very-high-LWT (≥ 65 °C with cold return) hot-water-heat-pump
+pattern, but TMHP cannot model it.</p>
 </dd>
 <dt><em>High-temperature industrial heat pump (LWT 80–95 °C)</em></dt><dd><p>R1234ze(E), R134a, or R717 (ammonia). R600a is occasionally
 used for niche small units. TMHP solves these
@@ -1658,9 +1666,10 @@ Pure R134a / R1234ze(E) can reach 90 °C but with diminishing
 COP.</p>
 </dd>
 <dt><em>Transcritical sanitary hot water (≥ 65 °C, cold return)</em></dt><dd><p>R744 — the only mainstream refrigerant whose cycle is
-optimised for this duty. Not subcritical, so the
-TMHP result is a sanity check rather than a design;
-see <a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
+optimised for this duty. The cycle is transcritical, which TMHP
+does not support (<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> fails with a CoolProp
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>); use a dedicated transcritical model and see
+<a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a>.</p>
 </dd>
 <dt><em>Industrial refrigeration and process cooling</em></dt><dd><p>R717 (ammonia) is the workhorse. R744 (CO<sub>2</sub>) is the
 growing alternative, often in CO<sub>2</sub>/NH<sub>3</sub>
@@ -1701,7 +1710,7 @@ implications.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Sep 13, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of TMHP — and this is the page that makes it concrete. The refrigerant is a constructor argument on every released cycle-resolved model fami..." />
 
-    <meta property="article:modified_time" content="2026-10-03T14:12:16+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -145,9 +145,12 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#the-contract">The contract</a></li>
+<li><a class="reference internal" href="#the-contract">The contract</a><ul>
+<li><a class="reference internal" href="#not-supported">Not supported</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#subcritical-operation-r32-r290-r410a-r134a">Subcritical operation (R32, R290, R410A, R134a, &#8230;)</a></li>
-<li><a class="reference internal" href="#supercritical-transcritical-operation-r744">Supercritical / transcritical operation (R744)</a></li>
+<li><a class="reference internal" href="#supercritical-transcritical-operation-r744-not-supported">Supercritical / transcritical operation (R744) &#8212; not supported</a></li>
 <li><a class="reference internal" href="#mapping-coolprop-errors-to-failure-reason">Mapping CoolProp errors to <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code></a></li>
 <li><a class="reference internal" href="#why-coolprop-specifically">Why CoolProp specifically?</a></li>
 </ul>
@@ -201,29 +204,42 @@ CoolProp-related failures.</p>
      data-default="R32"></div>
 <script src="../_static/js/lib/d3.v7.custom.min.js"></script>
 <script src="../_static/js/plots/_plot-common.js"></script>
-<script src="../_static/js/plots/ph-chart.js"></script><p>Any refrigerant CoolProp supports as a pure fluid or a mixture
-that CoolProp can resolve via its built-in alias table is usable
-out of the box:</p>
+<script src="../_static/js/plots/ph-chart.js"></script><p>A CoolProp pure or pseudo-pure refrigerant whose cycle stays subcritical
+(condensing temperature below the critical temperature) is usable out of
+the box:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>        <span class="c1"># difluoromethane</span>
 </span><span data-line="4"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>       <span class="c1"># propane</span>
-</span><span data-line="5"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>      <span class="c1"># mixture</span>
+</span><span data-line="5"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>      <span class="c1"># pseudo-pure blend</span>
 </span><span data-line="6"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">)</span>
-</span><span data-line="7"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">,</span> <span class="n">rps_rated</span><span class="o">=</span><span class="mf">40.0</span><span class="p">)</span>    <span class="c1"># CO₂ (see below)</span>
-</span><span data-line="8"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R600a&quot;</span><span class="p">,</span> <span class="n">V_cmp_ref</span><span class="o">=</span><span class="mf">1.0e-4</span><span class="p">)</span>  <span class="c1"># isobutane</span>
+</span><span data-line="7"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R600a&quot;</span><span class="p">)</span>      <span class="c1"># isobutane</span>
 </span></pre></div>
 </div>
 <p>The compressor’s rated speed is solved for each fluid at the model’s rating
 condition (<a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>), so swapping the fluid keeps the
 rated capacity. The capacity-scaled default displacement comes from an R32
-catalogue unit; a low-pressure fluid such as R600a needs a larger
-<code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> to reach its rated capacity below <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, and the
-constructor says so (<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>) instead of
-clamping the speed.</p>
+catalogue unit, so a low-pressure fluid such as R600a is built and solved
+with the defaults but needs a much higher rated speed (about 120 rev/s for
+the 15 kW default, outside the 33.8–72.5 rev/s range the default compressor
+efficiency was fitted on). Pass a larger <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> to keep the speed
+in range. If the displacement is so small that the rated capacity cannot
+be reached below <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, the constructor says so
+(<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>) instead of clamping the speed.</p>
+<section id="not-supported">
+<h3>Not supported<a class="headerlink" href="#not-supported" title="Link to this heading">¶</a></h3>
+<p>The cycle assumes subcritical single-stage compression. These are outside
+the supported set:</p>
+<ul class="simple">
+<li><p>Refrigerants that become supercritical at DHW temperatures, notably R744
+(see below).</p></li>
+<li><p>User-defined <code class="docutils literal notranslate"><span class="pre">HEOS::</span></code> mixtures; the constructor does not return for
+them.</p></li>
+</ul>
 <p>CoolProp returns REFPROP-grade equation-of-state values, so the same
 first-principles cycle calculation can be rerun with a different
 working fluid without per-refrigerant curve refitting.</p>
+</section>
 </section>
 <section id="subcritical-operation-r32-r290-r410a-r134a">
 <h2>Subcritical operation (R32, R290, R410A, R134a, …)<a class="headerlink" href="#subcritical-operation-r32-r290-r410a-r134a" title="Link to this heading">¶</a></h2>
@@ -236,22 +252,29 @@ typical condenser water temperatures (R32: ~78 °C critical, R290:
 ~97 °C, R134a: ~101 °C), this assumption holds across the entire
 DHW operating envelope.</p>
 </section>
-<section id="supercritical-transcritical-operation-r744">
-<h2>Supercritical / transcritical operation (R744)<a class="headerlink" href="#supercritical-transcritical-operation-r744" title="Link to this heading">¶</a></h2>
+<section id="supercritical-transcritical-operation-r744-not-supported">
+<h2>Supercritical / transcritical operation (R744) — not supported<a class="headerlink" href="#supercritical-transcritical-operation-r744-not-supported" title="Link to this heading">¶</a></h2>
 <p>R744 (CO₂) has a critical temperature near 31 °C. For DHW heating
-(condenser water at 50–65 °C) the high side runs <em>above</em> the
-critical point — a transcritical cycle. The current model is
-written against a subcritical-condenser assumption, so R744 has no
-subcritical rating point to solve the rated speed from: pass
-<code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> explicitly (the constructor warns that
-<code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> could not be derived). It will then still solve,
-but the results are best interpreted as a sanity-check, not a fully
-transcritical model.</p>
-<p>If you need a faithful transcritical model, a future cycle path
-that treats the gas-cooler explicitly is the right place to add
-it. The cycle-closure interface (<code class="docutils literal notranslate"><span class="pre">_optimize_operation</span></code>) is
+(condenser water at 50–65 °C) the high side would run <em>above</em> the
+critical point — a transcritical cycle. The cycle is written against a
+subcritical-condenser assumption, so R744 is <strong>not supported</strong> on the
+boiler families (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> and the ground- and
+water-source counterparts). The constructor only warns that
+<code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code> could not be derived (pass <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> to silence
+it), and <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> then raises a CoolProp <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+because the condensing temperature (for example 330.8 K at a 55 °C
+tank) is above the numerical critical point (304.1 K):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R744&quot;</span><span class="p">,</span> <span class="n">rps_rated</span><span class="o">=</span><span class="mf">40.0</span><span class="p">)</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span>
+</span><span data-line="2">    <span class="n">T_tank_w</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mf">8000.0</span>
+</span><span data-line="3"><span class="p">)</span>
+</span><span data-line="4"><span class="c1"># ValueError: Temperature to QT_flash [330.81667 K] may not be above</span>
+</span><span data-line="5"><span class="c1"># the numerical critical point of 304.1282 K</span>
+</span></pre></div>
+</div>
+<p>A faithful transcritical model would need a gas-cooler block in place of the
+condenser. The cycle-closure interface (<code class="docutils literal notranslate"><span class="pre">_optimize_operation</span></code>) is
 designed so that swapping the high-side block in is a localised
-change.</p>
+change, but no such block exists today.</p>
 </section>
 <section id="mapping-coolprop-errors-to-failure-reason">
 <h2>Mapping CoolProp errors to <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code><a class="headerlink" href="#mapping-coolprop-errors-to-failure-reason" title="Link to this heading">¶</a></h2>
@@ -293,7 +316,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 03, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-07-01T13:57:28+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -145,7 +145,12 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#the-four-values">The four values</a></li>
+<li><a class="reference internal" href="#the-values">The values</a><ul>
+<li><a class="reference internal" href="#common-to-all-families">Common to all families</a></li>
+<li><a class="reference internal" href="#ashpb-only">ASHPB only</a></li>
+<li><a class="reference internal" href="#ground-coupled-solve-path-gshp-and-gshpb-with-an-active-ground-loop">Ground-coupled solve path (GSHP and GSHPB with an active ground loop)</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#how-to-branch-on-it">How to branch on it</a></li>
 <li><a class="reference internal" href="#what-triggers-each-value">What triggers each value</a></li>
 <li><a class="reference internal" href="#off-mode-fallback">Off-mode fallback</a></li>
@@ -192,8 +197,13 @@ contains usable cycle numbers — that lets callers branch on <em>why</em> a
 step looks the way it does without having to inspect the cycle
 internals. This page is the reference for what each value means and
 when to branch on it.</p>
-<section id="the-four-values">
-<h2>The four values<a class="headerlink" href="#the-four-values" title="Link to this heading">¶</a></h2>
+<section id="the-values">
+<h2>The values<a class="headerlink" href="#the-values" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> can return the values in the tables below. The first five
+are common to every released family (ASHPB, GSHPB, WSHPB, ASHP, GSHP); the
+remaining ones are specific to one family or to the ground-coupled solve path.</p>
+<section id="common-to-all-families">
+<h3>Common to all families<a class="headerlink" href="#common-to-all-families" title="Link to this heading">¶</a></h3>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -230,9 +240,105 @@ operating point. The model falls back to off-mode
 (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 <td><p>No — only off-mode placeholders.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code></p></td>
+<td><p>The compressor pressure ratio exceeded <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>
+(default 20 for the boilers and WSHPB, 5 for ASHP and GSHP). The single-stage envelope is rejected rather
+than clamped, so no cycle state is produced. Reported instead
+of <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> when the last pressure-ratio check was a
+ceiling violation.</p></td>
+<td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
+</tr>
 </tbody>
 </table>
 </div>
+</section>
+<section id="ashpb-only">
+<h3>ASHPB only<a class="headerlink" href="#ashpb-only" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Means</p></th>
+<th class="head"><p>Result dict carries cycle numbers?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code></p></td>
+<td><p>The condensing temperature was at or below the tank/loop inlet
+water temperature, so heat cannot flow to the water at that
+operating point. Takes precedence over <code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> when it is the reason the cycle returned no
+state.</p></td>
+<td><p>No — only off-mode placeholders.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ground-coupled-solve-path-gshp-and-gshpb-with-an-active-ground-loop">
+<h3>Ground-coupled solve path (GSHP and GSHPB with an active ground loop)<a class="headerlink" href="#ground-coupled-solve-path-gshp-and-gshpb-with-an-active-ground-loop" title="Link to this heading">¶</a></h3>
+<p>When the ground loop is solved jointly with the cycle (the ground-flow and
+approach solvers in <code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code>), a point that cannot be met is
+returned as a <em>failed requested point</em>: <code class="docutils literal notranslate"><span class="pre">converged</span> <span class="pre">==</span> <span class="pre">False</span></code>,
+<code class="docutils literal notranslate"><span class="pre">hp_is_on</span> <span class="pre">==</span> <span class="pre">False</span></code>, heat and power columns set to <code class="docutils literal notranslate"><span class="pre">0.0</span></code> and COP columns
+<code class="docutils literal notranslate"><span class="pre">NaN</span></code>. The reason is one of the following (the common values above can
+also appear).</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Means</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pressure_ratio_limit</span></code></p></td>
+<td><p>The cycle was invalid and the last pressure-ratio check hit
+<code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> or <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>. It replaces <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>
+in this path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
+<td><p>The requested duty is below what the compressor delivers at
+<code class="docutils literal notranslate"><span class="pre">rps_min</span></code> (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>), so the exact duty cannot
+be met.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_max_speed</span></code></p></td>
+<td><p>The requested duty is above what the compressor delivers at
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_capacity_limit</span></code></p></td>
+<td><p>The delivered duty differs from the request for another reason
+than the min/max speed clamp.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_speed_limit</span></code></p></td>
+<td><p>The compressor-speed solve did not converge and the row carried no
+more specific reason.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">load_hx_capacity_insufficient</span></code></p></td>
+<td><p>The load-side heat exchanger (indoor coil or tank condenser) could
+not transfer the required duty.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ground_hx_capacity_insufficient</span></code></p></td>
+<td><p>The ground heat exchanger could not supply the required evaporator
+duty at any approach temperature in the search band.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">pr_below_min</span></code> is <em>not</em> a <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> value. A pressure ratio
+below <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> is clamped to the floor and the cycle is still
+solved; it only prints a <code class="docutils literal notranslate"><span class="pre">[PR</span> <span class="pre">guard]</span></code> message and sets
+<code class="docutils literal notranslate"><span class="pre">pr_floor_active</span></code> on GSHP results.</p>
+</section>
 </section>
 <section id="how-to-branch-on-it">
 <h2>How to branch on it<a class="headerlink" href="#how-to-branch-on-it" title="Link to this heading">¶</a></h2>
@@ -242,7 +348,7 @@ directly. Off-mode rows have <code class="docutils literal notranslate"><span cl
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">ok</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
 </span></pre></div>
 </div>
-<p>This is robust across all four <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> values and is
+<p>This is robust across all <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> values and is
 also the recommended check inside <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>, where
 <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> is per-step.</p>
 <p><strong>“Did the model warn me about anything?”</strong> Look at
@@ -262,7 +368,7 @@ the converged flag with the failure reason:</p>
 <section id="what-triggers-each-value">
 <h2>What triggers each value<a class="headerlink" href="#what-triggers-each-value" title="Link to this heading">¶</a></h2>
 <p>These are implementation details and may shift between releases —
-treat the four values themselves as the stable contract, not the
+treat the values themselves as the stable contract, not the
 mechanism. Expand the cards below for the trigger conditions and
 the recommended lever to pull when you hit each one.</p>
 <details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
@@ -311,10 +417,48 @@ for the given geometry. Consider increasing the design
 operating point is genuinely off-limits and let the
 off-mode row stand.</p>
 </div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-danger sd-bg-text-danger">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-x-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code> — pressure ratio above the envelope</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The final operating point needs a compressor pressure ratio
+above <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> (checked by
+<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.check_pr_envelope" title="tmhp.compressor_envelope.check_pr_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.check_pr_envelope()</span></code></a>). The model
+falls back to off-mode placeholders, and a <code class="docutils literal notranslate"><span class="pre">[PR</span> <span class="pre">guard]</span></code> message is
+printed.</p>
+<p class="sd-card-text"><strong>What to do.</strong> Reduce the lift (lower <code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code> or raise the
+source temperature), or raise <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> if a higher
+single-stage ratio is acceptable for your compressor.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-danger sd-bg-text-danger">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-x-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code> — condensing below the water inlet (ASHPB)</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Inside <code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> the condensing temperature
+<code class="docutils literal notranslate"><span class="pre">T_cond_K</span> <span class="pre">&lt;=</span> <span class="pre">T_tank_w_K</span></code>, so the condenser cannot heat the water.
+The cycle returns no state and the model falls back to off-mode
+placeholders.</p>
+<p class="sd-card-text"><strong>What to do.</strong> Usually the optimiser probed an evaporating
+temperature that is too low for the tank temperature. Move the
+operating point away from the tank temperature or check the
+tank-loop inputs.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-warning sd-bg-text-warning">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-alert" viewBox="0 0 16 16" aria-hidden="true"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path></svg></span><span class="sd-summary-text">Ground-coupled reasons</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text"><code class="docutils literal notranslate"><span class="pre">pressure_ratio_limit</span></code>, <code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code>,
+<code class="docutils literal notranslate"><span class="pre">compressor_max_speed</span></code>, <code class="docutils literal notranslate"><span class="pre">compressor_capacity_limit</span></code>,
+<code class="docutils literal notranslate"><span class="pre">compressor_speed_limit</span></code>, <code class="docutils literal notranslate"><span class="pre">load_hx_capacity_insufficient</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ground_hx_capacity_insufficient</span></code> come from the ground-coupled
+solve (see the table above). In all of them the requested duty is
+reported as <em>not met</em>: heat and power are zero and COP is <code class="docutils literal notranslate"><span class="pre">NaN</span></code>.</p>
+<p class="sd-card-text"><strong>What to do.</strong> Check the compressor speed band against the request
+(<code class="docutils literal notranslate"><span class="pre">*_min_speed</span></code>/<code class="docutils literal notranslate"><span class="pre">*_max_speed</span></code>), or enlarge the heat exchanger that
+the name points at (<code class="docutils literal notranslate"><span class="pre">load_hx_*</span></code> or <code class="docutils literal notranslate"><span class="pre">ground_hx_*</span></code>).</p>
+</div>
 </details></section>
 <section id="off-mode-fallback">
 <h2>Off-mode fallback<a class="headerlink" href="#off-mode-fallback" title="Link to this heading">¶</a></h2>
-<p>When <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;cycle_invalid&quot;</span></code>, the steady-state path
+<p>When <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code>, the steady-state path
 emits a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code> and substitutes an off-mode result:
 <code class="docutils literal notranslate"><span class="pre">hp_is_on</span> <span class="pre">=</span> <span class="pre">False</span></code>, all power and duty fields zeroed. This keeps
 <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> rows aligned (one row per step, regardless of
@@ -335,7 +479,7 @@ core models. See the docstrings under:</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

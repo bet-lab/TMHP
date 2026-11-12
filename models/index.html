@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="System-level heat pump models — the classes you instantiate directly. Each page below is a 1-stop reference for one model family: how it plugs the shared refrigerant cycle into a specific source / ..." />
 
-    <meta property="article:modified_time" content="2026-10-03T14:12:16+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -252,10 +252,11 @@ response is history-dependent.</p></td>
 </tbody>
 </table>
 </div>
-<p>Only <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.AirSourceHeatPumpBoiler</span></code> has a quantitative catalogue
-validation page today. The other cycle-resolved families share the same
-refrigerant-cycle core and have smoke coverage on representative
-operating points. <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GroundSourceHeatPumpEmpirical</span></code> is
+<p>Only <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.AirSourceHeatPumpBoiler</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.AirSourceHeatPump</span></code> (air-to-water and air-to-air) have
+quantitative catalogue validation today (see <a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>). The
+ground-source and water-source families share the same refrigerant-cycle core
+and have smoke coverage on representative operating points. <code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GroundSourceHeatPumpEmpirical</span></code> is
 documented on the GSHP page as a faster EquationFit alternative; it is
 not one of the refrigerant-cycle-core families in the matrix above.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
@@ -315,7 +316,7 @@ Ground-source heat pump (space conditioning)</div>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 03, 2026
+  Last updated Nov 12, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

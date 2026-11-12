@@ -382,9 +382,23 @@ def precompute_gfunction(
     )
 
 
+# ---------------------------------------------------------------------------
+# Moving finite line source (MFLS) — UNUSED, UNVERIFIED
+# ---------------------------------------------------------------------------
+# ``chi_mfls``, ``G_MFLS_Field`` and ``precompute_gfunction_mls`` are not called
+# anywhere in tmhp (checked 2026-11-13, #96) and their accuracy has never been
+# checked against a reference MFLS solution. ``precompute_gfunction_mls`` still
+# extrapolates linearly past ``1.5 * t_max_s`` (the defect fixed for
+# :func:`precompute_gfunction`). Kept until the co-authors confirm whether any
+# external work uses them; do not rely on them.
+
+
 def chi_mfls(s, r, H, x_prime, U, alpha_s, z0=0):
     """
     Helper function for MFLS (Moving Finite Line Source) G-function calculation.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Kept pending co-author confirmation.
 
     Ref: Molina-Giraldo et al. (2011), "A moving finite line source model
     to simulate borehole heat exchangers with groundwater advection"
@@ -411,6 +425,9 @@ def G_MFLS_Field(
     c_s: float,
 ) -> np.ndarray:
     """Calculate the spatial superposition of the MFLS response for a bore field.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Kept pending co-author confirmation.
 
     Parameters
     ----------
@@ -499,7 +516,13 @@ def precompute_gfunction_mls(
     t_max_s: float,
     dt_s: float,
 ) -> interp1d:
-    """Precompute the MFLS g-function and return an interpolator."""
+    """Precompute the MFLS g-function and return an interpolator.
+
+    .. warning:: Unused in tmhp and not verified against a reference MFLS
+       solution (#96). Unlike :func:`precompute_gfunction`, the returned
+       interpolator extrapolates linearly in time past ``1.5 * t_max_s``.
+       Kept pending co-author confirmation.
+    """
     if not HAS_PYGFUNCTION:
         raise ImportError("pygfunction is not installed.")
 

@@ -1,14 +1,14 @@
 {
  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "src_tmhp_tree": "2edf92dd94b0ba434f969078d7e09cb5bbab4c77",
- "validation_parity_tree": "d172e02f32baf64929785b8e64cb0b22392c6b23",
+ "src_tmhp_tree": "1f85dcb8bd42864d1007d8478c80ec4b2007189d",
+ "validation_parity_tree": "643305cc65b472aaa9428aeb626c3e594dea45f6",
  "dirty_digest": null,
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
- "git_head": "79d1c9a97fdb1f92fb91ccfd291a206612fad934",
+ "git_head": "92672be6777014729f151174370d812ac70e5fb5",
  "git_heads": [
-  "79d1c9a97fdb1f92fb91ccfd291a206612fad934"
+  "92672be6777014729f151174370d812ac70e5fb5"
  ],
  "dirty": false,
  "dirty_scope": [
@@ -18,8 +18,8 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "run_started": "2026-11-12T16:52:50+00:00",
- "run_finished": "2026-11-12T16:54:36+00:00",
+ "run_started": "2026-11-12T18:57:55+00:00",
+ "run_finished": "2026-11-12T18:59:47+00:00",
  "provenance": "provenance/<slug>.json, one per unit",
  "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,

@@ -88,12 +88,9 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 
-@defect(
-    "C2",
-    "A-7/W55 R32 7.5 kW returns hx_not_converged: the efficiency guard gives a valid cycle "
-    "(3 K outdoor approach, 18 rev/s) but the ASHPB bounded Brent over dT_ref_ou has no grid pre-scan "
-    "and never finds the feasible ~2.5-7.5 K window",
-)
+# C2 fixed by the outdoor-approach band search: the feasible ~2.3-5 K window (the coil
+# is short at the largest airflow below it and over-absorbs at the smallest above it)
+# is solved from the fan-limit capacity margins instead of hoped for by a bounded Brent.
 def test_c2_ashpb_r32_solves_a7_w55():
     fam = FAMILIES["ASHPB"]
     case = SteadyCase(T_source=-7.0, T_demand=55.0, load_W=7500.0)
@@ -432,7 +429,7 @@ def test_t11_mains_temperature_matches_energyplus():
         expect(calc_cold_water_temp(df, date) == pytest.approx(ref, abs=0.5), date)
 
 
-@defect("T12", "ASHPB_PV_ESS keeps the battery SOC between analyze_dynamic calls")
+# T12 fixed: the battery state of charge is restored to SOC_init when a run starts.
 def test_t12_pv_ess_analyze_dynamic_is_repeatable():
     import pandas as pd
 
@@ -453,9 +450,69 @@ def test_t12_pv_ess_analyze_dynamic_is_repeatable():
     first = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     second = m.analyze_dynamic(n * dt, dt, 55.0, draw, _flat(n, 10.0), **kw)
     numeric = first.select_dtypes("number").columns
+    pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
+
+
+def _repeat_ashpb():
+    n = 12
+    m = tmhp.AirSourceHeatPumpBoiler()
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0))
+
+
+def _repeat_gshpb():
+    n = 12
+    m = tmhp.GroundSourceHeatPumpBoiler(N_1=2, N_2=1, H_b=100.0, dt_s=3600.0, t_max_s=200 * 3600.0)
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0))
+
+
+def _repeat_wshpb():
+    n = 12
+    m = tmhp.WaterSourceHeatPumpBoiler(dt_s=3600.0, t_max_s=86400.0)
+    draw = np.where(np.isin(np.arange(n), [7, 9]), 8.0 / 60000.0, 0.0)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, 55.0, draw, _flat(n, 8.0), T_source_w_schedule=_flat(n, 10.0))
+
+
+def _repeat_ashp():
+    n = 12
+    m = tmhp.AirSourceHeatPump()
+    return lambda: m.analyze_dynamic(n * 3600, 3600, _flat(n, 3000.0), _flat(n, 8.0))
+
+
+def _repeat_gshp():
+    n = 12
+    m = tmhp.GroundSourceHeatPump(dt_s=3600.0, t_max_s=86400.0, N_1=2, N_2=1, H_b=100.0, hp_capacity=8000)
+    return lambda: m.analyze_dynamic(n * 3600, 3600, _flat(n, 3000.0), _flat(n, 8.0))
+
+
+_T13_WHY = (
+    "analyze_dynamic resets T_bhe_f_out (°C) but not T_bhe_f_out_K, which the first step reads: "
+    "the second run's first row differs (one line in the model file; the GSHPB scenario classes "
+    "restore it themselves)"
+)
+
+
+@pytest.mark.parametrize(
+    "make_run",
+    [
+        pytest.param(_repeat_ashpb, id="ASHPB"),
+        pytest.param(_repeat_ashp, id="ASHP"),
+        pytest.param(_repeat_gshp, id="GSHP"),
+        pytest.param(_repeat_gshpb, id="GSHPB", marks=defect("T13", _T13_WHY)),
+        pytest.param(_repeat_wshpb, id="WSHPB", marks=defect("T13", _T13_WHY)),
+    ],
+)
+def test_t13_same_model_same_inputs_same_result(make_run):
+    """Two ``analyze_dynamic`` calls on one model with the same inputs give the same table."""
+    import pandas as pd
+
+    do_run = make_run()
+    first, second = do_run(), do_run()
+    numeric = first.select_dtypes("number").columns
     try:
         pd.testing.assert_frame_equal(first[numeric], second[numeric], rtol=1e-9, atol=1e-9)
-    except AssertionError as exc:  # only the comparison itself is the T12 defect
+    except AssertionError as exc:  # only the comparison itself is the T13 defect
         raise KnownDefectObserved(str(exc)) from exc
 
 

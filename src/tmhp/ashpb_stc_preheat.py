@@ -31,6 +31,7 @@ Usage
 
 from __future__ import annotations
 
+import dataclasses
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -39,7 +40,7 @@ import pandas as pd
 from . import calc_util as cu
 from .air_source_heat_pump_boiler import AirSourceHeatPumpBoiler
 from .constants import c_w, rho_w
-from .subsystems import SolarThermalCollector
+from .subsystems import SolarThermalCollector, warn_if_uv_ignored
 
 if TYPE_CHECKING:
     from .dynamic_context import ControlState, StepContext
@@ -92,11 +93,12 @@ class ASHPB_STC_preheat(AirSourceHeatPumpBoiler):
             )
         # Do NOT pass stc to super().__init__ — keeps self._subsystems empty.
         super().__init__(**kwargs)
-        self._stc: SolarThermalCollector = stc
-        # 상수도 수압 활용 가정: STC 펌프 전력 배제
-        self._stc.E_stc_pump = 0.0
+        # 상수도 수압 활용 가정: STC 펌프 전력 배제. 호출자의 객체를 고치지 않고 사본에 적용한다
+        # (같은 collector 를 다른 모델에 쓰면 그 모델의 펌프 전력이 조용히 0 이 되던 부작용).
+        self._stc: SolarThermalCollector = dataclasses.replace(stc, E_stc_pump=0.0)
         # Expose as self.stc so analyze_dynamic() enables I_DN/I_dH schedules.
-        self.stc = stc
+        self.stc = self._stc
+        warn_if_uv_ignored(self)
 
     # ------------------------------------------------------------------
     # Hook: subsystem step
@@ -237,6 +239,9 @@ class ASHPB_STC_preheat(AirSourceHeatPumpBoiler):
 
         # For mains_preheat: T_stc_w_out = pump outlet (mains supply T)
         T_stc_w_out_K: float = state["stc_result"].get("T_stc_pump_w_out_K", np.nan)
+
+        # Pump electricity is part of the draw (0 here: mains pressure drives the loop).
+        r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + E_pump
 
         r.update(
             {

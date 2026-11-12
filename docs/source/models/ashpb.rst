@@ -272,6 +272,32 @@ compressor and auxiliaries; an :class:`~tmhp.subsystems.EnergyStorageSystem`
 buffers midday surplus for evening load; grid import covers
 whatever the two cannot supply.
 
+**No grid export.** DC power that neither the heat pump nor the battery can
+take is discarded and reported as ``E_dump [W]``; nothing is sold to the grid
+(a large array on a small load dumps a large share of its output).
+
+**Where the efficiencies act.** The charge controller (``eta_ctrl``) sits between
+the array output ``E_pv_out`` and ``E_ctrl_out``; the battery efficiencies
+(``eta_ess_chg``, ``eta_ess_dis``) act inside the battery; the inverter
+(``eta_inv``, ``0 < eta_inv <= 1``) acts on the DC power that reaches it, i.e.
+PV direct plus battery discharge. Every loss is a result column, so each step
+closes (all in W)::
+
+   E_pv_out  = Q_l_ctrl + E_pv_to_inv + E_ess_chg + E_dump
+   E_tot     = E_inv_out + E_grid_import
+   E_inv_out = eta_inv * (E_pv_to_inv + E_ess_dis),   Q_l_inv = (1 - eta_inv) * (E_pv_to_inv + E_ess_dis)
+   E_ess_chg - E_ess_dis = C_ess_max * dSOC_ess/dt + Q_l_ess
+
+``E_tot`` is the whole electric draw of the system: compressor, ``E_ou_fan``
+(outdoor fan) and the UV lamp ``E_uv`` when one is attached. ``E_inv_out`` is the
+AC power out of the inverter only (it excludes ``E_grid_import``). ``cop_grid`` is
+``Q_tank_w_out / E_grid_import`` and is NaN while the import is at most 1 mW
+(``tmhp.subsystems.GRID_IMPORT_FLOOR_W``): without a grid draw there is no
+meaningful ratio.
+
+The battery state of charge belongs to the run: every ``analyze_dynamic`` starts
+from ``ess.SOC_init`` again, so the same model run twice gives the same result.
+
 .. code-block:: python
 
    from tmhp import ASHPB_PV_ESS

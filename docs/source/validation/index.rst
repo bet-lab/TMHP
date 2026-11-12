@@ -290,12 +290,12 @@ pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
 effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
-inside the 7.2 to 16.9 % spread of the air-to-water set.
+inside the 7.0 to 17.1 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +16.9 % optimistic. Neither of its published inputs explains it:
-substituting its 12 kW sibling's rated air flow moves the bias by 1.3 points,
-and dropping its published displacement for the library default by 3.1.
+unit runs +17.1 % optimistic. Neither of its published inputs explains it:
+substituting its 12 kW sibling's rated air flow moves the bias by 1.5 points,
+and dropping its published displacement for the library default by 3.0.
 What explains it is the catalogue itself. At every one of the fifteen
 conditions, the 16 kW machine's *published* COP is 8 to 22 % below the 9 kW
 machine's from the same product line:

@@ -350,7 +350,7 @@ delivers more than 1 % less than the published duty is not scored,
     * - all 15 units
       - 513/513, 11.6 %
       - 473/513, 11.9 %
-      - 494/513, 11.7 %
+      - 496/513, 11.7 %
     * - air-to-air (5)
       - 360/360, 12.1 %
       - 360/360, 12.1 %
@@ -358,18 +358,16 @@ delivers more than 1 % less than the published duty is not scored,
     * - air-to-water (10)
       - 153/153, 10.3 %, bias +5.6 %
       - 113/153, 11.4 %, bias +7.0 %
-      - 134/153, 10.5 %, bias +6.1 %
+      - 136/153, 10.5 %, bias +5.9 %
     * - air-to-water, outdoor ≤ −10 °C
       - 30/30, 6.4 %
       - 6/30, 7.3 %
-      - 17/30, 4.6 %
+      - 19/30, 4.7 %
 
-The control holds 24 air-to-water points (2 by superheat alone, 22 with wet
-suction at x 0.90–0.998). The 21 of them that still meet the published duty
-change COP by −2.0 to +2.2 % (mean −0.2 %) against the unbounded model. The 16
-points still refused are 13 R32 points whose unbounded discharge is
-221–293 °C (they would need suction quality 0.79–0.90: the fitted eta_is is
-0.37–0.42 at PR 7.8–12.1, both in the default and the ``v2026-09-24``
-correlations) and 3 R290 points at −15/65 °C refused by the pressure-ratio
-ceiling *during the ASHPB outdoor-approach search* although their solved ratio
-is 10.0–10.5. Three more R32 points are ``capacity_short`` (61–99 % of the duty).
+(With the ASHPB outdoor-approach band search of #109.) The control holds 30
+air-to-water points (2 by superheat alone, 28 with wet suction at
+x 0.90–0.99). Of the 17 points not scored, 10 are R32 points whose unbounded
+discharge is 243–293 °C: they would need suction quality 0.79–0.86, because
+the fitted eta_is is 0.37–0.42 at PR 8.2–12.1 (both in the default and the
+``v2026-09-24`` correlations). The other 7, all R32, run at a reduced duty
+(``capacity_short``, 42–98 % of the published duty) at x 0.90–0.93.

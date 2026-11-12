@@ -314,7 +314,10 @@ def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) 
     E0, injected, flow = tank.stored_energy, 0.0, 0.2e-3
     for _ in range(int(seconds / dt)):
         out = tank.step(dt, charge_flow=flow, T_charge=60.0)
-        injected += dt * rho_w * c_w * flow * (60.0 - float(out["T"][-1]))
+        # The water that actually left; the bottom-node mean is not the outflow
+        # when a sharp front sits inside the bottom node (hybrid backend).
+        t_out = float(out.get("T_charge_out", out["T"][-1]))
+        injected += dt * rho_w * c_w * flow * (60.0 - t_out)
     return (tank.stored_energy - E0) / injected
 
 
@@ -323,7 +326,8 @@ def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) 
 def test_t5_hybrid_tank_stores_injected_heat():
     from tmhp.hybrid_tank import HybridStratifiedTank
 
-    expect(_charge_storage_ratio(HybridStratifiedTank) >= 0.95, "_charge_storage_ratio(HybridStratifiedTank) >= 0.95")
+    ratio = _charge_storage_ratio(HybridStratifiedTank)
+    expect(0.95 <= ratio <= 1.01, f"_charge_storage_ratio(HybridStratifiedTank) = {ratio:.4f}, expected 0.95..1.01")
 
 
 # T6 fixed by resolving the thermostat inside each step (dynamic_context.resolve_step_operation):

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="GSHP and GSHPB offer an opt-in ground-loop model. The default remains constant flow, prescribed pump power, fixed UA and fixed effective borehole resistance. Multi-borehole normalization is correct..." />
 
-    <meta property="article:modified_time" content="2026-10-07T22:39:11+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T00:12:45+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -266,8 +266,13 @@ System COP is delivered indoor heat/cooling duty divided by <code class="docutil
 The room temperature supplied to <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> is used by both the cycle
 and the indoor HX and appears unchanged in the output. Omitting it uses the
 constructor’s <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>; candidate evaluations do not overwrite this setting.</p>
-<p>For GSHP, <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> fixes the wall temperature for the steady snapshot;
-its default is the model’s current wall temperature (initially <code class="docutils literal notranslate"><span class="pre">Ts</span></code>).
+<p>For GSHP, <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> fixes the wall temperature for the steady snapshot,
+and the fluid leaving the borefield is closed against it through Rb* and the
+loop flow, in the coupled solver and in the standard fixed-flow solver alike.
+When it is omitted, the coupled solver uses the model’s current wall
+temperature (initially <code class="docutils literal notranslate"><span class="pre">Ts</span></code>), while the standard solver keeps the model’s
+current fluid outlet temperature <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code> (initially <code class="docutils literal notranslate"><span class="pre">Ts</span></code>) as a fixed
+source-fluid boundary.
 For GSHPB, <code class="docutils literal notranslate"><span class="pre">T_source</span></code> retains its existing meaning as prescribed BHE outlet
 fluid temperature. Supply <code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> to close the borehole wall/fluid balance
 and make flow-dependent Rb* affect the cycle. Without it, the fixed source-fluid
@@ -401,7 +406,7 @@ reference flow, heat-exchanger UA or the electrical pump performance map.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 07, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

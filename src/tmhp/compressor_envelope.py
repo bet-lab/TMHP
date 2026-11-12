@@ -121,6 +121,7 @@ __all__ = [
     "ETA_ISEN_BELOW_MIN",
     "ETA_ISEN_MIN",
     "envelope_violation",
+    "envelope_excess",
     "efficiency_below_floor",
     "RPS_MAX_PER_RATED",
     "RPS_MAX_ABSOLUTE",
@@ -172,9 +173,10 @@ DISCHARGE_TEMP_MAX_DEFAULT_C = 135.0
 #: al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower
 #: suction quality lowers the discharge temperature but raises the risk of
 #: over-wet compression and liquid slugging. No published lower bound on the
-#: suction quality was found, so the default is the conservative 0.9: at most
-#: 10 % liquid by mass, of the order of the liquid-injection ratios used for
-#: discharge-temperature control.
+#: suction quality was found: 0.9 is a conservative default without a
+#: quantitative basis (at most 10 % liquid by mass, of the order of the
+#: liquid-injection ratios used for discharge-temperature control). Override it
+#: with the constructor argument ``x_suction_min``.
 X_SUCTION_MIN_DEFAULT = 0.9
 
 #: ``rps_max`` default: this multiple of the rated speed ...
@@ -299,6 +301,28 @@ def envelope_violation(result: Mapping[str, Any], model: Any) -> str | None:
     return None
 
 
+def envelope_excess(result: Mapping[str, Any], model: Any) -> float:
+    """How far a solved running state is outside the envelope, as a ranking weight [W-equivalent].
+
+    0 inside. 1000 per kelvin of discharge above ``T_dis_max`` (beyond
+    :data:`DISCHARGE_TOL_K`; an undefined discharge state counts as very far)
+    plus 1e6 per unit of isentropic efficiency below :data:`ETA_ISEN_MIN` where
+    the floor applies. Used by searches to rank candidates outside the
+    envelope among themselves.
+    """
+    excess = 0.0
+    T_max = getattr(model, "T_dis_max", None)
+    if T_max is not None:
+        T = _discharge(result)
+        if not math.isfinite(T):
+            excess += 1.0e9
+        elif T_max + DISCHARGE_TOL_K < T:
+            excess += 1000.0 * (T - T_max)
+    if efficiency_below_floor(model, result):
+        excess += 1.0e6 * (ETA_ISEN_MIN - _eta_isen(result))
+    return excess
+
+
 def default_rps_max(rps_rated: float) -> float:
     """Default upper speed bound from the rated speed [rev/s].
 
@@ -336,7 +360,29 @@ def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, 
     if not (math.isfinite(p_in) and math.isfinite(p_out) and math.isfinite(rps) and p_in > 0 and rps > 0):
         return False
     pr = p_out / p_in
-    return any(efficiency_extrapolated(m, pr, rps) for m in models)  # type: ignore[arg-type]
+    return any(_outside_domain(m, pr, rps) for m in models)
+
+
+#: Relative margin inside which a point on the edge of a fit's (PR, N) box
+#: counts as inside. The pressure ratio and speed are read back from the
+#: result row (``P_out / P_in``, ``cmp_rpm / 60``), so a point solved exactly
+#: on an edge -- the pressure-ratio floor sits next to the fit's PR 1.5016, and
+#: a speed bound can coincide with 33.8 or 72.5 rev/s -- comes back a few ulp
+#: either side, and the flag (and the efficiency floor that uses it) would
+#: differ between platforms. 1e-6 is the relative tolerance of the step-kernel
+#: goldens and far below any physical meaning of the box.
+_DOMAIN_RTOL = 1e-6
+
+
+def _outside_domain(model: object, pressure_ratio: float, rps: float) -> bool:
+    domain = getattr(model, "validity_domain", None)
+    if domain is None or not efficiency_extrapolated(model, pressure_ratio, rps):  # type: ignore[arg-type]
+        return False
+    tol = _DOMAIN_RTOL
+    return not (
+        domain.pr_min * (1 - tol) <= pressure_ratio <= domain.pr_max * (1 + tol)
+        and domain.rps_min * (1 - tol) <= rps <= domain.rps_max * (1 + tol)
+    )
 
 
 _F = TypeVar("_F", bound=Callable[..., Any])
@@ -409,11 +455,21 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
             if _discharge(result) <= T_max + _DISCHARGE_TOL_K:
                 return result
 
+            # A caller's diagnostics dict (ASHPB ``hx_diag``) must describe the
+            # state returned: each re-evaluation fills a fresh one, copied back
+            # only for the state the control keeps.
+            diag_out = kwargs.get("hx_diag") if isinstance(kwargs.get("hx_diag"), dict) else None
+            diags: dict[int, dict] = {}
+
             def at(superheat: float, quality: float) -> dict | None:
                 saved = (self.dT_superheat, self._x_suction)
                 self.dT_superheat, self._x_suction = superheat, quality
+                call_kwargs = dict(kwargs)
+                fresh: dict = {}
+                if diag_out is not None:
+                    call_kwargs["hx_diag"] = fresh
                 try:
-                    state = function(self, *args, **kwargs)
+                    state = function(self, *args, **call_kwargs)
                 except ValueError:
                     state = None
                 finally:
@@ -421,9 +477,13 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
                 if not isinstance(state, dict) or not _state_running(state) or not math.isfinite(_discharge(state)):
                     return None
                 state.update({SUPERHEAT_KEY: _superheat(state), QUALITY_KEY: quality, CONTROL_KEY: True})
+                diags[id(state)] = fresh
                 return state
 
             controlled = _control(at, superheat0, T_max, self.x_suction_min)
+            if controlled is not None and diag_out is not None:
+                diag_out.clear()
+                diag_out.update(diags.get(id(controlled), {}))
             if controlled is not None:
                 if reject and efficiency_below_floor(self, controlled):
                     self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(controlled), ETA_ISEN_MIN)

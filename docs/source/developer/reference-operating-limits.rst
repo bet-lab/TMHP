@@ -271,7 +271,8 @@ is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
 ``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
 state. The cycle balance (condenser = evaporator + refrigerant work) closes
 exactly. The efficiency maps were fitted to dry suction; using them for wet
-suction is an approximation. The quality floor 0.9 is conservative: two-phase
+suction is an approximation. The quality floor 0.9 is a conservative default
+without a quantitative basis, and ``x_suction_min`` overrides it: two-phase
 suction is an experimentally used way to hold R32 scroll discharge temperature
 (Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
 published lower bound was found, and 10 % liquid by mass is of the order of the
@@ -293,6 +294,11 @@ How each family answers a point the control cannot hold:
   ``capacity_binding == "discharge_temperature"`` (the next larger duty is
   deliverable once the limit is lifted). With no deliverable duty the result
   is the off state with ``failure_reason == "discharge_temp_above_max"``.
+* **ASHPB outdoor-approach search** — a candidate outside the envelope (after
+  the control) ranks after every solved candidate, including one short of the
+  request at ``rps_max``, and before an unphysical state, a coil that cannot
+  carry the duty and no cycle; within that tier it is graded by how far
+  outside it is, so the search moves to the smaller lift that may be inside.
 * **ASHPB, GSHPB, WSHPB** (``analyze_steady``) — the solved operating point is
   checked after :func:`tmhp.dynamic_context.unphysical_cycle_detail`. A
   request above the limit is retried at 80/60/40/25/10 % and the boundary is
@@ -319,7 +325,8 @@ which the shipped fit is extrapolated *and* below 0.30 is therefore outside the
 envelope (``failure_reason == "eta_isen_below_min"``; ASHP and GSHP reject
 the candidate). The values held at the high-PR and high-speed boundaries are
 0.306 or more, so the rule bites only in the low-speed continuation. Scalar
-and user efficiencies are the caller's statement and are not checked. Of
+and user efficiencies are the caller's statement and are not checked: the
+floor applies only where a shipped map is extrapolated. Of
 the 2026-11-13 sweep, before this rule, 23 running rows (20 of them under
 discharge control) were at eta_is 0.25–0.30, all at PR 6.4–6.9 and
 15–21 rev/s; no adopted catalogue point is below 0.37. The rule is independent

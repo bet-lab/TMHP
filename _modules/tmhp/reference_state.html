@@ -539,7 +539,7 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="349">        <span class="p">)</span>
 </span><span data-line="350">    <span class="k">except</span> <span class="n">InvalidCompressorEfficiency</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
 </span><span data-line="351">        <span class="k">raise</span> <span class="n">ReferenceStateError</span><span class="p">(</span>
-</span><span data-line="352">            <span class="sa">f</span><span class="s2">&quot;nonpositive or nonfinite raw BITZER efficiency at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2">; &quot;</span>
+</span><span data-line="352">            <span class="sa">f</span><span class="s2">&quot;nonpositive or nonfinite compressor efficiency at </span><span class="si">{</span><span class="n">condition</span><span class="o">.</span><span class="n">standard</span><span class="si">}</span><span class="s2">; &quot;</span>
 </span><span data-line="353">            <span class="s2">&quot;supply a supported rated_condition or custom compressor efficiencies&quot;</span>
 </span><span data-line="354">        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 </span><span data-line="355">    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

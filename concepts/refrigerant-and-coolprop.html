@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of TMHP — and this is the page that makes it concrete. The refrigerant is a constructor argument on every released cycle-resolved model fami..." />
 
-    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
+    <meta property="article:modified_time" content="2026-11-12T23:39:30+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -213,19 +213,22 @@ the box:</p>
 </span><span data-line="4"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>       <span class="c1"># propane</span>
 </span><span data-line="5"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R410A&quot;</span><span class="p">)</span>      <span class="c1"># pseudo-pure blend</span>
 </span><span data-line="6"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">)</span>
-</span><span data-line="7"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R600a&quot;</span><span class="p">)</span>      <span class="c1"># isobutane</span>
+</span><span data-line="7"><span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R600a&quot;</span><span class="p">,</span> <span class="n">V_cmp_ref</span><span class="o">=</span><span class="mf">2.0e-4</span><span class="p">)</span>  <span class="c1"># isobutane: larger displacement</span>
 </span></pre></div>
 </div>
 <p>The compressor’s rated speed is solved for each fluid at the model’s rating
 condition (<a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>), so swapping the fluid keeps the
 rated capacity. The capacity-scaled default displacement comes from an R32
-catalogue unit, so a low-pressure fluid such as R600a is built and solved
-with the defaults but needs a much higher rated speed (about 120 rev/s for
-the 15 kW default, outside the 33.8–72.5 rev/s range the default compressor
-efficiency was fitted on). Pass a larger <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> to keep the speed
-in range. If the displacement is so small that the rated capacity cannot
-be reached below <code class="docutils literal notranslate"><span class="pre">rps_max</span></code>, the constructor says so
-(<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>) instead of clamping the speed.</p>
+catalogue unit and does not depend on the refrigerant. A fluid with a low
+volumetric capacity needs a larger compressor for the same duty: with the
+15 kW default, R600a cannot reach the rated capacity below <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> on the
+default displacement (7.0e-5 m³/rev), and the constructor says so
+(<code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code>) instead of clamping the speed. Pass a
+larger <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> — 2.0e-4 m³/rev puts the rated speed near 59 rev/s,
+inside the 33.8–72.5 rev/s range the default compressor efficiency was fitted
+on. R134a, R1234yf and R1234ze(E) do build on the default displacement, but
+at rated speeds of about 90, 100 and 121 rev/s, above that range; give them
+a larger <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code> too when comparing refrigerants.</p>
 <section id="not-supported">
 <h3>Not supported<a class="headerlink" href="#not-supported" title="Link to this heading">¶</a></h3>
 <p>The cycle assumes subcritical single-stage compression. These are outside

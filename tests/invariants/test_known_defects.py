@@ -51,7 +51,7 @@ def _quiet():
 # ---------------------------------------------------------------------------
 
 
-@defect("C1", "raw BITZER polynomial gives eta_v up to 1.15 and eta_em up to 1.016 inside the searched range")
+# C1 fixed by the 0 < eta <= 1 and validity-domain guard (#101).
 def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     """Every default efficiency evaluated where the solver searches is in (0, 1] or rejected.
 
@@ -85,7 +85,12 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 
-@defect("C2", "A-7/W55 R32 returns cycle_invalid because eta_is < 0 inside the speed range")
+@defect(
+    "C2",
+    "A-7/W55 R32 7.5 kW returns hx_not_converged: the efficiency guard gives a valid cycle "
+    "(3 K outdoor approach, 18 rev/s) but the ASHPB bounded Brent over dT_ref_ou has no grid pre-scan "
+    "and never finds the feasible ~2.5-7.5 K window",
+)
 def test_c2_ashpb_r32_solves_a7_w55():
     fam = FAMILIES["ASHPB"]
     case = SteadyCase(T_source=-7.0, T_demand=55.0, load_W=7500.0)
@@ -95,6 +100,8 @@ def test_c2_ashpb_r32_solves_a7_w55():
     assert check_running_cycle(fam, r, case) == []
 
 
+# C5 scenario fixed by the guard (#101): eta_is is held at the PR 7.15 boundary (0.42),
+# so the minimum-speed clamp no longer over-delivers; 6.4 kW at 68.8 rev/s, discharge 141.7 °C.
 def test_c5_wshpb_does_not_report_degenerate_efficiency_as_success():
     _, r = FAMILIES["WSHPB"].run("R134a", SteadyCase(T_source=5.0, T_demand=65.0, load_W=6400.0))
     eta = num(r, "eta_cmp_isen [-]")

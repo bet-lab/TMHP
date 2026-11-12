@@ -18,15 +18,16 @@ def test_absolute_speed_matches_notion_archive(key, factory):
     for pr in np.linspace(1.5, 8, 13):
         for speed in np.linspace(5, 150, 21):
             expected = np.dot(fit["coef"], [1, pr, speed, pr * pr, speed * speed, pr * speed])
-            assert factory(40)(pr, speed) == pytest.approx(expected, abs=1e-14)
-            assert factory(60)(pr, speed) == pytest.approx(expected, abs=1e-14)
+            assert factory(40).raw(pr, speed) == pytest.approx(expected, abs=1e-14)
+            assert factory(60).raw(pr, speed) == pytest.approx(expected, abs=1e-14)
 
 
-def test_invalid_extrapolation_is_rejected_without_clipping():
+def test_raw_negative_fit_is_held_by_the_domain_and_still_rejected_raw():
     model = make_eta_isen(60)
-    assert model(3, 150) < 0
+    assert model.raw(3, 150) < 0
+    assert model(3, 150) == model.raw(3, 72.5) > 0
     with pytest.raises(ValueError, match="finite and positive"):
-        _eval_eff(model, 3, 150)
+        _eval_eff(model.raw, 3, 150)
 
 
 def test_speed_solver_finds_lower_branch_with_invalid_high_endpoint():
@@ -61,9 +62,10 @@ def test_invalid_fit_returns_infeasible_state_without_hiding_custom_errors():
         model._calc_state(5, 5, -2000, 7, 20)
 
 
-def test_temporary_policy_preserves_efficiencies_above_one():
-    raw = make_eta_vol(60)(2.0, 53.0)
+def test_efficiencies_above_one_are_set_to_one():
+    raw = make_eta_vol(60).raw(2.0, 53.0)
     assert raw > 1.0
-    assert _eval_eff(lambda pr, speed: raw, 2.0, 53.0) == raw
-    assert _eval_eff(raw, 2.0, 53.0) == raw
-    assert _eval_eff(make_eta_vol(60), 2.0, 53.0) == raw
+    assert make_eta_vol(60)(2.0, 53.0) == 1.0
+    assert _eval_eff(lambda pr, speed: raw, 2.0, 53.0) == 1.0
+    assert _eval_eff(raw, 2.0, 53.0) == 1.0
+    assert _eval_eff(make_eta_vol(60), 2.0, 53.0) == 1.0

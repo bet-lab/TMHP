@@ -116,10 +116,10 @@ def test_off_and_failed_points_have_no_compressor_loss_or_work():
 
 
 @pytest.mark.parametrize("name", ["eta_cmp_vol", "eta_cmp_isen", "eta_cmp"])
-def test_temporary_efficiency_above_one_reaches_cycle_unchanged(name):
+def test_efficiency_above_one_reaches_cycle_as_one(name):
     hp = model(rps_min=1, **{name: 1.1})
     row = hp._calc_state(10, 10, 4000, 26, 26)
     assert row is not None
     key = {"eta_cmp_vol": "eta_v [-]", "eta_cmp_isen": "eta_is [-]", "eta_cmp": "eta_em [-]"}[name]
-    assert row[key] == pytest.approx(1.1)
+    assert row[key] == 1.0
     assert row["Q_ref_iu [W]"] == pytest.approx(4000)

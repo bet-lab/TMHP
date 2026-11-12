@@ -73,6 +73,25 @@ The empirical alternative and DHW models retain their existing definitions.
 Empirical alternative
 =====================
 
+:class:`tmhp.GroundSourceHeatPumpEmpirical` uses the ClimateMaster TCH072
+ground-loop curves shipped with EnergyPlus (``WaterToAirHeatPumps.idf``). The
+curves give full-load capacity and power at the rated air flow, so the COP
+does not change with part load (no cycling degradation is applied) and a
+request above the available capacity ``Q_cap`` is served at that ceiling
+with ``capacity_clamped = "max"``. Outside the fitted range — entering water
+−1.25 to 32.06 °C in heating and 9.85 to 48.72 °C in cooling, entering air
+9.85 to 26.51 °C dry-bulb in heating and 9.85 to 23.73 °C wet-bulb in
+cooling — the unit does not run for that step and ``failure_reason`` is
+``"outside_curve_domain"``. The room (entering-air) temperature is the
+``T_a_room`` input (27 / 21 °C when omitted).
+
+Its conventions differ from the refrigerant-cycle model: the borehole load
+``q_b`` is injection-positive W/m, temperatures ``T_b``, ``T_f``, ``T_f_in``
+and ``T_f_out`` are in kelvin, ``COP`` is 0 when idle, the entering-water
+temperature is the mean fluid temperature minus half the loop temperature
+change, and refrigerant temperatures for the exergy terms use fixed
+approaches (±3 K to the ground fluid, ∓15 K to the room air).
+
 .. autoclass:: tmhp.GroundSourceHeatPumpEmpirical
     :members:
     :show-inheritance:

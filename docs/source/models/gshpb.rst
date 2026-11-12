@@ -54,6 +54,17 @@ g-function once via
 interpolates it during the simulation, so the per-step cost stays
 constant whether the field is one borehole or a hundred.
 
+The precomputed grid covers ``1.5 × t_max_s`` (default one year). A longer
+simulation does not extrapolate it: the g-function is recomputed by
+pygfunction to cover the requested time (about 0.2 s for a 10 × 10 field), so
+a multi-year run gives the same ground temperatures whatever ``t_max_s`` was.
+Each step ``n`` reports the borehole-wall and fluid temperatures averaged over
+``[t_n, t_n + dt]``, including the response to that step's own load; with an
+hourly load history the hourly means are the same for ``dt`` = 60, 600 or
+3600 s. Below one hour the g-function is the straight line from zero to its
+one-hour value (no grout or fluid heat capacity), so minute-scale start-up
+transients are approximate.
+
 .. figure:: ../_static/g_function_curve.svg
     :alt: g-function vs ln(t/t_s) for three rectangular borehole
         field geometries: 1×1, 2×2, and 4×4.

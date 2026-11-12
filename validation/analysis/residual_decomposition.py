@@ -34,11 +34,13 @@ boundary and the third is a property of the source document.
 
 Run
 ---
-``uv run python -m validation.analysis.residual_decomposition``
+``uv run python -m validation.analysis.residual_decomposition [--jobs N]``
 """
 
 from __future__ import annotations
 
+import argparse
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -152,12 +154,20 @@ def predicted_cop(plate: Nameplate, mode: str, ua_divisor: float | None = None) 
     return float(result["cop_sys [-]"])
 
 
-def implied_ua_divisor(plate: Nameplate, mode: str = "cooling") -> float:
+#: Capacity divisors scanned for a bracket, 2.00 .. 16.00.
+GRID = tuple(2.0 + 0.25 * i for i in range(57))
+
+
+def implied_ua_divisor(plate: Nameplate, mode: str = "cooling", grid_cops: list[float] | None = None) -> float:
     """The conductance rule that would reproduce this machine's published COP.
 
     Not a calibration -- nothing here is written back into a default. It answers
     "if the whole residual were conductance, how much conductance would it be?",
     which is what places each machine against the measured band.
+
+    ``grid_cops`` is :func:`predicted_cop` at every :data:`GRID` divisor, when a
+    caller has already computed it (in parallel, :func:`build`); the result is
+    the same either way.
     """
     published = plate.eer if mode == "cooling" else plate.cop
 
@@ -167,8 +177,10 @@ def implied_ua_divisor(plate: Nameplate, mode: str = "cooling") -> float:
     # The optimiser fails sporadically at isolated divisors rather than only
     # at the infeasible end, so the bracket is built from the divisors that
     # actually returned a number instead of stopping at the first gap.
-    grid = [2.0 + 0.25 * i for i in range(57)]  # 2.00 .. 16.00
-    samples = [(d, residual(d)) for d in grid]
+    if grid_cops is None:
+        samples = [(d, residual(d)) for d in GRID]
+    else:
+        samples = [(d, cop - published) for d, cop in zip(GRID, grid_cops, strict=True)]
     finite = [(d, r) for d, r in samples if r == r]
     if len(finite) < 2:
         return float("nan")
@@ -188,35 +200,50 @@ def implied_ua_divisor(plate: Nameplate, mode: str = "cooling") -> float:
         return float("nan")
 
 
-def build() -> pd.DataFrame:
-    rows = []
-    for plate in NAMEPLATES:
-        cooling_pred = predicted_cop(plate, "cooling")
-        heating_pred = predicted_cop(plate, "heating")
-        divisor = implied_ua_divisor(plate, "cooling")
-        rows.append(
-            {
-                "unit": plate.unit,
-                "manufacturer": plate.manufacturer,
-                "refrigerant": plate.refrigerant,
-                "cooling_kW": plate.cooling_kW,
-                "nameplate_EER": plate.eer,
-                "nameplate_COP": plate.cop,
-                "cooling_SHR": plate.cooling_shr,
-                "indoor_flow_m3h_per_kW": plate.indoor_flow_m3_s * 3600.0 / plate.cooling_kW,
-                "cop_pred_cooling": cooling_pred,
-                "cop_pred_heating": heating_pred,
-                "bias_cooling_pct": (cooling_pred / plate.eer - 1.0) * 100.0,
-                "bias_heating_pct": (heating_pred / plate.cop - 1.0) * 100.0,
-                "implied_ua_divisor": divisor,
-                "implied_ua_over_q": (1.0 / divisor) if divisor == divisor else float("nan"),
-            }
-        )
+def _row(plate: Nameplate, grid_cops: list[float] | None = None) -> dict:
+    cooling_pred = predicted_cop(plate, "cooling")
+    heating_pred = predicted_cop(plate, "heating")
+    divisor = implied_ua_divisor(plate, "cooling", grid_cops)
+    return {
+        "unit": plate.unit,
+        "manufacturer": plate.manufacturer,
+        "refrigerant": plate.refrigerant,
+        "cooling_kW": plate.cooling_kW,
+        "nameplate_EER": plate.eer,
+        "nameplate_COP": plate.cop,
+        "cooling_SHR": plate.cooling_shr,
+        "indoor_flow_m3h_per_kW": plate.indoor_flow_m3_s * 3600.0 / plate.cooling_kW,
+        "cop_pred_cooling": cooling_pred,
+        "cop_pred_heating": heating_pred,
+        "bias_cooling_pct": (cooling_pred / plate.eer - 1.0) * 100.0,
+        "bias_heating_pct": (heating_pred / plate.cop - 1.0) * 100.0,
+        "implied_ua_divisor": divisor,
+        "implied_ua_over_q": (1.0 / divisor) if divisor == divisor else float("nan"),
+    }
+
+
+def build(jobs: int = 1) -> pd.DataFrame:
+    """One row per machine.
+
+    ``jobs > 1`` spreads the divisor scan (machine x divisor) and then the
+    machines over that many processes; every solve is independent, so the rows
+    are the same as the serial run's, in the same order.
+    """
+    if jobs > 1:
+        with ProcessPoolExecutor(max_workers=jobs) as pool:
+            tasks = [(plate, "cooling", divisor) for plate in NAMEPLATES for divisor in GRID]
+            cops = list(pool.map(predicted_cop, *zip(*tasks, strict=True)))
+            grids = [cops[i * len(GRID) : (i + 1) * len(GRID)] for i in range(len(NAMEPLATES))]
+            rows = list(pool.map(_row, NAMEPLATES, grids))
+    else:
+        rows = [_row(plate) for plate in NAMEPLATES]
     return pd.DataFrame(rows)
 
 
 def main() -> None:
-    df = build()
+    parser = argparse.ArgumentParser(description="Air-to-air residuals, decomposed")
+    parser.add_argument("--jobs", type=int, default=1, help="worker processes (default 1: serial)")
+    df = build(parser.parse_args().jobs)
     df.to_csv(OUT_CSV, index=False)
 
     print("Air-to-air residuals, decomposed")

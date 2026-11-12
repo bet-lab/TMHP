@@ -2,11 +2,20 @@
 
     uv run python -m validation.parity.run                 # all catalogues
     uv run python -m validation.parity.run --unit <slug>   # one
+    scripts/regen-validation.sh                            # all, in parallel, plus site data
 
 Writes ``validation/results/<slug>.csv`` per unit and rewrites
-``validation/results/summary.csv``. Those files are what the documentation
-site reads, so adding a catalogue and rerunning this is the whole update
-procedure.
+``validation/results/summary.csv`` and ``manifest.json``. Those files are what
+the documentation site reads, so adding a catalogue and rerunning this is the
+whole update procedure.
+
+Parallel runs
+-------------
+``--unit <slug> --no-summary`` writes only that unit's CSV, so several units
+can run in separate processes without racing on ``summary.csv``.
+``--summarize-only`` then reads the per-unit CSVs of every registered catalogue
+and writes ``summary.csv`` and ``manifest.json`` through the same
+:func:`_summarise` the full run uses. ``scripts/regen-validation.sh`` does both.
 
 What is held fixed
 ------------------
@@ -20,8 +29,10 @@ anything if the numbers it produces are then used without adjustment.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import math
+import platform
 import subprocess
 from pathlib import Path
 
@@ -195,28 +206,81 @@ def _summarise(df: pd.DataFrame) -> dict:
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--unit", default=None, help="run one catalogue by slug")
-    args = parser.parse_args()
+#: Paths whose contents determine the per-unit results. ``manifest.json``
+#: records whether any of them differed from ``git_head`` when it was written.
+SOURCE_PATHS = ("src/tmhp", "validation/parity", "validation/catalogs", "pyproject.toml", "uv.lock")
 
-    catalogs = load_all(args.unit)
+
+def _read_unit_results(catalogs: list[Catalog], results_dir: Path) -> list[pd.DataFrame]:
+    """Per-unit CSVs written by earlier ``--unit`` runs, in catalogue order."""
+    missing = [c.slug for c in catalogs if not (results_dir / f"{c.slug}.csv").exists()]
+    if missing:
+        raise SystemExit(f"--summarize-only: no results for {', '.join(missing)} under {results_dir}")
+    registered = {c.slug for c in catalogs}
+    orphans = sorted(
+        p.name for p in results_dir.glob("*.csv") if p.name != SUMMARY_CSV.name and p.stem not in registered
+    )
+    if orphans:
+        raise SystemExit(f"--summarize-only: results without a catalogue: {', '.join(orphans)} -- remove them")
+    frames = []
+    for catalog in catalogs:
+        # round_trip: the default parser can be one ulp off, and the summary must
+        # be bit-identical to the one a single-process run builds in memory.
+        df = pd.read_csv(results_dir / f"{catalog.slug}.csv", float_precision="round_trip")
+        versions = set(df.coefficient_version.astype(str))
+        if versions != {COEFFICIENT_VERSION}:
+            raise SystemExit(
+                f"--summarize-only: {catalog.slug}.csv was written with coefficients {sorted(versions)}, "
+                f"the library is {COEFFICIENT_VERSION} -- rerun that unit"
+            )
+        frames.append(df)
+    return frames
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--unit", default=None, help="run one catalogue by slug")
+    parser.add_argument(
+        "--no-summary",
+        action="store_true",
+        help="write only the per-unit CSV; leave summary.csv and manifest.json alone",
+    )
+    parser.add_argument(
+        "--summarize-only",
+        action="store_true",
+        help="run nothing: rebuild summary.csv and manifest.json from the per-unit CSVs of every catalogue",
+    )
+    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR, help="where to read and write results")
+    args = parser.parse_args()
+    if args.summarize_only and (args.unit or args.no_summary):
+        parser.error("--summarize-only takes no --unit or --no-summary")
+
+    results_dir: Path = args.results_dir.resolve()
+    summary_csv = results_dir / SUMMARY_CSV.name
+
+    catalogs = load_all(None if args.summarize_only else args.unit)
     if not catalogs:
         raise SystemExit("no catalogues found under validation/catalogs/")
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    summaries = []
-    for catalog in catalogs:
-        df = run_catalog(catalog)
-        df.to_csv(RESULTS_DIR / f"{catalog.slug}.csv", index=False)
-        summaries.append(_summarise(df))
+    results_dir.mkdir(parents=True, exist_ok=True)
+    if args.summarize_only:
+        summaries = [_summarise(df) for df in _read_unit_results(catalogs, results_dir)]
+    else:
+        summaries = []
+        for catalog in catalogs:
+            df = run_catalog(catalog)
+            df.to_csv(results_dir / f"{catalog.slug}.csv", index=False)
+            summaries.append(_summarise(df))
+        if args.no_summary:
+            print(f"  wrote {len(catalogs)} unit CSV(s); summary.csv and manifest.json untouched")
+            return
 
     summary = pd.DataFrame(summaries)
-    if args.unit and SUMMARY_CSV.exists():
-        previous = pd.read_csv(SUMMARY_CSV)
+    if args.unit and summary_csv.exists():
+        previous = pd.read_csv(summary_csv, float_precision="round_trip")
         summary = pd.concat([previous[previous.slug != args.unit], summary], ignore_index=True)
     summary = summary.sort_values(["model_class", "manufacturer", "nominal_kW"]).reset_index(drop=True)
-    summary.to_csv(SUMMARY_CSV, index=False)
+    summary.to_csv(summary_csv, index=False)
 
     print(f"Catalogue parity -- library defaults applied unchanged (coefficients {COEFFICIENT_VERSION})")
     print()
@@ -248,23 +312,45 @@ def main() -> None:
         print(f"  held (diagnostic only, not in any headline): {', '.join(held.unit)}")
     manifest = {
         "coefficient_version": COEFFICIENT_VERSION,
-        "git_head": _git_head(),
+        **_source_state(),
         "space_conditioning_cop_basis": "final_indoor_air_sensible",
         "units": int(len(summary)),
         "adopted_units": int(len(adopted)),
         "held_units": sorted(held.slug.tolist()),
     }
-    (RESULTS_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
-    print(f"  wrote {SUMMARY_CSV.relative_to(REPO_ROOT)} and results/manifest.json")
+    (results_dir / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
+    print(f"  wrote {summary_csv} and manifest.json")
 
 
-def _git_head() -> str:
+def _git(*argv: str) -> str:
     try:
         return subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10
+            ["git", *argv], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10, check=True
         ).stdout.strip()
     except Exception:  # noqa: BLE001
         return ""
+
+
+def _source_state() -> dict:
+    """What the results were computed from, as of writing the manifest.
+
+    ``dirty`` is true when any of :data:`SOURCE_PATHS` differs from ``git_head``
+    (staged, unstaged or untracked), i.e. when ``git_head`` alone does not
+    reproduce the numbers. ``src_tmhp_tree`` is the tree hash of ``src/tmhp`` at
+    ``git_head``: two clean runs with the same tree ran the same model code.
+    """
+    import CoolProp
+
+    status = _git("status", "--porcelain", "--untracked-files=all", "--", *SOURCE_PATHS)
+    return {
+        "git_head": _git("rev-parse", "HEAD"),
+        "dirty": bool(status),
+        "dirty_scope": list(SOURCE_PATHS),
+        "src_tmhp_tree": _git("rev-parse", "HEAD:src/tmhp"),
+        "run_date": datetime.date.today().isoformat(),
+        "python": platform.python_version(),
+        "coolprop": CoolProp.__version__,
+    }
 
 
 if __name__ == "__main__":

@@ -145,8 +145,10 @@ All five heat-pump models resolve ``eta_cmp_isen``, ``eta_cmp_vol`` and
 ``BITZER-three-C3-absolute-N-2026-10-06``).
 These represent isentropic, volumetric and electro-mechanical efficiency,
 respectively. Each input also accepts a scalar, a ``function(PR)`` or a
-``function(PR, rps)``. Evaluation validates finite, positive values and
-preserves exceptions raised inside a user function.
+``function(PR, rps)``. Every evaluated value must satisfy ``0 < eta <= 1``:
+a value above one is set to one, a nonpositive or nonfinite value makes the
+operating point infeasible, and exceptions raised inside a user function are
+preserved.
 
 The BITZER defaults evaluate physical shaft speed ``N = rps`` [rev/s]
 directly; ``n_star`` does not normalize the efficiency inputs. ``rps_rated``
@@ -155,7 +157,15 @@ When omitted, the reference state solves the speed delivering ``hp_capacity``
 and its ``m_dot_ref_rated`` at the family's rating condition
 (:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
 remain available. The reference solve does not change ``rps_min`` or
-``rps_max`` and does not clip extrapolated efficiencies.
+``rps_max``.
+
+The default polynomials carry their fitting-data box
+(``VALIDITY_DOMAIN``: PR 1.50-7.15, N 33.8-72.5 rev/s, from the scroll hull
+in the coefficient archive). Above it in PR or speed they hold the boundary
+value; below it (PR down to 1, speed down to 15 rev/s) they continue along the
+boundary slope only where that lowers the efficiency.
+``efficiency_extrapolated(model, PR, rps)`` reports whether a point lies
+outside the box; ``model.raw(PR, rps)`` is the unguarded polynomial.
 
 GSHP now solves speed using ``m_dot = V_cmp_ref * rho_suction * eta_v * rps``
 at each speed candidate, and evaluates isentropic efficiency before calculating
@@ -184,10 +194,10 @@ projected conditions. Coupled optimization explicitly includes the ground-HX
 duty-equality boundary at the PR floor; the shipped efficiency coefficients and
 existing HX, load and optimization verification tolerances remain unchanged.
 
-Temporary compressor fit policy (2026-10-07)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Compressor efficiency range (2026-11-12)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-At the user's request, fitted compressor efficiencies above one are used raw,
-without clipping or rejection. This temporary numerical study policy is not
-physical validation of the regression. Nonpositive and nonfinite efficiencies
-remain invalid. Revisit the policy after reviewing the compressor fit.
+The temporary 2026-10-07 policy of passing fitted efficiencies above one
+through unchanged has ended (issue #96). Values above one are set to one, the
+bound each efficiency approaches; nonpositive and nonfinite efficiencies remain
+invalid.

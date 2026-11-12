@@ -35,18 +35,21 @@ the box:
    AirSourceHeatPumpBoiler(ref="R290")       # propane
    AirSourceHeatPumpBoiler(ref="R410A")      # pseudo-pure blend
    AirSourceHeatPumpBoiler(ref="R134a")
-   AirSourceHeatPumpBoiler(ref="R600a")      # isobutane
+   AirSourceHeatPumpBoiler(ref="R600a", V_cmp_ref=2.0e-4)  # isobutane: larger displacement
 
 The compressor's rated speed is solved for each fluid at the model's rating
 condition (:doc:`/models/reference-state`), so swapping the fluid keeps the
 rated capacity. The capacity-scaled default displacement comes from an R32
-catalogue unit, so a low-pressure fluid such as R600a is built and solved
-with the defaults but needs a much higher rated speed (about 120 rev/s for
-the 15 kW default, outside the 33.8–72.5 rev/s range the default compressor
-efficiency was fitted on). Pass a larger ``V_cmp_ref`` to keep the speed
-in range. If the displacement is so small that the rated capacity cannot
-be reached below ``rps_max``, the constructor says so
-(``reference_capacity_inconsistent``) instead of clamping the speed.
+catalogue unit and does not depend on the refrigerant. A fluid with a low
+volumetric capacity needs a larger compressor for the same duty: with the
+15 kW default, R600a cannot reach the rated capacity below ``rps_max`` on the
+default displacement (7.0e-5 m³/rev), and the constructor says so
+(``reference_capacity_inconsistent``) instead of clamping the speed. Pass a
+larger ``V_cmp_ref`` — 2.0e-4 m³/rev puts the rated speed near 59 rev/s,
+inside the 33.8–72.5 rev/s range the default compressor efficiency was fitted
+on. R134a, R1234yf and R1234ze(E) do build on the default displacement, but
+at rated speeds of about 90, 100 and 121 rev/s, above that range; give them
+a larger ``V_cmp_ref`` too when comparing refrigerants.
 
 Not supported
 -------------

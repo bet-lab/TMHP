@@ -117,25 +117,26 @@ def test_c11_wshpb_suction_not_hotter_than_source():
     expect(num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05, 'num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05')
 
 
-@defect("C4", "GSHP heating 3 kW returns hx_not_converged; air side 1,592 W vs refrigerant 3,000 W")
 def test_c4_gshp_heating_converges_with_consistent_indoor_balance():
+    """#96 C4 (fixed): GSHP heating 3 kW used to return hx_not_converged with
+    air side 1,592 W vs refrigerant 3,000 W."""
     # The issue's call leaves T_bhe_wall at its default, so call the model directly.
     model = FAMILIES["GSHP-heat"].build("R32")
     r = model.analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0)
-    expect(r["converged"] is True and r["failure_reason"] == "none", r["failure_reason"])
+    assert r["converged"] is True and r["failure_reason"] == "none", r["failure_reason"]
     Q_ref = num(r, "Q_ref_iu [W]")
     Q_air = num(r, "Q_a_iu_out [W]") - num(r, "Q_a_iu_in [W]")
     E_fan = num(r, "E_iu_fan [W]", 0.0)
     # Air gains the refrigerant heat; at most the fan heat on top.
-    expect(Q_ref * 0.98 <= Q_air <= (Q_ref + E_fan) * 1.02, f"Q_air={Q_air:.0f} Q_ref={Q_ref:.0f} E_fan={E_fan:.0f}")
+    assert Q_ref * 0.98 <= Q_air <= (Q_ref + E_fan) * 1.02, f"Q_air={Q_air:.0f} Q_ref={Q_ref:.0f} E_fan={E_fan:.0f}"
 
 
-@defect("C4b", "GSHP.analyze_steady ignores T_bhe_wall (5 and 25 °C give identical results)")
 def test_c4b_gshp_borehole_wall_temperature_changes_result():
+    """#96 C4b (fixed): analyze_steady used to ignore T_bhe_wall (5 and 25 °C identical)."""
     cold = FAMILIES["GSHP-heat"].build("R32").analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=5.0)
     warm = FAMILIES["GSHP-heat"].build("R32").analyze_steady(Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=25.0)
     keys = ("T_ref_evap_sat [°C]", "T_bhe_f_out [°C]", "E_cmp [W]")
-    expect(any(abs(num(cold, k) - num(warm, k)) > 0.1 for k in keys), {k: (cold.get(k), warm.get(k)) for k in keys})
+    assert any(abs(num(cold, k) - num(warm, k)) > 0.1 for k in keys), {k: (cold.get(k), warm.get(k)) for k in keys}
 
 
 # ---------------------------------------------------------------------------

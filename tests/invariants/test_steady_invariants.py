@@ -16,8 +16,9 @@ Every result is checked by :func:`._checks.check_steady`:
 
 Grid points chosen keep every measured margin away from the check tolerance
 (>= 0.3 K, >= 0.001 on efficiencies) so the outcome does not depend on the
-platform. Two otherwise-selected points sat within 0.3 K of the suction check
-and are excluded (``_EXCLUDED``).
+platform. Points within those margins are excluded (``_EXCLUDED``): two sat
+within 0.3 K of the suction check, and six GSHP points (since the C4 solver
+fix) run with a raw-fit eta_v within 0.001 of 1.
 
 Points that fail today are listed in ``KNOWN_FAILURES`` with their #96 defect
 ID and run as ``xfail(strict=True)``; a fix removes exactly its entries.
@@ -49,18 +50,24 @@ GRID: dict[str, tuple[tuple[float, ...], tuple[float, ...]]] = {
     "GSHP-cool": ((22, 26, 30), (15, 25)),  # room air / borehole wall
 }
 
-# Within 0.3 K of the suction <= source check on the reference platform.
-_EXCLUDED = {("GSHPB", "R290", 5, 50, 0.25), ("WSHPB", "R410A", 10, 55, 0.25)}
-
-_ALL_GSHP_POINTS = {
-    "GSHP-heat": [(s, d, p) for s in (0, 5, 15) for d in (18, 24) for p in PART_LOAD],
-    "GSHP-cool": [(s, d, p) for s in (22, 26, 30) for d in (15, 25) for p in PART_LOAD],
+_EXCLUDED = {
+    # Within 0.3 K of the suction <= source check on the reference platform.
+    ("GSHPB", "R290", 5, 50, 0.25),
+    ("WSHPB", "R410A", 10, 55, 0.25),
+    # Raw-fit eta_v within 0.001 of 1 (1.00023-1.00057, and 0.9998 for the last);
+    # the outcome of the eta_v <= 1 check would depend on the platform.
+    ("GSHP-heat", "R134a", 15, 18, 0.75),
+    ("GSHP-cool", "R290", 22, 15, 0.75),
+    ("GSHP-cool", "R290", 26, 15, 0.75),
+    ("GSHP-cool", "R290", 30, 15, 0.75),
+    ("GSHP-cool", "R134a", 22, 25, 0.75),
+    ("GSHP-cool", "R134a", 30, 25, 0.75),
 }
 # What each grid defect is allowed to produce. A known-failing point that shows any
 # *other* violation (or a different exception) fails hard instead of hiding behind
 # its xfail mark.
 _EXPECTED_TAGS: dict[str, set[str]] = {
-    "C4": {"failed_with_heat"},
+    "C1": {"eta_v", "eta_em"},
     "C11": {"suction_vs_source"},
 }
 # Defects that show up as a constructor failure: (exception type, text that identifies it).
@@ -68,8 +75,10 @@ _EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {
     "C1": (ReferenceStateError, "Compressor efficiencies must be finite and positive"),
 }
 _WHY = {
-    "C1": "constructor cannot bracket the B0/W55 reference: raw efficiency fit <= 0 in the speed range",
-    "C4": "GSHP returns heat and power with converged=False / failure_reason='hx_not_converged'",
+    "C1": (
+        "raw efficiency fit outside (0, 1]: the constructor cannot bracket the B0/W55 reference, "
+        "or a running cycle reports eta_v > 1"
+    ),
     "C11": "no superheat cap in GSHPB/WSHPB: suction refrigerant hotter than the source water",
 }
 
@@ -80,14 +89,9 @@ KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]
     ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R32"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
     ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
-    ("GSHP-heat", "R32"): {"C4": _ALL_GSHP_POINTS["GSHP-heat"]},
-    ("GSHP-heat", "R410A"): {"C4": _ALL_GSHP_POINTS["GSHP-heat"]},
-    ("GSHP-heat", "R134a"): {"C4": [(s, d, 0.75) for s in (0, 5, 15) for d in (18, 24)]},
-    ("GSHP-heat", "R290"): {"C4": [(s, d, 0.75) for s in (0, 5, 15) for d in (18, 24)]},
-    ("GSHP-cool", "R32"): {"C4": _ALL_GSHP_POINTS["GSHP-cool"]},
-    ("GSHP-cool", "R410A"): {"C4": _ALL_GSHP_POINTS["GSHP-cool"]},
-    ("GSHP-cool", "R134a"): {"C4": [(s, d, 0.75) for s in (22, 26, 30) for d in (15, 25)]},
-    ("GSHP-cool", "R290"): {"C4": [(s, d, 0.75) for s in (22, 26, 30) for d in (15, 25)]},
+    # The C4 solver fix makes every GSHP point run; at these the raw fit gives
+    # eta_v 1.0021-1.0133 (R134a cooling at 75 % load).
+    ("GSHP-cool", "R134a"): {"C1": [(22, 15, 0.75), (26, 15, 0.75), (30, 15, 0.75), (26, 25, 0.75)]},
 }
 
 
@@ -126,7 +130,9 @@ def test_known_failures_reference_grid_points():
         assert ref in REFRIGERANTS
         for defect_id, points in by_id.items():
             assert defect_id in _WHY
-            assert (defect_id in _EXPECTED_TAGS) != (defect_id in _EXPECTED_CTOR_ERROR), defect_id
+            # A defect may show as allowed violation tags, a constructor error, or
+            # both (C1: GSHPB R134a cannot be built, GSHP R134a runs with eta_v > 1).
+            assert defect_id in _EXPECTED_TAGS or defect_id in _EXPECTED_CTOR_ERROR, defect_id
             for s, d, p in points:
                 assert s in sources and d in demands and p in PART_LOAD, (family, ref, s, d, p)
                 assert (family, ref, s, d, p) not in _EXCLUDED

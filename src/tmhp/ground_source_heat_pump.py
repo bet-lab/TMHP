@@ -5,9 +5,11 @@ heat exchanger (BHE) on the source side and an indoor-air heat exchanger
 on the load side.  Supports both **cooling** (``Q_r_iu > 0``) and
 **heating** (``Q_r_iu < 0``) modes.
 
-At each time step the model finds the minimum-power operating point
-(compressor + BHE pump + indoor fan) via bounded 2-D optimisation
-over the evaporator and condenser approach temperature differences.
+At each time step the model finds the operating point of least electrical
+input per unit of delivered heat (compressor + BHE pump + indoor fan). The
+indoor approach temperature is searched (coarse grid, then a bounded
+refinement); the ground-side approach follows from the ground heat-exchanger
+balance at the fixed loop flow.
 
 Borehole thermal response is tracked with pygfunction-based multi-borehole
 g-functions, enabling robust long-term ground temperature drift modelling.
@@ -22,19 +24,21 @@ and ``AirSourceHeatPump`` for the indoor-unit side.
 from __future__ import annotations
 
 import contextlib
+import math
 import warnings
 from collections.abc import Callable, Mapping
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
+from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
-from .compressor_speed import default_displacement, solve_compressor_speed
+from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
 from .enex_functions import (
     calc_energy_flow,
@@ -49,6 +53,7 @@ from .ground_flow_control import (
     solve_ground_approach,
 )
 from .ground_loop import (
+    calc_bhe_fluid_temperatures,
     calc_borefield_linear_load,
     calc_borehole_count,
     calc_total_borehole_length,
@@ -71,12 +76,113 @@ from .refrigerant import (
 )
 
 
+def _require_finite(**values: float | None) -> None:
+    """Reject NaN/inf inputs with a named ValueError (``None`` means omitted)."""
+    for name, value in values.items():
+        if value is None:
+            continue
+        try:
+            finite = bool(np.isfinite(float(value)))
+        except (TypeError, ValueError):
+            finite = False
+        if not finite:
+            raise ValueError(f"{name} must be a finite number, got {value!r}")
+
+
+#: Signed indoor-coil capacity margins at the fan flow limits (row keys).
+_IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
+_IU_MARGIN_AT_MIN_FLOW = "iu_hx_min_flow_margin [W]"
+
+
+class _IndoorSearch:
+    """Cached candidate operating points over the indoor approach for one request.
+
+    Each candidate closes the ground side (:meth:`GroundSourceHeatPump.
+    _close_ground_side`) and is ranked on the three-band objective. Calling the
+    instance returns that objective, so it can be handed to a scalar minimiser.
+    """
+
+    def __init__(
+        self,
+        model: GroundSourceHeatPump,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | None,
+        warm: dict[str, float] | None = None,
+    ) -> None:
+        self.model = model
+        self.Q_r_iu, self.T0, self.T_a_room, self.wall_K = Q_r_iu, T0, T_a_room, wall_K
+        self.rows: dict[float, tuple[float, str, dict | None]] = {}
+        self.warm: dict[str, float] = dict(warm or {})
+        self.pr_ceiling_seen = False
+
+    def entry(self, load_approach: float) -> tuple[float, str, dict | None]:
+        load_approach = float(load_approach)
+        if load_approach not in self.rows:
+            model = self.model
+            status, row, g, T_out = model._close_ground_side(
+                load_approach, self.Q_r_iu, self.T0, self.T_a_room, self.wall_K, self.warm
+            )
+            if status == "invalid" and model._last_pr_event is not None:
+                self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
+            value = OBJ_INFEASIBLE
+            if row is not None and status in model._BALANCED:
+                self.warm.update(g=g, T_out=T_out)
+                row = {
+                    **row,
+                    "ground_approach [K]": g,
+                    "indoor_approach [K]": load_approach,
+                    "ground_balance": status,
+                }
+                if (
+                    row.get("converged", False)
+                    and row.get("converged_rps", True)
+                    and row.get("indoor_heat_direction_valid", True)
+                ):
+                    value = operating_point_objective(
+                        float(row["E_tot [W]"]),
+                        float(row["Q_ref_iu [W]"]),
+                        self.Q_r_iu,
+                        row.get("capacity_clamped"),
+                    )
+            self.rows[load_approach] = (value, status, row)
+        return self.rows[load_approach]
+
+    def __call__(self, load_approach: float) -> float:
+        return self.entry(load_approach)[0]
+
+    def feasible(self, load_approach: float) -> bool:
+        return self.entry(load_approach)[0] < OBJ_INFEASIBLE
+
+    def balanced(self, load_approach: float) -> bool:
+        _, status, row = self.entry(load_approach)
+        return row is not None and status in self.model._BALANCED and _IU_MARGIN_AT_MAX_FLOW in row
+
+    def margin(self, load_approach: float, key: str) -> float:
+        if not self.balanced(load_approach):
+            raise ValueError("No balanced cycle at this indoor approach")
+        row = self.entry(load_approach)[2]
+        assert row is not None
+        return float(row[key])
+
+    def best(self) -> tuple[float, str, dict | None]:
+        return min(self.rows.values(), key=lambda item: item[0])
+
+
 class GroundSourceHeatPump(ReferenceStateMixin):
     """Ground source heat pump with BHE and indoor-unit air heat exchange.
 
-    The refrigerant cycle is resolved via CoolProp.  A bounded 2-D
-    optimiser minimises total electrical input (``E_cmp + E_pmp + E_iu_fan``)
-    over the evaporator and condenser approach temperatures.
+    The refrigerant cycle is resolved via CoolProp. The operating point
+    minimises total electrical input (``E_cmp + E_pmp + E_iu_fan``) per unit
+    of delivered heat over the indoor approach temperature, with the
+    ground-side approach closed by the ground heat-exchanger balance.
+
+    When the requested duty exceeds what the unit can deliver, the result is
+    the delivered ceiling with ``capacity_clamped == "max"`` and
+    ``Q_ref_iu [W]`` below the request; the difference is unmet load, not a
+    solver failure. A request below the minimum-speed duty runs at that speed
+    and reports ``capacity_clamped == "min"`` with the larger delivery.
     """
 
     _RATING_FAMILY = "GSHP"
@@ -489,6 +595,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         *,
         ground_flow_ratio: float = 1.0,
         source_temperature_K: float | None = None,
+        speed_clamp_is_failure: bool | None = None,
     ) -> dict | None:
         """Evaluate refrigerant cycle at a given operating point.
 
@@ -502,6 +609,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             Dead-state / ambient temperature [°C].
         T_a_room : float
             Room air temperature [°C].
+        source_temperature_K : float | None
+            Ground-fluid temperature leaving the borefield [K]; the model state
+            ``T_bhe_f_out_K`` when omitted.
+        speed_clamp_is_failure : bool | None
+            Whether a compressor speed clamp marks the state as failed. The
+            default keeps the coupled-solver rule (failed when the coupled loop
+            is active or a source temperature is given); the standard solver
+            passes ``False`` and reports the clamp as ``capacity_clamped``.
         """
         self._last_pr_event = None
         loop = ground_flow_state(self._ground_settings, ground_flow_ratio)
@@ -833,11 +948,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             Q_ground_available,
             result["Q_ref_ground [W]"],
         )
-        if (
-            (self._ground_settings["active"] or source_temperature_K is not None)
-            and is_active
-            and (capacity_clamped is not None or not converged_rps)
-        ):
+        if speed_clamp_is_failure is None:
+            speed_clamp_is_failure = bool(self._ground_settings["active"] or source_temperature_K is not None)
+        if speed_clamp_is_failure and is_active and (capacity_clamped is not None or not converged_rps):
             result["converged_rps"] = False
             result["failure_reason"] = "compressor_min_speed" if capacity_clamped == "min" else "compressor_max_speed"
         return result
@@ -1024,37 +1137,511 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             selected = off
         return selected
 
-    def _optimize_operation(self, Q_r_iu: float, T0: float, T_a_room: float):
-        """Find min-power point: E_cmp + E_pmp + E_iu_fan."""
+    # =============================================================
+    # Standard (fixed ground flow) operating-point solver
+    # =============================================================
 
-        def _objective(params) -> float:
-            dT_evap, dT_cond = params
-            perf = self._calc_state(dT_evap, dT_cond, Q_r_iu, T0, T_a_room)
-            if perf is None or not perf.get("converged", False):
-                return 1e6
-            E_tot = float(perf.get("E_tot [W]", 1e6))
-            if E_tot <= 0 or np.isnan(E_tot):
-                return 1e6
-            err_Q = float(perf.get("err_Q_evap [W]", 0.0))
-            penalty = max(0.0, err_Q) * 1000.0
-            return E_tot + penalty
+    #: Ground-side approach search range [K]; the coupled solver uses the same.
+    _GROUND_APPROACH_BOUNDS: tuple[float, float] = (1.0, 20.0)
+    #: Coarse indoor-approach samples. They only locate the feasible band; its
+    #: edges are then solved from the fan capacity margins, so a band narrower
+    #: than the spacing (narrow or fixed fan range) is not missed.
+    _INDOOR_GRID_POINTS = 7
+    #: Root tolerance for band edges and the inward step taken off them [K].
+    _BAND_EDGE_XTOL_K = 1e-7
+    _BAND_EDGE_STEP_K = 1e-6
+    #: Resolution of the edge between ground-balanced and unbalanced approaches [K].
+    _BALANCED_EDGE_TOL_K = 1e-3
+    _GROUND_CLOSURE_MAX_ITER = 24
+    #: Width [K] to which the approach at the compressor envelope edge is resolved.
+    _ENVELOPE_APPROACH_TOL_K = 1e-2
+    #: Ground-fluid temperature closure tolerance [K] (as the coupled solver).
+    _FLUID_TEMPERATURE_TOL_K = 1e-5
+    #: Ground-side closures that describe a physical operating state. Spare
+    #: ground-HX capacity is accepted in two places only: at the smallest
+    #: approach searched, and in cooling at the compressor pressure-ratio
+    #: floor, where the condensing pressure is held up (head-pressure control:
+    #: the condenser runs partly flooded) instead of following the ground loop.
+    _BALANCED = frozenset({"equality", "slack_bound", "slack_floor"})
 
-        # Adaptive initial guess: ensure dT_evap + dT_cond > |T_room - T_ground|
-        # so T_evap_sat < T_cond_sat from the start.
-        T_ground = cu.K2C(self.T_bhe_f_out_K)
-        gap = abs(T_a_room - T_ground)
-        x0_dt = max(5.0, (gap + 4.0) / 2.0)  # each ΔT gets half the gap + margin
+    def _ground_conductance(self, mode: str) -> tuple[dict, float]:
+        """Loop state and ε·ṁ·c_p of the ground HX at the fixed reference flow [W/K]."""
+        loop = ground_flow_state(self._ground_settings, 1.0)
+        m_dot = loop["dV"] * rho_w
+        UA_ground, _ = self._rated_hx_UAs(mode)
+        return loop, float(calc_phase_change_hx_effectiveness(UA_ground, m_dot, c_w) * m_dot * c_w)
 
-        return minimize(
-            _objective,
-            x0=[x0_dt, x0_dt],
-            bounds=[
-                (1.0, 20.0) if Q_r_iu < 0 else (self.indoor_approach_min_K, self.indoor_approach_max_K),
-                (self.indoor_approach_min_K, self.indoor_approach_max_K) if Q_r_iu < 0 else (1.0, 20.0),
-            ],
-            method="Nelder-Mead",
-            options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
+    def _close_ground_side(
+        self,
+        load_approach: float,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | None,
+        warm: dict,
+    ) -> tuple[str, dict | None, float, float]:
+        """Close the ground-side heat balance at one indoor approach.
+
+        With a fixed loop flow and heat-exchanger UA the ground-side saturation
+        temperature is not a free control: the evaporator (heating) or the
+        condenser (cooling) settles where the refrigerant duty equals the duty
+        the ground HX can carry, ``ε·ṁc_p·ΔT``. Treating it as an independent
+        search variable with an inequality (the former solver) let the optimiser
+        rest on any point with spare HX capacity. Here a Newton/secant iteration
+        on the approach closes the equality.
+
+        When ``wall_K`` is given, the fluid temperature leaving the borefield is
+        closed at the same time from the borehole relation used by the coupled
+        solver, ``T_out = T_wall - q' R_b* + Q_bhe / (2 ṁ c_p)``
+        (:func:`calc_bhe_fluid_temperatures`). Otherwise it is the model state
+        ``T_bhe_f_out_K``.
+
+        Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
+        ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
+        capacity already at the smallest approach), ``"slack_floor"`` (cooling
+        at the pressure-ratio floor: the condensing pressure is held at the
+        floor and the condenser has spare capacity, see :attr:`_BALANCED`),
+        ``"ground_limit"`` (duty
+        exceeds the ground HX at the largest approach), ``"invalid"`` or
+        ``"not_closed"``.
+        """
+        heating = Q_r_iu < 0
+        lo, hi = self._GROUND_APPROACH_BOUNDS
+        loop, conductance = self._ground_conductance("heating" if heating else "cooling")
+        # Ground duty is the indoor duty minus (heating) or plus (cooling) the
+        # compressor work; a COP near 4 is a starting guess only.
+        g = float(warm.get("g", abs(Q_r_iu) * (0.75 if heating else 1.25) / conductance))
+        g = min(max(g, lo), hi)
+        if "T_out" in warm:
+            T_out = float(warm["T_out"])
+        elif wall_K is None:
+            T_out = float(self.T_bhe_f_out_K)
+        else:
+            # Start the fluid closure from the guessed borefield load, not from
+            # the wall temperature itself.
+            q_ground = g * conductance
+            Q_bhe_guess = q_ground - loop["E_pmp"] if heating else -(q_ground + loop["E_pmp"])
+            T_out = calc_bhe_fluid_temperatures(
+                wall_K, Q_bhe_guess, self.n_boreholes, self.H_b, loop["R_b"], loop["dV"] * rho_w, c_w
+            )[2]
+        # The compressor envelope (pressure-ratio ceiling) limits the absolute
+        # ground-side saturation temperature, not the approach: as the fluid
+        # temperature closes, the approach at that limit moves with it.
+        pump_rise = float(loop["E_pmp"]) / (float(loop["dV"]) * rho_w * c_w)
+
+        def saturation(approach: float, fluid: float) -> float:
+            source = fluid + pump_rise
+            return source - approach if heating else source + approach
+
+        def approach_at(sat_K: float, fluid: float) -> float:
+            source = fluid + pump_rise
+            return source - sat_K if heating else sat_K - source
+
+        previous: tuple[float, float] | None = None
+        # Previous (fluid temperature, closure error) pair for the secant step.
+        previous_fluid: tuple[float, float] | None = None
+        # Last valid evaluation (approach, residual, row, fluid temperature) and
+        # the nearest invalid saturation temperature seen (outside the envelope).
+        last: tuple[float, float, dict, float] | None = None
+        bad_sat: float | None = None
+        row: dict | None = None
+        for _ in range(self._GROUND_CLOSURE_MAX_ITER):
+            evap, cond = (g, load_approach) if heating else (load_approach, g)
+            try:
+                row = self._calc_state(
+                    evap,
+                    cond,
+                    Q_r_iu,
+                    T0,
+                    T_a_room,
+                    source_temperature_K=T_out,
+                    speed_clamp_is_failure=False,
+                )
+            except (ValueError, OverflowError, ZeroDivisionError):
+                row = None
+            if row is None:
+                # A larger approach raises the lift into the pressure-ratio
+                # ceiling: retry at the smallest approach, or bisect between the
+                # last valid saturation temperature and this one.
+                sat = saturation(g, T_out)
+                if bad_sat is not None:
+                    # Keep the invalid temperature closest to the valid side.
+                    sat = max(bad_sat, sat) if heating else min(bad_sat, sat)
+                bad_sat = sat
+                if last is None:
+                    if g <= lo + 1e-9:
+                        return "invalid", None, g, T_out
+                    g = lo
+                    continue
+                last_sat = saturation(last[0], last[3])
+                if abs(last_sat - bad_sat) < self._ENVELOPE_APPROACH_TOL_K:
+                    if last[1] > 0:
+                        # The duty needs more ground approach than the compressor
+                        # envelope allows: a ground-side capacity limit.
+                        return "ground_limit", last[2], last[0], last[3]
+                    return "invalid", None, g, T_out
+                g = max(lo, approach_at(0.5 * (last_sat + bad_sat), T_out))
+                continue
+            residual = float(row["err_Q_evap [W]"])
+            tolerance = max(0.01, 1e-5 * abs(float(row["Q_ref_ground [W]"])))
+            if wall_K is None:
+                T_next = T_out
+            else:
+                _, _, T_next = calc_bhe_fluid_temperatures(
+                    wall_K,
+                    float(row["Q_bhe [W]"]),
+                    self.n_boreholes,
+                    self.H_b,
+                    float(row["R_b_eff [mK/W]"]),
+                    float(row["dV_bhe_f [m3/s]"]) * rho_w,
+                    c_w,
+                )
+            closed = abs(T_next - T_out) <= self._FLUID_TEMPERATURE_TOL_K
+            upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
+            if closed:
+                if abs(residual) <= tolerance:
+                    return "equality", row, g, T_out
+                if residual < 0 and g <= lo + 1e-12:
+                    return "slack_bound", row, g, T_out
+                if residual < 0 and not heating and row.get("pr_floor_active", False):
+                    return "slack_floor", row, g, T_out
+                if residual > 0 and (g >= hi - 1e-12 or upper - g < self._ENVELOPE_APPROACH_TOL_K):
+                    return "ground_limit", row, g, T_out
+            # dR/dg = dQ/dg - ε·ṁc_p; the duty term is small, so the conductance
+            # is a safe first slope and a secant estimate refines it.
+            slope = conductance
+            if previous is not None and abs(g - previous[0]) > 1e-9:
+                estimate = (previous[1] - residual) / (g - previous[0])
+                if estimate > 0.05 * conductance:
+                    slope = estimate
+            previous, last = (g, residual), (g, residual, row, T_out)
+            # Fluid closure: plain substitution oscillates when the duty rises
+            # steeply with the source temperature (loop gain near -0.5 at the
+            # compressor speed ceiling); a secant step on the closure error
+            # removes that, as in the coupled solver's temperature closure.
+            error = T_next - T_out
+            step = error
+            if previous_fluid is not None and abs(error - previous_fluid[1]) > 1e-12:
+                secant = -error * (T_out - previous_fluid[0]) / (error - previous_fluid[1])
+                if math.isfinite(secant) and abs(secant) < 30.0:
+                    step = secant
+            previous_fluid = (T_out, error)
+            T_out = T_out + step
+            # Never step onto an approach already known to leave the envelope.
+            upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
+            target = g + residual / slope
+            if target >= upper:
+                target = 0.5 * (g + upper) if upper < hi else hi
+            g = max(target, lo)
+        return "not_closed", row, g, T_out
+
+    def _solve_operating_point(
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        *,
+        wall_K: float | None = None,
+    ) -> dict:
+        """Operating point at a fixed ground flow, or an explicit failure.
+
+        The indoor approach is the free control (the fan modulates); the
+        ground-side approach follows from the ground HX balance
+        (:meth:`_close_ground_side`). The indoor approaches the fan can serve
+        form one band, found from the signed coil capacity margins at the fan
+        flow limits (:meth:`_search_indoor`), and candidates in it are ranked
+        on the three-band objective of
+        :func:`~tmhp._opt_utils.operating_point_objective`: specific energy
+        below the capacity ceiling (raw power would pick the starved coil at
+        the compressor's minimum speed), largest delivery at ``rps_max``.
+
+        A request above what the unit can deliver returns the delivered ceiling
+        with ``capacity_clamped == "max"``. A point that cannot be solved
+        returns the off state with ``converged=False`` and the reason: no heat,
+        no power, NaN COP.
+        """
+        search = _IndoorSearch(self, Q_r_iu, T0, T_a_room, wall_K)
+        self._search_indoor(search)
+        rows = search.rows
+        value, _, row = search.best()
+        if value < OBJ_INFEASIBLE and row is not None:
+            result = dict(row)
+            result.update({"converged": True, "failure_reason": "none", "Q_request [W]": Q_r_iu})
+            if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                result.update({"Q_max [W]": abs(float(result["Q_ref_iu [W]"])), "capacity_binding": "compressor"})
+            return result
+
+        statuses = {status for _, status, _ in rows.values()}
+        indoor_limited = any(
+            r is not None and status in self._BALANCED and not r.get("converged", False)
+            for _, status, r in rows.values()
         )
+        # Only a coil that cannot carry the duty even at its largest airflow is
+        # a capacity limit; one that over-delivers at its smallest airflow at
+        # every approach cannot turn down, and a smaller duty will not help.
+        indoor_short = any(
+            r is not None and status in self._BALANCED and float(r.get(_IU_MARGIN_AT_MAX_FLOW, 0.0)) < 0.0
+            for _, status, r in rows.values()
+        )
+        if indoor_short or "ground_limit" in statuses:
+            ceiling = self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, wall_K)
+            if ceiling is not None:
+                return ceiling
+        if indoor_limited:
+            reason = "hx_not_converged"
+        elif "ground_limit" in statuses:
+            reason = "ground_hx_capacity_insufficient"
+        elif search.pr_ceiling_seen:
+            reason = "pr_above_max"
+        else:
+            reason = "cycle_invalid"
+        return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)
+
+    def _balanced_cell(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
+        """Shrink ``[a, b]`` to its ground-balanced part (one end must be balanced)."""
+        good_a, good_b = search.balanced(a), search.balanced(b)
+        if good_a and good_b:
+            return a, b
+        if not (good_a or good_b):
+            return None
+        good, bad = (a, b) if good_a else (b, a)
+        while abs(bad - good) > self._BALANCED_EDGE_TOL_K:
+            mid = 0.5 * (good + bad)
+            if search.balanced(mid):
+                good = mid
+            else:
+                bad = mid
+        return (a, good) if good_a else (good, b)
+
+    def _fan_band(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
+        """Indoor approaches in ``[a, b]`` at which the fan can carry the duty.
+
+        At a larger approach the coil carries more heat at any airflow, so the
+        signed capacity margin at the maximum fan flow rises from negative
+        (cannot carry the duty) and the margin at the minimum flow rises
+        through zero (cannot turn down far enough). The band between the two
+        roots is solved, not sampled.
+        """
+        # Both margins rise with the approach: a band needs the minimum-flow
+        # margin <= 0 at the left end and the maximum-flow margin >= 0 at the
+        # right end. Check what the balanced ends already tell before paying
+        # for the ground-balance edge.
+        if search.balanced(a) and search.margin(a, _IU_MARGIN_AT_MIN_FLOW) > 0.0:
+            return None
+        if search.balanced(b) and search.margin(b, _IU_MARGIN_AT_MAX_FLOW) < 0.0:
+            return None
+        cell = self._balanced_cell(search, a, b)
+        if cell is None:
+            return None
+        with contextlib.suppress(ValueError, RuntimeError):
+            return margin_feasible_interval(
+                lambda x: search.margin(x, _IU_MARGIN_AT_MAX_FLOW),
+                lambda x: search.margin(x, _IU_MARGIN_AT_MIN_FLOW),
+                cell[0],
+                cell[1],
+                xtol=self._BAND_EDGE_XTOL_K,
+            )
+        return None
+
+    def _sample_band(
+        self,
+        search: _IndoorSearch,
+        band: tuple[float, float],
+        accept: Callable[[float], bool] | None,
+    ) -> None:
+        """Search a fan band: its inward-stepped edges, then the interior.
+
+        Without ``accept`` the interior is minimised; with it the band is only
+        probed (edges and middle) for an accepted point.
+        """
+        lo, hi = band
+        step = self._BAND_EDGE_STEP_K
+        check = accept if accept is not None else search.feasible
+        if hi - lo <= 2.0 * step:
+            # A single point: equal fan limits, or a band at solver resolution.
+            for x in (0.5 * (lo + hi), lo, hi):
+                if check(x):
+                    return
+            return
+        lo, hi = lo + step, hi - step
+        if accept is not None:
+            for x in (lo, hi, 0.5 * (lo + hi)):
+                if accept(x):
+                    return
+            return
+        search(lo)
+        search(hi)
+        minimize_scalar(
+            search,
+            bounds=(lo, hi),
+            method="bounded",
+            options={"xatol": min(1e-2, (hi - lo) / 20.0), "maxiter": 25},
+        )
+
+    def _search_indoor(
+        self,
+        search: _IndoorSearch,
+        *,
+        seed: float | None = None,
+        accept: Callable[[float], bool] | None = None,
+    ) -> None:
+        """Locate the feasible indoor-approach band and search it.
+
+        Coarse samples locate the band. Its edges come from the fan capacity
+        margins (:meth:`_fan_band`), so an empty sample set is never taken as
+        proof that no operating point exists. Without ``accept`` the band
+        around the best sample is searched for the least objective; with it
+        the search stops at the first accepted point.
+        """
+        lo_i, hi_i = self.indoor_approach_min_K, self.indoor_approach_max_K
+        if accept is not None and seed is not None and accept(seed):
+            return
+        for x in np.linspace(lo_i, hi_i, self._INDOOR_GRID_POINTS):
+            if accept is not None and accept(float(x)):
+                return
+            search(float(x))
+        samples = sorted(x for x in search.rows if lo_i <= x <= hi_i)
+        feasible = [x for x in samples if search.feasible(x)]
+        if feasible:
+            best = min(feasible, key=search)
+            k = samples.index(best)
+            left = samples[k - 1] if k > 0 else best
+            right = samples[k + 1] if k + 1 < len(samples) else best
+            lo: float = left
+            hi: float = right
+            if not search.feasible(left):
+                band = self._fan_band(search, left, best)
+                lo = band[0] if band is not None else best
+            if not search.feasible(right):
+                band = self._fan_band(search, best, right)
+                hi = band[1] if band is not None else best
+            if hi > lo:
+                self._sample_band(search, (lo, hi), accept)
+            if accept is None:
+                return
+        for a, b in zip(samples, samples[1:], strict=False):
+            if accept is None and (search.feasible(a) or search.feasible(b)):
+                continue
+            band = self._fan_band(search, a, b)
+            if band is None:
+                continue
+            self._sample_band(search, band, accept)
+            if accept is None and search.best()[0] < OBJ_INFEASIBLE:
+                return
+            if accept is not None and any(accept(x) for x in search.rows if band[0] <= x <= band[1]):
+                return
+
+    def _duty_deliverable(
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | None,
+        seed: float | None,
+        warm: dict[str, float] | None = None,
+    ) -> tuple[float | None, dict | None]:
+        """An indoor approach at which this duty is met exactly, if one exists."""
+        search = _IndoorSearch(self, Q_r_iu, T0, T_a_room, wall_K, warm)
+
+        def exact(load_approach: float) -> bool:
+            value, _, row = search.entry(load_approach)
+            return (
+                value < OBJ_INFEASIBLE
+                and row is not None
+                and row.get("capacity_clamped") is None
+                and abs(float(row["Q_ref_iu [W]"]) - abs(Q_r_iu)) <= 1e-6 * abs(Q_r_iu)
+            )
+
+        self._search_indoor(search, seed=seed, accept=exact)
+        for x in search.rows:
+            if exact(x):
+                return x, search.entry(x)[2]
+        return None, None
+
+    @staticmethod
+    def _warm_from(row: dict | None) -> dict[str, float]:
+        """Ground-closure warm start taken from a solved row."""
+        if row is None:
+            return {}
+        return {"g": float(row["ground_approach [K]"]), "T_out": cu.C2K(float(row["T_bhe_f_out [°C]"]))}
+
+    def _capacity_limited_operating_point(
+        self,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | None,
+        rel_tol: float = 5e-3,
+    ) -> dict | None:
+        """Largest deliverable duty below the request, reported as a ceiling.
+
+        A ladder of trial duties brackets the ceiling and a bisection closes on
+        it. Each duty is tested by the fan-band search (:meth:`_search_indoor`),
+        so a narrow fan range does not turn into an artificial ceiling. Returns
+        ``None`` when no duty below the request can be delivered exactly.
+        """
+        sign = -1.0 if Q_r_iu < 0 else 1.0
+        request = abs(Q_r_iu)
+        rungs = [
+            f * self.hp_capacity
+            for f in (0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
+            if f * self.hp_capacity < request
+        ]
+        lo_q, lo_x, lo_row = 0.0, None, None
+        hi_q = request
+        for q in rungs:
+            x, row = self._duty_deliverable(sign * q, T0, T_a_room, wall_K, lo_x, self._warm_from(lo_row))
+            if row is not None:
+                lo_q, lo_x, lo_row = q, x, row
+            elif lo_row is not None:
+                hi_q = q
+                break
+        if lo_row is None:
+            return None
+        while hi_q - lo_q > rel_tol * hi_q:
+            mid = 0.5 * (lo_q + hi_q)
+            x, row = self._duty_deliverable(sign * mid, T0, T_a_room, wall_K, lo_x, self._warm_from(lo_row))
+            if row is not None:
+                lo_q, lo_x, lo_row = mid, x, row
+            else:
+                hi_q = mid
+        assert lo_x is not None
+        # Just past the ceiling, did the compressor or a heat exchanger stop it?
+        _, probe, _, _ = self._close_ground_side(lo_x, sign * min(request, 1.05 * lo_q), T0, T_a_room, wall_K, {})
+        binding = (
+            "compressor" if probe is not None and probe.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else "cycle"
+        )
+        result = dict(lo_row)
+        result.update(
+            {
+                "converged": True,
+                "failure_reason": "none",
+                "capacity_clamped": CAPACITY_CLAMPED_MAX,
+                "Q_request [W]": Q_r_iu,
+                "Q_max [W]": lo_q,
+                "capacity_binding": binding,
+            }
+        )
+        return result
+
+    def _failed_operating_point(self, reason: str, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
+        """Off state carrying the failure: no heat, no power, NaN COP."""
+        result = self._calc_state(5.0, 5.0, 0.0, T0, T_a_room)
+        if result is None:
+            result = {
+                "hp_is_on": False,
+                "mode": "off",
+                "Q_ref_iu [W]": 0.0,
+                "Q_ref_ground [W]": 0.0,
+                "E_cmp [W]": 0.0,
+                "E_tot [W]": 0.0,
+                "cop_ref [-]": np.nan,
+                "cop_sys [-]": np.nan,
+                "T0 [°C]": T0,
+                "T_a_room [°C]": T_a_room,
+            }
+        result.update({"converged": False, "failure_reason": reason, "Q_request [W]": Q_r_iu})
+        return result
 
     # =============================================================
     # BHE g-function superposition
@@ -1125,25 +1712,60 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
+        Parameters
+        ----------
+        Q_r_iu : float
+            Indoor thermal load [W]. >0 cooling, <0 heating, 0 off.
+        T0 : float
+            Dead-state temperature [°C] (exergy reference only).
+        T_a_room : float | None
+            Room air temperature [°C]. Uses the constructor default if None.
+        T_bhe_wall : float | None
+            Borehole wall temperature [°C]. The fluid temperature leaving the
+            borefield is then closed against it through ``R_b*`` and the loop
+            flow, ``T_out = T_wall - q' R_b* + Q_bhe / (2 ṁ c_p)``, the same
+            relation the coupled ground-flow solver uses. When omitted, the
+            fluid leaves the borefield at the model state ``T_bhe_f_out``
+            (the constructor ``Ts`` before any dynamic run).
+        ground_flow_lpm, ground_flow_ratio : float | None
+            Prescribed ground flow; selects the coupled ground-flow solver.
+
         Returns
         -------
         dict | pd.DataFrame
             Cycle state plus diagnostic flags. Notable keys:
 
-            - ``"converged"`` (bool) — True only when the HX optimisation and
-              the SciPy optimiser both succeeded.
-            - ``"failure_reason"`` (str) — one of ``"none"``,
-              ``"cycle_invalid"``, ``"hx_not_converged"``, or
-              ``"optimizer_failed"``.
+            - ``"converged"`` (bool) — True only when an operating point was
+              found that closes the indoor and ground heat balances.
+            - ``"failure_reason"`` (str) — ``"none"`` or why no operating point
+              exists: ``"hx_not_converged"`` (the indoor coil cannot carry the
+              duty within its fan range), ``"ground_hx_capacity_insufficient"``,
+              ``"pr_above_max"`` or ``"cycle_invalid"`` (coupled solver:
+              see :func:`~tmhp.ground_flow_control.failed_ground_point`).
+            - ``"capacity_clamped"`` — ``"max"`` when the request exceeds the
+              deliverable duty (``Q_ref_iu [W]`` is the ceiling, ``Q_max [W]``
+              and ``capacity_binding`` say what bound it), ``"min"`` when the
+              request is below the minimum-speed duty.
 
-            GSHP triggers an off-mode fallback only when the refrigerant cycle
-            itself was infeasible (``"cycle_invalid"``); in that case
-            ``E_cmp [W]`` is 0 and COP keys are NaN. The other non-``"none"``
-            values are diagnostic — the cycle numbers are populated and
-            usable.
+            Every non-``"none"`` reason returns the HP-off state: heat and
+            power are 0 and the COP keys are NaN. Those numbers describe no
+            operation and must not be used as performance.
+
+        Raises
+        ------
+        ValueError
+            For a non-finite load, temperature or flow input.
         """
         if T_a_room is None:
             T_a_room = self.T_a_room
+        _require_finite(
+            Q_r_iu=Q_r_iu,
+            T0=T0,
+            T_a_room=T_a_room,
+            T_bhe_wall=T_bhe_wall,
+            ground_flow_ratio=ground_flow_ratio,
+            ground_flow_lpm=ground_flow_lpm,
+        )
 
         if ground_flow_ratio is not None and ground_flow_lpm is not None:
             raise ValueError("Supply ground_flow_lpm or deprecated ground_flow_ratio, not both")
@@ -1180,59 +1802,19 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             else:
                 result["failure_reason"] = "none"
         else:
-            opt = self._optimize_operation(Q_r_iu, T0, T_a_room)
-            result = None
-            with contextlib.suppress(Exception):
-                result = self._calc_state(opt.x[0], opt.x[1], Q_r_iu, T0, T_a_room)
-
-            # Diagnose; the fallback trigger condition stays `result is None`
-            # to match the historical behaviour of this branch (a converged
-            # cycle with `result["converged"] == False` is still returned).
-            opt_success = bool(getattr(opt, "success", False))
-            pr_event = self._last_pr_event
-            if result is None:
-                # Distinguish a pressure-ratio ceiling rejection from a generic
-                # invalid cycle so downstream consumers see the specific cause.
-                failure_reason = (
-                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
-                )
-            elif not result.get("converged", False):
-                failure_reason = "hx_not_converged"
-            elif not opt_success:
-                failure_reason = "optimizer_failed"
-            else:
-                failure_reason = "none"
-
-            if result is None:
+            wall_K = None if T_bhe_wall is None else cu.C2K(T_bhe_wall)
+            result = self._solve_operating_point(Q_r_iu, T0, T_a_room, wall_K=wall_K)
+            if result["failure_reason"] != "none":
                 warnings.warn(
-                    f"analyze_steady: fell back to HP-off state "
-                    f"(reason={failure_reason!r}, Q_r_iu={Q_r_iu:.0f}W, "
-                    f"T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C, "
-                    f"opt_success={opt_success}, "
-                    f"opt_x=({opt.x[0]:.2f}, {opt.x[1]:.2f}), "
-                    f"opt_fun={float(getattr(opt, 'fun', float('nan'))):.3g}). "
+                    f"analyze_steady: no operating point; returning the HP-off state "
+                    f"(reason={result['failure_reason']!r}, Q_r_iu={Q_r_iu:.0f}W, "
+                    f"T0={T0:.1f}°C, T_a_room={T_a_room:.1f}°C). "
                     "Consider calibrating UA_rated or increasing the explicit fan-flow maximum.",
                     RuntimeWarning,
                     stacklevel=2,
                 )
-                result = self._calc_state(5.0, 5.0, 0.0, T0, T_a_room)
-                if result is None:
-                    result = {
-                        "hp_is_on": False,
-                        "converged": False,
-                        "failure_reason": failure_reason,
-                        "Q_ref_iu [W]": 0.0,
-                        "Q_ref_ground [W]": 0.0,
-                        "T0 [°C]": T0,
-                        "T_a_room [°C]": T_a_room,
-                    }
-                else:
-                    result["converged"] = False
-                    result["failure_reason"] = failure_reason
-            else:
-                # `result` is a valid dict — keep it, attach the diagnostic.
-                result["converged"] = opt_success and result.get("converged", True)
-                result["failure_reason"] = failure_reason
+            if T_bhe_wall is not None:
+                result["T_bhe_wall [°C]"] = T_bhe_wall
 
         if return_dict:
             return result
@@ -1255,7 +1837,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
 
-        T0_schedule = np.array(T0_schedule)
+        T0_schedule = np.array(T0_schedule, dtype=float)
         Q_r_iu_schedule = np.array(Q_r_iu_schedule, dtype=float)
 
         if len(T0_schedule) != tN:
@@ -1267,6 +1849,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T_a_room_arr = np.array(T_a_room_schedule, dtype=float)
         else:
             T_a_room_arr = np.full(tN, self.T_a_room)
+        for name, values in (
+            ("Q_r_iu_schedule", Q_r_iu_schedule),
+            ("T0_schedule", T0_schedule),
+            ("T_a_room_schedule", T_a_room_arr),
+        ):
+            if not np.all(np.isfinite(values)):
+                raise ValueError(f"{name} must contain only finite values")
 
         self.time = time
         self.dt = dt_s
@@ -1314,23 +1903,22 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
             elif Q_r_iu_n == 0:
                 hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
+                if hp_result is not None:
+                    hp_result["failure_reason"] = "none"
             else:
-                opt = self._optimize_operation(Q_r_iu_n, T0_n, T_a_room_n)
-                hp_result = self._calc_state(opt.x[0], opt.x[1], Q_r_iu_n, T0_n, T_a_room_n)
+                # A failed step comes back as the off state with its reason.
+                hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n)
 
-            if not self._ground_settings["active"] and (hp_result is None or not hp_result.get("converged", False)):
-                hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
-                if hp_result is None:
-                    # Off-mode cycle itself failed — fall back to an inert
-                    # row so downstream BHE superposition / DataFrame
-                    # assembly don't see a None.
-                    hp_result = {
-                        "hp_is_on": False,
-                        "converged": False,
-                        "Q_bhe [W]": 0.0,
-                    }
-                else:
-                    hp_result["converged"] = False
+            if hp_result is None:
+                # Off-mode cycle itself failed — fall back to an inert row so
+                # downstream BHE superposition / DataFrame assembly don't see
+                # a None.
+                hp_result = {
+                    "hp_is_on": False,
+                    "converged": False,
+                    "failure_reason": "cycle_invalid",
+                    "Q_bhe [W]": 0.0,
+                }
 
             assert hp_result is not None
             hp_is_on = bool(hp_result.get("hp_is_on", False))

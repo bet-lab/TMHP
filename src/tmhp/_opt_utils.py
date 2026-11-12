@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 
 from scipy.optimize import brentq
@@ -167,6 +167,7 @@ def margin_feasible_interval(
     upper: float,
     *,
     xtol: float = 1e-7,
+    samples: Iterable[float] = (),
 ) -> tuple[float, float] | None:
     """Sub-interval of ``[lower, upper]`` where a modulated flow can carry a duty.
 
@@ -180,13 +181,31 @@ def margin_feasible_interval(
     The band edges are solved as roots, not sampled, so a band narrower than
     any grid spacing is still found -- down to a single point when both flow
     limits coincide. Returns ``None`` when the band is empty.
+
+    ``samples`` are points inside ``[lower, upper]`` at which the margins are
+    already known (a caller that caches its evaluations pays nothing for
+    them). They only narrow the bracket each root is solved in: the lower
+    edge is taken in the first sampled cell where the capacity margin turns
+    nonnegative, the upper edge in the last cell where the excess margin is
+    still nonpositive. The result is the same root a full-interval solve
+    finds when the margins are monotone.
     """
     if not (math.isfinite(lower) and math.isfinite(upper) and lower <= upper):
         raise ValueError("Require finite lower <= upper")
     if capacity_margin(upper) < 0.0 or excess_margin(lower) > 0.0:
         return None
-    low = lower if capacity_margin(lower) >= 0.0 else float(brentq(capacity_margin, lower, upper, xtol=xtol))
-    high = upper if excess_margin(upper) <= 0.0 else float(brentq(excess_margin, lower, upper, xtol=xtol))
+    points = sorted({lower, upper, *(float(s) for s in samples if lower < s < upper)})
+    cells = list(zip(points, points[1:], strict=False))
+    if capacity_margin(lower) >= 0.0:
+        low = lower
+    else:
+        a, b = next((a, b) for a, b in cells if capacity_margin(b) >= 0.0)
+        low = float(brentq(capacity_margin, a, b, xtol=xtol))
+    if excess_margin(upper) <= 0.0:
+        high = upper
+    else:
+        a, b = next((a, b) for a, b in reversed(cells) if excess_margin(a) <= 0.0)
+        high = float(brentq(excess_margin, a, b, xtol=xtol))
     if low > high + 10.0 * xtol:
         return None
     return low, max(low, high)

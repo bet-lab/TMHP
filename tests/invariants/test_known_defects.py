@@ -85,12 +85,9 @@ def test_c1_default_efficiencies_stay_in_unit_interval_over_searched_range():
     expect(not bad, f"{len(bad)} efficiency values outside (0, 1], e.g. {bad[:5]}")
 
 
-@defect(
-    "C2",
-    "A-7/W55 R32 7.5 kW returns hx_not_converged: the efficiency guard gives a valid cycle "
-    "(3 K outdoor approach, 18 rev/s) but the ASHPB bounded Brent over dT_ref_ou has no grid pre-scan "
-    "and never finds the feasible ~2.5-7.5 K window",
-)
+# C2 fixed by the outdoor-approach band search: the feasible ~2.3-5 K window (the coil
+# is short at the largest airflow below it and over-absorbs at the smallest above it)
+# is solved from the fan-limit capacity margins instead of hoped for by a bounded Brent.
 def test_c2_ashpb_r32_solves_a7_w55():
     fam = FAMILIES["ASHPB"]
     case = SteadyCase(T_source=-7.0, T_demand=55.0, load_W=7500.0)

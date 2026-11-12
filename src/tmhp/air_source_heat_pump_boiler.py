@@ -51,6 +51,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
+from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import default_displacement, solve_compressor_speed
@@ -310,6 +311,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
     ):
+        validate_ctor("ASHPB", locals())
         if dV_fan_a_ref is not None:
             dV_fan_a_rated = dV_fan_a_ref
         # Resolve deprecated mapping
@@ -1392,6 +1394,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             duty or power keys. ``"optimizer_failed"`` returns the cycle
             numbers at the optimiser's best point with ``converged=False``.
         """
+        validate_steady(locals())
         import warnings
 
         # Empty flow state as steady state ignores dynamic withdrawal/refill
@@ -1541,6 +1544,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # Steady state doesn't have tank loss because we don't solve tank mass/energy balance
         result["Q_tank_loss [W]"] = 0.0
+        result.setdefault("failure_reason", "none")  # zero load: a valid off result, not a failure
         result["tank_level [-]"] = 1.0  # steady-state: always_full
 
         if return_dict:
@@ -1926,6 +1930,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
     def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:
         """Build the initial carried state for a ``step()``-driven run."""
+        validate_initial_state(locals())
         return DynamicState(
             T_tank_w_K=cu.C2K(T_tank_w_init_C),
             tank_level=tank_level_init,
@@ -1960,6 +1965,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dt_s : float
             Timestep [s].
         """
+        validate_step(inputs, dt_s)
         n = inputs["n"]
         t_s: float = inputs["current_time_s"]
         hr: float = t_s * cu.s2h
@@ -2151,6 +2157,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         pd.DataFrame
             Per-timestep result DataFrame.
         """
+        validate_dynamic(locals())
 
         time: np.ndarray = np.arange(
             0,

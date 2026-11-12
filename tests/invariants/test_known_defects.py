@@ -524,7 +524,6 @@ def _pygfunction_single_u(m_flow: float, cp: float, mu: float, rho: float, k_f: 
 
 
 @pytest.mark.parametrize("lpm", [4.0, 8.0])
-@defect("G6", "uniform_heat_flux R_b* uses (2 m cp)^2 and the delta-circuit R12 instead of R_a")
 def test_g6_uniform_heat_flux_effective_resistance(lpm):
     from tmhp.borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
 

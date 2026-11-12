@@ -145,7 +145,20 @@ def calc_local_borehole_thermal_resistance(
     tuple[float, float]
         (R_b, R_a)
         R_b: Local borehole thermal resistance [mK/W].
-        R_a: Internal thermal resistance between the two pipes [mK/W].
+        R_a: Internal (pipe-to-pipe) thermal resistance [mK/W]: the
+        temperature difference between the two legs per unit heat flow
+        when one leg gives and the other takes the same heat per metre,
+        ``R_a = R_11 + R_22 - 2 R_12`` of the multipole resistance matrix
+        (Hellström 1991). It is always positive. It is *not* the
+        delta-circuit pipe-to-pipe branch ``R_12^Δ``, which can be
+        negative for pipes close to the borehole wall; for a symmetric
+        U-tube the two are related by ``1/R_a = 1/R_12^Δ + 1/(4 R_b)``.
+
+    Notes
+    -----
+    Before #96 G6 the second value was ``R_12^Δ`` read from pygfunction's
+    private ``_Rd``. :func:`calc_effective_borehole_thermal_resistance` now
+    takes ``R_a`` in both branches; pass it the pair returned here.
     """
     if not HAS_PYGFUNCTION:
         raise ImportError("pygfunction is not installed.")
@@ -176,11 +189,13 @@ def calc_local_borehole_thermal_resistance(
     pipe = gt.pipes.SingleUTube(pos, r_in, r_out, borehole, k_s, k_g, R_fp)
 
     R_b = pipe.local_borehole_thermal_resistance()
-    # In pygfunction, _Rd is the delta-circuit thermal resistance matrix
-    # The resistance between the two pipes (node 0 and node 1) is _Rd[0, 1]
-    R_a = pipe._Rd[0, 1]
+    # Internal resistance from the (public) multipole resistance matrix R, at
+    # the same multipole order as the pipe object: T_f = T_b + R q'. With
+    # q'_1 = -q'_2 the wall exchanges no net heat and T_f1 - T_f2 = R_a q'.
+    R, _ = gt.pipes.thermal_resistances(pos, r_out, r_b, k_s, k_g, R_fp, J=pipe.J)
+    R_a = float(R[0, 0] + R[1, 1] - 2.0 * R[0, 1])
 
-    return R_b, R_a
+    return float(R_b), R_a
 
 
 def calc_effective_borehole_thermal_resistance(
@@ -198,11 +213,12 @@ def calc_effective_borehole_thermal_resistance(
     R_b : float
         Local borehole thermal resistance [mK/W]
     R_a : float
-        Internal thermal resistance between the two pipes [mK/W]
+        Internal (pipe-to-pipe) thermal resistance [mK/W], as returned by
+        :func:`calc_local_borehole_thermal_resistance` (must be positive).
     H : float
         Borehole depth [m]
     m_flow_pipe : float
-        Mass flow rate per pipe [kg/s]
+        Mass flow rate per pipe [kg/s]; for a single U-tube, the borehole flow.
     cp_f : float
         Fluid specific heat capacity [J/kgK]
     boundary_condition : str
@@ -213,6 +229,19 @@ def calc_effective_borehole_thermal_resistance(
     -------
     float
         Effective borehole thermal resistance [mK/W].
+
+    Notes
+    -----
+    With ``η = H / (ṁ c_p √(R_b R_a))`` (Hellström 1991):
+
+    - uniform borehole-wall temperature: ``R_b* = R_b η coth η``
+      (identical to pygfunction's
+      ``SingleUTube.effective_borehole_thermal_resistance``);
+    - uniform heat flux: ``R_b* = R_b + H² / (3 R_a (ṁ c_p)²) = R_b (1 + η²/3)``.
+
+    Since ``η coth η = 1 + η²/3 - η⁴/45 + …``, the uniform-heat-flux value is
+    never below the uniform-temperature one; they agree to first order and
+    separate at low flow (large ``η``).
 
     References
     ----------
@@ -225,23 +254,23 @@ def calc_effective_borehole_thermal_resistance(
        calculation methods for grouted single U-tube ground heat exchangers.
        Applied Energy, 182, 161-176. DOI: 10.1016/j.apenergy.2016.08.054
     """
+    if boundary_condition not in ("uniform_temperature", "uniform_heat_flux"):
+        raise ValueError("boundary_condition must be 'uniform_temperature' or 'uniform_heat_flux'")
     if m_flow_pipe <= 0:
         return R_b
+    if not (np.isfinite(R_a) and R_a > 0 and np.isfinite(R_b) and R_b > 0):
+        raise ValueError(f"R_b and R_a must be positive and finite, got R_b={R_b!r}, R_a={R_a!r}")
 
+    m_cp = m_flow_pipe * cp_f
     if boundary_condition == "uniform_temperature":
         # Hellström (1991) analytical solution for uniform borehole wall temperature
-        eta = (H / (m_flow_pipe * cp_f)) * (1.0 / (2.0 * R_b)) * np.sqrt(1.0 + (4.0 * R_b) / R_a)
+        eta = H / (m_cp * np.sqrt(R_b * R_a))
         if eta < 1e-6:
             return R_b
         return float(R_b * eta / np.tanh(eta))
 
-    elif boundary_condition == "uniform_heat_flux":
-        # Hellström approximation for uniform heat flux
-        # R_b* = R_b + H^2 / (3 * R_a * (2 * m_flow * cp)^2)
-        return R_b + (H**2) / (3.0 * R_a * (2.0 * m_flow_pipe * cp_f) ** 2)
-
-    else:
-        raise ValueError("boundary_condition must be 'uniform_temperature' or 'uniform_heat_flux'")
+    # Hellström (1991) for uniform heat flux: R_b* = R_b + H^2 / (3 R_a (m cp)^2)
+    return float(R_b + H**2 / (3.0 * R_a * m_cp**2))
 
 
 def calc_borehole_thermal_resistance(

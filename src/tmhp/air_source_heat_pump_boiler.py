@@ -62,6 +62,7 @@ from .dynamic_context import (
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     tank_mass_energy_residual,
+    unphysical_cycle_detail,
 )
 from .enex_functions import (
     calc_HX_perf_for_target_heat,
@@ -1034,6 +1035,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     m_dot_w=m_dot_w,
                 )
 
+            # A solved cycle that is not an operating point (undefined
+            # discharge state, speed-floor duty above the nameplate) is
+            # rejected like an infeasible one; see unphysical_cycle_detail.
+            invalid_detail: str | None = None
+            if isinstance(result, dict) and result.get("hp_is_on") and result.get("converged", False):
+                invalid_detail = unphysical_cycle_detail(result, self.hp_capacity)
+                if invalid_detail is not None:
+                    result = None
+
             # Pressure-ratio envelope hint for the final operating point
             # (one message per call; per-probe events are silent). Floor ->
             # clamp (cycle still solved); ceiling -> reject (HP-off fallback).
@@ -1060,7 +1070,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             # the historical behaviour of this branch.
             opt_success = bool(getattr(opt_result, "success", False))
             if result is None or not isinstance(result, dict):
-                if cycle_failure_reason is not None:
+                if invalid_detail is not None:
+                    failure_reason = "cycle_invalid"
+                elif cycle_failure_reason is not None:
                     failure_reason = cycle_failure_reason
                 elif pr_event is not None and pr_event[0] == "pr_above_max":
                     failure_reason = "pr_above_max"
@@ -1077,7 +1089,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 warnings.warn(
                     f"analyze_steady: fell back to HP-off state "
                     f"(reason={failure_reason!r}, "
-                    f"T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, "
+                    + (f"detail={invalid_detail!r}, " if invalid_detail else "")
+                    + f"T_tank_w={T_tank_w:.1f}°C, T0={T0:.1f}°C, "
                     f"Q_ref_tank={Q_ref_tank:.0f}W, "
                     f"opt_success={opt_success}, "
                     f"opt_x={safe_float_attr(opt_result, 'x', float('nan')):.2f}, "
@@ -1114,6 +1127,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 if isinstance(result, dict):
                     result["converged"] = False
                     result["failure_reason"] = failure_reason
+                    if invalid_detail is not None:
+                        result["failure_detail"] = invalid_detail
             else:
                 # `result` is a valid dict — keep it, but tag the diagnostic
                 # so callers can branch on `failure_reason` even when the

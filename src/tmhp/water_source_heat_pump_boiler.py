@@ -33,10 +33,12 @@ from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .dynamic_context import (
     ControlState,
+    CycleSolveOutcome,
     StepContext,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     tank_mass_energy_residual,
+    unphysical_cycle_detail,
 )
 from .enex_functions import (
     calc_mixing_valve_flows,
@@ -616,12 +618,25 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         return result
 
-    def _optimize_operation(self, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict):
+    def _infeasible_cycle_reason(self) -> str:
+        """Reason for a ``None`` cycle: the pressure-ratio ceiling or plain infeasibility."""
+        event = getattr(self, "_last_pr_event", None)
+        return "pr_above_max" if event is not None and event[0] == "pr_above_max" else "cycle_invalid"
+
+    def _optimize_operation(
+        self, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict
+    ) -> CycleSolveOutcome:
+        """Solve the evaporator approach at which the source-water HX carries the cycle.
+
+        Returns a :class:`CycleSolveOutcome` naming the failure reason, if any.
+        """
         from scipy.optimize import brentq
 
-        self._opt_evals = getattr(self, "_opt_evals", 0)
+        self._opt_evals = 0
+        evaluable = False
 
         def _objective(dT_water):
+            nonlocal evaluable
             self._opt_evals += 1
             perf = self._calc_state(
                 dT_ref_water=dT_water, T_tank_w=T_tank_w, Q_tank_load=Q_tank_load, T0=T0, flow_state=flow_state
@@ -633,34 +648,51 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             if np.isnan(err):
                 raise ValueError(f"NaN error at dT_water={dT_water}")
 
+            evaluable = True
             return err
 
-        self._opt_evals = 0
+        reason = "optimizer_failed"
+        detail: str | None = None
         try:
-            bracket = _evaluable_bracket(_objective, 1, 20.0, endpoints_first=True)
+            try:
+                bracket = _evaluable_bracket(_objective, 1, 20.0, endpoints_first=True)
+            except ValueError:
+                # A cycle existed at some approach but none balances the
+                # source-water HX, or no approach gave a cycle at all.
+                reason = "hx_not_converged" if evaluable else self._infeasible_cycle_reason()
+                raise
             opt_x = bracket[0] if bracket[0] == bracket[1] else brentq(_objective, *bracket, xtol=1e-4, maxiter=50)
             final = self._calc_state(opt_x, T_tank_w, Q_tank_load, T0, flow_state=flow_state)
-            if final is None or not final.get("converged_rps", False):
+            if final is None:
+                reason = self._infeasible_cycle_reason()
+                raise ValueError("No cycle at the solved approach")
+            if not final.get("converged_rps", False):
                 raise ValueError("Reference operating speed did not converge")
             residual = float(final["err_Q_water [W]"])
             required = float(final["Q_ref_water [W]"])
             if not (math.isfinite(residual) and math.isfinite(required) and required > 0):
+                reason = "hx_not_converged"
                 raise ValueError("Source-water heat exchanger has no finite energy balance")
             if abs(residual) > max(0.01, 1e-5 * required):
+                reason = "hx_not_converged"
                 raise ValueError("Source-water heat exchanger did not close the energy balance")
-
-            class OptRes:
-                success = True
-                x = opt_x
-
-            return OptRes()
+            detail = unphysical_cycle_detail(final, self.hp_capacity)
+            if detail is not None:
+                reason = "cycle_invalid"
+                raise ValueError(f"Solved cycle is not an operating point ({detail})")
+            return CycleSolveOutcome(True, float(opt_x), "none")
         except Exception:
+            return CycleSolveOutcome(False, float("nan"), reason, detail)
 
-            class OptResFail:
-                success = False
-                x = np.nan
-
-            return OptResFail()
+    def _failed_cycle_result(
+        self, T_tank_w: float, T0: float, flow_state: dict, reason: str, detail: str | None = None
+    ) -> dict:
+        """Off-mode row for a step the heat pump was asked to run but could not."""
+        result = self._calc_off_state(T_tank_w, T0, flow_state)
+        result.update({"converged": False, "failure_reason": reason})
+        if detail is not None:
+            result["failure_detail"] = detail
+        return result
 
     def _determine_hp_state(self, ctx: StepContext, is_on_prev: bool) -> tuple[bool, dict, float]:
         T_tank_w = cu.K2C(ctx.T_tank_w_K)
@@ -1095,20 +1127,22 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         dict | pd.DataFrame
             Cycle state plus diagnostic flags. Notable keys:
 
-            - ``"converged"`` (bool) — True only when the HX optimisation and
-              the SciPy optimiser both succeeded.
-            - ``"failure_reason"`` (str) — one of ``"none"``,
-              ``"cycle_invalid"``, ``"hx_not_converged"``, or
-              ``"optimizer_failed"``.
+            - ``"converged"`` (bool) — True only when the evaporator approach
+              closed the source-water heat exchanger and the cycle is an
+              operating point.
+            - ``"failure_reason"`` (str) — ``"none"`` for a solved point;
+              otherwise ``"cycle_invalid"`` (no cycle, or a cycle that is
+              not an operating point, see
+              :func:`tmhp.dynamic_context.unphysical_cycle_detail`),
+              ``"pr_above_max"`` (pressure-ratio ceiling),
+              ``"hx_not_converged"`` (the source-water heat exchanger cannot
+              carry the duty at any approach) or ``"optimizer_failed"``.
+            - ``"failure_detail"`` (str, failures only) — which check
+              rejected a ``"cycle_invalid"`` point.
 
-            Important: like GSHPB, WSHPB often reports
-            ``failure_reason="hx_not_converged"`` on realistic operating
-            points; the cycle numbers (``E_cmp``, ``Q_ref_tank``,
-            ``cop_sys``, ...) **are still usable** in that case. Only
-            ``"cycle_invalid"`` forces an off-mode fallback (E_cmp=0,
-            COP=NaN). Branch on ``E_cmp [W] > 0`` rather than
-            ``failure_reason == "none"`` if you only want to discard
-            truly broken results.
+            Every reason other than ``"none"`` comes with an off-mode state:
+            ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN COP. No unsolved point
+            is returned with cycle numbers.
         """
         import contextlib
         import warnings
@@ -1139,73 +1173,36 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 flow_state=flow_state,
             )
             result = None
-            with contextlib.suppress(Exception):
-                opt_x = safe_float_attr(opt_result, "x", 5.0)
-                result = self._calc_state(
-                    dT_ref_water=opt_x,
-                    T_tank_w=T_tank_w,
-                    Q_tank_load=Q_ref_tank,
-                    T0=T0,
-                    flow_state=flow_state,
-                )
+            if opt_result.success:
+                with contextlib.suppress(Exception):
+                    result = self._calc_state(
+                        dT_ref_water=opt_result.x,
+                        T_tank_w=T_tank_w,
+                        Q_tank_load=Q_ref_tank,
+                        T0=T0,
+                        flow_state=flow_state,
+                    )
 
-            # Diagnose; the fallback trigger condition is unchanged from the
-            # historical behaviour (`result is None or not isinstance(...)`).
-            opt_success = bool(getattr(opt_result, "success", False))
-            pr_event = self._last_pr_event
-            if result is None or not isinstance(result, dict):
-                failure_reason = (
-                    "pr_above_max" if pr_event is not None and pr_event[0] == "pr_above_max" else "cycle_invalid"
-                )
-            elif not result.get("converged", False):
-                failure_reason = "hx_not_converged"
-            elif not opt_success:
-                failure_reason = "optimizer_failed"
-            else:
-                failure_reason = "none"
-
-            if result is None or not isinstance(result, dict):
+            # A successful search has already checked that the cycle closes
+            # both heat exchangers and is an operating point; anything else is
+            # reported with the search's own reason and an off-mode state.
+            if result is None:
+                failure_reason = opt_result.failure_reason if not opt_result.success else "cycle_invalid"
+                detail = opt_result.detail
                 warnings.warn(
                     f"analyze_steady: fell back to HP-off state "
-                    f"(reason={failure_reason!r}, "
-                    f"T_tank_w={T_tank_w:.1f}°C, T_source={T_source:.1f}°C, "
-                    f"Q_ref_tank={Q_ref_tank:.0f}W, "
-                    f"opt_success={opt_success}, "
-                    f"opt_x={safe_float_attr(opt_result, 'x', float('nan')):.2f}, "
-                    f"opt_fun={safe_float_attr(opt_result, 'fun', float('nan')):.3g}). "
+                    f"(reason={failure_reason!r}"
+                    + (f", detail={detail!r}" if detail else "")
+                    + f", T_tank_w={T_tank_w:.1f}°C, T_source={T_source:.1f}°C, "
+                    f"Q_ref_tank={Q_ref_tank:.0f}W). "
                     "Consider increasing UA_rated or fan-flow rated.",
                     RuntimeWarning,
                     stacklevel=2,
                 )
-                try:
-                    result = self._calc_state(
-                        dT_ref_water=5.0,
-                        T_tank_w=T_tank_w,
-                        Q_tank_load=0.0,
-                        T0=T0,
-                        flow_state=flow_state,
-                    )
-                except Exception:
-                    result = self._calc_off_state(
-                        T_tank_w=T_tank_w,
-                        T0=T0,
-                        flow_state=flow_state,
-                    )
-                if isinstance(result, dict):
-                    result["converged"] = False
-                    result["failure_reason"] = failure_reason
+                result = self._failed_cycle_result(T_tank_w, T0, flow_state, failure_reason, detail)
             else:
-                # `result` is a valid dict — keep it, attach the diagnostic.
-                result["converged"] = opt_success and result.get("converged", True)
-                result["failure_reason"] = failure_reason
-
-            if (
-                result is not None
-                and isinstance(result, dict)
-                and "opt_result" in locals()
-                and hasattr(opt_result, "success")
-            ):
-                result["converged"] = opt_result.success
+                result["converged"] = True
+                result["failure_reason"] = "none"
 
             # Pressure-ratio envelope hint for the final operating point (one
             # message per call; per-probe events inside the optimiser are

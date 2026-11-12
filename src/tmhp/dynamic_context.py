@@ -8,8 +8,10 @@ and future models can share the same infrastructure.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from .constants import c_w, rho_w
 
@@ -18,6 +20,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ControlState",
+    "CycleSolveOutcome",
     "DynamicState",
     "StepContext",
     "Subsystem",
@@ -26,6 +29,7 @@ __all__ = [
     "determine_heat_source_on_off",
     "determine_tank_refill_flow",
     "tank_mass_energy_residual",
+    "unphysical_cycle_detail",
 ]
 
 
@@ -146,7 +150,9 @@ class DynamicState:
     is_refilling : bool
         Refill hysteresis latch.
     hp_is_on_prev : bool
-        Heat-pump on/off state from the previous step (cycling hysteresis).
+        Call for heat from the previous step (cycling hysteresis). A step
+        whose cycle could not be solved keeps the call, so the next step
+        retries instead of waiting for the tank to reach its lower bound.
     dV_tank_w_out_prev : float
         Previous step's tank draw-off flow [m³/s]; consumed by the next
         step's refill decision.
@@ -347,6 +353,75 @@ def determine_heat_source_on_off(
         hour_of_day,
         on_schedule,
     )
+
+
+@dataclass(frozen=True)
+class CycleSolveOutcome:
+    """Outcome of a boiler's evaporator-approach search for one request.
+
+    ``success`` is ``True`` only when the returned approach ``x`` gives a
+    cycle that closes both heat exchangers and passes
+    :func:`unphysical_cycle_detail`. Otherwise ``x`` is NaN and
+    ``failure_reason`` says why (``cycle_invalid``, ``pr_above_max``,
+    ``hx_not_converged`` or ``optimizer_failed``); ``detail`` refines
+    ``cycle_invalid`` when the cycle existed but was not an operating point.
+    """
+
+    success: bool
+    x: float
+    failure_reason: str
+    detail: str | None = None
+
+
+def _finite_number(value: object) -> bool:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    return math.isfinite(value)
+
+
+def unphysical_cycle_detail(result: Mapping[str, Any], hp_capacity: float) -> str | None:
+    """Explain why a cycle state the solver accepted is not an operating point.
+
+    The boiler solvers accept a cycle once its compressor speed meets the
+    requested duty (or clamps onto a speed bound). That acceptance says
+    nothing about whether the state itself exists. This check rejects the
+    states that cannot be a running machine; ``None`` means the state passes.
+
+    ``"duty_or_power_undefined"``
+        Delivered heat or compressor power is non-finite or not positive.
+        A running compressor does work on the refrigerant and the condenser
+        rejects at least that work, so both must be positive numbers.
+    ``"discharge_state_undefined"``
+        The compressor discharge temperature or enthalpy is non-finite. The
+        delivered heat is ``m_dot * (h_discharge - h_liquid)``; without a
+        discharge state that heat has no thermodynamic basis. This is what an
+        isentropic efficiency near zero produces: ``h_isen - h_suction`` is
+        divided by it and the enthalpy leaves the equation-of-state range.
+    ``"min_speed_duty_above_capacity"``
+        The compressor clamped onto its speed floor (the request was below
+        the duty available there) and yet delivers more than the nameplate
+        ``hp_capacity``. Mass flow is proportional to speed, so at
+        ``rps_min`` (below the speed at which ``hp_capacity`` is rated) the
+        compressor pumps the least refrigerant it can; delivering more heat
+        than at the rated speed then needs a specific condensing duty several
+        times the rated one. That is the signature of the same efficiency
+        collapse, not of a real machine. The condenser cannot carry it
+        either: its approach temperature was sized for the requested duty,
+        so the surplus has no driving temperature difference across the tank
+        heat exchanger. ``hp_capacity`` is the bound because it is the only
+        capacity the model knows the machine to have; no tolerance is added
+        beyond floating-point noise.
+    """
+    q = result.get("Q_ref_tank [W]")
+    e = result.get("E_cmp [W]")
+    if not (_finite_number(q) and _finite_number(e)) or float(q) <= 0.0 or float(e) <= 0.0:  # type: ignore[arg-type]
+        return "duty_or_power_undefined"
+    for key in ("T_ref_cmp_out [°C]", "h_ref_cmp_out [J/kg]"):
+        if key in result and not _finite_number(result[key]):
+            return "discharge_state_undefined"
+    if result.get("capacity_clamped") == "min" and float(q) > hp_capacity * (1.0 + 1e-9):  # type: ignore[arg-type]
+        return "min_speed_duty_above_capacity"
+    return None
 
 
 def determine_tank_refill_flow(

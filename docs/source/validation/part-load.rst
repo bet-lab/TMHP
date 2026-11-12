@@ -144,9 +144,12 @@ below its peak, the compressor speed equals ``rps_min``.
     continuous-operation figure at the minimum capacity, not a part-load COP.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
-    At −7 °C air and 45 °C water the requests below the floor currently fail
-    with ``hx_not_converged`` rather than resolving to the minimum-capacity
-    point, so that curve stops at the floor.
+    At −7 °C air and 45 °C water the requests below the floor resolve to the
+    minimum-capacity point as well (COP 2.77 at the floor, reached at 33 %
+    load). They used to fail with ``hx_not_converged``: the outdoor-approach
+    search probed only the ends of its range and missed the narrow band of
+    approaches the fan can serve, which is now solved from the coil's capacity
+    margins at the fan flow limits.
 
 Panel (b) — the certification trajectory
 ----------------------------------------

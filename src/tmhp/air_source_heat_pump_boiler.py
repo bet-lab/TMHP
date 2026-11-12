@@ -1373,10 +1373,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
               ``"pr_above_max"``, ``"hx_not_converged"``, or
               ``"optimizer_failed"``.
-            - ``"failure_detail"`` (str, only on a rejected solved cycle) —
-              which check of
-              :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
-              the point ``"cycle_invalid"``.
+            - ``"failure_detail"`` (str, failures only) — on
+              ``"cycle_invalid"``, which check of
+              :func:`tmhp.dynamic_context.unphysical_cycle_detail` rejected a
+              solved cycle; on ``"hx_not_converged"``, which fan limit the
+              outdoor coil fails at every approach the cycle reaches
+              (``"outdoor_coil_short_at_max_airflow"``,
+              ``"outdoor_coil_excess_at_min_airflow"`` or
+              ``"outdoor_coil_no_band"``).
             - ``"capacity_clamped"`` (str | None) — ``"min"`` when the
               requested duty was below what the compressor delivers at
               ``rps_min`` and the cycle was solved at that floor instead,

@@ -58,6 +58,11 @@ class GroundCoupler(Protocol):
     def reset(self, n_steps: int, time_arr: np.ndarray) -> None:
         """Initialise pulse-history state for a simulation of ``n_steps`` steps.
 
+        A backend may also accept a keyword ``dt_s`` (the run's step length
+        [s]); :func:`reset_ground_coupler` passes it when the signature
+        allows, which is the only way to know the step length of a one-step
+        run.
+
         Parameters
         ----------
         n_steps : int
@@ -65,11 +70,6 @@ class GroundCoupler(Protocol):
         time_arr : np.ndarray
             Absolute time of each step [s] (uniform grid). Backends that
             precompute a response matrix at fixed times use this.
-
-        A backend may also accept a keyword ``dt_s`` (the run's step length
-        [s]); :func:`reset_ground_coupler` passes it when the signature
-        allows, which is the only way to know the step length of a one-step
-        run.
         """
         ...
 

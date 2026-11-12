@@ -64,10 +64,11 @@ Code-backed family matrix
       - ``Q_r_iu > 0`` cooling, ``Q_r_iu < 0`` heating
       - ``analyze_steady()``, ``analyze_dynamic()``
 
-Only :class:`tmhp.AirSourceHeatPumpBoiler` has a quantitative catalogue
-validation page today. The other cycle-resolved families share the same
-refrigerant-cycle core and have smoke coverage on representative
-operating points. :class:`tmhp.GroundSourceHeatPumpEmpirical` is
+Only :class:`tmhp.AirSourceHeatPumpBoiler` and
+:class:`tmhp.AirSourceHeatPump` (air-to-water and air-to-air) have
+quantitative catalogue validation today (see :doc:`/validation/index`). The
+ground-source and water-source families share the same refrigerant-cycle core
+and have smoke coverage on representative operating points. :class:`tmhp.GroundSourceHeatPumpEmpirical` is
 documented on the GSHP page as a faster EquationFit alternative; it is
 not one of the refrigerant-cycle-core families in the matrix above.
 

@@ -65,22 +65,25 @@ def _find_block(blocks: list[str], marker: str) -> str:
 
 def test_readme_refrigerant_swap_example_is_copy_runnable() -> None:
     blocks = _markdown_python_blocks(REPO_ROOT / "README.md")
-    code = _find_block(blocks, 'ashpb_r744 = AirSourceHeatPumpBoiler(ref="R744"')
+    code = _find_block(blocks, 'ashpb_r134a = AirSourceHeatPumpBoiler(ref="R134a")')
+    # R744 is transcritical at DHW temperatures; the cycle does not support it (#96).
+    assert "R744" not in code
 
     namespace: dict[str, object] = {}
     exec(code, namespace)
 
     assert namespace["ashpb_r290"].ref == "R290"
-    assert namespace["ashpb_r744"].ref == "R744"
     assert namespace["ashpb_r410"].ref == "R410A"
+    assert namespace["ashpb_r134a"].ref == "R134a"
 
 
 def test_quickstart_refrigerant_swap_example_is_copy_runnable() -> None:
     path = REPO_ROOT / "docs/source/getting-started/quickstart.rst"
     code = _find_block(
         _rst_python_blocks(path),
-        'AirSourceHeatPumpBoiler(ref="R744"',
+        'AirSourceHeatPumpBoiler(ref="R290")',
     )
+    assert "R744" not in code
 
     exec(code, {})
 

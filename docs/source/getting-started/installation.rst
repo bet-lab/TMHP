@@ -14,7 +14,7 @@ Clone and install
 .. code-block:: bash
 
    git clone https://github.com/bet-lab/TMHP.git
-   cd tmhp
+   cd TMHP
    uv sync --locked
 
 The ``--locked`` flag tells ``uv`` to respect the committed

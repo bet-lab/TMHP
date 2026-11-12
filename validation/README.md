@@ -6,8 +6,14 @@ Physics-based space-conditioning ASHP/GSHP results through commit `c5d673e`
 use **coil-duty COP**, `Q_ref_iu / E_tot`, including archived CSVs and figures
 in this directory. They remain historical evidence. New runs use final indoor
 air delivery, `abs(Q_a_iu_out - Q_a_iu_in) / E_tot`, with fan heat included
-once in the outlet. Regenerate results and figures and record the source commit
-before using them for a current system-COP comparison. Coil-based capacity,
+once in the outlet. `results/<slug>.csv`, `results/summary.csv` and
+`results/manifest.json` are regenerated together by `scripts/regen-validation.sh`;
+the manifest records the commit, whether the model and harness inputs were
+dirty, the `src/tmhp` tree hash, the coefficient version, the run date and the
+Python/CoolProp versions, and `tests/test_validation_results_current.py` fails
+when the code no longer reproduces them. Other result folders under `results/`
+and `data/` are dated studies; check their own provenance before using them for
+a current system-COP comparison. Coil-based capacity,
 requested/delivered PLR and catalogue-specific COP boundaries remain separate.
 DHW and empirical models keep their existing definitions. See
 `docs/source/models/ashp.rst` and `gshp.rst` for electrical boundaries,
@@ -83,11 +89,12 @@ unit up on the next push to `main`, parity plot, error table and all.
 4. **Run the parity harness**: `uv run python -m validation.parity.run --unit
    <slug>`. It applies TMHP's *default* rules unchanged — that is the point of
    the exercise — and writes `results/<slug>.csv` plus a line in
-   `results/summary.csv`.
-5. **Refresh the site data**: `uv run python scripts/data/gen_validation_data.py`.
+   `results/summary.csv`. To refresh every unit, the site data and the
+   figures at once, run `scripts/regen-validation.sh` instead.
+5. **Refresh the site data**: `uv run python -m scripts.data.gen_validation_data`.
 6. **Commit** `catalogs/<slug>.yaml`, `registry/sources.yaml`, `results/`, and
-   the regenerated `docs/source/_static/data/*.json`. Pushing to `main` rebuilds
-   the documentation site.
+   the regenerated `docs/source/_static/data/validation-*.json`. Pushing to
+   `main` rebuilds the documentation site.
 
 Step 4 is where the discipline lives. A catalogue is a *validation* set, never
 a calibration set: no parameter is tuned to the unit being tested. Values the

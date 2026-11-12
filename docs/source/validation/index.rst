@@ -63,7 +63,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 753 evaluated
+      - 757 attempted, 757 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -88,34 +88,68 @@ Sort by any column, filter by unit, refrigerant or mode. The numbers come from
 Reading the residuals
 =====================
 
-There is no single headline number: the set mixes two rating standards
-(EN 14511 and AHRI 210/240) that define COP differently, so the harness reports
-one figure per standard and pools nothing across them. Over 753 evaluated points
-the adopted catalogues come to a COP MAPE of 8.9 %; the two held catalogues are
-run and written but never enter a headline. The compressor coefficients are
-version ``v2026-09-24`` (:doc:`defaults`), fitted on standalone compressor data
-and applied here unchanged.
+There is no single headline number: the two families answer different
+questions, and the set mixes rating standards (EN 14511 and AHRI 210/240) that
+define COP differently, so each family is reported on its own and nothing is
+pooled across standards. The two held catalogues are run and written but never
+enter a headline. Every point attempted was evaluated. The compressor
+efficiencies are the shipped ``BITZER-three-C3-absolute-N-2026-10-06`` fits
+with their range and validity-domain guards (:doc:`defaults`), applied here
+unchanged.
 
 .. list-table::
     :header-rows: 1
-    :widths: 34 14 14 38
+    :widths: 34 12 12 12 30
 
     * - Group
       - COP MAPE
       - Bias
+      - Evaluated
       - What it is
     * - Air-to-water, 10 units
-      - 8.2 %
-      - +1.5 %
-      - Scatter, centred (rating standard not stated)
+      - 10.3 %
+      - +5.6 %
+      - 153 / 153
+      - Optimistic on average; the bias sits at +2 °C outdoor
     * - Air-to-air, Daikin, 5 units
-      - 9.2 %
-      - −0.0 %
-      - Scatter, centred (EN 14511)
+      - 12.1 %
+      - +1.5 %
+      - 360 / 360
+      - EN 14511; two opposite biases that net out
+    * - Daikin cooling
+      - 10.5 %
+      - −9.7 %
+      - 180 / 180
+      - Pessimistic, growing with outdoor temperature
+    * - Daikin heating
+      - 13.7 %
+      - +12.7 %
+      - 180 / 180
+      - Centred above +2 °C outdoor, optimistic at and below 0 °C
+    * - Daikin heating at or below −7 °C
+      - 22.5 %
+      - +22.5 %
+      - 60 / 60
+      - Every point optimistic
     * - Air-to-air, Fujitsu, 2 units
-      - 30.3 %
-      - **+28.8 %**
+      - 34.0 %
+      - **+33.1 %**
+      - 244 / 244
       - Held: AHRI 210/240, COP boundary not stated — a uniform offset
+
+The biases are stated here, not corrected. **Air-to-air cooling runs low**,
+from −5 % at 20 °C to −12 % at 40 °C outdoor, and the dry indoor coil (see
+`Cooling and latent load`_) is not the cause: the cooling rows with no latent
+load (sensible heat ratio 0.95 or above) are the most pessimistic, at −19 %,
+and those with the most latent load the least, at −5 %. The dry-coil
+idealisation pushes the other way (② below). What the low rows share is the
+most efficient hardware: at the rating point the smallest Daikin units, with
+the highest nameplate EER, sit 17 to 19 % low (①). **Air-to-air heating runs
+high in the cold** because
+frosting and defrost are not modelled: +17 % from 0 to −10 °C outdoor and +28 %
+at −15 °C, against 0 to −2 % at 6 and 10 °C. **Air-to-water runs high at
++2 °C outdoor** (+20 % over its 30 points, +2 % over the other 123), the condition at
+which an outdoor coil frosts most and a declared COP carries defrost.
 
 A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.
@@ -130,7 +164,9 @@ Fujitsu result was checked before being published rather than after.
     comparison available -- separates them.
 
     **① Residual hardware efficiency (~20 points).** At the nominal heating
-    rating point Daikin lands 6-11 % low and Fujitsu 13-15 % high. That part is
+    rating point Daikin lands between −2 and +8 % and Fujitsu at +24 to +25 %;
+    at the cooling rating point Daikin spans −19 to +4 %, falling with
+    nameplate EER, and Fujitsu +14 to +24 %. That part is
     real and it is the defaults' responsibility: the two product lines are
     built to different efficiency targets and a rule written per kilowatt
     cannot tell which one it is looking at.
@@ -140,8 +176,9 @@ Fujitsu result was checked before being published rather than after.
     dew point, far colder than a sensible-only coil needs to move the same
     total heat — and a colder coil means more lift and less COP. At its rating
     point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
-    against the Daikin's 2 % (SHR 0.98). Within the Daikin set alone, bias
-    correlates with sensible heat ratio at *r* = −0.52.
+    against the Daikin's 2 % (SHR 0.98). Within the Daikin set alone, the bias
+    of the 180 cooling points correlates with their sensible heat ratio at
+    *r* = −0.83: the more latent load, the more optimistic the model.
 
     **③ Maximum-capacity tables, heating half.** Fujitsu's heating grid is
     published at maximum capacity, with the compressor pinned at full speed
@@ -169,39 +206,42 @@ Fujitsu result was checked before being published rather than after.
           - In the band?
         * - FTXM20A / RXM20A
           - 5.41
-          - Q/3.7
-          - inside
+          - none in Q/2–Q/16
+          - **outside** (high end)
         * - FTXM25A / RXM25A
           - 5.21
-          - Q/3.9
-          - inside
+          - none in Q/2–Q/16
+          - **outside** (high end)
         * - FTXM35A / RXM35A
           - 4.61
-          - Q/4.2
-          - inside
+          - Q/2.6
+          - **outside** (high end)
         * - FTXM42A / RXM42A
           - 4.20
-          - Q/4.9
+          - Q/3.8
           - inside
         * - FTXM50A / RXM50A
           - 3.68
-          - Q/6.0
+          - Q/5.6
           - inside
         * - ASUH09LPAS
           - 3.67
-          - Q/7.6
-          - **outside**
+          - Q/7.1
+          - at the low end
         * - ASUH12LPAS
           - 3.23
-          - Q/8.5
-          - **outside**
+          - Q/8.7
+          - **outside** (low end)
 
     The band is **Q/3.3 to Q/7.1** at p10–p90 of 1,414 component coils, on the
-    nameplate-capacity basis, and the default ``Q/5.0`` sits inside it. Every
-    Daikin unit is inside. Both Fujitsu units sit just outside the
-    low-conductance end: they behave like machines with less coil per kilowatt
-    than 90 % of the component population, which is exactly why a median
-    default over-predicts them.
+    nameplate-capacity basis, and the default ``Q/5.0`` sits inside it. The
+    machines now split at both ends. The three most efficient Daikin units
+    would need more conductance than 90 % of the component population — the
+    two smallest more than even ``Q/2`` gives, so no conductance alone closes
+    their cooling gap — while the larger ASUH12LPAS behaves like a machine
+    with less coil per kilowatt than 90 % of it and ASUH09LPAS sits on that
+    edge (Q/7.09 against Q/7.08). A median default under-predicts the first
+    group and over-predicts the second, which is the residual pattern above.
 
     .. note::
 
@@ -225,8 +265,9 @@ Fujitsu result was checked before being published rather than after.
 .. admonition:: Why the default was not moved
     :class: note
 
-    Nudging the conductance from ``Q/5`` toward ``Q/6`` would have improved the
-    aggregate number on this page. It was not done. The value was derived from
+    Moving the conductance away from ``Q/5`` would improve the numbers on this
+    page for the machines at one end of the band at the cost of the other. It
+    was not done. The value was derived from
     the catalogue population before any parity result existed, and changing it
     afterwards to improve a parity plot is calibration wearing validation's
     clothes — the exact thing this harness is built to prevent. The spread is
@@ -238,20 +279,20 @@ Three smaller patterns, also named rather than left for a reader to find:
 displacement, which no air-to-air unit in the set does — neither Daikin nor
 Fujitsu prints one, and a search of five data books, three service manuals and
 two specification sheets found no displacement for any of them. So the
-air-to-air panel is also a test of the *derived* displacement rule rather than
-of a specification input.
+air-to-air panel is also a test of the library's *default* displacement rather
+than of a specification input.
 
 **Both air-to-air refrigerants are present for a reason.** Daikin's
 pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
-effect: the three R-410A air-to-water units are among the best fits in the
-whole set, at 4.7 to 7.9 % MAPE.
+effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
+inside the 7.2 to 16.9 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +11.7 % optimistic. Neither of its published inputs explains it:
-substituting its sibling's rated air flow, or dropping its published
-displacement in favour of the derived rule, moves the bias by about a point.
+unit runs +16.9 % optimistic. Neither of its published inputs explains it:
+substituting its 12 kW sibling's rated air flow moves the bias by 1.3 points,
+and dropping its published displacement for the library default by 3.1.
 What explains it is the catalogue itself. At every one of the fifteen
 conditions, the 16 kW machine's *published* COP is 8 to 22 % below the 9 kW
 machine's from the same product line:
@@ -308,6 +349,159 @@ corrected for.
     comparable to the number here, which is the shipped defaults applied
     without adjustment. Removing that divergence between the published
     validation script and the library default is part of what this work did.
+    The deleted ``samsung_ehs_parity.py`` is not a reproduction route; the
+    table is kept only as the historical record.
+
+    .. list-table:: Historical Samsung comparison — superseded parameter set
+        :header-rows: 1
+        :widths: 8 14 12 18 16 16 8 8
+
+        * - ID
+          - LWT [°C]
+          - T0 [°C]
+          - Q_ref,cond [kW]
+          - COP target
+          - COP predicted
+          - AE
+          - APE
+        * - 1
+          - 40
+          - −10
+          - 13.45
+          - 2.30
+          - 2.37
+          - 0.07
+          - 3.0 %
+        * - 2
+          - 40
+          - 2
+          - 12.42
+          - 3.04
+          - 3.83
+          - 0.79
+          - 25.8 %
+        * - 3
+          - 40
+          - 12
+          - 14.65
+          - 5.07
+          - 4.67
+          - 0.40
+          - 7.9 %
+        * - 4
+          - 40
+          - 20
+          - 15.69
+          - 6.48
+          - 5.65
+          - 0.83
+          - 12.8 %
+        * - 5
+          - 40
+          - 30
+          - 16.98
+          - 7.68
+          - 7.43
+          - 0.25
+          - 3.2 %
+        * - 6
+          - 50
+          - −10
+          - 13.89
+          - 2.00
+          - 1.84
+          - 0.16
+          - 7.8 %
+        * - 7
+          - 50
+          - 2
+          - 13.27
+          - 2.56
+          - 3.04
+          - 0.48
+          - 18.9 %
+        * - 8
+          - 50
+          - 12
+          - 14.76
+          - 3.86
+          - 3.71
+          - 0.15
+          - 3.9 %
+        * - 9
+          - 50
+          - 20
+          - 15.97
+          - 4.78
+          - 4.34
+          - 0.44
+          - 9.2 %
+        * - 10
+          - 50
+          - 30
+          - 17.48
+          - 5.95
+          - 5.37
+          - 0.58
+          - 9.8 %
+        * - 11
+          - 65
+          - −10
+          - 13.97
+          - 1.73
+          - 1.42
+          - 0.31
+          - 17.7 %
+        * - 12
+          - 65
+          - 2
+          - 13.71
+          - 2.04
+          - 2.37
+          - 0.33
+          - 16.1 %
+        * - 13
+          - 65
+          - 12
+          - 16.38
+          - 2.84
+          - 2.73
+          - 0.11
+          - 3.7 %
+        * - 14
+          - 65
+          - 20
+          - 17.48
+          - 3.34
+          - 3.17
+          - 0.17
+          - 5.1 %
+        * - 15
+          - 65
+          - 30
+          - 18.84
+          - 4.04
+          - 3.79
+          - 0.25
+          - 6.1 %
+        * -
+          -
+          -
+          -
+          -
+          - **Mean**
+          - **0.35**
+          - **10.1 %**
+
+    LWT is leaving-water temperature and T0 the outdoor (dead-state)
+    temperature; AE and APE are the absolute and absolute percentage error.
+    That comparison set the tank temperature 2.5 K below LWT up to 60 °C and
+    5 K below it above 60 °C.
+
+    Physics-based space-conditioning ASHP/GSHP outputs through commit
+    ``c5d673e`` used coil-duty COP (``Q_ref_iu / E_tot``); results on this page
+    use final indoor-air delivery with fan heat counted once
+    (:doc:`../models/ashp`).
 
 
 Cooling and latent load
@@ -337,9 +531,11 @@ Scope
     for air coils and does not transfer to a water- or brine-coupled face,
     which is different physics.
 
-    ``GroundSourceHeatPump`` additionally still carries a fixed compressor
-    displacement rather than the derived rule, and is not covered by the
-    displacement work on this page.
+    Every family's default compressor displacement is the fixed
+    42 cm³ per 9 kW of nameplate (:func:`tmhp.compressor_speed.default_displacement`);
+    the refrigerant-aware rule of :doc:`defaults` is available as
+    :func:`tmhp.compressor_speed.refrigerant_aware_displacement` but is not
+    the default.
 
 
 Reproduce
@@ -347,9 +543,15 @@ Reproduce
 
 .. code-block:: bash
 
-    uv sync --locked --group validation
-    uv run python -m validation.parity.run             # every catalogue
-    uv run python -m scripts.validation.parity_figure  # this figure
+    uv sync --locked --all-groups
+    scripts/regen-validation.sh                         # every catalogue, the site data and these figures
+    uv run python -m validation.parity.run --unit <slug>   # one catalogue
+
+``validation/results/manifest.json`` records the commit, the ``src/tmhp`` tree
+hash, the coefficient version, the run date and the Python and CoolProp
+versions the committed results came from.
+``tests/test_validation_results_current.py`` reruns a fixed sample of points
+and fails when the model no longer reproduces them.
 
 Adding a machine is a transcription and nothing else — see
 :doc:`adding-a-catalogue`.

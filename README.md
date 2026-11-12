@@ -302,48 +302,17 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 
 The current [catalogue parity harness](validation/parity/) runs shipped defaults against registered manufacturer data. Its documented coverage includes air-to-water `AirSourceHeatPumpBoiler` and air-to-air `AirSourceHeatPump`, heating and cooling, R32/R410A/R290, and multiple manufacturers. Read the [validation report](docs/source/validation/index.rst) for per-unit boundaries, unevaluated points, held catalogues and residual analysis; catalogue standards are not pooled into one interchangeable COP definition.
 
-In the committed harness output, the adopted catalogues come to a COP MAPE of 8.9 %; held catalogues are excluded.
+Committed harness output, shipped defaults applied unchanged, one figure per family (catalogue rating standards are not pooled): **air-to-water (`AirSourceHeatPumpBoiler`, 10 units): COP MAPE 10.3 %, bias +5.6 %, 153/153 points**; **air-to-air (`AirSourceHeatPump`, 5 Daikin units): COP MAPE 12.1 %, bias +1.5 %, 360/360 points**. The air-to-air figure nets two opposite biases: cooling runs low (−9.7 %; most on the most efficient units, and least where the catalogue carries a latent load, so the dry indoor coil is not the cause) and heating at or below −7 °C outdoor runs high (+22.5 %; frosting and defrost are not modelled). The air-to-water bias is concentrated at +2 °C outdoor (+20 %). Ground-source, water-source and subsystem-augmented families are not compared against catalogue data.
 
 ```bash
-uv sync --locked --group validation
-uv run python -m validation.parity.run
-uv run python -m scripts.validation.parity_figure
+uv sync --locked --all-groups
+scripts/regen-validation.sh            # every catalogue in parallel, then the site data and figures
+uv run python -m validation.parity.run --unit samsung_ehs_mono_ht_r32_14kw   # one unit
 ```
 
-For a single registered unit, use `uv run python -m validation.parity.run --unit samsung_ehs_mono_ht_r32_14kw`. [validation/README.md](validation/README.md) documents source checksums, extraction, catalogue transcription and the result chain. Manufacturer PDFs are obtained separately and are not committed.
+`validation/results/manifest.json` records the commit, the `src/tmhp` tree, the coefficient version and the Python/CoolProp versions the results came from, and `tests/test_validation_results_current.py` fails when the model no longer reproduces them. [validation/README.md](validation/README.md) documents source checksums, extraction, catalogue transcription and the result chain. Manufacturer PDFs are obtained separately and are not committed.
 
-**COP boundary matters.** Archived physics-based space-conditioning ASHP/GSHP outputs through `c5d673e` use coil-duty COP. New runs use final indoor-air delivery, with fan heat counted once. Regenerate outputs and figures and record the source commit before making a current system-COP comparison. DHW and empirical models retain their existing definitions. Existing site figures and historical error numbers are not newly reproduced results.
-
-Ground-source, water-source and subsystem-augmented families share the cycle core and have representative smoke coverage, but do not inherit unit-specific catalogue validation. The outdoor-coil default evidence covers dry round-tube-plate-fin packaged equipment; frost, microchannel coils and residential mini-splits lie outside that evidence. The indoor coil is a dry sensible exchanger, so latent cooling and catalogue maximum-capacity conditions require separate interpretation. High-temperature vapour-injection hardware is outside the single-stage cycle boundary.
-
-<details>
-<summary>Historical Samsung comparison — superseded parameter set</summary>
-
-The former Samsung EHS Mono HT Quiet R32 14 kW comparison used 15 operating points and reported MAE 0.35 / MAPE 10.1%. Its dedicated parameter set differed from library defaults, so those numbers are **not** validation of the current shipped defaults. The deleted `samsung_ehs_parity.py` is not a reproduction route. The table is retained only as the historical record; use the shared harness above for a new comparison.
-
-| $\mathrm{ID}$  | $T_{\mathrm{LWT}}~[^\circ\mathrm{C}]$ | $T_0~[^\circ\mathrm{C}]$ | ${Q}_{\mathrm{ref,cond}}~[\mathrm{kW}]$ | $\mathrm{COP}_{\mathrm{target}}$ | $\mathrm{COP}_{\mathrm{pred}}$ | $\mathrm{AE}$ | $\mathrm{APE}$ |
-| :-: | :---------------------: | :--------: | :----------------------------: | :------------------------------: | :----------------------------: | :------: | :--------: |
-|  1  |           40            |    −10     |             13.45              |               2.30               |              2.37              |   0.07   |   3.0 %    |
-|  2  |           40            |     2      |             12.42              |               3.04               |              3.83              |   0.79   |   25.8 %   |
-|  3  |           40            |     12     |             14.65              |               5.07               |              4.67              |   0.40   |   7.9 %    |
-|  4  |           40            |     20     |             15.69              |               6.48               |              5.65              |   0.83   |   12.8 %   |
-|  5  |           40            |     30     |             16.98              |               7.68               |              7.43              |   0.25   |   3.2 %    |
-|  6  |           50            |    −10     |             13.89              |               2.00               |              1.84              |   0.16   |   7.8 %    |
-|  7  |           50            |     2      |             13.27              |               2.56               |              3.04              |   0.48   |   18.9 %   |
-|  8  |           50            |     12     |             14.76              |               3.86               |              3.71              |   0.15   |   3.9 %    |
-|  9  |           50            |     20     |             15.97              |               4.78               |              4.34              |   0.44   |   9.2 %    |
-| 10  |           50            |     30     |             17.48              |               5.95               |              5.37              |   0.58   |   9.8 %    |
-| 11  |           65            |    −10     |             13.97              |               1.73               |              1.42              |   0.31   |   17.7 %   |
-| 12  |           65            |     2      |             13.71              |               2.04               |              2.37              |   0.33   |   16.1 %   |
-| 13  |           65            |     12     |             16.38              |               2.84               |              2.73              |   0.11   |   3.7 %    |
-| 14  |           65            |     20     |             17.48              |               3.34               |              3.17              |   0.17   |   5.1 %    |
-| 15  |           65            |     30     |             18.84              |               4.04               |              3.79              |   0.25   |   6.1 %    |
-|     |                         |            |                                |                                  |            **Mean**            | **0.35** | **10.1 %** |
-
-
-The historical table uses leaving-water temperature (LWT), outdoor/dead-state temperature T0, target condenser heat rate, catalogue/predicted COP, absolute error (AE) and absolute percentage error (APE). The paper's EWT/LWT offset sets tank temperature 2.5 K below LWT up to 60 °C and 5 K below it above 60 °C. These conventions do not establish the boundary of a new space-conditioning run.
-
-</details>
+The outdoor-coil default evidence covers dry round-tube-plate-fin packaged equipment; frost, microchannel coils and residential mini-splits lie outside that evidence. Catalogue maximum-capacity conditions require separate interpretation, and high-temperature vapour-injection hardware is outside the single-stage cycle boundary.
 
 Jo, H. & Choi, W., *“Thermodynamic Modeling of Refrigerant Cycle in an Air-Source Heat Pump Boiler and Performance Validation”*, KJACR (2026, in press). Samsung Electronics, *EHS Mono HT Quiet R32 Technical Data Book* (2024). Further catalogue provenance and checksums: [validation/registry/sources.yaml](validation/registry/sources.yaml).
 

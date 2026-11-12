@@ -27,7 +27,9 @@ The six steps
 
     # 5. refresh the figure and the site data
     uv run python -m scripts.validation.parity_figure
-    uv run python scripts/data/gen_validation_data.py
+    uv run python -m scripts.data.gen_validation_data
+    #    (or all units, the site data and every validation figure at once)
+    scripts/regen-validation.sh
 
     # 6. commit the catalogue, the registry, results/ and the regenerated JSON
 
@@ -44,7 +46,8 @@ which is the audit trail for "nobody has checked this file yet".
 **3. Transcribe the grid.** One YAML file per outdoor unit. See below.
 
 **4. Run the harness.** It writes ``validation/results/<slug>.csv`` and updates
-``validation/results/summary.csv``.
+``validation/results/summary.csv`` and ``manifest.json``, which records the
+commit and the ``src/tmhp`` tree the numbers came from.
 
 **5. Refresh the derived artefacts.** The figure and the site's JSON both read
 from ``validation/results/``, so they follow automatically.

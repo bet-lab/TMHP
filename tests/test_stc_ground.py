@@ -17,6 +17,8 @@ pytest.importorskip("pygfunction")
 from tmhp import GroundSourceHeatPumpBoiler, GSHPB_STC_ground  # noqa: E402
 from tmhp.subsystems import SolarThermalCollector  # noqa: E402
 
+from ._ground_oracle import step_mean_superposition  # noqa: E402
+
 _tN = 24
 _BHE_COLS = ["T_bhe [°C]", "T_bhe_f [°C]", "T_bhe_f_in [°C]", "T_bhe_f_out [°C]"]
 
@@ -109,8 +111,6 @@ def test_solar_charges_and_warms_ground():
         loads = frame["Q_bhe [W]"].to_numpy() / (2 * 100.0)
         pulses = np.diff(loads, prepend=0.0)
         time = np.arange(len(loads)) * 3600.0
-        expected = [
-            model.Ts - np.dot(pulses[: n + 1], model._gfunc_interp(np.maximum(time[n] - time[: n + 1], 1e-6)))
-            for n in range(len(loads))
-        ]
+        # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
+        expected = model.Ts - step_mean_superposition(model._gfunc_interp, time, pulses, 3600.0)
         np.testing.assert_allclose(frame["T_bhe [°C]"], expected, atol=1e-10, rtol=0)

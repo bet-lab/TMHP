@@ -288,7 +288,8 @@ def solve_compressor_speed(
         except ValueError:
             bound = rps_min if abs(low) < abs(high) else rps_max
             return bound, False, None
-    # Raw BITZER polynomials may turn down or become invalid at high N.
+    # Unguarded fits (user callables, FittedEfficiency.raw) may turn down or
+    # become invalid at high N; the guarded defaults are held above 72.5 rev/s.
     # Locate the maximum and solve its rising branch, as in the source study.
     peak = minimize_scalar(lambda rps: -value(rps), bounds=(rps_min, rps_max), method="bounded")
     n_peak, f_peak = float(peak.x), value(peak.x)

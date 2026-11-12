@@ -69,12 +69,26 @@ What the result contains
 time step. The columns are the same units-bracketed keys you get from
 ``analyze_steady``, grouped roughly into:
 
-- **Cycle state points** — ``P_ref_*`` pressures, ``T_ref_*`` temperatures
-  at compressor / expander / evaporator / condenser nodes.
+- **Cycle state points** — ``P_ref_*`` pressures, ``T_ref_*``, ``h_ref_*``,
+  ``s_ref_*`` at compressor / expander / evaporator / condenser nodes,
+  compressor speed and efficiencies: values **while the compressor runs**.
 - **Energy flows** — ``Q_ref_tank [W]``, ``Q_ref_ou [W]``,
-  ``E_cmp [W]``, fan / pump auxiliary power. These are **averages over
-  the step**: the running cycle's rate times the fraction of the step the
-  compressor ran, so ``df["E_cmp [W]"].sum() * dt_s`` is the energy used.
+  ``E_cmp [W]``, fan / pump auxiliary power, ``E_tot [W]``. These are
+  **averages over the step**: the running cycle's rate times the fraction
+  of the step the compressor ran, so ``df["E_cmp [W]"].sum() * dt_s`` is
+  the energy used. Power of subsystems that do not follow the compressor
+  (collector pump, UV lamp) is their own step average.
+- **Flows** — refrigerant ``m_dot_ref [kg/s]`` and outdoor air
+  ``dV_ou_a [m3/s]``: step averages. The ground / source loop flow
+  ``dV_bhe_f [m3/s]``: the loop's flow while it circulates. Tank and
+  draw-off flows ``dV_tank_w_*``, ``dV_mix_*``: at the end-of-step tank
+  temperature, as the tank balance uses them.
+- **Temperatures** — ``T_tank_w [°C]`` at the end of the step; outdoor-air
+  and refrigerant temperatures while the compressor runs; ground / source
+  loop fluid ``T_bhe_f*`` averaged over the step (they follow the loop's
+  load, which flows only part of the step), with
+  ``T_bhe_f*_running [°C]`` the fluid while the compressor runs (NaN on a
+  step it did not run).
 - **Operation** — ``hp_is_on`` (the compressor ran at some point in the
   step), ``runtime_fraction [-]`` (the fraction it ran, 0-1),
   ``hp_starts [-]`` (compressor starts in the step) and
@@ -82,7 +96,13 @@ time step. The columns are the same units-bracketed keys you get from
 - **Tank state** — ``T_tank_w [°C]`` at the end of the step,
   ``tank_level [-]``.
 - **Figures of merit** — ``cop_ref [-]``, ``cop_sys [-]`` of the running
-  cycle (``NaN`` on steps it did not run).
+  cycle (``NaN`` on steps it did not run); equal to the step-average heat
+  over the step-average compressor (and fan / source pump) power.
+- **Exergy** (``X_* [W]`` flows, ``Xc_* [W]`` destruction) — averages over
+  the step, so they add up like the energy flows and each component's
+  balance closes on a partially run step. Source-side flows are evaluated
+  at the running fluid state and multiplied by the run fraction (exergy is
+  not linear in temperature). ``X_eff_* [-]`` are ratios of step averages.
 
 You can pull any of these out by name once the run finishes:
 

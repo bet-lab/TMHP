@@ -60,12 +60,18 @@ over the step. ``min_on_time_s`` / ``min_off_time_s`` (default 0) hold
 the compressor to a minimum run and rest time. See
 :ref:`time-step-and-thermostat`.
 
-On a step the compressor runs only part of, the ground history and the
-borehole wall take the step-average extraction (the ground's step-mean
-response); the borehole resistance and the loop temperature difference,
-which store no heat, act on the running extraction, so the reported fluid
-temperatures and the source the next cycle sees are those of the running
-machine.
+On a step the compressor runs only part of, loads are kept by source: the
+compressor extracts only while it runs, a solar collector charging the
+ground (``GSHPB_STC_ground``, ``GSHPB_STC_routed``) injects for the whole
+step. The ground history and the borehole wall take the step-average net
+load (the ground's step-mean response). The reported fluid temperatures
+``T_bhe_f*`` are step-time averages -- the borehole resistance and loop
+temperature difference are linear in the load, so continuous in the run
+fraction and equal to the injection-only state when the compressor does
+not run; the next cycle reads that outlet (one-step source lag).
+``T_bhe_f*_running`` are the fluid while the compressor runs (its running
+extraction net of the injection), which the evaporator's source-side
+exergy uses.
 
 The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
 it sets the shortest lag time tabulated for the g-function (never below

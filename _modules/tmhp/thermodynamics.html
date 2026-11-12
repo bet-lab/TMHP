@@ -418,6 +418,58 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="234">            <span class="n">df</span><span class="p">[</span><span class="n">x_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
 </span><span data-line="235">    <span class="k">return</span> <span class="n">df</span></div>
 
+</span><span data-line="236">
+</span><span data-line="237">
+</span><span data-line="238"><span class="k">def</span><span class="w"> </span><span class="nf">source_loop_exergy_flows</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">):</span>
+</span><span data-line="239"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Step-average exergy flows of a boiler&#39;s source-water / ground loop [W].</span>
+</span><span data-line="240">
+</span><span data-line="241"><span class="sd">    The source loop carries the evaporator duty only while the compressor</span>
+</span><span data-line="242"><span class="sd">    runs. Its exergy flows are evaluated at the running state -- the loop</span>
+</span><span data-line="243"><span class="sd">    flow ``dV_bhe_f [m3/s]``, the running fluid temperatures</span>
+</span><span data-line="244"><span class="sd">    ``T_bhe_f_in_running`` / ``T_bhe_f_out_running`` and the running pump</span>
+</span><span data-line="245"><span class="sd">    power ``E_pmp [W] / runtime_fraction [-]`` -- and then multiplied by the</span>
+</span><span data-line="246"><span class="sd">    run fraction, so they average the same way as the step-average heat,</span>
+</span><span data-line="247"><span class="sd">    power and refrigerant flows in the row. Exergy is not linear in</span>
+</span><span data-line="248"><span class="sd">    temperature, so evaluating it at averaged temperatures would not give</span>
+</span><span data-line="249"><span class="sd">    the average exergy. A frame without these columns (a steady result)</span>
+</span><span data-line="250"><span class="sd">    is treated as a full run at the reported temperatures.</span>
+</span><span data-line="251">
+</span><span data-line="252"><span class="sd">    Returns ``(X_loop_in, X_loop_out, X_src_in, X_src_out)``: the flows at</span>
+</span><span data-line="253"><span class="sd">    the loop&#39;s borehole/source inlet and outlet, entering the evaporator</span>
+</span><span data-line="254"><span class="sd">    (after the pump) and leaving it. All zero on steps the compressor did</span>
+</span><span data-line="255"><span class="sd">    not run.</span>
+</span><span data-line="256"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="257">    <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="258">    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="259">
+</span><span data-line="260">    <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="261">    <span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="262">
+</span><span data-line="263">    <span class="n">G</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;dV_bhe_f [m3/s]&quot;</span><span class="p">]</span>
+</span><span data-line="264">    <span class="k">if</span> <span class="s2">&quot;T_bhe_f_in_running [°C]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="s2">&quot;runtime_fraction [-]&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+</span><span data-line="265">        <span class="n">f</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;runtime_fraction [-]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="266">        <span class="n">T_in_C</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_bhe_f_in_running [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="267">        <span class="n">T_out_C</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_bhe_f_out_running [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="268">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="269">        <span class="n">f</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</span><span data-line="270">        <span class="n">T_in_C</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_bhe_f_in [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="271">        <span class="n">T_out_C</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T_bhe_f_out [°C]&quot;</span><span class="p">]</span>
+</span><span data-line="272">    <span class="n">ran</span> <span class="o">=</span> <span class="n">f</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+</span><span data-line="273">    <span class="n">T_in_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_in_C</span><span class="p">)</span>
+</span><span data-line="274">    <span class="n">T_out_K</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">T_out_C</span><span class="p">)</span>
+</span><span data-line="275">    <span class="n">E_pmp_run</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">f</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ran</span><span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ran</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="276">
+</span><span data-line="277">    <span class="k">def</span><span class="w"> </span><span class="nf">average</span><span class="p">(</span><span class="n">flow</span><span class="p">):</span>
+</span><span data-line="278">        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ran</span><span class="p">,</span> <span class="n">f</span> <span class="o">*</span> <span class="n">flow</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</span><span data-line="279">
+</span><span data-line="280">    <span class="n">X_loop_in</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span><span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">T_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">))</span>
+</span><span data-line="281">    <span class="n">X_loop_out</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span><span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">T_out_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">))</span>
+</span><span data-line="282">    <span class="c1"># Fluid enters the evaporator after being heated by the pump.</span>
+</span><span data-line="283">    <span class="n">T_src_in_K</span> <span class="o">=</span> <span class="n">T_out_K</span> <span class="o">+</span> <span class="n">E_pmp_run</span> <span class="o">/</span> <span class="n">G</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="284">    <span class="n">X_src_in</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span><span class="n">calc_exergy_flow</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">T_src_in_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">))</span>
+</span><span data-line="285">    <span class="c1"># Fluid leaves the evaporator and enters the borehole / source loop.</span>
+</span><span data-line="286">    <span class="n">X_src_out</span> <span class="o">=</span> <span class="n">X_loop_in</span>
+</span><span data-line="287">    <span class="k">return</span> <span class="n">X_loop_in</span><span class="p">,</span> <span class="n">X_loop_out</span><span class="p">,</span> <span class="n">X_src_in</span><span class="p">,</span> <span class="n">X_src_out</span>
 </span></pre></div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

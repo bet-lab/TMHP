@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-09-13T15:43:05+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T06:34:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -149,6 +149,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#what-a-real-run-looks-like">What a real run looks like</a></li>
 <li><a class="reference internal" href="#what-the-result-contains">What the result contains</a></li>
 <li><a class="reference internal" href="#common-next-moves">Common next moves</a></li>
+<li><a class="reference internal" href="#time-step-and-the-thermostat">Time step and the thermostat</a></li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -244,17 +245,48 @@ once the warm-up transient is past.</p>
 time step. The columns are the same units-bracketed keys you get from
 <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>, grouped roughly into:</p>
 <ul class="simple">
-<li><p><strong>Cycle state points</strong> — <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code> pressures, <code class="docutils literal notranslate"><span class="pre">T_ref_*</span></code> temperatures
-at compressor / expander / evaporator / condenser nodes.</p></li>
+<li><p><strong>Cycle state points</strong> — <code class="docutils literal notranslate"><span class="pre">P_ref_*</span></code> pressures, <code class="docutils literal notranslate"><span class="pre">T_ref_*</span></code>, <code class="docutils literal notranslate"><span class="pre">h_ref_*</span></code>,
+<code class="docutils literal notranslate"><span class="pre">s_ref_*</span></code> at compressor / expander / evaporator / condenser nodes,
+compressor speed and efficiencies: values <strong>while the compressor runs</strong>.</p></li>
 <li><p><strong>Energy flows</strong> — <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_ref_ou</span> <span class="pre">[W]</span></code>,
-<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>, fan / pump auxiliary power.</p></li>
-<li><p><strong>Tank state</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, <code class="docutils literal notranslate"><span class="pre">level</span> <span class="pre">[-]</span></code>.</p></li>
-<li><p><strong>Figures of merit</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">[W]</span></code>, fan / pump auxiliary power, <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code>. These are
+<strong>averages over the step</strong>: the running cycle’s rate times the fraction
+of the step the compressor ran, so <code class="docutils literal notranslate"><span class="pre">df[&quot;E_cmp</span> <span class="pre">[W]&quot;].sum()</span> <span class="pre">*</span> <span class="pre">dt_s</span></code> is
+the energy used. Power of subsystems that do not follow the compressor
+(collector pump, UV lamp) is their own step average.</p></li>
+<li><p><strong>Flows</strong> — refrigerant <code class="docutils literal notranslate"><span class="pre">m_dot_ref</span> <span class="pre">[kg/s]</span></code> and outdoor air
+<code class="docutils literal notranslate"><span class="pre">dV_ou_a</span> <span class="pre">[m3/s]</span></code>: step averages. The ground / source loop flow
+<code class="docutils literal notranslate"><span class="pre">dV_bhe_f</span> <span class="pre">[m3/s]</span></code>: the loop’s flow while it circulates. Tank and
+draw-off flows <code class="docutils literal notranslate"><span class="pre">dV_tank_w_*</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_mix_*</span></code>: at the end-of-step tank
+temperature, as the tank balance uses them.</p></li>
+<li><p><strong>Temperatures</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code> at the end of the step; outdoor-air
+and refrigerant temperatures while the compressor runs; ground / source
+loop fluid <code class="docutils literal notranslate"><span class="pre">T_bhe_f*</span></code> averaged over the step (they follow the loop’s
+load, which flows only part of the step), with
+<code class="docutils literal notranslate"><span class="pre">T_bhe_f*_running</span> <span class="pre">[°C]</span></code> the fluid while the compressor runs (NaN on a
+step it did not run).</p></li>
+<li><p><strong>Operation</strong> — <code class="docutils literal notranslate"><span class="pre">hp_is_on</span></code> (the compressor ran at some point in the
+step), <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> (the fraction it ran, 0-1),
+<code class="docutils literal notranslate"><span class="pre">hp_starts</span> <span class="pre">[-]</span></code> (compressor starts in the step) and
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p></li>
+<li><p><strong>Tank state</strong> — <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code> at the end of the step,
+<code class="docutils literal notranslate"><span class="pre">tank_level</span> <span class="pre">[-]</span></code>.</p></li>
+<li><p><strong>Figures of merit</strong> — <code class="docutils literal notranslate"><span class="pre">cop_ref</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span> <span class="pre">[-]</span></code> of the running
+cycle (<code class="docutils literal notranslate"><span class="pre">NaN</span></code> on steps it did not run); equal to the step-average heat
+over the step-average compressor (and fan / source pump) power.</p></li>
+<li><p><strong>Exergy</strong> (<code class="docutils literal notranslate"><span class="pre">X_*</span> <span class="pre">[W]</span></code> flows, <code class="docutils literal notranslate"><span class="pre">Xc_*</span> <span class="pre">[W]</span></code> destruction) — averages over
+the step, so they add up like the energy flows and each component’s
+balance closes on a partially run step. Source-side flows are evaluated
+at the running fluid state and multiplied by the run fraction (exergy is
+not linear in temperature). <code class="docutils literal notranslate"><span class="pre">X_eff_*</span> <span class="pre">[-]</span></code> are ratios of step averages.</p></li>
 </ul>
 <p>You can pull any of these out by name once the run finishes:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="c1"># Daily-average system COP, skipping the first hour of warm-up</span>
-</span><span data-line="2"><span class="n">df_steady</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">60</span><span class="p">:]</span>
-</span><span data-line="3"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Daily COP_sys: </span><span class="si">{</span><span class="n">df_steady</span><span class="p">[</span><span class="s1">&#39;cop_sys [-]&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="c1"># Daily system COP, skipping the first hour of warm-up: heat over</span>
+</span><span data-line="2"><span class="c1"># electricity. A plain mean of cop_sys would weight a step the</span>
+</span><span data-line="3"><span class="c1"># compressor ran for 10 s like one it ran throughout.</span>
+</span><span data-line="4"><span class="n">df_steady</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">60</span><span class="p">:]</span>
+</span><span data-line="5"><span class="n">cop_day</span> <span class="o">=</span> <span class="n">df_steady</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">df_steady</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Daily COP_sys: </span><span class="si">{</span><span class="n">cop_day</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></pre></div>
 </div>
 <p>For the full column list, <code class="docutils literal notranslate"><span class="pre">df.columns.tolist()</span></code> after a short run is
@@ -274,18 +306,54 @@ or the GSHPB counterparts) and pass the additional schedules
 documented under <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> and
 <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>.</p></li>
 </ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> uses a fully implicit time-stepping scheme —
-<code class="docutils literal notranslate"><span class="pre">fsolve</span></code> solves for <code class="docutils literal notranslate"><span class="pre">[T_next,</span> <span class="pre">level_next]</span></code> at every step. This
-makes the integrator robust to large <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> values, but a
-1-minute step is a safe default for first runs.</p>
-</div>
+</section>
+<section id="time-step-and-the-thermostat">
+<span id="time-step-and-thermostat"></span><h2>Time step and the thermostat<a class="headerlink" href="#time-step-and-the-thermostat" title="Link to this heading">¶</a></h2>
+<p>The heat pump runs between the tank’s lower and upper bounds
+(<code class="docutils literal notranslate"><span class="pre">T_tank_w_lower_bound</span></code> / <code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code>; 60 / 65 °C for
+ASHPB). A 15 kW machine on the default 151 L tank fills that 5 K band in
+about 3.5 minutes, so with any step longer than that the tank reaches a
+bound part-way through a step. <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> and <code class="docutils literal notranslate"><span class="pre">step()</span></code>
+follow the thermostat inside each step:</p>
+<ul class="simple">
+<li><p>The tank heat balance over the step is linearised in the tank
+temperature (draw-off, envelope loss and subsystem heat), and the
+switching events are found on its exact solution: the compressor
+stops when the tank reaches the upper bound and starts when it falls to
+the lower bound, possibly several times in one long step.</p></li>
+<li><p>The cycle is quasi-steady: it is solved once per step at the mean tank
+temperature of the compressor’s run in that step, and the step reports
+the run-time fraction with the averaged heat and power.</p></li>
+<li><p>The tank update itself stays the implicit balance over the step, fed
+with that average heat, so the first-law balance closes for every
+<code class="docutils literal notranslate"><span class="pre">dt_s</span></code>.</p></li>
+</ul>
+<p>Results therefore converge as <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> shrinks instead of drifting with
+it. For the default ASHPB, a 24 h run with hot-water draws gives the same
+daily heat input and electricity within about 2 % from 60 s to 900 s
+steps, and never exceeds the upper bound. What a
+long step still loses is the resolution of its inputs: a 30-minute draw
+averaged over an hourly step is a gentler draw, so the tank dips less
+and hourly results differ from minute results by the inputs, not by the
+controller. A 1-minute step resolves typical hot-water draws; 10–15 min
+steps (common co-simulation exchange intervals) are fine for daily or
+annual energy.</p>
+<p>The constructors refuse set points outside 0–100 °C, and the heat pump
+never heats the tank past 100 °C even when a minimum run time (below)
+holds it past the upper bound. If heat from another
+source (for example a solar collector loop without a high limit) takes
+the tank above 100 °C anyway, a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code> says so: the lumped
+tank has no boiling or relief valve.</p>
+<p>By default the compressor can start and stop at any moment. Real
+compressors are held to a minimum run and rest time (typically 3–5
+minutes); set <code class="docutils literal notranslate"><span class="pre">min_on_time_s</span></code> / <code class="docutils literal notranslate"><span class="pre">min_off_time_s</span></code> on the boiler to
+apply them. A minimum run holds the compressor past the upper bound, so
+the tank overshoots it by up to <code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">*</span> <span class="pre">min_on_time_s</span> <span class="pre">/</span> <span class="pre">C_tank</span></code>.</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Sep 13, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

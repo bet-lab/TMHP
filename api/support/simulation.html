@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T03:58:41+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T06:34:29+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -394,7 +394,7 @@ cycle that closes both heat exchangers and passes
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls (#165 P0).</p>
 <p>This is exactly the state that <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> used to hold in
@@ -440,9 +440,9 @@ an external co-simulation master (FMI/EnergyPlus) and re-run independently.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">hp_is_on_prev</span></span></dt>
-<dd><p>Call for heat from the previous step (cycling hysteresis). A step
-whose cycle could not be solved keeps the call, so the next step
-retries instead of waiting for the tank to reach its lower bound.</p>
+<dd><p>Call for heat at the end of the previous step (cycling hysteresis).
+A step whose cycle could not be solved keeps the call, so the next
+step retries instead of waiting for the tank to reach its lower bound.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bool</p>
@@ -462,6 +462,32 @@ step’s refill decision.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">hp_running_prev</span></span></dt>
+<dd><p>Whether the compressor was running at the end of the previous step.
+Differs from <code class="docutils literal notranslate"><span class="pre">hp_is_on_prev</span></code> when the call stands but the cycle
+could not be solved, or a minimum on/off time holds the compressor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">hp_phase_age_s</span></span></dt>
+<dd><p>Time the compressor has been in its current running state (on or
+off) at the end of the previous step [s]; <code class="docutils literal notranslate"><span class="pre">inf</span></code> at the start of a
+run. Read by the minimum on/off time rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -470,6 +496,8 @@ step’s refill decision.</p>
 <li><p><strong>is_refilling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>hp_is_on_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>dV_tank_w_out_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>hp_phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -498,9 +526,19 @@ step’s refill decision.</p>
 <span class="sig-name descname"><span class="pre">dV_tank_w_out_prev</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">hp_running_prev</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">hp_phase_age_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">inf</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -509,11 +547,215 @@ step’s refill decision.</p>
 <li><p><strong>is_refilling</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>hp_is_on_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>dV_tank_w_out_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>hp_running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>hp_phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">InStepRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#InStepRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Compressor operation inside one step, resolved at thermostat events.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">runtime_fraction</span></span></dt>
+<dd><p>Fraction of the step the compressor ran (0-1). Heat, power and
+flow rates of a running cycle are multiplied by it to give the
+step-average rates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">running_start</span></span></dt>
+<dd><p>Whether the compressor was running at the start of the step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">running_end</span></span></dt>
+<dd><p>Whether it was running at the end of the step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">call_end</span></span></dt>
+<dd><p>Thermostat call for heat at the end of the step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">starts</span></span></dt>
+<dd><p>Off-to-on transitions of the compressor inside the step (a start at
+<code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">0</span></code> counts when it was off at the end of the previous step).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">phase_age_end_s</span></span></dt>
+<dd><p>Time the compressor has been in its end-of-step running state [s].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_on_mean_C</span></span></dt>
+<dd><p>Run-time-weighted mean tank temperature while the compressor ran
+[°C]; <code class="docutils literal notranslate"><span class="pre">None</span></code> if it did not run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_on_first_C</span></span></dt>
+<dd><p>Tank temperature when the compressor first ran in the step (the
+step start if it ran from there) [°C]; <code class="docutils literal notranslate"><span class="pre">None</span></code> if it did not run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">heat_unavailable</span></span></dt>
+<dd><p>The compressor was to run but had no heat to give (no cycle could
+be solved), so it did not; the call stands for the next step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>runtime_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>running_start</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>running_end</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>call_end</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>starts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>phase_age_end_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_on_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">runtime_fraction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">running_start</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">running_end</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">call_end</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">starts</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">phase_age_end_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_on_mean_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">heat_unavailable</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">T_on_first_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_end</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_end_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_mean_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heat_unavailable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_on_first_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>runtime_fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>running_start</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>running_end</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>call_end</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>starts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>phase_age_end_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_on_mean_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>heat_unavailable</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>T_on_first_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">EVENT_TIME_TOL_S</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></span></dt>
+<dd><p>Time width [s] within which a switching event counts as at the step end
+(it then happens at the start of the next step). Event times carry the
+same root-solve noise (~1e-10 s for a 15 kW / 151 L tank per 1e-9 K), and
+without this width a stop or start right at a step boundary would be
+counted in one step or the next by platform.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -774,6 +1016,40 @@ An empty dict means no subsystem has a schedule constraint.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">TEMPERATURE_TOL_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></span></dt>
+<dd><p>Temperature width [K] within which the tank counts as <em>at</em> a thermostat
+bound. The tank temperature at a step boundary comes from an implicit
+root solve, so a tank that ends a step on a bound lands a few 1e-9 K on
+either side of it depending on the platform’s floating-point path. An
+exact comparison then turns the next step’s call – and with it
+<code class="docutils literal notranslate"><span class="pre">hp_is_on</span></code> and <code class="docutils literal notranslate"><span class="pre">hp_starts</span> <span class="pre">[-]</span></code> – on or off by machine. 1e-6 K is far
+above that noise and far below anything a thermostat resolves.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">bound_tolerance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#bound_tolerance"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Width [K] for the bound comparisons of a <code class="docutils literal notranslate"><span class="pre">[T_lower,</span> <span class="pre">T_upper]</span></code> band.</p>
+<p><code class="docutils literal notranslate"><span class="pre">TEMPERATURE_TOL_K</span></code>, but at most a quarter of the band, so the “at the
+lower bound” and “at the upper bound” tests never overlap: with an
+overlap the lower test, checked first, would keep the call on at the
+upper bound and the compressor would run past it. A degenerate band
+(<code class="docutils literal notranslate"><span class="pre">T_lower</span> <span class="pre">&gt;=</span> <span class="pre">T_upper</span></code>) gets no width (exact comparisons).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_lower</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_upper</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
@@ -1068,6 +1344,199 @@ responsibility of the scenario class via
 
 <dl class="py function">
 <dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">resolve_step_operation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residual_free</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solve_cycle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#resolve_step_operation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Compressor operation in one step and the cycle it ran.</p>
+<p><code class="docutils literal notranslate"><span class="pre">residual_free(T_K)</span></code> is the boiler’s own implicit tank residual built
+with a zero heat-source rate; it supplies the heat the tank gains or
+loses from everything else (<code class="xref py py-func docutils literal notranslate"><span class="pre">tank_free_heat_rate()</span></code>), linearised
+between <code class="docutils literal notranslate"><span class="pre">min(T_start,</span> <span class="pre">T_lower)</span></code> and <code class="docutils literal notranslate"><span class="pre">max(T_start,</span> <span class="pre">T_upper)</span></code>.
+<code class="docutils literal notranslate"><span class="pre">solve_cycle(T_C)</span></code> returns the boiler’s cycle result at tank
+temperature <code class="docutils literal notranslate"><span class="pre">T_C</span></code> (a running result, or an off-mode row with a
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>); <code class="docutils literal notranslate"><span class="pre">Q_request</span></code> [W] is the heat it is asked for.</p>
+<p>Two passes, one cycle solve:</p>
+<ol class="arabic simple">
+<li><p>the thermostat events with the compressor delivering <code class="docutils literal notranslate"><span class="pre">Q_request</span></code>,
+which gives when it runs and the mean tank temperature while it does;</p></li>
+<li><p>the cycle solved once at that mean temperature (midpoint rule: the
+quasi-steady cycle the step’s run averages to; if it has no operating
+point there, at the temperature the run starts from), and the events
+again with the heat that cycle delivers (zero if it has no operating
+point).</p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">solve_cycle(T_C,</span> <span class="pre">runtime_fraction)</span></code> returns the boiler’s cycle result
+at tank temperature <code class="docutils literal notranslate"><span class="pre">T_C</span></code>; <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code> is the run time the
+first pass expects, for boilers whose source responds to the
+step-average load. Each step searches its operating point from scratch:
+starting from the previous step’s point would change which candidates
+the search evaluates, and so its optimum.</p>
+<p>Returns the <code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code> and the cycle result (<code class="docutils literal notranslate"><span class="pre">None</span></code> if the
+compressor never had to run in this step).</p>
+<p>When the linearised model puts a switching event within round-off of the
+step end, the implicit solve of the full step decides: a step the
+compressor runs through without its tank reaching the upper bound, or
+rests through without reaching the lower bound, keeps its single-rate
+result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_start_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>call_start</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>scheduled</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>T_lower</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_upper</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_curr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_next</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_tank</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>min_on_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>min_off_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">scale_running_rates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#scale_running_rates"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Turn a running cycle’s rates into step averages (in place).</p>
+<p><code class="docutils literal notranslate"><span class="pre">keys</span></code> are the heat, power and flow rates of the heat-pump circuit;
+each finite numeric value is multiplied by <code class="docutils literal notranslate"><span class="pre">fraction</span></code>. State
+quantities (temperatures, pressures, COP, efficiencies, speed) keep the
+running values. Adds <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>fraction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">simulate_thermostat_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">call_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">running_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase_age_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduled</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_lower</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_heat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_on</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_limit_C</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#simulate_thermostat_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Resolve the on/off thermostat inside one step at its switching events.</p>
+<p>The tank is one fully mixed node, <code class="docutils literal notranslate"><span class="pre">C·dT/dt</span> <span class="pre">=</span> <span class="pre">s(t)·Q_on</span> <span class="pre">+</span> <span class="pre">P(T)</span></code>, where
+<code class="docutils literal notranslate"><span class="pre">s</span></code> is the compressor state and <code class="docutils literal notranslate"><span class="pre">P</span></code> the heat rate from everything else
+(draw-off, envelope loss, subsystems), taken as the straight line through
+the two <code class="docutils literal notranslate"><span class="pre">(T</span> <span class="pre">[°C],</span> <span class="pre">P</span> <span class="pre">[W])</span></code> points in <code class="docutils literal notranslate"><span class="pre">free_heat</span></code>. Between events the
+temperature follows the exact solution of that linear equation; events
+are the tank reaching the lower bound (call on), the upper bound or
+<code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code> (call off), and a minimum on/off time running out. The
+compressor delivers the constant condenser heat <code class="docutils literal notranslate"><span class="pre">Q_on</span></code> [W] while it
+runs; <code class="docutils literal notranslate"><span class="pre">Q_on</span> <span class="pre">&lt;=</span> <span class="pre">0</span></code> means no cycle exists, and a compressor asked to run
+then stays off (<code class="docutils literal notranslate"><span class="pre">heat_unavailable</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_start_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank temperature at the start of the step [°C].</p></li>
+<li><p><strong>call_start</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Thermostat call at the start of the step (hysteresis and schedule
+applied, as <code class="xref py py-func docutils literal notranslate"><span class="pre">determine_heat_source_on_off()</span></code> gives it).</p></li>
+<li><p><strong>running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Compressor state at the end of the previous step and how long it had
+been in it [s].</p></li>
+<li><p><strong>phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Compressor state at the end of the previous step and how long it had
+been in it [s].</p></li>
+<li><p><strong>scheduled</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether the operating schedule allows the heat pump in this step.</p></li>
+<li><p><strong>T_lower</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hysteresis bounds [°C].</p></li>
+<li><p><strong>T_upper</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Hysteresis bounds [°C].</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Step length [s].</p></li>
+<li><p><strong>C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Tank heat capacity [J/K].</p></li>
+<li><p><strong>min_on_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Minimum compressor run and rest times [s]. A minimum run holds the
+compressor past the upper bound (up to <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>); a minimum rest
+delays a start the call asks for.</p></li>
+<li><p><strong>min_off_time_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Minimum compressor run and rest times [s]. A minimum run holds the
+compressor past the upper bound (up to <code class="docutils literal notranslate"><span class="pre">T_limit_C</span></code>); a minimum rest
+delays a start the call asks for.</p></li>
+<li><p><strong>T_limit_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Absolute cut-out [°C]; the effective upper bound is
+<code class="docutils literal notranslate"><span class="pre">min(T_upper,</span> <span class="pre">T_limit_C)</span></code>. The constructors refuse bounds above
+100 °C, so the cut-out acts when a minimum run time holds the
+compressor past the upper bound.</p></li>
+<li><p><strong>the</strong> (<em>More than 1000 switching events in one step</em><em> (</em><em>a band too narrow for</em>)</p></li>
+<li><p><strong>limit</strong> (<em>step</em><em>) </em><em>are closed by the fast-cycling</em>)</p></li>
+<li><p><strong>rest</strong> (<em>temperature it reached and the compressor runs the fraction</em><em> of </em><em>the</em>)</p></li>
+<li><p><strong>there.</strong> (<em>of the step that balances the tank</em>)</p></li>
+<li><p><strong>free_heat</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span>)</p></li>
+<li><p><strong>Q_on</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">step_hp_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycle_result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#step_hp_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>The heat-pump part of a step’s result row.</p>
+<p>A compressor that ran reports its cycle with the rates in <code class="docutils literal notranslate"><span class="pre">keys</span></code>
+averaged over the step (<code class="xref py py-func docutils literal notranslate"><span class="pre">scale_running_rates()</span></code>); one that was to run
+but had no cycle reports the cycle’s off-mode failure row; otherwise
+<code class="docutils literal notranslate"><span class="pre">off_row()</span></code> gives the off-mode row. Every row carries
+<code class="docutils literal notranslate"><span class="pre">runtime_fraction</span> <span class="pre">[-]</span></code> and <code class="docutils literal notranslate"><span class="pre">hp_starts</span> <span class="pre">[-]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">InStepRun</span></code></span>)</p></li>
+<li><p><strong>cycle_result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">T_WATER_BOIL_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100.0</span></span></dt>
+<dd><p>Boiling point of the stored water at atmospheric pressure [°C].</p>
+<p>The heat pump never drives a tank past it: the in-step thermostat treats it as
+an absolute cut-out on top of the upper set point. Constructors already refuse
+set points above 100 °C (<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._validation</span></code>); the cut-out matters when a
+minimum on-time holds the compressor past the set point.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_free_heat_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">residual</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_K</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_start_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_curr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_heat_source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_free_heat_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Tank heat rate at <code class="docutils literal notranslate"><span class="pre">T_K</span></code> from everything but the heat source [W].</p>
+<p>Inverts the implicit energy residual every boiler uses,
+<code class="docutils literal notranslate"><span class="pre">r(T)</span> <span class="pre">=</span> <span class="pre">[C_next·T</span> <span class="pre">-</span> <span class="pre">C_curr·T_start</span> <span class="pre">-</span> <span class="pre">dt·(Q_heat_source</span> <span class="pre">+</span> <span class="pre">P(T))]</span> <span class="pre">/</span> <span class="pre">C_tank</span></code>,
+for <code class="docutils literal notranslate"><span class="pre">P(T)</span></code>: draw-off enthalpy, envelope loss and subsystem heat (a
+subsystem residual that re-evaluates its physics at <code class="docutils literal notranslate"><span class="pre">T</span></code> is included).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>T_start_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_curr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_next</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>C_tank</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>Q_heat_source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">tank_mass_energy_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">C_tank</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank_wall</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_tank_full</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystems</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur_K</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#tank_mass_energy_residual"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Energy and mass balance residuals at T^{n+1}.</p>
 <p>The 3-way mixing valve ratio α(T) makes the outflow a
@@ -1147,6 +1616,20 @@ beyond floating-point noise.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">warn_if_tank_boiling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#warn_if_tank_boiling"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Emit <code class="xref py py-data docutils literal notranslate"><span class="pre">TANK_BOILING_WARNING</span></code> when the solved tank is above 100 °C.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>T_tank_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

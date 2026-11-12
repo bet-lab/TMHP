@@ -26,6 +26,7 @@ __all__ = [
     "Subsystem",
     "SubsystemExergy",
     "check_hp_schedule_active",
+    "delivered_tank_heat",
     "determine_heat_source_on_off",
     "determine_tank_refill_flow",
     "tank_mass_energy_residual",
@@ -422,6 +423,19 @@ def unphysical_cycle_detail(result: Mapping[str, Any], hp_capacity: float) -> st
     if result.get("capacity_clamped") == "min" and float(q) > hp_capacity * (1.0 + 1e-9):  # type: ignore[arg-type]
         return "min_speed_duty_above_capacity"
     return None
+
+
+def delivered_tank_heat(result: Mapping[str, Any]) -> float:
+    """Condenser heat a step puts into the tank [W].
+
+    The heat the solved cycle rejects (``Q_ref_tank [W]``), and zero unless
+    the compressor actually ran. Never the requested capacity: a request the
+    cycle could not meet delivers nothing.
+    """
+    if not result.get("hp_is_on", False):
+        return 0.0
+    q = result.get("Q_ref_tank [W]", 0.0)
+    return float(q) if _finite_number(q) else 0.0  # type: ignore[arg-type]
 
 
 def determine_tank_refill_flow(

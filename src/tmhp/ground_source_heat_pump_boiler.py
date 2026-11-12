@@ -56,6 +56,7 @@ from .dynamic_context import (
     ControlState,
     CycleSolveOutcome,
     StepContext,
+    delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     tank_mass_energy_residual,
@@ -989,6 +990,15 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         return result
 
     def _determine_hp_state(self, ctx: StepContext, is_on_prev: bool) -> tuple[bool, dict, float]:
+        """Thermostat decision and cycle solve for one step.
+
+        Returns ``(call_for_heat, hp_result, Q_ref_tank)``. ``call_for_heat``
+        is the hysteresis state carried to the next step. ``hp_result``
+        reports whether the compressor actually ran (``hp_is_on``) and, if it
+        was called but could not run, why (``failure_reason``).
+        ``Q_ref_tank`` is the condenser heat the solved cycle delivers to the
+        tank -- zero when it did not run, never the requested capacity.
+        """
         T_tank_w = cu.K2C(ctx.T_tank_w_K)
 
         hp_is_on = determine_heat_source_on_off(
@@ -1024,47 +1034,28 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 flow_state=flow_state,
                 wall_response=wall_response,
             )
-            active = bool(perf.get("hp_is_on", False))
-            return active, perf, float(perf.get("Q_ref_tank [W]", 0.0))
+            return hp_is_on, perf, delivered_tank_heat(perf)
 
-        if Q_tank_load <= self.Q_tank_LOAD_OFF_TOL:
-            # OFF
-            perf = self._calc_state(5.0, T_tank_w, 0.0, cu.K2C(ctx.T0_K), flow_state=flow_state)
-        else:
-            # ON
-            opt_res = self._optimize_operation(T_tank_w, Q_tank_load, cu.K2C(ctx.T0_K), flow_state=flow_state)
-            if opt_res.success:
-                opt_x = float(getattr(opt_res, "x", 0.0))
-                perf_opt = self._calc_state(
-                    opt_x,
-                    T_tank_w,
-                    Q_tank_load,
-                    cu.K2C(ctx.T0_K),
-                    flow_state=flow_state,
-                )
-                perf = (
-                    perf_opt
-                    if perf_opt is not None
-                    else self._calc_state(5.0, T_tank_w, 0.0, cu.K2C(ctx.T0_K), flow_state=flow_state)
-                )
-            else:
-                perf = self._calc_state(5.0, T_tank_w, 0.0, cu.K2C(ctx.T0_K), flow_state=flow_state)
+        T0_C = cu.K2C(ctx.T0_K)
+        call_for_heat = Q_tank_load > self.Q_tank_LOAD_OFF_TOL
+        if not call_for_heat:
+            perf = self._calc_state(5.0, T_tank_w, 0.0, T0_C, flow_state=flow_state) or {}
+            perf.update({"converged": True, "failure_reason": "none"})
+            return False, perf, 0.0
 
-        if perf is None:
-            perf = {}
-
-        perf["hp_is_on"] = Q_tank_load > self.Q_tank_LOAD_OFF_TOL
-
-        # Determine convergence specifically when ON
-        if Q_tank_load > self.Q_tank_LOAD_OFF_TOL:
-            perf["converged"] = opt_res.success if "opt_res" in locals() else False
-            perf["Q_tank_load [W]"] = Q_tank_load
-
-        return (
-            Q_tank_load > self.Q_tank_LOAD_OFF_TOL,
-            perf,
-            float(perf.get("Q_tank_load [W]", 0.0)),
+        opt_res = self._optimize_operation(T_tank_w, Q_tank_load, T0_C, flow_state=flow_state)
+        solved = (
+            self._calc_state(opt_res.x, T_tank_w, Q_tank_load, T0_C, flow_state=flow_state) if opt_res.success else None
         )
+        if solved is None:
+            # The compressor did not run: no condenser heat to the tank, no
+            # heat drawn from the ground, no power.
+            reason = opt_res.failure_reason if not opt_res.success else "cycle_invalid"
+            perf = self._failed_cycle_result(T_tank_w, T0_C, flow_state, reason, opt_res.detail)
+        else:
+            perf = solved
+            perf.update({"converged": True, "failure_reason": "none"})
+        return True, perf, delivered_tank_heat(perf)
 
     # =============================================================
     # Hooks
@@ -1171,10 +1162,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
 
-        # Diagnostic of the steady solve, not a time-series quantity: keep it on
-        # the analyze_steady dict and out of the dynamic frame (an object column
-        # of None/str breaks numeric frame comparisons downstream).
+        # Diagnostics of the steady solve, not time-series quantities: keep them
+        # on the analyze_steady dict and out of the dynamic frame (an object
+        # column of None/str breaks numeric frame comparisons downstream).
+        # `failure_reason` stays: it is always a string, one per step.
         r.pop("capacity_clamped", None)
+        r.pop("failure_detail", None)
 
         return r
 
@@ -1439,8 +1432,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             )
 
             # --- Phase A: Control Decisions ---
-            hp_is_on, hp_result, Q_ref_tank = self._determine_hp_state(ctx, is_on_prev)
-            is_on_prev = hp_is_on
+            # The thermostat call carries the hysteresis; the compressor runs
+            # only when the cycle was solved, and only then heats the tank and
+            # loads the ground.
+            call_for_heat, hp_result, Q_ref_tank = self._determine_hp_state(ctx, is_on_prev)
+            is_on_prev = call_for_heat
+            hp_is_on = bool(hp_result.get("hp_is_on", False))
 
             # Refill logic
             flow_state_guess = self._calc_tank_flow_context(

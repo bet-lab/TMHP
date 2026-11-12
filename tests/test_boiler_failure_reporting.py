@@ -7,6 +7,8 @@ used to hand back a state they had not solved:
 * a compressor clamped onto its speed floor with a collapsed isentropic
   efficiency (discharge state NaN, duty many times the nameplate) reported
   as ``failure_reason="none"``;
+* GSHPB putting the requested capacity into the tank on steps whose cycle
+  failed (``E_cmp == 0``), which broke the tank energy balance;
 """
 
 from __future__ import annotations
@@ -14,9 +16,11 @@ from __future__ import annotations
 import math
 import warnings
 
+import numpy as np
 import pytest
 
 from tmhp import GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+from tmhp.constants import c_w, rho_w
 from tmhp.dynamic_context import unphysical_cycle_detail
 
 
@@ -96,6 +100,64 @@ def test_wshpb_collapsed_speed_floor_is_reported_as_failure(ref: str, point: dic
     result = _steady(WaterSourceHeatPumpBoiler(ref=ref), **point)
     _assert_off_mode_failure(result, "cycle_invalid")
     assert result["failure_detail"] in {"discharge_state_undefined", "min_speed_duty_above_capacity"}
+
+
+def _tank_balance_residual(model, df, T_init: float, dt: float, T_sup: float) -> tuple[float, float]:
+    """Independent lumped-tank energy balance over a run [J].
+
+    heat in - wall loss - hot water drawn - change in stored energy, with the
+    draw and loss at the end-of-step temperature (the implicit scheme).
+    Returns ``(residual, heat_in)``.
+    """
+    T = np.r_[T_init, df["T_tank_w [°C]"].to_numpy(dtype=float)]
+    heat_in = float(df["Q_ref_tank [W]"].to_numpy(dtype=float).sum() * dt)
+    loss = float(df["Q_tank_loss [W]"].to_numpy(dtype=float).sum() * dt)
+    drawn_flow = np.nan_to_num(df["dV_tank_w_out [m3/s]"].to_numpy(dtype=float))
+    drawn = float((c_w * rho_w * drawn_flow * (T[1:] - T_sup)).sum() * dt)
+    stored = float(model.C_tank * (T[-1] - T[0]))
+    return heat_in - loss - drawn - stored, heat_in
+
+
+@pytest.fixture(scope="module")
+def gshpb_failing_run():
+    """Default GSHPB from just below its hysteresis floor, four 300 s steps.
+
+    The default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
+    above the tank, so above ~55.4 °C it would condense beyond the R410A
+    critical point (71.3 °C): the first step heats the 100 L tank to ~60 °C
+    and every later step is called but has no cycle. Before #96 each of those
+    steps still put the requested 8 kW into the tank.
+    """
+    dt, n = 300.0, 4
+    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400)
+    df = model.analyze_dynamic(
+        n * dt,
+        dt,
+        54.9,
+        np.zeros(n),
+        np.full(n, 5.0),
+        T_sup_w_schedule=np.full(n, 15.0),
+        T_sur_schedule=np.full(n, 20.0),
+    )
+    return model, df, dt
+
+
+@pytest.mark.xdist_group("gshpb-failing-run")
+def test_gshpb_failed_steps_put_no_heat_into_tank_or_ground(gshpb_failing_run) -> None:
+    model, df, dt = gshpb_failing_run
+    failed = df["E_cmp [W]"].to_numpy(dtype=float) == 0.0
+    assert failed.sum() >= 2, "scenario must contain called-but-unsolved steps"
+    assert (df.loc[failed, "Q_ref_tank [W]"] == 0.0).all()
+    assert (df.loc[failed, "Q_bhe [W]"] == 0.0).all()
+    assert not df.loc[failed, "hp_is_on"].any()
+    # The borehole load history the ground response integrates is the
+    # reported extraction, step for step (zero on the failed steps).
+    history = np.cumsum(model._ground_coupler._pulses) * model.total_borehole_length
+    np.testing.assert_allclose(history, df["Q_bhe [W]"].to_numpy(dtype=float), atol=1e-6)
+
+    residual, heat_in = _tank_balance_residual(model, df, 54.9, dt, 15.0)
+    assert heat_in > 0.0
+    assert abs(residual) < 0.01 * heat_in
 
 
 def test_gshpb_collapsed_speed_floor_is_reported_as_failure() -> None:

@@ -577,7 +577,6 @@ def test_g6_reference_uniform_temperature_matches_pygfunction(lpm):
     assert ours == pytest.approx(pipe.effective_borehole_thermal_resistance(m_flow, cp), rel=0.02)
 
 
-@defect("G8", "empirical GSHP extrapolates the curve fit to negative COP and compressor power")
 def test_g8_empirical_gshp_never_reports_negative_power_or_cop():
     from tmhp.gshp_empirical import GroundSourceHeatPumpEmpirical
 

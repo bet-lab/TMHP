@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-13T00:31:02+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T03:30:04+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -145,6 +145,7 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#invalid-input-versus-an-unsolvable-point">Invalid input versus an unsolvable point</a></li>
 <li><a class="reference internal" href="#the-values">The values</a><ul>
 <li><a class="reference internal" href="#common-to-all-families">Common to all families</a></li>
 <li><a class="reference internal" href="#ashpb-only">ASHPB only</a></li>
@@ -198,6 +199,19 @@ contains usable cycle numbers — that lets callers branch on <em>why</em> a
 step looks the way it does without having to inspect the cycle
 internals. This page is the reference for what each value means and
 when to branch on it.</p>
+<section id="invalid-input-versus-an-unsolvable-point">
+<h2>Invalid input versus an unsolvable point<a class="headerlink" href="#invalid-input-versus-an-unsolvable-point" title="Link to this heading">¶</a></h2>
+<p>The two are kept apart. An input outside its physical range — NaN or infinity,
+a negative capacity, UA, flow or load, an efficiency outside (0, 1], a
+temperature that cannot be °C (a kelvin value such as <code class="docutils literal notranslate"><span class="pre">Ts=300</span></code>), a lower tank
+set point above the upper one, a schedule whose length is not the step count, or
+a <code class="docutils literal notranslate"><span class="pre">simulation_period_sec</span></code> that <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> does not divide — raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> before anything is computed, with the message
+<code class="docutils literal notranslate"><span class="pre">&quot;&lt;name&gt;</span> <span class="pre">must</span> <span class="pre">be</span> <span class="pre">…,</span> <span class="pre">got</span> <span class="pre">&lt;value&gt;&quot;</span></code>. Valid inputs for which no cycle closes are
+not errors: they return a result whose <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> says why. A zero boiler
+load (<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>) is valid and returns the off result with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>; a negative or NaN one is invalid.</p>
+</section>
 <section id="the-values">
 <h2>The values<a class="headerlink" href="#the-values" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> can return the values in the tables below. The first five

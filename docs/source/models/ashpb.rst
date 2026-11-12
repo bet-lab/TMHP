@@ -87,8 +87,10 @@ and in the tuple constants of the module. The design notes are in
    high speed) or continues the boundary slope downward (low PR, low speed),
    and steady results report ``efficiency_extrapolated``. At PR above 7 the
    fitted isentropic efficiency is 0.37–0.45, which drives the computed
-   discharge temperature of R32 to 200–290 °C; such points are refused by the
-   discharge-temperature limit ``T_dis_max`` (see
+   discharge temperature of R32 to 200–290 °C. The discharge-temperature
+   control holds ``T_dis_max`` by lowering the suction superheat and then
+   letting the suction go wet down to ``x_suction_min`` (0.9); points it
+   cannot hold -- R32 above roughly 220 °C dry -- are refused (see
    :doc:`/developer/reference-operating-limits`).
 
 An explicitly supplied float or callable for the corresponding constructor

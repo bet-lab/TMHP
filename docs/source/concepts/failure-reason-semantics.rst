@@ -26,7 +26,7 @@ load (``Q_ref_tank = 0``) is valid and returns the off result with
 The values
 ==========
 
-``analyze_steady`` can return the values in the tables below. The first six
+``analyze_steady`` can return the values in the tables below. The first seven
 are common to every released family (ASHPB, GSHPB, WSHPB, ASHP, GSHP); the
 remaining ones are specific to one family or to the ground-coupled solve path.
 
@@ -77,15 +77,25 @@ Common to all families
     * - ``discharge_temp_above_max``
       - The compressor discharge temperature exceeds ``T_dis_max``
         (default 150 °C for R32, 135 °C for every other refrigerant;
-        ``T_dis_max=None`` switches the check off) at every duty the model
-        tried: the request and, when it is above the limit, smaller duties
-        down to the speed floor. A request that a *smaller* duty meets is
+        ``T_dis_max=None`` switches the check off) even under the
+        discharge-temperature control (suction superheat down to 0 K, then
+        wet suction down to ``x_suction_min``, default 0.9), at every duty the
+        model tried: the request and, when it is above the limit, smaller
+        duties down to the speed floor. A request that a *smaller* duty meets is
         not a failure: it returns that duty with ``capacity_clamped ==
         "max"`` and ``capacity_binding == "discharge_temperature"``. A
         dynamic boiler step whose cycle exceeds the limit is an off step
         with this reason (the step does not reduce its duty).
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
+
+    * - ``eta_isen_below_min``
+      - The shipped isentropic-efficiency fit, read outside its data (the
+        low-speed continuation), is below ``ETA_ISEN_MIN`` = 0.30 at the
+        solved point (ASHP, GSHP: at every candidate). The fit never goes
+        below 0.336 inside its data. Not checked for scalar or user
+        efficiencies.
+      - No — only off-mode placeholders.
 
 ASHPB only
 ----------
@@ -307,8 +317,11 @@ the recommended lever to pull when you hit each one.
     :color: danger
 
     The solved operating point (boilers) or every candidate the search
-    tried (ASHP, GSHP) discharges above ``T_dis_max``, and no smaller duty
-    brings it inside. The defaults are compressor protection settings
+    tried (ASHP, GSHP) discharges above ``T_dis_max`` even with the suction
+    superheat at 0 K and the suction quality at ``x_suction_min``, and no
+    smaller duty brings it inside. A point the control *does* hold runs with
+    ``discharge_control == True``; its ``dT_ref_superheat [K]`` and
+    ``x_ref_cmp_in [-]`` say how. The defaults are compressor protection settings
     (:mod:`tmhp.compressor_envelope`). With the default efficiency map this
     is chiefly high-pressure-ratio operation of R32: at ``PR > 7`` the
     fitted isentropic efficiency is 0.37--0.45 and the cycle model puts all
@@ -318,8 +331,9 @@ the recommended lever to pull when you hit each one.
     describe.
 
     **What to do.** Treat the point as outside the single-stage envelope.
-    For a sensitivity study, ``T_dis_max=None`` restores the unbounded
-    answer; a different protection setting is ``T_dis_max=<°C>``.
+    For a sensitivity study, ``T_dis_max=None`` removes the discharge limit
+    (the efficiency floor stays); a different protection setting is ``T_dis_max=<°C>``, a wetter
+    allowed suction ``x_suction_min=<x>`` (``None`` switches the control off).
 
 .. dropdown:: ``t_cond_below_t_in`` — condensing below the water inlet (ASHPB)
     :icon: x-circle
@@ -354,7 +368,8 @@ Off-mode fallback
 =================
 
 When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"``,
-``"discharge_temp_above_max"`` or ``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
+``"discharge_temp_above_max"``, ``"eta_isen_below_min"`` or
+``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than ``"none"`` — the
 steady-state path
 emits a ``RuntimeWarning`` and substitutes an off-mode result:

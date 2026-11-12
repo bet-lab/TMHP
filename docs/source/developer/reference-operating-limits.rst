@@ -249,14 +249,47 @@ of it.
       - 15 rev/s
       - Unchanged.
 
-How each family answers a point above ``T_dis_max``:
+Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
+it off, ``1`` keeps the superheat stage only) comes first. A running unit whose
+discharge runs hot opens its expansion valve and, if that is not enough, lets
+the suction go wet or injects liquid; it does not stop. So when the cycle at a
+candidate operating point discharges above ``T_dis_max``, the same candidate is
+solved again, compressor speed included:
+
+1. with the suction superheat reduced from its solved value -- the set
+   ``dT_superheat`` capped by the evaporator approach minus ``dT_hx_min``
+   (ASHP, ASHPB, GSHP; GSHPB and WSHPB use the set value) -- towards 0 K, to
+   the superheat at which the discharge temperature equals ``T_dis_max``;
+2. if 0 K is not enough, with a two-phase suction of quality ``x`` lowered
+   towards ``x_suction_min``, to the quality at which it equals the limit;
+3. if ``x_suction_min`` is not enough either, as below.
+
+Wet suction is a homogeneous two-phase state at the evaporating pressure
+(:func:`tmhp.refrigerant.calc_ref_state`, ``x_suction``): the evaporator outlet
+is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
+``h_1``; the swept mass flow uses the homogeneous density
+``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
+state. The cycle balance (condenser = evaporator + refrigerant work) closes
+exactly. The efficiency maps were fitted to dry suction; using them for wet
+suction is an approximation. The quality floor 0.9 is conservative: two-phase
+suction is an experimentally used way to hold R32 scroll discharge temperature
+(Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
+published lower bound was found, and 10 % liquid by mass is of the order of the
+liquid-injection ratios used for this purpose. Running results report
+``dT_ref_superheat [K]``, ``x_ref_cmp_in [-]`` and ``discharge_control``
+(bool), the same names in all five families; the invariant suite allows a wet
+suction only on a controlled row and only down to ``x_suction_min``. Every
+discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K (the
+control's root residual).
+
+How each family answers a point the control cannot hold:
 
 * **ASHP, GSHP** — the candidate is rejected inside the operating-point
   search, like a pressure-ratio ceiling. The search moves to a smaller lift
   if one carries the duty (ASHP adds a 16 × 16 approach lattice when its 8 × 8
   one finds nothing: the band between the coil's airflow limit and the
-  discharge limit can be a few kelvin wide); otherwise the capacity search returns the largest
-  deliverable duty with ``capacity_clamped == "max"`` and
+  discharge limit can be a few kelvin wide); otherwise the capacity search
+  returns the largest deliverable duty with ``capacity_clamped == "max"`` and
   ``capacity_binding == "discharge_temperature"`` (the next larger duty is
   deliverable once the limit is lifted). With no deliverable duty the result
   is the off state with ``failure_reason == "discharge_temp_above_max"``.
@@ -269,20 +302,35 @@ How each family answers a point above ``T_dis_max``:
   the off state carries ``discharge_temp_above_max``. The discharge
   temperature is not monotone in the duty (at low speed the efficiency
   falls), so this is the boundary nearest the request.
-* **Boiler dynamic steps** are off steps with ``discharge_temp_above_max``;
-  the step does not reduce its duty.
+* **Boiler dynamic steps** are off steps with ``discharge_temp_above_max``
+  when the control cannot hold the limit; the step does not reduce its duty.
 
 Steady results of every family carry ``efficiency_extrapolated`` (bool):
 the point lies outside the (PR, N) box of a default efficiency fit. Scalar
 and user efficiencies give ``False``.
 
-The low-speed, high-pressure-ratio corner (PR > 7.15 below 33.8 rev/s, where
-the guarded fit continues down to eta_is 0.14) gets no separate speed floor:
-all 85 running points of the 2026-11-13 sweep in that corner discharge at
-191–348 °C and are refused by the discharge limit.
+Isentropic-efficiency floor (``ETA_ISEN_MIN`` = 0.30). With the discharge
+control a point can hold ``T_dis_max`` while the shipped isentropic fit, read
+outside its data, is far below anything measured: the guard's first-order
+continuation towards 15 rev/s reaches 0.14. Inside the convex hull of its
+3899 data points the fit never goes below 0.336, and its lowest value over the
+whole fitted box is 0.297 (corner PR 7.15, 33.8 rev/s). A running point at
+which the shipped fit is extrapolated *and* below 0.30 is therefore outside the
+envelope (``failure_reason == "eta_isen_below_min"``; ASHP and GSHP reject
+the candidate). The values held at the high-PR and high-speed boundaries are
+0.306 or more, so the rule bites only in the low-speed continuation. Scalar
+and user efficiencies are the caller's statement and are not checked. Of
+the 2026-11-13 sweep, before this rule, 23 running rows (20 of them under
+discharge control) were at eta_is 0.25–0.30, all at PR 6.4–6.9 and
+15–21 rev/s; no adopted catalogue point is below 0.37. The rule is independent
+of ``T_dis_max``. A rising minimum speed with pressure ratio would refuse the
+same corner but needs envelope data the library does not have; the floor uses
+only the fit's own data range.
 
 Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; the
-committed ``validation/results`` are regenerated separately):
+committed ``validation/results`` are regenerated separately; a point that
+delivers more than 1 % less than the published duty is not scored,
+``capacity_short``):
 
 .. list-table::
     :header-rows: 1
@@ -290,35 +338,31 @@ committed ``validation/results`` are regenerated separately):
 
     * - Set
       - before (``a1b48df``)
-      - this envelope
-      - envelope, ``T_dis_max=None``
+      - limit, no control
+      - limit + control (default)
     * - all 15 units
       - 513/513, 11.6 %
-      - 475/513, 11.9 %
-      - 507/513, 11.6 %
+      - 473/513, 11.9 %
+      - 494/513, 11.7 %
     * - air-to-air (5)
       - 360/360, 12.1 %
       - 360/360, 12.1 %
       - 360/360, 12.1 %
     * - air-to-water (10)
       - 153/153, 10.3 %, bias +5.6 %
-      - 115/153, 11.3 %, bias +7.0 %
-      - 147/153, 10.3 %
-    * - air-to-water, outdoor ≤ −7 °C
-      - 57/57
-      - 23/57
-      - 51/57
+      - 113/153, 11.4 %, bias +7.0 %
+      - 134/153, 10.5 %, bias +6.1 %
+    * - air-to-water, outdoor ≤ −10 °C
+      - 30/30, 6.4 %
+      - 6/30, 7.3 %
+      - 17/30, 4.6 %
 
-The 38 air-to-water points refused discharge at 141–293 °C in the unbounded
-model (R32 21, R410A 11, R290 6); the six that ``T_dis_max=None`` still loses
-are refused by the pressure-ratio ceiling *during the outdoor-approach search*
-although their solved ratio is 10.0–10.5 -- the ASHPB search has no pre-scan
-(#96 C2) -- and all six exceed the discharge limit anyway.
-
-Not modelled: discharge-temperature *control* (lower superheat, wet suction,
-liquid or vapour injection). Evaluated on the solved states, it would
-recover 25 of the 40 adopted air-to-water catalogue points above the limit
-(capacity −4 %, COP −0.7 %) and none of the R32 points at 221–293 °C, whose
-discharge temperature comes from the fitted eta_is of 0.37–0.45 at
-PR > 7 (both the default and the ``v2026-09-24`` correlations fall there).
-
+The control holds 24 air-to-water points (2 by superheat alone, 22 with wet
+suction at x 0.90–0.998). The 21 of them that still meet the published duty
+change COP by −2.0 to +2.2 % (mean −0.2 %) against the unbounded model. The 16
+points still refused are 13 R32 points whose unbounded discharge is
+221–293 °C (they would need suction quality 0.79–0.90: the fitted eta_is is
+0.37–0.42 at PR 7.8–12.1, both in the default and the ``v2026-09-24``
+correlations) and 3 R290 points at −15/65 °C refused by the pressure-ratio
+ceiling *during the ASHPB outdoor-approach search* although their solved ratio
+is 10.0–10.5. Three more R32 points are ``capacity_short`` (61–99 % of the duty).

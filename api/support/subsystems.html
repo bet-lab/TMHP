@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Composable subsystems that the*_stc_* and*_pv_ess model variants plug onto the core cycle, tank backends, plus the UV-treatment subsystem. Solar thermal collector: Photovoltaic system: Energy stora..." />
 
-    <meta property="article:modified_time" content="2026-11-13T03:30:04+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -197,6 +197,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.eta_ess_dis"><code class="docutils literal notranslate">eta_ess_dis</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.T_ess_K"><code class="docutils literal notranslate">T_ess_K</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.SOC_ess"><code class="docutils literal notranslate">SOC_ess</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.charge"><code class="docutils literal notranslate">charge()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.discharge"><code class="docutils literal notranslate">discharge()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
@@ -630,6 +631,21 @@ destruction are computed from round-trip efficiencies.</p>
 <a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.charge" title="tmhp.subsystems.EnergyStorageSystem.charge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">charge()</span></code></a> or <a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.discharge" title="tmhp.subsystems.EnergyStorageSystem.discharge"><code class="xref py py-meth docutils literal notranslate"><span class="pre">discharge()</span></code></a>.  Routing decisions (which
 request to fulfil and in what order) are entirely the
 responsibility of the scenario class.</p>
+<p>The state is part of the <em>run</em>, not of the model: the scenario classes
+call <a class="reference internal" href="#tmhp.subsystems.EnergyStorageSystem.reset" title="tmhp.subsystems.EnergyStorageSystem.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> when a run starts, so a second <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> on
+the same model starts from <code class="docutils literal notranslate"><span class="pre">SOC_init</span></code> again.  Do not share one instance
+between models that are stepped at the same time.</p>
+<p>Energy bookkeeping per call (<code class="docutils literal notranslate"><span class="pre">E</span></code> are DC powers at the battery
+terminals, <code class="docutils literal notranslate"><span class="pre">C</span> <span class="pre">=</span> <span class="pre">C_ess_max</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1">charge:     C·ΔSOC/dt =  η_chg · E_ess_chg
+</span><span data-line="2">discharge:  C·ΔSOC/dt = -E_ess_dis / η_dis
+</span><span data-line="3">Q_l_ess     = (1 - η_chg)·E_ess_chg + (1/η_dis - 1)·E_ess_dis
+</span></pre></div>
+</div>
+<p>so <code class="docutils literal notranslate"><span class="pre">E_ess_chg</span> <span class="pre">-</span> <span class="pre">E_ess_dis</span> <span class="pre">=</span> <span class="pre">C·ΔSOC/dt</span> <span class="pre">+</span> <span class="pre">Q_l_ess</span></code>.  A state of charge
+outside <code class="docutils literal notranslate"><span class="pre">[SOC_min,</span> <span class="pre">SOC_max]</span></code> is never moved <em>toward</em> the band by a
+call (a battery that starts below <code class="docutils literal notranslate"><span class="pre">SOC_min</span></code> cannot discharge, but it is
+not topped up for free either).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -684,11 +700,22 @@ responsibility of the scenario class.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Restore the state of charge to <code class="docutils literal notranslate"><span class="pre">SOC_init</span></code> (start of a run).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="tmhp.subsystems.EnergyStorageSystem.charge">
 <span class="sig-name descname"><span class="pre">charge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_chg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem.charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.charge" title="Link to this definition">¶</a></dt>
 <dd><p>Request to charge the ESS with <em>E_req_chg</em> [W] for <em>dt</em> [s].</p>
 <p>Returns a dict with keys <code class="docutils literal notranslate"><span class="pre">E_ess_chg</span></code>, <code class="docutils literal notranslate"><span class="pre">E_ess_dis</span></code>, <code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code>
-plus exergy keys.</p>
+plus <code class="docutils literal notranslate"><span class="pre">Q_l_ess</span></code> (charging loss [W]) and exergy keys.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -708,7 +735,7 @@ plus exergy keys.</p>
 <span class="sig-name descname"><span class="pre">discharge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">E_req_dis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/subsystems.html#EnergyStorageSystem.discharge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.subsystems.EnergyStorageSystem.discharge" title="Link to this definition">¶</a></dt>
 <dd><p>Request to discharge <em>E_req_dis</em> [W] from the ESS for <em>dt</em> [s].</p>
 <p>Returns a dict with keys <code class="docutils literal notranslate"><span class="pre">E_ess_dis</span></code> (actual), <code class="docutils literal notranslate"><span class="pre">E_ess_chg</span></code>,
-<code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code> plus exergy keys.</p>
+<code class="docutils literal notranslate"><span class="pre">SOC_ess</span></code> plus <code class="docutils literal notranslate"><span class="pre">Q_l_ess</span></code> (discharging loss [W]) and exergy keys.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

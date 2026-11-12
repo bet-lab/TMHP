@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T03:30:04+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -225,6 +225,7 @@ data-aria-dark="Switch to auto color mode">
 </li>
 <li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS"><code class="docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS.make_initial_state"><code class="docutils literal notranslate">make_initial_state()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -612,6 +613,29 @@ associated phantom gain when the tank is near saturation.</p>
 compressor and auxiliaries; an <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem" title="tmhp.subsystems.EnergyStorageSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a>
 buffers midday surplus for evening load; grid import covers
 whatever the two cannot supply.</p>
+<p><strong>No grid export.</strong> DC power that neither the heat pump nor the battery can
+take is discarded and reported as <code class="docutils literal notranslate"><span class="pre">E_dump</span> <span class="pre">[W]</span></code>; nothing is sold to the grid
+(a large array on a small load dumps a large share of its output).</p>
+<p><strong>Where the efficiencies act.</strong> The charge controller (<code class="docutils literal notranslate"><span class="pre">eta_ctrl</span></code>) sits between
+the array output <code class="docutils literal notranslate"><span class="pre">E_pv_out</span></code> and <code class="docutils literal notranslate"><span class="pre">E_ctrl_out</span></code>; the battery efficiencies
+(<code class="docutils literal notranslate"><span class="pre">eta_ess_chg</span></code>, <code class="docutils literal notranslate"><span class="pre">eta_ess_dis</span></code>) act inside the battery; the inverter
+(<code class="docutils literal notranslate"><span class="pre">eta_inv</span></code>, <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;</span> <span class="pre">eta_inv</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>) acts on the DC power that reaches it, i.e.
+PV direct plus battery discharge. Every loss is a result column, so each step
+closes (all in W):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">E_pv_out</span>  <span class="o">=</span> <span class="n">Q_l_ctrl</span> <span class="o">+</span> <span class="n">E_pv_to_inv</span> <span class="o">+</span> <span class="n">E_ess_chg</span> <span class="o">+</span> <span class="n">E_dump</span>
+</span><span data-line="2"><span class="n">E_tot</span>     <span class="o">=</span> <span class="n">E_inv_out</span> <span class="o">+</span> <span class="n">E_grid_import</span>
+</span><span data-line="3"><span class="n">E_inv_out</span> <span class="o">=</span> <span class="n">eta_inv</span> <span class="o">*</span> <span class="p">(</span><span class="n">E_pv_to_inv</span> <span class="o">+</span> <span class="n">E_ess_dis</span><span class="p">),</span>   <span class="n">Q_l_inv</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">eta_inv</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">E_pv_to_inv</span> <span class="o">+</span> <span class="n">E_ess_dis</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">E_ess_chg</span> <span class="o">-</span> <span class="n">E_ess_dis</span> <span class="o">=</span> <span class="n">C_ess_max</span> <span class="o">*</span> <span class="n">dSOC_ess</span><span class="o">/</span><span class="n">dt</span> <span class="o">+</span> <span class="n">Q_l_ess</span>
+</span></pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">E_tot</span></code> is the whole electric draw of the system: compressor, <code class="docutils literal notranslate"><span class="pre">E_ou_fan</span></code>
+(outdoor fan) and the UV lamp <code class="docutils literal notranslate"><span class="pre">E_uv</span></code> when one is attached. <code class="docutils literal notranslate"><span class="pre">E_inv_out</span></code> is the
+AC power out of the inverter only (it excludes <code class="docutils literal notranslate"><span class="pre">E_grid_import</span></code>). <code class="docutils literal notranslate"><span class="pre">cop_grid</span></code> is
+<code class="docutils literal notranslate"><span class="pre">Q_tank_w_out</span> <span class="pre">/</span> <span class="pre">E_grid_import</span></code> and is NaN while the import is at most 1 mW
+(<code class="docutils literal notranslate"><span class="pre">tmhp.subsystems.GRID_IMPORT_FLOOR_W</span></code>): without a grid draw there is no
+meaningful ratio.</p>
+<p>The battery state of charge belongs to the run: every <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> starts
+from <code class="docutils literal notranslate"><span class="pre">ess.SOC_init</span></code> again, so the same model run twice gives the same result.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_PV_ESS</span>
 </span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnergyStorageSystem</span><span class="p">,</span> <span class="n">PhotovoltaicSystem</span>
 </span><span data-line="3">
@@ -646,12 +670,16 @@ column on the left would push more of the right-hand bar from
 <code class="docutils literal notranslate"><span class="pre">_augment_results</span></code> after the HP compressor load is known.
 No 1-step lag: the PV energy is allocated to the exact
 HP load produced in the same timestep.</p>
+<p>The battery state of charge belongs to a run: it is restored to
+<code class="docutils literal notranslate"><span class="pre">ess.SOC_init</span></code> when a run starts (<code class="docutils literal notranslate"><span class="pre">make_initial_state</span></code>, which both
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> and an external <code class="docutils literal notranslate"><span class="pre">step()</span></code> driver call), so repeating a
+run on the same model reproduces it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pv</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem" title="tmhp.subsystems.PhotovoltaicSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhotovoltaicSystem</span></code></a></span>) – Pure-physics PV + charge-controller model.</p></li>
 <li><p><strong>ess</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem" title="tmhp.subsystems.EnergyStorageSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Pure-physics battery model with <code class="docutils literal notranslate"><span class="pre">charge()</span></code> / <code class="docutils literal notranslate"><span class="pre">discharge()</span></code>.</p></li>
-<li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter DC→AC efficiency [–].</p></li>
+<li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter DC→AC efficiency [–], <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;</span> <span class="pre">eta_inv</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>.</p></li>
 <li><p><strong>T_inv_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter temperature for entropy calculation [K].</p></li>
 <li><p><strong>**kwargs</strong> – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
 </ul>
@@ -668,6 +696,23 @@ HP load produced in the same timestep.</p>
 <li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>T_inv_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_pv_ess.html#ASHPB_PV_ESS.make_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Start of a run: tank state as the base class, battery back at <code class="docutils literal notranslate"><span class="pre">SOC_init</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_tank_w_init_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_init</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DynamicState</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1426,15 +1471,27 @@ associated phantom gain when the tank is near saturation.</p>
 </dd></dl>
 
 <p id="module-tmhp.ashpb_pv_ess">ASHPB Scenario: Heat Pump driven by PV + ESS with Grid/Dump integration.</p>
-<p>Energy routing (all logic lives here, subsystems are pure physics):</p>
+<p>Energy routing (all logic lives in <code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.subsystems.route_pv_ess()</span></code>,
+the subsystems are pure physics):</p>
 <ol class="arabic simple">
-<li><p>PV generation  → <code class="docutils literal notranslate"><span class="pre">pv.calc_performance()</span></code></p></li>
-<li><p>DC routing:
+<li><p>PV generation  → <code class="docutils literal notranslate"><span class="pre">pv.calc_performance()</span></code> (array output <code class="docutils literal notranslate"><span class="pre">E_pv_out</span></code>, then the
+charge controller: <code class="docutils literal notranslate"><span class="pre">E_ctrl_out</span> <span class="pre">=</span> <span class="pre">eta_ctrl</span> <span class="pre">·</span> <span class="pre">E_pv_out</span></code>)</p></li>
+<li><p>DC routing of <code class="docutils literal notranslate"><span class="pre">E_ctrl_out</span></code>:
 - PV surplus   → <code class="docutils literal notranslate"><span class="pre">ess.charge()</span></code>; leftover → dump
 - PV deficit   → <code class="docutils literal notranslate"><span class="pre">ess.discharge()</span></code>; leftover →  grid import</p></li>
-<li><p>Inverter conversion loss applied to DC supply</p></li>
+<li><p>Inverter conversion loss applied to the DC supply (PV direct + battery discharge)</p></li>
 <li><p>Grid import covers any remaining AC shortfall</p></li>
 </ol>
+<p>There is <strong>no grid export</strong>: DC power that neither the load nor the battery can
+take is discarded and reported as <code class="docutils literal notranslate"><span class="pre">E_dump</span> <span class="pre">[W]</span></code>.</p>
+<p>Per-step balances (every term is a result column, [W]):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1">E_pv_out  = Q_l_ctrl + E_pv_to_inv + E_ess_chg + E_dump
+</span><span data-line="2">E_tot     = E_inv_out + E_grid_import            (AC load)
+</span><span data-line="3">E_inv_out = eta_inv · (E_pv_to_inv + E_ess_dis),  Q_l_inv = (1-eta_inv)·(...)
+</span><span data-line="4">E_ess_chg - E_ess_dis = C_ess_max·ΔSOC_ess/dt + Q_l_ess
+</span></pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">E_tot</span></code> is the whole electric draw: compressor + outdoor fan + UV lamp.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>See the project paper for the orchestration logic and energy/exergy
@@ -1449,12 +1506,16 @@ boundaries used by hybrid (PV + ESS + HP) systems.</p>
 <code class="docutils literal notranslate"><span class="pre">_augment_results</span></code> after the HP compressor load is known.
 No 1-step lag: the PV energy is allocated to the exact
 HP load produced in the same timestep.</p>
+<p>The battery state of charge belongs to a run: it is restored to
+<code class="docutils literal notranslate"><span class="pre">ess.SOC_init</span></code> when a run starts (<code class="docutils literal notranslate"><span class="pre">make_initial_state</span></code>, which both
+<code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> and an external <code class="docutils literal notranslate"><span class="pre">step()</span></code> driver call), so repeating a
+run on the same model reproduces it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pv</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem" title="tmhp.subsystems.PhotovoltaicSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhotovoltaicSystem</span></code></a></span>) – Pure-physics PV + charge-controller model.</p></li>
 <li><p><strong>ess</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem" title="tmhp.subsystems.EnergyStorageSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">EnergyStorageSystem</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Pure-physics battery model with <code class="docutils literal notranslate"><span class="pre">charge()</span></code> / <code class="docutils literal notranslate"><span class="pre">discharge()</span></code>.</p></li>
-<li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter DC→AC efficiency [–].</p></li>
+<li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter DC→AC efficiency [–], <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;</span> <span class="pre">eta_inv</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>.</p></li>
 <li><p><strong>T_inv_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Inverter temperature for entropy calculation [K].</p></li>
 <li><p><strong>**kwargs</strong> – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
 </ul>
@@ -1471,6 +1532,23 @@ HP load produced in the same timestep.</p>
 <li><p><strong>eta_inv</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>T_inv_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tmhp.ashpb_pv_ess.ASHPB_PV_ESS.make_initial_state">
+<span class="sig-name descname"><span class="pre">make_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_init_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_pv_ess.html#ASHPB_PV_ESS.make_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS.make_initial_state" title="Link to this definition">¶</a></dt>
+<dd><p>Start of a run: tank state as the base class, battery back at <code class="docutils literal notranslate"><span class="pre">SOC_init</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_tank_w_init_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tank_level_init</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DynamicState</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

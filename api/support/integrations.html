@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Optional adapters for coupling TMHP to building-energy simulators and co-simulation masters. These modules are intentionally kept out of the top-level package import path so the core package remain..." />
 
-    <meta property="article:modified_time" content="2026-11-13T03:30:04+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -202,6 +202,8 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.integrations.energyplus_plugin">EnergyPlus Python Plugin</a><ul>
+<li><a class="reference internal" href="#metered-electricity-and-delivered-heat-what-crosses-the-energyplus-boundary">Metered electricity and delivered heat (what crosses the EnergyPlus boundary)</a></li>
+<li><a class="reference internal" href="#tmhp.integrations.energyplus_plugin.delivered_heat_and_power"><code class="docutils literal notranslate"><span class="pre">delivered_heat_and_power()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit"><code class="docutils literal notranslate"><span class="pre">TmhpPlantInit</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit.on_user_defined_component_model"><code class="docutils literal notranslate">on_user_defined_component_model()</span></code></a></li>
@@ -714,7 +716,34 @@ multi-rate models; TMHP’s current ASHPB FMU boundary is scalar Co-Simulation.<
 the loop inlet temperature, mass flow, specific heat, and load request (plus the
 site outdoor drybulb); the plugin solves the refrigerant cycle with the public
 <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code> seam (#165 P0) and writes back the outlet-temperature and
-mass-flow actuators, routing compressor electricity to a metered output.</p>
+mass-flow actuators, routing the system’s electricity to a metered output.</p>
+<section id="metered-electricity-and-delivered-heat-what-crosses-the-energyplus-boundary">
+<h3>Metered electricity and delivered heat (what crosses the EnergyPlus boundary)<a class="headerlink" href="#metered-electricity-and-delivered-heat-what-crosses-the-energyplus-boundary" title="Link to this heading">¶</a></h3>
+<p>The metered power is the <strong>system total</strong> <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> of the solved cycle —
+compressor <strong>plus outdoor-fan</strong> power (the plugin globals keep their historical
+<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp*</span></code> names). The heat handed to the plant loop and the metered power
+always belong to the same operating state:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">q_loop</span></code></dt><dd><p>heat put into the loop, <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">cp</span> <span class="pre">*</span> <span class="pre">(T_out</span> <span class="pre">-</span> <span class="pre">T_in)</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">E_meter</span> <span class="pre">=</span> <span class="pre">E_tot</span> <span class="pre">*</span> <span class="pre">q_loop</span> <span class="pre">/</span> <span class="pre">Q_cycle</span></code></dt><dd><p>the solved cycle runs a fraction <code class="docutils literal notranslate"><span class="pre">q_loop</span> <span class="pre">/</span> <span class="pre">Q_cycle</span></code> of the timestep.</p>
+</dd>
+</dl>
+<p>Two situations make <code class="docutils literal notranslate"><span class="pre">q_loop</span></code> smaller than the heat <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> of the solved
+(continuously running) cycle:</p>
+<ul class="simple">
+<li><p><strong>Minimum-speed clamp.</strong> Below its minimum compressor speed the machine cannot
+deliver the requested part load; it would deliver <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> &gt; request. The
+plugin treats that as on/off cycling: the time-averaged heat equals the load
+request and the electricity is scaled by the same duty fraction (no
+cycling-degradation penalty). <code class="docutils literal notranslate"><span class="pre">PlantComponent:UserDefined</span></code> documents the
+<code class="docutils literal notranslate"><span class="pre">Load</span> <span class="pre">Request</span> <span class="pre">for</span> <span class="pre">Plant</span> <span class="pre">Connection</span> <span class="pre">N</span></code> as the <em>desired operating capacity</em> for
+a connection in a load-meeting mode, and the loop outlet temperature is
+<code class="docutils literal notranslate"><span class="pre">T_in</span> <span class="pre">+</span> <span class="pre">q</span> <span class="pre">/</span> <span class="pre">(m_dot</span> <span class="pre">cp)</span></code>: supplying the clamped <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> instead would
+overheat the loop and the storage tank relative to what EnergyPlus asked for.</p></li>
+<li><p><strong>Outlet limit</strong> <code class="docutils literal notranslate"><span class="pre">TOUT_MAX</span></code>. Heat that would push the outlet above the limit
+is not delivered, and the electricity that would have produced it is not metered.</p></li>
+</ul>
 <p>Why <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> (not <code class="docutils literal notranslate"><span class="pre">step()</span></code>): EnergyPlus owns the storage-tank state
 through <code class="docutils literal notranslate"><span class="pre">WaterHeater:Mixed</span></code> and asks the component for a <em>steady</em> answer each
 timestep (given the inlet/outdoor conditions and the loop load, what is the
@@ -777,6 +806,31 @@ an energy sink for older IDFs.</p>
 <p>API strings (actuator component type <code class="docutils literal notranslate"><span class="pre">&quot;Plant</span> <span class="pre">Connection</span> <span class="pre">1&quot;</span></code>; internal
 variables <code class="docutils literal notranslate"><span class="pre">&quot;...</span> <span class="pre">for</span> <span class="pre">Plant</span> <span class="pre">Connection</span> <span class="pre">1&quot;</span></code>) are verified against EnergyPlus
 24.2.0; reconfirm them for other releases.</p>
+</section>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.delivered_heat_and_power">
+<span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">delivered_heat_and_power</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">res</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#delivered_heat_and_power"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.delivered_heat_and_power" title="Link to this definition">¶</a></dt>
+<dd><p>Heat put into the loop [W] and the electricity metered for it [W].</p>
+<p><code class="docutils literal notranslate"><span class="pre">q_request</span></code> is the load EnergyPlus asked for (capped at the nominal capacity).
+The solved cycle delivers <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> at <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>; the loop receives
+<code class="docutils literal notranslate"><span class="pre">min(Q_cycle,</span> <span class="pre">q_request,</span> <span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">cp</span> <span class="pre">*</span> <span class="pre">(TOUT_MAX</span> <span class="pre">-</span> <span class="pre">t_in))</span></code> and the machine is
+metered for the matching share of the timestep (see the module docstring).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>res</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+<li><p><strong>q_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>t_in</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>m_dot</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>cp</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.energyplus_plugin.TmhpPlantInit">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.integrations.energyplus_plugin.</span></span><span class="sig-name descname"><span class="pre">TmhpPlantInit</span></span><a class="reference internal" href="../../_modules/tmhp/integrations/energyplus_plugin.html#TmhpPlantInit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.integrations.energyplus_plugin.TmhpPlantInit" title="Link to this definition">¶</a></dt>

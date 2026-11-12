@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP’s current EnergyPlus adapter exposes AirSourceHeatPumpBoiler as a PlantComponent:UserDefined surrogate. EnergyPlus still owns the plant loop, timestep, load dispatch, and storage-tank objects;..." />
 
-    <meta property="article:modified_time" content="2026-07-01T13:57:28+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -152,6 +152,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#idf-wiring">IDF wiring</a></li>
 <li><a class="reference internal" href="#input-output-boundary">Input / output boundary</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#metered-electricity-and-delivered-heat">Metered electricity and delivered heat</a></li>
 <li><a class="reference internal" href="#why-this-uses-analyze-steady">Why this uses <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#api-reference">API reference</a></li>
 </ul>
@@ -290,8 +291,10 @@ before the simulation to size the plant connection.) Walk through one call
 step by step:</p>
 <div class="tmhp-diagram" data-diagram="ep-seq"></div><p>The plugin memoizes the solve on rounded inputs, because the plant solver
 re-calls it with identical inputs many times per timestep, and it converts the
-delivered heat into the outlet-temperature actuator with
-<code class="docutils literal notranslate"><span class="pre">T_out</span> <span class="pre">=</span> <span class="pre">T_in</span> <span class="pre">+</span> <span class="pre">Q_ref_tank</span> <span class="pre">/</span> <span class="pre">(mdot</span> <span class="pre">*</span> <span class="pre">cp)</span></code>.</p>
+heat put into the loop into the outlet-temperature actuator with
+<code class="docutils literal notranslate"><span class="pre">T_out</span> <span class="pre">=</span> <span class="pre">T_in</span> <span class="pre">+</span> <span class="pre">q_loop</span> <span class="pre">/</span> <span class="pre">(mdot</span> <span class="pre">*</span> <span class="pre">cp)</span></code> (see
+<a class="reference internal" href="#ep-metered-power"><span class="std std-ref">Metered electricity and delivered heat</span></a> for how <code class="docutils literal notranslate"><span class="pre">q_loop</span></code> and the metered electricity follow
+from the solved cycle).</p>
 </section>
 <section id="idf-wiring">
 <h2>IDF wiring<a class="headerlink" href="#idf-wiring" title="Link to this heading">¶</a></h2>
@@ -371,8 +374,9 @@ temperature.</p></td>
 </tr>
 <tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p>Outlet temperature actuator</p></td>
-<td><p>Inlet temperature plus delivered heat divided by <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">cp</span></code>,
-clamped inside the liquid-water property range.</p></td>
+<td><p>Inlet temperature plus the heat put into the loop (<code class="docutils literal notranslate"><span class="pre">q_loop</span></code>, never
+more than the load request) divided by <code class="docutils literal notranslate"><span class="pre">m_dot</span> <span class="pre">*</span> <span class="pre">cp</span></code>, at most
+<code class="docutils literal notranslate"><span class="pre">TOUT_MAX</span></code> (95 °C).</p></td>
 </tr>
 <tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p>Mass-flow actuator</p></td>
@@ -381,11 +385,12 @@ yet provided loop flow.</p></td>
 </tr>
 <tr class="row-odd"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code></p></td>
-<td><p>Timestep compressor electricity in joules.</p></td>
+<td><p>Timestep electricity of the whole system (compressor <strong>and</strong> outdoor
+fan, <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>) in joules. The name is historical.</p></td>
 </tr>
 <tr class="row-even"><td><p>TMHP -&gt; EnergyPlus</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code></p></td>
-<td><p>Optional instantaneous compressor power in watts.</p></td>
+<td><p>Optional instantaneous system electricity (<code class="docutils literal notranslate"><span class="pre">E_tot</span></code>) in watts.</p></td>
 </tr>
 </tbody>
 </table>
@@ -421,12 +426,12 @@ variables:</p>
 <td><p>Design loop volume flow in <code class="docutils literal notranslate"><span class="pre">m3/s</span></code>. Default <code class="docutils literal notranslate"><span class="pre">0.003</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_ENERGY_GLOBAL</span></code></p></td>
-<td><p>Plugin global receiving timestep energy in joules. Default
-<code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code>.</p></td>
+<td><p>Plugin global receiving the timestep system electricity (<code class="docutils literal notranslate"><span class="pre">E_tot</span></code>) in
+joules. Default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_J</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_EPLUS_ECMP_POWER_GLOBAL</span></code></p></td>
-<td><p>Optional plugin global receiving instantaneous power in watts.
-Default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code>.</p></td>
+<td><p>Optional plugin global receiving the instantaneous system electricity
+in watts. Default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_W</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TMHP_PLUGIN_LOG</span></code></p></td>
 <td><p>Optional path for per-call and convergence-tally logging.</p></td>
@@ -434,6 +439,31 @@ Default <code class="docutils literal notranslate"><span class="pre">tmhp_E_cmp_
 </tbody>
 </table>
 </div>
+</section>
+<section id="metered-electricity-and-delivered-heat">
+<span id="ep-metered-power"></span><h2>Metered electricity and delivered heat<a class="headerlink" href="#metered-electricity-and-delivered-heat" title="Link to this heading">¶</a></h2>
+<p>The metered power is the <strong>system total</strong> <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> of the solved cycle,
+compressor plus outdoor fan. The heat handed to the plant loop and the metered
+power always belong to the same operating state:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">q_loop  = min(Q_cycle, load request, m_dot * cp * (TOUT_MAX - T_in))
+</span><span data-line="2">E_meter = E_tot * q_loop / Q_cycle
+</span></pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> and <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> are the heat and electricity of the solved, continuously
+running cycle; <code class="docutils literal notranslate"><span class="pre">q_loop</span> <span class="pre">/</span> <span class="pre">Q_cycle</span></code> is the share of the timestep it runs.</p>
+<ul class="simple">
+<li><p><strong>Minimum-speed clamp.</strong> A variable-speed machine cannot deliver less than its
+minimum-speed capacity. At a small part load the solved cycle can deliver several
+times the request (e.g. 6.8 kW for 1.5 kW). EnergyPlus documents
+<code class="docutils literal notranslate"><span class="pre">Load</span> <span class="pre">Request</span> <span class="pre">for</span> <span class="pre">Plant</span> <span class="pre">Connection</span> <span class="pre">N</span></code> as the desired operating capacity of a
+connection that meets the loop load, and the loop outlet temperature fixes the heat
+the loop receives, so delivering <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> would overheat the loop and its
+storage tank. The plugin therefore treats the clamp as on/off cycling: the
+time-averaged heat equals the request and the electricity is scaled by the same
+duty fraction. No cycling-degradation penalty is applied.</p></li>
+<li><p><strong>Outlet limit.</strong> Heat that would push the outlet above <code class="docutils literal notranslate"><span class="pre">TOUT_MAX</span></code> is not
+delivered, and the electricity that would have produced it is not metered.</p></li>
+</ul>
 </section>
 <section id="why-this-uses-analyze-steady">
 <h2>Why this uses <code class="docutils literal notranslate"><span class="pre">analyze_steady()</span></code><a class="headerlink" href="#why-this-uses-analyze-steady" title="Link to this heading">¶</a></h2>
@@ -459,7 +489,7 @@ prevents EnergyPlus tank state and FMU tank state from being mixed.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

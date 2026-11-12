@@ -30,8 +30,6 @@ import warnings
 
 import pytest
 
-from tmhp.reference_state import ReferenceStateError
-
 from ._checks import KnownDefectObserved, check_steady, expect
 from ._families import FAMILIES, SteadyCase
 
@@ -64,18 +62,14 @@ _EXPECTED_TAGS: dict[str, set[str]] = {
     "C11": {"suction_vs_source"},
 }
 # Defects that show up as a constructor failure: (exception type, text that identifies it).
-_EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {
-    "C1": (ReferenceStateError, "Compressor efficiencies must be finite and positive"),
-}
+_EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {}
 _WHY = {
-    "C1": "constructor cannot bracket the B0/W55 reference: raw efficiency fit <= 0 in the speed range",
     "C4": "GSHP returns heat and power with converged=False / failure_reason='hx_not_converged'",
     "C11": "no superheat cap in GSHPB/WSHPB: suction refrigerant hotter than the source water",
 }
 
 # (family, refrigerant) -> {defect ID: [(T_source, T_demand, part_load), ...]} failing on 7fbd20c.
 KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]]] = {
-    ("GSHPB", "R134a"): {"C1": [(s, d, p) for s in (5, 10, 20) for d in (40, 50) for p in PART_LOAD]},
     ("WSHPB", "R134a"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R32"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},

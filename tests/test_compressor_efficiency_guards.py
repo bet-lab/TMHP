@@ -226,17 +226,7 @@ def test_a_minus7_w55_half_load_has_a_valid_cycle_after_the_guard():
         assert 0.0 < row[key] <= 1.0
     pr, speed = _pr_and_speed(row)
     assert speed < RPS_FIT_MIN and efficiency_extrapolated(hp.eta_cmp_isen, pr, speed)
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="ASHPB bounded Brent over dT_ref_ou samples only the outdoor-coil-infeasible ends "
-    "(min fan flow over-delivers above ~7.5 K) and never finds the feasible 2.5-7.5 K window; "
-    "a grid pre-scan as in AirSourceHeatPump is needed (issue #96, step 2)",
-)
-def test_a_minus7_w55_half_load_is_returned_by_analyze_steady():
-    row = _ashpb().analyze_steady(T_tank_w=55, T0=-7, Q_ref_tank=7500)
-    assert row["failure_reason"] == "none"
+    # analyze_steady still returns hx_not_converged here: tests/invariants C2.
 
 
 def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
@@ -248,9 +238,4 @@ def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
     # Observed before and after the guard: PR 6.41, 35.4 rev/s, eta_is 0.449, discharge 201.6 C.
     assert row["eta_cmp_isen [-]"] == pytest.approx(0.449, abs=0.002)
     assert row["T_ref_cmp_out [°C]"] == pytest.approx(201.6, abs=1.0)
-
-
-@pytest.mark.xfail(strict=True, reason="no discharge-temperature limit yet (issue #96, step 3)")
-def test_a0_w60_discharge_above_150c_is_not_reported_as_normal():
-    row = _ashpb().analyze_steady(T_tank_w=60, T0=0, Q_ref_tank=15000)
-    assert row["failure_reason"] != "none" or row["T_ref_cmp_out [°C]"] <= 150.0
+    # Reported as success above 150 °C discharge: tests/invariants C6.

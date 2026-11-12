@@ -631,8 +631,10 @@ class ReferenceStateMixin:
     dT_subcool: float
     dT_hx_min: float
     rps_min: float
-    #: ``None`` until :meth:`_initialize_reference_state` derives it from the rated speed.
-    rps_max: float | None  # type: ignore[assignment]
+    #: The rated-speed search bound until :meth:`_initialize_reference_state`
+    #: replaces it with ``default_rps_max(rps_rated)`` (when ``_rps_max_derived``).
+    rps_max: float
+    _rps_max_derived: bool
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """The model's own heat exchanger on ``role`` at its rated UA and reference flow."""
@@ -661,10 +663,10 @@ class ReferenceStateMixin:
         """
         if rps_rated is not None and not (math.isfinite(rps_rated) and rps_rated > 0):
             raise ValueError("rps_rated must be positive and finite")
-        # ``rps_max=None`` (the default) is derived from the rated speed below,
-        # so the rated speed is solved over the wide search range first.
-        rps_max_given: float | None = self.rps_max
-        speed_search_max = RATED_SPEED_SEARCH_MAX if rps_max_given is None else rps_max_given
+        # An omitted rps_max (the default) is derived from the rated speed below;
+        # until then the model carries the wide rated-speed search bound.
+        derive_rps_max = bool(getattr(self, "_rps_max_derived", False))
+        speed_search_max = RATED_SPEED_SEARCH_MAX if derive_rps_max else self.rps_max
         if not 0 < self.rps_min < speed_search_max or not math.isfinite(speed_search_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
         condition = rating_condition(
@@ -720,7 +722,7 @@ class ReferenceStateMixin:
             assert state is not None
             rps_rated = state.rps_rated
         self.rps_rated: float = rps_rated
-        if rps_max_given is None:
+        if derive_rps_max:
             self.rps_max = default_rps_max(rps_rated)
         self.m_dot_ref_rated: float | None = (
             m_dot_ref_rated if m_dot_ref_rated is not None else (state.m_dot_ref_rated if state else None)

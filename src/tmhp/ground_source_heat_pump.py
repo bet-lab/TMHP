@@ -41,6 +41,7 @@ from .compressor_envelope import (
     BINDING_DISCHARGE,
     DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
     check_pr_envelope,
     discharge_temp_exceeded,
     resolve_discharge_temp_max,
@@ -368,8 +369,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self._last_pr_event: tuple[str, float, float] | None = None
         self.hp_capacity: float = hp_capacity
         self.rps_min: float = rps_min
-        # rps_max=None -> default_rps_max(rps_rated), set with the reference state
-        self.rps_max: float | None = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
 
@@ -496,7 +499,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         if not all(np.isfinite(v) and v > 0 for v in (self.UA_cond, self.UA_evap)):
             raise ValueError("Heat exchanger UA values must be positive and finite")
-        if self.rps_max is not None and (not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max)):
+        if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
         # Compressor reference state at rated (fixed) UA, before variable
         # ground-HX UA is configured with the m_dot_ref_rated it produces.
@@ -788,12 +791,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             return None
         # Discharge temperature above the compressor's limit: not an operating
         # point (handled like the pressure-ratio ceiling by the searches).
-        if is_active and discharge_temp_exceeded(cycle_states["T_ref_cmp_out [°C]"], self.T_dis_max):
-            self._last_pr_event = (
-                DISCHARGE_TEMP_ABOVE_MAX,
-                float(cycle_states["T_ref_cmp_out [°C]"]),
-                float(self.T_dis_max),  # type: ignore[arg-type]
-            )
+        T_dis_max = self.T_dis_max
+        if (
+            is_active
+            and T_dis_max is not None
+            and discharge_temp_exceeded(cycle_states["T_ref_cmp_out [°C]"], T_dis_max)
+        ):
+            self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, float(cycle_states["T_ref_cmp_out [°C]"]), T_dis_max)
             return None
 
         # ── BHE energy balance ──

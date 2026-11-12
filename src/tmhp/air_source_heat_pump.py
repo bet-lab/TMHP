@@ -33,6 +33,7 @@ from .compressor_envelope import (
     BINDING_DISCHARGE,
     DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
     check_pr_envelope,
     discharge_temp_exceeded,
     resolve_discharge_temp_max,
@@ -247,7 +248,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float | None = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
         self.dT_approach_bounds: tuple[float, float] = (
@@ -633,8 +637,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return None
         # Discharge temperature above the compressor's limit: not an operating
         # point; the search moves to a smaller lift or a smaller duty.
-        if discharge_temp_exceeded(cs["T_ref_cmp_out [°C]"], self.T_dis_max):
-            self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, float(cs["T_ref_cmp_out [°C]"]), float(self.T_dis_max))
+        T_dis_max = self.T_dis_max
+        if T_dis_max is not None and discharge_temp_exceeded(cs["T_ref_cmp_out [°C]"], T_dis_max):
+            self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, float(cs["T_ref_cmp_out [°C]"]), T_dis_max)
             return None
 
         # ── Outdoor unit HX ──

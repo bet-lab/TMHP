@@ -30,6 +30,7 @@ from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
     check_pr_envelope,
     discharge_violation,
     resolve_discharge_temp_max,
@@ -227,7 +228,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float | None = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
         # Records the PR-envelope event of the most recent _calc_state call

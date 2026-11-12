@@ -51,6 +51,7 @@ from ._opt_utils import ignore_minpack_progress_warning
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
+    RATED_SPEED_SEARCH_MAX,
     check_pr_envelope,
     discharge_violation,
     resolve_discharge_temp_max,
@@ -317,7 +318,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.PR_cycle_max: float = PR_cycle_max
         # Compressor speed search bounds [rev/s]
         self.rps_min: float = rps_min
-        self.rps_max: float | None = rps_max
+        # rps_max=None: searched up to RATED_SPEED_SEARCH_MAX for the rated
+        # speed, then replaced by default_rps_max(rps_rated) (reference_state).
+        self._rps_max_derived: bool = rps_max is None
+        self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
         # Records the PR-envelope event of the most recent _calc_state call
@@ -377,7 +381,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not all(np.isfinite(v) and v > 0 for v in (self.UA_tank_hx, self.UA_ground)):
             raise ValueError("Heat exchanger UA values must be positive and finite")
-        if self.rps_max is not None and (not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max)):
+        if not 0 < self.rps_min < self.rps_max or not np.isfinite(self.rps_max):
             raise ValueError("Require finite 0 < rps_min < rps_max")
         # Compressor reference state at rated (fixed) UA, before variable
         # ground-HX UA is configured with the m_dot_ref_rated it produces.

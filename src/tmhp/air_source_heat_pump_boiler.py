@@ -926,6 +926,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         dV_ou_a: float = HX_perf_ou["dV_fan"]
         v_ou_a: float = dV_ou_a / self.A_cross
+        # The flags say where the fan runs, not which branch the coil solve took.
+        # At an optimum on a fan limit the coil balance is a root at that limit,
+        # and the airflow lands a few 1e-9 either side of it depending on the
+        # platform; a relative 1e-6 band makes both report the limit.
+        at_min_airflow = bool(HX_perf_ou.get("min_limit", False)) or dV_ou_a <= self.dV_fan_a_min * (1.0 + 1e-6)
+        at_max_airflow = bool(HX_perf_ou.get("max_limit", False)) or dV_ou_a >= self.dV_fan_a_max * (1.0 - 1e-6)
         T_ou_a_mid: float = HX_perf_ou["T_ou_a_mid"]
         Q_ou_a: float = HX_perf_ou["Q_ou_air"]
 
@@ -989,8 +995,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "epsilon_ou [-]": HX_perf_ou.get("epsilon", np.nan),
                 "PLR_request [-]": (Q_ref_tank / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 "PLR_delivered [-]": (Q_ref_tank_calc / self.hp_capacity if self.hp_capacity > 0 else np.nan),
-                "fan_flow_min_limit": HX_perf_ou.get("min_limit", False),
-                "fan_flow_max_limit": HX_perf_ou.get("max_limit", False),
+                "fan_flow_min_limit": at_min_airflow,
+                "fan_flow_max_limit": at_max_airflow,
                 # Temperatures [°C]
                 "T_ou_a_in [°C]": T0,
                 "T_ou_a_mid [°C]": T_ou_a_mid,

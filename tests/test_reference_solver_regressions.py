@@ -34,11 +34,14 @@ def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser
     assert state is not None
     # This reference is independently obtained from the coupled mass-flow and
     # both-HX equations, rather than the former synthetic extrapolation.
-    assert state.rps_rated == pytest.approx(20.88402055816114, rel=1e-9)
+    # 20.884 rev/s before the validity-domain guard (issue #96): the rated point
+    # (PR 7.40, ~21-25 rev/s) lies outside the fitting box on both axes, where
+    # the raw quadratic was followed; the guarded fit gives eta_is 0.229 there.
+    assert state.rps_rated == pytest.approx(25.48516636708881, rel=1e-9)
     expected_evap = state.condition.source.conductance * (state.condition.source.T_in_C - state.T_evap_sat_C)
     assert state.Q_cond == pytest.approx(8000, rel=1e-9)
     assert state.Q_evap == pytest.approx(expected_evap, rel=1e-9)
-    assert hp.eta_cmp_isen(state.pressure_ratio, hp.rps_max) < 0
+    assert hp.eta_cmp_isen.raw(state.pressure_ratio, hp.rps_max) < 0 < hp.eta_cmp_isen(state.pressure_ratio, hp.rps_max)
 
 
 def _capacity_probe(mode, *, binding="cycle", other=80.0, ceiling_error=False, ceiling=100.0):

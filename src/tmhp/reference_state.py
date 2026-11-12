@@ -349,7 +349,7 @@ def solve_reference_state(
         )
     except InvalidCompressorEfficiency as exc:
         raise ReferenceStateError(
-            f"nonpositive or nonfinite raw BITZER efficiency at {condition.standard}; "
+            f"nonpositive or nonfinite compressor efficiency at {condition.standard}; "
             "supply a supported rated_condition or custom compressor efficiencies"
         ) from exc
     if key is not None:

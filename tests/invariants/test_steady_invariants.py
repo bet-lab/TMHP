@@ -49,22 +49,15 @@ GRID: dict[str, tuple[tuple[float, ...], tuple[float, ...]]] = {
 
 # Within 0.3 K of the suction <= source check on the reference platform.
 _EXCLUDED = {("GSHPB", "R290", 5, 50, 0.25), ("WSHPB", "R410A", 10, 55, 0.25)}
-
-_ALL_GSHP_POINTS = {
-    "GSHP-heat": [(s, d, p) for s in (0, 5, 15) for d in (18, 24) for p in PART_LOAD],
-    "GSHP-cool": [(s, d, p) for s in (22, 26, 30) for d in (15, 25) for p in PART_LOAD],
-}
 # What each grid defect is allowed to produce. A known-failing point that shows any
 # *other* violation (or a different exception) fails hard instead of hiding behind
 # its xfail mark.
 _EXPECTED_TAGS: dict[str, set[str]] = {
-    "C4": {"failed_with_heat"},
     "C11": {"suction_vs_source"},
 }
 # Defects that show up as a constructor failure: (exception type, text that identifies it).
 _EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {}
 _WHY = {
-    "C4": "GSHP returns heat and power with converged=False / failure_reason='hx_not_converged'",
     "C11": "no superheat cap in GSHPB/WSHPB: suction refrigerant hotter than the source water",
 }
 
@@ -74,14 +67,6 @@ KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]
     ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
     ("WSHPB", "R32"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
     ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
-    ("GSHP-heat", "R32"): {"C4": _ALL_GSHP_POINTS["GSHP-heat"]},
-    ("GSHP-heat", "R410A"): {"C4": _ALL_GSHP_POINTS["GSHP-heat"]},
-    ("GSHP-heat", "R134a"): {"C4": [(s, d, 0.75) for s in (0, 5, 15) for d in (18, 24)]},
-    ("GSHP-heat", "R290"): {"C4": [(s, d, 0.75) for s in (0, 5, 15) for d in (18, 24)]},
-    ("GSHP-cool", "R32"): {"C4": _ALL_GSHP_POINTS["GSHP-cool"]},
-    ("GSHP-cool", "R410A"): {"C4": _ALL_GSHP_POINTS["GSHP-cool"]},
-    ("GSHP-cool", "R134a"): {"C4": [(s, d, 0.75) for s in (22, 26, 30) for d in (15, 25)]},
-    ("GSHP-cool", "R290"): {"C4": [(s, d, 0.75) for s in (22, 26, 30) for d in (15, 25)]},
 }
 
 

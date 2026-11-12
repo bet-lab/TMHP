@@ -528,7 +528,9 @@ def selftest() -> dict:
                 is_active=True,
                 exponent=m.n_ou,
             )
-            b = _hx_solver(q, 7.0 + 273.15, sat + 273.15, m.A_cross_ou, m.UA_ou_rated, m.dV_ou_fan_a_rated, m.n_ou, 0.05)
+            b = _hx_solver(
+                q, 7.0 + 273.15, sat + 273.15, m.A_cross_ou, m.UA_ou_rated, m.dV_ou_fan_a_rated, m.n_ou, 0.05
+            )
             if a["converged"] and b["converged"]:
                 worst = max(worst, abs(a["dV_fan"] - b["dV_fan"]) / a["dV_fan"], abs(a["UA"] - b["UA"]) / a["UA"])
     rep["hx_reimplementation_max_rel_dev"] = worst
@@ -539,7 +541,11 @@ def selftest() -> dict:
             warnings.simplefilter("ignore")
             o = m._optimize_operation(Q_r_iu=sign * CAP * frac, T0=t_out, T_a_room=t_room)
             return m._calc_state(
-                dT_ref_evap=float(o.x[0]), dT_ref_cond=float(o.x[1]), Q_r_iu=sign * CAP * frac, T0=t_out, T_a_room=t_room
+                dT_ref_evap=float(o.x[0]),
+                dT_ref_cond=float(o.x[1]),
+                Q_r_iu=sign * CAP * frac,
+                T0=t_out,
+                T_a_room=t_room,
             )
 
     keys = ["E_tot [W]", "E_ou_fan [W]", "E_iu_fan [W]", "dV_ou_a [m3/s]", "cop_sys [-]", "T_ref_evap_sat [°C]"]
@@ -652,7 +658,15 @@ def _figures(df: pd.DataFrame) -> None:
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from scripts.visualization._dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, ticks
+    from scripts.visualization._dmpl_common import (
+        COLORS,
+        GRIDLINE,
+        HAIRLINE,
+        apply_style,
+        finalize,
+        panel_letter,
+        ticks,
+    )
 
     apply_style()
     MS = 2.6
@@ -724,8 +738,9 @@ def _figures(df: pd.DataFrame) -> None:
     # ---- E1 minimum airflow -------------------------------------------
     cfgs = ["baseline", "floor_20", "floor_30", "floor_40"]
     cols = [COLORS["ink"], COLORS["cool"], COLORS["accent"], COLORS["hot"]]
-    fig, axes = plt.subplots(2, 3, figsize=dm.figsize("17cm", 0.60), squeeze=False,
-                             gridspec_kw={"wspace": 0.42, "hspace": 0.40})
+    fig, axes = plt.subplots(
+        2, 3, figsize=dm.figsize("17cm", 0.60), squeeze=False, gridspec_kw={"wspace": 0.42, "hspace": 0.40}
+    )
     quants = [
         ("COP_sys", r"System $\mathrm{COP}$ [-]"),
         ("V_air_ratio_ou", r"$V_{air}\,/\,V_{air,rated}$, outdoor [-]"),
@@ -759,10 +774,13 @@ def _figures(df: pd.DataFrame) -> None:
     # ---- E3 minimum fan power -----------------------------------------
     cfgs = ["baseline", "pmin_05", "pmin_10", "pmin_20", "pmin_30"]
     cols = [COLORS["ink"], COLORS["cool"], COLORS["ess"], COLORS["accent"], COLORS["hot"]]
-    fig, axes = plt.subplots(2, 2, figsize=dm.figsize("13cm", 0.80), squeeze=False,
-                             gridspec_kw={"wspace": 0.38, "hspace": 0.40})
+    fig, axes = plt.subplots(
+        2, 2, figsize=dm.figsize("13cm", 0.80), squeeze=False, gridspec_kw={"wspace": 0.38, "hspace": 0.40}
+    )
     for i, cond in enumerate(CONDS):
-        for j, (col, ylab) in enumerate([("E_fan_total", "Fan power, both fans [W]"), ("COP_sys", r"System $\mathrm{COP}$ [-]")]):
+        for j, (col, ylab) in enumerate(
+            [("E_fan_total", "Fan power, both fans [W]"), ("COP_sys", r"System $\mathrm{COP}$ [-]")]
+        ):
             ax = axes[i][j]
             series(ax, cfgs, cond, col, cols, first=(i == 0 and j == 0))
             xaxis(ax, label=(i == 1))
@@ -814,8 +832,9 @@ def _figures(df: pd.DataFrame) -> None:
         ("E_fan_total", "Fan power [W]"),
         ("COP_sys", r"System $\mathrm{COP}$ [-]"),
     ]
-    fig, axes = plt.subplots(2, 4, figsize=dm.figsize("17cm", 0.50), squeeze=False,
-                             gridspec_kw={"wspace": 0.55, "hspace": 0.42})
+    fig, axes = plt.subplots(
+        2, 4, figsize=dm.figsize("17cm", 0.50), squeeze=False, gridspec_kw={"wspace": 0.55, "hspace": 0.42}
+    )
     for i, cond in enumerate(CONDS):
         for j, (col, ylab) in enumerate(quants):
             ax = axes[i][j]
@@ -839,10 +858,7 @@ def main() -> None:
     started = datetime.now(UTC).isoformat()
     st = selftest()
     print(json.dumps(st, indent=2))
-    if "sim" in want:
-        df = simulate(a.jobs)
-    else:
-        df = pd.read_csv(OUT_DIR / CSV_NAME)
+    df = simulate(a.jobs) if "sim" in want else pd.read_csv(OUT_DIR / CSV_NAME)
     rep = check(df)
     print(json.dumps(rep, indent=2, ensure_ascii=False))
     s = summary(df)

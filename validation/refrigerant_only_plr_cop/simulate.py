@@ -335,9 +335,13 @@ def _add_common_plr(met: pd.DataFrame, df: pd.DataFrame) -> pd.DataFrame:
         sub = sub.set_index("refrigerant")
         g = g.copy()
         g["PLR_common"] = plr_common
-        for col, src in (("COP_comp_common", "COP_comp"), ("COP_sys_common", "COP_sys"),
-                         ("n_star_common", "n_star"), ("r_p_common", "r_p"),
-                         ("fan_fraction_common", "fan_fraction")):
+        for col, src in (
+            ("COP_comp_common", "COP_comp"),
+            ("COP_sys_common", "COP_sys"),
+            ("n_star_common", "n_star"),
+            ("r_p_common", "r_p"),
+            ("fan_fraction_common", "fan_fraction"),
+        ):
             g[col] = g.refrigerant.map(sub[src])
         g["R_common_comp"] = g.COP_comp_common / g.COP_comp_rated
         g["R_common_sys"] = g.COP_sys_common / g.COP_sys_rated
@@ -376,9 +380,7 @@ def main() -> None:
                 own_skipped[f"{case}/{ref}"] = f"{type(exc).__name__}: {exc}"
     print("displacement [cm3/rev]")
     for case, *_ in CASES:
-        shown = ", ".join(
-            f"{r}={own[(case, r)] * 1e6:.2f}" if (case, r) in own else f"{r}=n/a" for r in REFRIGERANTS
-        )
+        shown = ", ".join(f"{r}={own[(case, r)] * 1e6:.2f}" if (case, r) in own else f"{r}=n/a" for r in REFRIGERANTS)
         print(f"  {case:<14} R32(fixed)={ref_disp[case] * 1e6:6.2f} | own: {shown}")
     if own_skipped:
         print("  own_disp skipped:", json.dumps(own_skipped, ensure_ascii=False))

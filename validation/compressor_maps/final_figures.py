@@ -95,7 +95,9 @@ def _plr_curve(ax, g, color, label=None, ls="solid", lw=None, ms=MS):
     lw = dm.lw(0) if lw is None else lw
     ax.plot(_pct(mod.plr_request), mod.cop_sys, ls=ls, lw=lw, color=color, marker="o", ms=ms, label=label)
     if len(floor):
-        ax.plot(_pct(floor.plr_request), floor.cop_sys, ls="none", marker="o", ms=ms, mfc="white", mec=color, mew=HAIRLINE)
+        ax.plot(
+            _pct(floor.plr_request), floor.cop_sys, ls="none", marker="o", ms=ms, mfc="white", mec=color, mew=HAIRLINE
+        )
     if len(ceil):
         ax.plot(_pct(ceil.plr_request), ceil.cop_sys, ls="none", marker="x", ms=ms + 0.6, color=color, mew=HAIRLINE)
 
@@ -223,25 +225,69 @@ def f2_displacement() -> None:
     _parity_axes(ax, 0, 100, 20, "Published displacement [cm³/rev]", "TMHP default displacement [cm³/rev]")
     ax.fill_between([0, 100], [0, 80], [0, 120], color=COLORS["band20"], alpha=0.25, lw=0, label="±20 %")
     for ref, g in hp.groupby("refrigerant"):
-        ax.plot(g.V_published_cm3, g.V_tmhp_cm3, "o", ms=3.4, color=REF_COLORS.get(ref, COLORS["ink"]), label=f"{ref} (air-to-water)")
+        ax.plot(
+            g.V_published_cm3,
+            g.V_tmhp_cm3,
+            "o",
+            ms=3.4,
+            color=REF_COLORS.get(ref, COLORS["ink"]),
+            label=f"{ref} (air-to-water)",
+        )
     mape, bias, n = _stats(hp.V_tmhp_cm3, hp.V_published_cm3)
-    ax.text(0.03, 0.97, f"n = {n} units\nMAPE {mape:.1f} %\nbias {bias:+.1f} %", transform=ax.transAxes, va="top", fontsize=dm.fs(-2.5))
-    ax.text(0.97, 0.05, "air-to-air: no published\ndisplacement in the set", transform=ax.transAxes, va="bottom", ha="right", fontsize=dm.fs(-3), color=COLORS["muted"])
+    ax.text(
+        0.03,
+        0.97,
+        f"n = {n} units\nMAPE {mape:.1f} %\nbias {bias:+.1f} %",
+        transform=ax.transAxes,
+        va="top",
+        fontsize=dm.fs(-2.5),
+    )
+    ax.text(
+        0.97,
+        0.05,
+        "air-to-air: no published\ndisplacement in the set",
+        transform=ax.transAxes,
+        va="bottom",
+        ha="right",
+        fontsize=dm.fs(-3),
+        color=COLORS["muted"],
+    )
     ax.legend(loc="lower right", bbox_to_anchor=(1.0, 0.2), frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Heat-pump level: nameplate and default rated speed", fontsize=dm.fs(-1.5), loc="left")
     panel_letter(ax, "a")
 
     ax = axes[1]
     lo, hi = 0, 160
-    _parity_axes(ax, lo, hi, 40, "Published displacement [cm³/rev]", "Rule at the compressor's own rated point [cm³/rev]")
+    _parity_axes(
+        ax, lo, hi, 40, "Published displacement [cm³/rev]", "Rule at the compressor's own rated point [cm³/rev]"
+    )
     ax.fill_between([lo, hi], [lo, hi * 0.8], [lo, hi * 1.2], color=COLORS["band20"], alpha=0.25, lw=0)
-    mk = {"copeland_opi": ("o", "Copeland scroll (AHRI 540 rating row)"), "highly_catalogue_2024": ("s", "Highly rotary (catalogue rated point)")}
+    mk = {
+        "copeland_opi": ("o", "Copeland scroll (AHRI 540 rating row)"),
+        "highly_catalogue_2024": ("s", "Highly rotary (catalogue rated point)"),
+    }
     for src, g in cmp_.groupby("model_class"):
         m, lbl = mk.get(src, ("^", src))
         for ref, gg in g.groupby("refrigerant"):
-            ax.plot(gg.V_published_cm3, gg.V_tmhp_cm3, m, ms=3.0, mfc="none", mew=HAIRLINE * 1.4, color=REF_COLORS.get(ref, COLORS["ink"]), label=f"{lbl}, {ref}")
+            ax.plot(
+                gg.V_published_cm3,
+                gg.V_tmhp_cm3,
+                m,
+                ms=3.0,
+                mfc="none",
+                mew=HAIRLINE * 1.4,
+                color=REF_COLORS.get(ref, COLORS["ink"]),
+                label=f"{lbl}, {ref}",
+            )
     mape, bias, n = _stats(cmp_.V_tmhp_cm3, cmp_.V_published_cm3)
-    ax.text(0.03, 0.97, f"n = {n} machines\nMAPE {mape:.1f} %\nbias {bias:+.1f} %", transform=ax.transAxes, va="top", fontsize=dm.fs(-2.5))
+    ax.text(
+        0.03,
+        0.97,
+        f"n = {n} machines\nMAPE {mape:.1f} %\nbias {bias:+.1f} %",
+        transform=ax.transAxes,
+        va="top",
+        fontsize=dm.fs(-2.5),
+    )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3.5))
     ax.set_title("Compressor level (rated speed known)", fontsize=dm.fs(-1.5), loc="left")
     panel_letter(ax, "b")
@@ -259,7 +305,9 @@ def f3_sensitivity() -> None:
     d = pd.read_csv(SIM / "displacement_sensitivity.csv")
     fl = d[(d.kind == "floor") & (d.failure_reason == "none")].copy()
     fl["case"] = [_case_label(r) for r in fl.itertuples()]
-    fl[["case", "disp_mult", "V_disp_cm3", "plr_delivered", "n_star", "cop_sys", "capacity_clamped"]].to_csv(SIM / "fig3_min_plr.csv", index=False)
+    fl[["case", "disp_mult", "V_disp_cm3", "plr_delivered", "n_star", "cop_sys", "capacity_clamped"]].to_csv(
+        SIM / "fig3_min_plr.csv", index=False
+    )
     sw = d[(d.kind == "sweep") & (d.failure_reason == "none")].copy()
     sw["case"] = [_case_label(r) for r in sw.itertuples()]
     case_colors = {}
@@ -286,9 +334,18 @@ def f3_sensitivity() -> None:
         g0 = sw[sw.model_class == mc]
         for (c, mult), g in g0.groupby(["case", "disp_mult"]):
             mod, floor, _ = _mod_floor(g)
-            ax.plot(_pct(mod.plr_request), mod.n_star, ls=ls_by_mult[mult], lw=dm.lw(0), color=case_colors[c], label=f"{c.split(' ', 1)[1]} ×{mult:g}")
+            ax.plot(
+                _pct(mod.plr_request),
+                mod.n_star,
+                ls=ls_by_mult[mult],
+                lw=dm.lw(0),
+                color=case_colors[c],
+                label=f"{c.split(' ', 1)[1]} ×{mult:g}",
+            )
             if len(floor):
-                ax.plot(_pct(floor.plr_request), floor.n_star, "o", ms=MS, mfc="white", mec=case_colors[c], mew=HAIRLINE)
+                ax.plot(
+                    _pct(floor.plr_request), floor.n_star, "o", ms=MS, mfc="white", mec=case_colors[c], mew=HAIRLINE
+                )
         ax.axhline(15.0 / (60.0 if mc == "ASHP" else 40.0), color=COLORS["muted"], lw=HAIRLINE, ls=":")
         ax.set_xlim(0, 100)
         ax.set_xticks(ticks(0, 100, 20))
@@ -321,7 +378,24 @@ def f4_parity() -> None:
     for r in rated.itertuples():
         m = (d.slug == r.slug) & (d.t_source_C == r.t_source_C) & (d.t_sink_C == r.t_sink_C) & (d.q_kW == r.q_kW)
         d.loc[m, "is_rated"] = True
-    d[["slug", "unit", "model_class", "refrigerant", "rating_standard", "mode", "t_source_C", "t_sink_C", "q_kW", "cop_target", "cop_pred", "n_star", "pr_cmp", "is_rated"]].to_csv(SIM / "fig4_cop_parity.csv", index=False)
+    d[
+        [
+            "slug",
+            "unit",
+            "model_class",
+            "refrigerant",
+            "rating_standard",
+            "mode",
+            "t_source_C",
+            "t_sink_C",
+            "q_kW",
+            "cop_target",
+            "cop_pred",
+            "n_star",
+            "pr_cmp",
+            "is_rated",
+        ]
+    ].to_csv(SIM / "fig4_cop_parity.csv", index=False)
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
     ax = axes[0]
@@ -331,9 +405,18 @@ def f4_parity() -> None:
         gg = g[g["mode"] == mode]
         ax.plot(gg.cop_target, gg.cop_pred, "o", ms=2.2, alpha=0.7, mew=0, color=col, label=f"{lbl} (n = {len(gg)})")
     gr = g[g.is_rated]
-    ax.plot(gr.cop_target, gr.cop_pred, "o", ms=5, mfc="none", mec=COLORS["ink"], mew=HAIRLINE * 1.5, label="rated point")
+    ax.plot(
+        gr.cop_target, gr.cop_pred, "o", ms=5, mfc="none", mec=COLORS["ink"], mew=HAIRLINE * 1.5, label="rated point"
+    )
     mape, bias, n = _stats(g.cop_pred, g.cop_target)
-    ax.text(0.03, 0.97, f"Daikin RXM-A, 5 units, R32, EN 14511\nMAPE {mape:.1f} %, bias {bias:+.1f} %, n = {n}", transform=ax.transAxes, va="top", fontsize=dm.fs(-2.5))
+    ax.text(
+        0.03,
+        0.97,
+        f"Daikin RXM-A, 5 units, R32, EN 14511\nMAPE {mape:.1f} %, bias {bias:+.1f} %, n = {n}",
+        transform=ax.transAxes,
+        va="top",
+        fontsize=dm.fs(-2.5),
+    )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Air-to-air (ASHP)", fontsize=dm.fs(-1.5), loc="left")
     panel_letter(ax, "a")
@@ -342,11 +425,36 @@ def f4_parity() -> None:
     g = d[d.model_class == "ASHPB"]
     _parity_axes(ax, 1, 7, 1, "Catalogue COP [-]", "TMHP COP [-]")
     for ref, gg in g.groupby("refrigerant"):
-        ax.plot(gg.cop_target, gg.cop_pred, "o", ms=2.6, alpha=0.8, mew=0, color=REF_COLORS.get(ref, COLORS["ink"]), label=f"{ref} (n = {len(gg)})")
+        ax.plot(
+            gg.cop_target,
+            gg.cop_pred,
+            "o",
+            ms=2.6,
+            alpha=0.8,
+            mew=0,
+            color=REF_COLORS.get(ref, COLORS["ink"]),
+            label=f"{ref} (n = {len(gg)})",
+        )
     gr = g[g.is_rated]
-    ax.plot(gr.cop_target, gr.cop_pred, "o", ms=5, mfc="none", mec=COLORS["ink"], mew=HAIRLINE * 1.5, label="rated point A7/W45")
+    ax.plot(
+        gr.cop_target,
+        gr.cop_pred,
+        "o",
+        ms=5,
+        mfc="none",
+        mec=COLORS["ink"],
+        mew=HAIRLINE * 1.5,
+        label="rated point A7/W45",
+    )
     mape, bias, n = _stats(g.cop_pred, g.cop_target)
-    ax.text(0.03, 0.97, f"Panasonic 9 + Samsung 1 units, heating\nMAPE {mape:.1f} %, bias {bias:+.1f} %, n = {n}", transform=ax.transAxes, va="top", fontsize=dm.fs(-2.5))
+    ax.text(
+        0.03,
+        0.97,
+        f"Panasonic 9 + Samsung 1 units, heating\nMAPE {mape:.1f} %, bias {bias:+.1f} %, n = {n}",
+        transform=ax.transAxes,
+        va="top",
+        fontsize=dm.fs(-2.5),
+    )
     ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3))
     ax.set_title("Air-to-water (ASHPB)", fontsize=dm.fs(-1.5), loc="left")
     panel_letter(ax, "b")
@@ -356,7 +464,15 @@ def f4_parity() -> None:
 # ---------------------------------------------------------------------------
 # F5 / F6  PLR-COP maps by outdoor temperature
 # ---------------------------------------------------------------------------
-def _map_panel(ax, g: pd.DataFrame, cmap_name: str, title: str, ylim: tuple[float, float], ystep: float, legend_loc: str = "upper right") -> None:
+def _map_panel(
+    ax,
+    g: pd.DataFrame,
+    cmap_name: str,
+    title: str,
+    ylim: tuple[float, float],
+    ystep: float,
+    legend_loc: str = "upper right",
+) -> None:
     temps = sorted(g.t_outdoor_C.unique())
     cmap = plt.get_cmap(cmap_name)
     for i, t in enumerate(temps):
@@ -398,7 +514,9 @@ def f6_ashpb_map() -> None:
 def f7_min_speed() -> None:
     d = pd.read_csv(SIM / "base_cases.csv")
     d = d[d.failure_reason == "none"].copy()
-    d["case"] = [f"{r.model_class} {r.duty} {r.refrigerant} {r.t_outdoor_C:g}/{r.t_sink_C:g} °C" for r in d.itertuples()]
+    d["case"] = [
+        f"{r.model_class} {r.duty} {r.refrigerant} {r.t_outdoor_C:g}/{r.t_sink_C:g} °C" for r in d.itertuples()
+    ]
     keep = [
         "ASHP heating R32 7/20 °C",
         "ASHP cooling R32 35/27 °C",
@@ -415,10 +533,22 @@ def f7_min_speed() -> None:
         for c, g in d.groupby("case"):
             mod, floor, _ = _mod_floor(g)
             ax.plot(_pct(mod.plr_request), mod[col] * scale, "o-", ms=MS * 0.8, lw=dm.lw(0), color=cols[c], label=c)
-            ax.plot(_pct(floor.plr_request), floor[col] * scale, "o", ms=MS * 0.8, mfc="white", mec=cols[c], mew=HAIRLINE)
+            ax.plot(
+                _pct(floor.plr_request), floor[col] * scale, "o", ms=MS * 0.8, mfc="white", mec=cols[c], mew=HAIRLINE
+            )
             if y2 is not None:
-                ax.plot(_pct(mod.plr_request), mod[y2] * scale, "s", ms=MS * 0.7, ls=(0, (2, 1.2)), lw=dm.lw(-0.5), color=cols[c])
-                ax.plot(_pct(floor.plr_request), floor[y2] * scale, "s", ms=MS * 0.7, mfc="white", mec=cols[c], mew=HAIRLINE)
+                ax.plot(
+                    _pct(mod.plr_request),
+                    mod[y2] * scale,
+                    "s",
+                    ms=MS * 0.7,
+                    ls=(0, (2, 1.2)),
+                    lw=dm.lw(-0.5),
+                    color=cols[c],
+                )
+                ax.plot(
+                    _pct(floor.plr_request), floor[y2] * scale, "s", ms=MS * 0.7, mfc="white", mec=cols[c], mew=HAIRLINE
+                )
 
     ax = axes[0]
     series(ax, "plr_delivered", 100.0)
@@ -453,7 +583,9 @@ def f7_min_speed() -> None:
     ax.set_ylim(-20, 60)
     ax.set_yticks(ticks(-20, 60, 20))
     ax.set_ylabel(r"$T_{sat}$ [°C]")
-    ax.text(0.03, 0.97, "circles: condensing\nsquares: evaporating", transform=ax.transAxes, fontsize=dm.fs(-4), va="top")
+    ax.text(
+        0.03, 0.97, "circles: condensing\nsquares: evaporating", transform=ax.transAxes, fontsize=dm.fs(-4), va="top"
+    )
     for i, ax in enumerate(axes):
         ax.set_xlim(0, 100)
         ax.set_xticks(ticks(0, 100, 20))
@@ -477,18 +609,32 @@ def f9_decomposition() -> None:
     duty_col = {"heating": COLORS["hot"], "cooling": COLORS["cool"]}
     for ax, duty, letter in ((axes[0], "heating", "a"), (axes[1], "cooling", "b")):
         g = dec[dec.duty == duty]
-        for var, ls, lbl in (("hx_only", (0, (4, 1.6)), "heat exchangers only (efficiencies frozen at PLR 1)"), ("current", "solid", "final model")):
-            _plr_curve(ax, g[g.variant == var], duty_col[duty] if var == "current" else COLORS["muted"], label=lbl, ls=ls)
+        for var, ls, lbl in (
+            ("hx_only", (0, (4, 1.6)), "heat exchangers only (efficiencies frozen at PLR 1)"),
+            ("current", "solid", "final model"),
+        ):
+            _plr_curve(
+                ax, g[g.variant == var], duty_col[duty] if var == "current" else COLORS["muted"], label=lbl, ls=ls
+            )
         b = base[base.duty == duty]
         mod, floor, _ = _mod_floor(b)
-        ax.plot(_pct(mod.plr_request), mod.cop_cmp, ls=(0, (1, 1.2)), lw=dm.lw(0), color=COLORS["ink"], label=r"compressor-only $\mathrm{COP}$ = $Q/E_{cmp}$")
+        ax.plot(
+            _pct(mod.plr_request),
+            mod.cop_cmp,
+            ls=(0, (1, 1.2)),
+            lw=dm.lw(0),
+            color=COLORS["ink"],
+            label=r"compressor-only $\mathrm{COP}$ = $Q/E_{cmp}$",
+        )
         ax.set_xlim(0, 100)
         ax.set_xticks(ticks(0, 100, 20))
         ax.set_ylim(4, 9)
         ax.set_yticks(ticks(4, 9, 1))
         ax.set_xlabel("Requested PLR [%]")
         ax.set_ylabel(r"$\mathrm{COP}$ [-]")
-        ax.set_title(f"{duty}, 3.5 kW R32, {'7/20' if duty == 'heating' else '35/27'} °C", fontsize=dm.fs(-1.5), loc="left")
+        ax.set_title(
+            f"{duty}, 3.5 kW R32, {'7/20' if duty == 'heating' else '35/27'} °C", fontsize=dm.fs(-1.5), loc="left"
+        )
         ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4))
         _grid(ax)
         panel_letter(ax, letter)
@@ -509,7 +655,8 @@ def f9_decomposition() -> None:
                     "net_pct": (cur.loc[p, "cop_sys"] / rated_cop - 1.0) * 100.0,
                     "n_star": cur.loc[p, "n_star"],
                     "pr": cur.loc[p, "pr"],
-                    "eta_oi_over_rated": (cur.loc[p, "eta_isen"] * cur.loc[p, "eta_em"]) / (cur.loc[1.0, "eta_isen"] * cur.loc[1.0, "eta_em"]),
+                    "eta_oi_over_rated": (cur.loc[p, "eta_isen"] * cur.loc[p, "eta_em"])
+                    / (cur.loc[1.0, "eta_isen"] * cur.loc[1.0, "eta_em"]),
                     "fan_share_pct": (1.0 - cur.loc[p, "E_cmp"] / cur.loc[p, "E_tot"]) * 100.0,
                 }
             )
@@ -518,9 +665,31 @@ def f9_decomposition() -> None:
     ax = axes[2]
     for duty, g in rel.groupby("duty"):
         g = g.sort_values("plr_request")
-        ax.plot(_pct(g.plr_request), g.hx_gain_pct, ls=(0, (4, 1.6)), lw=dm.lw(0), color=duty_col[duty], label=f"{duty}: heat-exchanger gain")
-        ax.plot(_pct(g.plr_request), g.compressor_penalty_pct, ls=(0, (1, 1.2)), lw=dm.lw(0), color=duty_col[duty], label=f"{duty}: compressor penalty")
-        ax.plot(_pct(g.plr_request), g.net_pct, "o-", ms=MS * 0.8, lw=dm.lw(0), color=duty_col[duty], label=f"{duty}: net vs PLR 100 %")
+        ax.plot(
+            _pct(g.plr_request),
+            g.hx_gain_pct,
+            ls=(0, (4, 1.6)),
+            lw=dm.lw(0),
+            color=duty_col[duty],
+            label=f"{duty}: heat-exchanger gain",
+        )
+        ax.plot(
+            _pct(g.plr_request),
+            g.compressor_penalty_pct,
+            ls=(0, (1, 1.2)),
+            lw=dm.lw(0),
+            color=duty_col[duty],
+            label=f"{duty}: compressor penalty",
+        )
+        ax.plot(
+            _pct(g.plr_request),
+            g.net_pct,
+            "o-",
+            ms=MS * 0.8,
+            lw=dm.lw(0),
+            color=duty_col[duty],
+            label=f"{duty}: net vs PLR 100 %",
+        )
     ax.axhline(0, color=COLORS["muted"], lw=HAIRLINE)
     ax.set_xlim(0, 100)
     ax.set_xticks(ticks(0, 100, 20))
@@ -565,15 +734,43 @@ def _before_after(ax, col_new: str, col_old: str | None = None, scale: float = 1
     """One quantity of the 9 kW air-to-water case, pre-fix against final."""
     col_old = col_old or col_new
     for d, color, label, ls in (
-        (_case(pd.read_csv(PRE / "base_cases.csv"), *ASHPB_CASE), COLORS["muted"], "requested-duty closure (before)", (0, (4, 1.6))),
-        (_case(pd.read_csv(SIM / "base_cases.csv"), *ASHPB_CASE), COLORS["accent"], "delivered-duty closure (final)", "solid"),
+        (
+            _case(pd.read_csv(PRE / "base_cases.csv"), *ASHPB_CASE),
+            COLORS["muted"],
+            "requested-duty closure (before)",
+            (0, (4, 1.6)),
+        ),
+        (
+            _case(pd.read_csv(SIM / "base_cases.csv"), *ASHPB_CASE),
+            COLORS["accent"],
+            "delivered-duty closure (final)",
+            "solid",
+        ),
     ):
         col = col_old if color == COLORS["muted"] else col_new
         mod, floor = _floor_split(d)
-        ax.plot(_pct(mod.plr_request), mod[col] * scale, ls=ls, lw=dm.lw(0), color=color, marker="o", ms=MS * 0.8, label=label)
+        ax.plot(
+            _pct(mod.plr_request),
+            mod[col] * scale,
+            ls=ls,
+            lw=dm.lw(0),
+            color=color,
+            marker="o",
+            ms=MS * 0.8,
+            label=label,
+        )
         if len(floor):
             ax.plot(_pct(floor.plr_request), floor[col] * scale, ls=ls, lw=dm.lw(0), color=color)
-            ax.plot(_pct(floor.plr_request), floor[col] * scale, ls="none", marker="o", ms=MS * 0.8, mfc="white", mec=color, mew=HAIRLINE)
+            ax.plot(
+                _pct(floor.plr_request),
+                floor[col] * scale,
+                ls="none",
+                marker="o",
+                ms=MS * 0.8,
+                mfc="white",
+                mec=color,
+                mew=HAIRLINE,
+            )
 
 
 def f8_speed_floor_closure() -> None:
@@ -592,8 +789,12 @@ def f8_speed_floor_closure() -> None:
     ax = axes[0]
     for label, (g, color) in cases.items():
         mod, floor = _floor_split(g)
-        ax.plot(_pct(mod.plr_request), _pct(mod.plr_delivered), "o-", ms=MS * 0.8, lw=dm.lw(0), color=color, label=label)
-        ax.plot(_pct(floor.plr_request), _pct(floor.plr_delivered), "o", ms=MS * 0.8, mfc="white", mec=color, mew=HAIRLINE)
+        ax.plot(
+            _pct(mod.plr_request), _pct(mod.plr_delivered), "o-", ms=MS * 0.8, lw=dm.lw(0), color=color, label=label
+        )
+        ax.plot(
+            _pct(floor.plr_request), _pct(floor.plr_delivered), "o", ms=MS * 0.8, mfc="white", mec=color, mew=HAIRLINE
+        )
     ax.plot([0, 100], [0, 100], color=COLORS["muted"], lw=HAIRLINE, ls=":")
     ax.set_ylim(0, 100)
     ax.set_yticks(ticks(0, 100, 20))
@@ -645,36 +846,84 @@ def f8_speed_floor_closure() -> None:
 
     # (g) outdoor-coil relief, normalised to the full-load value
     ax = axes[6]
-    styles = (("UA_ou", "solid", r"$UA$"), ("NTU_ou", (0, (4, 1.6)), "NTU"), ("epsilon_ou", (0, (1, 1.3)), r"$\varepsilon$"), ("fan_fraction_ou", (0, (5, 1.5, 1, 1.5)), "airflow"))
+    styles = (
+        ("UA_ou", "solid", r"$UA$"),
+        ("NTU_ou", (0, (4, 1.6)), "NTU"),
+        ("epsilon_ou", (0, (1, 1.3)), r"$\varepsilon$"),
+        ("fan_fraction_ou", (0, (5, 1.5, 1, 1.5)), "airflow"),
+    )
     rows = []
-    for label, (g, color) in (("ASHP heating 7/20 °C", cases["ASHP heating 7/20 °C"]), ("ASHPB heating 7/42.5 °C", cases["ASHPB heating 7/42.5 °C"])):
+    for label, (g, color) in (
+        ("ASHP heating 7/20 °C", cases["ASHP heating 7/20 °C"]),
+        ("ASHPB heating 7/42.5 °C", cases["ASHPB heating 7/42.5 °C"]),
+    ):
         if not len(g):
             continue
         full = g[g.plr_request == 1.0].iloc[0]
         for col, ls, _ in styles:
             ax.plot(_pct(g.plr_request), g[col] / full[col], ls=ls, lw=dm.lw(0), color=color)
         for r in g.itertuples():
-            rows.append({"case": label, "plr_request": r.plr_request, "UA_ou": r.UA_ou, "NTU_ou": r.NTU_ou, "epsilon_ou": r.epsilon_ou, "fan_fraction_ou": r.fan_fraction_ou})
+            rows.append(
+                {
+                    "case": label,
+                    "plr_request": r.plr_request,
+                    "UA_ou": r.UA_ou,
+                    "NTU_ou": r.NTU_ou,
+                    "epsilon_ou": r.epsilon_ou,
+                    "fan_fraction_ou": r.fan_fraction_ou,
+                }
+            )
     for _, ls, lbl in styles:
         ax.plot([], [], ls=ls, lw=dm.lw(0), color=COLORS["ink"], label=lbl)
     ax.set_ylim(0, 1.6)
     ax.set_yticks(ticks(0, 1.6, 0.4))
     ax.set_ylabel("Relative to full load [-]")
     ax.legend(loc="upper left", frameon=False, fontsize=dm.fs(-4.5), ncol=2)
-    ax.text(0.04, 0.06, "red: ASHP heating\nblue: ASHPB heating", transform=ax.transAxes, fontsize=dm.fs(-4.5), va="bottom")
+    ax.text(
+        0.04, 0.06, "red: ASHP heating\nblue: ASHPB heating", transform=ax.transAxes, fontsize=dm.fs(-4.5), va="bottom"
+    )
 
     # (h) tank-side closure residual
     ax = axes[7]
     g_old = _case(old, *ASHPB_CASE)
     g_new = _case(new, *ASHPB_CASE)
-    ax.semilogy(_pct(g_old.plr_request), np.abs(g_old.q_delivered_W - g_old.q_request_W).clip(lower=1e-9), ls=(0, (4, 1.6)), lw=dm.lw(0), color=COLORS["muted"], marker="o", ms=MS * 0.8, label="before")
-    ax.semilogy(_pct(g_new.plr_request), np.abs(g_new.tank_hx_residual).clip(lower=1e-9), "o-", ms=MS * 0.8, lw=dm.lw(0), color=COLORS["accent"], label="final")
+    ax.semilogy(
+        _pct(g_old.plr_request),
+        np.abs(g_old.q_delivered_W - g_old.q_request_W).clip(lower=1e-9),
+        ls=(0, (4, 1.6)),
+        lw=dm.lw(0),
+        color=COLORS["muted"],
+        marker="o",
+        ms=MS * 0.8,
+        label="before",
+    )
+    ax.semilogy(
+        _pct(g_new.plr_request),
+        np.abs(g_new.tank_hx_residual).clip(lower=1e-9),
+        "o-",
+        ms=MS * 0.8,
+        lw=dm.lw(0),
+        color=COLORS["accent"],
+        label="final",
+    )
     ax.set_ylim(1e-8, 1e5)
     ax.set_ylabel(r"$|\,Q_{del} - UA_{tank}\,\Delta T\,|$ [W]")
     ax.legend(loc="upper right", frameon=False, fontsize=dm.fs(-4.5))
 
     pd.DataFrame(rows).to_csv(SIM / "fig8_coil_diagnostics.csv", index=False)
-    merged = g_new[["plr_request", "plr_delivered", "n_star", "pr", "T_cond_C", "cop_sys", "E_cmp", "tank_hx_residual", "capacity_clamped"]].copy()
+    merged = g_new[
+        [
+            "plr_request",
+            "plr_delivered",
+            "n_star",
+            "pr",
+            "T_cond_C",
+            "cop_sys",
+            "E_cmp",
+            "tank_hx_residual",
+            "capacity_clamped",
+        ]
+    ].copy()
     merged = merged.merge(
         g_old[["plr_request", "plr_delivered", "n_star", "pr", "T_cond_C", "cop_sys", "E_cmp"]],
         on="plr_request",
@@ -700,10 +949,18 @@ def a1_speed_transfer() -> None:
     d = d[d.n_star < 1.0].copy()
     d["pred_oi"] = np.log([ce.leakage_factor(pr, n) * ce.flow_factor(n) for pr, n in zip(d.PR, d.n_star, strict=True)])
     d["pred_vol"] = np.log(
-        [(1 - ce.ETA_VOL_A * (pr - 1) - ce.ETA_VOL_B * max(0.0, 1 / n - 1)) / (1 - ce.ETA_VOL_A * (pr - 1)) for pr, n in zip(d.PR, d.n_star, strict=True)]
+        [
+            (1 - ce.ETA_VOL_A * (pr - 1) - ce.ETA_VOL_B * max(0.0, 1 / n - 1)) / (1 - ce.ETA_VOL_A * (pr - 1))
+            for pr, n in zip(d.PR, d.n_star, strict=True)
+        ]
     )
     d.to_csv(SIM / "figA1_speed_transfer.csv", index=False)
-    labels = {"copeland_opi": "Copeland scrolls", "cuevas_lebrun_2009": "Cuevas & Lebrun 2009", "guth_atakan_2023": "Guth & Atakan 2023", "shao_2004": "Shao et al. 2004 rotaries"}
+    labels = {
+        "copeland_opi": "Copeland scrolls",
+        "cuevas_lebrun_2009": "Cuevas & Lebrun 2009",
+        "guth_atakan_2023": "Guth & Atakan 2023",
+        "shao_2004": "Shao et al. 2004 rotaries",
+    }
     mk = {"copeland_opi": "o", "cuevas_lebrun_2009": "s", "guth_atakan_2023": "^", "shao_2004": "D"}
     fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36))
     ax = axes[0]
@@ -712,7 +969,16 @@ def a1_speed_transfer() -> None:
         med = g.groupby("pb", observed=True).agg(p=("pred_oi", "median"), o=("d_ln_eta_oi", "median"), n=("PR", "size"))
         med = med[med.n >= 3]
         ax.scatter(100 * g.pred_oi, 100 * g.d_ln_eta_oi, s=3, alpha=0.12, color=COLORS["muted"], edgecolors="none")
-        ax.plot(100 * med.p, 100 * med.o, mk[src], ms=3.4, color=COLORS["ink"], mfc="none", mew=HAIRLINE * 1.4, label=labels[src])
+        ax.plot(
+            100 * med.p,
+            100 * med.o,
+            mk[src],
+            ms=3.4,
+            color=COLORS["ink"],
+            mfc="none",
+            mew=HAIRLINE * 1.4,
+            label=labels[src],
+        )
     ax.plot([-40, 5], [-40, 5], color=COLORS["accent"], lw=HAIRLINE)
     ax.set_xlim(-40, 5)
     ax.set_ylim(-60, 25)
@@ -727,7 +993,9 @@ def a1_speed_transfer() -> None:
 
     ax = axes[1]
     cp = d[d.source_id == "copeland_opi"].copy()
-    cp["n_bin"] = pd.cut(cp.n_star, [0, 0.3, 0.45, 0.6, 0.8], labels=["n* < 0.30", "0.30–0.45", "0.45–0.60", "0.60–0.80"])
+    cp["n_bin"] = pd.cut(
+        cp.n_star, [0, 0.3, 0.45, 0.6, 0.8], labels=["n* < 0.30", "0.30–0.45", "0.45–0.60", "0.60–0.80"]
+    )
     cmap = plt.get_cmap("viridis")
     prs = np.linspace(1.5, 7.5, 60)
     for i, (lbl, g) in enumerate(cp.groupby("n_bin", observed=True)):
@@ -753,10 +1021,21 @@ def a1_speed_transfer() -> None:
     ax = axes[2]
     for src, g in d[d.d_ln_eta_vol.notna()].groupby("source_id"):
         g = g.assign(pb=pd.cut(g.pred_vol * 100, np.arange(-20, 2.5, 1.0)))
-        med = g.groupby("pb", observed=True).agg(p=("pred_vol", "median"), o=("d_ln_eta_vol", "median"), n=("PR", "size"))
+        med = g.groupby("pb", observed=True).agg(
+            p=("pred_vol", "median"), o=("d_ln_eta_vol", "median"), n=("PR", "size")
+        )
         med = med[med.n >= 3]
         ax.scatter(100 * g.pred_vol, 100 * g.d_ln_eta_vol, s=3, alpha=0.12, color=COLORS["muted"], edgecolors="none")
-        ax.plot(100 * med.p, 100 * med.o, mk[src], ms=3.4, color=COLORS["ink"], mfc="none", mew=HAIRLINE * 1.4, label=labels[src])
+        ax.plot(
+            100 * med.p,
+            100 * med.o,
+            mk[src],
+            ms=3.4,
+            color=COLORS["ink"],
+            mfc="none",
+            mew=HAIRLINE * 1.4,
+            label=labels[src],
+        )
     ax.plot([-20, 2], [-20, 2], color=COLORS["accent"], lw=HAIRLINE)
     ax.set_xlim(-20, 2)
     ax.set_ylim(-30, 10)
@@ -783,13 +1062,39 @@ def appendix_metrics() -> None:
     d = pd.concat(frames, ignore_index=True)
     d["cr_actual"] = d.plr_delivered
     rows = []
-    for key, g in d.groupby(["source_file", "model_class", "duty", "refrigerant", "capacity_W", "t_outdoor_C", "t_sink_C"]):
-        rec = dict(zip(["source_file", "model_class", "duty", "refrigerant", "capacity_W", "t_outdoor_C", "t_sink_C"], key, strict=True))
+    for key, g in d.groupby(
+        ["source_file", "model_class", "duty", "refrigerant", "capacity_W", "t_outdoor_C", "t_sink_C"]
+    ):
+        rec = dict(
+            zip(
+                ["source_file", "model_class", "duty", "refrigerant", "capacity_W", "t_outdoor_C", "t_sink_C"],
+                key,
+                strict=True,
+            )
+        )
         rec.update(metrics_for(g))
         rows.append(rec)
     out = pd.DataFrame(rows)
     out.to_csv(SIM / "appendix_plr_metrics.csv", index=False)
-    print(out[["source_file", "model_class", "duty", "refrigerant", "t_outdoor_C", "t_sink_C", "shape", "PLR_peak", "COP_peak", "PLR_low", "COP_low", "dCOP_low", "COP_rated"]].to_string(index=False, float_format=lambda v: f"{v:.3f}"))
+    print(
+        out[
+            [
+                "source_file",
+                "model_class",
+                "duty",
+                "refrigerant",
+                "t_outdoor_C",
+                "t_sink_C",
+                "shape",
+                "PLR_peak",
+                "COP_peak",
+                "PLR_low",
+                "COP_low",
+                "dCOP_low",
+                "COP_rated",
+            ]
+        ].to_string(index=False, float_format=lambda v: f"{v:.3f}")
+    )
 
 
 def main() -> None:

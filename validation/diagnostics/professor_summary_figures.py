@@ -104,14 +104,16 @@ FS_BASE = 11.0
 
 def _style() -> None:
     apply_style()
-    mpl.rcParams.update({
-        "font.size": FS_BASE,
-        "axes.labelsize": FS_BASE,
-        "axes.titlesize": FS_BASE,
-        "xtick.labelsize": FS_BASE - 1.0,
-        "ytick.labelsize": FS_BASE - 1.0,
-        "legend.fontsize": FS_BASE - 0.5,
-    })
+    mpl.rcParams.update(
+        {
+            "font.size": FS_BASE,
+            "axes.labelsize": FS_BASE,
+            "axes.titlesize": FS_BASE,
+            "xtick.labelsize": FS_BASE - 1.0,
+            "ytick.labelsize": FS_BASE - 1.0,
+            "legend.fontsize": FS_BASE - 0.5,
+        }
+    )
 
 
 FS_TITLE = 0.0  # relative to FS_BASE, for dm.fs()
@@ -132,8 +134,7 @@ def _save(fig, name: str, **margins) -> None:
     plt.close(fig)
 
 
-def _top_legend(fig, ax, *, ncol: int | None = None, fs: float | None = None,
-                max_width: float = 0.94) -> float:
+def _top_legend(fig, ax, *, ncol: int | None = None, fs: float | None = None, max_width: float = 0.94) -> float:
     """Put ``ax``'s legend above the axes, centred on the figure, in one row.
 
     ``simple_layout`` measures axes content only, so a figure-level legend is
@@ -149,10 +150,17 @@ def _top_legend(fig, ax, *, ncol: int | None = None, fs: float | None = None,
     frac = 0.0
     for size in (base, base - 0.5, base - 1.0, base - 1.5, base - 2.0, base - 2.5):
         leg = fig.legend(
-            handles, labels,
-            loc="upper center", bbox_to_anchor=(0.5, 1.0), ncol=ncol or len(handles),
-            frameon=False, fontsize=size,
-            handlelength=1.3, handletextpad=0.35, columnspacing=0.9, borderaxespad=0.0,
+            handles,
+            labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.0),
+            ncol=ncol or len(handles),
+            frameon=False,
+            fontsize=size,
+            handlelength=1.3,
+            handletextpad=0.35,
+            columnspacing=0.9,
+            borderaxespad=0.0,
         )
         fig.canvas.draw()
         bb = leg.get_window_extent()
@@ -187,8 +195,9 @@ def _title_headroom(fig) -> float:
     return need
 
 
-def _save_top_legend(fig, ax, name: str, *, ncol: int | None = None, fs: float | None = None,
-                     gap: float = 2.0, **margins) -> None:
+def _save_top_legend(
+    fig, ax, name: str, *, ncol: int | None = None, fs: float | None = None, gap: float = 2.0, **margins
+) -> None:
     frac = _top_legend(fig, ax, ncol=ncol, fs=fs) + _title_headroom(fig)
     _save(fig, name, mt=f"{100 * frac + gap:.1f}%", **margins)
 
@@ -234,8 +243,9 @@ def _plr_curve(ax, g, color, label=None):
     mod, floor = _mod_floor(g)
     ax.plot(100 * mod.plr_request, mod.cop_sys, lw=dm.lw(0), color=color, marker="o", ms=MS, label=label)
     if len(floor):
-        ax.plot(100 * floor.plr_request, floor.cop_sys, ls="none", marker="o", ms=MS,
-                mfc="white", mec=color, mew=HAIRLINE)
+        ax.plot(
+            100 * floor.plr_request, floor.cop_sys, ls="none", marker="o", ms=MS, mfc="white", mec=color, mew=HAIRLINE
+        )
 
 
 def _map_panel(ax, g, cmap_name, title, ylim, ystep, xlabel=True, ylabel=True, label=True):
@@ -273,15 +283,14 @@ def p1_before_after() -> None:
         ok = [g[g.failure_reason == "none"].cop_sys for g in panels]
         lo, hi, step = _auto_ylim(pd.concat(ok))
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44))
-        for c, ((w, tag), g) in enumerate(zip(cols, panels, strict=True)):
-            _map_panel(axes[c], g, style["cmap"], tag,
-                       (lo, hi), step, ylabel=(c == 0), label=(c == 0))
+        for c, ((_w, tag), g) in enumerate(zip(cols, panels, strict=True)):
+            _map_panel(axes[c], g, style["cmap"], tag, (lo, hi), step, ylabel=(c == 0), label=(c == 0))
             panel_letter(axes[c], "ab"[c])
         _save_top_legend(fig, axes[0], f"P1_before_after_plr_cop_{duty}")
 
     out = []
     for duty in ("heating", "cooling"):
-        for w, tag in CASES:
+        for w, _tag in CASES:
             g = _with_fixed(d[d.duty == duty], w)
             for t, gg in g.groupby("t_outdoor_C"):
                 m = metrics_for(gg)
@@ -322,11 +331,27 @@ def p2_delta_cop() -> None:
                 col = cmap(0.1 + 0.8 * i / max(len(temps) - 1, 1))
                 b = base[(base.t_outdoor_C == t) & (base.failure_reason == "none")].sort_values("plr_request")
                 n = new[(new.t_outdoor_C == t) & (new.failure_reason == "none")].sort_values("plr_request")
-                ax.plot(100 * b.plr_request, n.cop_sys.to_numpy() - b.cop_sys.to_numpy(),
-                        lw=dm.lw(0), color=col, marker="o", ms=MS, label=f"{t:g} °C")
-                for plr, cb, cn in zip(b.plr_request, b.cop_sys, n.cop_sys):
-                    recs.append({"duty": duty, "W_fixed_W": w, "t_outdoor_C": t, "plr_request": plr,
-                                 "cop_before": cb, "cop_after": cn, "delta_cop": cn - cb})
+                ax.plot(
+                    100 * b.plr_request,
+                    n.cop_sys.to_numpy() - b.cop_sys.to_numpy(),
+                    lw=dm.lw(0),
+                    color=col,
+                    marker="o",
+                    ms=MS,
+                    label=f"{t:g} °C",
+                )
+                for plr, cb, cn in zip(b.plr_request, b.cop_sys, n.cop_sys, strict=False):
+                    recs.append(
+                        {
+                            "duty": duty,
+                            "W_fixed_W": w,
+                            "t_outdoor_C": t,
+                            "plr_request": plr,
+                            "cop_before": cb,
+                            "cop_after": cn,
+                            "delta_cop": cn - cb,
+                        }
+                    )
             ax.axhline(0, color=COLORS["muted"], lw=HAIRLINE)
             ax.set_xlim(0, 100)
             ax.set_xticks(ticks(0, 100, 20))
@@ -335,8 +360,14 @@ def p2_delta_cop() -> None:
             ax.set_ylabel(r"$\Delta \mathrm{COP}$ [-]")
             ax.set_title(f"{head} · {tag}", fontsize=dm.fs(-2.0), loc="left")
             if c == 0:
-                ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-3.0),
-                          title="outdoor", title_fontsize=dm.fs(-3.0), ncol=2)
+                ax.legend(
+                    loc="lower right",
+                    frameon=False,
+                    fontsize=dm.fs(-3.0),
+                    title="outdoor",
+                    title_fontsize=dm.fs(-3.0),
+                    ncol=2,
+                )
             _grid(ax)
             panel_letter(ax, "abcd"[r * 2 + c])
     _save(fig, "P2_delta_cop", mt="8%")
@@ -354,10 +385,13 @@ def p3_peak_shift() -> None:
     fig, axes = plt.subplots(2, 2, figsize=dm.figsize("17cm", 0.60))
     for r, duty in enumerate(("heating", "cooling")):
         for c, (col, ylab, ylim, ystep) in enumerate(
-            (("PLR_peak", "PLR at the COP maximum [%]", (0, 100), 20),
-             ("COP_low_over_rated", r"$\mathrm{COP}_{low} / \mathrm{COP}_{rated}$ [-]", (0.8, 1.4), 0.1))):
+            (
+                ("PLR_peak", "PLR at the COP maximum [%]", (0, 100), 20),
+                ("COP_low_over_rated", r"$\mathrm{COP}_{low} / \mathrm{COP}_{rated}$ [-]", (0.8, 1.4), 0.1),
+            )
+        ):
             ax = axes[r][c]
-            for (w, tag), cc, mk in zip(CASES, colors, marks):
+            for (w, tag), cc, mk in zip(CASES, colors, marks, strict=False):
                 g = m[(m.duty == duty) & (m.W_fixed_W == w)].sort_values("t_outdoor_C")
                 y = 100 * g[col] if col == "PLR_peak" else g[col]
                 ax.plot(g.t_outdoor_C, y, lw=dm.lw(0), color=cc, marker=mk, ms=MS + 0.6, label=tag)
@@ -402,27 +436,30 @@ def p4_parity() -> None:
     d = pd.read_csv(SIM / "fig4_cop_parity.csv")
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.50))
     recs = []
-    for ax, mc, lo, hi, step, head in ((axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
-                                       (axes[1], "ASHPB", 1, 7, 1, "ASHPB · Panasonic 9 + Samsung 1")):
+    for ax, mc, lo, hi, step, head in (
+        (axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
+        (axes[1], "ASHPB", 1, 7, 1, "ASHPB · Panasonic 9 + Samsung 1"),
+    ):
         g = d[d.model_class == mc]
         q = g.q_kW * 1000.0
         _parity_axes(ax, lo, hi, step, "Catalogue COP [-]", "TMHP COP [-]")
         lines = [f"{'':>5} {'MAPE':>5} {'bias':>6} {'±10 %':>5}"]
-        series = ((0.0, "no fixed power", COLORS["ink"], "o"),
-                  (W_CANDIDATE, "with fixed power", COLORS["warm"], "^"))
+        series = ((0.0, "no fixed power", COLORS["ink"], "o"), (W_CANDIDATE, "with fixed power", COLORS["warm"], "^"))
         for w, tag, cc, mk in series:
             pred = q / (q / g.cop_pred + w)
             mape, bias, n = _stats(pred, g.cop_target)
             within = float((np.abs((pred - g.cop_target) / g.cop_target) <= 0.10).mean() * 100)
             ax.plot(g.cop_target, pred, mk, ms=MS, alpha=0.65, mew=0, color=cc, label=tag)
             lines.append(f"{('base' if not w else 'fixed'):>5} {mape:5.2f} {bias:+6.2f} {within:5.0f}")
-            recs.append({"model_class": mc, "W_fixed_W": w, "MAPE_pct": mape, "bias_pct": bias,
-                         "within_10pct": within, "n": n})
+            recs.append(
+                {"model_class": mc, "W_fixed_W": w, "MAPE_pct": mape, "bias_pct": bias, "within_10pct": within, "n": n}
+            )
         # The unit description moved into the title: at page type size the
         # header line no longer fits inside the panel next to the stats block.
         ax.set_title(head, fontsize=dm.fs(FS_TITLE), loc="left")
-        ax.text(0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top",
-                fontsize=dm.fs(FS_ANNOT), family="monospace")
+        ax.text(
+            0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top", fontsize=dm.fs(FS_ANNOT), family="monospace"
+        )
         panel_letter(ax, "ab"[0 if mc == "ASHP" else 1])
     _save_top_legend(fig, axes[0], "P4_parity_before_after")
     OUT.mkdir(parents=True, exist_ok=True)
@@ -437,12 +474,15 @@ def p4_parity() -> None:
 # series are told apart by marker shape here.
 # ---------------------------------------------------------------------------
 CONDS = {
-    "heating": (("heating_7", "ASHP · Heating 7/20 °C (main)"),
-                ("heating_m7", "ASHP · Heating −7/20 °C (secondary)")),
+    "heating": (("heating_7", "ASHP · Heating 7/20 °C (main)"), ("heating_m7", "ASHP · Heating −7/20 °C (secondary)")),
     "cooling": (("cooling_35", "ASHP · Cooling 35/27 °C"),),
 }
-W_SERIES = ((0.0, COLORS["ink"], "o"), (25.0, COLORS["accent"], "s"),
-            (50.0, COLORS["warm"], "^"), (100.0, COLORS["accent3"], "D"))
+W_SERIES = (
+    (0.0, COLORS["ink"], "o"),
+    (25.0, COLORS["accent"], "s"),
+    (50.0, COLORS["warm"], "^"),
+    (100.0, COLORS["accent3"], "D"),
+)
 
 
 def _series(ax, g, col, color, marker, label=None, ls="solid"):
@@ -450,12 +490,19 @@ def _series(ax, g, col, color, marker, label=None, ls="solid"):
     g = g.sort_values("PLR_request")
     mod = g[g.capacity_clamped.isna()]
     floor = g[g.capacity_clamped == "min"]
-    ax.plot(100 * mod.PLR_request, mod[col], ls=ls, lw=dm.lw(0), color=color,
-            marker=marker, ms=MS, label=label)
+    ax.plot(100 * mod.PLR_request, mod[col], ls=ls, lw=dm.lw(0), color=color, marker=marker, ms=MS, label=label)
     if len(floor):
         if marker:
-            ax.plot(100 * floor.PLR_request, floor[col], ls="none", marker=marker, ms=MS,
-                    mfc="white", mec=color, mew=HAIRLINE)
+            ax.plot(
+                100 * floor.PLR_request,
+                floor[col],
+                ls="none",
+                marker=marker,
+                ms=MS,
+                mfc="white",
+                mec=color,
+                mew=HAIRLINE,
+            )
         else:
             ax.plot(100 * floor.PLR_request, floor[col], ls=(0, (1, 2)), lw=dm.lw(0), color=color)
 
@@ -486,8 +533,14 @@ def p5_p6_fixed_power() -> None:
         for j, (cond, title) in enumerate(conds):
             ax = axes[j]
             for w, cc, mk in W_SERIES:
-                _series(ax, d[(d.condition == cond) & (d.W_fixed == w)], "COP_sys", cc, mk,
-                        label=f"$W_{{fixed}}$ = {w:g} W" if j == 0 else None)
+                _series(
+                    ax,
+                    d[(d.condition == cond) & (d.W_fixed == w)],
+                    "COP_sys",
+                    cc,
+                    mk,
+                    label=f"$W_{{fixed}}$ = {w:g} W" if j == 0 else None,
+                )
             _xaxis(ax)
             ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
             ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
@@ -501,8 +554,14 @@ def p5_p6_fixed_power() -> None:
         for j, (cond, title) in enumerate(conds):
             ax = axes[j]
             for w, cc, mk in W_SERIES[1:]:
-                _series(ax, d[(d.condition == cond) & (d.W_fixed == w)], "fixed_power_fraction", cc, mk,
-                        label=f"{w:g} W" if j == 0 else None)
+                _series(
+                    ax,
+                    d[(d.condition == cond) & (d.W_fixed == w)],
+                    "fixed_power_fraction",
+                    cc,
+                    mk,
+                    label=f"{w:g} W" if j == 0 else None,
+                )
             _xaxis(ax)
             ax.set_ylim(0, 0.5)
             ax.set_yticks(ticks(0, 0.5, 0.1))
@@ -513,26 +572,27 @@ def p5_p6_fixed_power() -> None:
         _save_top_legend(fig, axes[0], f"P6_fixed_power_fraction_{duty}")
 
 
-FAN_CONDS = {"heating": ("heating_7", "ASHP · Heating 7/20 °C"),
-             "cooling": ("cooling_35", "ASHP · Cooling 35/27 °C")}
+FAN_CONDS = {"heating": ("heating_7", "ASHP · Heating 7/20 °C"), "cooling": ("cooling_35", "ASHP · Cooling 35/27 °C")}
 
 
 def p7_fan_min_power() -> None:
     d = pd.read_csv(FAN / "fan_model_sensitivity_once.csv")
     d = d[d.failure_reason == "none"]
-    series = (("baseline", "current TMHP", COLORS["ink"], "o"),
-              ("pmin_05", r"$P_{min}$ = 5 %", COLORS["cool"], "s"),
-              ("pmin_10", r"$P_{min}$ = 10 %", COLORS["ess"], "^"),
-              ("pmin_20", r"$P_{min}$ = 20 %", COLORS["accent"], "D"),
-              ("pmin_30", r"$P_{min}$ = 30 %", COLORS["warm"], "v"))
+    series = (
+        ("baseline", "current TMHP", COLORS["ink"], "o"),
+        ("pmin_05", r"$P_{min}$ = 5 %", COLORS["cool"], "s"),
+        ("pmin_10", r"$P_{min}$ = 10 %", COLORS["ess"], "^"),
+        ("pmin_20", r"$P_{min}$ = 20 %", COLORS["accent"], "D"),
+        ("pmin_30", r"$P_{min}$ = 30 %", COLORS["warm"], "v"),
+    )
     for duty, (cond, title) in FAN_CONDS.items():
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.46))
-        for c, (col, ylab) in enumerate((("E_fan_total", "Fan power, both fans [W]"),
-                                         ("COP_sys", r"System $\mathrm{COP}$ [-]"))):
+        for c, (col, ylab) in enumerate(
+            (("E_fan_total", "Fan power, both fans [W]"), ("COP_sys", r"System $\mathrm{COP}$ [-]"))
+        ):
             ax = axes[c]
             for cfg, lbl, cc, mk in series:
-                _series(ax, d[(d.condition == cond) & (d.config == cfg)], col, cc, mk,
-                        label=lbl if c == 0 else None)
+                _series(ax, d[(d.condition == cond) & (d.config == cfg)], col, cc, mk, label=lbl if c == 0 else None)
             _xaxis(ax)
             ax.set_ylabel(ylab)
             ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
@@ -558,8 +618,10 @@ def p14_fan_floor_parity() -> None:
 
     fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.50))
     recs = []
-    for ax, mc, lo, hi, step, head in ((axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
-                                       (axes[1], "ASHPB", 1, 7, 1, "ASHPB · Panasonic 9 + Samsung 1")):
+    for ax, mc, lo, hi, step, head in (
+        (axes[0], "ASHP", 1, 9, 2, "ASHP · Daikin RXM-A, 5 units"),
+        (axes[1], "ASHPB", 1, 7, 1, "ASHPB · Panasonic 9 + Samsung 1"),
+    ):
         g = m[m.model_class == mc]
         _parity_axes(ax, lo, hi, step, "Catalogue COP [-]", "TMHP COP [-]")
         lines = [f"{'':>5} {'MAPE':>5} {'bias':>6} {'±10 %':>5}"]
@@ -567,18 +629,29 @@ def p14_fan_floor_parity() -> None:
         # figures can be read against each other. The two sets here nearly
         # coincide, so the baseline circles sit under the triangles rather
         # than beside them -- that overlap is the finding.
-        for col, tag, cc, mk, key2 in (("cop_base", "no fan floor", COLORS["ink"], "o", "base"),
-                                       ("cop_floor", "with fan floor", COLORS["warm"], "^", "fan")):
+        for col, tag, cc, mk, key2 in (
+            ("cop_base", "no fan floor", COLORS["ink"], "o", "base"),
+            ("cop_floor", "with fan floor", COLORS["warm"], "^", "fan"),
+        ):
             pred = g[col]
             mape, bias, n = _stats(pred, g.cop_target)
             within = float((np.abs((pred - g.cop_target) / g.cop_target) <= 0.10).mean() * 100)
             ax.plot(g.cop_target, pred, mk, ms=MS, alpha=0.65, mew=0, color=cc, label=tag)
             lines.append(f"{key2:>5} {mape:5.2f} {bias:+6.2f} {within:5.0f}")
-            recs.append({"model_class": mc, "p_min_frac": 0.0 if key2 == "base" else 0.30,
-                         "MAPE_pct": mape, "bias_pct": bias, "within_10pct": within, "n": n})
+            recs.append(
+                {
+                    "model_class": mc,
+                    "p_min_frac": 0.0 if key2 == "base" else 0.30,
+                    "MAPE_pct": mape,
+                    "bias_pct": bias,
+                    "within_10pct": within,
+                    "n": n,
+                }
+            )
         ax.set_title(head, fontsize=dm.fs(FS_TITLE), loc="left")
-        ax.text(0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top",
-                fontsize=dm.fs(FS_ANNOT), family="monospace")
+        ax.text(
+            0.04, 0.96, "\n".join(lines), transform=ax.transAxes, va="top", fontsize=dm.fs(FS_ANNOT), family="monospace"
+        )
         panel_letter(ax, "ab"[0 if mc == "ASHP" else 1])
     _save_top_legend(fig, axes[0], "P14_parity_fan_floor")
     OUT.mkdir(parents=True, exist_ok=True)
@@ -601,8 +674,7 @@ def p13_fan_floor_map() -> None:
         lo, hi, step = _auto_ylim(pd.concat(ok))
         fig, axes = plt.subplots(1, 2, figsize=dm.figsize("17cm", 0.44))
         for c, ((_cfg, tag), g) in enumerate(zip(cols, panels, strict=True)):
-            _map_panel(axes[c], g, style["cmap"], tag, (lo, hi), step,
-                       ylabel=(c == 0), label=(c == 0))
+            _map_panel(axes[c], g, style["cmap"], tag, (lo, hi), step, ylabel=(c == 0), label=(c == 0))
             panel_letter(axes[c], "ab"[c])
         _save_top_legend(fig, axes[0], f"P13_fan_floor_plr_cop_{duty}")
 
@@ -612,14 +684,19 @@ def p8_efficiency(rated: float = 50.0) -> None:
     prs = (2.0, 3.0, 4.5)
     styles = [(0, (1, 1.2)), "solid", (0, (4, 1.6))]
     ev, ei, ee = ce.make_eta_vol(rated), ce.make_eta_isen(rated), ce.make_eta_em(rated)
-    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36),
-                             gridspec_kw={"wspace": 0.42})
+    fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36), gridspec_kw={"wspace": 0.42})
     labels = (r"$\eta_v$ [-]", r"$\eta_{is}$ [-]", r"$\eta_{em}$ [-]")
     fns = (lambda pr, n: ev(pr, n * rated), lambda pr, n: ei(pr, n * rated), lambda pr, n: ee(pr, n * rated))
     for k, (ax, lab, fn, letter) in enumerate(zip(axes, labels, fns, "abc", strict=True)):
         for pr, ls in zip(prs, styles, strict=True):
-            ax.plot(ns, [fn(pr, n) for n in ns], color=COLORS["ink"], ls=ls, lw=dm.lw(0.5),
-                    label=rf"$r_p$ = {pr:g}" if k == 0 else None)
+            ax.plot(
+                ns,
+                [fn(pr, n) for n in ns],
+                color=COLORS["ink"],
+                ls=ls,
+                lw=dm.lw(0.5),
+                label=rf"$r_p$ = {pr:g}" if k == 0 else None,
+            )
         ax.axvspan(0.25, 0.375, color=COLORS["band20"], alpha=0.25, lw=0)
         ax.set_xlim(0.2, 2.0)
         ax.set_xticks(ticks(0.2, 2.0, 0.6))
@@ -641,12 +718,19 @@ def p8_efficiency(rated: float = 50.0) -> None:
 # ---------------------------------------------------------------------------
 def p10_pto_proxy() -> None:
     d = pd.read_csv(LP / "low_load_fixed_power_sh_sc_once.csv")
-    d = d[(d.sh_sc_mode == "mode_A") & (d.SH_set == 3.0) & (d.SC_set == 3.0)
-          & (d.failure_reason == "none") & (d.W_fixed == 0.0)]
-    series = ((0.0, COLORS["ink"], "o", "current TMHP"),
-              (W_MEASURED, COLORS["ess"], "s", rf"+ measured $P_{{TO}}$ ({W_MEASURED:.0f} W)"),
-              (25.0, COLORS["accent"], "^", "+ 25 W"),
-              (50.0, COLORS["warm"], "D", "+ 50 W"))
+    d = d[
+        (d.sh_sc_mode == "mode_A")
+        & (d.SH_set == 3.0)
+        & (d.SC_set == 3.0)
+        & (d.failure_reason == "none")
+        & (d.W_fixed == 0.0)
+    ]
+    series = (
+        (0.0, COLORS["ink"], "o", "current TMHP"),
+        (W_MEASURED, COLORS["ess"], "s", rf"+ measured $P_{{TO}}$ ({W_MEASURED:.0f} W)"),
+        (25.0, COLORS["accent"], "^", "+ 25 W"),
+        (50.0, COLORS["warm"], "D", "+ 50 W"),
+    )
     for duty, (cond, title) in FAN_CONDS.items():
         g = d[d.condition == cond].sort_values("PLR_request")
         fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.58))
@@ -674,21 +758,31 @@ DASHES = ("solid", (0, (5, 1.6)), (0, (2.4, 1.3)), (0, (1, 1.3)))
 def p11_min_airflow() -> None:
     d = pd.read_csv(FAN / "fan_model_sensitivity_once.csv")
     d = d[d.failure_reason == "none"]
-    series = (("baseline", "current TMHP", COLORS["ink"], "o"),
-              ("floor_20", r"$x_{min}$ = 20 %", COLORS["cool"], ""),
-              ("floor_30", r"$x_{min}$ = 30 %", COLORS["accent"], ""),
-              ("floor_40", r"$x_{min}$ = 40 %", COLORS["hot"], ""))
-    quants = (("COP_sys", r"System $\mathrm{COP}$ [-]"),
-              ("V_air_ratio_ou", r"Outdoor $V_{air}\,/\,V_{air,rated}$ [-]"),
-              ("E_fan_total", "Fan power, both fans [W]"))
+    series = (
+        ("baseline", "current TMHP", COLORS["ink"], "o"),
+        ("floor_20", r"$x_{min}$ = 20 %", COLORS["cool"], ""),
+        ("floor_30", r"$x_{min}$ = 30 %", COLORS["accent"], ""),
+        ("floor_40", r"$x_{min}$ = 40 %", COLORS["hot"], ""),
+    )
+    quants = (
+        ("COP_sys", r"System $\mathrm{COP}$ [-]"),
+        ("V_air_ratio_ou", r"Outdoor $V_{air}\,/\,V_{air,rated}$ [-]"),
+        ("E_fan_total", "Fan power, both fans [W]"),
+    )
     for duty, (cond, _title) in FAN_CONDS.items():
-        fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36),
-                                 gridspec_kw={"wspace": 0.60})
+        fig, axes = plt.subplots(1, 3, figsize=dm.figsize("17cm", 0.36), gridspec_kw={"wspace": 0.60})
         for j, (col, ylab) in enumerate(quants):
             ax = axes[j]
             for k, (cfg, lbl, cc, mk) in enumerate(series):
-                _series(ax, d[(d.condition == cond) & (d.config == cfg)], col, cc, mk,
-                        label=lbl if j == 0 else None, ls=DASHES[k])
+                _series(
+                    ax,
+                    d[(d.condition == cond) & (d.config == cfg)],
+                    col,
+                    cc,
+                    mk,
+                    label=lbl if j == 0 else None,
+                    ls=DASHES[k],
+                )
             # Three panels of one condition: the title would repeat three
             # times and the x-label with it, so both live in the caption.
             _xaxis(ax, label=(j == 1))
@@ -700,25 +794,36 @@ def p11_min_airflow() -> None:
 def p12_rated_fan_power() -> None:
     d = pd.read_csv(FAN / "fan_model_sensitivity_once.csv")
     d = d[d.failure_reason == "none"]
-    series = (("baseline", "100 % (current TMHP)", COLORS["ink"], "o"),
-              ("power_070", "70 % of rated", COLORS["cool"], ""),
-              ("power_130", "130 % of rated", COLORS["hot"], ""))
+    series = (
+        ("baseline", "100 % (current TMHP)", COLORS["ink"], "o"),
+        ("power_070", "70 % of rated", COLORS["cool"], ""),
+        ("power_130", "130 % of rated", COLORS["hot"], ""),
+    )
     for duty, (cond, title) in FAN_CONDS.items():
         fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.58))
         for k, (cfg, lbl, cc, mk) in enumerate(series):
-            _series(ax, d[(d.condition == cond) & (d.config == cfg)], "COP_sys", cc, mk,
-                    label=lbl, ls=DASHES[k])
+            _series(ax, d[(d.condition == cond) & (d.config == cfg)], "COP_sys", cc, mk, label=lbl, ls=DASHES[k])
         _xaxis(ax)
         ax.set_ylabel(r"System $\mathrm{COP}$ [-]")
         ax.set_title(title, fontsize=dm.fs(FS_TITLE), loc="left")
         _save_top_legend(fig, ax, f"P12_rated_fan_power_{duty}")
 
 
-FIGURES = (("P1", p1_before_after), ("P2", p2_delta_cop), ("P3", p3_peak_shift), ("P4", p4_parity),
-           ("P5/P6", p5_p6_fixed_power), ("P7", p7_fan_min_power), ("P8", p8_efficiency),
-           ("P9", p9_baseline_map), ("P10", p10_pto_proxy), ("P11", p11_min_airflow),
-           ("P12", p12_rated_fan_power), ("P13", p13_fan_floor_map),
-           ("P14", p14_fan_floor_parity))
+FIGURES = (
+    ("P1", p1_before_after),
+    ("P2", p2_delta_cop),
+    ("P3", p3_peak_shift),
+    ("P4", p4_parity),
+    ("P5/P6", p5_p6_fixed_power),
+    ("P7", p7_fan_min_power),
+    ("P8", p8_efficiency),
+    ("P9", p9_baseline_map),
+    ("P10", p10_pto_proxy),
+    ("P11", p11_min_airflow),
+    ("P12", p12_rated_fan_power),
+    ("P13", p13_fan_floor_map),
+    ("P14", p14_fan_floor_parity),
+)
 
 
 def main() -> None:

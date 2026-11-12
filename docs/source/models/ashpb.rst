@@ -81,11 +81,15 @@ and in the tuple constants of the module. The design notes are in
 
    The fit covers pressure ratio 1.50–7.15 and shaft speed
    33.8–72.5 rev/s (the convex hull of 3,899 scroll data points). The
-   model's default search range (``rps_min``/``rps_max`` = 15/150 rev/s,
-   ``PR_cycle_max`` = 20) lies well outside it. Extrapolating the polynomial
-   outside the fitted range is not reliable: it can return an isentropic
-   efficiency near zero or negative, and a volumetric or electromechanical
-   efficiency above 1. A guard for this is being added (#96).
+   model's operating range (``rps_min`` = 15 rev/s, ``rps_max`` up to
+   ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``, ``PR_cycle_max`` = 11) reaches outside
+   it. Outside the box the guarded fit holds the boundary value (high PR,
+   high speed) or continues the boundary slope downward (low PR, low speed),
+   and steady results report ``efficiency_extrapolated``. At PR above 7 the
+   fitted isentropic efficiency is 0.37–0.45, which drives the computed
+   discharge temperature of R32 to 200–290 °C; such points are refused by the
+   discharge-temperature limit ``T_dis_max`` (see
+   :doc:`/developer/reference-operating-limits`).
 
 An explicitly supplied float or callable for the corresponding constructor
 argument overrides these defaults. The earlier linear correlations

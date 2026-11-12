@@ -156,8 +156,9 @@ is used as a fallback only when a callable is invoked without its speed.
 When omitted, the reference state solves the speed delivering ``hp_capacity``
 and its ``m_dot_ref_rated`` at the family's rating condition
 (:doc:`/models/reference-state`). Explicit rated speed and refrigerant flow
-remain available. The reference solve does not change ``rps_min`` or
-``rps_max``.
+remain available. The reference solve does not change ``rps_min``; an
+omitted ``rps_max`` is derived from the rated speed it finds (see the
+operating envelope below).
 
 The default polynomials carry their fitting-data box
 (``VALIDITY_DOMAIN``: PR 1.50-7.15, N 33.8-72.5 rev/s, from the scroll hull
@@ -201,3 +202,123 @@ The temporary 2026-10-07 policy of passing fitted efficiencies above one
 through unchanged has ended (issue #96). Values above one are set to one, the
 bound each efficiency approaches; nonpositive and nonfinite efficiencies remain
 invalid.
+
+Compressor operating envelope (2026-11-13)
+------------------------------------------
+
+The five families share one envelope, defined in
+:mod:`tmhp.compressor_envelope`. A result reported as running
+(``hp_is_on``, ``converged``, ``failure_reason == "none"``) satisfies all
+of it.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 30 48
+
+    * - Limit
+      - Default
+      - Rule
+    * - ``T_dis_max`` (constructor, keyword)
+      - ``"auto"``: R32 150 °C, every other refrigerant 135 °C.
+        ``None`` switches the check off; a number sets it.
+      - Compressor protection settings: Danfoss SH (R410A) discharge gas
+        ≤ 135 °C; Danfoss PSH (R410A/R454B) wet injection from 121 °C,
+        safety maximum 135 °C; Danfoss DSF (R32) external discharge-gas
+        protection opening at ≤ 150 °C. Unit controllers act earlier on the
+        discharge *pipe* (Daikin room units: frequency drop from about
+        100 °C, stop at 110–120 °C); the model uses the protection value
+        because it has no shell heat loss and puts all compressor loss
+        into the gas. A point above the limit is not an operating point.
+    * - ``PR_cycle_max``
+      - 11 for every family (was 20 for the boilers, 5 for GSHP).
+      - Single-stage scroll hardware limit. With the discharge limit in
+        force it is a sanity bound: inside the discharge limit only R134a /
+        R1234yf boiler points at PR 11–15.4 used it, every one outside the
+        efficiency fit in both pressure ratio and speed. Higher ratios are
+        two-stage or injection machines.
+    * - ``rps_max``
+      - ``None``: ``max(min(2 × rps_rated, 120), 1.5 × rps_rated)``.
+      - The rated speed is solved first over ``[rps_min, 150]``. The adopted
+        catalogues need at most 1.66 × the rated speed; the former fixed
+        150 rev/s let the compressor alone deliver 2.5–5.9 × nameplate.
+        120 rev/s is the top of variable-speed scroll and rotary ranges; a
+        machine rated above 80 rev/s (R134a with the default displacement,
+        #86) keeps 1.5 × its rated speed, the catalogue maximum-to-rated
+        capacity ratio. A user value is kept.
+    * - ``rps_min``
+      - 15 rev/s
+      - Unchanged.
+
+How each family answers a point above ``T_dis_max``:
+
+* **ASHP, GSHP** — the candidate is rejected inside the operating-point
+  search, like a pressure-ratio ceiling. The search moves to a smaller lift
+  if one carries the duty (ASHP adds a 16 × 16 approach lattice when its 8 × 8
+  one finds nothing: the band between the coil's airflow limit and the
+  discharge limit can be a few kelvin wide); otherwise the capacity search returns the largest
+  deliverable duty with ``capacity_clamped == "max"`` and
+  ``capacity_binding == "discharge_temperature"`` (the next larger duty is
+  deliverable once the limit is lifted). With no deliverable duty the result
+  is the off state with ``failure_reason == "discharge_temp_above_max"``.
+* **ASHPB, GSHPB, WSHPB** (``analyze_steady``) — the solved operating point is
+  checked after :func:`tmhp.dynamic_context.unphysical_cycle_detail`. A
+  request above the limit is retried at 80/60/40/25/10 % and the boundary is
+  bisected to 1 % of the request; the largest duty that runs is returned with
+  ``capacity_clamped == "max"``, ``capacity_binding ==
+  "discharge_temperature"``, ``Q_max [W]`` and ``Q_request [W]``. If none runs
+  the off state carries ``discharge_temp_above_max``. The discharge
+  temperature is not monotone in the duty (at low speed the efficiency
+  falls), so this is the boundary nearest the request.
+* **Boiler dynamic steps** are off steps with ``discharge_temp_above_max``;
+  the step does not reduce its duty.
+
+Steady results of every family carry ``efficiency_extrapolated`` (bool):
+the point lies outside the (PR, N) box of a default efficiency fit. Scalar
+and user efficiencies give ``False``.
+
+The low-speed, high-pressure-ratio corner (PR > 7.15 below 33.8 rev/s, where
+the guarded fit continues down to eta_is 0.14) gets no separate speed floor:
+all 85 running points of the 2026-11-13 sweep in that corner discharge at
+191–348 °C and are refused by the discharge limit.
+
+Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; the
+committed ``validation/results`` are regenerated separately):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 34 22 22 22
+
+    * - Set
+      - before (``a1b48df``)
+      - this envelope
+      - envelope, ``T_dis_max=None``
+    * - all 15 units
+      - 513/513, 11.6 %
+      - 475/513, 11.9 %
+      - 507/513, 11.6 %
+    * - air-to-air (5)
+      - 360/360, 12.1 %
+      - 360/360, 12.1 %
+      - 360/360, 12.1 %
+    * - air-to-water (10)
+      - 153/153, 10.3 %, bias +5.6 %
+      - 115/153, 11.3 %, bias +7.0 %
+      - 147/153, 10.3 %
+    * - air-to-water, outdoor ≤ −7 °C
+      - 57/57
+      - 23/57
+      - 51/57
+
+The 38 air-to-water points refused discharge at 141–293 °C in the unbounded
+model (R32 21, R410A 11, R290 6); the six that ``T_dis_max=None`` still loses
+are refused by the pressure-ratio ceiling *during the outdoor-approach search*
+although their solved ratio is 10.0–10.5 -- the ASHPB search has no pre-scan
+(#96 C2) -- and all six exceed the discharge limit anyway.
+
+Not modelled: discharge-temperature *control* (lower superheat, wet suction,
+liquid or vapour injection). Evaluated on the solved states, it would
+recover 25 of the 40 adopted air-to-water catalogue points above the limit
+(capacity −4 %, COP −0.7 %) and none of the R32 points at 221–293 °C, whose
+discharge temperature comes from the fitted eta_is of 0.37–0.45 at
+PR > 7 (both the default and the ``v2026-09-24`` correlations fall there).
+

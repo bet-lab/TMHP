@@ -318,7 +318,8 @@ def _charge_storage_ratio(tank_cls, dt: float = 600.0, seconds: float = 1800.0) 
     return (tank.stored_energy - E0) / injected
 
 
-@defect("T5", "HybridStratifiedTank front moves one node per step: 8 % (dt 600 s) of injected heat is stored")
+# T5 fixed by the conservative plug-flow barrier (hybrid_tank._advect): was 8 % (dt 600 s) /
+# 46 % (dt 60 s) of the injected heat stored because the front moved at most one node per step.
 def test_t5_hybrid_tank_stores_injected_heat():
     from tmhp.hybrid_tank import HybridStratifiedTank
 

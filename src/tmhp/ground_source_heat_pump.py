@@ -1066,7 +1066,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     _INDOOR_FALLBACK_POINTS = 19
     #: Indoor-approach grid used when testing whether a duty can be delivered.
     _CAPACITY_GRID_POINTS = 9
-    _GROUND_CLOSURE_MAX_ITER = 16
+    _GROUND_CLOSURE_MAX_ITER = 24
+    #: Width [K] to which the approach at the compressor envelope edge is resolved.
+    _ENVELOPE_APPROACH_TOL_K = 1e-2
     #: Ground-fluid temperature closure tolerance [K] (as the coupled solver).
     _FLUID_TEMPERATURE_TOL_K = 1e-5
     #: Ground-side closures that describe a physical operating state. Spare
@@ -1076,12 +1078,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     #: the condenser runs partly flooded) instead of following the ground loop.
     _BALANCED = frozenset({"equality", "slack_bound", "slack_floor"})
 
-    def _ground_conductance(self, mode: str) -> float:
-        """ε·ṁ·c_p of the ground HX at the fixed reference loop flow [W/K]."""
+    def _ground_conductance(self, mode: str) -> tuple[dict, float]:
+        """Loop state and ε·ṁ·c_p of the ground HX at the fixed reference flow [W/K]."""
         loop = ground_flow_state(self._ground_settings, 1.0)
         m_dot = loop["dV"] * rho_w
         UA_ground, _ = self._rated_hx_UAs(mode)
-        return float(calc_phase_change_hx_effectiveness(UA_ground, m_dot, c_w) * m_dot * c_w)
+        return loop, float(calc_phase_change_hx_effectiveness(UA_ground, m_dot, c_w) * m_dot * c_w)
 
     def _close_ground_side(
         self,
@@ -1091,8 +1093,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room: float,
         wall_K: float | None,
         warm: dict,
-        *,
-        ground_approach: float | None = None,
     ) -> tuple[str, dict | None, float, float]:
         """Close the ground-side heat balance at one indoor approach.
 
@@ -1110,31 +1110,39 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         (:func:`calc_bhe_fluid_temperatures`). Otherwise it is the model state
         ``T_bhe_f_out_K``.
 
-        With ``ground_approach`` fixed only the fluid temperature is closed.
-
         Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
         ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
         capacity already at the smallest approach), ``"slack_floor"`` (cooling
         at the pressure-ratio floor: the condensing pressure is held at the
         floor and the condenser has spare capacity, see :attr:`_BALANCED`),
         ``"ground_limit"`` (duty
-        exceeds the ground HX at the largest approach), ``"fixed"`` (fixed
-        approach, temperature closed), ``"invalid"`` or ``"not_closed"``.
+        exceeds the ground HX at the largest approach), ``"invalid"`` or
+        ``"not_closed"``.
         """
         heating = Q_r_iu < 0
         lo, hi = self._GROUND_APPROACH_BOUNDS
-        conductance = self._ground_conductance("heating" if heating else "cooling")
-        T_out = float(warm.get("T_out", wall_K if wall_K is not None else self.T_bhe_f_out_K))
-        fixed = ground_approach is not None
-        if ground_approach is not None:
-            g = float(ground_approach)
+        loop, conductance = self._ground_conductance("heating" if heating else "cooling")
+        # Ground duty is the indoor duty minus (heating) or plus (cooling) the
+        # compressor work; a COP near 4 is a starting guess only.
+        g = float(warm.get("g", abs(Q_r_iu) * (0.75 if heating else 1.25) / conductance))
+        g = min(max(g, lo), hi)
+        if "T_out" in warm:
+            T_out = float(warm["T_out"])
+        elif wall_K is None:
+            T_out = float(self.T_bhe_f_out_K)
         else:
-            # Ground duty is the indoor duty minus (heating) or plus (cooling)
-            # the compressor work; a COP near 4 is a starting guess only.
-            g = float(warm.get("g", abs(Q_r_iu) * (0.75 if heating else 1.25) / conductance))
-            g = min(max(g, lo), hi)
+            # Start the fluid closure from the guessed borefield load, not from
+            # the wall temperature itself.
+            q_ground = g * conductance
+            Q_bhe_guess = q_ground - loop["E_pmp"] if heating else -(q_ground + loop["E_pmp"])
+            T_out = calc_bhe_fluid_temperatures(
+                wall_K, Q_bhe_guess, self.n_boreholes, self.H_b, loop["R_b"], loop["dV"] * rho_w, c_w
+            )[2]
         previous: tuple[float, float] | None = None
-        last_valid: float | None = None
+        # Last valid evaluation, and the smallest approach known to leave the
+        # compressor envelope (larger approaches only raise the lift further).
+        last: tuple[float, float, dict, float] | None = None
+        upper = hi
         row: dict | None = None
         for _ in range(self._GROUND_CLOSURE_MAX_ITER):
             evap, cond = (g, load_approach) if heating else (load_approach, g)
@@ -1151,17 +1159,22 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             except (ValueError, OverflowError, ZeroDivisionError):
                 row = None
             if row is None:
-                # A larger approach raises the lift into the pressure-ratio
-                # ceiling: retry at the smallest approach, or bisect back
-                # toward the last valid one.
-                if fixed or (last_valid is None and g <= lo + 1e-9):
+                # Larger approaches raise the lift into the pressure-ratio
+                # ceiling: retry at the smallest approach, or bisect between
+                # the last valid approach and this one.
+                if last is None:
+                    if g <= lo + 1e-9:
+                        return "invalid", None, g, T_out
+                    upper, g = g, lo
+                    continue
+                upper = min(upper, g)
+                if upper - last[0] < self._ENVELOPE_APPROACH_TOL_K:
+                    if last[1] > 0:
+                        # The duty needs more ground approach than the compressor
+                        # envelope allows: a ground-side capacity limit.
+                        return "ground_limit", last[2], last[0], last[3]
                     return "invalid", None, g, T_out
-                if last_valid is None:
-                    g = lo
-                elif abs(g - last_valid) < 1e-6:
-                    return "invalid", None, g, T_out
-                else:
-                    g = 0.5 * (g + last_valid)
+                g = 0.5 * (last[0] + upper)
                 continue
             residual = float(row["err_Q_evap [W]"])
             tolerance = max(0.01, 1e-5 * abs(float(row["Q_ref_ground [W]"])))
@@ -1178,11 +1191,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     c_w,
                 )
             closed = abs(T_next - T_out) <= self._FLUID_TEMPERATURE_TOL_K
-            if fixed:
-                if closed:
-                    return "fixed", row, g, T_out
-                T_out = T_next
-                continue
             if closed:
                 if abs(residual) <= tolerance:
                     return "equality", row, g, T_out
@@ -1190,7 +1198,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     return "slack_bound", row, g, T_out
                 if residual < 0 and not heating and row.get("pr_floor_active", False):
                     return "slack_floor", row, g, T_out
-                if residual > 0 and g >= hi - 1e-12:
+                if residual > 0 and (g >= hi - 1e-12 or upper - g < self._ENVELOPE_APPROACH_TOL_K):
                     return "ground_limit", row, g, T_out
             # dR/dg = dQ/dg - ε·ṁc_p; the duty term is small, so the conductance
             # is a safe first slope and a secant estimate refines it.
@@ -1199,8 +1207,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 estimate = (previous[1] - residual) / (g - previous[0])
                 if estimate > 0.05 * conductance:
                     slope = estimate
-            previous, last_valid = (g, residual), g
-            g = min(max(g + residual / slope, lo), hi)
+            previous, last = (g, residual), (g, residual, row, T_out)
+            target = g + residual / slope
+            # Never step onto an approach already known to be invalid.
+            g = max(target, lo) if target < upper else (0.5 * (g + upper) if upper < hi else hi)
             T_out = T_next
         return "not_closed", row, g, T_out
 
@@ -1305,6 +1315,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room: float,
         wall_K: float | None,
         seed: float | None,
+        warm: dict[str, float] | None = None,
     ) -> tuple[float | None, dict | None]:
         """First indoor approach at which this duty is met exactly, if any."""
         candidates = [] if seed is None else [seed]
@@ -1312,7 +1323,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             float(x)
             for x in np.linspace(self.indoor_approach_min_K, self.indoor_approach_max_K, self._CAPACITY_GRID_POINTS)
         ]
-        warm: dict[str, float] = {}
+        warm = dict(warm or {})
         for load_approach in candidates:
             status, row, g, T_out = self._close_ground_side(load_approach, Q_r_iu, T0, T_a_room, wall_K, warm)
             if row is None or status not in self._BALANCED:
@@ -1327,6 +1338,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             row = {**row, "ground_approach [K]": g, "indoor_approach [K]": load_approach, "ground_balance": status}
             return load_approach, row
         return None, None
+
+    @staticmethod
+    def _warm_from(row: dict | None) -> dict[str, float]:
+        """Ground-closure warm start taken from a solved row."""
+        if row is None:
+            return {}
+        return {"g": float(row["ground_approach [K]"]), "T_out": cu.C2K(float(row["T_bhe_f_out [°C]"]))}
 
     def _capacity_limited_operating_point(
         self,
@@ -1352,7 +1370,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         lo_q, lo_x, lo_row = 0.0, None, None
         hi_q = request
         for q in rungs:
-            x, row = self._duty_deliverable(sign * q, T0, T_a_room, wall_K, lo_x)
+            x, row = self._duty_deliverable(sign * q, T0, T_a_room, wall_K, lo_x, self._warm_from(lo_row))
             if row is not None:
                 lo_q, lo_x, lo_row = q, x, row
             elif lo_row is not None:
@@ -1362,7 +1380,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             return None
         while hi_q - lo_q > rel_tol * hi_q:
             mid = 0.5 * (lo_q + hi_q)
-            x, row = self._duty_deliverable(sign * mid, T0, T_a_room, wall_K, lo_x)
+            x, row = self._duty_deliverable(sign * mid, T0, T_a_room, wall_K, lo_x, self._warm_from(lo_row))
             if row is not None:
                 lo_q, lo_x, lo_row = mid, x, row
             else:

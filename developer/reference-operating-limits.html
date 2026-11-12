@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-12T23:39:30+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T07:55:55+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -148,7 +148,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#developer-naming-rules">Developer naming rules</a></li>
 <li><a class="reference internal" href="#ground-loop-api-and-migration">Ground-loop API and migration</a></li>
 <li><a class="reference internal" href="#indoor-approach-search-domain">Indoor approach search domain</a></li>
-<li><a class="reference internal" href="#fan-api-and-migration">Fan API and migration</a></li>
+<li><a class="reference internal" href="#fan-api-and-migration">Fan API and migration</a><ul>
+<li><a class="reference internal" href="#constant-speed-fans">Constant-speed fans</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#audit-and-validation">Audit and validation</a></li>
 <li><a class="reference internal" href="#compressor-efficiency-baseline-and-speed">Compressor efficiency baseline and speed</a><ul>
 <li><a class="reference internal" href="#compressor-efficiency-range-2026-11-12">Compressor efficiency range (2026-11-12)</a></li>
@@ -263,6 +266,37 @@ that range are intersected with it; incompatible limits raise <code class="docut
 or explicit <code class="docutils literal notranslate"><span class="pre">curve_type=&quot;custom&quot;</span></code> marks a custom model whose validity and
 limits are the caller’s responsibility; that model may allow max &gt; ref.
 Reference and hardware maximum remain independent inputs.</p>
+<section id="constant-speed-fans">
+<h3>Constant-speed fans<a class="headerlink" href="#constant-speed-fans" title="Link to this heading">¶</a></h3>
+<p>A single-speed (or single-stage) fan is <code class="docutils literal notranslate"><span class="pre">min</span> <span class="pre">==</span> <span class="pre">max</span></code>: pass
+<code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_min=dV_*_fan_a_max=&lt;flow&gt;</span></code> and set the reference
+<code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_rated</span></code> (or <code class="docutils literal notranslate"><span class="pre">_ref</span></code>) to the same flow, so the coil UA and the fan
+power are normalised at the flow the fan actually runs at. Equal limits are
+accepted by <code class="docutils literal notranslate"><span class="pre">resolve_fan_flow_limits</span></code> for every fan; <code class="docutils literal notranslate"><span class="pre">min</span> <span class="pre">&gt;</span> <span class="pre">max</span></code> and a zero
+maximum remain input errors, and the generic ASHRAE curve still requires the
+flow to lie inside 0.15–1.0 of the reference. The coil cannot change its
+airflow, so a duty is carried only through the approach temperature: ASHPB and
+GSHP solve that single approach (the band of approaches the fan can serve
+collapses to a point) and report the duty exactly. A request the coil cannot
+carry fails with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code> as for a variable fan.</p>
+<p>A constant-speed fan sits at both limits, so both <code class="docutils literal notranslate"><span class="pre">fan_flow_min_limit</span></code> and
+<code class="docutils literal notranslate"><span class="pre">fan_flow_max_limit</span></code> (<code class="docutils literal notranslate"><span class="pre">iu_*</span></code> / <code class="docutils literal notranslate"><span class="pre">ou_*</span></code>) are true; the direction in which a
+coil duty misses is in <code class="docutils literal notranslate"><span class="pre">capacity_margin_W</span></code> of the coil solve. Fan power is the
+power curve evaluated at the flow ratio, so at the reference flow it is
+<code class="docutils literal notranslate"><span class="pre">curve(1)</span></code> times the reference power: 0.998262 for the default single-zone
+VAV surrogate and 0.9991 for the ASHRAE correlation. Pass
+<code class="docutils literal notranslate"><span class="pre">vsd_coeffs={&quot;c1&quot;:</span> <span class="pre">1,</span> <span class="pre">&quot;c2&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;c3&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;c4&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;c5&quot;:</span> <span class="pre">0,</span> <span class="pre">&quot;curve_type&quot;:</span> <span class="pre">&quot;custom&quot;}</span></code>
+for a power that is exactly the rated value at every flow.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code> accepts constant-speed fans at construction, but its
+two-dimensional Nelder–Mead search over the evaporator and condenser
+approaches cannot find them: with one fixed coil the feasible approaches lie
+on a curve, with two on a single point, and the objective is infeasible
+everywhere else. It returns <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;hx_not_converged&quot;</span></code>, and a
+narrow range does not help reliably (ranges of ±2 % still fail at some
+conditions) until that search is reworked.</p>
+</div>
 <p>The unchanged empirical equation is</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -297,6 +331,7 @@ and permits ratios above one for custom curves. Fan-power dictionaries accept
 and optional <code class="docutils literal notranslate"><span class="pre">fan_min_flow_rate</span></code> / <code class="docutils literal notranslate"><span class="pre">fan_max_flow_rate</span></code>. HX solvers report
 bounded actual airflow and signed duty residuals. A clamp with unmatched heat
 remains infeasible and cannot enter a finite optimization objective.</p>
+</section>
 </section>
 <section id="audit-and-validation">
 <h2>Audit and validation<a class="headerlink" href="#audit-and-validation" title="Link to this heading">¶</a></h2>
@@ -369,7 +404,7 @@ invalid.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

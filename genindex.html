@@ -88,6 +88,7 @@ data-aria-dark="Switch to auto color mode">
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  | <a href="#X"><strong>X</strong></a>
+ | <a href="#Y"><strong>Y</strong></a>
  
 </div>
 <h2 id="_">_</h2>
@@ -593,15 +594,19 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params">fan_params (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.fan_params_iu">fan_params_iu (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.fan_params_ou">fan_params_ou (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.refrigerant.find_ref_loop_optimal_operation">find_ref_loop_optimal_operation() (in module tmhp.refrigerant)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.HXSide.fluid">fluid (tmhp.reference_state.HXSide attribute)</a>
+</li>
+      <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.FRONT_MERGE_TOL_K">FRONT_MERGE_TOL_K (in module tmhp.hybrid_tank)</a>
+</li>
+      <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank.front_temperatures">front_temperatures (tmhp.hybrid_tank.HybridStratifiedTank property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -697,10 +702,12 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/support/heat-transfer.html#tmhp.hx_fan.is_generic_fan_curve">is_generic_fan_curve() (in module tmhp.hx_fan)</a>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.INVERSION_TOL_K">INVERSION_TOL_K (in module tmhp.stratified_tank)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/heat-transfer.html#tmhp.hx_fan.is_generic_fan_curve">is_generic_fan_curve() (in module tmhp.hx_fan)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.is_preheat_on">is_preheat_on() (tmhp.subsystems.SolarThermalCollector method)</a>
 </li>
   </ul></td>
@@ -760,6 +767,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s">min_off_time_s (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s">min_on_time_s (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.mix_inversions">mix_inversions() (in module tmhp.stratified_tank)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.mode">mode (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
@@ -882,6 +891,10 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/integrations.html#tmhp.integrations.TmhpPlantSurrogate.on_user_defined_component_model">(tmhp.integrations.TmhpPlantSurrogate method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.OVERHEAT_TOL_K">OVERHEAT_TOL_K (in module tmhp.stratified_tank)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1120,6 +1133,8 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank">StratifiedTank (class in tmhp.stratified_tank)</a>
 </li>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.substeps">substeps() (tmhp.stratified_tank.StratifiedTank method)</a>
+</li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.system_update">system_update() (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical method)</a>
 </li>
   </ul></td>
@@ -1128,6 +1143,12 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank.T">T (tmhp.hybrid_tank.HybridStratifiedTank attribute)</a>
+
+      <ul>
+        <li><a href="api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.T">(tmhp.stratified_tank.StratifiedTank attribute)</a>
+</li>
+      </ul></li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.T0">T0 (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.T_a_room">T_a_room (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
@@ -1137,6 +1158,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       </ul></li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.T_A_ROOM_DEFAULT">T_A_ROOM_DEFAULT (in module tmhp.gshp_empirical)</a>
+</li>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.T_BOIL_ATM_C">T_BOIL_ATM_C (in module tmhp.stratified_tank)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.T_cond_sat_C">T_cond_sat_C (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
@@ -1179,6 +1202,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound">tank_level_upper_bound (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical">tank_physical (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
+      <li><a href="api/support/subsystems.html#tmhp.stratified_tank.TankOverheatWarning">TankOverheatWarning</a>
 </li>
       <li>
     tmhp.air_source_heat_pump
@@ -1285,6 +1310,8 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="models/gshpb.html#module-tmhp.ground_source_heat_pump_boiler">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmhp.gshp_empirical
 
@@ -1292,8 +1319,6 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="models/gshp.html#module-tmhp.gshp_empirical">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     tmhp.gshpb_pv_ess
 
@@ -1555,6 +1580,14 @@ data-aria-dark="Switch to auto color mode">
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_ins_stc">x_ins_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Y">Y</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank.y_th">y_th (tmhp.hybrid_tank.HybridStratifiedTank property)</a>
 </li>
   </ul></td>
 </tr></table>

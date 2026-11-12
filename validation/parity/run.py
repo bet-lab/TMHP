@@ -2,11 +2,30 @@
 
     uv run python -m validation.parity.run                 # all catalogues
     uv run python -m validation.parity.run --unit <slug>   # one
+    scripts/regen-validation.sh                            # all, in parallel, plus site data
 
 Writes ``validation/results/<slug>.csv`` per unit and rewrites
-``validation/results/summary.csv``. Those files are what the documentation
-site reads, so adding a catalogue and rerunning this is the whole update
-procedure.
+``validation/results/summary.csv`` and ``manifest.json``. Those files are what
+the documentation site reads, so adding a catalogue and rerunning this is the
+whole update procedure.
+
+Provenance and parallel runs
+----------------------------
+Every run writes, next to each unit CSV, ``provenance/<slug>.json``: the commit,
+whether the model and harness had uncommitted edits (and a digest of them), the
+``src/tmhp`` and ``validation/parity`` tree hashes, the coefficient version,
+the Python, CoolProp and platform, and when the unit ran.
+
+``summary.csv`` and ``manifest.json`` are always built from the files on disk
+(:func:`summarize`), whichever path wrote them. The summary refuses a CSV with
+no provenance record and refuses units whose records disagree on the code, the
+harness, the coefficients or the environment (:data:`MUST_AGREE`), naming the
+units that differ. The manifest carries the provenance the units share -- never
+that of the process doing the summarising -- and is dirty if any unit was.
+
+``--unit <slug> --no-summary`` writes one unit's CSV and record without touching
+the summary, so units can run in separate processes; ``--summarize-only`` then
+builds the summary. ``scripts/regen-validation.sh`` does both.
 
 What is held fixed
 ------------------
@@ -20,8 +39,12 @@ anything if the numbers it produces are then used without adjustment.
 from __future__ import annotations
 
 import argparse
+import datetime
+import hashlib
 import json
 import math
+import os
+import platform
 import subprocess
 from pathlib import Path
 
@@ -195,29 +218,225 @@ def _summarise(df: pd.DataFrame) -> dict:
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--unit", default=None, help="run one catalogue by slug")
-    args = parser.parse_args()
+#: Paths whose contents determine the per-unit results. A run is ``dirty`` when
+#: any of them differs from ``git_head``.
+SOURCE_PATHS = ("src/tmhp", "validation/parity", "validation/catalogs", "pyproject.toml", "uv.lock")
 
-    catalogs = load_all(args.unit)
-    if not catalogs:
-        raise SystemExit("no catalogues found under validation/catalogs/")
+#: Where each unit run records what produced its CSV: ``provenance/<slug>.json``.
+PROVENANCE_DIR_NAME = "provenance"
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    summaries = []
+#: Provenance fields every unit must share before their CSVs may be summarised
+#: together: the model code, the harness, the coefficients, the local edits (if
+#: any) and the numerical environment. ``git_head`` may differ (a later commit
+#: that touched none of these produces the same numbers), and ``catalog_blob``
+#: and ``run_at`` are per unit by nature.
+MUST_AGREE = (
+    "coefficient_version",
+    "src_tmhp_tree",
+    "validation_parity_tree",
+    "dirty_digest",
+    "python",
+    "coolprop",
+    "platform",
+)
+
+
+def _provenance_path(results_dir: Path, slug: str) -> Path:
+    return results_dir / PROVENANCE_DIR_NAME / f"{slug}.json"
+
+
+def _git(*argv: str) -> str:
+    try:
+        return subprocess.run(
+            ["git", *argv], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10, check=True
+        ).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _dirty_digest() -> str | None:
+    """sha256 of the uncommitted changes under :data:`SOURCE_PATHS`, or None when clean.
+
+    Two dirty runs on the same ``git_head`` ran the same code only if their
+    edits were the same; the digest makes that comparable.
+    """
+    diff = subprocess.run(
+        ["git", "diff", "HEAD", "--binary", "--", *SOURCE_PATHS], cwd=REPO_ROOT, capture_output=True, check=False
+    ).stdout
+    untracked = _git("ls-files", "--others", "--exclude-standard", "--", *SOURCE_PATHS).splitlines()
+    if not diff and not untracked:
+        return None
+    digest = hashlib.sha256(diff)
+    for name in sorted(untracked):
+        digest.update(name.encode())
+        digest.update((REPO_ROOT / name).read_bytes())
+    return digest.hexdigest()
+
+
+def source_state() -> dict:
+    """What this process computes with: code, harness, coefficients, environment.
+
+    Captured once per run, before any catalogue is evaluated, and written next
+    to every unit CSV the run produces (:func:`write_unit`). ``src_tmhp_tree``
+    and ``validation_parity_tree`` are tree hashes at ``git_head``; when
+    ``dirty`` is true they do not describe the code alone, and ``dirty_digest``
+    identifies the uncommitted edits.
+    """
+    import CoolProp
+
+    digest = _dirty_digest()
+    return {
+        "coefficient_version": COEFFICIENT_VERSION,
+        "git_head": _git("rev-parse", "HEAD"),
+        "dirty": digest is not None,
+        "dirty_digest": digest,
+        "dirty_scope": list(SOURCE_PATHS),
+        "src_tmhp_tree": _git("rev-parse", "HEAD:src/tmhp"),
+        "validation_parity_tree": _git("rev-parse", "HEAD:validation/parity"),
+        "python": platform.python_version(),
+        "coolprop": CoolProp.__version__,
+        "platform": f"{platform.system()}-{platform.machine()}",
+    }
+
+
+def _replace_atomically(path: Path, write) -> None:
+    """``write(tmp)`` then rename over ``path``: a reader sees the old file or the new one, never half."""
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        write(tmp)
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def write_unit(results_dir: Path, catalog: Catalog, df: pd.DataFrame, state: dict) -> None:
+    """Write one unit's CSV and the provenance of the run that produced it.
+
+    The order makes an interrupted write fail closed. The old record is removed
+    before the CSV is touched, and the new record is written only after the new
+    CSV is in place, so an old record can never vouch for a new CSV: a crash in
+    between leaves a CSV with no record, which :func:`summarize` refuses.
+    """
+    record_path = _provenance_path(results_dir, catalog.slug)
+    record_path.parent.mkdir(parents=True, exist_ok=True)
+    record_path.unlink(missing_ok=True)
+    _replace_atomically(results_dir / f"{catalog.slug}.csv", lambda tmp: df.to_csv(tmp, index=False))
+    record = {
+        "slug": catalog.slug,
+        **state,
+        "catalog_blob": _git("rev-parse", f"HEAD:validation/catalogs/{catalog.slug}.yaml"),
+        "run_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+    }
+    _replace_atomically(record_path, lambda tmp: tmp.write_text(json.dumps(record, indent=1) + "\n"))
+
+
+def _read_unit_results(catalogs: list[Catalog], results_dir: Path) -> tuple[list[pd.DataFrame], list[dict]]:
+    """Per-unit CSVs and their provenance records, in catalogue order.
+
+    Refuses a CSV with no provenance record, files without a catalogue, and a
+    CSV whose coefficient column disagrees with its record.
+    """
+    registered = {c.slug for c in catalogs}
+    missing = [c.slug for c in catalogs if not (results_dir / f"{c.slug}.csv").exists()]
+    if missing:
+        raise SystemExit(f"summary: no results for {', '.join(missing)} under {results_dir}")
+    unrecorded = [c.slug for c in catalogs if not _provenance_path(results_dir, c.slug).exists()]
+    if unrecorded:
+        raise SystemExit(
+            f"summary: no provenance record for {', '.join(unrecorded)} "
+            f"({PROVENANCE_DIR_NAME}/<slug>.json) -- these CSVs predate provenance "
+            "recording or were not written by this harness; rerun them"
+        )
+    orphans = sorted(
+        [p.name for p in results_dir.glob("*.csv") if p.name != SUMMARY_CSV.name and p.stem not in registered]
+        + [
+            f"{PROVENANCE_DIR_NAME}/{p.name}"
+            for p in (results_dir / PROVENANCE_DIR_NAME).glob("*.json")
+            if p.stem not in registered
+        ]
+    )
+    if orphans:
+        raise SystemExit(f"summary: results without a catalogue: {', '.join(orphans)} -- remove them")
+
+    frames, records = [], []
     for catalog in catalogs:
-        df = run_catalog(catalog)
-        df.to_csv(RESULTS_DIR / f"{catalog.slug}.csv", index=False)
-        summaries.append(_summarise(df))
+        # round_trip: the default parser can be one ulp off, and the summary must
+        # be bit-identical whichever path wrote the CSVs.
+        df = pd.read_csv(results_dir / f"{catalog.slug}.csv", float_precision="round_trip")
+        record = json.loads(_provenance_path(results_dir, catalog.slug).read_text())
+        versions = set(df.coefficient_version.astype(str))
+        if versions != {record.get("coefficient_version")}:
+            raise SystemExit(
+                f"summary: {catalog.slug}.csv says coefficients {sorted(versions)}, "
+                f"its provenance record says {record.get('coefficient_version')!r} -- rerun that unit"
+            )
+        frames.append(df)
+        records.append(record)
+    return frames, records
 
-    summary = pd.DataFrame(summaries)
-    if args.unit and SUMMARY_CSV.exists():
-        previous = pd.read_csv(SUMMARY_CSV)
-        summary = pd.concat([previous[previous.slug != args.unit], summary], ignore_index=True)
+
+def common_provenance(records: list[dict]) -> dict:
+    """The provenance every unit shares, or SystemExit naming the units that differ."""
+    disagreements = []
+    for key in MUST_AGREE:
+        values: dict[str, list[str]] = {}
+        for record in records:
+            values.setdefault(json.dumps(record.get(key)), []).append(record["slug"])
+        if len(values) > 1:
+            # Name the minority: the units that differ from what most units say.
+            majority = max(values, key=lambda v: len(values[v]))
+            odd = ", ".join(
+                f"{slug}={json.loads(v)!r}" for v, slugs in values.items() if v != majority for slug in slugs
+            )
+            disagreements.append(f"{key}: most units {json.loads(majority)!r}; differ: {odd}")
+    if disagreements:
+        raise SystemExit(
+            "summary: the unit results were not produced by the same code and environment\n  "
+            + "\n  ".join(disagreements)
+            + "\nrerun the differing units (or all: scripts/regen-validation.sh)"
+        )
+    first = records[0]
+    heads = sorted({r["git_head"] for r in records})
+    times = sorted(r["run_at"] for r in records)
+    return {
+        **{key: first[key] for key in MUST_AGREE},
+        "git_head": heads[0] if len(heads) == 1 else None,
+        "git_heads": heads,
+        "dirty": any(r["dirty"] for r in records),
+        "dirty_scope": first["dirty_scope"],
+        "run_started": times[0],
+        "run_finished": times[-1],
+    }
+
+
+def summarize(catalogs: list[Catalog], results_dir: Path) -> tuple[pd.DataFrame, dict]:
+    """Build ``summary.csv`` and ``manifest.json`` from the per-unit files on disk.
+
+    Every path ends here -- the single-process run, ``--unit`` and
+    ``--summarize-only`` -- so they write the same files for the same unit
+    results. The manifest carries the provenance the unit runs recorded, never
+    that of the process doing the summarising.
+    """
+    frames, records = _read_unit_results(catalogs, results_dir)
+    provenance = common_provenance(records)
+    summary = pd.DataFrame([_summarise(df) for df in frames])
     summary = summary.sort_values(["model_class", "manufacturer", "nominal_kW"]).reset_index(drop=True)
-    summary.to_csv(SUMMARY_CSV, index=False)
+    adopted = summary[summary.status == "adopted"]
+    held = summary[summary.status == "hold"]
+    manifest = {
+        **provenance,
+        "provenance": f"{PROVENANCE_DIR_NAME}/<slug>.json, one per unit",
+        "space_conditioning_cop_basis": "final_indoor_air_sensible",
+        "units": int(len(summary)),
+        "adopted_units": int(len(adopted)),
+        "held_units": sorted(held.slug.tolist()),
+    }
+    summary.to_csv(results_dir / SUMMARY_CSV.name, index=False)
+    (results_dir / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
+    return summary, manifest
 
+
+def _print_summary(summary: pd.DataFrame) -> None:
     print(f"Catalogue parity -- library defaults applied unchanged (coefficients {COEFFICIENT_VERSION})")
     print()
     cols = [
@@ -246,25 +465,49 @@ def main() -> None:
     held = summary[summary.status == "hold"]
     if len(held):
         print(f"  held (diagnostic only, not in any headline): {', '.join(held.unit)}")
-    manifest = {
-        "coefficient_version": COEFFICIENT_VERSION,
-        "git_head": _git_head(),
-        "space_conditioning_cop_basis": "final_indoor_air_sensible",
-        "units": int(len(summary)),
-        "adopted_units": int(len(adopted)),
-        "held_units": sorted(held.slug.tolist()),
-    }
-    (RESULTS_DIR / "manifest.json").write_text(json.dumps(manifest, indent=1))
-    print(f"  wrote {SUMMARY_CSV.relative_to(REPO_ROOT)} and results/manifest.json")
 
 
-def _git_head() -> str:
-    try:
-        return subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, capture_output=True, text=True, timeout=10
-        ).stdout.strip()
-    except Exception:  # noqa: BLE001
-        return ""
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--unit", default=None, help="run one catalogue by slug")
+    parser.add_argument(
+        "--no-summary",
+        action="store_true",
+        help="write only the unit CSV and its provenance record; leave summary.csv and manifest.json alone",
+    )
+    parser.add_argument(
+        "--summarize-only",
+        action="store_true",
+        help="run nothing: rebuild summary.csv and manifest.json from the per-unit CSVs and provenance records",
+    )
+    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR, help="where to read and write results")
+    args = parser.parse_args(argv)
+    if args.summarize_only and (args.unit or args.no_summary):
+        parser.error("--summarize-only takes no --unit or --no-summary")
+
+    results_dir: Path = args.results_dir.resolve()
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    if not args.summarize_only:
+        to_run = load_all(args.unit)
+        if not to_run:
+            raise SystemExit("no catalogues found under validation/catalogs/")
+        state = source_state()
+        for catalog in to_run:
+            write_unit(results_dir, catalog, run_catalog(catalog), state)
+        if args.no_summary:
+            print(
+                f"  wrote {len(to_run)} unit CSV(s) and provenance record(s); summary.csv and manifest.json untouched"
+            )
+            return
+
+    catalogs = load_all()
+    if not catalogs:
+        raise SystemExit("no catalogues found under validation/catalogs/")
+    summary, manifest = summarize(catalogs, results_dir)
+    _print_summary(summary)
+    flag = " (DIRTY)" if manifest["dirty"] else ""
+    print(f"  wrote {results_dir / SUMMARY_CSV.name} and manifest.json{flag}")
 
 
 if __name__ == "__main__":

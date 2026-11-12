@@ -1,0 +1,22 @@
+{
+ "slug": "panasonic_wh_mxc16j9e8",
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "79d1c9a97fdb1f92fb91ccfd291a206612fad934",
+ "dirty": false,
+ "dirty_digest": null,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "2edf92dd94b0ba434f969078d7e09cb5bbab4c77",
+ "validation_parity_tree": "d172e02f32baf64929785b8e64cb0b22392c6b23",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "platform": "Darwin-arm64",
+ "catalog_blob": "5e8dc26a1d785b6b90943bee38120f6cb0068bb0",
+ "run_at": "2026-11-12T16:53:10+00:00",
+ "note": "recorded after the fact for the 2026-11-13 scripts/regen-validation.sh run at git_head; run_at is that job's log-file time"
+}

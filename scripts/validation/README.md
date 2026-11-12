@@ -4,10 +4,18 @@ Figures for the documentation's validation pages. They read
 `validation/results/`, which the parity harness writes:
 
 ```bash
-uv run python -m validation.parity.run          # produce the results
+scripts/regen-validation.sh                     # results, site data and the four figures below
+uv run python -m validation.parity.run          # or step by step: produce the results
 uv run python -m scripts.validation.parity_figure
 uv run python -m scripts.validation.part_load_figure
 ```
+
+`regen-validation.sh` redraws the four figures the validation pages show --
+`validation_parity` (`parity_figure`), `validation_residuals`
+(`residual_figure`, after `validation.analysis.residual_decomposition`),
+`validation_part_load` (`part_load_figure`) and `validation_en14825_verdict`
+(`en14825_verdict_figure`, after `validation.analysis.en14825_trend`). The
+other scripts here draw figures no page currently includes.
 
 The unit-specific script that used to live here (`samsung_ehs_parity.py`) is
 gone. It carried its own copy of the model parameters, and that copy had

@@ -135,7 +135,7 @@ def trajectory_en14825() -> list[dict]:
                 "q_required_W": DESIGN_LOAD_W * load_ratio,
                 "q_delivered_W": float(result["Q_ref_tank [W]"]),
                 "clamped": result.get("capacity_clamped") is not None,
-                "rps": float(result["cmp_rpm [rpm]"]) / 60.0,
+                "rps": float(result.get("cmp_rpm [rpm]") or float("nan")) / 60.0,
                 "cop": float(result["cop_sys [-]"]) if result.get("failure_reason") == "none" else np.nan,
                 "failure_reason": result.get("failure_reason", "none"),
             }

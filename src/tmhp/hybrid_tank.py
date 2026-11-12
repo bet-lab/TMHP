@@ -49,11 +49,16 @@ had a sharp front only while discharging). Only one barrier is tracked: an
 interface created while one already exists (e.g. a new charge temperature) is
 carried by the ordinary node remap and diffuses like the standard model.
 
-Port flows that act at the same time are short-circuited first: with both
-``charge_flow`` and ``draw_flow``, ``min(charge, draw)`` of the charge water goes
-straight to the draw and the same volume of makeup straight to the charge
-return; only the net flow moves the column. ``T_draw_out`` / ``T_charge_out`` in
-the result report the resulting outflow temperatures.
+Simultaneous charge and draw: only the net flow ``charge − draw`` moves the
+column. The overlapping through-flow ``s = min(charge, draw)·Δt`` enters and
+leaves at the same end, so it is exchanged with the inlet node there, treated
+as a fully mixed volume (as in the standard model) and integrated exactly
+(``T → T_in + (T − T_in)·exp(−s/V)``, independent of ``Δt``): hot charge water
+mixes into the top node before the draw takes it, makeup mixes into the bottom
+node before the charge return takes it. While the ports overlap, a new barrier
+is formed below the mixed inlet node rather than at the inlet itself, so the
+front position stays independent of ``Δt``. ``T_draw_out`` / ``T_charge_out``
+in the result report the outflow temperatures.
 
 Validation status: energy conservation, front position and sharpness are
 verified against plug flow (``tests/test_hybrid_tank.py``); no comparison with
@@ -85,6 +90,16 @@ _BOUNDARY_SNAP = 1.0e-9
 FRONT_MERGE_TOL_K = 1.0e-3
 
 _FRONT_MODES = ("both", "charge", "discharge")
+
+#: With overlapping port flows, the net plug shift and the inlet-node mixing are
+#: alternated in slices of at most this fraction of a node volume. The split
+#: error scales with it: at 0.1 the stored energy of a 1 h simultaneous
+#: charge/draw differs by <= 0.04 % between dt = 10 s and 3600 s (1.0 gave 1 %).
+_SLICE_FRACTION = 0.1
+
+#: Relative slack when rounding the slice count up, so an exact multiple (up to
+#: round-off) gives the same count on every platform.
+_SLICE_SLACK = 1.0e-9
 
 
 class HybridStratifiedTank:
@@ -202,15 +217,37 @@ class HybridStratifiedTank:
             (net < 0.0 and self.front == "charge") or (net > 0.0 and self.front == "discharge")
         ):
             self._x_front = None  # node mean already holds both zones
-        form = self._x_front is None and (
-            (net > 0.0 and self.front != "discharge") or (net < 0.0 and self.front != "charge")
-        )
+        may_form = (net > 0.0 and self.front != "discharge") or (net < 0.0 and self.front != "charge")
 
-        # 2. Exact plug-flow advection of the piecewise-constant column.
-        draw_vt, charge_vt = self._advect(net, dt, charge_flow, T_charge, draw_flow, T_makeup, form)
+        # 2. Exact plug-flow advection of the piecewise-constant column by the
+        #    net flow, then the overlapping through-flow mixes with the inlet nodes.
+        #    Each is exact for any volume, but alternating them is an operator split
+        #    whose error scales with the slice volume / node volume; slicing to
+        #    _SLICE_FRACTION of a node keeps the result independent of dt.
+        through = min(charge_flow, draw_flow) * dt  # [m³]
+        k = 1
+        if through > 0.0:
+            k = max(1, math.ceil((through + abs(net)) / (_SLICE_FRACTION * self.v_node) - _SLICE_SLACK))
+        draw_vt = charge_vt = 0.0
+        formed = False
+        for _ in range(k):
+            form = may_form and self._x_front is None
+            d_vt, c_vt = self._advect(net / k, T_charge, T_makeup, form, mixing_inlet=through > 0.0)
+            formed = formed or (form and self._x_front is not None)
+            draw_vt += d_vt
+            charge_vt += c_vt
+            if through > 0.0:
+                d_vt, c_vt = self._port_exchange(through / k, T_charge, T_makeup)
+                draw_vt += d_vt
+                charge_vt += c_vt
 
         # 3. Conduction, side-wall loss and heat source (implicit), then buoyancy.
-        loss_j, mixed = self._diffuse(dt, q_arr, T_amb)
+        #    A barrier just formed below a mixing inlet separates the mixed node's
+        #    outflow history from the old water; in its first step both sides are
+        #    still old water, so it is not dropped as "equalised" yet (otherwise
+        #    it would form one step late and its position would depend on dt).
+        keep_new = formed and through > 0.0 and self._x_front is not None
+        loss_j, mixed = self._diffuse(dt, q_arr, T_amb, allow_merge=not keep_new)
 
         t_max, over = _flag_overheat(self.T, self.T_boil, "HybridStratifiedTank")
         return {
@@ -274,12 +311,15 @@ class HybridStratifiedTank:
                 amount = 0.0
         return vt
 
-    def _advect(self, net, dt, charge_flow, T_charge, draw_flow, T_makeup, form) -> tuple[float, float]:
-        short = min(charge_flow, draw_flow) * dt  # port-to-port short circuit [m³]
-        draw_vt = short * T_charge
-        charge_vt = short * T_makeup
+    def _advect(self, net, T_charge, T_makeup, form, *, mixing_inlet: bool) -> tuple[float, float]:
+        """Shift the column by the net volume; return Σ(V·T) out at the top and bottom."""
+        draw_vt = charge_vt = 0.0
         if net == 0.0:
             return draw_vt, charge_vt
+        # With overlapping port flows the inlet node is a mixing volume, so a new
+        # barrier forms at its lower (upper) face instead of at the inlet.
+        x_form_top = self.v_node if mixing_inlet else 0.0
+        x_form_bottom = self.volume - x_form_top
 
         vols, temps = self._column()
         x = self._x_front
@@ -288,14 +328,14 @@ class HybridStratifiedTank:
             temps.insert(0, T_charge)
             charge_vt += self._take(vols, temps, net, from_top=False)
             if form:
-                x = 0.0
+                x = x_form_top
             x = None if x is None else x + net
         else:
             vols.append(-net)
             temps.append(T_makeup)
             draw_vt += self._take(vols, temps, -net, from_top=True)
             if form:
-                x = self.volume
+                x = x_form_bottom
             x = None if x is None else x + net
 
         # Conservative remap onto the fixed nodes via the cumulative Σ(V·T).
@@ -321,7 +361,35 @@ class HybridStratifiedTank:
             self._T_above, self._T_below = float(self.T[b - 1]), float(self.T[b])
         return draw_vt, charge_vt
 
-    def _diffuse(self, dt: float, q_arr: np.ndarray, T_amb: float) -> tuple[float, bool]:
+    def _port_exchange(self, through: float, T_top_in: float, T_bottom_in: float) -> tuple[float, float]:
+        """Exact fully-mixed exchange of ``through`` m³ with the inlet volume at each end.
+
+        The inlet volume is the end node, or the barrier zone on the port side
+        when the barrier sits inside that node. Returns Σ(V·T) leaving through
+        the top (draw) and the bottom (charge return).
+        """
+        out = []
+        for top, t_in in ((True, T_top_in), (False, T_bottom_in)):
+            f, phi = self._front_node()
+            end = 0 if top else self.n - 1
+            if f == end and phi is not None:
+                vol = (phi if top else 1.0 - phi) * self.v_node
+                t_old = self._T_above if top else self._T_below
+            else:
+                vol, t_old = self.v_node, float(self.T[end])
+            t_new = t_in + (t_old - t_in) * math.exp(-through / vol)
+            out.append(through * t_in - vol * (t_new - t_old))
+            if f == end and phi is not None:
+                if top:
+                    self._T_above = t_new
+                else:
+                    self._T_below = t_new
+                self.T[end] = phi * self._T_above + (1.0 - phi) * self._T_below
+            else:
+                self.T[end] = t_new
+        return out[0], out[1]
+
+    def _diffuse(self, dt: float, q_arr: np.ndarray, T_amb: float, *, allow_merge: bool = True) -> tuple[float, bool]:
         """Implicit conduction/loss/source over nodes + barrier zones, then mixing."""
         f, phi = self._front_node()
         # Control volumes, top first: volume fraction of a node, node index, temperature.
@@ -369,7 +437,7 @@ class HybridStratifiedTank:
                 b = round(self._x_front / self.v_node)
                 self._T_above, self._T_below = float(Tn[b - 1]), float(Tn[b])
         self.T = np.asarray(Tn, dtype=float)
-        if self._x_front is not None and abs(self._T_above - self._T_below) <= FRONT_MERGE_TOL_K:
+        if allow_merge and self._x_front is not None and abs(self._T_above - self._T_below) <= FRONT_MERGE_TOL_K:
             self._x_front = None
         if self._x_front is None:
             self._T_above = self._T_below = math.nan

@@ -287,3 +287,38 @@ def test_barrier_dropped_once_both_sides_equalise():
     t.reset(60.0)
     t.step(_DT, charge_flow=1.0e-4, T_charge=60.0 + 0.5 * FRONT_MERGE_TOL_K)
     assert t.y_th is None
+
+
+def test_equal_charge_and_draw_still_heat_the_inlet_node():
+    """Codex review: with charge == draw the tank must still exchange heat at the
+    inlets (fully mixed inlet nodes), not pass the charge straight to the draw."""
+    t = HybridStratifiedTank(10, _VOL, _H, ua=0.0)
+    t.reset(np.linspace(55.0, 25.0, 10))
+    e0 = t.stored_energy
+    q = 1.0e-4
+    de, flux, out = _balance_step(t, 600.0, charge_flow=q, T_charge=60.0, draw_flow=q, T_makeup=12.0)
+    assert de == pytest.approx(flux, rel=1e-9, abs=1e-6)
+    assert t.T[0] > 55.0 + 1.0  # top node warmed by the hot charge
+    assert t.T[-1] < 25.0 - 1.0  # bottom node cooled by the makeup
+    assert 55.0 < out["T_draw_out"] < 60.0  # draw is mixed top-node water
+    assert 12.0 < out["T_charge_out"] < 25.0
+    assert t.stored_energy != pytest.approx(e0)
+
+
+@pytest.mark.parametrize("ratio", [0.25, 0.5, 0.9])
+def test_simultaneous_flow_is_time_step_independent(ratio):
+    """Barrier position and stored energy with overlapping port flows do not depend on dt."""
+    q = 1.2e-4
+    results = []
+    for dt in (10.0, 60.0, 600.0):
+        t = HybridStratifiedTank(20, _VOL, _H, k_eff=1e-9, ua=0.0)
+        t.reset(15.0)
+        e0 = t.stored_energy
+        for _ in range(int(1200.0 / dt)):
+            t.step(dt, charge_flow=q, T_charge=60.0, draw_flow=ratio * q, T_makeup=15.0)
+        results.append((t.y_th, t.stored_energy - e0))
+    # The barrier forms below the mixed inlet node and then moves with the net flow.
+    y_expected = _H - (t.v_node + (1.0 - ratio) * q * 1200.0) / t.area_cross
+    for y, gain in results:
+        assert y == pytest.approx(y_expected, abs=1e-9)
+        assert gain == pytest.approx(results[0][1], rel=2e-3)

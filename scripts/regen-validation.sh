@@ -4,7 +4,8 @@
 # 1. parity harness, one process per catalogue        -> validation/results/<slug>.csv
 # 2. residual decomposition (--jobs N)                  -> validation/data/residual_decomposition.csv
 #    EN 14825 trend + coefficient ablation (--jobs N)   -> validation/data/en14825_trend_*.csv,
-#                                                          coefficient_ablation_parity.csv
+#                                                          coefficient_ablation_parity.csv,
+#                                                          en14825_seasonal_trend_a2w_manifest.json
 # 3. summary.csv + manifest.json from the unit CSVs (same _summarise as a full run),
 #    the site's static data (validation-points.json, validation-summary.json),
 #    and the figures the validation pages show:
@@ -131,7 +132,9 @@ echo
 echo "==> 2/3 residual decomposition, EN 14825 trend and coefficient ablation"
 phase_start=$SECONDS
 run_job residual-decomposition -m validation.analysis.residual_decomposition --jobs "$jobs"
-run_job en14825-trend -m validation.analysis.en14825_trend --jobs "$jobs"
+# The seasonal-trend wrapper runs validation.analysis.en14825_trend and stamps
+# the coefficient version into validation/data/en14825_seasonal_trend_a2w_manifest.json.
+run_job en14825-trend -m validation.en14825_seasonal_trend.air_to_water --jobs "$jobs"
 echo "<== 2/3 done ($((SECONDS - phase_start)) s)"
 
 echo

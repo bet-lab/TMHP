@@ -10,7 +10,9 @@ used to hand back a state they had not solved:
 * GSHPB putting the requested capacity into the tank on steps whose cycle
   failed (``E_cmp == 0``), which broke the tank energy balance;
 * ASHPB dynamic discarding the optimiser outcome, leaving called-but-unsolved
-  steps as ``hp_is_on=True`` rows with NaN heat, power and COP.
+  steps as ``hp_is_on=True`` rows with NaN heat, power and COP;
+* no per-step ``failure_reason`` column in the dynamic frames although the
+  docs branch on it.
 
 The dynamic scenarios start each default machine just below its hysteresis
 floor for a few 300 s steps: enough to reach the tank temperature above which
@@ -21,7 +23,9 @@ called-but-unsolved steps.
 from __future__ import annotations
 
 import math
+import re
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -225,3 +229,59 @@ def test_ashpb_unsolved_called_steps_are_off_mode_rows(ashpb_failing_run) -> Non
 
     residual, heat_in = _tank_balance_residual(model, df, 54.9, dt, 15.0)
     assert abs(residual) < 0.01 * heat_in
+
+
+# --------------------------------------------------------------------------
+# Item 4: per-step failure_reason in the dynamic frames
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def wshpb_failing_run():
+    """Default WSHPB, same scenario as GSHPB: its 16 K condenser approach
+    also crosses the R410A critical point once the tank passes ~55.4 °C."""
+    dt, n = 300.0, 3
+    model = WaterSourceHeatPumpBoiler()
+    df = model.analyze_dynamic(
+        n * dt,
+        dt,
+        54.9,
+        np.zeros(n),
+        np.full(n, 5.0),
+        T_sup_w_schedule=np.full(n, 15.0),
+        T_sur_schedule=np.full(n, 20.0),
+    )
+    return model, df, dt
+
+
+def _documented_failure_reasons() -> set[str]:
+    """The values tabled in docs/source/concepts/failure-reason-semantics.rst."""
+    doc = Path(__file__).resolve().parents[1] / "docs/source/concepts/failure-reason-semantics.rst"
+    table = doc.read_text(encoding="utf-8").split("The four values", 1)[1].split("How to branch on it", 1)[0]
+    reasons = set(re.findall(r"^    \* - ``([a-z_]+)``", table, flags=re.MULTILINE))
+    assert reasons == {"none", "hx_not_converged", "optimizer_failed", "cycle_invalid"}
+    return reasons
+
+
+_FAILING_RUNS = ["ashpb_failing_run", "gshpb_failing_run", "wshpb_failing_run"]
+
+
+@pytest.mark.parametrize(
+    "run",
+    [
+        pytest.param(name, marks=pytest.mark.xdist_group(name.replace("_failing_run", "-failing-run")))
+        for name in _FAILING_RUNS
+    ],
+)
+def test_dynamic_frame_reports_failure_reason_per_step(run: str, request: pytest.FixtureRequest) -> None:
+    _model, df, _dt = request.getfixturevalue(run)
+    assert "failure_reason" in df.columns
+    reasons = df["failure_reason"]
+    assert reasons.map(type).eq(str).all()
+    assert set(reasons) <= _documented_failure_reasons()
+    # Off because the thermostat did not call, or ran: "none". Called but
+    # not solved: a reason, and the row is off-mode.
+    ran = df["hp_is_on"].astype(bool)
+    assert (reasons[ran] == "none").all()
+    assert (reasons != "none").any(), "scenario must contain called-but-unsolved steps"
+    assert not df.loc[reasons != "none", "converged"].astype(bool).any()

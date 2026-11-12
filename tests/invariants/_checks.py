@@ -11,7 +11,7 @@ import math
 
 import numpy as np
 
-from tmhp.compressor_envelope import DISCHARGE_TOL_K
+from tmhp.compressor_envelope import DISCHARGE_TOL_K, ETA_ISEN_MIN, efficiency_below_floor
 
 from ._families import (
     Family,
@@ -173,6 +173,8 @@ def check_envelope(model: object, r: Result) -> list[str]:
     if not rps <= rps_max * (1.0 + ENVELOPE_RTOL):
         v.append(f"speed_above_max: rps={_fmt(rps)} > rps_max={_fmt(rps_max)}")
     v += check_suction_quality(model, r)
+    if efficiency_below_floor(model, r):
+        v.append(f"eta_isen_below_floor: eta_is={_fmt(eta_is(r))} < {ETA_ISEN_MIN} outside the fitted data")
     return v
 
 

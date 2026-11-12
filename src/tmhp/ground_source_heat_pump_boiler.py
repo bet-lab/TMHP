@@ -56,7 +56,7 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
-    discharge_violation,
+    envelope_violation,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -921,7 +921,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             detail = unphysical_cycle_detail(selected, self.hp_capacity)
             if detail is not None:
                 selected = self._failed_cycle_result(T_tank_w, T0, flow_state, "cycle_invalid", detail)
-            elif (envelope := discharge_violation(selected, self.T_dis_max)) is not None:
+            elif (envelope := envelope_violation(selected, self)) is not None:
                 selected = self._failed_cycle_result(T_tank_w, T0, flow_state, envelope)
         return selected
 
@@ -997,7 +997,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             if detail is not None:
                 reason = "cycle_invalid"
                 raise ValueError(f"Solved cycle is not an operating point ({detail})")
-            envelope = discharge_violation(final, self.T_dis_max)
+            envelope = envelope_violation(final, self)
             if envelope is not None:
                 reason = envelope
                 raise ValueError("Solved cycle is outside the compressor envelope")

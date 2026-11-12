@@ -59,7 +59,7 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
-    discharge_violation,
+    envelope_violation,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -1098,7 +1098,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             if isinstance(result, dict) and result.get("hp_is_on") and result.get("converged", False):
                 invalid_detail = unphysical_cycle_detail(result, self.hp_capacity)
                 if invalid_detail is None:
-                    envelope_reason = discharge_violation(result, self.T_dis_max)
+                    envelope_reason = envelope_violation(result, self)
                 if invalid_detail is not None or envelope_reason is not None:
                     result = None
 
@@ -1361,7 +1361,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return "optimizer_failed"
         if unphysical_cycle_detail(solved, self.hp_capacity) is not None:
             return "cycle_invalid"
-        return discharge_violation(solved, self.T_dis_max)
+        return envelope_violation(solved, self)
 
     def _assemble_core_results(
         self,

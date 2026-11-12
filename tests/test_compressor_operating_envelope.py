@@ -20,12 +20,14 @@ from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
     DISCHARGE_TEMP_ABOVE_MAX,
     DISCHARGE_TOL_K,
+    ETA_ISEN_BELOW_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     RPS_MAX_ABSOLUTE,
     default_discharge_temp_max,
     default_rps_max,
     discharge_temp_exceeded,
+    efficiency_below_floor,
     resolve_discharge_temp_max,
 )
 
@@ -153,10 +155,11 @@ def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
     # Without the control, even the minimum-speed duty discharges at 173 degC.
     uncontrolled = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None)
     _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
+    # With the discharge limit off, the 357 degC point (eta_is 0.23 at 25 rev/s,
+    # the guard's low-speed continuation) is still refused, by the efficiency floor.
     legacy = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None)
-    old = _quiet(legacy.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
-    assert _running(old)
-    assert old["T_ref_cmp_out [°C]"] > 300.0  # the value #104 reported (357 degC)
+    old = _quiet(legacy.analyze_steady, **case)
+    assert old["failure_reason"] == ETA_ISEN_BELOW_MIN and not old["hp_is_on"]
 
 
 def test_ashpb_r32_a_minus7_w55_is_refused_even_with_control():
@@ -247,21 +250,30 @@ def test_gshp_reports_the_discharge_limit():
 
 
 def test_low_speed_high_pressure_ratio_corner_is_outside_the_envelope():
-    """PR > 7.15 at the 15 rev/s floor: the guarded fit gives eta_is 0.14 and
-    the discharge 285 degC. The discharge limit refuses it; no separate speed
-    floor is needed."""
+    """PR > 7.15 at the 15 rev/s floor: the guard's continuation gives eta_is 0.14.
+
+    With the discharge-temperature control the discharge can be held, so the
+    corner is refused by the isentropic-efficiency floor (0.30, below the
+    fit's 0.336 minimum inside its data) instead.
+    """
     case = dict(T_tank_w=65.0, T_source=0.0, Q_ref_tank=1600.0, T0=10.0)
-    off = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0, T_dis_max=None)
-    corner = _quiet(off.analyze_steady, **case)
-    assert _running(corner)
-    assert corner["P_ref_cmp_out [Pa]"] / corner["P_ref_cmp_in [Pa]"] > 7.15
-    assert corner["cmp_rpm [rpm]"] / 60.0 < 33.8
-    assert corner["eta_cmp_isen [-]"] < 0.2
-    assert corner["efficiency_extrapolated"] is True
     hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0)
     r = _quiet(hp.analyze_steady, **case)
-    assert not _running(r) or r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
-    assert r["failure_reason"] in ("none", DISCHARGE_TEMP_ABOVE_MAX)
+    assert r["failure_reason"] in (ETA_ISEN_BELOW_MIN, DISCHARGE_TEMP_ABOVE_MAX)
+    assert not r["hp_is_on"]
+    # A scalar efficiency is the caller's statement: no floor.
+    scalar = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R134a", hp_capacity=8000.0, eta_cmp_isen=0.25, T_dis_max=None)
+    assert _quiet(scalar.analyze_steady, **case)["failure_reason"] != ETA_ISEN_BELOW_MIN
+
+
+@pytest.mark.parametrize("cls", [tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPumpBoiler])
+def test_efficiency_floor_rule(cls):
+    hp = _quiet(cls, ref="R32")
+    low = {"eta_cmp_isen [-]": 0.25, "P_ref_cmp_in [Pa]": 3.0e5, "P_ref_cmp_out [Pa]": 2.4e6, "cmp_rpm [rpm]": 900.0}
+    assert efficiency_below_floor(hp, low)  # PR 8, 15 rev/s: extrapolated
+    inside = {**low, "P_ref_cmp_out [Pa]": 1.5e6, "cmp_rpm [rpm]": 3000.0}  # PR 5, 50 rev/s
+    assert not efficiency_below_floor(hp, inside)
+    assert not efficiency_below_floor(hp, {**low, "eta_cmp_isen [-]": 0.31})
 
 
 # ---------------------------------------------------------------------------

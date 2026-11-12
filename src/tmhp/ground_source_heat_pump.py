@@ -41,6 +41,7 @@ from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_DISCHARGE,
     DISCHARGE_TEMP_ABOVE_MAX,
+    ETA_ISEN_BELOW_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -128,7 +129,7 @@ class _IndoorSearch:
         self.rows: dict[float, tuple[float, str, dict | None]] = {}
         self.warm: dict[str, float] = dict(warm or {})
         self.pr_ceiling_seen = False
-        self.discharge_seen = False
+        self.envelope_reason: str | None = None
 
     def entry(self, load_approach: float) -> tuple[float, str, dict | None]:
         load_approach = float(load_approach)
@@ -139,7 +140,8 @@ class _IndoorSearch:
             )
             if status == "invalid" and model._last_pr_event is not None:
                 self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
-                self.discharge_seen = self.discharge_seen or model._last_pr_event[0] == DISCHARGE_TEMP_ABOVE_MAX
+                if model._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN):
+                    self.envelope_reason = model._last_pr_event[0]
             value = OBJ_INFEASIBLE
             if row is not None and status in model._BALANCED:
                 self.warm.update(g=g, T_out=T_out)
@@ -1051,8 +1053,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 )
                 if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
                     cache[load_approach]["failure_reason"] = (
-                        DISCHARGE_TEMP_ABOVE_MAX
-                        if self._last_pr_event[0] == DISCHARGE_TEMP_ABOVE_MAX
+                        self._last_pr_event[0]
+                        if self._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN)
                         else "pressure_ratio_limit"
                     )
             return cache[load_approach]
@@ -1429,8 +1431,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             reason = "ground_hx_capacity_insufficient"
         elif search.pr_ceiling_seen:
             reason = "pr_above_max"
-        elif search.discharge_seen:
-            reason = DISCHARGE_TEMP_ABOVE_MAX
+        elif search.envelope_reason is not None:
+            reason = search.envelope_reason
         else:
             reason = "cycle_invalid"
         return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)

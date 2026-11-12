@@ -118,6 +118,10 @@ __all__ = [
     "resolve_discharge_temp_max",
     "discharge_temp_exceeded",
     "discharge_violation",
+    "ETA_ISEN_BELOW_MIN",
+    "ETA_ISEN_MIN",
+    "envelope_violation",
+    "efficiency_below_floor",
     "RPS_MAX_PER_RATED",
     "RPS_MAX_ABSOLUTE",
     "RPS_MAX_MIN_PER_RATED",
@@ -139,6 +143,19 @@ PR_CYCLE_MAX_SINGLE_STAGE = 11.0
 
 #: ``failure_reason``: even the smallest duty tried exceeds ``T_dis_max``.
 DISCHARGE_TEMP_ABOVE_MAX = "discharge_temp_above_max"
+#: ``failure_reason``: the default isentropic-efficiency fit, extrapolated, is below :data:`ETA_ISEN_MIN`.
+ETA_ISEN_BELOW_MIN = "eta_isen_below_min"
+#: Lowest isentropic efficiency of the default fit accepted outside its data [-].
+#:
+#: Inside the convex hull of its 3899 data points the default scroll fit never
+#: goes below 0.336 (at PR 7.13, 38.6 rev/s), and its lowest value over the
+#: whole (PR, N) box is 0.297 (corner PR 7.15, 33.8 rev/s). Below that the
+#: value comes only from the guard's first-order continuation towards 15 rev/s
+#: (down to 0.14) -- a compressor wasting more than 70 % of its work with no
+#: datum behind it. Such a point is outside the envelope. The rule applies only
+#: to the shipped fits (which carry a validity domain) and only where they are
+#: extrapolated; a scalar or a user model is the caller's statement.
+ETA_ISEN_MIN = 0.30
 #: ``capacity_binding``: the duty was reduced to stay within ``T_dis_max``.
 BINDING_DISCHARGE = "discharge_temperature"
 
@@ -247,6 +264,41 @@ def discharge_violation(result: Mapping[str, Any], T_dis_max: float | None) -> s
     return None
 
 
+def _eta_isen(result: Mapping[str, Any]) -> float:
+    for key in ("eta_cmp_isen [-]", "eta_is [-]"):
+        if key in result:
+            try:
+                return float(result[key])
+            except (TypeError, ValueError):
+                return math.nan
+    return math.nan
+
+
+def efficiency_below_floor(model: Any, result: Mapping[str, Any]) -> bool:
+    """The shipped isentropic fit, evaluated outside its data, is below :data:`ETA_ISEN_MIN`."""
+    eta_model = getattr(model, "eta_cmp_isen", None)
+    if getattr(eta_model, "validity_domain", None) is None:
+        return False
+    eta = _eta_isen(result)
+    if not (math.isfinite(eta) and eta < ETA_ISEN_MIN):
+        return False
+    return efficiency_extrapolated_at((eta_model,), result)
+
+
+def envelope_violation(result: Mapping[str, Any], model: Any) -> str | None:
+    """Why a solved running state is outside the compressor envelope, or ``None``.
+
+    :data:`DISCHARGE_TEMP_ABOVE_MAX` (after the discharge-temperature control)
+    or :data:`ETA_ISEN_BELOW_MIN`.
+    """
+    reason = discharge_violation(result, getattr(model, "T_dis_max", None))
+    if reason is not None:
+        return reason
+    if efficiency_below_floor(model, result):
+        return ETA_ISEN_BELOW_MIN
+    return None
+
+
 def default_rps_max(rps_rated: float) -> float:
     """Default upper speed bound from the rated speed [rev/s].
 
@@ -344,6 +396,9 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
         @wraps(function)
         def wrapped(self: Any, *args: Any, **kwargs: Any) -> Any:
             result = function(self, *args, **kwargs)
+            if reject and _state_running(result) and efficiency_below_floor(self, result):
+                self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(result), ETA_ISEN_MIN)
+                return None
             T_max = self.T_dis_max
             if T_max is None or not _state_running(result):
                 # No limit: the cycle state is returned untouched (the steady
@@ -370,6 +425,9 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
 
             controlled = _control(at, superheat0, T_max, self.x_suction_min)
             if controlled is not None:
+                if reject and efficiency_below_floor(self, controlled):
+                    self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(controlled), ETA_ISEN_MIN)
+                    return None
                 return controlled
             if reject:
                 self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, _discharge(result), float(T_max))

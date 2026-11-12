@@ -35,7 +35,7 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
-    discharge_violation,
+    envelope_violation,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -705,7 +705,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             if detail is not None:
                 reason = "cycle_invalid"
                 raise ValueError(f"Solved cycle is not an operating point ({detail})")
-            envelope = discharge_violation(final, self.T_dis_max)
+            envelope = envelope_violation(final, self)
             if envelope is not None:
                 reason = envelope
                 raise ValueError("Solved cycle is outside the compressor envelope")

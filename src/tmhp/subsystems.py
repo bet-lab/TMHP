@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from . import calc_util as cu
+from ._validation import validate_ctor
 from .constants import c_w, k_a, k_D, k_d, rho_w
 from .thermodynamics import calc_energy_flow
 
@@ -127,6 +128,9 @@ class SolarThermalCollector:
     preheat_end_hour: float = 18.0
     dV_stc_w: float = 0.001
     E_stc_pump: float = 50.0
+
+    def __post_init__(self) -> None:
+        validate_ctor("STC", vars(self))
 
     # ----------------------------------------------------------
     # Physics helpers
@@ -392,6 +396,9 @@ class PhotovoltaicSystem:
     eta_ctrl: float = 0.95
     T_ctrl_K: float = 308.15
 
+    def __post_init__(self) -> None:
+        validate_ctor("PV", vars(self))
+
     def calc_performance(
         self,
         I_DN: float,
@@ -515,6 +522,7 @@ class EnergyStorageSystem:
     SOC_ess: float = field(init=False)
 
     def __post_init__(self) -> None:
+        validate_ctor("ESS", vars(self))
         self.SOC_ess = self.SOC_init
 
     # ── helpers ──────────────────────────────────────────────────
@@ -602,6 +610,9 @@ class UVLamp:
     exposure_sec: float = 0.0
     num_switching: int = 1
     period_sec: float = 3 * cu.h2s
+
+    def __post_init__(self) -> None:
+        validate_ctor("UV", vars(self))
 
     def step(
         self,

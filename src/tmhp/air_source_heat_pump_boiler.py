@@ -1021,9 +1021,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``,
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
-              ``"pr_above_max"``, ``"discharge_temp_above_max"`` (even a
-              reduced duty exceeds ``T_dis_max``), ``"hx_not_converged"``,
-              or ``"optimizer_failed"``.
+              ``"pr_above_max"``, ``"discharge_temp_above_max"`` (even
+              under the discharge-temperature control and at a reduced duty
+              the discharge exceeds ``T_dis_max``), ``"eta_isen_below_min"``
+              (the shipped isentropic fit, extrapolated, is below 0.30),
+              ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, only on a rejected solved cycle) —
               which check of
               :func:`tmhp.dynamic_context.unphysical_cycle_detail` made
@@ -1042,6 +1044,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               and the largest duty inside it is returned, with ``"Q_max [W]"``).
             - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
               is evaluated outside its data at this point.
+            - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
+              ``"x_ref_cmp_in [-]"`` — whether the discharge-temperature
+              control held ``T_dis_max`` and the suction state it used
+              (superheat reduced first, then wet suction down to
+              ``x_suction_min``); see :mod:`tmhp.compressor_envelope`.
 
             An infeasible cycle, or a solved cycle that is not an operating
             point, falls back to an off-mode state (``E_cmp = 0``,

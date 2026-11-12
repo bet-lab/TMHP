@@ -312,15 +312,13 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     increments = np.diff(np.r_[0.0, loads_per_m])
     response = step_mean_superposition(gshpb._gfunc_interp, time_arr, increments, 3600.0)
     wall_C = gshpb.Ts - response
-    # The wall answers the step-average load (#108); the borehole resistance and
-    # the loop temperature difference act on the running load (average / run time).
-    fraction = df["runtime_fraction [-]"].to_numpy()
-    running_per_m = np.divide(loads_per_m, fraction, out=np.zeros(tN), where=fraction > 0)
-    mean_C = wall_C - running_per_m * gshpb.R_b
+    # The wall answers the step-average load (#108). The reported fluid
+    # temperatures are step-time averages, i.e. the borehole resistance and
+    # loop temperature difference at the average load; the *_running columns
+    # are the fluid while the compressor runs (average / run time).
+    mean_C = wall_C - loads_per_m * gshpb.R_b
     capacity_rate = df["dV_bhe_f [m3/s]"].to_numpy() * rho_w * c_w
-    half_rise = np.divide(
-        running_per_m * gshpb.total_borehole_length, 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0
-    )
+    half_rise = np.divide(df["Q_bhe [W]"].to_numpy(), 2 * capacity_rate, out=np.zeros(tN), where=capacity_rate > 0)
     for column, expected in (
         ("T_bhe [°C]", wall_C),
         ("T_bhe_f [°C]", mean_C),
@@ -328,3 +326,12 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
         ("T_bhe_f_out [°C]", mean_C + half_rise),
     ):
         np.testing.assert_allclose(df[column], expected, rtol=0.0, atol=1e-12)
+    fraction = df["runtime_fraction [-]"].to_numpy()
+    ran = fraction > 0
+    running_per_m = loads_per_m[ran] / fraction[ran]
+    run_mean_C = wall_C[ran] - running_per_m * gshpb.R_b
+    run_half = running_per_m * gshpb.total_borehole_length / (2 * capacity_rate[ran])
+    np.testing.assert_allclose(df["T_bhe_f_running [°C]"][ran], run_mean_C, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(df["T_bhe_f_in_running [°C]"][ran], run_mean_C - run_half, rtol=0.0, atol=1e-12)
+    np.testing.assert_allclose(df["T_bhe_f_out_running [°C]"][ran], run_mean_C + run_half, rtol=0.0, atol=1e-12)
+    assert df.loc[~ran, "T_bhe_f_out_running [°C]"].isna().all()

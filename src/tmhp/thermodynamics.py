@@ -233,3 +233,55 @@ def convert_electricity_to_exergy(
             x_col: str = "X_" + str(col)[2:]
             df[x_col] = df[col]
     return df
+
+
+def source_loop_exergy_flows(df, T0_K):
+    """Step-average exergy flows of a boiler's source-water / ground loop [W].
+
+    The source loop carries the evaporator duty only while the compressor
+    runs. Its exergy flows are evaluated at the running state -- the loop
+    flow ``dV_bhe_f [m3/s]``, the running fluid temperatures
+    ``T_bhe_f_in_running`` / ``T_bhe_f_out_running`` and the running pump
+    power ``E_pmp [W] / runtime_fraction [-]`` -- and then multiplied by the
+    run fraction, so they average the same way as the step-average heat,
+    power and refrigerant flows in the row. Exergy is not linear in
+    temperature, so evaluating it at averaged temperatures would not give
+    the average exergy. A frame without these columns (a steady result)
+    is treated as a full run at the reported temperatures.
+
+    Returns ``(X_loop_in, X_loop_out, X_src_in, X_src_out)``: the flows at
+    the loop's borehole/source inlet and outlet, entering the evaporator
+    (after the pump) and leaving it. All zero on steps the compressor did
+    not run.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from . import calc_util as cu
+    from .constants import c_w, rho_w
+
+    G = c_w * rho_w * df["dV_bhe_f [m3/s]"]
+    if "T_bhe_f_in_running [°C]" in df.columns and "runtime_fraction [-]" in df.columns:
+        f = df["runtime_fraction [-]"].astype(float).fillna(0.0)
+        T_in_C = df["T_bhe_f_in_running [°C]"]
+        T_out_C = df["T_bhe_f_out_running [°C]"]
+    else:
+        f = pd.Series(1.0, index=df.index)
+        T_in_C = df["T_bhe_f_in [°C]"]
+        T_out_C = df["T_bhe_f_out [°C]"]
+    ran = f > 0.0
+    T_in_K = cu.C2K(T_in_C)
+    T_out_K = cu.C2K(T_out_C)
+    E_pmp_run = (df["E_pmp [W]"] / f.where(ran)).where(ran, 0.0)
+
+    def average(flow):
+        return pd.Series(np.where(ran, f * flow, 0.0), index=df.index)
+
+    X_loop_in = average(calc_exergy_flow(G, T_in_K, T0_K))
+    X_loop_out = average(calc_exergy_flow(G, T_out_K, T0_K))
+    # Fluid enters the evaporator after being heated by the pump.
+    T_src_in_K = T_out_K + E_pmp_run / G.replace(0, np.nan)
+    X_src_in = average(calc_exergy_flow(G, T_src_in_K, T0_K))
+    # Fluid leaves the evaporator and enters the borehole / source loop.
+    X_src_out = X_loop_in
+    return X_loop_in, X_loop_out, X_src_in, X_src_out

@@ -1132,30 +1132,41 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
             level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
 
-            # Heat extraction: the row reports the step average; the pipe
-            # resistance and loop temperature difference act while the
-            # compressor runs, so the fluid temperatures use the running load.
-            Q_bhe_unit = hp_result.get("Q_bhe [W]", 0.0) / self.H_b if hp_is_on else 0.0
-            self.Q_bhe = Q_bhe_unit * self.H_b
-            fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if hp_is_on else 0.0
-            Q_bhe_unit = Q_bhe_unit / fraction if fraction > 0.0 else 0.0
+            # Source-water loop. The row's Q_bhe is the step average of an
+            # extraction that flows only while the compressor runs. Reported
+            # fluid temperatures are step-time averages (linear in the load,
+            # so the average load's values; continuous in the run fraction);
+            # T_bhe_f*_running are the fluid while the compressor runs (NaN when
+            # it did not), for the evaporator's source-side exergy. The next
+            # cycle reads the average outlet (one-step source lag).
+            Q_bhe_avg = hp_result.get("Q_bhe [W]", 0.0) if hp_is_on else 0.0
+            self.Q_bhe = Q_bhe_avg
             m_cp_b = c_w * rho_w * self.dV_b_f_m3s
 
             # Infinite heat capacity boundary (River/Lake), no ground interference
             self.T_bhe = T_source_w_n
             T_bhe_K = cu.C2K(self.T_bhe)
 
-            # Thermal resistance of pipe
-            T_bhe_f_K = T_bhe_K - Q_bhe_unit * self.R_b
-            self.T_bhe_f = cu.K2C(T_bhe_f_K)
+            def source_fluid_K(Q_load: float, T_wall_K: float = T_bhe_K, m_cp: float = m_cp_b) -> tuple:
+                q_unit = Q_load / self.H_b
+                T_f_K = T_wall_K - q_unit * self.R_b  # thermal resistance of pipe
+                # Assume symmetrical temperature approach around average fluid temperature
+                half = float((q_unit * self.H_b / m_cp) / 2) if m_cp > 0 else 0.0
+                return T_f_K, T_f_K - half, T_f_K + half
 
-            # Assume symmetrical temperature approach around average BHE fluid temperature
-            dT_bhe_f_half = float((Q_bhe_unit * self.H_b / m_cp_b) / 2) if m_cp_b > 0 else 0.0
-            self.T_bhe_f_in_K = T_bhe_f_K - dT_bhe_f_half
+            T_bhe_f_K, self.T_bhe_f_in_K, T_bhe_f_out_K = source_fluid_K(Q_bhe_avg)
+            self.T_bhe_f = cu.K2C(T_bhe_f_K)
             self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
-            T_bhe_f_out_K = T_bhe_f_K + dT_bhe_f_half
             self.T_bhe_f_out = cu.K2C(T_bhe_f_out_K)
             self.T_bhe_f_out_K = T_bhe_f_out_K
+            fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if hp_is_on else 0.0
+            if hp_is_on and fraction > 0.0:
+                running = tuple(cu.K2C(x) for x in source_fluid_K(Q_bhe_avg / fraction))
+            else:
+                running = (np.nan, np.nan, np.nan)
+            hp_result["T_bhe_f_running [°C]"] = running[0]
+            hp_result["T_bhe_f_in_running [°C]"] = running[1]
+            hp_result["T_bhe_f_out_running [°C]"] = running[2]
 
             # Apply BHE state to hp_result
             hp_result["Ts [°C]"] = (
@@ -1334,7 +1345,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
     def postprocess_exergy(self, df: pd.DataFrame) -> pd.DataFrame:
         """Compute GSHPB-specific exergy variables."""
-        from .thermodynamics import calc_energy_flow, calc_refrigerant_exergy, convert_electricity_to_exergy
+        from .thermodynamics import (
+            calc_energy_flow,
+            calc_refrigerant_exergy,
+            convert_electricity_to_exergy,
+            source_loop_exergy_flows,
+        )
 
         df = df.copy()
         T0_K = cu.C2K(df["T0 [°C]"])
@@ -1346,21 +1362,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         df = calc_refrigerant_exergy(df, self.ref, T0_K)
         df = convert_electricity_to_exergy(df)
 
-        # 2. Exergy flows
-        G_b = c_w * rho_w * df["dV_bhe_f [m3/s]"]
-        T_bhe_f_in_K = cu.C2K(df["T_bhe_f_in [°C]"])
-        T_bhe_f_out_K = cu.C2K(df["T_bhe_f_out [°C]"])
-
-        # Exergy at BHE boundaries
-        X_bhe_in = calc_exergy_flow(G_b, T_bhe_f_in_K, T0_K)
-        X_bhe_out = calc_exergy_flow(G_b, T_bhe_f_out_K, T0_K)
-
-        # Fluid enters evaporator after being heated by the pump
-        T_water_in_K = T_bhe_f_out_K + df["E_pmp [W]"] / G_b.replace(0, np.nan)
-        X_water_in = calc_exergy_flow(G_b, T_water_in_K, T0_K)
-
-        # Fluid leaves evaporator and enters BHE
-        X_water_out = X_bhe_in
+        # 2. Exergy flows of the source loop: evaluated at the running state
+        # and averaged over the step like the heat and power in the row.
+        X_bhe_in, X_bhe_out, X_water_in, X_water_out = source_loop_exergy_flows(df, T0_K)
+        # Loop boundary flows (step averages) so the source-side balance can be read from the frame.
+        df["X_bhe_in [W]"] = X_bhe_in
+        df["X_bhe_out [W]"] = X_bhe_out
 
         Q_ref_tank = df["Q_ref_tank [W]"].fillna(0)
         Q_ref_water = df["Q_ref_water [W]"].fillna(0)

@@ -1222,6 +1222,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         return r
 
+    def _ground_injection_W(self) -> float:
+        """Heat other sources inject into the borehole field this step [W].
+
+        Step average, extraction-negative in ``Q_bhe`` (a solar collector loop
+        charging the ground returns it here). The base model has none.
+        """
+        return 0.0
+
+    def _borehole_fluid_K(
+        self, T_bhe_K: float, Q_load_W: float, R_b: float, m_cp_b: float
+    ) -> tuple[float, float, float]:
+        """Mean, inlet and outlet borehole fluid temperature [K] for a field load [W]."""
+        q_unit = calc_borefield_linear_load(Q_load_W, self.n_boreholes, self.H_b)
+        T_f_K = T_bhe_K - q_unit * R_b
+        # Assume symmetrical temperature approach around average BHE fluid temperature
+        dT_half = float((q_unit * self.total_borehole_length / m_cp_b) / 2) if m_cp_b > 0 else 0.0
+        return T_f_K, T_f_K - dT_half, T_f_K + dT_half
+
     def _compute_bhe_superposition(
         self,
         n: int,
@@ -1229,15 +1247,34 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result: dict,
         hp_is_on: bool,
     ) -> None:
-        # Step-mean convention (#108): the ground history and the wall take the
-        # step-average extraction (the row's Q_bhe). The borehole resistance and
-        # the loop temperature difference have no storage and act while the
-        # compressor runs, so the fluid temperatures use the running extraction.
-        Q_bhe_unit = (
-            calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
-        )
-        fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if hp_is_on else 0.0
-        Q_bhe_unit_run = Q_bhe_unit / fraction if fraction > 0.0 else 0.0
+        """Ground response and borehole fluid temperatures for one step.
+
+        Loads are kept by source. The compressor extracts only while it runs:
+        its step average is the row's ``Q_bhe [W]``, its running extraction
+        that divided by ``runtime_fraction [-]``. Heat other sources inject
+        (:meth:`_ground_injection_W`) flows for the whole step. The borehole
+        loop circulates at the source-loop flow whenever either load is on.
+
+        - Ground history and wall (#108 step-mean response): the step-average
+          net load.
+        - Reported fluid temperatures ``T_bhe_f``/``_in``/``_out``: step-time
+          averages. The fluid-to-wall drop (borehole resistance) and the loop
+          temperature difference are linear in the load, so the average is the
+          net average load's value; it is continuous in the run fraction and
+          tends to the injection-only state as the compressor's run vanishes.
+          The next cycle reads this outlet (one-step source lag).
+        - ``T_bhe_f*_running``: the fluid while the compressor runs (its
+          running extraction net of the injection); NaN when it did not run.
+          The source-side exergy of the evaporator uses these.
+        """
+        Q_inj = float(self._ground_injection_W())
+        ran = bool(hp_is_on)
+        fraction = float(hp_result.get("runtime_fraction [-]", 1.0)) if ran else 0.0
+        Q_hp_avg = float(hp_result.get("Q_bhe [W]", 0.0)) if ran else 0.0
+        Q_net_avg = Q_hp_avg - Q_inj
+        if Q_inj != 0.0:
+            hp_result["Q_bhe [W]"] = Q_net_avg  # net field load, extraction-positive
+        Q_bhe_unit = calc_borefield_linear_load(Q_net_avg, self.n_boreholes, self.H_b)
 
         # Ground thermal response (pulse-history temporal superposition) is
         # delegated to the swappable ground coupler; the default reproduces the
@@ -1248,17 +1285,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit_run * hp_result.get("R_b_eff [mK/W]", self.R_b)
-        self.T_bhe_f = cu.K2C(T_bhe_f_K)
-        self.Q_bhe = Q_bhe_unit * self.total_borehole_length
+        R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
         m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        self.Q_bhe = Q_bhe_unit * self.total_borehole_length
 
-        # Assume symmetrical temperature approach around average BHE fluid temperature
-        Q_bhe_run = Q_bhe_unit_run * self.total_borehole_length
-        dT_bhe_f_half = float((Q_bhe_run / m_cp_b) / 2) if m_cp_b > 0 else 0.0
-        self.T_bhe_f_in_K = T_bhe_f_K - dT_bhe_f_half
+        T_bhe_f_K, self.T_bhe_f_in_K, T_bhe_f_out_K = self._borehole_fluid_K(T_bhe_K, Q_net_avg, R_b, m_cp_b)
+        self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
-        T_bhe_f_out_K = T_bhe_f_K + dT_bhe_f_half
         # Sync the Kelvin attribute too. _calc_state reads self.T_bhe_f_out_K to set
         # the evaporator condition; without this it stays at its __init__ default (Ts_K),
         # so in multi-step analyze_dynamic the evaporator/COP never follow the g-driven
@@ -1272,6 +1305,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result["T_bhe_f [°C]"] = self.T_bhe_f
         hp_result["T_bhe_f_in [°C]"] = self.T_bhe_f_in
         hp_result["T_bhe_f_out [°C]"] = self.T_bhe_f_out
+        if ran and fraction > 0.0:
+            run = self._borehole_fluid_K(T_bhe_K, Q_hp_avg / fraction - Q_inj, R_b, m_cp_b)
+            running = tuple(cu.K2C(x) for x in run)
+        else:
+            running = (np.nan, np.nan, np.nan)
+        hp_result["T_bhe_f_running [°C]"] = running[0]
+        hp_result["T_bhe_f_in_running [°C]"] = running[1]
+        hp_result["T_bhe_f_out_running [°C]"] = running[2]
 
     # =============================================================
     # Tank backends (swappable)
@@ -1825,6 +1866,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             calc_energy_flow,
             calc_refrigerant_exergy,
             convert_electricity_to_exergy,
+            source_loop_exergy_flows,
         )
 
         df = df.copy()
@@ -1837,21 +1879,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         df = calc_refrigerant_exergy(df, self.ref, T0_K)
         df = convert_electricity_to_exergy(df)
 
-        # 2. Exergy flows
-        G_b = c_w * rho_w * df["dV_bhe_f [m3/s]"]
-        T_bhe_f_in_K = cu.C2K(df["T_bhe_f_in [°C]"])
-        T_bhe_f_out_K = cu.C2K(df["T_bhe_f_out [°C]"])
-
-        # Exergy at BHE boundaries
-        X_bhe_in = calc_exergy_flow(G_b, T_bhe_f_in_K, T0_K)
-        X_bhe_out = calc_exergy_flow(G_b, T_bhe_f_out_K, T0_K)
-
-        # Fluid enters evaporator after being heated by the pump
-        T_ground_in_K = T_bhe_f_out_K + df["E_pmp [W]"] / G_b.replace(0, np.nan)
-        X_ground_in = calc_exergy_flow(G_b, T_ground_in_K, T0_K)
-
-        # Fluid leaves evaporator and enters BHE
-        X_ground_out = X_bhe_in
+        # 2. Exergy flows of the source loop: evaluated at the running state
+        # and averaged over the step like the heat and power in the row.
+        X_bhe_in, X_bhe_out, X_ground_in, X_ground_out = source_loop_exergy_flows(df, T0_K)
+        # Loop boundary flows (step averages) so the source-side balance can be read from the frame.
+        df["X_bhe_in [W]"] = X_bhe_in
+        df["X_bhe_out [W]"] = X_bhe_out
 
         Q_ref_tank = df["Q_ref_tank [W]"].fillna(0)
         Q_ref_ground = df["Q_ref_ground [W]"].fillna(0)

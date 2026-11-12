@@ -235,16 +235,16 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
 
     gshpb = _historical_efficiency_plant()
     accepted = []
-    determine = gshpb._determine_hp_state
+    solve = gshpb._solve_cycle_at
 
-    def record_state(ctx, is_on_prev):
-        result = determine(ctx, is_on_prev)
-        if result[0]:
-            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result[1].copy()))
+    def record_state(ctx, T_tank_w):
+        result = solve(ctx, T_tank_w)
+        if result.get("hp_is_on", False):
+            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result.copy()))
         return result
 
     # Observe the actual solver return without replacing any physical result.
-    monkeypatch.setattr(gshpb, "_determine_hp_state", record_state)
+    monkeypatch.setattr(gshpb, "_solve_cycle_at", record_state)
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
         df = gshpb.analyze_dynamic(
@@ -255,7 +255,13 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
             T0_schedule=T0,
         )
 
-    assert [n for n, _, _ in accepted] == [4, 5, 10]
+    # The thermostat acts inside each hour: the compressor starts when the
+    # draw cools the tank to its lower bound (steps 3 and 9, not one hour
+    # later) and stops at the upper bound. Step 4 starts above the cycle's
+    # envelope (no operating point near 56-65 °C on this plant), runs nothing
+    # and retries in step 5.
+    assert [n for n, _, _ in accepted] == [3, 5, 9, 10]
+    assert df["T_tank_w [°C]"].max() <= gshpb.T_tank_w_upper_bound
     for n, source_outlet_C, state in accepted:
         assert state["converged"] and state["converged_rps"]
         C = state["dV_bhe_f [m3/s]"] * rho_w * c_w
@@ -271,7 +277,10 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
             Q_source + state["E_cmp [W]"] * state["eta_cmp [-]"], rel=1e-9, abs=1e-9
         )
         assert state["Q_bhe [W]"] == pytest.approx(Q_source - state["E_pmp [W]"], rel=1e-9, abs=1e-9)
-        assert df["Q_bhe [W]"].iloc[n] == state["Q_bhe [W]"]
+        # The row reports the step average: the running cycle times its run time.
+        fraction = df["runtime_fraction [-]"].iloc[n]
+        assert 0.0 < fraction <= 1.0
+        assert df["Q_bhe [W]"].iloc[n] == pytest.approx(state["Q_bhe [W]"] * fraction, rel=1e-12, abs=0)
 
     # Independent Duhamel superposition as a dense causal response matrix:
     # the real cycle's total field load is converted to W/m exactly once.

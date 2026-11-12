@@ -328,7 +328,8 @@ def test_t5_hybrid_tank_stores_injected_heat():
     expect(_charge_storage_ratio(HybridStratifiedTank) >= 0.95, "_charge_storage_ratio(HybridStratifiedTank) >= 0.95")
 
 
-@defect("T6", "dt 60 s vs 600 s: 2.75 vs 5.0 kWh and 78 °C peak (setpoint 65 °C)")
+# T6 fixed by resolving the thermostat inside each step (dynamic_context.resolve_step_operation):
+# was dt 60 s vs 600 s 2.75 vs 5.0 kWh and a 78 °C peak against the 65 °C set point.
 def test_t6_ashpb_time_step_independence():
     out = {}
     for dt in (60, 600):

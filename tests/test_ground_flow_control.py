@@ -227,10 +227,16 @@ def test_dynamic_hx_uses_current_wall_and_selected_flow(cls):
     if cls is GroundSourceHeatPump:
         frame = model.analyze_dynamic(7200, 3600, [-4000, -4000], [7, 7], [20, 20])
     else:
-        frame = model.analyze_dynamic(7200, 3600, 40, [0, 0], [7, 7])
+        # From 30 °C the boiler runs the whole first hour. A boiler step the
+        # compressor runs only part of reports pump power and ground load
+        # averaged over the step, and commits that average to the ground
+        # history, while its cycle met the wall response to the running load;
+        # the running HX balance below is then not readable from the row.
+        frame = model.analyze_dynamic(7200, 3600, 30, [0, 0], [7, 7])
+        assert frame.iloc[0]["runtime_fraction [-]"] == 1.0
     assert frame.iloc[0]["converged"]
     for _, row in frame.iterrows():
-        if not row["hp_is_on"]:
+        if not row["hp_is_on"] or row.get("runtime_fraction [-]", 1.0) < 1.0:
             continue
         mass = row["dV_bhe_f [m3/s]"] * rho_w
         source = row["T_bhe_f_out [°C]"] + row["E_pmp [W]"] / (mass * c_w)

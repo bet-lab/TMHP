@@ -1,0 +1,497 @@
+[
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "eta_v",
+    "min": 90.0,
+    "max": 100.0,
+    "interval": 10.0,
+    "ticks": [
+      90.0,
+      100.0
+    ],
+    "continuous": true,
+    "contours": [
+      92.0,
+      94.0,
+      96.0,
+      98.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "eta_ov",
+    "min": 50.0,
+    "max": 70.0,
+    "interval": 20.0,
+    "ticks": [
+      50.0,
+      70.0
+    ],
+    "continuous": true,
+    "contours": [
+      52.0,
+      56.0,
+      60.0,
+      64.0,
+      68.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "f_loss",
+    "min": 10.0,
+    "max": 20.0,
+    "interval": 10.0,
+    "ticks": [
+      10.0,
+      20.0
+    ],
+    "continuous": true,
+    "contours": [
+      12.0,
+      14.0,
+      16.0,
+      18.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 60,
+    "max": 120,
+    "interval": 20,
+    "ticks": [
+      60.0,
+      80.0,
+      100.0,
+      120.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 90,
+    "interval": 15,
+    "ticks": [
+      30.0,
+      45.0,
+      60.0,
+      75.0,
+      90.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 0,
+    "max": 30,
+    "interval": 10,
+    "ticks": [
+      0.0,
+      10.0,
+      20.0,
+      30.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "eta_v",
+    "min": 90.0,
+    "max": 100.0,
+    "interval": 10.0,
+    "ticks": [
+      90.0,
+      100.0
+    ],
+    "continuous": true,
+    "contours": [
+      92.0,
+      94.0,
+      96.0,
+      98.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "eta_ov",
+    "min": 65.0,
+    "max": 95.0,
+    "interval": 30.0,
+    "ticks": [
+      65.0,
+      95.0
+    ],
+    "continuous": true,
+    "contours": [
+      72.0,
+      76.0,
+      80.0,
+      84.0,
+      88.0,
+      92.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 2,
+    "max": 7,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0,
+      7.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  },
+  {
+    "axis": "colorbar",
+    "quantity": "f_loss",
+    "min": 5.0,
+    "max": 10.0,
+    "interval": 5.0,
+    "ticks": [
+      5.0,
+      10.0
+    ],
+    "continuous": true,
+    "contours": [
+      6.0,
+      7.0,
+      8.0,
+      9.0
+    ],
+    "height_fraction": 0.5,
+    "extension": "neither"
+  },
+  {
+    "axis": "x",
+    "min": 2.0,
+    "max": 6.0,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 2.0,
+    "max": 6.0,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 2.0,
+    "max": 6.0,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 2.0,
+    "max": 6.0,
+    "interval": 1,
+    "ticks": [
+      2.0,
+      3.0,
+      4.0,
+      5.0,
+      6.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 1.5,
+    "max": 4.0,
+    "interval": 0.5,
+    "ticks": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 1.5,
+    "max": 4.0,
+    "interval": 0.5,
+    "ticks": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 1.5,
+    "max": 4.0,
+    "interval": 0.5,
+    "ticks": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 1.5,
+    "max": 4.0,
+    "interval": 0.5,
+    "ticks": [
+      1.5,
+      2.0,
+      2.5,
+      3.0,
+      3.5,
+      4.0
+    ]
+  },
+  {
+    "axis": "x",
+    "min": 1.5,
+    "max": 7.5,
+    "interval": 1.5,
+    "ticks": [
+      1.5,
+      3.0,
+      4.5,
+      6.0,
+      7.5
+    ]
+  },
+  {
+    "axis": "y",
+    "min": 30,
+    "max": 110,
+    "interval": 20,
+    "ticks": [
+      30.0,
+      50.0,
+      70.0,
+      90.0,
+      110.0
+    ]
+  }
+]

@@ -1,0 +1,93 @@
+{
+  "source": "Ossorio R., Marchante-Avellaneda J., Navarro-Peris E. (2024) Development of compact empirical models for variable-speed compressors for the prediction of energy consumption, mass flow and discharge temperature. Applied Thermal Engineering 244:122666. doi:10.1016/j.applthermaleng.2024.122666",
+  "pdf": "https://doi.org/10.1016/j.applthermaleng.2024.122666",
+  "page_refs_pdf_page_numbers": {
+    "Table1_datasets": 4,
+    "Table3_massflow": 8,
+    "Fig8_eta_comp_R290": 9,
+    "Table4_consumption": 12,
+    "Table5_discharge_loss": 14,
+    "Appendix1_em_losses": 18
+  },
+  "status": "Coefficients transcribed from journal. R290 raw data subsequently located in author doctoral thesis; see source_audit.",
+  "units": {
+    "P": "bar absolute",
+    "fc": "shaft rev/s; source frequency convention for synchronous PM motor without slip, not generic electrical Hz",
+    "mdot": "g/s",
+    "specific_consumption": "kJ/kg",
+    "Wc": "W (compressor plus inverter input, thesis Appendix 1)"
+  },
+  "power_boundary": "Wc = total electrical consumption including inverter losses (Ossorio 2023 ATE230:120725 p.4 'consumption (including inverter losses)'; R454C xlsx header 'Wc + Winv'). Compressor-only (inverter-output) power exists only for the separate inverter test sheets (Ossorio2023_InverterA/B/C_points.csv) without state data.",
+  "nominal_speed_Hz": {
+    "scroll-R290": 70
+  },
+  "displacement_cm3": {
+    "scroll-R290": 46
+  },
+  "validity_ranges_Table1": {
+    "scroll-R290": {
+      "Te_C": [
+        -30,
+        25
+      ],
+      "Tc_C": [
+        20,
+        70
+      ],
+      "fc_Hz": [
+        30,
+        110
+      ],
+      "SH_K": 10,
+      "tests": 133
+    }
+  },
+  "eq10_mass_flow": {
+    "form": "mdot = (k0 + k1*Pe + k2*Pc + k3*Pe*Pc) * fc_rat * [k4*(fc_rat - k5/fc_nom)^2 + k6],  fc_rat = fc/fc_nom,  k6 = 1 - k4*(1 - k5/fc_nom)^2",
+    "Table3": {
+      "scroll-R290": {
+        "k0": -0.81,
+        "k1": 6.815,
+        "k2": -0.019,
+        "k3": -0.008,
+        "k4": -0.026,
+        "k5": 104.386,
+        "N": 133,
+        "RMSE_g_s": 0.22,
+        "CV_pct": 0.75
+      }
+    }
+  },
+  "eq17_specific_consumption": {
+    "form": "Wc/mdot_pred = [k0 + k1*(Pc - k2)/(Pe - k3)] * [k4*(fc_rat - k5/fc_nom)^2 + k6],  k6 = 1 - k4*(1 - k5/fc_nom)^2  (kJ/kg, bar, Hz). k5 = speed of maximum compressor efficiency.",
+    "Table4": {
+      "scroll-R290": {
+        "k0": -0.251,
+        "k1": 21.03,
+        "k2": -6.696,
+        "k3": -0.511,
+        "k4": 0.185,
+        "k5": 72.916,
+        "N": 133,
+        "RMSE_W": 90.77,
+        "CV_pct": 3.25
+      }
+    },
+    "note": "k4>0 with k5 inside the speed range => specific consumption has a minimum (efficiency maximum) at fc=k5 and rises toward both low and high speed: interior maximum in N."
+  },
+  "eq22_electromechanical_loss": {
+    "printed_form": "eta_em = k0 + k1*PR + k2*PR/fc_rat + k3/Wc   (Eq.22, p.11)",
+    "Table5": {
+      "scroll-R290": {
+        "k0": 0.103,
+        "k1": -0.0039,
+        "k2": 0.008,
+        "k3": -14.8,
+        "N": 133,
+        "RMSE": 0.01,
+        "CV_pct": 1.31
+      }
+    },
+    "interpretation": "f_loss = k0 + k1*PR + k2*PR/fc_rat + k3/Pel. Author thesis Eq3.22 gives eta_em=1-f_loss; raw-data check recorded in source_audit."
+  }
+}

@@ -1,0 +1,141 @@
+[
+  {
+    "name": "fujitsu30_original_heating_table",
+    "pdf_page": 21,
+    "printed_page": 17,
+    "rect_pdf_points": [
+      55,
+      28,
+      555,
+      273
+    ],
+    "highlight_phrases": [
+      "calculated based on the maximum capacity",
+      "\u00b0CDB",
+      "\u00b0CWB",
+      "1,380"
+    ],
+    "source_url": "https://www.viacomvs.com/wf-doc/fujitsu-klima-uredjaj-zidni-inverter-asyg30lmta-aoyg30lmta-technical-manual.pdf",
+    "source_sha256": "39abcd854c3e44fe8f544adce5efce8102f32516ec6c56583f4f35cf5ad06a35",
+    "output": "fujitsu30_original_heating_table.png",
+    "pixels": [
+      1500,
+      735
+    ],
+    "highlights": [
+      {
+        "phrase": "calculated based on the maximum capacity",
+        "rect_pdf_points": [
+          280.40301513671875,
+          59.42278289794922,
+          490.4867858886719,
+          71.67646026611328
+        ]
+      },
+      {
+        "phrase": "\u00b0CDB",
+        "rect_pdf_points": [
+          100.55999755859375,
+          160.709716796875,
+          115.65959930419922,
+          167.4057159423828
+        ]
+      },
+      {
+        "phrase": "\u00b0CWB",
+        "rect_pdf_points": [
+          133.9176025390625,
+          160.709716796875,
+          150.33958435058594,
+          167.4057159423828
+        ]
+      },
+      {
+        "phrase": "1,380",
+        "rect_pdf_points": [
+          421.3800048828125,
+          114.38970184326172,
+          436.3548278808594,
+          121.08570098876953
+        ]
+      }
+    ],
+    "processing": "original PDF crop plus translucent PDF highlight annotations; no text replacement"
+  },
+  {
+    "name": "2024_original_table5_r290",
+    "pdf_page": 14,
+    "rect_pdf_points": [
+      34,
+      367,
+      563,
+      476
+    ],
+    "highlight_phrases": [],
+    "highlight_rects": [
+      [
+        113,
+        392,
+        176,
+        471
+      ]
+    ],
+    "source_url": "https://doi.org/10.1016/j.applthermaleng.2024.122666",
+    "source_sha256": "1d5d6dfff3f7aa1f55dda9c78c6b4993bcba8d548ac46239153f51f6b485bb56",
+    "output": "2024_original_table5_r290.png",
+    "pixels": [
+      1587,
+      327
+    ],
+    "highlights": [
+      {
+        "phrase": "equation in original PDF",
+        "rect_pdf_points": [
+          113,
+          392,
+          176,
+          471
+        ]
+      }
+    ],
+    "processing": "original PDF crop plus translucent PDF highlight annotations; no text replacement"
+  },
+  {
+    "name": "2024_table5_r290_excerpt",
+    "pdf_page": 14,
+    "rect_pdf_points": [
+      34,
+      392,
+      181,
+      476
+    ],
+    "highlight_phrases": [],
+    "highlight_rects": [
+      [
+        113,
+        392,
+        176,
+        471
+      ]
+    ],
+    "source_url": "https://doi.org/10.1016/j.applthermaleng.2024.122666",
+    "source_sha256": "1d5d6dfff3f7aa1f55dda9c78c6b4993bcba8d548ac46239153f51f6b485bb56",
+    "output": "2024_table5_r290_excerpt.png",
+    "pixels": [
+      441,
+      252
+    ],
+    "highlights": [
+      {
+        "phrase": "equation in original PDF",
+        "rect_pdf_points": [
+          113,
+          392,
+          176,
+          471
+        ]
+      }
+    ],
+    "processing": "original PDF crop plus translucent PDF highlight annotations; no text replacement"
+  }
+]

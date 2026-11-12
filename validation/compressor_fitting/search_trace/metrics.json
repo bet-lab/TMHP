@@ -1,0 +1,34 @@
+{
+  "calibration": {
+    "before": {
+      "requested": 4,
+      "valid": 4,
+      "failed": 0,
+      "COP_RMSE": 0.8669983275759479,
+      "power_RMSE_W": 600.7918007460243
+    },
+    "after": {
+      "requested": 4,
+      "valid": 4,
+      "failed": 0,
+      "COP_RMSE": 0.35859285323613865,
+      "power_RMSE_W": 238.0567636184861
+    }
+  },
+  "holdout": {
+    "before": {
+      "requested": 16,
+      "valid": 16,
+      "failed": 0,
+      "COP_RMSE": 0.8994694117133101,
+      "power_RMSE_W": 618.7789905093812
+    },
+    "after": {
+      "requested": 16,
+      "valid": 16,
+      "failed": 0,
+      "COP_RMSE": 0.38334401711438076,
+      "power_RMSE_W": 257.5855262018143
+    }
+  }
+}

@@ -18,7 +18,7 @@ heat exchange at the indoor unit.
 
 import contextlib
 import math
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
 import numpy as np
@@ -28,6 +28,8 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
+from .calibration import FitReport, FittingPoint, Mode, Parameter, PointResult, fit_compressor, predict_catalogue
+from .compressor_baseline import ossorio_r290_efficiencies
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import check_pr_envelope
 from .compressor_speed import (
@@ -159,6 +161,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
     ):
+        """Configure an ASHP with Ossorio research maps for omitted efficiencies.
+
+        Explicit scalar/callable efficiencies take precedence, including the
+        legacy mechanical-efficiency fallback. Default maps describe an R290
+        scroll; their use with another refrigerant or compressor technology is
+        a modelling assumption. Reference-state errors retain the existing
+        constructor behaviour; efficiency defaults for other classes are not
+        changed by constructing this class.
+        """
         import warnings
 
         if dV_ou_fan_a_ref is not None:
@@ -324,10 +335,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.T_a_room: float = T_a_room
 
         # --- 6. Compressor reference state (rated speed, rated mass flow) ---
+        default_efficiencies = ossorio_r290_efficiencies()
         efficiencies = self._initialize_reference_state(
             rps_rated=rps_rated,
             m_dot_ref_rated=m_dot_ref_rated,
-            efficiencies={"eta_cmp_isen": eta_cmp_isen, "eta_cmp_vol": eta_cmp_vol, "eta_cmp": eta_cmp},
+            efficiencies={
+                "eta_cmp_isen": default_efficiencies["eta_cmp_isen"] if eta_cmp_isen is None else eta_cmp_isen,
+                "eta_cmp_vol": default_efficiencies["eta_cmp_vol"] if eta_cmp_vol is None else eta_cmp_vol,
+                "eta_cmp": default_efficiencies["eta_cmp"] if eta_cmp is None else eta_cmp,
+            },
             rated_condition=rated_condition,
         )
         self.eta_cmp_isen: float | Callable = efficiencies["eta_cmp_isen"]
@@ -1116,6 +1132,50 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # =============================================================
     # Steady-state analysis
     # =============================================================
+
+    def fit(
+        self,
+        fitting_points: Iterable[FittingPoint],
+        *,
+        mode: Mode = "heating",
+        parameters: tuple[Parameter, ...] = ("overall_efficiency",),
+        lambda_bounds: Mapping[str, tuple[float, float]] | None = None,
+        max_cop_rmse: float | None = None,
+        auxiliary_grid_size: int = 21,
+        capacity_tolerance: float = 1e-4,
+        baseline_label: str | None = None,
+    ) -> FitReport:
+        """Calibrate compressor scales from catalogue net-output/COP observations.
+
+        Each row is ``(indoor DB °C, outdoor DB °C, net output W, system COP)``.
+        Only overall efficiency fits COP; optional volumetric and loss scales
+        adjust speed and discharge feasibility. Fixed specifications are kept.
+        A successful fit atomically replaces compressor efficiency callables;
+        a failure records its report and preserves the previously applied maps.
+        See :mod:`tmhp.calibration` for bounds, diagnostics and assumptions.
+        """
+        return fit_compressor(
+            self,
+            fitting_points,
+            mode=mode,
+            parameters=parameters,
+            lambda_bounds=lambda_bounds,
+            max_cop_rmse=max_cop_rmse,
+            auxiliary_grid_size=auxiliary_grid_size,
+            capacity_tolerance=capacity_tolerance,
+            baseline_label=baseline_label,
+        )
+
+    def predict_catalogue(
+        self, fitting_points: Iterable[FittingPoint], *, mode: Mode = "heating", capacity_tolerance: float = 1e-4
+    ) -> tuple[PointResult, ...]:
+        """Predict every net-output catalogue row using current efficiencies on a copy.
+
+        This does not fit or change the model. The indoor fan heat is accounted
+        for when translating net catalogue output to the existing coil load.
+        Failed rows are returned with diagnostic reasons rather than dropped.
+        """
+        return predict_catalogue(self, fitting_points, mode=mode, capacity_tolerance=capacity_tolerance)
 
     def analyze_steady(
         self,

@@ -1,0 +1,107 @@
+[
+  {
+    "kind": "catalogue",
+    "manufacturer": "Fujitsu General",
+    "model": "ASYG30LMTA/AOYG30LMTA",
+    "document": "Design & Technical Manual DR_AS010EF_04, 2016-04-05",
+    "url": "https://www.viacomvs.com/wf-doc/fujitsu-klima-uredjaj-zidni-inverter-asyg30lmta-aoyg30lmta-technical-manual.pdf",
+    "source_type": "manufacturer-authored manual hosted by distributor; maximum-capacity calculated catalogue",
+    "pdf_pages": [
+      15,
+      20,
+      21,
+      54,
+      63
+    ],
+    "page_roles": {
+      "15": "nominal pair capacities, indoor airflow and fan electrical input",
+      "20": "capacity table definitions",
+      "21": "heating capacity table; printed page17; explicit outdoor dry/wet bulb",
+      "54": "outdoor specifications, R410A, airflow; motor OUTPUT not electrical input",
+      "63": "outdoor airflow"
+    },
+    "sha256": "39abcd854c3e44fe8f544adce5efce8102f32516ec6c56583f4f35cf5ad06a35",
+    "official_specification_urls": [
+      "https://webstore.uk.generalww.com/product/attachment/ASYG36LMTA/specifications.pdf",
+      "https://webstore.uk.generalww.com/product/attachment/AOYG30LMTA/specifications.pdf",
+      "https://www.generalww.com/datafiles/00345345-02.pdf"
+    ],
+    "preserved_source_rows": "source_audit/fujitsu_asyg30lmta_heating_50.csv",
+    "active_study_rows": "catalogue_points.csv",
+    "selection_manifest": "fujitsu_selection_manifest.json",
+    "selection": {
+      "source_heating_points": 50,
+      "study_outdoor_db_C": [
+        7,
+        10,
+        15,
+        20
+      ],
+      "study_indoor_db_C": [
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "train_indoor_db_C": 20,
+      "train": 4,
+      "holdout": 16,
+      "solver_edge_outdoor24": 5,
+      "cold_diagnostic": 25,
+      "corrected_baseline_valid_of_warm25": 24,
+      "excluded_before_fitting": "Entire outdoor24 C group excluded after one baseline optimizer failure at indoor22 C; group retained separately with all failures",
+      "solver_edge_results": "diagnostic_solver_edge.json",
+      "solver_edge_before_valid": 4,
+      "solver_edge_after_valid": 5
+    },
+    "legacy_catalogue_manifest": "legacy_panasonic/source_manifest.json"
+  },
+  {
+    "kind": "paper2024",
+    "url": "https://doi.org/10.1016/j.applthermaleng.2024.122666",
+    "pdf_pages": [
+      3,
+      4,
+      8,
+      9,
+      11,
+      12,
+      14
+    ],
+    "sha256": "1d5d6dfff3f7aa1f55dda9c78c6b4993bcba8d548ac46239153f51f6b485bb56"
+  },
+  {
+    "kind": "paper2023",
+    "url": "https://doi.org/10.1016/j.applthermaleng.2023.120725",
+    "pdf_pages": [
+      3,
+      4
+    ],
+    "sha256": "ff1f4d987e665654db51bc201de4c8e7cd3b745f42a76940e3e8b9d44044f757",
+    "reference_in_2024": "[6]",
+    "sha256_role": "Existing local source PDF used to render evidence crops; distinct from downloaded repository copy",
+    "direct_access": {
+      "verified_date": "2026-11-02",
+      "doi": "10.1016/j.applthermaleng.2023.120725",
+      "url": "https://riunet.upv.es/server/api/core/bitstreams/9bede58e-9ad8-470e-a499-72d2b562b4d0/content",
+      "http_status": 200,
+      "content_type": "application/pdf;charset=UTF-8",
+      "bytes": 3030840,
+      "sha256": "4c8bfc8c55547fff3db978e7880b8edd213bfaddfba6ae035195213d3a25621f",
+      "note": "Repository /download route returned anti-bot HTML via web tool; direct server API content returned PDF over HTTP without authentication. Hash differs from prior local publisher PDF; this is a separate downloaded copy."
+    }
+  },
+  {
+    "kind": "thesis",
+    "url": "https://riunet.upv.es/bitstreams/6612b905-7a7a-436d-b73c-ac1bc903c27a/download",
+    "pdf_pages": [
+      116,
+      119,
+      243,
+      244,
+      252
+    ],
+    "sha256": "66f32f7ba6190c527317be55a66d584a3b85588c7263e539d578c937f8f0fa47"
+  }
+]

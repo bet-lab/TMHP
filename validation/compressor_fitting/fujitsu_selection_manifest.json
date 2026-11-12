@@ -1,0 +1,37 @@
+{
+  "pre_fit_selection": true,
+  "initial_setup": {
+    "file": "fujitsu_initial_setup_diagnostic.json",
+    "hp_capacity_W": 8800,
+    "rated_mode": "cooling",
+    "PR_cycle_max": 5,
+    "valid": 17,
+    "requested": 25,
+    "status": "abandoned: heating nominal was incorrectly supplied to cooling-rated hp_capacity"
+  },
+  "corrected_setup": {
+    "file": "fujitsu_corrected_rating_benchmark.json",
+    "hp_capacity_W": 8000,
+    "rated_mode": "cooling",
+    "PR_cycle_max": 7.5,
+    "valid": 24,
+    "requested": 25,
+    "failure": {
+      "indoor_db_C": 22,
+      "outdoor_db_C": 24,
+      "reason": "optimizer_failed"
+    }
+  },
+  "partition": {
+    "criterion": "Before COP fitting, exclude whole outdoor24 group because baseline numerical optimizer failed at one condition; all outdoor7/10/15/20 and all indoor16/18/20/22/24 retained",
+    "calibration": 4,
+    "holdout": 16,
+    "diagnostic_solver_edge": 5,
+    "diagnostic_cold": 25
+  },
+  "limitations": [
+    "No causal attribution to PR alone: nominal rating and PR ceiling were corrected together",
+    "7 C does not certify frost-free conditions",
+    "Maximum-capacity calculated catalogue, not measured nominal-output data"
+  ]
+}

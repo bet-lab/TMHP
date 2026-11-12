@@ -63,11 +63,15 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
 
 
 @pytest.mark.parametrize("pr,speed", [(1.5, 15), (3, 60), (5, 100)])
-def test_all_five_models_share_baseline_at_same_rated_speed(pr, speed):
+def test_ashp_default_changes_without_changing_the_four_other_model_defaults(pr, speed):
+    """ASHP uses Ossorio while boiler and ground model defaults retain BITZER at physical speed."""
     from tmhp import AirSourceHeatPump, AirSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+    from tmhp.compressor_baseline import ossorio_r290_efficiencies
     from tmhp.compressor_efficiency import _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
 
-    expected = [f(60)(pr, speed) for f in (make_eta_isen, make_eta_vol, make_eta_em)]
+    bitzer_expected = [f(60)(pr, speed) for f in (make_eta_isen, make_eta_vol, make_eta_em)]
+    ossorio = ossorio_r290_efficiencies()
+    ossorio_expected = [ossorio[key](pr, speed) for key in ("eta_cmp_isen", "eta_cmp_vol", "eta_cmp")]
     for cls in (
         AirSourceHeatPump,
         AirSourceHeatPumpBoiler,
@@ -88,7 +92,7 @@ def test_all_five_models_share_baseline_at_same_rated_speed(pr, speed):
         )
         assert [
             _eval_eff(getattr(hp, k), pr, speed) for k in ("eta_cmp_isen", "eta_cmp_vol", "eta_cmp")
-        ] == pytest.approx(expected)
+        ] == pytest.approx(ossorio_expected if cls is AirSourceHeatPump else bitzer_expected)
 
 
 def test_helper_does_not_mask_callable_body_type_error():

@@ -137,3 +137,15 @@ def test_condenser_node_concentrates_vs_spreads():
     assert spread._tank is not None
     assert concen._tank is not None
     assert not np.allclose(spread._tank.T, concen._tank.T)
+
+
+def test_bottom_condenser_node_mixes_instead_of_inverting():
+    """Heat delivered at the bottom node rises by buoyancy (StratifiedTank
+    inversion mixing, #96): the profile stays monotone and below boiling. Before
+    the mixing the bottom node of this run ended at 104 °C under a 54 °C top."""
+    hp = _gshpb(tank_model="stratified", n_tank_nodes=8, condenser_node=7)
+    _run(hp)
+    assert hp._tank is not None
+    prof = hp._tank.T
+    assert np.all(np.diff(prof) <= 1e-4)
+    assert prof.max() < 100.0

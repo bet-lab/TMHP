@@ -128,6 +128,21 @@ def test_coverage_job_enforces_a_floor() -> None:
     assert float(covered[0].cov_fail_under) >= 70
 
 
+def test_local_ci_script_enforces_the_same_coverage_floor() -> None:
+    """scripts/ci-local.sh must fail on a coverage drop exactly as the 3.12 CI job does."""
+    covered = [command for command in _pytest_options(_job("test")) if command.cov]
+    script = _read("scripts/ci-local.sh").replace("\\\n", " ")
+    local = [shlex.split(line) for line in script.splitlines() if "uv run pytest" in line and "run_step" in line]
+
+    assert len(local) == 1
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--cov", action="append", default=[])
+    parser.add_argument("--cov-fail-under", default=None)
+    options, _ = parser.parse_known_args(local[0])
+    assert options.cov == ["tmhp"]
+    assert options.cov_fail_under == covered[0].cov_fail_under
+
+
 def test_pytest_matrix_is_gated_by_the_scope_job() -> None:
     workflow = _workflow()
     scope, test = workflow["jobs"]["test-scope"], workflow["jobs"]["test"]

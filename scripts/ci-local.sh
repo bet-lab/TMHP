@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run locally the same checks the GitHub Actions `lint-type` and `test` jobs run.
+# Run locally the same checks the GitHub Actions `lint-type` and `test` (3.12, with coverage floor) jobs run.
 #
 # Use it when GitHub-hosted checks are blocked or queued (spending limit, runner
 # outage) and a merge needs evidence, or simply to see a PR's result before pushing.
@@ -7,7 +7,7 @@
 # pass/fail) is printed at the end and the script exits non-zero if any step failed.
 #
 # Usage:
-#   scripts/ci-local.sh              # sync + ruff + ruff format + mypy + pytest
+#   scripts/ci-local.sh              # sync + ruff + ruff format + mypy + pytest (coverage >= 70 %)
 #   scripts/ci-local.sh --no-sync    # skip `uv sync` (environment already installed)
 #   scripts/ci-local.sh --docs       # also build the Sphinx docs with -W --keep-going
 #   scripts/ci-local.sh -h|--help
@@ -68,7 +68,10 @@ fi
 run_step "ruff-check" uv run ruff check "${lint_paths[@]}"
 run_step "ruff-format" uv run ruff format --check "${lint_paths[@]}"
 run_step "mypy" uv run mypy src/tmhp
-run_step "pytest" uv run pytest -q -n auto --dist loadgroup
+# Same command as the CI 3.12 job, including its coverage floor (--cov-fail-under),
+# so a coverage drop fails here too. Keep the floor in sync with tests.yml.
+run_step "pytest" uv run pytest -q -n auto --dist loadgroup \
+    --cov=tmhp --cov-report=term --cov-report=xml --cov-fail-under=70
 if [[ $do_docs -eq 1 ]]; then
     # Mirrors the CI `docs` job (--all-groups installs the docs group).
     if [[ $do_sync -eq 1 ]]; then

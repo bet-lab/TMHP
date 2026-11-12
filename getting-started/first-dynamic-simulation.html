@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="For ASHPB, analyze_dynamic solves the same refrigerant cycle as analyze_steady at every time step, coupled to a tank-energy balance and any active subsystems. This page walks through the simplest p..." />
 
-    <meta property="article:modified_time" content="2026-11-13T06:34:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -302,7 +302,8 @@ and a realistic DHW profile to <code class="docutils literal notranslate"><span 
 <li><p>For solar-coupled or PV/ESS variants, instantiate the corresponding
 subclass (<code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code>, <code class="docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code>, <code class="docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code>,
 or the GSHPB counterparts) and pass the additional schedules
-(<code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">T_sup_w_schedule</span></code>) as
+(<code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code> direct-normal and <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code> diffuse-horizontal
+irradiance, <code class="docutils literal notranslate"><span class="pre">T_sup_w_schedule</span></code>) as
 documented under <a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> and
 <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>.</p></li>
 </ul>
@@ -340,8 +341,8 @@ steps (common co-simulation exchange intervals) are fine for daily or
 annual energy.</p>
 <p>The constructors refuse set points outside 0–100 °C, and the heat pump
 never heats the tank past 100 °C even when a minimum run time (below)
-holds it past the upper bound. If heat from another
-source (for example a solar collector loop without a high limit) takes
+holds it past the upper bound; the solar collector loops stop at their own
+storage limit (<code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code>, 85 °C). If heat from another source takes
 the tank above 100 °C anyway, a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code> says so: the lumped
 tank has no boiling or relief valve.</p>
 <p>By default the compressor can start and stop at any moment. Real

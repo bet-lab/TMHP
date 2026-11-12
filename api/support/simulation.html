@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T07:55:55+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -2299,7 +2299,8 @@ each activation lasting <code class="docutils literal notranslate"><span class="
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Instantaneous lamp power [W] (0 or <code class="docutils literal notranslate"><span class="pre">lamp_watts</span></code>).</p>
+<dd class="field-even"><p>Instantaneous lamp power [W] (0 or <code class="docutils literal notranslate"><span class="pre">lamp_watts</span></code>). For the power
+over a time step use <code class="xref py py-func docutils literal notranslate"><span class="pre">calc_uv_lamp_energy()</span></code> / <code class="docutils literal notranslate"><span class="pre">dt</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>

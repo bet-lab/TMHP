@@ -28,12 +28,12 @@
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://bet-lab.github.io/TMHP/api/support/demand-weather.html" />
 <meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
-<meta property="og:description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Domestic hot ..." />
+<meta property="og:description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Irradiance co..." />
 <meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
-<meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Domestic hot ..." />
+<meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Irradiance co..." />
 
-    <meta property="article:modified_time" content="2026-07-01T13:57:28+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -146,9 +146,12 @@ data-aria-dark="Switch to auto color mode">
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
 <li><a class="reference internal" href="#module-tmhp.weather">Weather</a><ul>
+<li><a class="reference internal" href="#irradiance-convention-of-the-dynamic-models">Irradiance convention of the dynamic models</a></li>
 <li><a class="reference internal" href="#tmhp.weather.decompose_ghi_to_poa"><code class="docutils literal notranslate"><span class="pre">decompose_ghi_to_poa()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.weather.load_kma_T0_sol_hourly_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_T0_sol_hourly_csv()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.weather.load_kma_solar_csv"><code class="docutils literal notranslate"><span class="pre">load_kma_solar_csv()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.weather.plane_of_array_irradiance"><code class="docutils literal notranslate"><span class="pre">plane_of_array_irradiance()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.weather.solar_position"><code class="docutils literal notranslate"><span class="pre">solar_position()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.dhw">Domestic hot water demand</a><ul>
@@ -203,6 +206,18 @@ consumed by the dynamic simulation entry points.</p>
 <section id="module-tmhp.weather">
 <span id="weather"></span><h2>Weather<a class="headerlink" href="#module-tmhp.weather" title="Link to this heading">¶</a></h2>
 <p>Weather data processing and irradiance calculations.</p>
+<section id="irradiance-convention-of-the-dynamic-models">
+<h3>Irradiance convention of the dynamic models<a class="headerlink" href="#irradiance-convention-of-the-dynamic-models" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code> / <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code> inputs of the boiler models are the
+<strong>direct-normal</strong> irradiance (DNI, beam on a surface facing the sun) and the
+<strong>diffuse-horizontal</strong> irradiance (DHI), step averages in W/m². A collector or
+PV array turns them into the irradiance on its own plane with
+<a class="reference internal" href="#tmhp.weather.plane_of_array_irradiance" title="tmhp.weather.plane_of_array_irradiance"><code class="xref py py-func docutils literal notranslate"><span class="pre">plane_of_array_irradiance()</span></code></a>, from the sun position at the step midpoint
+(<a class="reference internal" href="#tmhp.weather.solar_position" title="tmhp.weather.solar_position"><code class="xref py py-func docutils literal notranslate"><span class="pre">solar_position()</span></code></a>, site and clock from the collector’s <code class="docutils literal notranslate"><span class="pre">latitude</span></code>,
+<code class="docutils literal notranslate"><span class="pre">longitude</span></code>, <code class="docutils literal notranslate"><span class="pre">utc_offset_h</span></code> and <code class="docutils literal notranslate"><span class="pre">start_time</span></code>). Measured global-horizontal
+irradiance (GHI, e.g. KMA data) is split into DNI and DHI with
+<a class="reference internal" href="#tmhp.weather.decompose_ghi_to_poa" title="tmhp.weather.decompose_ghi_to_poa"><code class="xref py py-func docutils literal notranslate"><span class="pre">decompose_ghi_to_poa()</span></code></a>, whose result carries <code class="docutils literal notranslate"><span class="pre">dni</span></code> and <code class="docutils literal notranslate"><span class="pre">dhi</span></code> columns.</p>
+</section>
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.weather.decompose_ghi_to_poa">
 <span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">decompose_ghi_to_poa</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ghi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Asia/Seoul'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decomposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'erbs'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transposition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#decompose_ghi_to_poa"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.decompose_ghi_to_poa" title="Link to this definition">¶</a></dt>
@@ -217,12 +232,17 @@ consumed by the dynamic simulation entry points.</p>
 <li><p><strong>azimuth</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Surface azimuth [deg]. 180 is South.</p></li>
 <li><p><strong>altitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Location altitude [m]. Default is 0.</p></li>
 <li><p><strong>tz</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Timezone. Default is ‘Asia/Seoul’.</p></li>
-<li><p><strong>decomposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – DNI/DHI decomposition model (‘erbs’, ‘dirint’, etc). Default is ‘erbs’.</p></li>
+<li><p><strong>decomposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – DNI/DHI decomposition model: <code class="docutils literal notranslate"><span class="pre">'erbs'</span></code> (default), <code class="docutils literal notranslate"><span class="pre">'disc'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'dirint'</span></code> or <code class="docutils literal notranslate"><span class="pre">'boland'</span></code> (pvlib). Any other name raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p></li>
 <li><p><strong>transposition</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – POA transposition model (‘perez’, ‘isotropic’, etc). Default is ‘perez’.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>DataFrame with ‘poa_global’, ‘poa_direct’, ‘poa_diffuse’.</p>
+<dd class="field-even"><p>DataFrame with ‘poa_global’, ‘poa_direct’, ‘poa_diffuse’ (and pvlib’s
+sky/ground components) plus the decomposed <code class="docutils literal notranslate"><span class="pre">'dni'</span></code> and <code class="docutils literal notranslate"><span class="pre">'dhi'</span></code>,
+which are the <code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code> / <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code> inputs of the
+dynamic models.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
@@ -271,6 +291,64 @@ cumulative solar irradiance CSV.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.weather.plane_of_array_irradiance">
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">plane_of_array_irradiance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dni</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dhi</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">zenith</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tilt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surface_azimuth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">albedo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sky_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'perez'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">79.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#plane_of_array_irradiance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.plane_of_array_irradiance" title="Link to this definition">¶</a></dt>
+<dd><p>Irradiance on a tilted plane [W/m²] from DNI and DHI and the sun position.</p>
+<p>Beam <code class="docutils literal notranslate"><span class="pre">DNI·cos</span> <span class="pre">θ</span></code> (zero with the sun below the horizon or behind the
+plane), sky diffuse from <code class="docutils literal notranslate"><span class="pre">sky_model</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;perez&quot;</span></code> (default, as
+<a class="reference internal" href="#tmhp.weather.decompose_ghi_to_poa" title="tmhp.weather.decompose_ghi_to_poa"><code class="xref py py-func docutils literal notranslate"><span class="pre">decompose_ghi_to_poa()</span></code></a>), <code class="docutils literal notranslate"><span class="pre">&quot;haydavies&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;isotropic&quot;</span></code>, via
+pvlib) and ground-reflected <code class="docutils literal notranslate"><span class="pre">albedo·GHI·(1</span> <span class="pre">−</span> <span class="pre">cos</span> <span class="pre">β)/2</span></code> with
+<code class="docutils literal notranslate"><span class="pre">GHI</span> <span class="pre">=</span> <span class="pre">DNI·cos</span> <span class="pre">z</span> <span class="pre">+</span> <span class="pre">DHI</span></code>. With the sun below the horizon the beam is zero
+and the sky diffuse is isotropic.</p>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">beam</span></code>, <code class="docutils literal notranslate"><span class="pre">sky</span></code>, <code class="docutils literal notranslate"><span class="pre">ground</span></code>, <code class="docutils literal notranslate"><span class="pre">total</span></code>, <code class="docutils literal notranslate"><span class="pre">aoi</span></code> [deg],
+<code class="docutils literal notranslate"><span class="pre">ghi</span></code>, <code class="docutils literal notranslate"><span class="pre">zenith</span></code> and <code class="docutils literal notranslate"><span class="pre">dni_used</span></code> (the DNI after the horizon check).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dni</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>dhi</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>zenith</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>azimuth</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>tilt</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>surface_azimuth</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>albedo</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>sky_model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>day_of_year</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.weather.solar_position">
+<span class="sig-prename descclassname"><span class="pre">tmhp.weather.</span></span><span class="sig-name descname"><span class="pre">solar_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">day_of_year</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">37.57</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">longitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">126.98</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">utc_offset_h</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/weather.html#solar_position"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.weather.solar_position" title="Link to this definition">¶</a></dt>
+<dd><p>Solar zenith and azimuth [deg] at a fractional day of year (local standard time).</p>
+<p><code class="docutils literal notranslate"><span class="pre">day_of_year</span></code> counts from 1 at 1 January 00:00 local standard time
+(<code class="docutils literal notranslate"><span class="pre">utc_offset_h</span></code> hours ahead of UTC); its fraction is the clock time.
+Spencer (1971) declination and equation of time with the analytical
+zenith/azimuth (Duffie &amp; Beckman, <em>Solar Engineering of Thermal
+Processes</em>, 4th ed., §1.6): within 0.3° (zenith) and 0.4° (azimuth) of
+NREL SPA over a year at Seoul, without atmospheric refraction. Azimuth is clockwise from north
+(180 = south), as in pvlib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>day_of_year</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>latitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>longitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>utc_offset_h</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-tmhp.dhw">
 <span id="domestic-hot-water-demand"></span><h2>Domestic hot water demand<a class="headerlink" href="#module-tmhp.dhw" title="Link to this heading">¶</a></h2>
@@ -297,23 +375,37 @@ cumulative solar irradiance CSV.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.dhw.calc_cold_water_temp">
-<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate mains water temperature using EnergyPlus algorithm.</p>
-<p>Uses monthly average outdoor air temperature to estimate the water mains
-temperature based on the algorithm from Hendron et al. (2004).</p>
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">calc_cold_water_temp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_date_str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">latitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#calc_cold_water_temp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.calc_cold_water_temp" title="Link to this definition">¶</a></dt>
+<dd><p>Mains water temperature [°C] by the EnergyPlus <code class="docutils literal notranslate"><span class="pre">Site:WaterMainsTemperature</span></code> correlation.</p>
+<p>The correlation of Burch &amp; Christensen (NREL; Hendron et al. 2004) as
+EnergyPlus evaluates it (Engineering Reference, “Water Mains
+Temperatures”; <code class="docutils literal notranslate"><span class="pre">WaterMainsTempFromCorrelation</span></code> in <code class="docutils literal notranslate"><span class="pre">WeatherManager.cc</span></code>).
+It is fitted in °F, so the inputs are converted to °F, the correlation
+is evaluated there and the result converted back:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1">T_mains = (T_avg + 6) + ratio · (ΔT_max / 2) · sin(0.986·(day − 15 − lag) − 90)
+</span><span data-line="2">ratio   = 0.4 + 0.01·(T_avg − 44)
+</span><span data-line="3">lag     = 35 − 1.0·(T_avg − 44)
+</span></pre></div>
+</div>
+<p>in °F with the sine argument in degrees, <code class="docutils literal notranslate"><span class="pre">T_avg</span></code> the annual mean
+outdoor temperature and <code class="docutils literal notranslate"><span class="pre">ΔT_max</span></code> the spread (max − min) of the monthly
+mean outdoor temperatures. The result is not allowed below 32 °F (0 °C).
+South of the equator the seasonal term changes sign, as in EnergyPlus.</p>
 <p class="rubric">References</p>
-<p>Hendron, R., Anderson, R., Judkoff, R., Christensen, C., Eastment, M., &amp; Norton, P. (2004).
-Building America Performance Analysis Procedures for Energy-Efficient Residential Buildings.
-National Renewable Energy Laboratory (NREL). <a class="reference external" href="https://doi.org/10.2172/15011400">https://doi.org/10.2172/15011400</a></p>
+<p>Hendron, R., Anderson, R., Christensen, C., Eastment, M., &amp; Reeves, P. (2004).
+Development of an Energy Savings Benchmark for All Residential End-Uses.
+SimBuild 2004, IBPSA-USA. EnergyPlus Engineering Reference, Water Systems.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – DataFrame with monthly average temperatures. Must have ‘month’ and ‘T_avg’ columns.</p></li>
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – The twelve monthly mean outdoor temperatures [°C] in a column whose
+name contains <code class="docutils literal notranslate"><span class="pre">T_avg</span></code> (or <code class="docutils literal notranslate"><span class="pre">기온</span></code>, <code class="docutils literal notranslate"><span class="pre">temp</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code>, <code class="docutils literal notranslate"><span class="pre">°C</span></code>, <code class="docutils literal notranslate"><span class="pre">℃</span></code>).</p></li>
 <li><p><strong>target_date_str</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Target date string in ‘YYYY-MM-DD’ format.</p></li>
+<li><p><strong>latitude</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Site latitude [°]; negative flips the season. <code class="docutils literal notranslate"><span class="pre">None</span></code>: northern hemisphere.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Calculated cold water temperature [degC].</p>
+<dd class="field-even"><p>Mains water temperature [°C].</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
@@ -370,7 +462,7 @@ into a schedule list with specified time step.</p>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Jul 01, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

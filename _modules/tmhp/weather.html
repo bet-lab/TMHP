@@ -170,206 +170,410 @@ data-aria-dark="Switch to auto color mode">
           <h1>Source code for tmhp.weather</h1><div class="highlight"><pre>
 <span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;</span>
 </span><span data-line="2"><span class="sd">Weather data processing and irradiance calculations.</span>
-</span><span data-line="3"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="4">
-</span><span data-line="5"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-</span><span data-line="6">
-</span><span data-line="7"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span data-line="8"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span data-line="9"><span class="kn">import</span><span class="w"> </span><span class="nn">pvlib</span>
-</span><span data-line="10">
-</span><span data-line="11"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
-</span><span data-line="12">
-</span><span data-line="13"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="14">    <span class="s2">&quot;decompose_ghi_to_poa&quot;</span><span class="p">,</span>
-</span><span data-line="15">    <span class="s2">&quot;load_kma_T0_sol_hourly_csv&quot;</span><span class="p">,</span>
-</span><span data-line="16">    <span class="s2">&quot;load_kma_solar_csv&quot;</span><span class="p">,</span>
-</span><span data-line="17"><span class="p">]</span>
-</span><span data-line="18">
-</span><span data-line="19">
+</span><span data-line="3">
+</span><span data-line="4"><span class="sd">Irradiance convention of the dynamic models</span>
+</span><span data-line="5"><span class="sd">-------------------------------------------</span>
+</span><span data-line="6"><span class="sd">The ``I_DN_schedule`` / ``I_dH_schedule`` inputs of the boiler models are the</span>
+</span><span data-line="7"><span class="sd">**direct-normal** irradiance (DNI, beam on a surface facing the sun) and the</span>
+</span><span data-line="8"><span class="sd">**diffuse-horizontal** irradiance (DHI), step averages in W/m². A collector or</span>
+</span><span data-line="9"><span class="sd">PV array turns them into the irradiance on its own plane with</span>
+</span><span data-line="10"><span class="sd">:func:`plane_of_array_irradiance`, from the sun position at the step midpoint</span>
+</span><span data-line="11"><span class="sd">(:func:`solar_position`, site and clock from the collector&#39;s ``latitude``,</span>
+</span><span data-line="12"><span class="sd">``longitude``, ``utc_offset_h`` and ``start_time``). Measured global-horizontal</span>
+</span><span data-line="13"><span class="sd">irradiance (GHI, e.g. KMA data) is split into DNI and DHI with</span>
+</span><span data-line="14"><span class="sd">:func:`decompose_ghi_to_poa`, whose result carries ``dni`` and ``dhi`` columns.</span>
+</span><span data-line="15"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="16">
+</span><span data-line="17"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="18"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="19"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span data-line="20">
+</span><span data-line="21"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span data-line="22"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="23"><span class="kn">import</span><span class="w"> </span><span class="nn">pvlib</span>
+</span><span data-line="24">
+</span><span data-line="25"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="26">
+</span><span data-line="27"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="28">    <span class="s2">&quot;decompose_ghi_to_poa&quot;</span><span class="p">,</span>
+</span><span data-line="29">    <span class="s2">&quot;load_kma_T0_sol_hourly_csv&quot;</span><span class="p">,</span>
+</span><span data-line="30">    <span class="s2">&quot;load_kma_solar_csv&quot;</span><span class="p">,</span>
+</span><span data-line="31">    <span class="s2">&quot;plane_of_array_irradiance&quot;</span><span class="p">,</span>
+</span><span data-line="32">    <span class="s2">&quot;solar_position&quot;</span><span class="p">,</span>
+</span><span data-line="33"><span class="p">]</span>
+</span><span data-line="34">
+</span><span data-line="35"><span class="c1">#: Default site: Seoul (37.57 °N, 126.98 °E), Korea Standard Time (UTC+9).</span>
+</span><span data-line="36"><span class="n">DEFAULT_LATITUDE</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">37.57</span>
+</span><span data-line="37"><span class="n">DEFAULT_LONGITUDE</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">126.98</span>
+</span><span data-line="38"><span class="n">DEFAULT_UTC_OFFSET_H</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">9.0</span>
+</span><span data-line="39"><span class="c1">#: Default clock of simulation second 0: local midnight starting 20 March</span>
+</span><span data-line="40"><span class="c1">#: (day 79, the March equinox), i.e. a year-average sun path.</span>
+</span><span data-line="41"><span class="n">DEFAULT_START_DAY_OF_YEAR</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">79.0</span>
+</span><span data-line="42">
+</span><span data-line="43"><span class="n">_SKY_MODELS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;isotropic&quot;</span><span class="p">,</span> <span class="s2">&quot;haydavies&quot;</span><span class="p">,</span> <span class="s2">&quot;perez&quot;</span><span class="p">)</span>
+</span><span data-line="44">
+</span><span data-line="45">
+</span><span data-line="46"><span class="k">def</span><span class="w"> </span><span class="nf">start_day_of_year</span><span class="p">(</span><span class="n">start_time</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">utc_offset_h</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="47"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fractional day of year (1 = 1 January 00:00) of a run&#39;s second 0.</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="sd">    ``start_time`` is anything :class:`pandas.Timestamp` accepts. A naive</span>
+</span><span data-line="50"><span class="sd">    timestamp is local standard time at ``utc_offset_h``; an aware one is</span>
+</span><span data-line="51"><span class="sd">    converted to it. ``None`` gives :data:`DEFAULT_START_DAY_OF_YEAR`.</span>
+</span><span data-line="52"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="53">    <span class="k">if</span> <span class="n">start_time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="54">        <span class="k">return</span> <span class="n">DEFAULT_START_DAY_OF_YEAR</span>
+</span><span data-line="55">    <span class="n">ts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start_time</span><span class="p">)</span>
+</span><span data-line="56">    <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">tzinfo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="57">        <span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s2">&quot;UTC&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">utc_offset_h</span><span class="p">)</span>
+</span><span data-line="58">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">dayofyear</span><span class="p">)</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">hour</span> <span class="o">+</span> <span class="n">ts</span><span class="o">.</span><span class="n">minute</span> <span class="o">/</span> <span class="mf">60.0</span> <span class="o">+</span> <span class="n">ts</span><span class="o">.</span><span class="n">second</span> <span class="o">/</span> <span class="mf">3600.0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">24.0</span>
+</span><span data-line="59">
+</span><span data-line="60">
+<div class="viewcode-block" id="solar_position">
+<a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.weather.solar_position">[docs]</a>
+</span><span data-line="61"><span class="k">def</span><span class="w"> </span><span class="nf">solar_position</span><span class="p">(</span>
+</span><span data-line="62">    <span class="n">day_of_year</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="63">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="64">    <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_LATITUDE</span><span class="p">,</span>
+</span><span data-line="65">    <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_LONGITUDE</span><span class="p">,</span>
+</span><span data-line="66">    <span class="n">utc_offset_h</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_UTC_OFFSET_H</span><span class="p">,</span>
+</span><span data-line="67"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="68"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Solar zenith and azimuth [deg] at a fractional day of year (local standard time).</span>
+</span><span data-line="69">
+</span><span data-line="70"><span class="sd">    ``day_of_year`` counts from 1 at 1 January 00:00 local standard time</span>
+</span><span data-line="71"><span class="sd">    (``utc_offset_h`` hours ahead of UTC); its fraction is the clock time.</span>
+</span><span data-line="72"><span class="sd">    Spencer (1971) declination and equation of time with the analytical</span>
+</span><span data-line="73"><span class="sd">    zenith/azimuth (Duffie &amp; Beckman, *Solar Engineering of Thermal</span>
+</span><span data-line="74"><span class="sd">    Processes*, 4th ed., §1.6): within 0.3° (zenith) and 0.4° (azimuth) of</span>
+</span><span data-line="75"><span class="sd">    NREL SPA over a year at Seoul, without atmospheric refraction. Azimuth is clockwise from north</span>
+</span><span data-line="76"><span class="sd">    (180 = south), as in pvlib.</span>
+</span><span data-line="77"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="78">    <span class="n">day</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">day_of_year</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">%</span> <span class="mf">365.0</span>
+</span><span data-line="79">    <span class="n">clock_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">day</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">day</span><span class="p">))</span> <span class="o">*</span> <span class="mf">24.0</span>
+</span><span data-line="80">    <span class="n">gamma</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">day</span><span class="p">)</span> <span class="o">/</span> <span class="mf">365.0</span>
+</span><span data-line="81">    <span class="n">decl</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="82">        <span class="mf">0.006918</span>
+</span><span data-line="83">        <span class="o">-</span> <span class="mf">0.399912</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="84">        <span class="o">+</span> <span class="mf">0.070257</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="85">        <span class="o">-</span> <span class="mf">0.006758</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="86">        <span class="o">+</span> <span class="mf">0.000907</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="87">        <span class="o">-</span> <span class="mf">0.002697</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="88">        <span class="o">+</span> <span class="mf">0.00148</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="89">    <span class="p">)</span>
+</span><span data-line="90">    <span class="n">eot_min</span> <span class="o">=</span> <span class="mf">229.18</span> <span class="o">*</span> <span class="p">(</span>
+</span><span data-line="91">        <span class="mf">0.000075</span>
+</span><span data-line="92">        <span class="o">+</span> <span class="mf">0.001868</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="93">        <span class="o">-</span> <span class="mf">0.032077</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="94">        <span class="o">-</span> <span class="mf">0.014615</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="95">        <span class="o">-</span> <span class="mf">0.040849</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">gamma</span><span class="p">)</span>
+</span><span data-line="96">    <span class="p">)</span>
+</span><span data-line="97">    <span class="n">solar_h</span> <span class="o">=</span> <span class="n">clock_h</span> <span class="o">+</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">longitude</span> <span class="o">-</span> <span class="mf">15.0</span> <span class="o">*</span> <span class="n">utc_offset_h</span><span class="p">)</span> <span class="o">+</span> <span class="n">eot_min</span><span class="p">)</span> <span class="o">/</span> <span class="mf">60.0</span>
+</span><span data-line="98">    <span class="n">omega</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">15.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">solar_h</span> <span class="o">-</span> <span class="mf">12.0</span><span class="p">))</span>
+</span><span data-line="99">    <span class="n">phi</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">latitude</span><span class="p">)</span>
+</span><span data-line="100">    <span class="n">cos_z</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span>
+</span><span data-line="101">    <span class="n">cos_z</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">cos_z</span><span class="p">))</span>
+</span><span data-line="102">    <span class="n">zenith</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">cos_z</span><span class="p">)</span>
+</span><span data-line="103">    <span class="n">sin_z</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">zenith</span><span class="p">)</span>
+</span><span data-line="104">    <span class="k">if</span> <span class="n">sin_z</span> <span class="o">&lt;</span> <span class="mf">1e-9</span><span class="p">:</span>
+</span><span data-line="105">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">zenith</span><span class="p">),</span> <span class="mf">180.0</span>
+</span><span data-line="106">    <span class="n">sin_az</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span> <span class="o">/</span> <span class="n">sin_z</span>
+</span><span data-line="107">    <span class="n">cos_az</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">decl</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">omega</span><span class="p">))</span> <span class="o">/</span> <span class="n">sin_z</span>
+</span><span data-line="108">    <span class="n">azimuth</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">sin_az</span><span class="p">,</span> <span class="n">cos_az</span><span class="p">))</span> <span class="o">%</span> <span class="mf">360.0</span>
+</span><span data-line="109">    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">zenith</span><span class="p">),</span> <span class="n">azimuth</span></div>
+
+</span><span data-line="110">
+</span><span data-line="111">
+</span><span data-line="112"><span class="k">def</span><span class="w"> </span><span class="nf">ashrae_iam</span><span class="p">(</span><span class="n">aoi_deg</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b0</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="113"><span class="w">    </span><span class="sd">&quot;&quot;&quot;ASHRAE incidence-angle modifier ``1 - b0 (1/cos θ - 1)``, clipped to [0, 1].&quot;&quot;&quot;</span>
+</span><span data-line="114">    <span class="k">if</span> <span class="n">aoi_deg</span> <span class="o">&gt;=</span> <span class="mf">90.0</span><span class="p">:</span>
+</span><span data-line="115">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="116">    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">b0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">aoi_deg</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)))</span>
+</span><span data-line="117">
+</span><span data-line="118">
+</span><span data-line="119"><span class="k">def</span><span class="w"> </span><span class="nf">diffuse_iam</span><span class="p">(</span><span class="n">tilt_deg</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">b0</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="120"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Sky and ground diffuse incidence-angle modifiers of a tilted surface.</span>
+</span><span data-line="121">
+</span><span data-line="122"><span class="sd">    Equivalent incidence angles of Brandemuehl &amp; Beckman (1980) (Duffie &amp;</span>
+</span><span data-line="123"><span class="sd">    Beckman eq. 5.4.1–5.4.2) applied to :func:`ashrae_iam`.</span>
+</span><span data-line="124"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="125">    <span class="n">b</span> <span class="o">=</span> <span class="n">tilt_deg</span>
+</span><span data-line="126">    <span class="n">theta_sky</span> <span class="o">=</span> <span class="mf">59.7</span> <span class="o">-</span> <span class="mf">0.1388</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">0.001497</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span>
+</span><span data-line="127">    <span class="n">theta_gnd</span> <span class="o">=</span> <span class="mf">90.0</span> <span class="o">-</span> <span class="mf">0.5788</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">0.002693</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">b</span>
+</span><span data-line="128">    <span class="k">return</span> <span class="n">ashrae_iam</span><span class="p">(</span><span class="n">theta_sky</span><span class="p">,</span> <span class="n">b0</span><span class="p">),</span> <span class="n">ashrae_iam</span><span class="p">(</span><span class="n">theta_gnd</span><span class="p">,</span> <span class="n">b0</span><span class="p">)</span>
+</span><span data-line="129">
+</span><span data-line="130">
+<div class="viewcode-block" id="plane_of_array_irradiance">
+<a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.weather.plane_of_array_irradiance">[docs]</a>
+</span><span data-line="131"><span class="k">def</span><span class="w"> </span><span class="nf">plane_of_array_irradiance</span><span class="p">(</span>
+</span><span data-line="132">    <span class="n">dni</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="133">    <span class="n">dhi</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="134">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="135">    <span class="n">zenith</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="136">    <span class="n">azimuth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="137">    <span class="n">tilt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="138">    <span class="n">surface_azimuth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="139">    <span class="n">albedo</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+</span><span data-line="140">    <span class="n">sky_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;perez&quot;</span><span class="p">,</span>
+</span><span data-line="141">    <span class="n">day_of_year</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_START_DAY_OF_YEAR</span><span class="p">,</span>
+</span><span data-line="142"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="143"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Irradiance on a tilted plane [W/m²] from DNI and DHI and the sun position.</span>
+</span><span data-line="144">
+</span><span data-line="145"><span class="sd">    Beam ``DNI·cos θ`` (zero with the sun below the horizon or behind the</span>
+</span><span data-line="146"><span class="sd">    plane), sky diffuse from ``sky_model`` (``&quot;perez&quot;`` (default, as</span>
+</span><span data-line="147"><span class="sd">    :func:`decompose_ghi_to_poa`), ``&quot;haydavies&quot;`` or ``&quot;isotropic&quot;``, via</span>
+</span><span data-line="148"><span class="sd">    pvlib) and ground-reflected ``albedo·GHI·(1 − cos β)/2`` with</span>
+</span><span data-line="149"><span class="sd">    ``GHI = DNI·cos z + DHI``. With the sun below the horizon the beam is zero</span>
+</span><span data-line="150"><span class="sd">    and the sky diffuse is isotropic.</span>
+</span><span data-line="151">
+</span><span data-line="152"><span class="sd">    Returns ``beam``, ``sky``, ``ground``, ``total``, ``aoi`` [deg],</span>
+</span><span data-line="153"><span class="sd">    ``ghi``, ``zenith`` and ``dni_used`` (the DNI after the horizon check).</span>
+</span><span data-line="154"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="155">    <span class="k">if</span> <span class="n">sky_model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_SKY_MODELS</span><span class="p">:</span>
+</span><span data-line="156">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sky_model must be one of </span><span class="si">{</span><span class="n">_SKY_MODELS</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">sky_model</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="157">    <span class="n">dni</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dni</span><span class="p">))</span>
+</span><span data-line="158">    <span class="n">dhi</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dhi</span><span class="p">))</span>
+</span><span data-line="159">    <span class="n">beta</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">tilt</span><span class="p">)</span>
+</span><span data-line="160">    <span class="n">up</span> <span class="o">=</span> <span class="n">zenith</span> <span class="o">&lt;</span> <span class="mf">90.0</span>
+</span><span data-line="161">    <span class="n">dni_used</span> <span class="o">=</span> <span class="n">dni</span> <span class="k">if</span> <span class="n">up</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="162">    <span class="n">cos_z</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">zenith</span><span class="p">)))</span>
+</span><span data-line="163">    <span class="n">ghi</span> <span class="o">=</span> <span class="n">dni_used</span> <span class="o">*</span> <span class="n">cos_z</span> <span class="o">+</span> <span class="n">dhi</span>
+</span><span data-line="164">    <span class="n">cos_aoi</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">zenith</span><span class="p">))</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">zenith</span><span class="p">))</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span>
+</span><span data-line="165">        <span class="n">beta</span>
+</span><span data-line="166">    <span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">azimuth</span> <span class="o">-</span> <span class="n">surface_azimuth</span><span class="p">))</span>
+</span><span data-line="167">    <span class="n">cos_aoi</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">cos_aoi</span><span class="p">))</span>
+</span><span data-line="168">    <span class="n">aoi</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">cos_aoi</span><span class="p">))</span>
+</span><span data-line="169">    <span class="n">beam</span> <span class="o">=</span> <span class="n">dni_used</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">cos_aoi</span><span class="p">)</span> <span class="k">if</span> <span class="n">up</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="170">    <span class="k">if</span> <span class="n">up</span> <span class="ow">and</span> <span class="n">sky_model</span> <span class="o">!=</span> <span class="s2">&quot;isotropic&quot;</span> <span class="ow">and</span> <span class="n">dhi</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="171">        <span class="n">sky</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
+</span><span data-line="172">            <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_sky_diffuse</span><span class="p">(</span>
+</span><span data-line="173">                <span class="n">tilt</span><span class="p">,</span>
+</span><span data-line="174">                <span class="n">surface_azimuth</span><span class="p">,</span>
+</span><span data-line="175">                <span class="n">zenith</span><span class="p">,</span>
+</span><span data-line="176">                <span class="n">azimuth</span><span class="p">,</span>
+</span><span data-line="177">                <span class="n">dni_used</span><span class="p">,</span>
+</span><span data-line="178">                <span class="n">ghi</span><span class="p">,</span>
+</span><span data-line="179">                <span class="n">dhi</span><span class="p">,</span>
+</span><span data-line="180">                <span class="n">dni_extra</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_extra_radiation</span><span class="p">(</span><span class="n">day_of_year</span><span class="p">)),</span>
+</span><span data-line="181">                <span class="n">airmass</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">pvlib</span><span class="o">.</span><span class="n">atmosphere</span><span class="o">.</span><span class="n">get_relative_airmass</span><span class="p">(</span><span class="n">zenith</span><span class="p">)),</span>
+</span><span data-line="182">                <span class="n">model</span><span class="o">=</span><span class="n">sky_model</span><span class="p">,</span>
+</span><span data-line="183">            <span class="p">)</span>
+</span><span data-line="184">        <span class="p">)</span>
+</span><span data-line="185">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">sky</span><span class="p">):</span>
+</span><span data-line="186">            <span class="n">sky</span> <span class="o">=</span> <span class="n">dhi</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+</span><span data-line="187">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="188">        <span class="n">sky</span> <span class="o">=</span> <span class="n">dhi</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+</span><span data-line="189">    <span class="n">ground</span> <span class="o">=</span> <span class="n">albedo</span> <span class="o">*</span> <span class="n">ghi</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+</span><span data-line="190">    <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="191">        <span class="s2">&quot;beam&quot;</span><span class="p">:</span> <span class="n">beam</span><span class="p">,</span>
+</span><span data-line="192">        <span class="s2">&quot;sky&quot;</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">sky</span><span class="p">),</span>
+</span><span data-line="193">        <span class="s2">&quot;ground&quot;</span><span class="p">:</span> <span class="n">ground</span><span class="p">,</span>
+</span><span data-line="194">        <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">beam</span> <span class="o">+</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">sky</span><span class="p">)</span> <span class="o">+</span> <span class="n">ground</span><span class="p">,</span>
+</span><span data-line="195">        <span class="s2">&quot;aoi&quot;</span><span class="p">:</span> <span class="n">aoi</span><span class="p">,</span>
+</span><span data-line="196">        <span class="s2">&quot;ghi&quot;</span><span class="p">:</span> <span class="n">ghi</span><span class="p">,</span>
+</span><span data-line="197">        <span class="s2">&quot;zenith&quot;</span><span class="p">:</span> <span class="n">zenith</span><span class="p">,</span>
+</span><span data-line="198">        <span class="s2">&quot;dni_used&quot;</span><span class="p">:</span> <span class="n">dni_used</span><span class="p">,</span>
+</span><span data-line="199">    <span class="p">}</span></div>
+
+</span><span data-line="200">
+</span><span data-line="201">
 <div class="viewcode-block" id="load_kma_solar_csv">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.weather.load_kma_solar_csv">[docs]</a>
-</span><span data-line="20"><span class="k">def</span><span class="w"> </span><span class="nf">load_kma_solar_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euc-kr&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="21"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a Korea Meteorological Administration (KMA, 기상청) 1-minute</span>
-</span><span data-line="22"><span class="sd">    cumulative solar irradiance CSV.</span>
-</span><span data-line="23">
-</span><span data-line="24"><span class="sd">    Parameters</span>
-</span><span data-line="25"><span class="sd">    ----------</span>
-</span><span data-line="26"><span class="sd">    csv_path : str</span>
-</span><span data-line="27"><span class="sd">        Path to CSV file.</span>
-</span><span data-line="28"><span class="sd">    encoding : str, optional</span>
-</span><span data-line="29"><span class="sd">        File encoding. Default is &#39;euc-kr&#39;.</span>
-</span><span data-line="30">
-</span><span data-line="31"><span class="sd">    Returns</span>
-</span><span data-line="32"><span class="sd">    -------</span>
-</span><span data-line="33"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="34"><span class="sd">        DataFrame with datetime index and &#39;ghi&#39; column [W/m2].</span>
-</span><span data-line="35"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="36">    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-</span><span data-line="37">        <span class="s2">&quot;load_kma_solar_csv is deprecated. Use enex_analysis.external_api.kma_loader instead.&quot;</span><span class="p">,</span>
-</span><span data-line="38">        <span class="ne">DeprecationWarning</span><span class="p">,</span>
-</span><span data-line="39">        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span data-line="40">    <span class="p">)</span>
-</span><span data-line="41">    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-</span><span data-line="42">
-</span><span data-line="43">    <span class="c1"># 1. Parse the timestamp column. KMA exports label it &#39;일시&#39; or &#39;시간&#39;;</span>
-</span><span data-line="44">    <span class="c1"># both spellings are accepted.</span>
-</span><span data-line="45">    <span class="n">time_col</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;일시|시간&quot;</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>
-</span><span data-line="46">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">])</span>
-</span><span data-line="47">
-</span><span data-line="48">    <span class="c1"># BUGFIX: KMA timestamps are KST but parsed as tz-naive. If passed to</span>
-</span><span data-line="49">    <span class="c1"># pvlib as-is they would be interpreted as UTC, producing a 9-hour offset</span>
-</span><span data-line="50">    <span class="c1"># that shows up as a sunrise/sunset DNI anomaly. Localise explicitly.</span>
-</span><span data-line="51">    <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="52">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
-</span><span data-line="53">
-</span><span data-line="54">    <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="55">
-</span><span data-line="56">    <span class="c1"># 2. Parse the cumulative irradiance column (MJ/m² per 1-minute interval)</span>
-</span><span data-line="57">    <span class="c1"># and convert it to an instantaneous W/m² rate.</span>
-</span><span data-line="58">    <span class="n">solar_col</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;일사&quot;</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>
-</span><span data-line="59">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">solar_col</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="o">/</span> <span class="mi">60</span>
-</span><span data-line="60">    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="61">
-</span><span data-line="62">    <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]]</span></div>
+</span><span data-line="202"><span class="k">def</span><span class="w"> </span><span class="nf">load_kma_solar_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euc-kr&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="203"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a Korea Meteorological Administration (KMA, 기상청) 1-minute</span>
+</span><span data-line="204"><span class="sd">    cumulative solar irradiance CSV.</span>
+</span><span data-line="205">
+</span><span data-line="206"><span class="sd">    Parameters</span>
+</span><span data-line="207"><span class="sd">    ----------</span>
+</span><span data-line="208"><span class="sd">    csv_path : str</span>
+</span><span data-line="209"><span class="sd">        Path to CSV file.</span>
+</span><span data-line="210"><span class="sd">    encoding : str, optional</span>
+</span><span data-line="211"><span class="sd">        File encoding. Default is &#39;euc-kr&#39;.</span>
+</span><span data-line="212">
+</span><span data-line="213"><span class="sd">    Returns</span>
+</span><span data-line="214"><span class="sd">    -------</span>
+</span><span data-line="215"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="216"><span class="sd">        DataFrame with datetime index and &#39;ghi&#39; column [W/m2].</span>
+</span><span data-line="217"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="218">    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="219">        <span class="s2">&quot;load_kma_solar_csv is deprecated. Use enex_analysis.external_api.kma_loader instead.&quot;</span><span class="p">,</span>
+</span><span data-line="220">        <span class="ne">DeprecationWarning</span><span class="p">,</span>
+</span><span data-line="221">        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span data-line="222">    <span class="p">)</span>
+</span><span data-line="223">    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+</span><span data-line="224">
+</span><span data-line="225">    <span class="c1"># 1. Parse the timestamp column. KMA exports label it &#39;일시&#39; or &#39;시간&#39;;</span>
+</span><span data-line="226">    <span class="c1"># both spellings are accepted.</span>
+</span><span data-line="227">    <span class="n">time_col</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;일시|시간&quot;</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="228">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">])</span>
+</span><span data-line="229">
+</span><span data-line="230">    <span class="c1"># BUGFIX: KMA timestamps are KST but parsed as tz-naive. If passed to</span>
+</span><span data-line="231">    <span class="c1"># pvlib as-is they would be interpreted as UTC, producing a 9-hour offset</span>
+</span><span data-line="232">    <span class="c1"># that shows up as a sunrise/sunset DNI anomaly. Localise explicitly.</span>
+</span><span data-line="233">    <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="234">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
+</span><span data-line="235">
+</span><span data-line="236">    <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="237">
+</span><span data-line="238">    <span class="c1"># 2. Parse the cumulative irradiance column (MJ/m² per 1-minute interval)</span>
+</span><span data-line="239">    <span class="c1"># and convert it to an instantaneous W/m² rate.</span>
+</span><span data-line="240">    <span class="n">solar_col</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s2">&quot;일사&quot;</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="241">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">solar_col</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="o">/</span> <span class="mi">60</span>
+</span><span data-line="242">    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="243">
+</span><span data-line="244">    <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]]</span></div>
 
-</span><span data-line="63">
-</span><span data-line="64">
+</span><span data-line="245">
+</span><span data-line="246">
 <div class="viewcode-block" id="load_kma_T0_sol_hourly_csv">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.weather.load_kma_T0_sol_hourly_csv">[docs]</a>
-</span><span data-line="65"><span class="k">def</span><span class="w"> </span><span class="nf">load_kma_T0_sol_hourly_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euc-kr&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="66"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Load KMA hourly temperature and solar irradiance CSV.</span>
-</span><span data-line="67">
-</span><span data-line="68"><span class="sd">    Parameters</span>
-</span><span data-line="69"><span class="sd">    ----------</span>
-</span><span data-line="70"><span class="sd">    csv_path : str</span>
-</span><span data-line="71"><span class="sd">        Path to CSV file.</span>
-</span><span data-line="72"><span class="sd">    encoding : str, optional</span>
-</span><span data-line="73"><span class="sd">        File encoding. Default is &#39;euc-kr&#39;.</span>
-</span><span data-line="74">
-</span><span data-line="75"><span class="sd">    Returns</span>
-</span><span data-line="76"><span class="sd">    -------</span>
-</span><span data-line="77"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="78"><span class="sd">        DataFrame with datetime index, &#39;T0_K&#39;, and &#39;ghi&#39; columns.</span>
-</span><span data-line="79"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="80">    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-</span><span data-line="81">        <span class="s2">&quot;load_kma_T0_sol_hourly_csv is deprecated. Use enex_analysis.external_api.kma_loader instead.&quot;</span><span class="p">,</span>
-</span><span data-line="82">        <span class="ne">DeprecationWarning</span><span class="p">,</span>
-</span><span data-line="83">        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-</span><span data-line="84">    <span class="p">)</span>
-</span><span data-line="85">    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-</span><span data-line="86">
-</span><span data-line="87">    <span class="c1"># Match columns case-insensitively against a list of candidate substrings.</span>
-</span><span data-line="88">    <span class="c1"># Korean keywords (KMA exports) and English keywords both work.</span>
-</span><span data-line="89">    <span class="k">def</span><span class="w"> </span><span class="nf">_find_col</span><span class="p">(</span><span class="n">patterns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="90">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
-</span><span data-line="91">            <span class="n">match</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
-</span><span data-line="92">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="93">                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="94">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column matching </span><span class="si">{</span><span class="n">patterns</span><span class="si">}</span><span class="s2"> not found.&quot;</span><span class="p">)</span>
-</span><span data-line="95">
-</span><span data-line="96">    <span class="n">time_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;일시&quot;</span><span class="p">,</span> <span class="s2">&quot;시간&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;date&quot;</span><span class="p">])</span>
-</span><span data-line="97">    <span class="n">temp_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;온도&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°C&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">])</span>
-</span><span data-line="98">    <span class="n">ghi_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;일사&quot;</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">,</span> <span class="s2">&quot;irradiance&quot;</span><span class="p">,</span> <span class="s2">&quot;mj&quot;</span><span class="p">,</span> <span class="s2">&quot;solar&quot;</span><span class="p">])</span>
-</span><span data-line="99">
-</span><span data-line="100">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">])</span>
-</span><span data-line="101">
-</span><span data-line="102">    <span class="c1"># BUGFIX: KMA timestamps are KST but parsed as tz-naive. If passed to</span>
-</span><span data-line="103">    <span class="c1"># pvlib as-is they would be interpreted as UTC, producing a 9-hour offset</span>
-</span><span data-line="104">    <span class="c1"># that shows up as a sunrise/sunset DNI anomaly. Localise explicitly.</span>
-</span><span data-line="105">    <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="106">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
-</span><span data-line="107">
-</span><span data-line="108">    <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="109">
-</span><span data-line="110">    <span class="c1"># Convert temperature to Kelvin.</span>
-</span><span data-line="111">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0_K&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">])</span>
-</span><span data-line="112">
-</span><span data-line="113">    <span class="c1"># Convert irradiance from MJ/m² per hour to W/m².</span>
-</span><span data-line="114">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">ghi_col</span><span class="p">]</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">MJ2J</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2h</span>
-</span><span data-line="115">    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span data-line="116">
-</span><span data-line="117">    <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;T0_K&quot;</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]]</span></div>
+</span><span data-line="247"><span class="k">def</span><span class="w"> </span><span class="nf">load_kma_T0_sol_hourly_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euc-kr&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="248"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Load KMA hourly temperature and solar irradiance CSV.</span>
+</span><span data-line="249">
+</span><span data-line="250"><span class="sd">    Parameters</span>
+</span><span data-line="251"><span class="sd">    ----------</span>
+</span><span data-line="252"><span class="sd">    csv_path : str</span>
+</span><span data-line="253"><span class="sd">        Path to CSV file.</span>
+</span><span data-line="254"><span class="sd">    encoding : str, optional</span>
+</span><span data-line="255"><span class="sd">        File encoding. Default is &#39;euc-kr&#39;.</span>
+</span><span data-line="256">
+</span><span data-line="257"><span class="sd">    Returns</span>
+</span><span data-line="258"><span class="sd">    -------</span>
+</span><span data-line="259"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="260"><span class="sd">        DataFrame with datetime index, &#39;T0_K&#39;, and &#39;ghi&#39; columns.</span>
+</span><span data-line="261"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="262">    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="263">        <span class="s2">&quot;load_kma_T0_sol_hourly_csv is deprecated. Use enex_analysis.external_api.kma_loader instead.&quot;</span><span class="p">,</span>
+</span><span data-line="264">        <span class="ne">DeprecationWarning</span><span class="p">,</span>
+</span><span data-line="265">        <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+</span><span data-line="266">    <span class="p">)</span>
+</span><span data-line="267">    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">csv_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+</span><span data-line="268">
+</span><span data-line="269">    <span class="c1"># Match columns case-insensitively against a list of candidate substrings.</span>
+</span><span data-line="270">    <span class="c1"># Korean keywords (KMA exports) and English keywords both work.</span>
+</span><span data-line="271">    <span class="k">def</span><span class="w"> </span><span class="nf">_find_col</span><span class="p">(</span><span class="n">patterns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="272">        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+</span><span data-line="273">            <span class="n">match</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">lower</span><span class="p">())]</span>
+</span><span data-line="274">            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="275">                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">match</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="276">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column matching </span><span class="si">{</span><span class="n">patterns</span><span class="si">}</span><span class="s2"> not found.&quot;</span><span class="p">)</span>
+</span><span data-line="277">
+</span><span data-line="278">    <span class="n">time_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;일시&quot;</span><span class="p">,</span> <span class="s2">&quot;시간&quot;</span><span class="p">,</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;date&quot;</span><span class="p">])</span>
+</span><span data-line="279">    <span class="n">temp_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;기온&quot;</span><span class="p">,</span> <span class="s2">&quot;온도&quot;</span><span class="p">,</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="s2">&quot;t0&quot;</span><span class="p">,</span> <span class="s2">&quot;°C&quot;</span><span class="p">,</span> <span class="s2">&quot;℃&quot;</span><span class="p">])</span>
+</span><span data-line="280">    <span class="n">ghi_col</span> <span class="o">=</span> <span class="n">_find_col</span><span class="p">([</span><span class="s2">&quot;일사&quot;</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">,</span> <span class="s2">&quot;irradiance&quot;</span><span class="p">,</span> <span class="s2">&quot;mj&quot;</span><span class="p">,</span> <span class="s2">&quot;solar&quot;</span><span class="p">])</span>
+</span><span data-line="281">
+</span><span data-line="282">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">time_col</span><span class="p">])</span>
+</span><span data-line="283">
+</span><span data-line="284">    <span class="c1"># BUGFIX: KMA timestamps are KST but parsed as tz-naive. If passed to</span>
+</span><span data-line="285">    <span class="c1"># pvlib as-is they would be interpreted as UTC, producing a 9-hour offset</span>
+</span><span data-line="286">    <span class="c1"># that shows up as a sunrise/sunset DNI anomaly. Localise explicitly.</span>
+</span><span data-line="287">    <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="288">        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;datetime&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
+</span><span data-line="289">
+</span><span data-line="290">    <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;datetime&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="291">
+</span><span data-line="292">    <span class="c1"># Convert temperature to Kelvin.</span>
+</span><span data-line="293">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;T0_K&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">temp_col</span><span class="p">])</span>
+</span><span data-line="294">
+</span><span data-line="295">    <span class="c1"># Convert irradiance from MJ/m² per hour to W/m².</span>
+</span><span data-line="296">    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">ghi_col</span><span class="p">]</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">MJ2J</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">s2h</span>
+</span><span data-line="297">    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span data-line="298">
+</span><span data-line="299">    <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="s2">&quot;T0_K&quot;</span><span class="p">,</span> <span class="s2">&quot;ghi&quot;</span><span class="p">]]</span></div>
 
-</span><span data-line="118">
-</span><span data-line="119">
+</span><span data-line="300">
+</span><span data-line="301">
 <div class="viewcode-block" id="decompose_ghi_to_poa">
 <a class="viewcode-back" href="../../api/support/demand-weather.html#tmhp.weather.decompose_ghi_to_poa">[docs]</a>
-</span><span data-line="120"><span class="k">def</span><span class="w"> </span><span class="nf">decompose_ghi_to_poa</span><span class="p">(</span>
-</span><span data-line="121">    <span class="n">ghi</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-</span><span data-line="122">    <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="123">    <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="124">    <span class="n">tilt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="125">    <span class="n">azimuth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="126">    <span class="n">altitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-</span><span data-line="127">    <span class="n">tz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">,</span>
-</span><span data-line="128">    <span class="n">decomposition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;erbs&quot;</span><span class="p">,</span>
-</span><span data-line="129">    <span class="n">transposition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;perez&quot;</span><span class="p">,</span>
-</span><span data-line="130"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="131"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decompose GHI to POA (Plane of Array) total irradiance.</span>
-</span><span data-line="132">
-</span><span data-line="133"><span class="sd">    Parameters</span>
-</span><span data-line="134"><span class="sd">    ----------</span>
-</span><span data-line="135"><span class="sd">    ghi : np.ndarray or pd.Series</span>
-</span><span data-line="136"><span class="sd">        Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</span>
-</span><span data-line="137"><span class="sd">    latitude : float</span>
-</span><span data-line="138"><span class="sd">        Location latitude.</span>
-</span><span data-line="139"><span class="sd">    longitude : float</span>
-</span><span data-line="140"><span class="sd">        Location longitude.</span>
-</span><span data-line="141"><span class="sd">    tilt : float</span>
-</span><span data-line="142"><span class="sd">        Surface tilt angle [deg].</span>
-</span><span data-line="143"><span class="sd">    azimuth : float</span>
-</span><span data-line="144"><span class="sd">        Surface azimuth [deg]. 180 is South.</span>
-</span><span data-line="145"><span class="sd">    altitude : float, optional</span>
-</span><span data-line="146"><span class="sd">        Location altitude [m]. Default is 0.</span>
-</span><span data-line="147"><span class="sd">    tz : str, optional</span>
-</span><span data-line="148"><span class="sd">        Timezone. Default is &#39;Asia/Seoul&#39;.</span>
-</span><span data-line="149"><span class="sd">    decomposition : str, optional</span>
-</span><span data-line="150"><span class="sd">        DNI/DHI decomposition model (&#39;erbs&#39;, &#39;dirint&#39;, etc). Default is &#39;erbs&#39;.</span>
-</span><span data-line="151"><span class="sd">    transposition : str, optional</span>
-</span><span data-line="152"><span class="sd">        POA transposition model (&#39;perez&#39;, &#39;isotropic&#39;, etc). Default is &#39;perez&#39;.</span>
-</span><span data-line="153">
-</span><span data-line="154"><span class="sd">    Returns</span>
-</span><span data-line="155"><span class="sd">    -------</span>
-</span><span data-line="156"><span class="sd">    pd.DataFrame</span>
-</span><span data-line="157"><span class="sd">        DataFrame with &#39;poa_global&#39;, &#39;poa_direct&#39;, &#39;poa_diffuse&#39;.</span>
-</span><span data-line="158"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="159">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
-</span><span data-line="160">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ghi must be a pandas Series with DatetimeIndex&quot;</span><span class="p">)</span>
-</span><span data-line="161">
-</span><span data-line="162">    <span class="n">times</span> <span class="o">=</span> <span class="n">ghi</span><span class="o">.</span><span class="n">index</span>
-</span><span data-line="163">    <span class="n">location</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">Location</span><span class="p">(</span><span class="n">latitude</span><span class="p">,</span> <span class="n">longitude</span><span class="p">,</span> <span class="n">tz</span><span class="p">,</span> <span class="n">altitude</span><span class="p">)</span>
-</span><span data-line="164">
-</span><span data-line="165">    <span class="c1"># 1. Solar position.</span>
-</span><span data-line="166">    <span class="n">solar_position</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_solarposition</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
-</span><span data-line="167">
-</span><span data-line="168">    <span class="c1"># 2. Decompose GHI into DNI and DHI.</span>
-</span><span data-line="169">    <span class="k">if</span> <span class="n">decomposition</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;erbs&quot;</span><span class="p">:</span>
-</span><span data-line="170">        <span class="n">dni_dhi</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">erbs</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;zenith&quot;</span><span class="p">],</span> <span class="n">times</span><span class="o">.</span><span class="n">dayofyear</span><span class="p">)</span>
-</span><span data-line="171">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="172">        <span class="c1"># Fall back to Erbs for any unrecognised decomposition model.</span>
-</span><span data-line="173">        <span class="n">dni_dhi</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">erbs</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;zenith&quot;</span><span class="p">],</span> <span class="n">times</span><span class="o">.</span><span class="n">dayofyear</span><span class="p">)</span>
-</span><span data-line="174">
-</span><span data-line="175">    <span class="n">dni</span> <span class="o">=</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dni&quot;</span><span class="p">]</span>
-</span><span data-line="176">    <span class="n">dhi</span> <span class="o">=</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dhi&quot;</span><span class="p">]</span>
-</span><span data-line="177">
-</span><span data-line="178">    <span class="c1"># 3. Transpose to plane-of-array (POA) irradiance.</span>
-</span><span data-line="179">    <span class="n">dni_extra</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_extra_radiation</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
-</span><span data-line="180">    <span class="n">airmass</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_airmass</span><span class="p">(</span><span class="n">times</span><span class="o">=</span><span class="n">times</span><span class="p">)</span>
-</span><span data-line="181">    <span class="n">poa</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_total_irradiance</span><span class="p">(</span>
-</span><span data-line="182">        <span class="n">surface_tilt</span><span class="o">=</span><span class="n">tilt</span><span class="p">,</span>
-</span><span data-line="183">        <span class="n">surface_azimuth</span><span class="o">=</span><span class="n">azimuth</span><span class="p">,</span>
-</span><span data-line="184">        <span class="n">solar_zenith</span><span class="o">=</span><span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;zenith&quot;</span><span class="p">],</span>
-</span><span data-line="185">        <span class="n">solar_azimuth</span><span class="o">=</span><span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">],</span>
-</span><span data-line="186">        <span class="n">dni</span><span class="o">=</span><span class="n">dni</span><span class="p">,</span>
-</span><span data-line="187">        <span class="n">ghi</span><span class="o">=</span><span class="n">ghi</span><span class="p">,</span>
-</span><span data-line="188">        <span class="n">dhi</span><span class="o">=</span><span class="n">dhi</span><span class="p">,</span>
-</span><span data-line="189">        <span class="n">dni_extra</span><span class="o">=</span><span class="n">dni_extra</span><span class="p">,</span>
-</span><span data-line="190">        <span class="n">airmass</span><span class="o">=</span><span class="n">airmass</span><span class="p">[</span><span class="s2">&quot;airmass_absolute&quot;</span><span class="p">],</span>
-</span><span data-line="191">        <span class="n">model</span><span class="o">=</span><span class="n">transposition</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
-</span><span data-line="192">    <span class="p">)</span>
-</span><span data-line="193">
-</span><span data-line="194">    <span class="k">return</span> <span class="n">poa</span></div>
+</span><span data-line="302"><span class="k">def</span><span class="w"> </span><span class="nf">decompose_ghi_to_poa</span><span class="p">(</span>
+</span><span data-line="303">    <span class="n">ghi</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span data-line="304">    <span class="n">latitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="305">    <span class="n">longitude</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="306">    <span class="n">tilt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="307">    <span class="n">azimuth</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="308">    <span class="n">altitude</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+</span><span data-line="309">    <span class="n">tz</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">,</span>
+</span><span data-line="310">    <span class="n">decomposition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;erbs&quot;</span><span class="p">,</span>
+</span><span data-line="311">    <span class="n">transposition</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;perez&quot;</span><span class="p">,</span>
+</span><span data-line="312"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="313"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decompose GHI to POA (Plane of Array) total irradiance.</span>
+</span><span data-line="314">
+</span><span data-line="315"><span class="sd">    Parameters</span>
+</span><span data-line="316"><span class="sd">    ----------</span>
+</span><span data-line="317"><span class="sd">    ghi : np.ndarray or pd.Series</span>
+</span><span data-line="318"><span class="sd">        Global horizontal irradiance timeseries [W/m2]. Must have DatetimeIndex.</span>
+</span><span data-line="319"><span class="sd">    latitude : float</span>
+</span><span data-line="320"><span class="sd">        Location latitude.</span>
+</span><span data-line="321"><span class="sd">    longitude : float</span>
+</span><span data-line="322"><span class="sd">        Location longitude.</span>
+</span><span data-line="323"><span class="sd">    tilt : float</span>
+</span><span data-line="324"><span class="sd">        Surface tilt angle [deg].</span>
+</span><span data-line="325"><span class="sd">    azimuth : float</span>
+</span><span data-line="326"><span class="sd">        Surface azimuth [deg]. 180 is South.</span>
+</span><span data-line="327"><span class="sd">    altitude : float, optional</span>
+</span><span data-line="328"><span class="sd">        Location altitude [m]. Default is 0.</span>
+</span><span data-line="329"><span class="sd">    tz : str, optional</span>
+</span><span data-line="330"><span class="sd">        Timezone. Default is &#39;Asia/Seoul&#39;.</span>
+</span><span data-line="331"><span class="sd">    decomposition : str, optional</span>
+</span><span data-line="332"><span class="sd">        DNI/DHI decomposition model: ``&#39;erbs&#39;`` (default), ``&#39;disc&#39;``,</span>
+</span><span data-line="333"><span class="sd">        ``&#39;dirint&#39;`` or ``&#39;boland&#39;`` (pvlib). Any other name raises</span>
+</span><span data-line="334"><span class="sd">        ``ValueError``.</span>
+</span><span data-line="335"><span class="sd">    transposition : str, optional</span>
+</span><span data-line="336"><span class="sd">        POA transposition model (&#39;perez&#39;, &#39;isotropic&#39;, etc). Default is &#39;perez&#39;.</span>
+</span><span data-line="337">
+</span><span data-line="338"><span class="sd">    Returns</span>
+</span><span data-line="339"><span class="sd">    -------</span>
+</span><span data-line="340"><span class="sd">    pd.DataFrame</span>
+</span><span data-line="341"><span class="sd">        DataFrame with &#39;poa_global&#39;, &#39;poa_direct&#39;, &#39;poa_diffuse&#39; (and pvlib&#39;s</span>
+</span><span data-line="342"><span class="sd">        sky/ground components) plus the decomposed ``&#39;dni&#39;`` and ``&#39;dhi&#39;``,</span>
+</span><span data-line="343"><span class="sd">        which are the ``I_DN_schedule`` / ``I_dH_schedule`` inputs of the</span>
+</span><span data-line="344"><span class="sd">        dynamic models.</span>
+</span><span data-line="345"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="346">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+</span><span data-line="347">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ghi must be a pandas Series with DatetimeIndex&quot;</span><span class="p">)</span>
+</span><span data-line="348">
+</span><span data-line="349">    <span class="n">times</span> <span class="o">=</span> <span class="n">ghi</span><span class="o">.</span><span class="n">index</span>
+</span><span data-line="350">    <span class="n">location</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">Location</span><span class="p">(</span><span class="n">latitude</span><span class="p">,</span> <span class="n">longitude</span><span class="p">,</span> <span class="n">tz</span><span class="p">,</span> <span class="n">altitude</span><span class="p">)</span>
+</span><span data-line="351">
+</span><span data-line="352">    <span class="c1"># 1. Solar position.</span>
+</span><span data-line="353">    <span class="n">solar_position</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_solarposition</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+</span><span data-line="354">    <span class="n">zenith</span> <span class="o">=</span> <span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;zenith&quot;</span><span class="p">]</span>
+</span><span data-line="355">
+</span><span data-line="356">    <span class="c1"># 2. Decompose GHI into DNI and DHI.</span>
+</span><span data-line="357">    <span class="n">method</span> <span class="o">=</span> <span class="n">decomposition</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span data-line="358">    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;erbs&quot;</span><span class="p">:</span>
+</span><span data-line="359">        <span class="n">dni_dhi</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">erbs</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">zenith</span><span class="p">,</span> <span class="n">times</span><span class="o">.</span><span class="n">dayofyear</span><span class="p">)</span>
+</span><span data-line="360">        <span class="n">dni</span><span class="p">,</span> <span class="n">dhi</span> <span class="o">=</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dni&quot;</span><span class="p">],</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dhi&quot;</span><span class="p">]</span>
+</span><span data-line="361">    <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;disc&quot;</span><span class="p">,</span> <span class="s2">&quot;dirint&quot;</span><span class="p">):</span>
+</span><span data-line="362">        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;disc&quot;</span><span class="p">:</span>
+</span><span data-line="363">            <span class="n">dni</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">disc</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">zenith</span><span class="p">,</span> <span class="n">times</span><span class="p">)[</span><span class="s2">&quot;dni&quot;</span><span class="p">]</span>
+</span><span data-line="364">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="365">            <span class="n">dni</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">dirint</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">zenith</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+</span><span data-line="366">        <span class="n">dni</span> <span class="o">=</span> <span class="n">dni</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="367">        <span class="n">dhi</span> <span class="o">=</span> <span class="p">(</span><span class="n">ghi</span> <span class="o">-</span> <span class="n">dni</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">zenith</span><span class="p">))</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">lower</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">lower</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="368">    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;boland&quot;</span><span class="p">:</span>
+</span><span data-line="369">        <span class="n">dni_dhi</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">boland</span><span class="p">(</span><span class="n">ghi</span><span class="p">,</span> <span class="n">zenith</span><span class="p">,</span> <span class="n">times</span><span class="p">)</span>
+</span><span data-line="370">        <span class="n">dni</span><span class="p">,</span> <span class="n">dhi</span> <span class="o">=</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dni&quot;</span><span class="p">],</span> <span class="n">dni_dhi</span><span class="p">[</span><span class="s2">&quot;dhi&quot;</span><span class="p">]</span>
+</span><span data-line="371">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="372">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;decomposition must be &#39;erbs&#39;, &#39;disc&#39;, &#39;dirint&#39; or &#39;boland&#39;, got </span><span class="si">{</span><span class="n">decomposition</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="373">
+</span><span data-line="374">    <span class="c1"># 3. Transpose to plane-of-array (POA) irradiance.</span>
+</span><span data-line="375">    <span class="n">dni_extra</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_extra_radiation</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+</span><span data-line="376">    <span class="n">airmass</span> <span class="o">=</span> <span class="n">location</span><span class="o">.</span><span class="n">get_airmass</span><span class="p">(</span><span class="n">times</span><span class="o">=</span><span class="n">times</span><span class="p">)</span>
+</span><span data-line="377">    <span class="n">poa</span> <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">irradiance</span><span class="o">.</span><span class="n">get_total_irradiance</span><span class="p">(</span>
+</span><span data-line="378">        <span class="n">surface_tilt</span><span class="o">=</span><span class="n">tilt</span><span class="p">,</span>
+</span><span data-line="379">        <span class="n">surface_azimuth</span><span class="o">=</span><span class="n">azimuth</span><span class="p">,</span>
+</span><span data-line="380">        <span class="n">solar_zenith</span><span class="o">=</span><span class="n">zenith</span><span class="p">,</span>
+</span><span data-line="381">        <span class="n">solar_azimuth</span><span class="o">=</span><span class="n">solar_position</span><span class="p">[</span><span class="s2">&quot;azimuth&quot;</span><span class="p">],</span>
+</span><span data-line="382">        <span class="n">dni</span><span class="o">=</span><span class="n">dni</span><span class="p">,</span>
+</span><span data-line="383">        <span class="n">ghi</span><span class="o">=</span><span class="n">ghi</span><span class="p">,</span>
+</span><span data-line="384">        <span class="n">dhi</span><span class="o">=</span><span class="n">dhi</span><span class="p">,</span>
+</span><span data-line="385">        <span class="n">dni_extra</span><span class="o">=</span><span class="n">dni_extra</span><span class="p">,</span>
+</span><span data-line="386">        <span class="n">airmass</span><span class="o">=</span><span class="n">airmass</span><span class="p">[</span><span class="s2">&quot;airmass_absolute&quot;</span><span class="p">],</span>
+</span><span data-line="387">        <span class="n">model</span><span class="o">=</span><span class="n">transposition</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+</span><span data-line="388">    <span class="p">)</span>
+</span><span data-line="389">    <span class="n">poa</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">poa</span><span class="p">)</span>
+</span><span data-line="390">    <span class="n">poa</span><span class="p">[</span><span class="s2">&quot;dni&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dni</span>
+</span><span data-line="391">    <span class="n">poa</span><span class="p">[</span><span class="s2">&quot;dhi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dhi</span>
+</span><span data-line="392">    <span class="k">return</span> <span class="n">poa</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

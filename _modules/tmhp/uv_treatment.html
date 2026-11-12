@@ -211,128 +211,170 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="39"><span class="sd">    Returns</span>
 </span><span data-line="40"><span class="sd">    -------</span>
 </span><span data-line="41"><span class="sd">    float</span>
-</span><span data-line="42"><span class="sd">        Instantaneous lamp power [W] (0 or ``lamp_watts``).</span>
-</span><span data-line="43"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="44">    <span class="k">if</span> <span class="n">num_switching</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">lamp_watts</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span data-line="45">        <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="46">
-</span><span data-line="47">    <span class="n">time_in_period</span> <span class="o">=</span> <span class="n">current_time_s</span> <span class="o">%</span> <span class="n">period_sec</span>
-</span><span data-line="48">    <span class="n">interval</span> <span class="o">=</span> <span class="p">(</span><span class="n">period_sec</span> <span class="o">-</span> <span class="n">num_switching</span> <span class="o">*</span> <span class="n">exposure_sec</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_switching</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-</span><span data-line="49">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_switching</span><span class="p">):</span>
-</span><span data-line="50">        <span class="n">start_time</span> <span class="o">=</span> <span class="n">interval</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">exposure_sec</span>
-</span><span data-line="51">        <span class="k">if</span> <span class="n">start_time</span> <span class="o">&lt;=</span> <span class="n">time_in_period</span> <span class="o">&lt;</span> <span class="n">start_time</span> <span class="o">+</span> <span class="n">exposure_sec</span><span class="p">:</span>
-</span><span data-line="52">            <span class="k">return</span> <span class="n">lamp_watts</span>
-</span><span data-line="53">    <span class="k">return</span> <span class="mf">0.0</span></div>
+</span><span data-line="42"><span class="sd">        Instantaneous lamp power [W] (0 or ``lamp_watts``). For the power</span>
+</span><span data-line="43"><span class="sd">        over a time step use :func:`calc_uv_lamp_energy` / ``dt``.</span>
+</span><span data-line="44"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="45">    <span class="k">if</span> <span class="n">num_switching</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">lamp_watts</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="46">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="47">
+</span><span data-line="48">    <span class="n">time_in_period</span> <span class="o">=</span> <span class="n">current_time_s</span> <span class="o">%</span> <span class="n">period_sec</span>
+</span><span data-line="49">    <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">_uv_on_windows</span><span class="p">(</span><span class="n">period_sec</span><span class="p">,</span> <span class="n">num_switching</span><span class="p">,</span> <span class="n">exposure_sec</span><span class="p">):</span>
+</span><span data-line="50">        <span class="k">if</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="n">time_in_period</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">:</span>
+</span><span data-line="51">            <span class="k">return</span> <span class="n">lamp_watts</span>
+</span><span data-line="52">    <span class="k">return</span> <span class="mf">0.0</span></div>
 
+</span><span data-line="53">
 </span><span data-line="54">
-</span><span data-line="55">
+</span><span data-line="55"><span class="k">def</span><span class="w"> </span><span class="nf">_uv_on_windows</span><span class="p">(</span><span class="n">period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">num_switching</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">exposure_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+</span><span data-line="56"><span class="w">    </span><span class="sd">&quot;&quot;&quot;On-intervals ``[start, end)`` of the lamp within one period [s] (evenly spaced).&quot;&quot;&quot;</span>
+</span><span data-line="57">    <span class="n">interval</span> <span class="o">=</span> <span class="p">(</span><span class="n">period_sec</span> <span class="o">-</span> <span class="n">num_switching</span> <span class="o">*</span> <span class="n">exposure_sec</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_switching</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</span><span data-line="58">    <span class="k">return</span> <span class="p">[</span>
+</span><span data-line="59">        <span class="p">(</span><span class="n">interval</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">exposure_sec</span><span class="p">,</span> <span class="n">interval</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">exposure_sec</span><span class="p">)</span>
+</span><span data-line="60">        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_switching</span><span class="p">)</span>
+</span><span data-line="61">    <span class="p">]</span>
+</span><span data-line="62">
+</span><span data-line="63">
+<div class="viewcode-block" id="calc_uv_lamp_energy">
+<a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.enex_functions.calc_uv_lamp_energy">[docs]</a>
+</span><span data-line="64"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_lamp_energy</span><span class="p">(</span>
+</span><span data-line="65">    <span class="n">start_time_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="66">    <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="67">    <span class="n">period_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="68">    <span class="n">num_switching</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span data-line="69">    <span class="n">exposure_sec</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="70">    <span class="n">lamp_watts</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="71"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="72"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Lamp energy [J] over the step ``[start_time_s, start_time_s + dt_s)``.</span>
+</span><span data-line="73">
+</span><span data-line="74"><span class="sd">    The on-time of the switching schedule of :func:`calc_uv_lamp_power`</span>
+</span><span data-line="75"><span class="sd">    integrated over the step, for any step length (shorter or longer than</span>
+</span><span data-line="76"><span class="sd">    an exposure or a period). Divided by ``dt_s`` it is the step-average</span>
+</span><span data-line="77"><span class="sd">    power, so a run&#39;s lamp energy does not depend on the time step (a</span>
+</span><span data-line="78"><span class="sd">    sample at the step start would count a whole step whenever an exposure</span>
+</span><span data-line="79"><span class="sd">    covers that instant and nothing when it falls between two samples).</span>
+</span><span data-line="80"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="81">    <span class="k">if</span> <span class="n">num_switching</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">lamp_watts</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">exposure_sec</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dt_s</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="82">        <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="83">    <span class="n">windows</span> <span class="o">=</span> <span class="n">_uv_on_windows</span><span class="p">(</span><span class="n">period_sec</span><span class="p">,</span> <span class="n">num_switching</span><span class="p">,</span> <span class="n">exposure_sec</span><span class="p">)</span>
+</span><span data-line="84">    <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">start_time_s</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">start_time_s</span><span class="p">)</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt_s</span><span class="p">)</span>
+</span><span data-line="85">    <span class="n">k0</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">t0</span> <span class="o">/</span> <span class="n">period_sec</span><span class="p">)</span>
+</span><span data-line="86">    <span class="n">k1</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">t1</span> <span class="o">/</span> <span class="n">period_sec</span><span class="p">)</span>
+</span><span data-line="87">    <span class="n">on</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="88">    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k0</span><span class="p">,</span> <span class="n">k1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span><span data-line="89">        <span class="n">base</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">period_sec</span>
+</span><span data-line="90">        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">:</span>
+</span><span data-line="91">            <span class="n">on</span> <span class="o">+=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">base</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">base</span> <span class="o">+</span> <span class="n">a</span><span class="p">))</span>
+</span><span data-line="92">    <span class="k">return</span> <span class="n">lamp_watts</span> <span class="o">*</span> <span class="n">on</span></div>
+
+</span><span data-line="93">
+</span><span data-line="94">
 <div class="viewcode-block" id="get_uv_params_from_turbidity">
 <a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.enex_functions.get_uv_params_from_turbidity">[docs]</a>
-</span><span data-line="56"><span class="k">def</span><span class="w"> </span><span class="nf">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="57"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return UV parameters from a turbidity lookup table.</span>
-</span><span data-line="58">
-</span><span data-line="59"><span class="sd">    Table data based on *Table 1. Effect of Turbidity on UVT, UV</span>
-</span><span data-line="60"><span class="sd">    Absorbance, UV Intensity, and Exposure Time*.</span>
-</span><span data-line="61">
-</span><span data-line="62"><span class="sd">    Parameters</span>
-</span><span data-line="63"><span class="sd">    ----------</span>
-</span><span data-line="64"><span class="sd">    turbidity_ntu : float</span>
-</span><span data-line="65"><span class="sd">        Turbidity value [NTU].</span>
-</span><span data-line="66">
-</span><span data-line="67"><span class="sd">    Returns</span>
-</span><span data-line="68"><span class="sd">    -------</span>
-</span><span data-line="69"><span class="sd">    dict</span>
-</span><span data-line="70"><span class="sd">        Keys: ``uv_absorbance``, ``uv_transmittance_percent``,</span>
-</span><span data-line="71"><span class="sd">        ``reference_intensity_mw_cm2``, ``reference_exposure_time_sec``.</span>
-</span><span data-line="72"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="73">    <span class="c1"># [Turbidity (NTU), % UVT, A254, Intensity (mW/cm²), Exposure (s)]</span>
-</span><span data-line="74">    <span class="n">turbidity_table</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="75">        <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mi">86</span><span class="p">,</span> <span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">12.4</span><span class="p">],</span>
-</span><span data-line="76">        <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mi">78</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">,</span> <span class="mf">0.39</span><span class="p">,</span> <span class="mf">12.8</span><span class="p">],</span>
-</span><span data-line="77">        <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.36</span><span class="p">,</span> <span class="mf">13.9</span><span class="p">],</span>
-</span><span data-line="78">        <span class="p">[</span><span class="mf">20.1</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mf">0.23</span><span class="p">,</span> <span class="mf">0.33</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">],</span>
-</span><span data-line="79">    <span class="p">]</span>
-</span><span data-line="80">
-</span><span data-line="81">    <span class="n">turbidity_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">turbidity_table</span><span class="p">]</span>
-</span><span data-line="82">
-</span><span data-line="83">    <span class="k">def</span><span class="w"> </span><span class="nf">_row_to_dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="84">        <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="85">            <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
-</span><span data-line="86">            <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-</span><span data-line="87">            <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
-</span><span data-line="88">            <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
-</span><span data-line="89">        <span class="p">}</span>
-</span><span data-line="90">
-</span><span data-line="91">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-</span><span data-line="92">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-</span><span data-line="93">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&gt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-</span><span data-line="94">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-</span><span data-line="95">
-</span><span data-line="96">    <span class="c1"># Linear interpolation</span>
-</span><span data-line="97">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-</span><span data-line="98">        <span class="k">if</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
-</span><span data-line="99">            <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-</span><span data-line="100">            <span class="n">row1</span><span class="p">,</span> <span class="n">row2</span> <span class="o">=</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-</span><span data-line="101">            <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t2</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span>
-</span><span data-line="102">            <span class="k">return</span> <span class="p">{</span>
-</span><span data-line="103">                <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
-</span><span data-line="104">                <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-</span><span data-line="105">                <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-</span><span data-line="106">                <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
-</span><span data-line="107">            <span class="p">}</span>
-</span><span data-line="108">
-</span><span data-line="109">    <span class="c1"># Exact match fallback</span>
-</span><span data-line="110">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t_val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">):</span>
-</span><span data-line="111">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t_val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
-</span><span data-line="112">            <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-</span><span data-line="113">
-</span><span data-line="114">    <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+</span><span data-line="95"><span class="k">def</span><span class="w"> </span><span class="nf">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="96"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return UV parameters from a turbidity lookup table.</span>
+</span><span data-line="97">
+</span><span data-line="98"><span class="sd">    Table data based on *Table 1. Effect of Turbidity on UVT, UV</span>
+</span><span data-line="99"><span class="sd">    Absorbance, UV Intensity, and Exposure Time*.</span>
+</span><span data-line="100">
+</span><span data-line="101"><span class="sd">    Parameters</span>
+</span><span data-line="102"><span class="sd">    ----------</span>
+</span><span data-line="103"><span class="sd">    turbidity_ntu : float</span>
+</span><span data-line="104"><span class="sd">        Turbidity value [NTU].</span>
+</span><span data-line="105">
+</span><span data-line="106"><span class="sd">    Returns</span>
+</span><span data-line="107"><span class="sd">    -------</span>
+</span><span data-line="108"><span class="sd">    dict</span>
+</span><span data-line="109"><span class="sd">        Keys: ``uv_absorbance``, ``uv_transmittance_percent``,</span>
+</span><span data-line="110"><span class="sd">        ``reference_intensity_mw_cm2``, ``reference_exposure_time_sec``.</span>
+</span><span data-line="111"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="112">    <span class="c1"># [Turbidity (NTU), % UVT, A254, Intensity (mW/cm²), Exposure (s)]</span>
+</span><span data-line="113">    <span class="n">turbidity_table</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="114">        <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mi">86</span><span class="p">,</span> <span class="mf">0.07</span><span class="p">,</span> <span class="mf">0.40</span><span class="p">,</span> <span class="mf">12.4</span><span class="p">],</span>
+</span><span data-line="115">        <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mi">78</span><span class="p">,</span> <span class="mf">0.11</span><span class="p">,</span> <span class="mf">0.39</span><span class="p">,</span> <span class="mf">12.8</span><span class="p">],</span>
+</span><span data-line="116">        <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="mf">0.15</span><span class="p">,</span> <span class="mf">0.36</span><span class="p">,</span> <span class="mf">13.9</span><span class="p">],</span>
+</span><span data-line="117">        <span class="p">[</span><span class="mf">20.1</span><span class="p">,</span> <span class="mi">59</span><span class="p">,</span> <span class="mf">0.23</span><span class="p">,</span> <span class="mf">0.33</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">],</span>
+</span><span data-line="118">    <span class="p">]</span>
+</span><span data-line="119">
+</span><span data-line="120">    <span class="n">turbidity_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">turbidity_table</span><span class="p">]</span>
+</span><span data-line="121">
+</span><span data-line="122">    <span class="k">def</span><span class="w"> </span><span class="nf">_row_to_dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="123">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="124">            <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+</span><span data-line="125">            <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+</span><span data-line="126">            <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+</span><span data-line="127">            <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+</span><span data-line="128">        <span class="p">}</span>
+</span><span data-line="129">
+</span><span data-line="130">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+</span><span data-line="131">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span data-line="132">    <span class="k">if</span> <span class="n">turbidity_ntu</span> <span class="o">&gt;=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="133">        <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="134">
+</span><span data-line="135">    <span class="c1"># Linear interpolation</span>
+</span><span data-line="136">    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+</span><span data-line="137">        <span class="k">if</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">turbidity_ntu</span> <span class="o">&lt;</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="138">            <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_values</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+</span><span data-line="139">            <span class="n">row1</span><span class="p">,</span> <span class="n">row2</span> <span class="o">=</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+</span><span data-line="140">            <span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t2</span> <span class="o">-</span> <span class="n">t1</span><span class="p">)</span>
+</span><span data-line="141">            <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="142">                <span class="s2">&quot;uv_absorbance&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+</span><span data-line="143">                <span class="s2">&quot;uv_transmittance_percent&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+</span><span data-line="144">                <span class="s2">&quot;reference_intensity_mw_cm2&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
+</span><span data-line="145">                <span class="s2">&quot;reference_exposure_time_sec&quot;</span><span class="p">:</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="n">ratio</span> <span class="o">*</span> <span class="p">(</span><span class="n">row2</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">-</span> <span class="n">row1</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+</span><span data-line="146">            <span class="p">}</span>
+</span><span data-line="147">
+</span><span data-line="148">    <span class="c1"># Exact match fallback</span>
+</span><span data-line="149">    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t_val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">turbidity_values</span><span class="p">):</span>
+</span><span data-line="150">        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">turbidity_ntu</span> <span class="o">-</span> <span class="n">t_val</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">:</span>
+</span><span data-line="151">            <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+</span><span data-line="152">
+</span><span data-line="153">    <span class="k">return</span> <span class="n">_row_to_dict</span><span class="p">(</span><span class="n">turbidity_table</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 
-</span><span data-line="115">
-</span><span data-line="116">
+</span><span data-line="154">
+</span><span data-line="155">
 <div class="viewcode-block" id="calc_uv_exposure_time">
 <a class="viewcode-back" href="../../api/support/subsystems.html#tmhp.enex_functions.calc_uv_exposure_time">[docs]</a>
-</span><span data-line="117"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_exposure_time</span><span class="p">(</span>
-</span><span data-line="118">    <span class="n">radius_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="119">    <span class="n">uvc_output_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="120">    <span class="n">lamp_arc_length_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="121">    <span class="n">target_dose_mj_cm2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">186</span><span class="p">,</span>
-</span><span data-line="122">    <span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
-</span><span data-line="123"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="124"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate required UV lamp exposure time via Radial Model.</span>
-</span><span data-line="125">
-</span><span data-line="126"><span class="sd">    Reference: ADA453967.pdf — Radial Model for UV disinfection.</span>
-</span><span data-line="127">
-</span><span data-line="128"><span class="sd">    Parameters</span>
-</span><span data-line="129"><span class="sd">    ----------</span>
-</span><span data-line="130"><span class="sd">    radius_cm : float</span>
-</span><span data-line="131"><span class="sd">        Tank radius (lamp-to-wall distance) [cm].</span>
-</span><span data-line="132"><span class="sd">    uvc_output_W : float</span>
-</span><span data-line="133"><span class="sd">        UV-C output power of the lamp [W].</span>
-</span><span data-line="134"><span class="sd">    lamp_arc_length_cm : float</span>
-</span><span data-line="135"><span class="sd">        Arc length of the lamp [cm].</span>
-</span><span data-line="136"><span class="sd">    target_dose_mj_cm2 : float</span>
-</span><span data-line="137"><span class="sd">        Target germicidal dose [mJ/cm²]. Default 186 (EPA 4-log virus).</span>
-</span><span data-line="138"><span class="sd">    turbidity_ntu : float</span>
-</span><span data-line="139"><span class="sd">        Water turbidity [NTU].</span>
-</span><span data-line="140">
-</span><span data-line="141"><span class="sd">    Returns</span>
-</span><span data-line="142"><span class="sd">    -------</span>
-</span><span data-line="143"><span class="sd">    float</span>
-</span><span data-line="144"><span class="sd">        Required single-exposure time [min].</span>
-</span><span data-line="145"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="146">    <span class="n">uv_params</span> <span class="o">=</span> <span class="n">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">)</span>
-</span><span data-line="147">    <span class="n">uv_absorbance</span> <span class="o">=</span> <span class="n">uv_params</span><span class="p">[</span><span class="s2">&quot;uv_absorbance&quot;</span><span class="p">]</span>
-</span><span data-line="148">    <span class="n">absorption_coeff</span> <span class="o">=</span> <span class="mf">2.303</span> <span class="o">*</span> <span class="n">uv_absorbance</span>
-</span><span data-line="149">
-</span><span data-line="150">    <span class="c1"># Linear power density [mW/cm]</span>
-</span><span data-line="151">    <span class="n">p_l_mw_cm</span> <span class="o">=</span> <span class="p">(</span><span class="n">uvc_output_W</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">W2mW</span><span class="p">)</span> <span class="o">/</span> <span class="n">lamp_arc_length_cm</span>
-</span><span data-line="152">
-</span><span data-line="153">    <span class="c1"># Intensity at tank wall [mW/cm²]</span>
-</span><span data-line="154">    <span class="n">intensity_mw_cm2</span> <span class="o">=</span> <span class="p">(</span><span class="n">p_l_mw_cm</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">))</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">absorption_coeff</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">)</span>
-</span><span data-line="155">
-</span><span data-line="156">    <span class="n">required_time_sec</span> <span class="o">=</span> <span class="n">target_dose_mj_cm2</span> <span class="o">/</span> <span class="n">intensity_mw_cm2</span>
-</span><span data-line="157">    <span class="k">return</span> <span class="n">required_time_sec</span> <span class="o">/</span> <span class="mi">60</span></div>
+</span><span data-line="156"><span class="k">def</span><span class="w"> </span><span class="nf">calc_uv_exposure_time</span><span class="p">(</span>
+</span><span data-line="157">    <span class="n">radius_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="158">    <span class="n">uvc_output_W</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="159">    <span class="n">lamp_arc_length_cm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="160">    <span class="n">target_dose_mj_cm2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">186</span><span class="p">,</span>
+</span><span data-line="161">    <span class="n">turbidity_ntu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+</span><span data-line="162"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="163"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate required UV lamp exposure time via Radial Model.</span>
+</span><span data-line="164">
+</span><span data-line="165"><span class="sd">    Reference: ADA453967.pdf — Radial Model for UV disinfection.</span>
+</span><span data-line="166">
+</span><span data-line="167"><span class="sd">    Parameters</span>
+</span><span data-line="168"><span class="sd">    ----------</span>
+</span><span data-line="169"><span class="sd">    radius_cm : float</span>
+</span><span data-line="170"><span class="sd">        Tank radius (lamp-to-wall distance) [cm].</span>
+</span><span data-line="171"><span class="sd">    uvc_output_W : float</span>
+</span><span data-line="172"><span class="sd">        UV-C output power of the lamp [W].</span>
+</span><span data-line="173"><span class="sd">    lamp_arc_length_cm : float</span>
+</span><span data-line="174"><span class="sd">        Arc length of the lamp [cm].</span>
+</span><span data-line="175"><span class="sd">    target_dose_mj_cm2 : float</span>
+</span><span data-line="176"><span class="sd">        Target germicidal dose [mJ/cm²]. Default 186 (EPA 4-log virus).</span>
+</span><span data-line="177"><span class="sd">    turbidity_ntu : float</span>
+</span><span data-line="178"><span class="sd">        Water turbidity [NTU].</span>
+</span><span data-line="179">
+</span><span data-line="180"><span class="sd">    Returns</span>
+</span><span data-line="181"><span class="sd">    -------</span>
+</span><span data-line="182"><span class="sd">    float</span>
+</span><span data-line="183"><span class="sd">        Required single-exposure time [min].</span>
+</span><span data-line="184"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="185">    <span class="n">uv_params</span> <span class="o">=</span> <span class="n">get_uv_params_from_turbidity</span><span class="p">(</span><span class="n">turbidity_ntu</span><span class="p">)</span>
+</span><span data-line="186">    <span class="n">uv_absorbance</span> <span class="o">=</span> <span class="n">uv_params</span><span class="p">[</span><span class="s2">&quot;uv_absorbance&quot;</span><span class="p">]</span>
+</span><span data-line="187">    <span class="n">absorption_coeff</span> <span class="o">=</span> <span class="mf">2.303</span> <span class="o">*</span> <span class="n">uv_absorbance</span>
+</span><span data-line="188">
+</span><span data-line="189">    <span class="c1"># Linear power density [mW/cm]</span>
+</span><span data-line="190">    <span class="n">p_l_mw_cm</span> <span class="o">=</span> <span class="p">(</span><span class="n">uvc_output_W</span> <span class="o">*</span> <span class="n">cu</span><span class="o">.</span><span class="n">W2mW</span><span class="p">)</span> <span class="o">/</span> <span class="n">lamp_arc_length_cm</span>
+</span><span data-line="191">
+</span><span data-line="192">    <span class="c1"># Intensity at tank wall [mW/cm²]</span>
+</span><span data-line="193">    <span class="n">intensity_mw_cm2</span> <span class="o">=</span> <span class="p">(</span><span class="n">p_l_mw_cm</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">))</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">absorption_coeff</span> <span class="o">*</span> <span class="n">radius_cm</span><span class="p">)</span>
+</span><span data-line="194">
+</span><span data-line="195">    <span class="n">required_time_sec</span> <span class="o">=</span> <span class="n">target_dose_mj_cm2</span> <span class="o">/</span> <span class="n">intensity_mw_cm2</span>
+</span><span data-line="196">    <span class="k">return</span> <span class="n">required_time_sec</span> <span class="o">/</span> <span class="mi">60</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

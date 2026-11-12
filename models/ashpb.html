@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T07:55:55+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -152,61 +152,16 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
 <li><a class="reference internal" href="#composed-variants">Composed variants</a><ul>
+<li><a class="reference internal" href="#solar-inputs-and-the-collector-model">Solar inputs and the collector model</a></li>
 <li><a class="reference internal" href="#stc-preheat">STC preheat</a></li>
-<li><a class="reference internal" href="#stc-with-stratified-tank">STC with stratified tank</a></li>
+<li><a class="reference internal" href="#stc-tank-loop">STC tank loop</a></li>
+<li><a class="reference internal" href="#uv-lamp">UV lamp</a></li>
 <li><a class="reference internal" href="#pv-ess">PV + ESS</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.air_source_heat_pump_boiler">API reference</a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref"><code class="docutils literal notranslate">ref</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref"><code class="docutils literal notranslate">V_cmp_ref</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat"><code class="docutils literal notranslate">dT_superheat</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool"><code class="docutils literal notranslate">dT_subcool</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min"><code class="docutils literal notranslate">dT_hx_min</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min"><code class="docutils literal notranslate">PR_cycle_min</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max"><code class="docutils literal notranslate">PR_cycle_max</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min"><code class="docutils literal notranslate">rps_min</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max"><code class="docutils literal notranslate">rps_max</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity"><code class="docutils literal notranslate">hp_capacity</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou"><code class="docutils literal notranslate">n_ou</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated"><code class="docutils literal notranslate">dP_fan_rated</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated"><code class="docutils literal notranslate">eta_fan_rated</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated"><code class="docutils literal notranslate">E_fan_rated</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs"><code class="docutils literal notranslate">vsd_coeffs</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params"><code class="docutils literal notranslate">fan_params</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen"><code class="docutils literal notranslate">eta_cmp_isen</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol"><code class="docutils literal notranslate">eta_cmp_vol</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp"><code class="docutils literal notranslate">eta_cmp</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical"><code class="docutils literal notranslate">tank_physical</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall"><code class="docutils literal notranslate">UA_tank_wall</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K"><code class="docutils literal notranslate">T_sur_K</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full"><code class="docutils literal notranslate">V_tank_full</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank"><code class="docutils literal notranslate">C_tank</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max"><code class="docutils literal notranslate">dV_mix_w_out_max</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound"><code class="docutils literal notranslate">T_tank_w_upper_bound</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound"><code class="docutils literal notranslate">T_tank_w_lower_bound</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w"><code class="docutils literal notranslate">T_sup_w</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K"><code class="docutils literal notranslate">T_sup_w_K</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in"><code class="docutils literal notranslate">T_tank_w_in</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out"><code class="docutils literal notranslate">T_mix_w_out</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K"><code class="docutils literal notranslate">T_tank_w_in_K</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K"><code class="docutils literal notranslate">T_mix_w_out_K</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full"><code class="docutils literal notranslate">tank_always_full</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound"><code class="docutils literal notranslate">tank_level_lower_bound</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound"><code class="docutils literal notranslate">tank_level_upper_bound</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill"><code class="docutils literal notranslate">dV_tank_w_in_refill</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow"><code class="docutils literal notranslate">prevent_simultaneous_flow</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule"><code class="docutils literal notranslate">hp_on_schedule</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s"><code class="docutils literal notranslate">min_on_time_s</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s"><code class="docutils literal notranslate">min_off_time_s</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc"><code class="docutils literal notranslate">stc</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv"><code class="docutils literal notranslate">pv</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in"><code class="docutils literal notranslate">dV_tank_w_in</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out"><code class="docutils literal notranslate">dV_tank_w_out</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in"><code class="docutils literal notranslate">dV_mix_sup_w_in</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out"><code class="docutils literal notranslate">dV_mix_w_out</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.make_initial_state"><code class="docutils literal notranslate">make_initial_state()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
@@ -215,16 +170,9 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat"><code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code></a><ul>
-<li><a class="reference internal" href="#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#id5">Usage</a></li>
-<li><a class="reference internal" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank"><code class="docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code></a><ul>
-<li><a class="reference internal" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank.T_stc_max_C"><code class="docutils literal notranslate">T_stc_max_C</span></code></a></li>
-<li><a class="reference internal" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat"><code class="docutils literal notranslate"><span class="pre">ASHPB_STC_preheat</span></code></a></li>
+<li><a class="reference internal" href="#id1">Usage</a></li>
+<li><a class="reference internal" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank"><code class="docutils literal notranslate"><span class="pre">ASHPB_STC_tank</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS"><code class="docutils literal notranslate"><span class="pre">ASHPB_PV_ESS</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ashpb_pv_ess.ASHPB_PV_ESS.make_initial_state"><code class="docutils literal notranslate">make_initial_state()</span></code></a></li>
@@ -281,19 +229,19 @@ variants extend it with subsystems:</p>
 <ul class="simple">
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.ASHPB_STC_preheat</span></code> — STC heats the mains feed before it
 reaches the tank.</p></li>
-<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.ASHPB_STC_tank</span></code> — STC charges a separate top node of a
-stratified tank.</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.ASHPB_STC_tank</span></code> — a pumped collector loop charges the
+tank, with a storage high limit.</p></li>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.ASHPB_PV_ESS</span></code> — PV generation + battery storage routes
 electricity to the compressor and auxiliaries before drawing grid.</p></li>
 </ul>
-<figure class="align-center" id="id8">
+<figure class="align-center" id="id2">
 <a class="reference internal image-reference" href="../_images/system_schematic.png"><img alt="Reference ASHPB instantiation with outdoor unit, refrigerant loop, hot-water tank, and mixing valve." src="../_images/system_schematic.png" style="width: 100%;" />
 </a>
 <figcaption>
 <p><span class="caption-text">Reference ASHPB instantiation. This physical wiring view is useful
 for the validated air-source DHW case, while the shared compressor /
 expander / heat-exchanger cycle core is reused by the other TMHP
-source and demand-side families.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+source and demand-side families.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 </section>
@@ -405,9 +353,10 @@ tank. Reduces the tank-charge duty the heat pump has to deliver.</p>
 </div>
 <input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
 <label class="sd-tab-label" for="sd-tab-item-2">
-+ STC stratified</label><div class="sd-tab-content docutils">
-<p>STC charges a separate top node of a stratified tank; the heat
-pump charges the bottom. Top-of-tank water is drawn first.</p>
++ STC tank loop</label><div class="sd-tab-content docutils">
+<p>A pumped collector loop draws tank water, heats it and returns it,
+under a differential controller with a storage high limit
+(<code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code>, 85 °C).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_tank</span>
 </span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
 </span><span data-line="3">
@@ -433,36 +382,87 @@ compressor and auxiliaries.</p>
 </div>
 </div>
 </div>
+<section id="solar-inputs-and-the-collector-model">
+<h3>Solar inputs and the collector model<a class="headerlink" href="#solar-inputs-and-the-collector-model" title="Link to this heading">¶</a></h3>
+<p><strong>Irradiance inputs.</strong> <code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code> is the <strong>direct-normal</strong>
+irradiance (beam on a surface facing the sun) and <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code> the
+<strong>diffuse-horizontal</strong> irradiance, step averages in W/m². They are not
+added: the collector (and the PV array) transposes them to its own plane —
+beam <code class="docutils literal notranslate"><span class="pre">I_DN·cos</span> <span class="pre">θ</span></code>, sky diffuse (Perez by default) and ground reflection
+(<code class="docutils literal notranslate"><span class="pre">albedo</span></code> 0.2) — with the sun position of the step. For measured
+global-horizontal data (e.g. KMA hourly GHI) split it first with
+<a class="reference internal" href="../api/support/demand-weather.html#tmhp.weather.decompose_ghi_to_poa" title="tmhp.weather.decompose_ghi_to_poa"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.weather.decompose_ghi_to_poa()</span></code></a>, whose <code class="docutils literal notranslate"><span class="pre">dni</span></code> / <code class="docutils literal notranslate"><span class="pre">dhi</span></code> columns
+are these two schedules.</p>
+<p><strong>Site and clock.</strong> The sun position needs where and when:
+<code class="docutils literal notranslate"><span class="pre">latitude</span></code> / <code class="docutils literal notranslate"><span class="pre">longitude</span></code> (default Seoul, 37.57 °N 126.98 °E),
+<code class="docutils literal notranslate"><span class="pre">utc_offset_h</span></code> (default 9, KST) and <code class="docutils literal notranslate"><span class="pre">start_time</span></code>, the local standard
+time of simulation second 0 (default 00:00 on 20 March, a year-average sun
+path). Set <code class="docutils literal notranslate"><span class="pre">start_time</span></code> to the first timestamp of your weather data,
+at local midnight so that the boiler’s clock schedules agree. A beam given
+while the sun is below the horizon for a whole step is dropped with a
+warning: it means the site or the clock does not match the data.</p>
+<p><strong>Collector.</strong> <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> uses the
+ISO 9806 / EN 12975 quasi-steady efficiency on the mean fluid temperature,
+<code class="docutils literal notranslate"><span class="pre">Q_u</span> <span class="pre">=</span> <span class="pre">A·[η0·(K_b·G_b</span> <span class="pre">+</span> <span class="pre">K_d·G_d)</span> <span class="pre">−</span> <span class="pre">a1·ΔT_m</span> <span class="pre">−</span> <span class="pre">a2·ΔT_m²]</span></code>, with the ASHRAE
+incidence-angle modifier <code class="docutils literal notranslate"><span class="pre">K_b</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">−</span> <span class="pre">b0·(1/cos</span> <span class="pre">θ</span> <span class="pre">−</span> <span class="pre">1)</span></code>. <code class="docutils literal notranslate"><span class="pre">A_stc</span></code> is the
+area the coefficients refer to. The defaults are a representative
+single-glazed flat plate (<code class="docutils literal notranslate"><span class="pre">eta0_stc</span></code> 0.78, <code class="docutils literal notranslate"><span class="pre">a1_stc</span></code> 3.6 W/(m²·K),
+<code class="docutils literal notranslate"><span class="pre">a2_stc</span></code> 0.015 W/(m²·K²), <code class="docutils literal notranslate"><span class="pre">b0_stc</span></code> 0.10; stagnation about 170 °C at
+1000 W/m²); take them from a datasheet for a given product. The pumped
+loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
+<code class="docutils literal notranslate"><span class="pre">dV_stc_w</span></code> is set. The former construction parameters (<code class="docutils literal notranslate"><span class="pre">A_stc_pipe</span></code>,
+<code class="docutils literal notranslate"><span class="pre">alpha_stc</span></code>, <code class="docutils literal notranslate"><span class="pre">h_o_stc</span></code> …) are accepted with a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code>.</p>
+<p><strong>Loop control.</strong> A pumped loop runs when the idle collector is
+<code class="docutils literal notranslate"><span class="pre">dT_stc_on</span></code> (6 K) and the running outlet <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> (2 K) above the
+sink, its gain exceeds the pump power and its outlet stays below
+<code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> (100 °C). Charging the tank stops at <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code>
+(85 °C) within the step, and so does circulation once the outlet reaches
+<code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> as the tank warms: <code class="docutils literal notranslate"><span class="pre">stc_runtime_fraction</span> <span class="pre">[-]</span></code> is the share of
+the step the loop ran, and the flow, pump power and delivered heat are step
+averages. Every step closes <code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span> <span class="pre">=</span> <span class="pre">(Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in)</span> <span class="pre">+</span>
+<span class="pre">Q_l_stc</span></code> with <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code>.</p>
+</section>
 <section id="stc-preheat">
 <h3>STC preheat<a class="headerlink" href="#stc-preheat" title="Link to this heading">¶</a></h3>
-<p>A <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> heats the cold mains
-water before it reaches the DHW tank, so the heat pump sees pre-heated
-water during the preheat window.</p>
+<p>A <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> sits in the mains line
+that feeds the tank: mains → collector → tank make-up inlet, while the
+mixing valve’s cold side takes mains water directly. Only the water that
+enters the tank passes the collector, so its flow is the tank’s make-up
+flow; it is solved together with the tank temperature and the preheated
+inflow is the reported <code class="docutils literal notranslate"><span class="pre">T_tank_w_in</span> <span class="pre">[°C]</span></code>. The collector is bypassed
+outside the <code class="docutils literal notranslate"><span class="pre">preheat_start_hour</span></code>–<code class="docutils literal notranslate"><span class="pre">preheat_end_hour</span></code> window, without a
+draw and when it would cool the feed; when its outlet reaches
+<code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> at the flow the end-of-step tank draws, it is bypassed for
+the rest of the step. The mains pressure drives it: no pump power.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-</span><span data-line="2">
-</span><span data-line="3"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_preheat</span>
-</span><span data-line="4"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
-</span><span data-line="5">
-</span><span data-line="6"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span>
-</span><span data-line="7">    <span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>             <span class="c1"># 4 m² collector area</span>
-</span><span data-line="8">    <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">,</span>
-</span><span data-line="10"><span class="p">)</span>
-</span><span data-line="11">
-</span><span data-line="12"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_preheat</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="2"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">pvlib</span>
+</span><span data-line="4">
+</span><span data-line="5"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASHPB_STC_preheat</span>
+</span><span data-line="6"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span>
+</span><span data-line="9">    <span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>             <span class="c1"># 4 m² collector area</span>
+</span><span data-line="10">    <span class="n">stc_tilt</span><span class="o">=</span><span class="mf">35.0</span><span class="p">,</span>
+</span><span data-line="11">    <span class="n">stc_azimuth</span><span class="o">=</span><span class="mf">180.0</span><span class="p">,</span>
+</span><span data-line="12">    <span class="n">start_time</span><span class="o">=</span><span class="s2">&quot;2026-03-20&quot;</span><span class="p">,</span>   <span class="c1"># local time of second 0 (Seoul by default)</span>
+</span><span data-line="13"><span class="p">)</span>
+</span><span data-line="14">
+</span><span data-line="15"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_preheat</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
 </span></pre></div>
 </div>
 <p>Drive it the same way as base ASHPB, adding irradiance schedules
-(<code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code>) — both in W/m² per step:</p>
+(<code class="docutils literal notranslate"><span class="pre">I_DN_schedule</span></code>, <code class="docutils literal notranslate"><span class="pre">I_dH_schedule</span></code>) — direct-normal and
+diffuse-horizontal, both in W/m² per step:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">dt_s</span>          <span class="o">=</span> <span class="mi">60</span>
 </span><span data-line="2"><span class="n">n_steps</span>       <span class="o">=</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span> <span class="o">//</span> <span class="n">dt_s</span>
-</span><span data-line="3"><span class="n">hour_of_day</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span> <span class="o">/</span> <span class="mf">60.0</span>
-</span><span data-line="4">
-</span><span data-line="5"><span class="c1"># Crude clear-sky irradiance: bell from 06:00 to 18:00.</span>
-</span><span data-line="6"><span class="n">day_window</span>    <span class="o">=</span> <span class="p">(</span><span class="n">hour_of_day</span> <span class="o">&gt;=</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">hour_of_day</span> <span class="o">&lt;=</span> <span class="mf">18.0</span><span class="p">)</span>
-</span><span data-line="7"><span class="n">sun_shape</span>     <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">hour_of_day</span> <span class="o">-</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">)</span>
-</span><span data-line="8"><span class="n">I_DN</span>          <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">day_window</span><span class="p">,</span> <span class="mf">800.0</span> <span class="o">*</span> <span class="n">sun_shape</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="9"><span class="n">I_dH</span>          <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">day_window</span><span class="p">,</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">sun_shape</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="3">
+</span><span data-line="4"><span class="c1"># Clear-sky DNI / DHI for Seoul on the start day (step midpoints).</span>
+</span><span data-line="5"><span class="n">site</span>  <span class="o">=</span> <span class="n">pvlib</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">Location</span><span class="p">(</span><span class="mf">37.57</span><span class="p">,</span> <span class="mf">126.98</span><span class="p">,</span> <span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
+</span><span data-line="6"><span class="n">times</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2026-03-20&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="n">n_steps</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dt_s</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s2">&quot;Asia/Seoul&quot;</span><span class="p">)</span>
+</span><span data-line="7"><span class="n">sky</span>   <span class="o">=</span> <span class="n">site</span><span class="o">.</span><span class="n">get_clearsky</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="n">dt_s</span> <span class="o">/</span> <span class="mi">2</span><span class="p">))</span>
+</span><span data-line="8"><span class="n">I_DN</span>  <span class="o">=</span> <span class="n">sky</span><span class="p">[</span><span class="s2">&quot;dni&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+</span><span data-line="9"><span class="n">I_dH</span>  <span class="o">=</span> <span class="n">sky</span><span class="p">[</span><span class="s2">&quot;dhi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
 </span><span data-line="10">
 </span><span data-line="11"><span class="n">T0</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_steps</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
 </span><span data-line="12"><span class="n">dhw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_steps</span><span class="p">)</span>
@@ -501,120 +501,66 @@ energy:</p>
 <dl class="py class">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">ASHPB_STC_preheat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_preheat.html#ASHPB_STC_preheat"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
-<p>ASHPB + SolarThermalCollector in <em>mains_preheat</em> placement.</p>
-<section id="physical-configuration">
-<h4>Physical configuration<a class="headerlink" href="#physical-configuration" title="Link to this heading">¶</a></h4>
-<p>The STC preheats mains cold water before it enters the storage
-tank.  The raised inlet temperature (<code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code>)
-reduces the thermal load on the heat pump compressor.</p>
-</section>
-<section id="orchestration-responsibility">
-<h4>Orchestration responsibility<a class="headerlink" href="#orchestration-responsibility" title="Link to this heading">¶</a></h4>
-<p>This class owns all simulation logic for the STC:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>
-→ sets <code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code> when active</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (uses pump outlet
-temperature directly; no re-evaluation at solved tank temp)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation.  Tank boundary
-corrections are <strong>not applied</strong> because the preheated inlet
-temperature is already reflected in the core
-<code class="docutils literal notranslate"><span class="pre">X_tank_w_in</span> <span class="pre">[W]</span></code> column (<code class="docutils literal notranslate"><span class="pre">X_in_tank_add</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></li>
-</ul>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">STCPreheat</span></code>, <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> + <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> in <em>mains preheat</em> placement.</p>
+<p>The behaviour and energy columns are those of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp._stc_scenarios.STCPreheat</span></code>: the collector runs at the tank’s
+make-up flow and <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code> is the heat the
+preheated inflow brings into the tank.</p>
 <dl class="field-list simple">
-<dt class="field-odd">param stc<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
-</dd>
-<dt class="field-even">type stc<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
-</dd>
-<dt class="field-odd">type **kwargs<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">param **kwargs<span class="colon">:</span></dt>
-<dd class="field-even"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p>
-</dd>
-<dt class="field-odd">raises TypeError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_preheat.html#ASHPB_STC_preheat.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>) – Collector, site and clock (its pump power is set to 0 on a copy: the
+mains pressure drives the flow).</p></li>
+<li><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-</dd></dl>
-
-</section>
-<section id="stc-with-stratified-tank">
-<h3>STC with stratified tank<a class="headerlink" href="#stc-with-stratified-tank" title="Link to this heading">¶</a></h3>
+<section id="stc-tank-loop">
+<h3>STC tank loop<a class="headerlink" href="#stc-tank-loop" title="Link to this heading">¶</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">ASHPB_STC_tank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_tank.html#ASHPB_STC_tank"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
-<p>ASHPB + SolarThermalCollector in <em>tank_circuit</em> placement.</p>
-<section id="id1">
-<h4>Physical configuration<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h4>
-<p>The STC collector loop is connected directly to the storage tank.
-The STC draws water from the tank, heats it via solar energy, and
-returns it through the pump. The STC is activated only when the
-collector’s thermal gain exceeds the pump electricity required to
-circulate the loop.</p>
-</section>
-<section id="id2">
-<h4>Orchestration responsibility<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h4>
-<p>This class owns all simulation logic for the STC:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (re-evaluates at
-solved tank temperature for accuracy)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation and tank boundary
-correction (<code class="docutils literal notranslate"><span class="pre">X_tot</span></code>, <code class="docutils literal notranslate"><span class="pre">Xc_tank</span></code>)</p></li>
-</ul>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">STCTankLoop</span></code>, <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> + <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> in <em>tank-loop</em> placement.</p>
+<p>The behaviour and energy columns are those of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp._stc_scenarios.STCTankLoop</span></code>: per step
+<code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span> <span class="pre">=</span> <span class="pre">(Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in)</span> <span class="pre">+</span> <span class="pre">Q_l_stc</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code>; <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> includes <code class="docutils literal notranslate"><span class="pre">E_stc_pump</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">param stc<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
-</dd>
-<dt class="field-even">type stc<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
-</dd>
-<dt class="field-odd">type **kwargs<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">param **kwargs<span class="colon">:</span></dt>
-<dd class="field-even"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p>
-</dd>
-<dt class="field-odd">raises TypeError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">T_stc_max_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100.0</span></span></dt>
-<dd><p>Boiling-protection ceiling [°C]. The STC loop must not circulate when the
-probed collector outlet would reach/exceed this temperature (liquid water
-boiling at 1 atm). Prevents non-physical &gt;100 °C circulation and the
-associated phantom gain when the tank is near saturation.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_tank.html#ASHPB_STC_tank.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>) – Collector, loop pump and controller settings, site and clock.</p></li>
+<li><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-</dd></dl>
-
+<section id="uv-lamp">
+<h3>UV lamp<a class="headerlink" href="#uv-lamp" title="Link to this heading">¶</a></h3>
+<p>A <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.UVLamp" title="tmhp.subsystems.UVLamp"><code class="xref py py-class docutils literal notranslate"><span class="pre">UVLamp</span></code></a> (<code class="docutils literal notranslate"><span class="pre">uv=</span></code> on the base boilers and the PV +
+ESS variants) switches on <code class="docutils literal notranslate"><span class="pre">num_switching</span></code> times per <code class="docutils literal notranslate"><span class="pre">period_sec</span></code> for
+<code class="docutils literal notranslate"><span class="pre">exposure_sec</span></code> each. Each step reports the lamp’s step-average power
+<code class="docutils literal notranslate"><span class="pre">E_uv</span> <span class="pre">[W]</span></code> (the schedule integrated over the step, so a 12 s exposure is
+12 s of lamp energy at any <code class="docutils literal notranslate"><span class="pre">dt_s</span></code>) and the heat it gives the tank water,
+<code class="docutils literal notranslate"><span class="pre">Q_uv_tank</span> <span class="pre">=</span> <span class="pre">heat_to_water_fraction</span> <span class="pre">·</span> <span class="pre">E_uv</span></code>. The default fraction 0.9
+assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
+all end in the water) and its ballast (about 90 % efficient) in the control
+box outside; set 1.0 when both are inside the tank boundary.</p>
+<p>The PV + ESS variants add <code class="docutils literal notranslate"><span class="pre">E_uv</span></code> to <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>; the base boilers report it
+in its own column but do not yet include it in <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> (#96) — add it when
+totalling electricity.</p>
 </section>
 <section id="pv-ess">
 <h3>PV + ESS<a class="headerlink" href="#pv-ess" title="Link to this heading">¶</a></h3>
@@ -658,7 +604,7 @@ from <code class="docutils literal notranslate"><span class="pre">ess.SOC_init</
 </span><span data-line="11"><span class="c1"># as you would for ASHPB_STC_preheat.</span>
 </span></pre></div>
 </div>
-<figure class="align-center" id="id9">
+<figure class="align-center" id="id3">
 <a class="reference internal image-reference" href="../_images/pv_ess_energy_balance.svg"><img alt="Two-panel daily energy balance for the PV + ESS scenario. Panel (a) is the timeseries of PV generation, HP load, and grid import. Panel (b) is the stacked-bar daily ledger of where PV ended up and where HP load came from." src="../_images/pv_ess_energy_balance.svg" style="width: 100%;" />
 </a>
 <figcaption>
@@ -667,7 +613,7 @@ and default <code class="docutils literal notranslate"><span class="pre">Photovo
 Panel (b) makes the sizing tradeoff readable: shrinking the ESS
 column on the left would push more of the right-hand bar from
 “PV” to “Grid”. Generated by
-<code class="docutils literal notranslate"><span class="pre">scripts/visualization/pv_ess_energy_balance.py</span></code>.</span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
+<code class="docutils literal notranslate"><span class="pre">scripts/visualization/pv_ess_energy_balance.py</span></code>.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <dl class="py class">
@@ -923,241 +869,6 @@ Scalar and user-supplied callable overrides remain supported.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref">
-<span class="sig-name descname"><span class="pre">ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.ref" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref">
-<span class="sig-name descname"><span class="pre">V_cmp_ref</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_cmp_ref" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat">
-<span class="sig-name descname"><span class="pre">dT_superheat</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_superheat" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool">
-<span class="sig-name descname"><span class="pre">dT_subcool</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_subcool" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min">
-<span class="sig-name descname"><span class="pre">dT_hx_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dT_hx_min" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min">
-<span class="sig-name descname"><span class="pre">PR_cycle_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_min" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max">
-<span class="sig-name descname"><span class="pre">PR_cycle_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.PR_cycle_max" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min">
-<span class="sig-name descname"><span class="pre">rps_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_min" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max">
-<span class="sig-name descname"><span class="pre">rps_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.rps_max" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity">
-<span class="sig-name descname"><span class="pre">hp_capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_capacity" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou">
-<span class="sig-name descname"><span class="pre">n_ou</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.n_ou" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated">
-<span class="sig-name descname"><span class="pre">dP_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dP_fan_rated" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated">
-<span class="sig-name descname"><span class="pre">eta_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_fan_rated" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated">
-<span class="sig-name descname"><span class="pre">E_fan_rated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.E_fan_rated" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs">
-<span class="sig-name descname"><span class="pre">vsd_coeffs</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.vsd_coeffs" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params">
-<span class="sig-name descname"><span class="pre">fan_params</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.fan_params" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen">
-<span class="sig-name descname"><span class="pre">eta_cmp_isen</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_isen" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol">
-<span class="sig-name descname"><span class="pre">eta_cmp_vol</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp_vol" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp">
-<span class="sig-name descname"><span class="pre">eta_cmp</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Callable</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.eta_cmp" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical">
-<span class="sig-name descname"><span class="pre">tank_physical</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_physical" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall">
-<span class="sig-name descname"><span class="pre">UA_tank_wall</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.UA_tank_wall" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K">
-<span class="sig-name descname"><span class="pre">T_sur_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sur_K" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full">
-<span class="sig-name descname"><span class="pre">V_tank_full</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.V_tank_full" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank">
-<span class="sig-name descname"><span class="pre">C_tank</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.C_tank" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max">
-<span class="sig-name descname"><span class="pre">dV_mix_w_out_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out_max" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound">
-<span class="sig-name descname"><span class="pre">T_tank_w_upper_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_upper_bound" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound">
-<span class="sig-name descname"><span class="pre">T_tank_w_lower_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_lower_bound" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w">
-<span class="sig-name descname"><span class="pre">T_sup_w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K">
-<span class="sig-name descname"><span class="pre">T_sup_w_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_sup_w_K" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in">
-<span class="sig-name descname"><span class="pre">T_tank_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out">
-<span class="sig-name descname"><span class="pre">T_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K">
-<span class="sig-name descname"><span class="pre">T_tank_w_in_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_tank_w_in_K" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K">
-<span class="sig-name descname"><span class="pre">T_mix_w_out_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out_K" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full">
-<span class="sig-name descname"><span class="pre">tank_always_full</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_always_full" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound">
-<span class="sig-name descname"><span class="pre">tank_level_lower_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_lower_bound" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound">
-<span class="sig-name descname"><span class="pre">tank_level_upper_bound</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.tank_level_upper_bound" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill">
-<span class="sig-name descname"><span class="pre">dV_tank_w_in_refill</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in_refill" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow">
-<span class="sig-name descname"><span class="pre">prevent_simultaneous_flow</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.prevent_simultaneous_flow" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule">
-<span class="sig-name descname"><span class="pre">hp_on_schedule</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.hp_on_schedule" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s">
-<span class="sig-name descname"><span class="pre">min_on_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_on_time_s" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s">
-<span class="sig-name descname"><span class="pre">min_off_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.min_off_time_s" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc">
-<span class="sig-name descname"><span class="pre">stc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><span class="pre">SolarThermalCollector</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv">
-<span class="sig-name descname"><span class="pre">pv</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem" title="tmhp.subsystems.PhotovoltaicSystem"><span class="pre">PhotovoltaicSystem</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in">
-<span class="sig-name descname"><span class="pre">dV_tank_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_in" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out">
-<span class="sig-name descname"><span class="pre">dV_tank_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_tank_w_out" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in">
-<span class="sig-name descname"><span class="pre">dV_mix_sup_w_in</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_sup_w_in" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out">
-<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.dV_mix_w_out" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady">
 <span class="sig-name descname"><span class="pre">analyze_steady</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_ref_tank</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_w</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/air_source_heat_pump_boiler.html#AirSourceHeatPumpBoiler.analyze_steady"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.analyze_steady" title="Link to this definition">¶</a></dt>
@@ -1335,176 +1046,78 @@ is used for every step (backward-compatible).</p></li>
 
 </dd></dl>
 
-<p id="module-tmhp.ashpb_stc_preheat">ASHPB with SolarThermalCollector — mains_preheat placement.</p>
-<p>Phase 3 restructuring: all simulation orchestration logic
-(activation probe, result assembly, exergy calculation) is
-implemented directly in this class.  <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code>
-is used purely as a <strong>physics engine</strong> (<code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>),
-with no dependency on <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">assemble_results()</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>See the project paper for the orchestration logic and energy/exergy
-boundaries used by hybrid (STC + HP) systems.</p>
-</div>
+<p id="module-tmhp.ashpb_stc_preheat">ASHPB with a SolarThermalCollector — mains preheat placement.</p>
+<p>The collector sits in the mains line that feeds the tank; the mixing valve’s
+cold side takes mains water directly. See <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._stc_scenarios</span></code> (shared
+with the GSHPB version).</p>
 <section id="usage">
 <h3>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">ASHPB_STC_preheat</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
-</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_preheat</span><span class="p">(</span>
-</span><span data-line="5">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
-</span><span data-line="6">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
-</span><span data-line="8">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
-</span><span data-line="10">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
-</span><span data-line="11"><span class="p">)</span>
-</span><span data-line="12"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="s2">&quot;2026-06-01&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_preheat</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </span></pre></div>
 </div>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ashpb_stc_preheat.ASHPB_STC_preheat">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ashpb_stc_preheat.</span></span><span class="sig-name descname"><span class="pre">ASHPB_STC_preheat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_preheat.html#ASHPB_STC_preheat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
-<p>ASHPB + SolarThermalCollector in <em>mains_preheat</em> placement.</p>
-<section id="id3">
-<h3>Physical configuration<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
-<p>The STC preheats mains cold water before it enters the storage
-tank.  The raised inlet temperature (<code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code>)
-reduces the thermal load on the heat pump compressor.</p>
-</section>
-<section id="id4">
-<h3>Orchestration responsibility<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
-<p>This class owns all simulation logic for the STC:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>
-→ sets <code class="docutils literal notranslate"><span class="pre">T_tank_w_in_override_K</span></code> when active</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (uses pump outlet
-temperature directly; no re-evaluation at solved tank temp)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation.  Tank boundary
-corrections are <strong>not applied</strong> because the preheated inlet
-temperature is already reflected in the core
-<code class="docutils literal notranslate"><span class="pre">X_tank_w_in</span> <span class="pre">[W]</span></code> column (<code class="docutils literal notranslate"><span class="pre">X_in_tank_add</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></li>
-</ul>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">STCPreheat</span></code>, <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> + <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> in <em>mains preheat</em> placement.</p>
+<p>The behaviour and energy columns are those of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp._stc_scenarios.STCPreheat</span></code>: the collector runs at the tank’s
+make-up flow and <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code> is the heat the
+preheated inflow brings into the tank.</p>
 <dl class="field-list simple">
-<dt class="field-odd">param stc<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
-</dd>
-<dt class="field-even">type stc<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
-</dd>
-<dt class="field-odd">type **kwargs<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">param **kwargs<span class="colon">:</span></dt>
-<dd class="field-even"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p>
-</dd>
-<dt class="field-odd">raises TypeError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="tmhp.ashpb_stc_preheat.ASHPB_STC_preheat.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_preheat.html#ASHPB_STC_preheat.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ashpb_stc_preheat.ASHPB_STC_preheat.__init__" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>) – Collector, site and clock (its pump power is set to 0 on a copy: the
+mains pressure drives the flow).</p></li>
+<li><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
 </dd>
 </dl>
 </dd></dl>
 
-</section>
-</dd></dl>
-
-<p id="module-tmhp.ashpb_stc_tank">ASHPB with SolarThermalCollector — tank_circuit placement.</p>
-<p>Phase 3 restructuring: all simulation orchestration logic
-(activation probe, result assembly, exergy calculation) is
-implemented directly in this class.  <code class="docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code>
-is used purely as a <strong>physics engine</strong> (<code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code>),
-with no dependency on <code class="docutils literal notranslate"><span class="pre">step()</span></code>, <code class="docutils literal notranslate"><span class="pre">assemble_results()</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">calc_exergy()</span></code>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>See the project paper for the orchestration logic and energy/exergy
-boundaries used by hybrid (STC + HP, stratified tank) systems.</p>
-</div>
-<section id="id5">
-<h3>Usage<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<p id="module-tmhp.ashpb_stc_tank">ASHPB with a SolarThermalCollector — pumped collector loop charging the tank.</p>
+<p>The collector loop draws tank water, heats it and returns it to the tank. The
+loop is run by a differential controller with a storage high limit
+(<code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code>, 85 °C by default) and boiling protection; see
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._stc_scenarios</span></code> (shared with the GSHPB version).</p>
+<section id="id1">
+<h3>Usage<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">ASHPB_STC_tank</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">)</span>
-</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_tank</span><span class="p">(</span>
-</span><span data-line="5">    <span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">,</span>
-</span><span data-line="6">    <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R134a&quot;</span><span class="p">,</span>
-</span><span data-line="7">    <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">15_000.0</span><span class="p">,</span>
-</span><span data-line="8">    <span class="n">T_tank_w_lower_bound</span><span class="o">=</span><span class="mf">55.0</span><span class="p">,</span>
-</span><span data-line="9">    <span class="n">T_tank_w_upper_bound</span><span class="o">=</span><span class="mf">65.0</span><span class="p">,</span>
-</span><span data-line="10">    <span class="n">T_mix_w_out</span><span class="o">=</span><span class="mf">42.0</span><span class="p">,</span>
-</span><span data-line="11"><span class="p">)</span>
-</span><span data-line="12"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span data-line="3"><span class="n">stc</span> <span class="o">=</span> <span class="n">SolarThermalCollector</span><span class="p">(</span><span class="n">A_stc</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span> <span class="n">start_time</span><span class="o">=</span><span class="s2">&quot;2026-06-01&quot;</span><span class="p">)</span>
+</span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">ASHPB_STC_tank</span><span class="p">(</span><span class="n">stc</span><span class="o">=</span><span class="n">stc</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </span></pre></div>
 </div>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ashpb_stc_tank.ASHPB_STC_tank">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ashpb_stc_tank.</span></span><span class="sig-name descname"><span class="pre">ASHPB_STC_tank</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_tank.html#ASHPB_STC_tank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
-<p>ASHPB + SolarThermalCollector in <em>tank_circuit</em> placement.</p>
-<section id="id6">
-<h3>Physical configuration<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
-<p>The STC collector loop is connected directly to the storage tank.
-The STC draws water from the tank, heats it via solar energy, and
-returns it through the pump. The STC is activated only when the
-collector’s thermal gain exceeds the pump electricity required to
-circulate the loop.</p>
-</section>
-<section id="id7">
-<h3>Orchestration responsibility<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
-<p>This class owns all simulation logic for the STC:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>: activation probe + <code class="docutils literal notranslate"><span class="pre">calc_performance()</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>: result column assembly (re-evaluates at
-solved tank temperature for accuracy)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">_postprocess</span></code>: STC exergy calculation and tank boundary
-correction (<code class="docutils literal notranslate"><span class="pre">X_tot</span></code>, <code class="docutils literal notranslate"><span class="pre">Xc_tank</span></code>)</p></li>
-</ul>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">STCTankLoop</span></code>, <a class="reference internal" href="#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler" title="tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code></a></p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> + <a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a> in <em>tank-loop</em> placement.</p>
+<p>The behaviour and energy columns are those of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp._stc_scenarios.STCTankLoop</span></code>: per step
+<code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span> <span class="pre">=</span> <span class="pre">(Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in)</span> <span class="pre">+</span> <span class="pre">Q_l_stc</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code>; <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> includes <code class="docutils literal notranslate"><span class="pre">E_stc_pump</span></code>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">param stc<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Pure physics engine.  No <code class="docutils literal notranslate"><span class="pre">mode</span></code> constraint required.</p>
-</dd>
-<dt class="field-even">type stc<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span></p>
-</dd>
-<dt class="field-odd">type **kwargs<span class="colon">:</span></dt>
-<dd class="field-odd"><p></p></dd>
-<dt class="field-even">param **kwargs<span class="colon">:</span></dt>
-<dd class="field-even"><p>Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p>
-</dd>
-<dt class="field-odd">raises TypeError<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="tmhp.ashpb_stc_tank.ASHPB_STC_tank.T_stc_max_C">
-<span class="sig-name descname"><span class="pre">T_stc_max_C</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">100.0</span></span><a class="headerlink" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank.T_stc_max_C" title="Link to this definition">¶</a></dt>
-<dd><p>Boiling-protection ceiling [°C]. The STC loop must not circulate when the
-probed collector outlet would reach/exceed this temperature (liquid water
-boiling at 1 atm). Prevents non-physical &gt;100 °C circulation and the
-associated phantom gain when the tank is near saturation.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="tmhp.ashpb_stc_tank.ASHPB_STC_tank.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ashpb_stc_tank.html#ASHPB_STC_tank.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ashpb_stc_tank.ASHPB_STC_tank.__init__" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>) – Collector, loop pump and controller settings, site and clock.</p></li>
+<li><p><strong>**kwargs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>) – Forwarded to <code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – If <em>stc</em> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code> instance.</p>
 </dd>
 </dl>
-</dd></dl>
-
-</section>
 </dd></dl>
 
 <p id="module-tmhp.ashpb_pv_ess">ASHPB Scenario: Heat Pump driven by PV + ESS with Grid/Dump integration.</p>

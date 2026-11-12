@@ -1,6 +1,19 @@
 {
- "coefficient_version": "v2026-09-24",
- "git_head": "02e035f42fbbd34d9412965c9a62e00375be2bb8",
+ "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
+ "git_head": "79d1c9a97fdb1f92fb91ccfd291a206612fad934",
+ "dirty": false,
+ "dirty_scope": [
+  "src/tmhp",
+  "validation/parity",
+  "validation/catalogs",
+  "pyproject.toml",
+  "uv.lock"
+ ],
+ "src_tmhp_tree": "2edf92dd94b0ba434f969078d7e09cb5bbab4c77",
+ "run_date": "2026-11-13",
+ "python": "3.14.7",
+ "coolprop": "7.2.0",
+ "space_conditioning_cop_basis": "final_indoor_air_sensible",
  "units": 17,
  "adopted_units": 15,
  "held_units": [

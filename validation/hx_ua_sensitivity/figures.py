@@ -312,7 +312,9 @@ def fig3(d, duty: str) -> None:
         mod, _ = _split_rows(g)
         prs += list(mod.pr)
         ns += list(mod.n_star)
-    _axis(axes[0], prs, "Pressure ratio $p_{dis}/p_{suc}$ [-]", 0.25, title=DUTY_TITLE[duty], legend="upper left", ncol=2)
+    _axis(
+        axes[0], prs, "Pressure ratio $p_{dis}/p_{suc}$ [-]", 0.25, title=DUTY_TITLE[duty], legend="upper left", ncol=2
+    )
     _axis(axes[1], ns, "Relative speed $n^*$ = rps / rps$_{rated}$ [-]", 0.2, title="Compressor speed")
     for ax, letter in zip(axes, "ab", strict=True):
         panel_letter(ax, letter)
@@ -516,7 +518,11 @@ def main() -> None:
             print(f"wrote {name}")
 
     t = shape_table(d)
-    print(t[["duty", "variant", "shape", "COP_rated", "COP_peak", "PLR_peak", "COP_low_over_rated"]].to_string(index=False))
+    print(
+        t[["duty", "variant", "shape", "COP_rated", "COP_peak", "PLR_peak", "COP_low_over_rated"]].to_string(
+            index=False
+        )
+    )
     print(f"wrote {OUT_DIR / 'shape_metrics.csv'}")
 
 

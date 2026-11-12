@@ -73,12 +73,9 @@ MS = 3.0
 # available grid point nearest the EN 14825 rating point; cooling 35 degC is
 # the rating point itself.
 CASES = (
-    ("A_heating", "plr_map_ashp.csv", "ASHP", "heating", 5.0,
-     "[ASHP] Heating · outdoor 5 °C, room 20 °C"),
-    ("A_cooling", "plr_map_ashp.csv", "ASHP", "cooling", 35.0,
-     "[ASHP] Cooling · outdoor 35 °C, room 27 °C"),
-    ("B_heating", "plr_map_ashpb.csv", "ASHPB", "heating", 5.0,
-     "[ASHPB] Heating · outdoor 5 °C, tank 42.5 °C"),
+    ("A_heating", "plr_map_ashp.csv", "ASHP", "heating", 5.0, "[ASHP] Heating · outdoor 5 °C, room 20 °C"),
+    ("A_cooling", "plr_map_ashp.csv", "ASHP", "cooling", 35.0, "[ASHP] Cooling · outdoor 35 °C, room 27 °C"),
+    ("B_heating", "plr_map_ashpb.csv", "ASHPB", "heating", 5.0, "[ASHPB] Heating · outdoor 5 °C, tank 42.5 °C"),
 )
 
 MAPS = {
@@ -95,14 +92,16 @@ STACK = (
 
 def _style() -> None:
     apply_style()
-    mpl.rcParams.update({
-        "font.size": FS_BASE,
-        "axes.labelsize": FS_BASE,
-        "axes.titlesize": FS_BASE,
-        "xtick.labelsize": FS_BASE - 1.0,
-        "ytick.labelsize": FS_BASE - 1.0,
-        "legend.fontsize": FS_BASE - 0.5,
-    })
+    mpl.rcParams.update(
+        {
+            "font.size": FS_BASE,
+            "axes.labelsize": FS_BASE,
+            "axes.titlesize": FS_BASE,
+            "xtick.labelsize": FS_BASE - 1.0,
+            "ytick.labelsize": FS_BASE - 1.0,
+            "legend.fontsize": FS_BASE - 0.5,
+        }
+    )
 
 
 def _save(fig, name: str, **margins) -> None:
@@ -160,9 +159,17 @@ def _floor_band(ax, d: pd.DataFrame) -> None:
         return
     x0 = float(d.plr_pct.min())
     ax.axvspan(x0, x, color=COLORS["band20"], alpha=0.5, lw=0, zorder=0)
-    ax.text(0.5 * (x0 + x), 0.985, "speed\nfloor", transform=ax.get_xaxis_transform(),
-            fontsize=dm.fs(-2.0), color=COLORS["ink"], ha="center", va="top",
-            linespacing=1.1)
+    ax.text(
+        0.5 * (x0 + x),
+        0.985,
+        "speed\nfloor",
+        transform=ax.get_xaxis_transform(),
+        fontsize=dm.fs(-2.0),
+        color=COLORS["ink"],
+        ha="center",
+        va="top",
+        linespacing=1.1,
+    )
 
 
 def _xaxis(ax) -> None:
@@ -180,15 +187,14 @@ def _curve(ax, d, col, color, marker, label=None):
     mod, floor = _split(d)
     ax.plot(mod.plr_pct, mod[col], lw=dm.lw(0), color=color, marker=marker, ms=MS, label=label)
     if len(floor):
-        ax.plot(floor.plr_pct, floor[col], ls="none", marker=marker, ms=MS,
-                mfc="white", mec=color, mew=HAIRLINE)
+        ax.plot(floor.plr_pct, floor[col], ls="none", marker=marker, ms=MS, mfc="white", mec=color, mew=HAIRLINE)
 
 
 # ---------------------------------------------------------------------------
 # A  power breakdown
 # ---------------------------------------------------------------------------
 def a_power_breakdown() -> None:
-    for key, fname, model, duty, t_out, title in CASES:
+    for key, fname, _model, duty, t_out, title in CASES:
         d = _load(fname, duty, t_out)
         terms = [(c, lab, col) for c, lab, col in STACK if d[c].abs().max() > 0]
         fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.60))
@@ -198,8 +204,7 @@ def a_power_breakdown() -> None:
             top = base + d[col]
             ax.fill_between(d.plr_pct, base, top, color=colour, alpha=0.85, lw=0, label=lab)
             base = top
-        ax.plot(d.plr_pct, d.E_tot, lw=dm.lw(0), color=COLORS["ink"],
-                marker="o", ms=MS, label=r"$E_{tot}$")
+        ax.plot(d.plr_pct, d.E_tot, lw=dm.lw(0), color=COLORS["ink"], marker="o", ms=MS, label=r"$E_{tot}$")
         _xaxis(ax)
         ax.set_ylim(0, None)
         ax.set_ylabel("Electrical power input [W]")
@@ -213,7 +218,7 @@ def a_power_breakdown() -> None:
 # B  cop_ref against cop_sys
 # ---------------------------------------------------------------------------
 def b_cop_definitions() -> None:
-    for key, fname, model, duty, t_out, title in CASES:
+    for key, fname, _model, duty, t_out, title in CASES:
         d = _load(fname, duty, t_out)
         fig, ax = plt.subplots(figsize=dm.figsize("12cm", 0.60))
         _floor_band(ax, d)

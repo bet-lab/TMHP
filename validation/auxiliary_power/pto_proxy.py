@@ -102,7 +102,8 @@ def extract() -> tuple[pd.DataFrame, pd.DataFrame]:
     a2a, a2w = {}, {}
     for f in sorted(glob.glob(str(HPLIB / "*.csv"))):
         try:
-            rs = [r for r in csv.DictReader(open(f, encoding="utf-8", errors="replace")) if r.get("varName")]
+            with open(f, encoding="utf-8", errors="replace") as fh:
+                rs = [r for r in csv.DictReader(fh) if r.get("varName")]
         except Exception:
             continue
         typ = next((r["value"] for r in rs if r["varName"] == "Type"), "").strip()
@@ -175,10 +176,7 @@ def extract() -> tuple[pd.DataFrame, pd.DataFrame]:
 # regression
 # ---------------------------------------------------------------------------
 def _ols(x: np.ndarray, y: np.ndarray, with_slope: bool):
-    if with_slope:
-        A = np.column_stack([np.ones_like(x), x])
-    else:
-        A = np.ones((len(x), 1))
+    A = np.column_stack([np.ones_like(x), x]) if with_slope else np.ones((len(x), 1))
     coef, *_ = np.linalg.lstsq(A, y, rcond=None)
     a = float(coef[0])
     b = float(coef[1]) if with_slope else 0.0
@@ -208,7 +206,11 @@ def select(res: dict) -> str:
     Judged on leave-one-unit-out MAE, not in-sample -- a two-parameter fit to
     fourteen points will always look better in sample.
     """
-    return "model1_linear" if res["model1_linear"]["loo_unit"]["MAE_W"] < res["model0_constant"]["loo_unit"]["MAE_W"] else "model0_constant"
+    return (
+        "model1_linear"
+        if res["model1_linear"]["loo_unit"]["MAE_W"] < res["model0_constant"]["loo_unit"]["MAE_W"]
+        else "model0_constant"
+    )
 
 
 def fit(df: pd.DataFrame, label: str) -> dict:
@@ -243,14 +245,31 @@ def fit(df: pd.DataFrame, label: str) -> dict:
 # ---------------------------------------------------------------------------
 # figures
 # ---------------------------------------------------------------------------
-def figures(da: pd.DataFrame, das: pd.DataFrame, dw: pd.DataFrame, res_s: dict, res_a: dict, res_w: dict,
-            plr: pd.DataFrame, w_fit: float, chosen: str) -> None:
+def figures(
+    da: pd.DataFrame,
+    das: pd.DataFrame,
+    dw: pd.DataFrame,
+    res_s: dict,
+    res_a: dict,
+    res_w: dict,
+    plr: pd.DataFrame,
+    w_fit: float,
+    chosen: str,
+) -> None:
     import dartwork_mpl as dm
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from scripts.visualization._dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, panel_letter, ticks
+    from scripts.visualization._dmpl_common import (
+        COLORS,
+        GRIDLINE,
+        HAIRLINE,
+        apply_style,
+        finalize,
+        panel_letter,
+        ticks,
+    )
 
     apply_style()
     MS = 3.0
@@ -278,23 +297,49 @@ def figures(da: pd.DataFrame, das: pd.DataFrame, dw: pd.DataFrame, res_s: dict, 
         (axes[1], dw, res_w, "Air-to-water (includes pump)", 30.0),
     ):
         multi = d.model.str.count(r"\+") >= 2
-        ax.plot(d.Q_rated_kW[~multi], d.P_TO_W[~multi], "o", ms=MS, color=COLORS["ink"], mfc="none",
-                mew=HAIRLINE + 0.2, label="single split" if d is da else "unit")
+        ax.plot(
+            d.Q_rated_kW[~multi],
+            d.P_TO_W[~multi],
+            "o",
+            ms=MS,
+            color=COLORS["ink"],
+            mfc="none",
+            mew=HAIRLINE + 0.2,
+            label="single split" if d is da else "unit",
+        )
         if multi.any():
-            ax.plot(d.Q_rated_kW[multi], d.P_TO_W[multi], "s", ms=MS, color=COLORS["accent"], mfc="none",
-                    mew=HAIRLINE + 0.2, label="multi-split outdoor")
+            ax.plot(
+                d.Q_rated_kW[multi],
+                d.P_TO_W[multi],
+                "s",
+                ms=MS,
+                color=COLORS["accent"],
+                mfc="none",
+                mew=HAIRLINE + 0.2,
+                label="multi-split outdoor",
+            )
         a = res["model1_linear"]["a_W"]
         b = res["model1_linear"]["b_W_per_kW"]
         xs = np.linspace(0, xmax, 100)
-        ax.plot(xs, _predict(a, b, xs), lw=dm.lw(0), color=COLORS["hot"],
-                label=f"$a+bQ$ = {a:.1f} + {b:.2f} Q")
-        ax.axhline(res["model0_constant"]["a_W"], ls=(0, (2, 1.5)), lw=HAIRLINE + 0.2, color=COLORS["muted"],
-                   label=f"constant {res['model0_constant']['a_W']:.1f} W")
+        ax.plot(xs, _predict(a, b, xs), lw=dm.lw(0), color=COLORS["hot"], label=f"$a+bQ$ = {a:.1f} + {b:.2f} Q")
+        ax.axhline(
+            res["model0_constant"]["a_W"],
+            ls=(0, (2, 1.5)),
+            lw=HAIRLINE + 0.2,
+            color=COLORS["muted"],
+            label=f"constant {res['model0_constant']['a_W']:.1f} W",
+        )
         if d is da:  # the 1:1-split fit, which is the one actually adopted
             aa = res_s[chosen]["a_W"]
             bb = res_s[chosen]["b_W_per_kW"]
-            ax.plot(xs, _predict(aa, bb, xs), lw=dm.lw(0), color=COLORS["ess"], ls=(0, (4, 1.5)),
-                    label=f"1:1 splits only: {aa:.1f}" + (f" + {bb:.2f} Q" if bb else " W (adopted)"))
+            ax.plot(
+                xs,
+                _predict(aa, bb, xs),
+                lw=dm.lw(0),
+                color=COLORS["ess"],
+                ls=(0, (4, 1.5)),
+                label=f"1:1 splits only: {aa:.1f}" + (f" + {bb:.2f} Q" if bb else " W (adopted)"),
+            )
         ax.set_xlim(0, xmax)
         ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
         ax.set_ylabel(r"Declared $P_{TO}$ [W]")
@@ -317,13 +362,28 @@ def figures(da: pd.DataFrame, das: pd.DataFrame, dw: pd.DataFrame, res_s: dict, 
     lim = (0, max(y.max(), np.nanmax(yhat)) * 1.15)
     ax.plot(lim, lim, lw=HAIRLINE + 0.2, color=COLORS["muted"], ls=":")
     for d_, lbl, col in ((20.0, "±20 W", COLORS["band20"]),):
-        ax.fill_between(lim, [lim[0] - d_, lim[1] - d_], [lim[0] + d_, lim[1] + d_], color=col, alpha=0.35, lw=0,
-                        label=lbl, zorder=0)
+        ax.fill_between(
+            lim,
+            [lim[0] - d_, lim[1] - d_],
+            [lim[0] + d_, lim[1] + d_],
+            color=col,
+            alpha=0.35,
+            lw=0,
+            label=lbl,
+            zorder=0,
+        )
     ax.plot(y, yhat, "o", ms=MS, color=COLORS["ink"], mfc="none", mew=HAIRLINE + 0.2)
     m = res_s[chosen]["loo_unit"]
-    ax.text(0.04, 0.96, f"leave-one-unit-out\nN = {m['N']}\nMAE = {m['MAE_W']:.1f} W\nRMSE = {m['RMSE_W']:.1f} W\n"
-                        f"bias = {m['bias_W']:+.1f} W",
-            transform=ax.transAxes, va="top", ha="left", fontsize=dm.fs(-4))
+    ax.text(
+        0.04,
+        0.96,
+        f"leave-one-unit-out\nN = {m['N']}\nMAE = {m['MAE_W']:.1f} W\nRMSE = {m['RMSE_W']:.1f} W\n"
+        f"bias = {m['bias_W']:+.1f} W",
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        fontsize=dm.fs(-4),
+    )
     ax.set_xlim(*lim)
     ax.set_ylim(*lim)
     ax.set_xlabel(r"Declared $P_{TO}$ [W]")
@@ -335,8 +395,10 @@ def figures(da: pd.DataFrame, das: pd.DataFrame, dw: pd.DataFrame, res_s: dict, 
     # -- 03 residual vs capacity -----------------------------------------
     fig, ax = plt.subplots(figsize=dm.figsize("9cm", 0.62))
     ax.axhline(0, lw=HAIRLINE + 0.2, color=COLORS["muted"], ls=":")
-    for name, col, mk, lbl in (("model1_linear", COLORS["ink"], "o", "Model 1  a + bQ"),
-                               ("model0_constant", COLORS["accent"], "s", "Model 0  constant")):
+    for name, col, mk, lbl in (
+        ("model1_linear", COLORS["ink"], "o", "Model 1  a + bQ"),
+        ("model0_constant", COLORS["accent"], "s", "Model 0  constant"),
+    ):
         r = np.asarray(res_s[name + "_cv_pred"], float) - das.P_TO_W.to_numpy(float)
         ax.plot(das.Q_rated_kW, r, mk, ms=MS, color=col, mfc="none", mew=HAIRLINE + 0.2, label=lbl)
     ax.set_xlabel(r"Rated heating capacity $Q_{rated}$ [kW]")
@@ -360,15 +422,36 @@ def figures(da: pd.DataFrame, das: pd.DataFrame, dw: pd.DataFrame, res_s: dict, 
         mod = g[g.capacity_clamped.isna()].sort_values("PLR_request")
         flo = g[g.capacity_clamped == "min"].sort_values("PLR_request")
         for w, col, ls, lbl in series:
-            ax.plot(100 * mod.PLR_request, mod.Q_delivered_W / (mod.E_tot_baseline + w), ls=ls, lw=dm.lw(0),
-                    color=col, marker="o" if w == 0 else "", ms=MS * 0.8, label=lbl)
+            ax.plot(
+                100 * mod.PLR_request,
+                mod.Q_delivered_W / (mod.E_tot_baseline + w),
+                ls=ls,
+                lw=dm.lw(0),
+                color=col,
+                marker="o" if w == 0 else "",
+                ms=MS * 0.8,
+                label=lbl,
+            )
             if len(flo):
                 if w == 0:
-                    ax.plot(100 * flo.PLR_request, flo.Q_delivered_W / (flo.E_tot_baseline + w), ls="none",
-                            marker="o", ms=MS * 0.8, mfc="white", mec=col, mew=HAIRLINE)
+                    ax.plot(
+                        100 * flo.PLR_request,
+                        flo.Q_delivered_W / (flo.E_tot_baseline + w),
+                        ls="none",
+                        marker="o",
+                        ms=MS * 0.8,
+                        mfc="white",
+                        mec=col,
+                        mew=HAIRLINE,
+                    )
                 else:
-                    ax.plot(100 * flo.PLR_request, flo.Q_delivered_W / (flo.E_tot_baseline + w), ls=(0, (1, 2)),
-                            lw=dm.lw(0), color=col)
+                    ax.plot(
+                        100 * flo.PLR_request,
+                        flo.Q_delivered_W / (flo.E_tot_baseline + w),
+                        ls=(0, (1, 2)),
+                        lw=dm.lw(0),
+                        color=col,
+                    )
         ax.set_xlim(0, 100)
         ax.set_xticks(ticks(0, 100, 20))
         ax.set_xlabel("Requested part-load ratio [%]")
@@ -393,17 +476,19 @@ def plr_table(plr: pd.DataFrame, w_values) -> pd.DataFrame:
         mod = g[g.capacity_clamped.isna()].sort_values("PLR_request")
         for w in w_values:
             cop = (mod.Q_delivered_W / (mod.E_tot_baseline + w)).to_numpy()
-            rows.append({
-                "condition": cond,
-                "W_added_W": w,
-                "PLR_low": float(mod.PLR_request.iloc[0]),
-                "COP_low": float(cop[0]),
-                "COP_rated": float(cop[-1]),
-                "rise_pct": float(100.0 * (cop[0] / cop[-1] - 1.0)),
-                "COP_max": float(cop.max()),
-                "PLR_at_COP_max": float(mod.PLR_request.to_numpy()[int(cop.argmax())]),
-                "monotonic_rise": bool(cop.argmax() == 0),
-            })
+            rows.append(
+                {
+                    "condition": cond,
+                    "W_added_W": w,
+                    "PLR_low": float(mod.PLR_request.iloc[0]),
+                    "COP_low": float(cop[0]),
+                    "COP_rated": float(cop[-1]),
+                    "rise_pct": float(100.0 * (cop[0] / cop[-1] - 1.0)),
+                    "COP_max": float(cop.max()),
+                    "PLR_at_COP_max": float(mod.PLR_request.to_numpy()[int(cop.argmax())]),
+                    "monotonic_rise": bool(cop.argmax() == 0),
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -440,9 +525,14 @@ def main() -> None:
     cvp.to_csv(OUT_DIR / "cv_predictions.csv", index=False)
 
     plr = pd.read_csv(APPENDIX_D_CSV)
-    plr = plr[(plr.sh_sc_mode == "mode_A") & (plr.SH_set == 3.0) & (plr.SC_set == 3.0)
-              & (plr.W_fixed == 0.0) & plr.converged
-              & plr.condition.isin(["heating_7", "cooling_35"])]
+    plr = plr[
+        (plr.sh_sc_mode == "mode_A")
+        & (plr.SH_set == 3.0)
+        & (plr.SC_set == 3.0)
+        & (plr.W_fixed == 0.0)
+        & plr.converged
+        & plr.condition.isin(["heating_7", "cooling_35"])
+    ]
     tab = plr_table(plr, sorted({0.0, round(w_fit, 1), *APPENDIX_D_W}))
     tab.to_csv(OUT_DIR / "plr_cop_with_pto_proxy.csv", index=False)
     print("\n" + tab.to_string(index=False))
@@ -450,25 +540,38 @@ def main() -> None:
     metrics = []
     for lbl, res in (("air_to_air_single_split", res_s), ("air_to_air_all", res_a), ("air_to_water", res_w)):
         for mdl in ("model0_constant", "model1_linear"):
-            metrics.append({"population": lbl, "model": mdl, "a_W": res[mdl]["a_W"],
-                            "b_W_per_kW": res[mdl]["b_W_per_kW"],
-                            **{f"in_{k}": v for k, v in res[mdl]["in_sample"].items()},
-                            **{f"loo_{k}": v for k, v in res[mdl]["loo_unit"].items()},
-                            "pred_at_3p5kW_W": res[mdl]["pred_at_3p5kW_W"]})
+            metrics.append(
+                {
+                    "population": lbl,
+                    "model": mdl,
+                    "a_W": res[mdl]["a_W"],
+                    "b_W_per_kW": res[mdl]["b_W_per_kW"],
+                    **{f"in_{k}": v for k, v in res[mdl]["in_sample"].items()},
+                    **{f"loo_{k}": v for k, v in res[mdl]["loo_unit"].items()},
+                    "pred_at_3p5kW_W": res[mdl]["pred_at_3p5kW_W"],
+                }
+            )
     pd.DataFrame(metrics).to_csv(OUT_DIR / "metrics.csv", index=False)
-    (OUT_DIR / "coefficients.json").write_text(json.dumps({
-        "warning": "P_TO proxy for non-vanishing parasitic power. NOT P_aux,active. Not a TMHP coefficient.",
-        "source": SOURCE,
-        "variable_identification": "EN14825_024 = P_TO, verified against Bosch CS2000AWF ErP fiches",
-        "capacity_variable": "EN14511_2_005 rated heating capacity [kW]",
-        "selected_population": "air_to_air_single_split",
-        "selected_model": chosen,
-        "selection_rule": "leave-one-outdoor-unit-out MAE; slope kept only if it improves on the constant",
-        "air_to_air_single_split": {k: v for k, v in res_s.items() if not k.endswith("_cv_pred")},
-        "air_to_air_all": {k: v for k, v in res_a.items() if not k.endswith("_cv_pred")},
-        "air_to_water": {k: v for k, v in res_w.items() if not k.endswith("_cv_pred")},
-        "tmhp_prediction_at_3p5kW_W": w_fit,
-    }, indent=2, ensure_ascii=False), encoding="utf-8")
+    (OUT_DIR / "coefficients.json").write_text(
+        json.dumps(
+            {
+                "warning": "P_TO proxy for non-vanishing parasitic power. NOT P_aux,active. Not a TMHP coefficient.",
+                "source": SOURCE,
+                "variable_identification": "EN14825_024 = P_TO, verified against Bosch CS2000AWF ErP fiches",
+                "capacity_variable": "EN14511_2_005 rated heating capacity [kW]",
+                "selected_population": "air_to_air_single_split",
+                "selected_model": chosen,
+                "selection_rule": "leave-one-outdoor-unit-out MAE; slope kept only if it improves on the constant",
+                "air_to_air_single_split": {k: v for k, v in res_s.items() if not k.endswith("_cv_pred")},
+                "air_to_air_all": {k: v for k, v in res_a.items() if not k.endswith("_cv_pred")},
+                "air_to_water": {k: v for k, v in res_w.items() if not k.endswith("_cv_pred")},
+                "tmhp_prediction_at_3p5kW_W": w_fit,
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
     if "fig" in want:
         figures(da, das, dw, res_s, res_a, res_w, plr, w_fit, chosen)

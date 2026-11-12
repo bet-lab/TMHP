@@ -23,9 +23,9 @@ The contract
    <script src="../_static/js/plots/_plot-common.js"></script>
    <script src="../_static/js/plots/ph-chart.js"></script>
 
-Any refrigerant CoolProp supports as a pure fluid or a mixture
-that CoolProp can resolve via its built-in alias table is usable
-out of the box:
+A CoolProp pure or pseudo-pure refrigerant whose cycle stays subcritical
+(condensing temperature below the critical temperature) is usable out of
+the box:
 
 .. code-block:: python
 
@@ -33,18 +33,31 @@ out of the box:
 
    AirSourceHeatPumpBoiler(ref="R32")        # difluoromethane
    AirSourceHeatPumpBoiler(ref="R290")       # propane
-   AirSourceHeatPumpBoiler(ref="R410A")      # mixture
+   AirSourceHeatPumpBoiler(ref="R410A")      # pseudo-pure blend
    AirSourceHeatPumpBoiler(ref="R134a")
-   AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0)    # CO₂ (see below)
-   AirSourceHeatPumpBoiler(ref="R600a", V_cmp_ref=1.0e-4)  # isobutane
+   AirSourceHeatPumpBoiler(ref="R600a")      # isobutane
 
 The compressor's rated speed is solved for each fluid at the model's rating
 condition (:doc:`/models/reference-state`), so swapping the fluid keeps the
 rated capacity. The capacity-scaled default displacement comes from an R32
-catalogue unit; a low-pressure fluid such as R600a needs a larger
-``V_cmp_ref`` to reach its rated capacity below ``rps_max``, and the
-constructor says so (``reference_capacity_inconsistent``) instead of
-clamping the speed.
+catalogue unit, so a low-pressure fluid such as R600a is built and solved
+with the defaults but needs a much higher rated speed (about 120 rev/s for
+the 15 kW default, outside the 33.8–72.5 rev/s range the default compressor
+efficiency was fitted on). Pass a larger ``V_cmp_ref`` to keep the speed
+in range. If the displacement is so small that the rated capacity cannot
+be reached below ``rps_max``, the constructor says so
+(``reference_capacity_inconsistent``) instead of clamping the speed.
+
+Not supported
+-------------
+
+The cycle assumes subcritical single-stage compression. These are outside
+the supported set:
+
+- Refrigerants that become supercritical at DHW temperatures, notably R744
+  (see below).
+- User-defined ``HEOS::`` mixtures; the constructor does not return for
+  them.
 
 CoolProp returns REFPROP-grade equation-of-state values, so the same
 first-principles cycle calculation can be rerun with a different
@@ -63,24 +76,30 @@ typical condenser water temperatures (R32: ~78 °C critical, R290:
 ~97 °C, R134a: ~101 °C), this assumption holds across the entire
 DHW operating envelope.
 
-Supercritical / transcritical operation (R744)
-==============================================
+Supercritical / transcritical operation (R744) — not supported
+================================================================
 
 R744 (CO₂) has a critical temperature near 31 °C. For DHW heating
-(condenser water at 50–65 °C) the high side runs *above* the
-critical point — a transcritical cycle. The current model is
-written against a subcritical-condenser assumption, so R744 has no
-subcritical rating point to solve the rated speed from: pass
-``rps_rated`` explicitly (the constructor warns that
-``m_dot_ref_rated`` could not be derived). It will then still solve,
-but the results are best interpreted as a sanity-check, not a fully
-transcritical model.
+(condenser water at 50–65 °C) the high side would run *above* the
+critical point — a transcritical cycle. The cycle is written against a
+subcritical-condenser assumption, so R744 is **not supported** on the
+boiler families (``AirSourceHeatPumpBoiler`` and the ground- and
+water-source counterparts). The constructor only warns that
+``m_dot_ref_rated`` could not be derived (pass ``rps_rated`` to silence
+it), and ``analyze_steady`` then raises a CoolProp ``ValueError``
+because the condensing temperature (for example 330.8 K at a 55 °C
+tank) is above the numerical critical point (304.1 K)::
 
-If you need a faithful transcritical model, a future cycle path
-that treats the gas-cooler explicitly is the right place to add
-it. The cycle-closure interface (``_optimize_operation``) is
+   AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0).analyze_steady(
+       T_tank_w=55.0, T0=5.0, Q_ref_tank=8000.0
+   )
+   # ValueError: Temperature to QT_flash [330.81667 K] may not be above
+   # the numerical critical point of 304.1282 K
+
+A faithful transcritical model would need a gas-cooler block in place of the
+condenser. The cycle-closure interface (``_optimize_operation``) is
 designed so that swapping the high-side block in is a localised
-change.
+change, but no such block exists today.
 
 Mapping CoolProp errors to ``failure_reason``
 ==============================================

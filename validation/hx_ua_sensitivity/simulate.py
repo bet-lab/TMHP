@@ -255,7 +255,9 @@ def main() -> None:
     for s in JOINT_SCALES:
         joint_tasks += _tasks("joint", s, s)
     joint_df = _run(joint_tasks, a.jobs)
-    print(f"joint  : {len(JOINT_SCALES)} scales, {len(joint_df)} rows, failures {(joint_df.failure_reason != 'none').sum()}")
+    print(
+        f"joint  : {len(JOINT_SCALES)} scales, {len(joint_df)} rows, failures {(joint_df.failure_reason != 'none').sum()}"
+    )
 
     # --- regression gate: joint scale 1.0 == library defaults -----------
     keys = ["duty", "plr_request"]
@@ -278,7 +280,9 @@ def main() -> None:
     for s_ou, s_iu in SPLIT_CASES:
         split_tasks += _tasks("split", s_ou, s_iu)
     split_df = _run(split_tasks, a.jobs)
-    print(f"split  : {len(SPLIT_CASES)} cases, {len(split_df)} rows, failures {(split_df.failure_reason != 'none').sum()}")
+    print(
+        f"split  : {len(SPLIT_CASES)} cases, {len(split_df)} rows, failures {(split_df.failure_reason != 'none').sum()}"
+    )
 
     out = pd.concat([ref_df, joint_df, split_df], ignore_index=True)
     out.to_csv(OUT_DIR / CSV_NAME, index=False)

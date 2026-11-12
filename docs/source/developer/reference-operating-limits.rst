@@ -343,9 +343,8 @@ of ``T_dis_max``. A rising minimum speed with pressure ratio would refuse the
 same corner but needs envelope data the library does not have; the floor uses
 only the fit's own data range.
 
-Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; the
-committed ``validation/results`` are regenerated separately; a point that
-delivers more than 1 % less than the published duty is not scored,
+Effect on the adopted catalogues (2026-11-13, point-weighted COP MAPE; a
+point that delivers more than 1 % less than the published duty is not scored,
 ``capacity_short``):
 
 .. list-table::
@@ -373,9 +372,10 @@ delivers more than 1 % less than the published duty is not scored,
       - 6/30, 7.3 %
       - 19/30, 4.7 %
 
-(With the ASHPB outdoor-approach band search of #109.) The control holds 30
+(With the ASHPB outdoor-approach band search of #109; the committed
+``validation/results`` were regenerated with this code.) The control holds 30
 air-to-water points (2 by superheat alone, 28 with wet suction at
-x 0.90–0.99). Of the 17 points not scored, 10 are R32 points whose unbounded
+x 0.90–0.99); 23 of them are scored. Of the 17 points not scored, 10 are R32 points whose unbounded
 discharge is 243–293 °C: they would need suction quality 0.79–0.86, because
 the fitted eta_is is 0.37–0.42 at PR 8.2–12.1 (both in the default and the
 ``v2026-09-24`` correlations). The other 7, all R32, run at a reduced duty

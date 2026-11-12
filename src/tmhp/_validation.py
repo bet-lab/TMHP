@@ -173,6 +173,32 @@ def check_kelvin(name: str, value: Any) -> float:
     return x
 
 
+#: A discharge-temperature limit outside this range [degC] is a unit slip, not a compressor.
+T_DIS_MIN_C, T_DIS_MAX_C = 0.0, 300.0
+
+
+def check_discharge_limit(name: str, value: Any) -> float | None:
+    """``"auto"`` (refrigerant default) or a discharge-temperature limit in degC."""
+    if isinstance(value, str):
+        if value == "auto":
+            return None
+        raise _fail(name, "'auto', None or a temperature in degC", value)
+    expectation = f"'auto', None or a finite temperature in degC within [{T_DIS_MIN_C:g}, {T_DIS_MAX_C:g}]"
+    x = _number(name, value, expectation)
+    if not (math.isfinite(x) and T_DIS_MIN_C <= x <= T_DIS_MAX_C):
+        hint = " (a kelvin value?)" if math.isfinite(x) and x > T_DIS_MAX_C else ""
+        raise _fail(name, expectation, value, extra=hint)
+    return x
+
+
+def check_quality(name: str, value: Any) -> float:
+    """Vapour quality in (0, 1]."""
+    x = _number(name, value, "a vapour quality in (0, 1] or None")
+    if not (math.isfinite(x) and 0.0 < x <= 1.0):
+        raise _fail(name, "a vapour quality in (0, 1] or None", value)
+    return x
+
+
 def check_less(low_name: str, low: Any, high_name: str, high: Any) -> None:
     """Strict ordering ``low < high`` of two already-validated numbers."""
     if float(low) >= float(high):
@@ -215,6 +241,8 @@ _RULES: dict[str, Callable[[str, Any], Any]] = {
     "T_env": lambda n, v: check_temperature(n, v, "env"),
     "T_water": lambda n, v: check_temperature(n, v, "water"),
     "T_K": check_kelvin,
+    "T_dis": check_discharge_limit,
+    "quality": check_quality,
 }
 
 
@@ -274,6 +302,9 @@ _CYCLE = {
     "PR_cycle_max": "pos",
     "rps_rated": "pos",
     "m_dot_ref_rated": "pos",
+    # Compressor envelope (tmhp.compressor_envelope): "auto" or a temperature, None = off.
+    "T_dis_max": "T_dis",
+    "x_suction_min": "quality",
 }
 _BOREHOLE = {
     "N_1": "int_pos",

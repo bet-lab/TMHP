@@ -56,9 +56,12 @@ from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, rejec
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    discharge_controlled,
     discharge_violation,
     resolve_discharge_temp_max,
+    resolve_x_suction_min,
     steady_envelope,
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
@@ -186,6 +189,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_min: float | None = None,
         dV_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("ASHPB", locals())
         if dV_fan_a_ref is not None:
@@ -233,6 +237,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
         # Records the PR-envelope event of the most recent _calc_state call
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
@@ -374,6 +382,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Refrigerant cycle physics (ASHP-specific)
     # =============================================================
 
+    @discharge_controlled(reject=False)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -548,6 +557,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
                 mode="heating",
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
                 rps=None,
@@ -580,6 +590,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     eta_cmp_isen=1.0,  # Temporary dummy value to get basic states
                     mode="heating",
                     dT_superheat=actual_dT_superheat,
+                    x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
                     is_active=True,
                     rps=None,
@@ -636,6 +647,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 eta_cmp_isen=eta_isen_i,
                 mode="heating",
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
                 rps=rps_i,

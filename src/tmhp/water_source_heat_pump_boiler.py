@@ -32,9 +32,12 @@ from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
+    discharge_controlled,
     discharge_violation,
     resolve_discharge_temp_max,
+    resolve_x_suction_min,
     steady_envelope,
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
@@ -152,6 +155,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         *,
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         # Deprecated:
@@ -236,6 +240,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
         # Records the PR-envelope event of the most recent _calc_state call
         # (None | ("pr_below_min", pr, bound) | ("pr_above_max", pr, bound)).
         self._last_pr_event: tuple[str, float, float] | None = None
@@ -421,6 +429,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             return HXSide("water", T_in_C, self.UA_water, self.dV_b_f_m3s)
         return HXSide("tank", T_in_C, self.UA_tank_hx)
 
+    @discharge_controlled(reject=False)
     @reject_invalid_efficiency
     def _calc_state(
         self, dT_ref_water: float, T_tank_w: float, Q_tank_load: float, T0: float, *, flow_state: dict
@@ -456,6 +465,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 refrigerant=self.ref,
                 eta_cmp_isen=1.0,
                 dT_superheat=self.dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
             )
         except Exception:
@@ -490,6 +500,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                     refrigerant=self.ref,
                     eta_cmp_isen=1.0,
                     dT_superheat=self.dT_superheat,
+                    x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
                 )
             except Exception:
@@ -535,6 +546,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 refrigerant=self.ref,
                 eta_cmp_isen=val_eta_isen,
                 dT_superheat=self.dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
             )
         except Exception:

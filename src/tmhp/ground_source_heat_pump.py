@@ -43,9 +43,11 @@ from .compressor_envelope import (
     DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
-    discharge_temp_exceeded,
+    discharge_controlled,
     resolve_discharge_temp_max,
+    resolve_x_suction_min,
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
@@ -298,6 +300,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("GSHP", locals())
         ground_rates = resolve_ground_flow_rates(
@@ -377,6 +380,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
 
         # --- 2. Physical heat exchangers and compressor efficiencies ---
         # Water HX sizing is independent of the air HX and of cycle mode.
@@ -605,6 +612,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @discharge_controlled(reject=True)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -685,6 +693,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=1.0,
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=is_active,
         )
@@ -720,6 +729,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     eta_cmp_isen=1.0,
                     mode=mode,
                     dT_superheat=actual_dT_superheat,
+                    x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
                     is_active=is_active,
                 )
@@ -772,6 +782,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 eta_cmp_isen=val_eta_isen,
                 mode=mode,
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
             )
@@ -790,16 +801,6 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         E_cmp_loss = E_cmp - E_cmp_ref
 
         if is_active and E_cmp <= 0:
-            return None
-        # Discharge temperature above the compressor's limit: not an operating
-        # point (handled like the pressure-ratio ceiling by the searches).
-        T_dis_max = self.T_dis_max
-        if (
-            is_active
-            and T_dis_max is not None
-            and discharge_temp_exceeded(cycle_states["T_ref_cmp_out [°C]"], T_dis_max)
-        ):
-            self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, float(cycle_states["T_ref_cmp_out [°C]"]), T_dis_max)
             return None
 
         # ── BHE energy balance ──

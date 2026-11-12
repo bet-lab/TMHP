@@ -27,6 +27,7 @@ def calc_ref_state(
     dT_subcool: float = 0.0,  # [K] condenser outlet subcool (State 3* → 3)
     is_active: bool = True,  # active flag (returns nan-filled dict when False)
     rps: float | None = None,  # compressor speed [rps]
+    x_suction: float = 1.0,  # [-] compressor-inlet vapour quality (< 1: wet suction, superheat ignored)
 ) -> dict[str, Any]:
     """Compute the four thermodynamic state points of the refrigerant cycle.
 
@@ -44,6 +45,16 @@ def calc_ref_state(
     Keys in the returned dict are always assigned by the physical compressor /
     expander ports; the ``mode`` argument is preserved verbatim under the
     ``"mode"`` key but does not change the key naming.
+
+    Wet suction
+    -----------
+    ``x_suction < 1`` puts State 1 inside the two-phase dome at the evaporating
+    pressure (the evaporator outlet is two-phase, so the evaporator duty is
+    ``m_dot (h_1 - h_4)`` with the wet ``h_1``). The suction density is the
+    homogeneous two-phase density ``1 / (x v_g + (1 - x) v_l)`` -- it is what
+    sets the swept mass flow -- and the isentropic discharge state is the
+    isentropic compression of that two-phase state. Used by the
+    discharge-temperature control of :mod:`tmhp.compressor_envelope`.
 
     Note
     ----
@@ -112,7 +123,13 @@ def calc_ref_state(
     # Step 2: State 1 — actual superheated vapour at the compressor inlet.
     T_ref_cmp_in_K = T_ref_evap_sat_K + dT_superheat
 
-    if abs(dT_superheat) < 1e-6:
+    if x_suction < 1.0:
+        # Wet suction (see "Wet suction" above): saturation temperature, no superheat.
+        T_ref_cmp_in_K = T_ref_evap_sat_K
+        h_ref_cmp_in = CP.PropsSI("H", "P", P_evap, "Q", x_suction, refrigerant)
+        s_ref_cmp_in = CP.PropsSI("S", "P", P_evap, "Q", x_suction, refrigerant)
+        rho_ref_cmp_in = CP.PropsSI("D", "P", P_evap, "Q", x_suction, refrigerant)
+    elif abs(dT_superheat) < 1e-6:
         h_ref_cmp_in = h_ref_evap_sat
         s_ref_cmp_in = s_ref_evap_sat
         rho_ref_cmp_in = CP.PropsSI("D", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)

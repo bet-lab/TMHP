@@ -32,12 +32,13 @@ from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_DISCHARGE,
-    DISCHARGE_TEMP_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
+    X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
-    discharge_temp_exceeded,
+    discharge_controlled,
     resolve_discharge_temp_max,
+    resolve_x_suction_min,
     steady_envelope,
 )
 from .compressor_speed import (
@@ -175,6 +176,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
+        x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("ASHP", locals())
         import warnings
@@ -256,6 +258,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Discharge-temperature control: lowest suction quality (None: no control)
+        self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
+        #: Suction quality of the cycle being evaluated (< 1 only inside the control).
+        self._x_suction: float = 1.0
         self.dT_approach_bounds: tuple[float, float] = (
             float(dT_approach_bounds[0]),
             float(dT_approach_bounds[1]),
@@ -405,6 +411,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Refrigerant cycle physics
     # =============================================================
 
+    @discharge_controlled(reject=True)
     @reject_invalid_efficiency
     def _calc_state(
         self,
@@ -533,6 +540,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=1.0,  # Temporary
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -574,6 +582,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 eta_cmp_isen=1.0,  # Temporary
                 mode=mode,
                 dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
                 is_active=True,
             )
@@ -620,6 +629,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             eta_cmp_isen=val_eta_isen,
             mode=mode,
             dT_superheat=actual_dT_superheat,
+            x_suction=self._x_suction,
             dT_subcool=actual_dT_subcool,
             is_active=True,
         )
@@ -636,12 +646,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # Reject negative compressor power (unphysical)
         if E_cmp <= 0:
-            return None
-        # Discharge temperature above the compressor's limit: not an operating
-        # point; the search moves to a smaller lift or a smaller duty.
-        T_dis_max = self.T_dis_max
-        if T_dis_max is not None and discharge_temp_exceeded(cs["T_ref_cmp_out [°C]"], T_dis_max):
-            self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, float(cs["T_ref_cmp_out [°C]"]), T_dis_max)
             return None
 
         # ── Outdoor unit HX ──

@@ -41,7 +41,26 @@ Discharge temperature (``T_dis_max``)
     electro-mechanical efficiency is about 1), so its discharge temperature is
     an upper estimate of the machine's.
 
-    How a family answers a rejected point: the space-conditioning models
+    Discharge-temperature control comes first (:func:`discharge_controlled`,
+    ``x_suction_min``). A unit whose discharge runs hot does not stop: its
+    controller opens the expansion valve, so the suction superheat falls, and
+    then lets the suction go wet or injects liquid. The cycle at a candidate
+    operating point is therefore re-solved, compressor speed included, first
+    with the suction superheat reduced from its value towards 0 K until the
+    discharge temperature equals ``T_dis_max``, then -- if 0 K is not enough --
+    with a two-phase suction of quality ``x`` lowered towards
+    ``x_suction_min`` (default :data:`X_SUCTION_MIN_DEFAULT` = 0.9). Wet
+    suction is modelled as a homogeneous two-phase state at the evaporating
+    pressure (see :func:`tmhp.refrigerant.calc_ref_state`); the evaporator
+    outlet is then two-phase, the swept mass flow follows the homogeneous
+    density, and the isentropic work is that of the two-phase state, so the
+    cycle energy balance stays closed. The efficiency maps were fitted to dry
+    suction, so applying them to wet suction is an approximation. Only a point
+    that is still above the limit at ``x_suction_min`` is outside the envelope.
+    ``x_suction_min=1`` keeps the superheat stage only; ``None`` switches the
+    control off.
+
+    How a family answers a point the control cannot bring inside the limit: the space-conditioning models
     (ASHP, GSHP) reject the candidate inside the operating-point search, so the
     search moves to a smaller lift if one carries the duty, and otherwise the
     existing capacity search returns the largest duty the envelope allows with
@@ -81,6 +100,8 @@ from collections.abc import Callable, Mapping
 from functools import wraps
 from typing import Any, Literal, TypeVar, cast
 
+from scipy.optimize import brentq
+
 from .compressor_efficiency import efficiency_extrapolated
 
 __all__ = [
@@ -103,6 +124,9 @@ __all__ = [
     "default_rps_max",
     "efficiency_extrapolated_at",
     "steady_envelope",
+    "X_SUCTION_MIN_DEFAULT",
+    "resolve_x_suction_min",
+    "discharge_controlled",
 ]
 
 #: Reason code: pressure ratio is below ``PR_cycle_min`` (floor -> clamp).
@@ -121,6 +145,19 @@ BINDING_DISCHARGE = "discharge_temperature"
 DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
 #: Default for every refrigerant not in :data:`DISCHARGE_TEMP_MAX_C` [degC].
 DISCHARGE_TEMP_MAX_DEFAULT_C = 135.0
+
+#: Default lowest suction vapour quality the discharge-temperature control may use.
+#:
+#: Two-phase suction (wet compression) is one of the methods experimentally used
+#: to hold the discharge temperature of R32 scroll compressors (Wang et al.,
+#: International Compressor Engineering Conference 2014, paper 1595; Yang et
+#: al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower
+#: suction quality lowers the discharge temperature but raises the risk of
+#: over-wet compression and liquid slugging. No published lower bound on the
+#: suction quality was found, so the default is the conservative 0.9: at most
+#: 10 % liquid by mass, of the order of the liquid-injection ratios used for
+#: discharge-temperature control.
+X_SUCTION_MIN_DEFAULT = 0.9
 
 #: ``rps_max`` default: this multiple of the rated speed ...
 RPS_MAX_PER_RATED = 2.0
@@ -169,6 +206,16 @@ def resolve_discharge_temp_max(value: float | Literal["auto"] | None, ref: str) 
     if not math.isfinite(limit):
         raise ValueError("T_dis_max must be finite (use None to switch the check off)")
     return limit
+
+
+def resolve_x_suction_min(value: float | None) -> float | None:
+    """Constructor argument -> lowest suction quality of the control (``None``: no control)."""
+    if value is None:
+        return None
+    x = float(value)
+    if not (math.isfinite(x) and 0.0 < x <= 1.0):
+        raise ValueError(f"x_suction_min must be a vapour quality in (0, 1] or None, got {value!r}")
+    return x
 
 
 def discharge_temp_exceeded(T_dis_C: object, T_dis_max: float | None) -> bool:
@@ -234,11 +281,144 @@ def efficiency_extrapolated_at(models: tuple[object, ...], result: Mapping[str, 
     return any(efficiency_extrapolated(m, pr, rps) for m in models)  # type: ignore[arg-type]
 
 
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+# ---------------------------------------------------------------------------
+# Discharge-temperature control (wraps a family's cycle evaluation)
+# ---------------------------------------------------------------------------
+
+#: Result keys the control adds to every running cycle state (all five families).
+SUPERHEAT_KEY = "dT_ref_superheat [K]"
+QUALITY_KEY = "x_ref_cmp_in [-]"
+CONTROL_KEY = "discharge_control"
+_T_DIS_KEY = "T_ref_cmp_out [°C]"
+_SUPERHEAT_XTOL_K = 1e-3
+_QUALITY_XTOL = 1e-5
+
+
+def _state_running(result: object) -> bool:
+    return isinstance(result, dict) and bool(result.get("hp_is_on")) and _T_DIS_KEY in result
+
+
+def _discharge(result: Mapping[str, Any]) -> float:
+    try:
+        value = float(result[_T_DIS_KEY])
+    except (KeyError, TypeError, ValueError):
+        return math.nan
+    return value if math.isfinite(value) else math.inf
+
+
+def _superheat(result: Mapping[str, Any]) -> float:
+    try:
+        return max(0.0, float(result["T_ref_cmp_in [°C]"]) - float(result["T_ref_evap_sat [°C]"]))
+    except (KeyError, TypeError, ValueError):
+        return math.nan
+
+
+def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
+    """Wrap a family's ``_calc_state`` with the discharge-temperature control.
+
+    The wrapped method evaluates one candidate operating point; it reads the
+    suction superheat from ``self.dT_superheat`` (capped by the evaporator
+    approach where the family caps it) and the suction quality from
+    ``self._x_suction``. When the running state discharges above
+    ``self.T_dis_max``, the same candidate is re-evaluated with the superheat
+    reduced (root of ``T_dis(superheat) = T_dis_max`` on ``[0, superheat]``)
+    and, if 0 K is not enough, with the quality reduced (root on
+    ``[x_suction_min, 1]``). Every running state gets
+    :data:`SUPERHEAT_KEY`, :data:`QUALITY_KEY` and :data:`CONTROL_KEY`.
+
+    A state still above the limit is returned as is when ``reject`` is false
+    (the boilers check the solved operating point and reduce the duty), and is
+    rejected -- ``None``, with ``self._last_pr_event`` naming the discharge
+    limit -- when ``reject`` is true (ASHP, GSHP: a candidate inside the search).
+    """
+
+    def decorate(function: _F) -> _F:
+        @wraps(function)
+        def wrapped(self: Any, *args: Any, **kwargs: Any) -> Any:
+            result = function(self, *args, **kwargs)
+            T_max = self.T_dis_max
+            if T_max is None or not _state_running(result):
+                # No limit: the cycle state is returned untouched (the steady
+                # wrapper still reports superheat and quality).
+                return result
+            superheat0 = _superheat(result)
+            result.update({SUPERHEAT_KEY: superheat0, QUALITY_KEY: float(self._x_suction), CONTROL_KEY: False})
+            if _discharge(result) <= T_max + _DISCHARGE_TOL_K:
+                return result
+
+            def at(superheat: float, quality: float) -> dict | None:
+                saved = (self.dT_superheat, self._x_suction)
+                self.dT_superheat, self._x_suction = superheat, quality
+                try:
+                    state = function(self, *args, **kwargs)
+                except ValueError:
+                    state = None
+                finally:
+                    self.dT_superheat, self._x_suction = saved
+                if not isinstance(state, dict) or not _state_running(state) or not math.isfinite(_discharge(state)):
+                    return None
+                state.update({SUPERHEAT_KEY: _superheat(state), QUALITY_KEY: quality, CONTROL_KEY: True})
+                return state
+
+            controlled = _control(at, superheat0, T_max, self.x_suction_min)
+            if controlled is not None:
+                return controlled
+            if reject:
+                self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, _discharge(result), float(T_max))
+                return None
+            return result
+
+        return cast(_F, wrapped)
+
+    return decorate
+
+
+def _control(
+    at: Callable[[float, float], dict | None], superheat0: float, T_max: float, x_min: float | None
+) -> dict | None:
+    """The controlled state at the discharge limit, or ``None`` when the control cannot reach it."""
+    if x_min is None or not math.isfinite(superheat0):
+        return None
+
+    def excess(superheat: float, quality: float) -> float:
+        state = at(superheat, quality)
+        return math.nan if state is None else _discharge(state) - T_max
+
+    dry = excess(0.0, 1.0)
+    if not math.isfinite(dry):
+        return None
+    if dry <= 0.0:
+        if superheat0 <= _SUPERHEAT_XTOL_K:
+            return at(0.0, 1.0)
+        try:
+            root = brentq(lambda sh: excess(sh, 1.0), 0.0, superheat0, xtol=_SUPERHEAT_XTOL_K)
+        except (ValueError, RuntimeError):
+            return at(0.0, 1.0)
+        # Take the bracket side inside the limit.
+        state = at(root, 1.0)
+        if state is None or _discharge(state) > T_max + 1e-6:
+            state = at(max(0.0, root - _SUPERHEAT_XTOL_K), 1.0)
+        return state
+    if x_min >= 1.0:
+        return None
+    wet = excess(0.0, x_min)
+    if not (math.isfinite(wet) and wet <= 0.0):
+        return None
+    try:
+        root = brentq(lambda x: excess(0.0, x), x_min, 1.0, xtol=_QUALITY_XTOL)
+    except (ValueError, RuntimeError):
+        return at(0.0, x_min)
+    state = at(0.0, root)
+    if state is None or _discharge(state) > T_max + 1e-6:
+        state = at(0.0, max(x_min, root - _QUALITY_XTOL))
+    return state
+
+
 # ---------------------------------------------------------------------------
 # Steady-state wrapper
 # ---------------------------------------------------------------------------
-
-_F = TypeVar("_F", bound=Callable[..., Any])
 
 #: Fractions of the request tried, from the top, when the request exceeds ``T_dis_max``.
 _REDUCTION_LADDER = (0.8, 0.6, 0.4, 0.25, 0.1)
@@ -262,6 +442,11 @@ def _delivered(result: Mapping[str, Any], key: str) -> float:
 def _annotate(model: Any, result: dict) -> None:
     models = tuple(getattr(model, name, None) for name in ("eta_cmp_isen", "eta_cmp_vol", "eta_cmp"))
     result["efficiency_extrapolated"] = bool(_running(result) and efficiency_extrapolated_at(models, result))
+    # Suction state and control flag on every steady result of every family.
+    running = _running(result) and _T_DIS_KEY in result
+    result.setdefault(SUPERHEAT_KEY, _superheat(result) if running else math.nan)
+    result.setdefault(QUALITY_KEY, 1.0 if running else math.nan)
+    result.setdefault(CONTROL_KEY, False)
     if _running(result) and result.get("capacity_clamped") == "max" and "capacity_binding" not in result:
         # The boilers reach their ceiling only through the speed bound.
         result["capacity_binding"] = "compressor"

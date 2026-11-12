@@ -299,3 +299,21 @@ def test_scalar_efficiencies_are_never_reported_as_extrapolated():
     r = _quiet(hp.analyze_steady, T_tank_w=35.0, T0=7.0, Q_ref_tank=4000.0)
     assert _running(r)
     assert r["efficiency_extrapolated"] is False
+
+
+def test_air_to_air_search_finds_the_narrow_band_left_by_the_discharge_limit():
+    """Daikin RXM42A at -15/27 degC, 2.39 kW (adopted catalogue point 67).
+
+    The approaches that carry the duty lie in a 2 x 2.5 K band between the
+    coil's airflow limit and T_dis_max; the first 8 x 8 lattice misses it and
+    the finer fallback lattice finds the same point as without the limit.
+    """
+    kwargs = dict(ref="R32", hp_capacity=4200.0, dT_approach_bounds=(1.0, 30.0), dV_iu_fan_a_rated=0.2233)
+    with_limit = _quiet(tmhp.AirSourceHeatPump, **kwargs)
+    without = _quiet(tmhp.AirSourceHeatPump, **kwargs, T_dis_max=None)
+    case = dict(Q_r_iu=-2390.0, T0=-15.0, T_a_room=27.0, verbose=False)
+    r = _quiet(with_limit.analyze_steady, **case)
+    free = _quiet(without.analyze_steady, **case)
+    assert _running(r) and _running(free)
+    assert free["T_ref_cmp_out [°C]"] < with_limit.T_dis_max
+    assert r["E_tot [W]"] == pytest.approx(free["E_tot [W]"], rel=1e-3)

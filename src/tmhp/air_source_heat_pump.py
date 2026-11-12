@@ -932,9 +932,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # that band, so without this sweep a near-ceiling hour finds no feasible
         # point, falls back to HP-off and reports zero output -- understating
         # capacity exactly where capacity is the quantity of interest.
-        if best_val >= OBJ_INFEASIBLE:
+        # A second, finer lattice runs only if the first finds nothing: with the
+        # discharge-temperature limit the feasible band can shrink to a few
+        # kelvin between the coil's airflow limit (small approaches) and
+        # T_dis_max (large ones) -- 2 x 2.5 K for Daikin RXM42A at -15 degC.
+        for rungs in (8, 16):
+            if best_val < OBJ_INFEASIBLE:
+                break
             lo_b, hi_b = self.dT_approach_bounds
-            lattice = tuple(float(v) for v in np.linspace(lo_b, hi_b, 8))
+            lattice = tuple(float(v) for v in np.linspace(lo_b, hi_b, rungs))
             for de in lattice:
                 for dc in lattice:
                     val = _objective((de, dc))

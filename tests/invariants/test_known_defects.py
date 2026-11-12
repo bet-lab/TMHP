@@ -408,7 +408,7 @@ def _energyplus_mains_temperature_C(T_avg_C: float, dT_max_C: float, day_of_year
     return (T_F - 32.0) / 1.8
 
 
-@defect("T11", "dhw.calc_cold_water_temp applies the °F coefficients to °C (1.8-4.9 K low)")
+# T11 fixed: the correlation is evaluated in °F as EnergyPlus does; was 1.8-4.9 K low.
 def test_t11_mains_temperature_matches_energyplus():
     import pandas as pd
 

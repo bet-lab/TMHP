@@ -120,29 +120,44 @@ def calc_total_water_use_from_schedule(
     return total_m3
 
 
-def calc_cold_water_temp(df: pd.DataFrame, target_date_str: str) -> float:
-    """Calculate mains water temperature using EnergyPlus algorithm.
+def calc_cold_water_temp(df: pd.DataFrame, target_date_str: str, *, latitude: float | None = None) -> float:
+    """Mains water temperature [°C] by the EnergyPlus ``Site:WaterMainsTemperature`` correlation.
 
-    Uses monthly average outdoor air temperature to estimate the water mains
-    temperature based on the algorithm from Hendron et al. (2004).
+    The correlation of Burch & Christensen (NREL; Hendron et al. 2004) as
+    EnergyPlus evaluates it (Engineering Reference, "Water Mains
+    Temperatures"; ``WaterMainsTempFromCorrelation`` in ``WeatherManager.cc``).
+    It is fitted in °F, so the inputs are converted to °F, the correlation
+    is evaluated there and the result converted back::
+
+        T_mains = (T_avg + 6) + ratio · (ΔT_max / 2) · sin(0.986·(day − 15 − lag) − 90)
+        ratio   = 0.4 + 0.01·(T_avg − 44)
+        lag     = 35 − 1.0·(T_avg − 44)
+
+    in °F with the sine argument in degrees, ``T_avg`` the annual mean
+    outdoor temperature and ``ΔT_max`` the spread (max − min) of the monthly
+    mean outdoor temperatures. The result is not allowed below 32 °F (0 °C).
+    South of the equator the seasonal term changes sign, as in EnergyPlus.
 
     References
     ----------
-    Hendron, R., Anderson, R., Judkoff, R., Christensen, C., Eastment, M., & Norton, P. (2004).
-    Building America Performance Analysis Procedures for Energy-Efficient Residential Buildings.
-    National Renewable Energy Laboratory (NREL). https://doi.org/10.2172/15011400
+    Hendron, R., Anderson, R., Christensen, C., Eastment, M., & Reeves, P. (2004).
+    Development of an Energy Savings Benchmark for All Residential End-Uses.
+    SimBuild 2004, IBPSA-USA. EnergyPlus Engineering Reference, Water Systems.
 
     Parameters
     ----------
     df : pd.DataFrame
-        DataFrame with monthly average temperatures. Must have 'month' and 'T_avg' columns.
+        The twelve monthly mean outdoor temperatures [°C] in a column whose
+        name contains ``T_avg`` (or ``기온``, ``temp``, ``T0``, ``°C``, ``℃``).
     target_date_str : str
         Target date string in 'YYYY-MM-DD' format.
+    latitude : float | None
+        Site latitude [°]; negative flips the season. ``None``: northern hemisphere.
 
     Returns
     -------
     float
-        Calculated cold water temperature [degC].
+        Mains water temperature [°C].
     """
     # Dynamic temperature-column lookup. The Korean keywords ('기온') are kept
     # so KMA (Korea Meteorological Administration) CSVs match out of the box
@@ -162,19 +177,20 @@ def calc_cold_water_temp(df: pd.DataFrame, target_date_str: str) -> float:
             f"{_TEMP_PATTERNS} is required."
         )
 
-    T_out_avg = df[temp_col].mean()
-    T_maxdiff = (df[temp_col].max() - df[temp_col].min()) / 2
+    monthly = df[temp_col].astype(float)
+    T_avg_F = monthly.mean() * 9.0 / 5.0 + 32.0
+    dT_max_F = (monthly.max() - monthly.min()) * 9.0 / 5.0
 
-    target_date = pd.to_datetime(target_date_str)
-    day_of_year = target_date.dayofyear
+    day_of_year = pd.to_datetime(target_date_str).dayofyear
 
-    # EnergyPlus mains water temperature correlation
-    ratio = 0.4 + 0.01 * (T_out_avg - 4.4)
-    lag = 35 - 1.0 * (T_out_avg - 4.4)
-
-    T_mains = T_out_avg + ratio * T_maxdiff * np.sin(2 * np.pi * (day_of_year / 365 - lag / 365 - 0.25))
-
-    return float(T_mains)
+    ratio = 0.4 + 0.01 * (T_avg_F - 44.0)
+    lag = 35.0 - 1.0 * (T_avg_F - 44.0)
+    hemisphere = -1.0 if latitude is not None and latitude < 0 else 1.0
+    T_mains_F = (T_avg_F + 6.0) + ratio * (dT_max_F / 2.0) * hemisphere * np.sin(
+        np.radians(0.986 * (day_of_year - 15.0 - lag) - 90.0)
+    )
+    T_mains_F = max(32.0, float(T_mains_F))
+    return (T_mains_F - 32.0) * 5.0 / 9.0
 
 
 def build_dhw_usage_ratio(entries: list[tuple[str, str, float]], t_array: np.ndarray) -> np.ndarray:

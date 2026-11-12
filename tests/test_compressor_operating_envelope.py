@@ -19,6 +19,7 @@ import tmhp
 from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
     DISCHARGE_TEMP_ABOVE_MAX,
+    DISCHARGE_TOL_K,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     RPS_MAX_ABSOLUTE,
@@ -80,7 +81,7 @@ def test_discharge_limit_resolution():
 
 def test_discharge_exceeded_counts_undefined_discharge():
     assert not discharge_temp_exceeded(150.0, 150.0)
-    assert discharge_temp_exceeded(150.01, 150.0)
+    assert discharge_temp_exceeded(150.02, 150.0)  # tolerance DISCHARGE_TOL_K = 0.01 K
     assert discharge_temp_exceeded(math.nan, 150.0)  # no discharge state at all
     assert not discharge_temp_exceeded(math.nan, None)  # check off
 
@@ -148,7 +149,7 @@ def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
     assert r["capacity_clamped"] == "max" and r["capacity_binding"] == BINDING_DISCHARGE
     assert r["Q_ref_tank [W]"] < 0.6 * 8000.0
     assert 0.9 - 1e-9 <= r["x_ref_cmp_in [-]"] < 1.0
-    assert r["T_ref_cmp_out [°C]"] <= 150.0 + 1e-6
+    assert r["T_ref_cmp_out [°C]"] <= 150.0 + DISCHARGE_TOL_K
     # Without the control, even the minimum-speed duty discharges at 173 degC.
     uncontrolled = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None)
     _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
@@ -399,5 +400,5 @@ def test_control_on_air_to_air_meets_the_duty_at_the_limit():
     r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, verbose=False)
     assert _running(r) and r["discharge_control"] is True
     assert r["capacity_clamped"] is None
-    assert r["T_ref_cmp_out [°C]"] <= 80.0 + 1e-6
+    assert r["T_ref_cmp_out [°C]"] <= 80.0 + DISCHARGE_TOL_K
     assert _balance(r, "Q_ref_iu [W]", "Q_ref_ou [W]") < 1e-9

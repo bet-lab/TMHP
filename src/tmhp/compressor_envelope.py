@@ -112,6 +112,7 @@ __all__ = [
     "DISCHARGE_TEMP_ABOVE_MAX",
     "DISCHARGE_TEMP_MAX_C",
     "DISCHARGE_TEMP_MAX_DEFAULT_C",
+    "DISCHARGE_TOL_K",
     "BINDING_DISCHARGE",
     "default_discharge_temp_max",
     "resolve_discharge_temp_max",
@@ -168,7 +169,12 @@ RPS_MAX_MIN_PER_RATED = 1.5
 #: Upper speed bound for *solving* the rated speed when ``rps_max`` is not given [rev/s].
 RATED_SPEED_SEARCH_MAX = 150.0
 
-_DISCHARGE_TOL_K = 1e-9
+#: Tolerance of every discharge-temperature comparison [K]. The control solves
+#: T_dis = T_dis_max by root finding, so the check that follows has to accept
+#: the root's own residual (brentq: ~1e-3 K); 0.01 K is far below any meaning
+#: the limit has.
+DISCHARGE_TOL_K = 0.01
+_DISCHARGE_TOL_K = DISCHARGE_TOL_K
 
 
 def check_pr_envelope(pr: float, pr_min: float, pr_max: float) -> str | None:
@@ -398,7 +404,7 @@ def _control(
             return at(0.0, 1.0)
         # Take the bracket side inside the limit.
         state = at(root, 1.0)
-        if state is None or _discharge(state) > T_max + 1e-6:
+        if state is None or _discharge(state) > T_max + DISCHARGE_TOL_K:
             state = at(max(0.0, root - _SUPERHEAT_XTOL_K), 1.0)
         return state
     if x_min >= 1.0:
@@ -411,7 +417,7 @@ def _control(
     except (ValueError, RuntimeError):
         return at(0.0, x_min)
     state = at(0.0, root)
-    if state is None or _discharge(state) > T_max + 1e-6:
+    if state is None or _discharge(state) > T_max + DISCHARGE_TOL_K:
         state = at(0.0, max(x_min, root - _QUALITY_XTOL))
     return state
 

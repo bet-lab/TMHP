@@ -11,6 +11,8 @@ import math
 
 import numpy as np
 
+from tmhp.compressor_envelope import DISCHARGE_TOL_K
+
 from ._families import (
     Family,
     Result,
@@ -160,7 +162,7 @@ def check_envelope(model: object, r: Result) -> list[str]:
     v: list[str] = []
     T_dis = num(r, "T_ref_cmp_out [°C]")
     T_max = getattr(model, "T_dis_max", None)
-    if T_max is not None and not T_dis <= T_max + 1e-6:
+    if T_max is not None and not T_dis <= T_max + DISCHARGE_TOL_K:
         v.append(f"discharge_above_max: T_cmp_out={_fmt(T_dis)} > T_dis_max={_fmt(T_max)}")
     pr = num(r, "P_ref_cmp_out [Pa]") / num(r, "P_ref_cmp_in [Pa]")
     pr_max = float(getattr(model, "PR_cycle_max", math.inf))

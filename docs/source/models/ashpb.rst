@@ -341,9 +341,11 @@ assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
 all end in the water) and its ballast (about 90 % efficient) in the control
 box outside; set 1.0 when both are inside the tank boundary.
 
-The PV + ESS variants add ``E_uv`` to ``E_tot``; the base boilers report it
-in its own column but do not yet include it in ``E_tot`` (#96) — add it when
-totalling electricity.
+``E_tot [W]`` includes the lamp: ``E_tot = E_cmp + E_ou_fan + E_uv`` on the
+base boiler (``E_pmp`` in place of the fan on the ground- and water-source
+boilers). The PV + ESS variants route that ``E_tot``, so the lamp is counted
+once. COP columns (``cop_ref``, ``cop_sys``) describe the heat-pump cycle and
+do not include the lamp.
 
 PV + ESS
 --------

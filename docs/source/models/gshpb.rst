@@ -24,11 +24,13 @@ extend it the same way ASHPB's do:
 - :class:`tmhp.GSHPB_STC_routed`
 - :class:`tmhp.GSHPB_PV_ESS`
 
-All variants report ``E_tot [W]`` as the whole electric draw: compressor
-``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop pump ``E_stc_pump``
-(tank, ground, routed; the mains-driven preheat has none) + the UV lamp ``E_uv``
-(``GSHPB_PV_ESS``; the STC variants do not simulate a ``uv=`` lamp and warn if
-one is passed). A model run twice with the same inputs gives the same result.
+The base class and all variants report ``E_tot [W]`` as the whole electric
+draw: compressor ``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop
+pump ``E_stc_pump`` (tank, ground, routed; the mains-driven preheat has none)
++ the UV lamp ``E_uv`` (the base class and ``GSHPB_PV_ESS`` with ``uv=``; the
+STC variants do not simulate a ``uv=`` lamp and warn if one is passed). The
+lamp is counted once: ``GSHPB_PV_ESS`` routes the base class's ``E_tot``.
+A model run twice with the same inputs gives the same result.
 
 The collector, its irradiance inputs (direct-normal ``I_DN`` and
 diffuse-horizontal ``I_dH``, transposed to the collector plane with the sun
@@ -127,7 +129,68 @@ Sink-side mechanics
 ===================
 
 Single-node DHW tank, implicit per-step solve — the same demand-side
-sink used by the air-source and water-source boiler families.
+sink used by the air-source and water-source boiler families. A step whose
+implicit solve returns no root is solved again with the same energy balance
+by bracketing over 0-200 °C; if the balance has no solution there the step is
+taken explicitly with the whole heat rate (heat pump, draw-off, loss,
+subsystems) and a ``tmhp._tank_solve.TankSolveWarning`` names it. The tank
+temperature is not held at the mains temperature: a tank in a cold room cools
+below it.
+
+Tank backends
+-------------
+
+``tank_model`` selects how the tank itself is resolved (always-full tank,
+no ``stc``/``pv``/``uv`` subsystem in the multi-node modes):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 82
+
+   * - ``tank_model``
+     - Tank
+   * - ``"lumped"`` (default)
+     - One fully mixed node.
+   * - ``"stratified"``
+     - ``n_tank_nodes`` nodes (:class:`tmhp.stratified_tank.StratifiedTank`,
+       sub-stepped to a Courant number of 1): smooth, numerically diffusive.
+   * - ``"hybrid"``
+     - The same nodes with a tracked thermocline
+       (:class:`tmhp.hybrid_tank.HybridStratifiedTank`): a sharp front
+       between drawn and stored water.
+
+In the multi-node modes the condenser is a coil immersed in the tank:
+``UA_tank_hx`` spread evenly over the nodes, or all of it at
+``condenser_node`` (0 = top). Heat flows only into water colder than the
+refrigerant:
+
+- Node ``i`` receives ``k·UA_i·(T_cond − T_i)⁺``, with ``T_cond`` the
+  condensing temperature of the step's cycle (``T_ref_cond_sat_l``) and
+  ``T_i`` the node's end-of-step temperature; ``k`` is set so that the nodes
+  receive the step's condenser heat ``Q_ref_tank``. A node as hot as the
+  refrigerant receives nothing and no node is heated past ``T_cond``.
+- The cycle condenses at the temperature that coil needs. With cold water
+  at the bottom and hot water above the refrigerant temperature, only the
+  cold nodes take heat and the cycle condenses near them, below what the
+  mean tank temperature would give; in a mixed tank the two agree, and a
+  one-node ``"stratified"`` tank reproduces ``"lumped"``.
+- If the water around the coil cannot take the step's heat below ``T_cond``
+  (a coil in the top node only), the compressor stops when that water
+  reaches ``T_cond``: the row's ``runtime_fraction``, heat and power are cut
+  to what was delivered and the thermostat call stands.
+
+The thermostat reads the volume-average temperature ``T_tank_w [°C]``, so
+on/off timing and delivered heat follow the lumped tank; with a coil that
+reaches the top, the top node can sit several kelvin above
+``T_tank_w_upper_bound`` while staying below ``T_cond``. Hot water leaves
+from the top: the mixing valve, ``T_mix_w_out``, ``Q_tank_w_out`` and
+``X_tank_w_out`` use ``T_tank_w_out [°C]``, the temperature of the water that
+left during the step. The multi-node modes add ``T_tank_w_out``,
+``T_tank_w_top`` and ``T_tank_w_bottom`` to the result, and ``Q_tank_loss``
+is the wall loss of the node profile. Each run closes
+``Σ Q_ref_tank·dt = C_tank·ΔT_tank_w + Σ ρc·dV_tank_w_out·(T_tank_w_out −
+T_tank_w_in)·dt + Σ Q_tank_loss·dt``. The storage exergy ``Xst_tank`` is still
+evaluated at the mean temperature.
 
 Composed variants
 =================

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="How the ground-source models ( Ground-source heat pump boiler (GSHPB), Ground-source heat pump (GSHP — space conditioning)) turn the heat they take from the ground into the temperature of the fluid..." />
 
-    <meta property="article:modified_time" content="2026-11-13T20:56:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:24:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -146,9 +146,10 @@ data-aria-dark="Switch to auto color mode">
       <i class="i-lucide close"></i>
     </button>
     <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
-<li><a class="reference internal" href="#the-default-path">The default path</a></li>
+<li><a class="reference internal" href="#the-steady-model">The steady model</a></li>
 <li><a class="reference internal" href="#dynamic-borehole-model">Dynamic borehole model</a><ul>
 <li><a class="reference internal" href="#how-it-works">How it works</a></li>
+<li><a class="reference internal" href="#a-compressor-that-runs-part-of-a-step">A compressor that runs part of a step</a></li>
 <li><a class="reference internal" href="#checks">Checks</a></li>
 <li><a class="reference internal" href="#how-long-the-difference-lasts">How long the difference lasts</a></li>
 <li><a class="reference internal" href="#what-changes-in-a-run">What changes in a run</a></li>
@@ -196,20 +197,20 @@ data-aria-dark="Switch to auto color mode">
 <h1>Ground response<a class="headerlink" href="#ground-response" title="Link to this heading">¶</a></h1>
 <p>How the ground-source models (<a class="reference internal" href="gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <a class="reference internal" href="gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>) turn the heat they
 take from the ground into the temperature of the fluid that comes back. This
-page covers the response itself: what the default path assumes, the dynamic
-borehole model for sub-hourly work, bore fields that are not a rectangular
-grid, and how each part was checked.</p>
+page covers the response itself: the steady borehole every ground model
+starts from, the dynamic borehole model the models use by default, bore
+fields that are not a rectangular grid, and how each part was checked.</p>
 <nav class="contents local" id="contents">
 <ul class="simple">
-<li><p><a class="reference internal" href="#the-default-path" id="id12">The default path</a></p></li>
-<li><p><a class="reference internal" href="#dynamic-borehole-model" id="id13">Dynamic borehole model</a></p></li>
-<li><p><a class="reference internal" href="#bore-fields-and-pipe-configurations" id="id14">Bore fields and pipe configurations</a></p></li>
-<li><p><a class="reference internal" href="#references" id="id15">References</a></p></li>
-<li><p><a class="reference internal" href="#api" id="id16">API</a></p></li>
+<li><p><a class="reference internal" href="#the-steady-model" id="id15">The steady model</a></p></li>
+<li><p><a class="reference internal" href="#dynamic-borehole-model" id="id16">Dynamic borehole model</a></p></li>
+<li><p><a class="reference internal" href="#bore-fields-and-pipe-configurations" id="id17">Bore fields and pipe configurations</a></p></li>
+<li><p><a class="reference internal" href="#references" id="id18">References</a></p></li>
+<li><p><a class="reference internal" href="#api" id="id19">API</a></p></li>
 </ul>
 </nav>
-<section id="the-default-path">
-<h2><a class="toc-backref" href="#id12" role="doc-backlink">The default path</a><a class="headerlink" href="#the-default-path" title="Link to this heading">¶</a></h2>
+<section id="the-steady-model">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">The steady model</a><a class="headerlink" href="#the-steady-model" title="Link to this heading">¶</a></h2>
 <p>Three pieces, all derived from inputs the models already take:</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">g-function</span></code></dt><dd><p>The borehole-wall temperature response of the whole field to a unit load
@@ -252,35 +253,83 @@ outlet does not know the heat pump has started.</p></li>
 <p>With hourly steps and runs of several hours these effects are small. With
 minute-scale cycling the steady model swings the source temperature by
 <span class="math notranslate nohighlight">\(q' R_b^*\)</span> (3 to 5 K) at every start and stop, which a borehole does not
-do.</p>
+do. The models therefore add the inside of the borehole by default (next
+section).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><em>Steady model</em> below means this default path: the multipole borehole
-resistance plus the finite-line-source g-function, the usual way to
-compute borehole fluid temperatures. “Steady” refers to the inside of the
+<p><em>Steady model</em> below means these three pieces alone: the multipole
+borehole resistance plus the finite-line-source g-function, the usual way
+to compute borehole fluid temperatures, and what
+<code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code> gives. “Steady” refers to the inside of the
 borehole, which is a resistance with no heat capacity. The ground is
 transient in both models, and the dynamic model uses the same resistance
 and the same g-function; it adds what happens inside the borehole.</p>
 </div>
 </section>
 <section id="dynamic-borehole-model">
-<h2><a class="toc-backref" href="#id13" role="doc-backlink">Dynamic borehole model</a><a class="headerlink" href="#dynamic-borehole-model" title="Link to this heading">¶</a></h2>
-<p><a class="reference internal" href="../api/support/heat-transfer.html#tmhp.borehole_capacity.enable_borehole_dynamics" title="tmhp.borehole_capacity.enable_borehole_dynamics"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.borehole_capacity.enable_borehole_dynamics()</span></code></a> replaces the
-g-function of a model by one that contains the three effects. It needs no new
-inputs:</p>
+<h2><a class="toc-backref" href="#id16" role="doc-backlink">Dynamic borehole model</a><a class="headerlink" href="#dynamic-borehole-model" title="Link to this heading">¶</a></h2>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> (and its solar and PV variants) and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> replace the g-function by one that
+contains the three effects. It needs no new inputs:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoiler</span>
 </span><span data-line="2"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp.borehole_capacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">enable_borehole_dynamics</span>
 </span><span data-line="3">
 </span><span data-line="4"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span> <span class="n">dt_s</span><span class="o">=</span><span class="mf">600.0</span><span class="p">)</span>
-</span><span data-line="5"><span class="n">enable_borehole_dynamics</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>          <span class="c1"># same model, dynamic ground response</span>
+</span><span data-line="5"><span class="n">model</span><span class="o">.</span><span class="n">borehole_dynamics</span>                  <span class="c1"># &#39;transit&#39;: dynamic borehole, transit resolved</span>
 </span><span data-line="6"><span class="n">df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">analyze_dynamic</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="n">steady</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span> <span class="n">dt_s</span><span class="o">=</span><span class="mf">600.0</span><span class="p">,</span> <span class="n">borehole_dynamics</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="9"><span class="n">enable_borehole_dynamics</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">rhoc_g</span><span class="o">=</span><span class="mf">3.0e6</span><span class="p">)</span>   <span class="c1"># the same model with a known grout</span>
 </span></pre></div>
 </div>
 <p>The heat capacities of fluid, pipe wall and grout default to water, HDPE
-(1.8 MJ/(m³·K)) and a set, saturated grout (3.4 MJ/(m³·K)) and can be passed
-(<code class="docutils literal notranslate"><span class="pre">rhoc_g</span></code>, <code class="docutils literal notranslate"><span class="pre">rhoc_p</span></code>); everything else is read from the model. The dynamic
-response is opt-in in this release: results of the default path are unchanged.</p>
-<figure class="align-center" id="id1">
+(1.8 MJ/(m³·K)) and a set, saturated grout (3.4 MJ/(m³·K));
+<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.borehole_capacity.enable_borehole_dynamics" title="tmhp.borehole_capacity.enable_borehole_dynamics"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.borehole_capacity.enable_borehole_dynamics()</span></code></a> rebuilds the response
+with other values (<code class="docutils literal notranslate"><span class="pre">rhoc_g</span></code>, <code class="docutils literal notranslate"><span class="pre">rhoc_p</span></code>). Everything else is read from the
+model.</p>
+<div class="table-wrapper colwidths-given docutils container" id="id1">
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">The <code class="docutils literal notranslate"><span class="pre">borehole_dynamics</span></code> argument of the models</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Borehole</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> (default)</p></td>
+<td><p>Dynamic wherever the model can use it, steady where it cannot (below).
+Nothing is raised or warned: <code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics</span></code> is
+<code class="docutils literal notranslate"><span class="pre">&quot;transit&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;off&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics_note</span></code> says
+why it is off.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Dynamic, or <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code> with the reason.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Steady. The results are those of the models before the dynamic
+borehole became the default.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The response is built for one borehole resistance and one loop flow (see
+Limits), so the default keeps the steady borehole when</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code> or a variable ground flow (<code class="docutils literal notranslate"><span class="pre">ground_flow_control</span></code> other
+than <code class="docutils literal notranslate"><span class="pre">&quot;constant&quot;</span></code>) is used;</p></li>
+<li><p>the model was given its own <code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code>, which owns the response;</p></li>
+<li><p>the flow is so low that the loop temperature difference alone,
+<span class="math notranslate nohighlight">\(H / (2 \dot m c_p)\)</span>, is not below <span class="math notranslate nohighlight">\(R_b^*\)</span> (a trickle against a
+supplied resistance);</p></li>
+<li><p>the cross-section cannot be mapped onto the equivalent cylinder (pipes that
+fill the borehole, a supplied <span class="math notranslate nohighlight">\(R_b\)</span> below the fluid-to-pipe
+resistance).</p></li>
+</ul>
+<figure class="align-center" id="id2">
 <a class="reference internal image-reference" href="../_images/ground_step_response.svg"><img alt="Two panels on a logarithmic time axis from one minute to ten days, for a constant extraction of 27 W/m. Left, borehole-wall temperature drop: steady model, analytical cylinder source, dynamic model. Right, temperature drop of the fluid leaving the borehole: the steady model starts at 2.8 K, the dynamic model at zero until one transit time." src="../_images/ground_step_response.svg" style="width: 100%;" />
 </a>
 <figcaption>
@@ -292,7 +341,7 @@ responds later than even the line source. Right: the fluid leaving the
 borehole. The steady model drops it by 2.8 K at the first instant; in the
 dynamic model nothing changes until the first pass returns, and the two
 meet after a few days. Generated by
-<code class="docutils literal notranslate"><span class="pre">scripts/visualization/ground_transient_response.py</span></code>.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+<code class="docutils literal notranslate"><span class="pre">scripts/visualization/ground_transient_response.py</span></code>.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
 <section id="how-it-works">
@@ -343,9 +392,9 @@ outlet drops by <span class="math notranslate nohighlight">\(q' H / (2 \dot m c_
 treats it as part of the grout resistance, which is slower. At the default
 flow the difference is small (<span class="math notranslate nohighlight">\(R_b^*\)</span> is 8 % above <span class="math notranslate nohighlight">\(R_b\)</span>); at low
 flow it is not:</p>
-<div class="table-wrapper colwidths-given docutils container" id="id2">
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Drop of the mean of inlet and outlet [K] at 27 W/m, 6 L/min per borehole (<span class="math notranslate nohighlight">\(R_b\)</span> 0.158, <span class="math notranslate nohighlight">\(R_b^*\)</span> 0.306 m·K/W, transit 35 min)</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id3">
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Drop of the mean of inlet and outlet [K] at 27 W/m, 6 L/min per borehole (<span class="math notranslate nohighlight">\(R_b\)</span> 0.158, <span class="math notranslate nohighlight">\(R_b^*\)</span> 0.306 m·K/W, transit 35 min)</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 34.0%" />
 <col style="width: 11.0%" />
@@ -366,7 +415,7 @@ flow it is not:</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Default path</p></td>
+<tr class="row-even"><td><p>Steady model</p></td>
 <td><p>8.67</p></td>
 <td><p>9.09</p></td>
 <td><p>10.05</p></td>
@@ -395,8 +444,10 @@ flow it is not:</p>
 </div>
 <p>The two dynamic variants hand over to each other within 2.5 % of
 <span class="math notranslate nohighlight">\(R_b^*\)</span> at eight transit times for 6 to 24 L/min per borehole. With a
-lumped fluid alone the first hours are too warm at low flow; keep the transit
-resolved there. Inside a field with unequal depths or series circuits the
+lumped fluid alone the first hours are too warm at low flow, and the models’
+loop temperature difference <span class="math notranslate nohighlight">\(Q / (2 \dot m c_p)\)</span> appears at once: the
+fluid leaving the borehole starts <em>above</em> where it was when extraction
+begins. The models never choose it by themselves (see Limits). Inside a field with unequal depths or series circuits the
 depth-resolved fluid and wall temperatures are pygfunction’s (<code class="docutils literal notranslate"><span class="pre">MIFT</span></code>, wall
 temperature in segments along each borehole).</p>
 <p><strong>Drop-in kernel.</strong> <a class="reference internal" href="../api/support/heat-transfer.html#tmhp.borehole_capacity.DynamicGFunction" title="tmhp.borehole_capacity.DynamicGFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.borehole_capacity.DynamicGFunction</span></code></a> tabulates
@@ -409,23 +460,103 @@ loads. Two consequences for the result columns:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">T_bhe_f_out</span></code> and <code class="docutils literal notranslate"><span class="pre">T_bhe_f_in</span></code> are the dynamic outlet and inlet;
 <code class="docutils literal notranslate"><span class="pre">T_bhe_f</span></code> is their mean.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">T_bhe</span></code> is the <em>fluid-referenced</em> wall temperature
-<span class="math notranslate nohighlight">\(\bar T_f + q' R_b^*\)</span>, the wall the fluid would need in steady state.
-It equals the physical wall temperature once the borehole has settled and
-differs just after a load change. The physical wall is available from the
-boiler’s coupler as <code class="docutils literal notranslate"><span class="pre">borehole_wall_rise(n,</span> <span class="pre">time_arr)</span></code>
-(<code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> superposes inline and has no such
-accessor yet).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_bhe</span></code> (and <code class="docutils literal notranslate"><span class="pre">model.T_bhe</span></code>) is the physical borehole wall, the
+superposition of the same loads with the wall response
+(<code class="docutils literal notranslate"><span class="pre">DynamicGFunction.wall_step_mean</span></code>). The value the fluid temperatures are
+computed from is the <em>fluid-referenced</em> wall <span class="math notranslate nohighlight">\(\bar T_f + q' R_b^*\)</span>,
+the wall the fluid would need in steady state. It is not reported: it
+equals the physical wall once the borehole has settled, but jumps by
+<span class="math notranslate nohighlight">\(q' R_b^*\)</span> at every start and stop, above the undisturbed ground
+when extraction begins. The solar ground-charging variants take the wall
+as their collector inlet, so they read the physical one too.</p></li>
 </ul>
+</section>
+<section id="a-compressor-that-runs-part-of-a-step">
+<h3>A compressor that runs part of a step<a class="headerlink" href="#a-compressor-that-runs-part-of-a-step" title="Link to this heading">¶</a></h3>
+<p>The boilers let the thermostat switch inside a step: a row can report a
+compressor that ran for a fraction <span class="math notranslate nohighlight">\(f\)</span> of it. The ground history keeps
+the step-average load <span class="math notranslate nohighlight">\(f\,q'_{run}\)</span>, while the fluid the compressor
+sees carries the running load <span class="math notranslate nohighlight">\(q'_{run}\)</span>. With the step-average
+response only the share <span class="math notranslate nohighlight">\(f\)</span> of the steady terms would be cancelled, and
+<span class="math notranslate nohighlight">\((1 - f)\, q'_{run} (R_b^* - H / 2 \dot m c_p)\)</span> would appear at the
+first instant: 70 % of the steady model’s drop for a compressor that runs
+30 % of the step.</p>
+<p>The models therefore ask the coupler for the response over the run itself,
+<span class="math notranslate nohighlight">\([t_n, t_n + f\,\Delta t]\)</span>, under the running load
+(<code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise(n,</span> <span class="pre">time,</span> <span class="pre">q_run,</span> <span class="pre">window_s=f</span> <span class="pre">*</span> <span class="pre">dt)</span></code>):</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\bar T_{out,run} = T_s - \sum_{i&lt;n} \Delta q_i\, \bar K(t_n - t_i;\, f \Delta t)
+    - (q'_{run} - q'_{n-1})\, \bar K(0;\, f \Delta t)
+    - q'_{run} \left(R_b^* - \frac{H}{2 \dot m c_p}\right),\]</div>
+</div>
+<p>with <span class="math notranslate nohighlight">\(\bar K(\tau; w)\)</span> the mean of the kernel over <span class="math notranslate nohighlight">\([\tau, \tau +
+w]\)</span>. The running fluid is then continuous in <span class="math notranslate nohighlight">\(f\)</span>: it tends to the fluid
+at <span class="math notranslate nohighlight">\(t_n\)</span> as the run vanishes and equals the whole-step value at
+<span class="math notranslate nohighlight">\(f = 1\)</span>. Pulses of the last six hours are integrated exactly over the
+window; older ones use the step-mean table with a correction that takes the
+response as linear across one step (error under 0.001 K).</p>
+<div class="table-wrapper colwidths-given docutils container" id="id4">
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Mean outlet rise while running, per unit load, as a fraction of <span class="math notranslate nohighlight">\(R_b^*\)</span>: every step runs for its first share <span class="math notranslate nohighlight">\(f\)</span> (default borehole, 24 L/min; time-marched circulating loop as reference)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Step, run share</p></th>
+<th class="head"><p>Largest error, run window</p></th>
+<th class="head"><p>Largest error, step-average load</p></th>
+<th class="head"><p>Steady model</p></th>
+<th class="head"><p>First run, run window</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>600 s, 0.3</p></td>
+<td><p>0.07</p></td>
+<td><p>0.45</p></td>
+<td><p>0.64</p></td>
+<td><p>0.000</p></td>
+</tr>
+<tr class="row-odd"><td><p>600 s, 0.7</p></td>
+<td><p>0.04</p></td>
+<td><p>0.20</p></td>
+<td><p>0.65</p></td>
+<td><p>0.000</p></td>
+</tr>
+<tr class="row-even"><td><p>3600 s, 0.3</p></td>
+<td><p>0.08</p></td>
+<td><p>0.48</p></td>
+<td><p>0.58</p></td>
+<td><p>0.002</p></td>
+</tr>
+<tr class="row-odd"><td><p>60 s, 0.5</p></td>
+<td><p>0.02</p></td>
+<td><p>0.32</p></td>
+<td><p>0.65</p></td>
+<td><p>0.000</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The first run is exact; what is left afterwards is the history, which
+records a run at the start of a step as its step average. The run is taken
+as one block at the start of the step. A thermostat that starts the
+compressor late in a step starts it from a borehole at rest, for which the
+position inside the step does not matter; the step after it sees that start
+spread over the whole step, which is the residual in the table.</p>
 </section>
 <section id="checks">
 <h3>Checks<a class="headerlink" href="#checks" title="Link to this heading">¶</a></h3>
 <p>All numbers are for the default borehole and 27 W/m. The same comparisons
 run in <code class="docutils literal notranslate"><span class="pre">tests/test_borehole_capacity.py</span></code> with tolerances, some at a coarser
 resolution than the tables.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id3">
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Borehole-wall temperature drop [K]</span><a class="headerlink" href="#id3" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id5">
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Borehole-wall temperature drop [K]</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 12.0%" />
 <col style="width: 16.0%" />
@@ -494,9 +625,9 @@ hollow-cylinder source (Carslaw and Jaeger 1959) from the first minute; the
 analytical integral itself agrees with a numerical inversion of its Laplace
 transform to <span class="math notranslate nohighlight">\(10^{-7}\)</span>. With heat capacity the wall responds <em>later</em>
 than the line source: the heat has to cross the grout first.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id4">
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-text">Mean fluid temperature drop [K] (fluid as one node)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id6">
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Mean fluid temperature drop [K] (fluid as one node)</span><a class="headerlink" href="#id6" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 16.0%" />
 <col style="width: 28.0%" />
@@ -548,9 +679,9 @@ than the line source: the heat has to cross the grout first.</p>
 (Bessel functions) and shares no code with the finite-volume march; the two
 agree within 0.0002 m·K/W (0.1 % of <span class="math notranslate nohighlight">\(R_b^*\)</span>) at the default resolution
 and 0.00005 at a finer one.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id5">
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text">Outlet response of the plug-flow loop [m·K/W per unit load]</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id7">
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Outlet response of the plug-flow loop [m·K/W per unit load]</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 22.0%" />
 <col style="width: 26.0%" />
@@ -612,9 +743,9 @@ GHEDesigner’s short-time-step response (the same model family) it differs by
 <p>The two models describe the same borehole in the same ground, so they must
 agree eventually. They do, but slowly: the difference decays like
 <span class="math notranslate nohighlight">\(\ln t / t\)</span>, not exponentially.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id6">
-<table class="docutils align-default" id="id6">
-<caption><span class="caption-text">Mean fluid temperature drop after a 27 W/m step: default path and dynamic model</span><a class="headerlink" href="#id6" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id8">
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Mean fluid temperature drop after a 27 W/m step: steady and dynamic model</span><a class="headerlink" href="#id8" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 14.0%" />
 <col style="width: 14.0%" />
@@ -626,7 +757,7 @@ agree eventually. They do, but slowly: the difference decays like
 <thead>
 <tr class="row-odd"><th class="head"><p>Time</p></th>
 <th class="head"><p><span class="math notranslate nohighlight">\(\alpha t / r_b^2\)</span></p></th>
-<th class="head"><p>Default [K]</p></th>
+<th class="head"><p>Steady [K]</p></th>
 <th class="head"><p>Dynamic [K]</p></th>
 <th class="head"><p>Difference [K]</p></th>
 <th class="head"><p>Heat still stored in the borehole</p></th>
@@ -692,9 +823,9 @@ so the tail is a property of the model, not of its discretisation.</p>
 <p>How large it is depends on the borehole. The default one makes it large: it
 is wide (160 mm) and sits in light soil (1.6 MJ/(m³·K)), so the borehole
 holds twice the heat of the soil it replaces.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id7">
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">Difference from the default path [K] at 27 W/m</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id9">
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Difference from the steady model [K] at 27 W/m</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 46.0%" />
 <col style="width: 13.0%" />
@@ -745,7 +876,7 @@ holds twice the heat of the soil it replaces.</p>
 </table>
 </div>
 <p>The grout heat capacity is the one input of the dynamic model that the
-default path never needed. The default, 3.4 MJ/(m³·K), is the middle of what
+steady model never needed. The default, 3.4 MJ/(m³·K), is the middle of what
 has been measured on set, water-saturated grouts: 3.0 to 3.6 for seven
 commercial cement-based and thermally enhanced grouts (Albers et al. 2024),
 3.84 for a bentonite-based grout (Javed 2010). A saturated grout is water
@@ -755,7 +886,7 @@ than 40 % water by volume. Pass <code class="docutils literal notranslate"><span
 </section>
 <section id="what-changes-in-a-run">
 <h3>What changes in a run<a class="headerlink" href="#what-changes-in-a-run" title="Link to this heading">¶</a></h3>
-<figure class="align-center" id="id8">
+<figure class="align-center" id="id10">
 <a class="reference internal image-reference" href="../_images/ground_cycling_outlet.svg"><img alt="Borehole outlet temperature over two hours of 10 minutes on, 20 minutes off. The steady model jumps between 10.9 and 14.4 degrees Celsius at every switch; the dynamic model stays between 12.7 and 13.7." src="../_images/ground_cycling_outlet.svg" style="width: 80%;" />
 </a>
 <figcaption>
@@ -765,12 +896,12 @@ operation. The steady model puts the outlet 3.5 K lower the moment the
 compressor starts. In the dynamic model the outlet holds for
 one transit and then falls by under 1 K. While the compressor is off the
 reported outlet is that of a loop that keeps circulating (the cold fluid
-of the last run is still on its way out); the model does not use it.</span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+of the last run is still on its way out); the model does not use it.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
 </figcaption>
 </figure>
-<div class="table-wrapper colwidths-given docutils container" id="id9">
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">8 kW GSHPB (defaults, 24 L/min through the borehole), steady against dynamic response</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id11">
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">8 kW GSHPB (defaults, 24 L/min through the borehole), steady against dynamic response</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 34.0%" />
 <col style="width: 12.0%" />
@@ -813,7 +944,7 @@ of the last run is still on its way out); the model does not use it.</span><a cl
 </tr>
 <tr class="row-even"><td><p>DHW draws morning and evening, 600 s steps, 48 h</p></td>
 <td><p>steady</p></td>
-<td><p>12.32</p></td>
+<td><p>12.12</p></td>
 <td><p>11.22</p></td>
 <td><p>3.46</p></td>
 </tr>
@@ -826,10 +957,57 @@ of the last run is still on its way out); the model does not use it.</span><a cl
 </tbody>
 </table>
 </div>
-<p>The compressor sees a source 1.4 to 2.7 K warmer while it runs, and the COP
-is 2 to 7 % higher, most for the shortest runs. The difference shrinks with
-longer runs: the first hours of any run are warmer than the steady model
-says, the days after are the same.</p>
+<p>(“Outlet while running” is <code class="docutils literal notranslate"><span class="pre">T_bhe_f_out_running</span></code>, the fluid the compressor
+sees; “steady” is <code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code>.) The compressor sees a source
+1.6 to 2.7 K warmer while it runs, and the COP is 2 to 7 % higher, most for
+the shortest runs. The difference shrinks with longer runs: the first hours
+of any run are warmer than the steady model says, the days after are the
+same.</p>
+<div class="table-wrapper colwidths-given docutils container" id="id12">
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">4 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> (defaults: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2</span><a class="headerlink" href="#id12" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 28.0%" />
+<col style="width: 28.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Case</p></th>
+<th class="head"><p>Model</p></th>
+<th class="head"><p>Outlet while running [°C]</p></th>
+<th class="head"><p>COP (load / compressor + pump)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Heating, ground at 16 °C</p></td>
+<td><p>steady</p></td>
+<td><p>10.64</p></td>
+<td><p>3.92</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>dynamic</p></td>
+<td><p>12.66</p></td>
+<td><p>4.05</p></td>
+</tr>
+<tr class="row-even"><td><p>Cooling, ground at 16 °C</p></td>
+<td><p>steady</p></td>
+<td><p>24.66</p></td>
+<td><p>4.82</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>dynamic</p></td>
+<td><p>21.24</p></td>
+<td><p>5.40</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In cooling the heat goes into the ground and the steady model <em>raises</em> the
+source at once; the borehole’s heat capacity lowers the condensing
+temperature of short runs by more than it raises the evaporating temperature
+in heating, because the rejected heat (load plus compressor) is larger than
+the extracted heat.</p>
 </section>
 <section id="limits">
 <h3>Limits<a class="headerlink" href="#limits" title="Link to this heading">¶</a></h3>
@@ -838,9 +1016,20 @@ says, the days after are the same.</p>
 only; see the finite-element comparison above for the size of the error.</p></li>
 <li><p><strong>One flow, one resistance.</strong> The kernel cancels the models’ steady terms
 <span class="math notranslate nohighlight">\(q' R_b\)</span> and <span class="math notranslate nohighlight">\(Q / (2 \dot m c_p)\)</span> at the first instant, for the
-flow it was built with. <code class="docutils literal notranslate"><span class="pre">enable_borehole_dynamics</span></code> therefore refuses
-<code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code>, and variable ground flow unless <code class="docutils literal notranslate"><span class="pre">transit=False</span></code> (a
-lumped fluid does not depend on the flow).</p></li>
+flow it was built with. With <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code> or a variable ground flow the
+models keep the steady borehole, and <code class="docutils literal notranslate"><span class="pre">enable_borehole_dynamics</span></code> refuses
+them. Its <code class="docutils literal notranslate"><span class="pre">transit=False</span></code> (a lumped fluid, which does not depend on the
+flow) is accepted with variable flow but is not a default: the loop
+temperature difference is then not cancelled, and in a run of the default
+boiler with <code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;optimal_power&quot;</span></code> (the controller
+settles at half the reference flow) the fluid entering the heat pump is up
+to 2.2 K <em>above</em> the undisturbed ground while heat is extracted. The steady
+borehole is 1.8 K below it at that moment, on the conservative side. A
+response that follows the flow needs a time-marched loop.</p></li>
+<li><p><strong>Runs inside a step.</strong> The history holds step-average loads. A run that
+covers part of a step is resolved for that step only (see “A compressor
+that runs part of a step”); in the steps after it the fluid is off by up to
+0.08 <span class="math notranslate nohighlight">\(R_b^*\)</span> per unit load (0.35 K at 27 W/m).</p></li>
 <li><p><strong>A loop that keeps circulating.</strong> Superposition needs one linear system,
 so the fluid is taken to circulate also while the heat pump is off. A
 time-marched loop that circulates agrees with the kernel within 1 % of
@@ -854,13 +1043,13 @@ first minute after a restart. The model is on the cold side for extraction
 circuit (total length over the number of circuits).</p></li>
 <li><p><strong>Borehole only.</strong> The fluid in headers, in horizontal runs and in the heat
 pump adds heat capacity and transit time that are not modelled.</p></li>
-<li><p><strong>Constant ground temperature.</strong> As in the default path: no seasonal
+<li><p><strong>Constant ground temperature.</strong> As in the steady model: no seasonal
 surface wave and no geothermal gradient.</p></li>
 </ul>
 </section>
 </section>
 <section id="bore-fields-and-pipe-configurations">
-<h2><a class="toc-backref" href="#id14" role="doc-backlink">Bore fields and pipe configurations</a><a class="headerlink" href="#bore-fields-and-pipe-configurations" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">Bore fields and pipe configurations</a><a class="headerlink" href="#bore-fields-and-pipe-configurations" title="Link to this heading">¶</a></h2>
 <p>The models take a rectangular <code class="docutils literal notranslate"><span class="pre">N_1</span> <span class="pre">×</span> <span class="pre">N_2</span></code> field of equal single-U
 boreholes. Anything else is set up with <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.borefield" title="tmhp.borefield"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.borefield</span></code></a> and handed to
 the model; the physics is pygfunction’s (Cimmino’s g-functions and network
@@ -878,13 +1067,16 @@ model), already a dependency.</p>
 </span><span data-line="11">    <span class="n">t_max_s</span><span class="o">=</span><span class="mi">10</span> <span class="o">*</span> <span class="mi">8760</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>
 </span><span data-line="12">
 </span><span data-line="13"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="o">**</span><span class="n">response</span><span class="o">.</span><span class="n">model_kwargs</span><span class="p">(),</span> <span class="n">hp_capacity</span><span class="o">=</span><span class="mf">12000.0</span><span class="p">)</span>
-</span><span data-line="14"><span class="n">response</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">borehole_dynamics</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="14"><span class="n">response</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </span></pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">model_kwargs()</span></code> gives the model the borehole count, the mean depth (so that
 its total length is the field’s), the field resistance and the flow;
 <code class="docutils literal notranslate"><span class="pre">attach</span></code> replaces the model’s rectangular g-function and checks that the
-two describe the same field.</p>
+two describe the same field. The borehole stays dynamic, now with the heat
+capacity and transit of this field’s pipes and circuits
+(<code class="docutils literal notranslate"><span class="pre">attach(model,</span> <span class="pre">borehole_dynamics=False)</span></code>, or a model constructed with
+<code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code>, gives the steady borehole).</p>
 <dl class="simple">
 <dt><a class="reference internal" href="../api/support/heat-transfer.html#tmhp.borefield.BoreField" title="tmhp.borefield.BoreField"><code class="xref py py-class docutils literal notranslate"><span class="pre">BoreField</span></code></a></dt><dd><p>Positions, per-borehole depth and buried depth: <code class="docutils literal notranslate"><span class="pre">from_coordinates</span></code>,
 <code class="docutils literal notranslate"><span class="pre">rectangle</span></code>, and pygfunction’s <code class="docutils literal notranslate"><span class="pre">l_shape</span></code>, <code class="docutils literal notranslate"><span class="pre">u_shape</span></code>, <code class="docutils literal notranslate"><span class="pre">box</span></code>,
@@ -910,9 +1102,9 @@ each borehole carries after a load step. The models still see one field
 temperature; the shares say how unevenly the ground is used.</p>
 </dd>
 </dl>
-<div class="table-wrapper colwidths-given docutils container" id="id10">
-<table class="docutils align-default" id="id10">
-<caption><span class="caption-text">Borehole resistance by pipe configuration (24 L/min per borehole, 200 m, r_b 80 mm) [m·K/W]</span><a class="headerlink" href="#id10" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id13">
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">Borehole resistance by pipe configuration (24 L/min per borehole, 200 m, r_b 80 mm) [m·K/W]</span><a class="headerlink" href="#id13" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 46.0%" />
 <col style="width: 27.0%" />
@@ -947,9 +1139,9 @@ temperature; the shares say how unevenly the ground is used.</p>
 <p>Each value equals a direct pygfunction calculation
 (<code class="docutils literal notranslate"><span class="pre">tests/test_borefield.py</span></code>). The coaxial pipe loses its low local resistance
 over 200 m: the inner pipe is not insulated from the annulus.</p>
-<div class="table-wrapper colwidths-given docutils container" id="id11">
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Field response, <span class="math notranslate nohighlight">\(g\)</span> [m·K/W] and field resistance (k_s 2.0, α 1.25e-6, 6 m spacing)</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
+<div class="table-wrapper colwidths-given docutils container" id="id14">
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">Field response, <span class="math notranslate nohighlight">\(g\)</span> [m·K/W] and field resistance (k_s 2.0, α 1.25e-6, 6 m spacing)</span><a class="headerlink" href="#id14" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 40.0%" />
 <col style="width: 12.0%" />
@@ -968,7 +1160,7 @@ over 200 m: the inner pipe is not insulated from the annulus.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>2 × 2, 200 m, 96 L/min, <code class="docutils literal notranslate"><span class="pre">UBWT</span></code> (default path)</p></td>
+<tr class="row-even"><td><p>2 × 2, 200 m, 96 L/min, <code class="docutils literal notranslate"><span class="pre">UBWT</span></code> (the models’ own rectangle)</p></td>
 <td><p>0.0311</p></td>
 <td><p>0.1450</p></td>
 <td><p>0.4817</p></td>
@@ -1013,7 +1205,7 @@ over 200 m: the inner pipe is not insulated from the annulus.</p>
 </tbody>
 </table>
 </div>
-<p>For a rectangle the field route reproduces the default path to
+<p>For a rectangle the field route reproduces the models’ own g-function to
 <span class="math notranslate nohighlight">\(10^{-12}\)</span>, and a boiler built either way gives the same run. <code class="docutils literal notranslate"><span class="pre">MIFT</span></code>
 differs from <code class="docutils literal notranslate"><span class="pre">UBWT</span></code> by 1 % after 30 years for the 2 × 2 field. In the
 three-borehole field the 200 m borehole carries 45 % of the load after 30
@@ -1042,7 +1234,7 @@ optional <code class="docutils literal notranslate"><span class="pre">geolink</s
 g-function for the same chain. tmhp does not depend on it.</p>
 </section>
 <section id="references">
-<h2><a class="toc-backref" href="#id15" role="doc-backlink">References</a><a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id18" role="doc-backlink">References</a><a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
 <p>Albers, A., Huttenloch, P., Zorn, R., Steger, H., &amp; Blum, P. (2024).
 Determination of thermal properties of grouting materials for borehole heat
 exchangers (BHE). <em>Geothermal Energy</em>, 12, 36.
@@ -1065,7 +1257,7 @@ model for vertical ground loop heat exchangers. <em>ASHRAE Transactions</em>, 10
 475-485.</p>
 </section>
 <section id="api">
-<h2><a class="toc-backref" href="#id16" role="doc-backlink">API</a><a class="headerlink" href="#api" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id19" role="doc-backlink">API</a><a class="headerlink" href="#api" title="Link to this heading">¶</a></h2>
 <p>The reference for <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.borehole_capacity" title="tmhp.borehole_capacity"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.borehole_capacity</span></code></a>, <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.g_function" title="tmhp.g_function"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.g_function</span></code></a> and
 <a class="reference internal" href="../api/support/heat-transfer.html#module-tmhp.ground_coupling" title="tmhp.ground_coupling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.ground_coupling</span></code></a> is on
 <a class="reference internal" href="../api/support/heat-transfer.html"><span class="doc">Heat transfer &amp; exchangers</span></a>.</p>

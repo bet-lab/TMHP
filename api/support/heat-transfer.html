@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:24:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -191,6 +191,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#contract">Contract</a></li>
 <li><a class="reference internal" href="#sign-convention-matches-the-legacy-gshpb">Sign convention (matches the legacy GSHPB)</a></li>
 <li><a class="reference internal" href="#borehole-heat-capacity-fluid-referenced-wall-temperature">Borehole heat capacity (fluid-referenced wall temperature)</a></li>
+<li><a class="reference internal" href="#runs-that-cover-part-of-a-step">Runs that cover part of a step</a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler"><code class="docutils literal notranslate"><span class="pre">GroundCoupler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
@@ -201,11 +202,14 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.FAST_MIN_STEPS"><code class="docutils literal notranslate">FAST_MIN_STEPS</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.reset"><code class="docutils literal notranslate">reset()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced"><code class="docutils literal notranslate">fluid_referenced</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise"><code class="docutils literal notranslate">preview_wall_temperature_rise()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise"><code class="docutils literal notranslate">wall_temperature_rise()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.borehole_wall_rise"><code class="docutils literal notranslate">borehole_wall_rise()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.run_window_preview"><code class="docutils literal notranslate"><span class="pre">run_window_preview()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_coupling.physical_wall_rise"><code class="docutils literal notranslate"><span class="pre">physical_wall_rise()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_coupling.reset_ground_coupler"><code class="docutils literal notranslate"><span class="pre">reset_ground_coupler()</span></code></a></li>
 </ul>
 </li>
@@ -320,6 +324,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#splicing-onto-the-long-time-g-function">Splicing onto the long-time g-function</a></li>
 <li><a class="reference internal" href="#limits">Limits</a></li>
 <li><a class="reference internal" href="#provenance">Provenance</a></li>
+<li><a class="reference internal" href="#tmhp.borehole_capacity.BOREHOLE_DYNAMICS_MODES"><code class="docutils literal notranslate"><span class="pre">BOREHOLE_DYNAMICS_MODES</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.RHOC_GROUT_DEFAULT"><code class="docutils literal notranslate"><span class="pre">RHOC_GROUT_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.RHOC_PIPE_DEFAULT"><code class="docutils literal notranslate"><span class="pre">RHOC_PIPE_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.CapacityStepResponse"><code class="docutils literal notranslate"><span class="pre">CapacityStepResponse</span></code></a><ul>
@@ -374,6 +379,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.borehole_capacity.EquivalentCylinderBorehole.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#tmhp.borehole_capacity.configure_borehole_dynamics"><code class="docutils literal notranslate"><span class="pre">configure_borehole_dynamics()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.cylinder_source_wall"><code class="docutils literal notranslate"><span class="pre">cylinder_source_wall()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.enable_borehole_dynamics"><code class="docutils literal notranslate"><span class="pre">enable_borehole_dynamics()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.borehole_capacity.fluid_to_pipe_resistance"><code class="docutils literal notranslate"><span class="pre">fluid_to_pipe_resistance()</span></code></a></li>
@@ -1260,7 +1266,20 @@ gives the dynamic fluid temperature through that unchanged relation. It
 equals the physical wall rise once the borehole has settled (hours) and
 differs from it just after a load change, when the fluid has not yet followed.
 Such a backend reports the physical wall rise separately through the optional
-<code class="docutils literal notranslate"><span class="pre">borehole_wall_rise(n,</span> <span class="pre">time_arr)</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">borehole_wall_rise(n,</span> <span class="pre">time_arr)</span></code> (<a class="reference internal" href="#tmhp.ground_coupling.physical_wall_rise" title="tmhp.ground_coupling.physical_wall_rise"><code class="xref py py-func docutils literal notranslate"><span class="pre">physical_wall_rise()</span></code></a>), and says so
+with a true <code class="docutils literal notranslate"><span class="pre">fluid_referenced</span></code> attribute.</p>
+</section>
+<section id="runs-that-cover-part-of-a-step">
+<h3>Runs that cover part of a step<a class="headerlink" href="#runs-that-cover-part-of-a-step" title="Link to this heading">¶</a></h3>
+<p>The history holds one load per step. A host whose compressor runs for the
+first part of a step records the step-average load, but the fluid while it
+runs carries the running load. With a fluid-referenced response the host must
+therefore ask for the response over the run itself, under the running load
+(<code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise(...,</span> <span class="pre">window_s=...)</span></code>, see
+<a class="reference internal" href="#tmhp.ground_coupling.run_window_preview" title="tmhp.ground_coupling.run_window_preview"><code class="xref py py-func docutils literal notranslate"><span class="pre">run_window_preview()</span></code></a>): the first-instant terms of the response then
+cancel the host’s <code class="docutils literal notranslate"><span class="pre">q'</span> <span class="pre">R_b</span></code> for the same load. A backend that does not take
+<code class="docutils literal notranslate"><span class="pre">window_s</span></code> is asked for the whole step with the step-average load, as
+before.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.GroundCoupler">
@@ -1403,18 +1422,37 @@ step-mean response assumes every step lasts <code class="docutils literal notran
 </dl>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">fluid_referenced</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced" title="Link to this definition">¶</a></dt>
+<dd><p>Whether the returned rise is fluid-referenced (a g-function with borehole heat capacity).</p>
+<p>See the module docstring. A host uses the run window of
+<a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise" title="tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">preview_wall_temperature_rise()</span></code></a> with such a response.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise">
-<span class="sig-name descname"><span class="pre">preview_wall_temperature_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_unit</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.preview_wall_temperature_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">preview_wall_temperature_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#AggregateGFunctionCoupler.preview_wall_temperature_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate an uncommitted candidate without modifying load history.</p>
 <p>Optional extension for coupled flow control; the original GroundCoupler
 protocol remains unchanged for legacy external backends.</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">window_s</span></code> this is the mean rise over the whole step with
+<code class="docutils literal notranslate"><span class="pre">q_unit</span></code> held over it, the value <a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise" title="tmhp.ground_coupling.AggregateGFunctionCoupler.wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">wall_temperature_rise()</span></code></a>
+would return. With <code class="docutils literal notranslate"><span class="pre">window_s</span></code> it is the mean over the <em>first</em>
+<code class="docutils literal notranslate"><span class="pre">window_s</span></code> seconds of the step, <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">window_s]</span></code>, with
+<code class="docutils literal notranslate"><span class="pre">q_unit</span></code> held over that window: the rise a compressor sees that
+runs for the first part of a step. Give the load <strong>while it runs</strong>,
+not the step average. The value is continuous in the window: it
+tends to the rise at <code class="docutils literal notranslate"><span class="pre">t_n</span></code> under the previous load as the window
+vanishes, and equals the whole-step value at <code class="docutils literal notranslate"><span class="pre">window_s</span> <span class="pre">=</span> <span class="pre">dt</span></code>.
+Nothing is recorded; the history keeps step-average loads.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
 <li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
 <li><p><strong>q_unit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>window_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
@@ -1462,6 +1500,52 @@ module docstring) and this is the wall itself.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.run_window_preview">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">run_window_preview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coupler</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#run_window_preview"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.run_window_preview" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">coupler</span></code>’s run-window preview <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">time_arr,</span> <span class="pre">q_run,</span> <span class="pre">window_s)</span> <span class="pre">-&gt;</span> <span class="pre">rise</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>A host that lets the compressor run for part of a step asks for the
+response over that part (<code class="docutils literal notranslate"><span class="pre">window_s</span></code> of
+<a class="reference internal" href="#tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise" title="tmhp.ground_coupling.AggregateGFunctionCoupler.preview_wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AggregateGFunctionCoupler.preview_wall_temperature_rise()</span></code></a>) when the
+response is fluid-referenced: only then does it contain the first-instant
+terms that must act on the running load. A coupler qualifies when its
+<code class="docutils literal notranslate"><span class="pre">fluid_referenced</span></code> attribute is true and its
+<code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise</span></code> accepts <code class="docutils literal notranslate"><span class="pre">window_s</span></code>. Every other
+coupler (a plain g-function, an external backend that does not know the
+argument) returns <code class="docutils literal notranslate"><span class="pre">None</span></code> and is used with the step-average load, as
+before.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.ground_coupling.physical_wall_rise">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_coupling.</span></span><span class="sig-name descname"><span class="pre">physical_wall_rise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coupler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rise</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/ground_coupling.html#physical_wall_rise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_coupling.physical_wall_rise" title="Link to this definition">¶</a></dt>
+<dd><p>Physical borehole-wall rise [K] of the step just committed.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rise</span></code> is what <a class="reference internal" href="#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise" title="tmhp.ground_coupling.GroundCoupler.wall_temperature_rise"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GroundCoupler.wall_temperature_rise()</span></code></a> returned for
+it. That is the wall itself unless the coupler’s response is
+fluid-referenced and it reports the wall through <code class="docutils literal notranslate"><span class="pre">borehole_wall_rise</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>)</p></li>
+<li><p><strong>time_arr</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span>)</p></li>
+<li><p><strong>rise</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -2782,13 +2866,19 @@ into the <code class="docutils literal notranslate"><span class="pre">c_s</span>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.borefield.FieldGroundResponse.attach">
-<span class="sig-name descname"><span class="pre">attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">borehole_dynamics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/borefield.html#FieldGroundResponse.attach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.borefield.FieldGroundResponse.attach" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">attach</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">borehole_dynamics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/borefield.html#FieldGroundResponse.attach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.borefield.FieldGroundResponse.attach" title="Link to this definition">¶</a></dt>
 <dd><p>Make <code class="docutils literal notranslate"><span class="pre">model</span></code> use this field’s ground response, in place.</p>
 <p><code class="docutils literal notranslate"><span class="pre">model</span></code> must have been constructed with <a class="reference internal" href="#tmhp.borefield.FieldGroundResponse.model_kwargs" title="tmhp.borefield.FieldGroundResponse.model_kwargs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">model_kwargs()</span></code></a> (same
 borehole count, total length, resistance, ground properties and
-flow); a mismatch raises instead of mixing two fields. With
-<code class="docutils literal notranslate"><span class="pre">borehole_dynamics=True</span></code> the response is <a class="reference internal" href="#tmhp.borefield.FieldGroundResponse.dynamic_gfunction" title="tmhp.borefield.FieldGroundResponse.dynamic_gfunction"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dynamic_gfunction()</span></code></a>.
-Returns the g-function now used by the model.</p>
+flow); a mismatch raises instead of mixing two fields. Returns the
+g-function now used by the model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">borehole_dynamics</span></code> chooses the borehole model, as the models’ own
+argument does: <code class="docutils literal notranslate"><span class="pre">True</span></code> is <a class="reference internal" href="#tmhp.borefield.FieldGroundResponse.dynamic_gfunction" title="tmhp.borefield.FieldGroundResponse.dynamic_gfunction"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dynamic_gfunction()</span></code></a> (heat capacity
+and fluid transit of this field’s pipes and circuits), <code class="docutils literal notranslate"><span class="pre">False</span></code> the
+steady borehole (<a class="reference internal" href="#tmhp.borefield.FieldGroundResponse.g" title="tmhp.borefield.FieldGroundResponse.g"><code class="xref py py-attr docutils literal notranslate"><span class="pre">g</span></code></a>). The default <code class="docutils literal notranslate"><span class="pre">None</span></code> keeps the model’s
+choice: dynamic unless the model was constructed with
+<code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code>. <code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics</span></code> says which
+one is in use afterwards.</p>
 <p>The field resistance and a MIFT g-function hold for the flow given
 here, so the model must run that constant flow (no <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code>,
 no variable ground flow).</p>
@@ -2796,7 +2886,7 @@ no variable ground flow).</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
-<li><p><strong>borehole_dynamics</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+<li><p><strong>borehole_dynamics</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>rhoc_g</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>rhoc_p</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
 <li><p><strong>transit</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
@@ -2902,6 +2992,17 @@ exchangers (BHE). Geothermal Energy, 12, 36 (grout heat capacity).</p>
 modelling and evaluation of boreholes. Licentiate thesis, Chalmers University
 of Technology (grout heat capacity, Table 4.2).</p>
 </section>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.borehole_capacity.BOREHOLE_DYNAMICS_MODES">
+<span class="sig-prename descclassname"><span class="pre">tmhp.borehole_capacity.</span></span><span class="sig-name descname"><span class="pre">BOREHOLE_DYNAMICS_MODES</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('transit',</span> <span class="pre">'lumped',</span> <span class="pre">'off')</span></span><a class="headerlink" href="#tmhp.borehole_capacity.BOREHOLE_DYNAMICS_MODES" title="Link to this definition">¶</a></dt>
+<dd><p>fluid transit resolved, fluid as one node, steady borehole.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics</span></code> values</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.borehole_capacity.RHOC_GROUT_DEFAULT">
 <span class="sig-prename descclassname"><span class="pre">tmhp.borehole_capacity.</span></span><span class="sig-name descname"><span class="pre">RHOC_GROUT_DEFAULT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3400000.0</span></span><a class="headerlink" href="#tmhp.borehole_capacity.RHOC_GROUT_DEFAULT" title="Link to this definition">¶</a></dt>
@@ -3417,6 +3518,55 @@ line-source temperature there <code class="docutils literal notranslate"><span c
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="tmhp.borehole_capacity.configure_borehole_dynamics">
+<span class="sig-prename descclassname"><span class="pre">tmhp.borehole_capacity.</span></span><span class="sig-name descname"><span class="pre">configure_borehole_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requested</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">injected_coupler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/borehole_capacity.html#configure_borehole_dynamics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.borehole_capacity.configure_borehole_dynamics" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor hook of the ground-source models for their <code class="docutils literal notranslate"><span class="pre">borehole_dynamics</span></code> argument.</p>
+<p><code class="docutils literal notranslate"><span class="pre">requested</span></code>:</p>
+<dl>
+<dt><code class="docutils literal notranslate"><span class="pre">None</span></code> (default)</dt><dd><p>The dynamic borehole response (heat capacity and fluid transit,
+<code class="docutils literal notranslate"><span class="pre">&quot;transit&quot;</span></code>) wherever the model can use it, the steady borehole
+(<code class="docutils literal notranslate"><span class="pre">&quot;off&quot;</span></code>) where it cannot:</p>
+<ul class="simple">
+<li><p>a <code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code> supplied by the caller owns the response;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code> and variable ground flow: the response is built for
+one resistance and one loop flow;</p></li>
+<li><p>a flow so low that the loop cannot be calibrated to <code class="docutils literal notranslate"><span class="pre">R_b</span></code> (the
+loop temperature difference alone exceeds it);</p></li>
+<li><p>a cross-section that cannot be mapped onto the equivalent cylinder
+(pipes that fill the borehole, a supplied <code class="docutils literal notranslate"><span class="pre">R_b</span></code> below the
+fluid-to-pipe resistance).</p></li>
+</ul>
+<p>Nothing is raised or warned; the outcome is <code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics</span></code>
+and the reason, when it is <code class="docutils literal notranslate"><span class="pre">&quot;off&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">model.borehole_dynamics_note</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">True</span></code></dt><dd><p>The dynamic response, or <code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code> with that reason.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">False</span></code></dt><dd><p>The steady borehole (resistance without heat capacity).</p>
+</dd>
+</dl>
+<p>The lumped-fluid variant (<code class="docutils literal notranslate"><span class="pre">&quot;lumped&quot;</span></code>) is never chosen here. Without the
+transit the models’ loop temperature difference <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">(2</span> <span class="pre">m</span> <span class="pre">c_p)</span></code> appears
+at once, so the fluid entering the heat pump starts <em>above</em> where it was
+when extraction begins: 2.2 K above the undisturbed ground in a run of
+the default boiler with <code class="docutils literal notranslate"><span class="pre">ground_flow_control=&quot;optimal_power&quot;</span></code> (the
+controller settles at half the reference flow). The steady borehole errs
+on the cold side instead. <code class="docutils literal notranslate"><span class="pre">enable_borehole_dynamics(model,</span>
+<span class="pre">transit=False)</span></code> remains for callers who want it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>requested</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>injected_coupler</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmhp.borehole_capacity.cylinder_source_wall">
 <span class="sig-prename descclassname"><span class="pre">tmhp.borehole_capacity.</span></span><span class="sig-name descname"><span class="pre">cylinder_source_wall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/borehole_capacity.html#cylinder_source_wall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.borehole_capacity.cylinder_source_wall" title="Link to this definition">¶</a></dt>
 <dd><p>Hollow cylindrical source: wall temperature of <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">&gt;</span> <span class="pre">r_b</span></code> for a unit flux at <code class="docutils literal notranslate"><span class="pre">r_b</span></code> [m.K/W].</p>
@@ -3448,23 +3598,30 @@ closed-form tail <code class="docutils literal notranslate"><span class="pre">(p
 <dt class="sig sig-object py" id="tmhp.borehole_capacity.enable_borehole_dynamics">
 <span class="sig-prename descclassname"><span class="pre">tmhp.borehole_capacity.</span></span><span class="sig-name descname"><span class="pre">enable_borehole_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3400000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rhoc_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_pipes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/borehole_capacity.html#enable_borehole_dynamics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.borehole_capacity.enable_borehole_dynamics" title="Link to this definition">¶</a></dt>
 <dd><p>Switch a ground-source model to the dynamic borehole response, in place.</p>
+<p>The models do this themselves at construction (their <code class="docutils literal notranslate"><span class="pre">borehole_dynamics</span></code>
+argument, <a class="reference internal" href="#tmhp.borehole_capacity.configure_borehole_dynamics" title="tmhp.borehole_capacity.configure_borehole_dynamics"><code class="xref py py-func docutils literal notranslate"><span class="pre">configure_borehole_dynamics()</span></code></a>); call this function to
+rebuild the response with other heat capacities, or to turn it on for a
+model constructed with <code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
+</span><span data-line="2"><span class="n">enable_borehole_dynamics</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">rhoc_g</span><span class="o">=</span><span class="mf">3.0e6</span><span class="p">)</span>     <span class="c1"># a known grout</span>
+</span></pre></div>
+</div>
 <p>Works on <code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> (and its solar
 variants) and <code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code>. Everything is derived
 from what the model already holds: borehole and pipe radii, pipe
 conductivity, ground properties, the borehole resistance it uses, the
-depth and the loop flow. Call it right after constructing the model:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">)</span>
-</span><span data-line="2"><span class="n">enable_borehole_dynamics</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-</span></pre></div>
-</div>
-<p>To go back, construct the model again. A model given its own
-<code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code> is left to that coupler and raises here.</p>
+depth and the loop flow. Calling it again replaces the response instead
+of nesting it. For the steady borehole, construct the model with
+<code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code>. A model given its own <code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code> is
+left to that coupler and raises here.</p>
 <p>The response is built for one flow. The models subtract the steady
 <code class="docutils literal notranslate"><span class="pre">q'</span> <span class="pre">R_b</span></code> and add <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">(2</span> <span class="pre">m</span> <span class="pre">c_p)</span></code> at the flow of each step, and the
 kernel cancels exactly those two terms at the first instant. It therefore
 raises for <code class="docutils literal notranslate"><span class="pre">variable_Rb</span></code> and, with the transit resolved, for variable
-ground flow (pass <code class="docutils literal notranslate"><span class="pre">transit=False</span></code> to keep variable flow with a lumped
-fluid). A model whose field was set up with
+ground flow. <code class="docutils literal notranslate"><span class="pre">transit=False</span></code> (a lumped fluid) is accepted with variable
+flow, but then <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">(2</span> <span class="pre">m</span> <span class="pre">c_p)</span></code> is not cancelled and the fluid entering
+the heat pump starts above where it was when extraction begins; the
+models never choose it by themselves. A model whose field was set up with
 <a class="reference internal" href="#tmhp.borefield.FieldGroundResponse.attach" title="tmhp.borefield.FieldGroundResponse.attach"><code class="xref py py-meth docutils literal notranslate"><span class="pre">tmhp.borefield.FieldGroundResponse.attach()</span></code></a> must get its dynamics
 from <code class="docutils literal notranslate"><span class="pre">attach(...,</span> <span class="pre">borehole_dynamics=True)</span></code>, which knows the pipes and
 circuits; calling this function on it raises.</p>

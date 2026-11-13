@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from tmhp import AirSourceHeatPump, GroundSourceHeatPump
+from tmhp.air_properties import air_density
 from tmhp.constants import c_a, rho_a
 
 
@@ -18,9 +19,18 @@ def model(request):
     return request.param(UA_ground_rated=6000, **common)
 
 
+def indoor_air_density(row):
+    """Density the model takes for the indoor air [kg/m3].
+
+    The air-source model (the rows with an outdoor fan) takes the room air's
+    own density; the ground-source model is still on standard air.
+    """
+    return air_density(row["T_iu_a_in [°C]"]) if "E_ou_fan [W]" in row else rho_a
+
+
 def check_delivery(row):
     difference = row["Q_a_iu_out [W]"] - row["Q_a_iu_in [W]"]
-    sensible = c_a * rho_a * row["dV_iu_a [m3/s]"] * (row["T_iu_a_out [°C]"] - row["T_iu_a_in [°C]"])
+    sensible = c_a * indoor_air_density(row) * row["dV_iu_a [m3/s]"] * (row["T_iu_a_out [°C]"] - row["T_iu_a_in [°C]"])
     assert difference == pytest.approx(sensible, abs=1e-8)
     if not row["hp_is_on"]:
         assert row["Q_a_iu_out [W]"] == row["Q_a_iu_in [W]"] == 0

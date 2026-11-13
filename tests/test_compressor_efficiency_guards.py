@@ -239,7 +239,9 @@ def test_a0_w60_inside_the_domain_is_untouched_by_the_guard():
     pr, speed = _pr_and_speed(row)
     assert not efficiency_extrapolated(hp.eta_cmp_isen, pr, speed)
     assert row["eta_cmp_isen [-]"] == pytest.approx(hp.eta_cmp_isen.raw(pr, speed), rel=1e-12)
-    # Observed before and after the guard: PR 6.41, 35.4 rev/s, eta_is 0.449, discharge 201.6 C.
-    assert row["eta_cmp_isen [-]"] == pytest.approx(0.449, abs=0.002)
-    assert row["T_ref_cmp_out [°C]"] == pytest.approx(201.6, abs=1.0)
+    # Observed before and after the guard: PR 6.40, 35.4 rev/s, eta_is 0.452, discharge 200.4 C.
+    # (0.449 and 201.6 C with 15 °C standard air on the outdoor coil: at 0 °C the fan moves
+    # 5.5 % more air mass, the evaporating temperature is 0.07 K higher and the PR 6.40, not 6.41.)
+    assert row["eta_cmp_isen [-]"] == pytest.approx(0.452, abs=0.002)
+    assert row["T_ref_cmp_out [°C]"] == pytest.approx(200.4, abs=1.0)
     # With the default T_dis_max (R32 150 °C) the point is refused: tests/invariants C6.

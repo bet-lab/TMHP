@@ -12,7 +12,8 @@ import math
 import pytest
 
 from tmhp import AirSourceHeatPump
-from tmhp.constants import c_a, rho_a
+from tmhp.air_properties import air_density
+from tmhp.constants import c_a
 from tmhp.hx_fan import INDOOR_AIRFLOW_PER_W
 
 
@@ -91,7 +92,7 @@ def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(hp,
     # The indoor coil at its largest airflow and the widest approach is the ceiling here.
     assert ceiling["binding"] == "cycle"
     assert ceiling["dT_ref_cond [K]"] == pytest.approx(hp.dT_approach_bounds[1], rel=1e-6)
-    c_air = c_a * rho_a * hp.dV_iu_fan_a_max
+    c_air = c_a * air_density(20.0) * hp.dV_iu_fan_a_max  # room air at 20 °C
     ua = hp.UA_iu_rated * (hp.dV_iu_fan_a_max / hp.dV_iu_fan_a_ref) ** hp.n_iu
     coil_limit = c_air * (1.0 - math.exp(-ua / c_air)) * hp.dT_approach_bounds[1]
     assert ceiling["Q_max [W]"] == pytest.approx(coil_limit, rel=1e-6)

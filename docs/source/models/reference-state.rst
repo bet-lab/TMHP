@@ -85,7 +85,10 @@ The rating point is *not* the condition being simulated. Each family has a
 standard rating point; air coils in TMHP are dry, so wet-bulb conditions of
 the standards are not used. The boiler models' condenser is immersed in a
 lumped tank whose temperature is set to the standard's water outlet
-temperature.
+temperature. The air coils of the air-source models are rated with the density
+of the air at the rating inlet temperature
+(:class:`tmhp.heat_exchanger.AirCoilSide`,
+:func:`tmhp.air_properties.air_density`), as in their own cycles.
 
 .. list-table::
     :header-rows: 1

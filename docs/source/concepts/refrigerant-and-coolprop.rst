@@ -88,17 +88,21 @@ R744 (CO₂) has a critical temperature near 31 °C. For DHW heating
 critical point — a transcritical cycle. The cycle is written against a
 subcritical-condenser assumption, so R744 is **not supported** on the
 boiler families (``AirSourceHeatPumpBoiler`` and the ground- and
-water-source counterparts). The constructor only warns that
-``m_dot_ref_rated`` could not be derived (pass ``rps_rated`` to silence
-it), and ``analyze_steady`` then raises a CoolProp ``ValueError``
-because the condensing temperature (for example 330.8 K at a 55 °C
-tank) is above the numerical critical point (304.1 K)::
+water-source counterparts). Their constructors refuse a refrigerant whose
+critical temperature is not above the delivery set point ``T_mix_w_out``,
+with or without ``rps_rated``::
 
-   AirSourceHeatPumpBoiler(ref="R744", rps_rated=40.0).analyze_steady(
-       T_tank_w=55.0, T0=5.0, Q_ref_tank=8000.0
-   )
-   # ValueError: Temperature to QT_flash [330.81667 K] may not be above
-   # the numerical critical point of 304.1282 K
+   AirSourceHeatPumpBoiler(ref="R744")
+   # ValueError: ref='R744': its critical temperature (31.0 degC) is not above
+   # the delivery set point T_mix_w_out=40.0 degC, so no subcritical cycle of
+   # R744 can heat the water; ... choose a subcritical refrigerant, for
+   # example R290, R32 or R134a
+
+A rating point whose condenser would be supercritical (R744 in the
+space-conditioning families, or a boiler asked for colder water than that)
+fails in the reference solve with ``reference_capacity_inconsistent``,
+naming the condensing and the critical temperature
+(:doc:`/models/reference-state`).
 
 A faithful transcritical model would need a gas-cooler block in place of the
 condenser. The cycle-closure interface (``_optimize_operation``) is

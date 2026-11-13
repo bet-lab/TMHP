@@ -42,9 +42,10 @@ named in ``capacity_binding``.
       - What happens
       - Read more
     * - Transcritical cycles (R744 at heating temperatures)
-      - Construction fails: ``ReferenceStateError``
-        (``reference_capacity_inconsistent``), naming the condensing
-        temperature and the critical temperature
+      - Construction fails. A water heater: ``ValueError``, the critical
+        temperature is not above the delivery set point. The other families:
+        ``ReferenceStateError`` (``reference_capacity_inconsistent``), naming
+        the condensing temperature and the critical temperature
       - :doc:`refrigerant-and-coolprop`
     * - User-defined ``HEOS::`` mixtures
       - Not supported. The constructor raises ``ValueError`` (the default
@@ -276,8 +277,7 @@ A short checklist for any result
    ok = (df["failure_reason"] == "none") & df["converged"]   # an operating point (or a legitimate off row)
    averaged = df["runtime_fraction [-]"] < 1                 # a time average, not a continuous point
 
-Then, where they exist: ``capacity_clamped == "max"`` (in a boiler's dynamic
-frame, a ``capacity_binding`` column) for a row that delivered less than
+Then, where they exist: ``capacity_clamped == "max"`` for a row that delivered less than
 asked, ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
 that was not served, ``efficiency_extrapolated`` and ``discharge_control`` for
 points at the edge of the compressor data. Warnings raised during a run (``UserWarning`` at

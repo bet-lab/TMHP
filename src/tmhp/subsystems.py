@@ -3,7 +3,9 @@
 Given physical input state each subsystem returns a standardised output dict.
 All simulation orchestration (activation logic, result assembly, exergy
 calculation) is the responsibility of the scenario class that uses the
-subsystem. The solar and UV subsystems are stateless pure-physics engines;
+subsystem. The solar and UV subsystems are stateless pure-physics engines
+(the collector-loop controller's latch and lock-out are run state of the
+scenario classes, carried in ``DynamicState.subsystem_state``);
 ``EnergyStorageSystem`` additionally carries battery state (state of charge),
 so it is stateful across time steps. A scenario class must call
 :meth:`EnergyStorageSystem.reset` at the start of every run so that two runs
@@ -30,7 +32,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from . import calc_util as cu
-from ._validation import check_efficiency, validate_ctor
+from ._validation import check_efficiency, check_finite, check_temperature, validate_ctor
 from .constants import c_w, k_a, k_D, k_d, rho_w
 from .thermodynamics import calc_energy_flow
 from .weather import (
@@ -80,6 +82,8 @@ STC_OFF_STEP: dict = {
     "Q_contribution": 0.0,
     "E_subsystem": 0.0,
     "T_tank_w_in_override_K": None,
+    "freeze": False,
+    "lockout": False,
 }
 
 # Backward-compatible alias
@@ -290,12 +294,13 @@ class SolarThermalCollector(_SunFacingSurface):
     K_d_stc : float | None
         Diffuse incidence-angle modifier [-]; ``None`` derives it from ``b0_stc``.
     dT_stc_on, dT_stc_off : float
-        Differential controller [K]: the pump starts when the idle collector
-        is ``dT_stc_on`` above the sink, and runs while its outlet stays
-        ``dT_stc_off`` above it.
+        Differential controller [K]: a stopped pump starts when the idle
+        collector is ``dT_stc_on`` above the sink (and the run would hold),
+        a running pump runs on while its outlet stays ``dT_stc_off`` above it.
     T_stc_tank_max : float
         Storage high limit [°C]: the collector loop stops charging the tank at
-        this temperature (within the step).
+        this temperature (within the step) and starts again once the tank is
+        2 K below it.
     T_stc_boil : float
         Boiling protection [°C]: the loop does not run when the collector
         outlet would reach this temperature.
@@ -314,6 +319,22 @@ class SolarThermalCollector(_SunFacingSurface):
     sky_model : str
         Sky-diffuse transposition: ``"perez"`` (default), ``"haydavies"`` or
         ``"isotropic"``.
+    T_stc_freeze : float | None
+        Freeze protection [°C]. The collector carries water (tank or mains
+        water), so it is a drain-back system: while the idle collector
+        (:meth:`stagnation_temperature_K`) is below this temperature the
+        loop does not run and the collector is drained
+        (``stc_freeze_protected [-]``); nor does a pumped loop run while the
+        sink it would draw from is below 0 °C. Default 4 °C; ``None``
+        switches the protection off (a loop filled with antifreeze).
+    T_stc_lockout : float | None
+        Collector lock-out after stagnation [°C]. A pumped loop that a
+        protection holds off (storage limit, boiling protection, clock
+        window) while its idle collector is at or above this temperature is
+        not started until the collector has cooled 10 K below it
+        (``stc_stagnation_lockout [-]``): cold water must not be pumped into
+        an absorber far above its boiling point. Default 130 °C; ``None``
+        switches the lock-out off.
     """
 
     # Collector
@@ -355,10 +376,27 @@ class SolarThermalCollector(_SunFacingSurface):
     albedo: float = 0.2
     sky_model: str = "perez"
 
+    # Collector protections (added last: the positional order of the fields above is unchanged)
+    T_stc_freeze: float | None = 4.0
+    T_stc_lockout: float | None = 130.0
+
     def __post_init__(self) -> None:
         validate_ctor("STC", vars(self))
         self._check_site()
+        self._check_protection()
         self._apply_legacy_parameters()
+
+    def _check_protection(self) -> None:
+        """Freeze limit in the environment range, lock-out above the boiling protection."""
+        if self.T_stc_freeze is not None:
+            check_temperature("T_stc_freeze", self.T_stc_freeze, "env")
+        if self.T_stc_lockout is not None:
+            x = check_finite("T_stc_lockout", self.T_stc_lockout)
+            if x <= self.T_stc_boil:
+                raise ValueError(
+                    f"T_stc_lockout ({x:g} °C) must be above T_stc_boil ({self.T_stc_boil:g} °C): a running "
+                    "loop is already stopped at T_stc_boil; the lock-out is for the idle (stagnating) collector"
+                )
 
     def _apply_legacy_parameters(self) -> None:
         """Map the deprecated parameters onto the current ones (once)."""

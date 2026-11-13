@@ -27,8 +27,9 @@ The router is only consulted when solar is actually available (positive
 irradiance on the collector plane and the collector schedule on); the chosen
 destination is still gated by the collector-loop controller of
 :mod:`tmhp._stc_scenarios` (outlet at least ``dT_stc_off`` above that sink, gain
-above the pump power, below the tank's ``T_stc_tank_max`` on the tank route),
-falling back to ``off`` if it would not run.
+above the pump power, below the tank's ``T_stc_tank_max`` on the tank route,
+freeze protection, stagnation lock-out), falling back to ``off`` if it would
+not run.
 
 With zero irradiance the collector is inactive and results reduce to the base
 GSHPB exactly (only extra reporting columns are added).
@@ -134,16 +135,11 @@ class GSHPB_STC_routed(STCScenario, GroundSourceHeatPumpBoilerRun):
             state = self._ground_loop_state(ctx, dt, cu.C2K(self.T_bhe), plane)
             self._q_solar_ground_W = state["Q_solar_ground"]
         else:
-            state = {
-                "stc_active": False,
-                "stc_result": self._stc_eval(ctx, plane, ctx.T_tank_w_K, active=False),
-                "plane": plane,
-                "T_tank_w_in_override_K": None,
-                "E_subsystem": 0.0,
-                "Q_contribution": 0.0,
-                "E_stc_pump": 0.0,
-                "Q_solar_ground": 0.0,
-            }
+            # Held off (window closed, no sun, or the router said "off"): the
+            # controller still tracks freeze protection and stagnation lock-out.
+            state = self._tank_loop_state(ctx, dt, plane, enabled=False)
+            state["E_stc_pump"] = 0.0
+            state["Q_solar_ground"] = 0.0
         if not state["stc_active"]:
             route = "off"  # infeasible at this sink — do not auto-switch destination
             self._q_solar_ground_W = 0.0
@@ -214,10 +210,12 @@ class GSHPB_STC_routed(STCScenario, GroundSourceHeatPumpBoilerRun):
             inlet = sr.get("T_stc_w_in_K", ctx.T_tank_w_K)
             cols = stc_result_columns(sr, inlet, self._stc.loop_flow, 1.0 if active else 0.0)
             cols["Q_solar_tank [W]"] = 0.0
+            if route == "off":
+                self._commit_controller(state, pump_on=False)
         r["solar_route [-]"] = route
         r["Q_solar_ground [W]"] = float(state.get("Q_solar_ground", 0.0))
         # The collector-loop pump is electricity the system draws.
         r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + e_pump
-        r.update(self._solar_columns(ctx, active, e_pump))
+        r.update(self._solar_columns(ctx, state, active, e_pump))
         r.update(cols)
         return r

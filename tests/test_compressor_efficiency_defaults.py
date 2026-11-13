@@ -315,7 +315,9 @@ def test_en14825_trajectory_cop_rises_monotonically() -> None:
     """Along the certified test points, load and lift fall together."""
     points = [("A", -7.0, 34.0, 0.88), ("B", 2.0, 30.0, 0.54), ("C", 7.0, 27.0, 0.35), ("D", 12.0, 24.0, 0.15)]
     design_load = 6000.0
-    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32")
+    # The running machine at each point (see the gradient test below): the
+    # certified COP of a condition is declared at the capacity run there.
+    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32", Cd_cycling=None)
 
     cops = []
     for label, t_outdoor, lwt, load_ratio in points:
@@ -355,7 +357,13 @@ def test_en14825_gradient_matches_the_certified_population() -> None:
     """A→D gain must land inside what certified machines declare (p10-p90, read from the data)."""
     points = [("A", -7.0, 34.0, 0.88), ("D", 12.0, 24.0, 0.15)]
     design_load = 6000.0
-    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32")
+    # Point D is below the minimum-speed duty. The declared COP of a part-load
+    # condition belongs to the declared capacity there -- the unit running at
+    # its lowest step -- and the standard applies the cycling degradation
+    # afterwards, in the bin calculation. The comparison is therefore with the
+    # continuous minimum-speed point (``Cd_cycling=None``), not with the mean
+    # over the cycling period that ``analyze_steady`` reports by default.
+    model = AirSourceHeatPumpBoiler(hp_capacity=9000.0, ref="R32", Cd_cycling=None)
 
     cop = {}
     for label, t_outdoor, lwt, load_ratio in points:

@@ -20,8 +20,11 @@ the *requested* duty, so the condensing temperature kept falling as the request
 did. Both are gone -- see ``tmhp._opt_utils`` and
 ``AirSourceHeatPumpBoiler._calc_state``.)
 
-A real machine cycles below its modulation floor, and TMHP models no cycling
-loss, so these rows are a continuous-operation figure at minimum capacity.
+A real machine cycles below its modulation floor. This figure shows the
+running machine (the model is built with ``Cd_cycling=None``), so these rows
+are a continuous-operation figure at minimum capacity; by default
+``analyze_steady`` reports the mean over the cycling period instead, with the
+EN 14825 degradation (``tmhp.cycling``).
 
 **Panel (b) -- the certification trajectory.** EN 14825 lowers the flow
 temperature as it lowers the load, so its four test points are a different curve
@@ -88,7 +91,9 @@ SINK_OFFSET_K = 2.5
 
 
 def sweep_fixed_temperatures() -> list[dict]:
-    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32")
+    # The running machine: below the speed floor analyze_steady would otherwise
+    # report the mean over the on/off cycling period (tmhp.cycling).
+    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32", Cd_cycling=None)
     rows = []
     for t_outdoor, lwt, color in SWEEP_CONDITIONS:
         for fraction in LOAD_FRACTIONS:
@@ -116,7 +121,9 @@ def sweep_fixed_temperatures() -> list[dict]:
 
 
 def trajectory_en14825() -> list[dict]:
-    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32")
+    # The running machine: below the speed floor analyze_steady would otherwise
+    # report the mean over the on/off cycling period (tmhp.cycling).
+    model = AirSourceHeatPumpBoiler(hp_capacity=NOMINAL_W, ref="R32", Cd_cycling=None)
     rows = []
     for label, t_outdoor, lwt, load_ratio in EN14825_LOW:
         result = model.analyze_steady(

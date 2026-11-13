@@ -2757,7 +2757,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         try:
             return _exergy_row(result, self.ref)
         except (_NotARow, KeyError):
-            return self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+            processed: dict = self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+            return processed
 
     def postprocess_exergy(self, df: pd.DataFrame) -> pd.DataFrame:
         """Compute ASHP-specific exergy variables.

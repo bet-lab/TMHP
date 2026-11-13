@@ -385,9 +385,16 @@ def test_dynamic_run_above_the_limit_is_unchanged(machines):
     pd.testing.assert_frame_equal(limited, free)
 
 
-def test_gshpb_dynamic_ground_near_freezing():
-    """Ground at 6.5 °C: full extraction would chill the water to about 1.5 °C, the steps turn down."""
-    kwargs = dict(Ts=6.5, **SHORT)
+@pytest.mark.parametrize("borehole_dynamics", [None, False])
+def test_gshpb_dynamic_ground_near_freezing(borehole_dynamics):
+    """Ground at 6.5 °C: full extraction chills the water below 3 °C, so the steps turn down.
+
+    With the dynamic borehole (the default) the fluid cools over the first
+    steps, so the first one still runs at full duty; the steady borehole
+    drops by ``q' R_b`` at once. The limit is read on the running fluid of
+    the step in both.
+    """
+    kwargs = dict(Ts=6.5, borehole_dynamics=borehole_dynamics, **SHORT)
     n = 3
     args = (n * 600.0, 600.0, 30.0, np.zeros(n), np.full(n, 5.0))
     with warnings.catch_warnings(record=True) as caught:
@@ -395,11 +402,17 @@ def test_gshpb_dynamic_ground_near_freezing():
         df = _quiet(GroundSourceHeatPumpBoiler, **kwargs).analyze_dynamic(*args)
         messages = _freezing_warnings(caught)
     free = _quiet(_quiet(GroundSourceHeatPumpBoiler, source_fluid=UNLIMITED_WATER, **kwargs).analyze_dynamic, *args)
-    assert free["hp_is_on"].all() and (free["T_bhe_f_in_running [°C]"] < 2.0).all()  # the defect
+    # The defect: water leaving the evaporator below its limit in a running step.
+    assert free["hp_is_on"].all() and (free["T_bhe_f_in_running [°C]"] < FREEZE_MARGIN_K - 0.3).any()
     assert len(messages) == 1
-    assert df["hp_is_on"].all() and (df["capacity_binding"] == SOURCE_FLUID_FREEZING).all()
+    assert df["hp_is_on"].all() and (df["failure_reason"] == "none").all()
     assert (df["T_bhe_f_in_running [°C]"] >= FREEZE_MARGIN_K - TOL_K).all()
-    assert (df["Q_ref_tank [W]"] < 0.9 * free["Q_ref_tank [W]"]).all()
+    reduced = df["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert reduced.iloc[1:].all()
+    assert (df.loc[reduced, "T_bhe_f_in_running [°C]"] <= FREEZE_MARGIN_K + 0.05).all()
+    assert (df.loc[reduced, "Q_ref_tank [W]"] < 0.95 * free.loc[reduced, "Q_ref_tank [W]"]).all()
+    # A step the limit does not touch is the step of the model without it.
+    assert (df.loc[~reduced, "Q_ref_tank [W]"] == free.loc[~reduced, "Q_ref_tank [W]"]).all()
 
 
 def test_gshp_dynamic_reports_the_limit_once():

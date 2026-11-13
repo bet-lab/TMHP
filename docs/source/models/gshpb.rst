@@ -250,7 +250,7 @@ happened.
 **What the mixture changes.** Its ``ρ c`` enters the loop temperature
 difference, the evaporator effectiveness and the default flow (which keeps the
 3 K); its viscosity and conductivity enter the borehole resistance ``R_b`` (the
-film inside the U-tube) and the laminar-flow warning. Three things do not
+film inside the U-tube) and the laminar-flow warning. Four things do not
 follow it:
 
 - ``UA_ground`` is the conductance you give or ``0.18 × hp_capacity``; it is not
@@ -266,6 +266,14 @@ follow it:
   (:mod:`tmhp.ground_loop`, :mod:`tmhp.ground_flow_control`). With a mixture
   the constructor says so in a ``UserWarning``; the pump power of the
   hydraulic model is then understated.
+
+- The dynamic borehole response (``borehole_dynamics``, on by default) is built
+  with the heat capacity and density of water
+  (:func:`tmhp.borehole_capacity.enable_borehole_dynamics`). It cancels the
+  loop temperature difference ``Q / (2 ṁ c)`` at the start of a run with
+  water's ``ṁ c``, 5 % larger than that of the default flow of 25 % propylene
+  glycol: the liquid entering the heat pump then starts 0.08 K above the
+  ground instead of at it (8 kW machine).
 
 The flow optimiser of ``ground_flow_control="optimal_power"`` does not know
 the limit either: it picks the flow of least total power, which near the limit

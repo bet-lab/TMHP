@@ -63,7 +63,8 @@ class DefaultInputEstimate:
 
 @cache
 def _artifact(name: str) -> dict[str, Any]:
-    return json.loads(resources.files("tmhp").joinpath("data", name).read_text())
+    artifact: dict[str, Any] = json.loads((resources.files("tmhp") / "data" / name).read_text())
+    return artifact
 
 
 def _check_capacity(hp_capacity: float) -> float:

@@ -386,6 +386,91 @@ def test_control_then_uses_wet_suction_with_a_closed_cycle_balance():
     assert r["Q_ref_tank [W]"] == pytest.approx(15000.0, rel=1e-6)
 
 
+_NO_FLOW = {
+    "dV_mix_w_out [m3/s]": 0.0,
+    "dV_tank_w_out [m3/s]": 0.0,
+    "dV_tank_w_in [m3/s]": 0.0,
+    "dV_mix_sup_w_in [m3/s]": 0.0,
+    "alp": 0.0,
+}
+
+
+def _count_cycle_evaluations(monkeypatch) -> list:
+    """Count the full cycle evaluations of the ASHPB (one outdoor-coil solve each)."""
+    import tmhp.air_source_heat_pump_boiler as ashpb
+
+    calls: list = []
+    coil = ashpb.calc_HX_perf_for_target_heat
+
+    def counted(*args, **kwargs):
+        calls.append(kwargs.get("T_ref_evap_sat_K"))
+        return coil(*args, **kwargs)
+
+    monkeypatch.setattr(ashpb, "calc_HX_perf_for_target_heat", counted)
+    return calls
+
+
+@pytest.mark.parametrize(
+    ("T_tank_w", "T0", "approach", "stage"),
+    [(65.0, 7.0, 6.0, "wet"), (55.0, 2.0, 6.5, "superheat")],
+)
+def test_control_closes_on_the_limit_in_a_few_cycle_evaluations(monkeypatch, T_tank_w, T0, approach, stage):
+    """The control at one candidate: the uncontrolled state plus at most three more.
+
+    The suction state at the limit is predicted from the fluid properties; root
+    finding on full cycle evaluations took eight to nine of them per candidate
+    and left 1e-3 K of noise in the objective the outdoor search minimises.
+    """
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    calls = _count_cycle_evaluations(monkeypatch)
+    state = hp._calc_state(approach, T_tank_w, 15000.0, T0, flow_state=_NO_FLOW)
+    assert state["discharge_control"] is True
+    assert state["T_ref_cmp_out [°C]"] == pytest.approx(hp.T_dis_max, abs=1e-4)
+    assert (state["x_ref_cmp_in [-]"] < 1.0) is (stage == "wet")
+    assert len(calls) <= 4
+
+
+def test_predicted_and_bracketed_control_agree(monkeypatch):
+    """Both closures find the same suction state; the bracketing one is the fallback."""
+    from tmhp import compressor_envelope as envelope
+
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    predicted = hp._calc_state(6.0, 65.0, 15000.0, 7.0, flow_state=_NO_FLOW)
+    control = envelope._control
+    # Without a fluid for the property estimate the bracketing closure runs.
+    monkeypatch.setattr(envelope, "_control", lambda at, base, sh, T, x, ref: control(at, base, sh, T, x, None))
+    bracketed = hp._calc_state(6.0, 65.0, 15000.0, 7.0, flow_state=_NO_FLOW)
+    assert bracketed["discharge_control"] is True
+    assert bracketed["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
+    assert predicted["x_ref_cmp_in [-]"] == pytest.approx(bracketed["x_ref_cmp_in [-]"], abs=2e-5)
+    assert predicted["E_tot [W]"] == pytest.approx(bracketed["E_tot [W]"], rel=1e-5)
+
+
+def test_control_out_of_reach_costs_two_cycle_evaluations(monkeypatch):
+    """A-7/W55 R32: still 100 K above the limit at x_suction_min -- decided at once, not searched."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    calls = _count_cycle_evaluations(monkeypatch)
+    state = hp._calc_state(8.0, 55.0, 15000.0, -7.0, flow_state=_NO_FLOW)
+    assert state["T_ref_cmp_out [°C]"] > hp.T_dis_max + 50.0
+    assert len(calls) == 2
+
+
+def test_steady_solve_evaluates_each_outdoor_approach_once(monkeypatch):
+    """The operating point the search found is reported from the search, not solved again."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    approaches: list[float] = []
+    calc_state = hp._calc_state
+
+    def counted(*args, **kwargs):
+        approaches.append(float(kwargs["dT_ref_ou"] if "dT_ref_ou" in kwargs else args[0]))
+        return calc_state(*args, **kwargs)
+
+    monkeypatch.setattr(hp, "_calc_state", counted)
+    r = _quiet(hp.analyze_steady, T_tank_w=65.0, T0=7.0, Q_ref_tank=15000.0)
+    assert _running(r) and r["discharge_control"] is True
+    assert len(approaches) == len(set(approaches))
+
+
 @pytest.mark.parametrize("cls", FAMILIES)
 def test_control_arguments_on_every_family(cls):
     hp = _quiet(cls, ref="R32")

@@ -124,6 +124,28 @@ the ``_STC_tank`` variant). The tank energy balance is solved
 implicitly per step with ``fsolve``, jointly with the refrigerant
 cycle.
 
+By default the tank stays full: mains water replaces each litre drawn.
+With ``tank_always_full=False`` the level varies instead. The draw lowers
+it, and a make-up valve opens when the level reaches
+``tank_level_lower_bound`` (0.5) and admits ``dV_tank_w_in_refill``
+(1 L/s) until the level is back at ``tank_level_upper_bound`` (1.0). The
+valve is followed inside each step, so a step can refill part of its
+length. ``prevent_simultaneous_flow`` admits make-up only while nothing
+is drawn. Either way the step balances the water and its energy
+together,
+
+.. math::
+
+   C_\mathrm{full}\,(L_1 T_1 - L_0 T_0) = \Delta t\,\bigl(Q + \rho c\,(\dot V_\mathrm{in} T_\mathrm{in} - \dot V_\mathrm{out} T_1) - UA\,(T_1 - T_\mathrm{sur})\bigr),
+   \qquad L_1 = L_0 + (\dot V_\mathrm{in} - \dot V_\mathrm{out})\,\Delta t / V,
+
+with the draw at the end-of-step temperature. The envelope loss
+``UA_tank_wall`` does not depend on the level. The tank never drains
+below ``TANK_LEVEL_MIN`` (0.1 % of its volume): a draw beyond what it
+holds plus its make-up is cut, and the cut is reported as
+``dV_mix_w_out_unmet [m3/s]``. A run of a level-varying tank starts with
+``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
+
 Composed variants
 =================
 

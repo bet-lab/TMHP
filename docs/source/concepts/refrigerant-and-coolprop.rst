@@ -96,7 +96,7 @@ with or without ``rps_rated``::
    # ValueError: ref='R744': its critical temperature (31.0 degC) is not above
    # the delivery set point T_mix_w_out=40.0 degC, so no subcritical cycle of
    # R744 can heat the water; ... choose a subcritical refrigerant, for
-   # example R290 (the default), R32 or R134a
+   # example R290, R32 or R134a
 
 A rating point whose condenser would be supercritical (R744 in the
 space-conditioning families, or a boiler asked for colder water than that)

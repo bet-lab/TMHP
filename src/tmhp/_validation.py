@@ -657,7 +657,7 @@ def _check_subcritical_delivery(args: Mapping[str, Any]) -> None:
             f"ref={ref!r}: its critical temperature ({T_crit_C:.1f} degC) is not above the delivery set point "
             f"T_mix_w_out={_fmt(delivery)} degC, so no subcritical cycle of {ref} can heat the water; TMHP cycles "
             "are subcritical (a transcritical heat pump is outside TMHP): choose a subcritical refrigerant, "
-            "for example R290 (the default), R32 or R134a"
+            "for example R290, R32 or R134a"
         )
 
 

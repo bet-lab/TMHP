@@ -59,7 +59,9 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, rho_w
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     CycleSolveOutcome,
     StepContext,
@@ -70,6 +72,7 @@ from .dynamic_context import (
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -1130,10 +1133,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         Q_tank_loss = self.UA_tank_wall * (T_solved_K - self.T_sur_K)
         mix = calc_mixing_valve_temp(T_solved_K, self.T_tank_w_in_K, self.T_mix_w_out_K)
-        r["T_mix_w_out [°C]"] = cu.K2C(mix["T_mix_w_out_K"])
+        T_mix_K = mix["T_mix_w_out_K"]
+        r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
 
+        # The mixed water delivered: the demand, less what a level-varying tank
+        # stopped at its lowest level could not supply.
+        dV_mix_w_out = flow_state["dV_mix_w_out"]
         r["Q_tank_loss [W]"] = Q_tank_loss
-        r["dV_mix_w_out [m3/s]"] = ctx.dV_mix_w_out
+        r["dV_mix_w_out [m3/s]"] = dV_mix_w_out
         r["dV_tank_w_in [m3/s]"] = flow_state["dV_tank_w_in"]
         r["dV_tank_w_out [m3/s]"] = flow_state["dV_tank_w_out"]
         r["dV_mix_sup_w_in [m3/s]"] = flow_state["dV_mix_sup_w_in"]
@@ -1141,6 +1148,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flow_state.get("dV_mix_w_out_unmet", 0.0)
+
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -1205,6 +1218,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         T_tank_w_K = cu.C2K(T_tank_w_init_C)
         tank_level = tank_level_init
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
@@ -1320,7 +1339,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
             tank_vol_change_prev = (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s
             level_next_approx = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_prev / self.V_tank_full))
-            tank_level_solve = max(0.001, level_next_approx)
+            tank_level_solve = max(TANK_LEVEL_MIN, level_next_approx)
 
             res_fn_free = self._build_residual_fn(
                 ctx=ctx,
@@ -1343,8 +1362,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_lower=self.T_tank_w_lower_bound,
                 T_upper=self.T_tank_w_upper_bound,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=res_fn_free,
                 solve_cycle=lambda T_C, _fraction, ctx=ctx: self._solve_cycle_at(ctx, T_C),
@@ -1389,25 +1408,24 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 ctx.T_tank_w_K,
                 T_start_K=ctx.T_tank_w_K,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 who=type(self).__name__,
                 step=n,
             )
             warn_if_tank_boiling(T_solved_K)
 
-            # Flow state evaluated at solved temperature
-            flow_state_final = self._calc_tank_flow_context(
-                dV_mix_w_out=ctx.dV_mix_w_out,
-                T_tank_w_K=T_solved_K,
-                T_tank_w_in_K=T_sup_w_K_n,
-                T_mix_w_out_K=self.T_mix_w_out_K,
-                dV_tank_w_in_override=ctrl.dV_tank_w_in_ctrl,
-            )
-
-            tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
-            level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
+            # Flows and end level the solved balance carried
+            # (tmhp.dynamic_context.tank_step_flows, the function the residual
+            # itself uses): a level-varying tank stops the draw at
+            # TANK_LEVEL_MIN and the make-up at full, and what the draw could
+            # not supply is unmet hot water. They used to be the unlimited
+            # draw, so a tank drained below its make-up reported level 0 and
+            # water it did not hold (#96 T1: +9.9 kWh, +32 %, in 1 h).
+            flows = tank_step_flows(T_solved_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+            flow_state_final = flows.as_flow_state()
+            level_next = flows.level_next
 
             # Source-water loop. The row's Q_bhe is the step average of an
             # extraction that flows only while the compressor runs. Reported
@@ -1463,6 +1481,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if result_save_csv_path:
             results_df.to_csv(result_save_csv_path, index=False)
 
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
     def _steady_freeze_off(self, arguments: Mapping[str, Any], detail: str) -> dict:

@@ -317,13 +317,18 @@ temperature difference are linear in the load, so continuous in the run
 fraction and equal to the injection-only state when the compressor does
 not run. ``T_bhe_f*_running`` are the fluid while the compressor runs (its
 running extraction net of the injection), which the evaporator's
-source-side exergy uses.
+source-side exergy uses. With the dynamic borehole (the default) they are
+the mean over the run itself, from the borehole's response to the running
+load over that part of the step, so they do not jump when the thermostat
+switches inside a step (:doc:`ground-response`); ``T_bhe`` is the physical
+borehole wall.
 
 The cycle of a step is solved against that running fluid of the *same*
-step: the borehole wall's response to the step's own load, the borehole
+step: the borehole's response to the step's own load, the borehole
 resistance and the loop temperature difference are closed together with
 the cycle (to 10\ :sup:`-4` K), so in every running row
-``T_ref_evap_sat < T_bhe_f_out_running <= T_bhe_f_out``. (Earlier releases
+``T_ref_evap_sat < T_bhe_f_out_running`` (and, with the steady borehole,
+``T_bhe_f_out_running <= T_bhe_f_out``). (Earlier releases
 fed the evaporator the previous step's outlet, which could put the
 evaporating temperature above the row's own fluid.) A ground coupler
 without ``preview_wall_temperature_rise`` cannot evaluate an uncommitted
@@ -355,13 +360,17 @@ a multi-year run gives the same ground temperatures whatever ``t_max_s`` was.
 Each step ``n`` reports the borehole-wall and fluid temperatures averaged over
 ``[t_n, t_n + dt]``, including the response to that step's own load; with an
 hourly load history the hourly means are the same for ``dt`` = 60, 600 or
-3600 s. Below one hour the g-function is the straight line from zero to its
-one-hour value and the borehole has no heat capacity, so minute-scale
-start-up transients are approximate on the default path.
-:func:`tmhp.borehole_capacity.enable_borehole_dynamics` adds the heat
-capacity of fluid, pipe and grout, the short-time wall response and the fluid
-transit through the U-tube; bore fields other than a rectangular grid are set
-up with :mod:`tmhp.borefield`. Both are described in :doc:`ground-response`.
+3600 s. Below one hour the g-function alone is the straight line from zero to
+its one-hour value and a borehole resistance has no heat capacity, which
+would move the source temperature by 3 to 5 K at every start and stop. The
+models therefore add, by default and from the inputs they already have, the
+heat capacity of fluid, pipe and grout, the short-time wall response and the
+fluid transit through the U-tube (``borehole_dynamics``; ``False`` gives the
+steady borehole, and ``model.borehole_dynamics`` says which one is in use).
+A compressor that runs for part of a step sees the fluid of its own run, so
+its source temperature is continuous through thermostat switching. Bore
+fields other than a rectangular grid are set up with :mod:`tmhp.borefield`.
+All of this is described in :doc:`ground-response`.
 
 .. figure:: ../_static/g_function_curve.svg
     :alt: g-function vs ln(t/t_s) for three rectangular borehole
@@ -386,6 +395,24 @@ taken explicitly with the whole heat rate (heat pump, draw-off, loss,
 subsystems) and a ``tmhp._tank_solve.TankSolveWarning`` names it. The tank
 temperature is not held at the mains temperature: a tank in a cold room cools
 below it.
+
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
+A tank whose level varies (``tank_always_full=False`` or
+``prevent_simultaneous_flow``) follows the rules of the air-source boiler
+(:doc:`ashpb`, Sink-side mechanics): the draw stops at ``TANK_LEVEL_MIN``
+(0.1 % of the volume), the make-up at full, and the reported
+``tank_level [-]``, ``dV_tank_w_out [m3/s]`` and ``dV_tank_w_in [m3/s]``
+are the ones the step's energy balance was solved with.
+``dV_mix_w_out [m3/s]`` is then the mixed water delivered and
+``dV_mix_w_out_unmet [m3/s]`` the demand the tank could not supply. Such a
+run starts with ``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
 
 Tank backends
 -------------

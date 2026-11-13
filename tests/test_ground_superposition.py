@@ -18,7 +18,7 @@ import pytest
 pytest.importorskip("pygfunction")
 
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler  # noqa: E402
-from tmhp.borehole_capacity import enable_borehole_dynamics, with_borehole_capacity  # noqa: E402
+from tmhp.borehole_capacity import with_borehole_capacity  # noqa: E402
 from tmhp.g_function import precompute_gfunction  # noqa: E402
 from tmhp.ground_coupling import AggregateGFunctionCoupler, GroundCoupler, reset_ground_coupler  # noqa: E402
 from tmhp.ground_superposition import FastGFunctionCoupler, enable_fast_superposition  # noqa: E402
@@ -225,18 +225,16 @@ def _run(model, n: int, dt: float):
         return model.analyze_dynamic(n * dt, dt, 50.0, dhw, np.full(n, 10.0))
 
 
-def _model() -> GroundSourceHeatPumpBoiler:
-    return GroundSourceHeatPumpBoiler(ref="R32", N_1=2, N_2=1, H_b=100.0, dt_s=3600.0, t_max_s=200 * 3600)
+def _model(**kwargs) -> GroundSourceHeatPumpBoiler:
+    return GroundSourceHeatPumpBoiler(ref="R32", N_1=2, N_2=1, H_b=100.0, dt_s=3600.0, t_max_s=200 * 3600, **kwargs)
 
 
 @pytest.mark.parametrize("dynamic", [False, True])
 def test_model_run_is_unchanged(dynamic):
     cols = ["T_bhe [°C]", "T_bhe_f [°C]", "T_bhe_f_in [°C]", "T_bhe_f_out [°C]", "Q_bhe [W]"]
     n, dt = (14, 3600.0) if not dynamic else (18, 600.0)
-    base, fast = _model(), _model()
-    if dynamic:
-        enable_borehole_dynamics(base)
-        enable_borehole_dynamics(fast)
+    base, fast = (_model(borehole_dynamics=dynamic) for _ in range(2))
+    assert base.borehole_dynamics == ("transit" if dynamic else "off")
     coupler = enable_fast_superposition(fast)
     assert fast._ground_coupler is coupler
     assert isinstance(coupler, FastGFunctionCoupler)

@@ -68,6 +68,7 @@ from ._source_boiler import (
 )
 from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
+from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
@@ -83,7 +84,9 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, rho_w
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     CycleSolveOutcome,
     StepContext,
@@ -95,6 +98,7 @@ from .dynamic_context import (
     scale_running_rates,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -103,7 +107,13 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .g_function import precompute_gfunction
-from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler, reset_ground_coupler
+from .ground_coupling import (
+    AggregateGFunctionCoupler,
+    GroundCoupler,
+    physical_wall_rise,
+    reset_ground_coupler,
+    run_window_preview,
+)
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -202,6 +212,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     the compressor stays off with ``failure_reason == "source_fluid_freezing"``.
     A ground loop that runs near or below 0 °C -- the EN 14511 brine point
     B0 included -- therefore needs an antifreeze mixture.
+
+    **Borehole dynamics.** ``borehole_dynamics=None`` (default) adds the heat
+    capacity of fluid, pipe and grout and the fluid transit through the
+    U-tube to the ground response, from the geometry and properties already
+    given (:mod:`tmhp.borehole_capacity`): the fluid no longer moves by
+    ``q' R_b`` (3 to 5 K) the instant the compressor starts or stops. It is
+    used wherever the model can use it; with ``variable_Rb``, a variable
+    ground flow, a ``ground_coupler`` of the caller's or a cross-section that
+    cannot be mapped, the model keeps the steady borehole.
+    ``model.borehole_dynamics`` (``"transit"`` or ``"off"``) and
+    ``model.borehole_dynamics_note`` say which and why. ``True`` raises
+    instead of falling back; ``False`` is the steady borehole (a resistance
+    without heat capacity), with the results the model gave before this
+    default. ``T_bhe [°C]`` is the physical borehole wall in both.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -312,6 +336,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        # Borehole heat capacity and fluid transit: None = on where the model
+        # can use them, True = required, False = steady borehole. Keyword-only:
+        # the positional order of the arguments above is unchanged.
+        borehole_dynamics: bool | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -669,6 +697,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self._ground_coupler: GroundCoupler = (
             ground_coupler if ground_coupler is not None else AggregateGFunctionCoupler(self._gfunc_interp)
         )
+        # Borehole heat capacity and fluid transit (tmhp.borehole_capacity):
+        # on wherever the model can use them, see the class docstring.
+        #: ``"transit"``, ``"lumped"`` or ``"off"``: the borehole response in use.
+        self.borehole_dynamics: str = "off"
+        #: Why it is not ``"transit"`` (empty otherwise).
+        self.borehole_dynamics_note: str = ""
+        configure_borehole_dynamics(self, borehole_dynamics, injected_coupler=ground_coupler is not None)
+        # The coupler's run-window preview for the run in progress (set by
+        # analyze_dynamic; None with a steady borehole, see _running_wall_K).
+        self._run_window: Callable[[int, np.ndarray, float, float], float] | None = None
 
         # Simulation state tracking (dynamically updated in analyze_dynamic)
         self.time: np.ndarray = np.array([])
@@ -1298,11 +1336,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     ) -> dict:
         """Coupled ground-flow solve (``ground_flow_control`` active) for one request.
 
-        The borehole wall answers the step-average load (the coupler's
-        step-mean response, #108): a compressor that runs ``runtime_fraction``
-        of the step loads the ground with that fraction of its running
-        extraction. The fluid-to-wall resistance and the loop temperature
-        difference act on the running extraction inside the flow solve.
+        The fluid-to-wall resistance and the loop temperature difference act
+        on the running extraction inside the flow solve. The wall they start
+        from is that of :meth:`_running_wall_K`: with the steady borehole the
+        step mean under the step-average load (a compressor that runs
+        ``runtime_fraction`` of the step loads the ground with that fraction
+        of its running extraction, #108), with the dynamic borehole the mean
+        over the run under the running load.
         """
         preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
         if preview is None:
@@ -1310,7 +1350,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         fraction = min(1.0, max(0.0, float(runtime_fraction)))
 
         def wall_response(q_total):
-            return self.Ts_K - preview(ctx.n, self.time, fraction * q_total / self.total_borehole_length)
+            return self._running_wall_K(ctx.n, q_total, fraction * q_total, fraction)
 
         return self._solve_ground_flow(
             T_tank_w,
@@ -1397,16 +1437,44 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         """Fluid temperature leaving the borefield while the compressor extracts ``Q_bhe_run`` [W].
 
         The same relations :meth:`_compute_bhe_superposition` reports the
-        step with: the borehole wall answers the step-average net load (the
+        running fluid with: the wall of :meth:`_running_wall_K` (the
         coupler's uncommitted preview, a compressor running ``fraction`` of
-        the step), the fluid-to-wall resistance and the loop temperature
-        difference act on the running net extraction.
+        the step), and the fluid-to-wall resistance and the loop temperature
+        difference acting on the running net extraction.
         """
-        preview = self._ground_coupler.preview_wall_temperature_rise  # type: ignore[attr-defined]
         Q_inj = float(self._ground_injection_W())
-        q_avg = calc_borefield_linear_load(fraction * Q_bhe_run - Q_inj, self.n_boreholes, self.H_b)
-        T_wall_K = self.Ts_K - float(preview(n, self.time, q_avg))
+        T_wall_K = self._running_wall_K(n, Q_bhe_run - Q_inj, fraction * Q_bhe_run - Q_inj, fraction)
         return self._borehole_fluid_K(T_wall_K, Q_bhe_run - Q_inj, R_b, m_cp_b)[2]
+
+    def _running_wall_K(self, n: int, Q_run: float, Q_avg: float, fraction: float) -> float:
+        """Wall temperature [K] the running fluid of step ``n`` is computed from (uncommitted).
+
+        ``Q_run`` [W] is the net field load while the compressor runs,
+        ``Q_avg`` [W] its average over the step, ``fraction`` the part of the
+        step the compressor runs.
+
+        *Steady borehole* (and any coupler without a run window): the step
+        mean of the wall under ``Q_avg``. The wall of a borehole without heat
+        capacity hardly moves within a step, and the fluid follows the
+        running load at once through ``q' R_b``.
+
+        *Dynamic borehole* (a fluid-referenced response, see
+        :mod:`tmhp.ground_coupling`): the mean over the run,
+        ``[t_n, t_n + fraction·dt]``, under ``Q_run``. The response then
+        cancels the ``q' R_b`` and ``Q / (2 m c_p)`` the host applies to the
+        same ``Q_run``, so the running fluid starts from the fluid of the
+        step before and is continuous in ``fraction``. With the step-average
+        load only that share would cancel, and ``(1 − fraction)`` of the
+        steady drop would appear at once. The run is taken as one block at
+        the start of the step; the history keeps the step-average load.
+        """
+        window = self._run_window
+        if window is not None:
+            q_run = calc_borefield_linear_load(Q_run, self.n_boreholes, self.H_b)
+            return float(self.Ts_K - window(n, self.time, q_run, fraction * self.dt))
+        preview = self._ground_coupler.preview_wall_temperature_rise  # type: ignore[attr-defined]
+        q_avg = calc_borefield_linear_load(Q_avg, self.n_boreholes, self.H_b)
+        return float(self.Ts_K - float(preview(n, self.time, q_avg)))
 
     def _solve_at_step_source(
         self,
@@ -1558,10 +1626,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         Q_tank_loss = self.UA_tank_wall * (T_solved_K - self.T_sur_K)
         mix = calc_mixing_valve_temp(T_solved_K, self.T_tank_w_in_K, self.T_mix_w_out_K)
-        r["T_mix_w_out [°C]"] = cu.K2C(mix["T_mix_w_out_K"])
+        T_mix_K = mix["T_mix_w_out_K"]
+        r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
 
+        # The mixed water delivered: the demand, less what a level-varying tank
+        # stopped at its lowest level could not supply.
+        dV_mix_w_out = flow_state["dV_mix_w_out"]
         r["Q_tank_loss [W]"] = Q_tank_loss
-        r["dV_mix_w_out [m3/s]"] = ctx.dV_mix_w_out
+        r["dV_mix_w_out [m3/s]"] = dV_mix_w_out
         r["dV_tank_w_in [m3/s]"] = flow_state["dV_tank_w_in"]
         r["dV_tank_w_out [m3/s]"] = flow_state["dV_tank_w_out"]
         r["dV_mix_sup_w_in [m3/s]"] = flow_state["dV_mix_sup_w_in"]
@@ -1569,6 +1641,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flow_state.get("dV_mix_w_out_unmet", 0.0)
 
         if self._tank is not None and self._tank_step is not None:
             # Multi-node tank: T_tank_w is the volume average (what the stored
@@ -1579,11 +1652,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             T_out_K = cu.C2K(tank["T_draw_out"])
             alp = flow_state["alp"]
             r["Q_tank_loss [W]"] = tank["Q_loss"]
-            r["T_mix_w_out [°C]"] = cu.K2C(alp * T_out_K + (1.0 - alp) * tank["T_makeup_K"])
+            T_mix_K = alp * T_out_K + (1.0 - alp) * tank["T_makeup_K"]
+            r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
             r["T_tank_w_in [°C]"] = cu.K2C(tank["T_makeup_K"])
             r["T_tank_w_out [°C]"] = tank["T_draw_out"]
             r["T_tank_w_top [°C]"] = tank["T_top"]
             r["T_tank_w_bottom [°C]"] = tank["T_outlet"]
+
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -1639,7 +1718,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
           of the step before it.
         - ``T_bhe_f*_running``: the fluid while the compressor runs (its
           running extraction net of the injection); NaN when it did not run.
-          The source-side exergy of the evaporator uses these.
+          The source-side exergy of the evaporator uses these. They start
+          from the wall of :meth:`_running_wall_K`, as the cycle did.
+        - ``T_bhe``: the borehole wall, step mean. With the dynamic borehole
+          the coupler's value is fluid-referenced (the wall that gives the
+          dynamic fluid through the steady relations, which is what the
+          fluid temperatures above are computed from); the reported wall is
+          the coupler's ``borehole_wall_rise``.
         """
         Q_inj = float(self._ground_injection_W())
         ran = bool(hp_is_on)
@@ -1649,16 +1734,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if Q_inj != 0.0:
             hp_result["Q_bhe [W]"] = Q_net_avg  # net field load, extraction-positive
         Q_bhe_unit = calc_borefield_linear_load(Q_net_avg, self.n_boreholes, self.H_b)
+        running_load = ran and fraction > 0.0
+        Q_run = Q_hp_avg / fraction - Q_inj if running_load else 0.0
+        # The run's wall is a preview: read it before this step's load is recorded.
+        T_run_wall_K = (
+            self._running_wall_K(n, Q_run, Q_net_avg, fraction)
+            if running_load and self._run_window is not None
+            else None
+        )
 
         # Ground thermal response (pulse-history temporal superposition) is
         # delegated to the swappable ground coupler; the default reproduces the
         # legacy single-g-function superposition byte-for-byte, while an injected
         # backend (e.g. geolink's network) replaces it with resolved
         # borehole-to-borehole superposition. See ground_coupling.py.
-        dT_bhe = self._ground_coupler.wall_temperature_rise(n, time_arr, Q_bhe_unit)
+        coupler = self._ground_coupler
+        dT_bhe = coupler.wall_temperature_rise(n, time_arr, Q_bhe_unit)
 
-        self.T_bhe = self.Ts - dT_bhe
-        T_bhe_K = cu.C2K(self.T_bhe)
+        # Fluid-referenced wall (the physical wall for a steady borehole).
+        T_bhe_K = cu.C2K(self.Ts - dT_bhe)
+        self.T_bhe = self.Ts - physical_wall_rise(coupler, n, time_arr, dT_bhe)
         R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
         m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
@@ -1679,8 +1774,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result["T_bhe_f [°C]"] = self.T_bhe_f
         hp_result["T_bhe_f_in [°C]"] = self.T_bhe_f_in
         hp_result["T_bhe_f_out [°C]"] = self.T_bhe_f_out
-        if ran and fraction > 0.0:
-            run = self._borehole_fluid_K(T_bhe_K, Q_hp_avg / fraction - Q_inj, R_b, m_cp_b)
+        if running_load:
+            run = self._borehole_fluid_K(T_bhe_K if T_run_wall_K is None else T_run_wall_K, Q_run, R_b, m_cp_b)
             running = tuple(cu.K2C(x) for x in run)
         else:
             running = (np.nan, np.nan, np.nan)
@@ -1704,6 +1799,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     ):
         """Single-node tank: implicit solve of the energy balance over the step.
 
+        Returns the end temperature, the flows of the step at that temperature
+        and the end level. The reported flows and level are the ones the
+        balance was solved with; they used to be the unlimited draw, so a tank
+        drained below its make-up reported level 0 and water it did not hold
+        (#96 T1: +9.9 kWh, +32 %, in 1 h).
+
         A solve that does not return a root is recovered by
         :func:`tmhp._tank_solve.recover_tank_temperature` with the same
         residual, so the heat pump, the draw-off, the loss and the subsystem
@@ -1724,25 +1825,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             ctx.T_tank_w_K,
             T_start_K=ctx.T_tank_w_K,
             dt=dt_s,
-            C_curr=self.C_tank * max(0.001, ctx.tank_level),
-            C_next=self.C_tank * max(0.001, tank_level_solve),
+            C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+            C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
             C_tank=self.C_tank,
             who=type(self).__name__,
             step=ctx.n,
         )
 
-        # Flow state evaluated at solved temperature
-        flow_state_final = self._calc_tank_flow_context(
-            dV_mix_w_out=ctx.dV_mix_w_out,
-            T_tank_w_K=T_solved_K,
-            T_tank_w_in_K=T_sup_w_K_n,
-            T_mix_w_out_K=self.T_mix_w_out_K,
-            dV_tank_w_in_override=ctrl.dV_tank_w_in_ctrl,
-        )
-
-        tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
-        level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
-        return T_solved_K, flow_state_final, level_next
+        # Flows and end level the solved balance carried
+        # (tmhp.dynamic_context.tank_step_flows, the function the residual
+        # itself uses): a level-varying tank stops the draw at TANK_LEVEL_MIN
+        # and the make-up at full, and what the draw could not supply is unmet
+        # hot water. An always-full tank takes in what it gives.
+        flows = tank_step_flows(T_solved_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+        return T_solved_K, flows.as_flow_state(), flows.level_next
 
     # ---- multi-node tank ("stratified", "hybrid") -----------------------------
 
@@ -2003,6 +2099,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         T_tank_w_K = cu.C2K(T_tank_w_init_C)
         tank_level = tank_level_init
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
@@ -2021,6 +2123,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # Initialise the ground coupler's pulse-history state for this run.
         reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
+        self._run_window = run_window_preview(self._ground_coupler)
 
         # Initialise the multi-node tank profile (uniform at the init temp).
         if self._tank is not None:
@@ -2109,7 +2212,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
             tank_vol_change_prev = (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s
             level_next_approx = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_prev / self.V_tank_full))
-            tank_level_solve = max(0.001, level_next_approx)
+            tank_level_solve = max(TANK_LEVEL_MIN, level_next_approx)
 
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
@@ -2123,8 +2226,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_lower=self.T_tank_w_lower_bound,
                 T_upper=self.T_tank_w_upper_bound,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=self._build_residual_fn(
                     ctx=ctx,
@@ -2213,6 +2316,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if result_save_csv_path:
             results_df.to_csv(result_save_csv_path, index=False)
 
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
     def _steady_freeze_off(self, arguments: Mapping[str, Any], detail: str) -> dict:

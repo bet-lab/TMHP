@@ -1302,6 +1302,21 @@ class TankStepFlows:
     dV_mix_w_out: float
     dV_mix_w_out_unmet: float
 
+    def as_flow_state(self) -> dict[str, float]:
+        """The flows as the ``flow_state`` dict the source boilers report from.
+
+        ``dV_mix_w_out`` is the delivered mixed water and ``dV_mix_sup_w_in``
+        the mains water the valve added to it.
+        """
+        return {
+            "alp": self.alp,
+            "dV_mix_w_out": self.dV_mix_w_out,
+            "dV_tank_w_out": self.dV_tank_w_out,
+            "dV_tank_w_in": self.dV_tank_w_in,
+            "dV_mix_sup_w_in": (1.0 - self.alp) * self.dV_mix_w_out,
+            "dV_mix_w_out_unmet": self.dV_mix_w_out_unmet,
+        }
+
 
 def tank_step_flows(
     T_next_K: float,

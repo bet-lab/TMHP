@@ -94,7 +94,7 @@ Each time step solves a closed refrigerant cycle coupled to the surrounding syst
 | Compressor work          | Isentropic + volumetric + mechanical efficiency                                                       |
 | Condenser / evaporator   | ε-NTU (effectiveness-NTU) heat exchanger model                                                        |
 | Outdoor unit fan         | ASHRAE 90.1-style variable-speed-drive (VSD) power curve + air-side ε-NTU                             |
-| Ground heat exchanger    | g-function (ground thermal response) via [pygfunction](https://github.com/MassimoCimmino/pygfunction) |
+| Ground heat exchanger    | g-function (ground thermal response) via [pygfunction](https://github.com/MassimoCimmino/pygfunction), with borehole heat capacity and fluid transit by default |
 | PV / solar thermal       | [pvlib](https://pvlib-python.readthedocs.io)-driven irradiance & power                                |
 | Cycle closure            | Internal minimization → optimal evaporating temperature                                               |
 | Plotting backend         | [dartwork-mpl](https://github.com/dartworklabs/dartwork-mpl) — thin matplotlib utility layer          |

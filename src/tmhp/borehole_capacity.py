@@ -111,11 +111,13 @@ from scipy.special import exp1, j1, y1
 from .constants import c_w, k_w, mu_w, rho_w
 
 __all__ = [
+    "BOREHOLE_DYNAMICS_MODES",
     "RHOC_GROUT_DEFAULT",
     "RHOC_PIPE_DEFAULT",
     "CapacityStepResponse",
     "DynamicGFunction",
     "EquivalentCylinderBorehole",
+    "configure_borehole_dynamics",
     "cylinder_source_wall",
     "enable_borehole_dynamics",
     "fluid_to_pipe_resistance",
@@ -1066,24 +1068,31 @@ def enable_borehole_dynamics(
 ) -> DynamicGFunction:
     """Switch a ground-source model to the dynamic borehole response, in place.
 
+    The models do this themselves at construction (their ``borehole_dynamics``
+    argument, :func:`configure_borehole_dynamics`); call this function to
+    rebuild the response with other heat capacities, or to turn it on for a
+    model constructed with ``borehole_dynamics=False``::
+
+        model = GroundSourceHeatPumpBoiler(H_b=150.0)
+        enable_borehole_dynamics(model, rhoc_g=3.0e6)     # a known grout
+
     Works on :class:`~tmhp.GroundSourceHeatPumpBoiler` (and its solar
     variants) and :class:`~tmhp.GroundSourceHeatPump`. Everything is derived
     from what the model already holds: borehole and pipe radii, pipe
     conductivity, ground properties, the borehole resistance it uses, the
-    depth and the loop flow. Call it right after constructing the model::
-
-        model = GroundSourceHeatPumpBoiler(H_b=150.0)
-        enable_borehole_dynamics(model)
-
-    To go back, construct the model again. A model given its own
-    ``ground_coupler`` is left to that coupler and raises here.
+    depth and the loop flow. Calling it again replaces the response instead
+    of nesting it. For the steady borehole, construct the model with
+    ``borehole_dynamics=False``. A model given its own ``ground_coupler`` is
+    left to that coupler and raises here.
 
     The response is built for one flow. The models subtract the steady
     ``q' R_b`` and add ``Q / (2 m c_p)`` at the flow of each step, and the
     kernel cancels exactly those two terms at the first instant. It therefore
     raises for ``variable_Rb`` and, with the transit resolved, for variable
-    ground flow (pass ``transit=False`` to keep variable flow with a lumped
-    fluid). A model whose field was set up with
+    ground flow. ``transit=False`` (a lumped fluid) is accepted with variable
+    flow, but then ``Q / (2 m c_p)`` is not cancelled and the fluid entering
+    the heat pump starts above where it was when extraction begins; the
+    models never choose it by themselves. A model whose field was set up with
     :meth:`tmhp.borefield.FieldGroundResponse.attach` must get its dynamics
     from ``attach(..., borehole_dynamics=True)``, which knows the pipes and
     circuits; calling this function on it raises.
@@ -1151,4 +1160,101 @@ def enable_borehole_dynamics(
     model._gfunc_interp = dynamic
     if coupler is not None:
         model._ground_coupler = AggregateGFunctionCoupler(dynamic, pulse_tol=coupler._pulse_tol, dt_s=coupler._dt_fixed)
+    record_borehole_dynamics(model, dynamic, "")
     return dynamic
+
+
+#: ``model.borehole_dynamics`` values: fluid transit resolved, fluid as one node, steady borehole.
+BOREHOLE_DYNAMICS_MODES = ("transit", "lumped", "off")
+
+
+def record_borehole_dynamics(model: Any, response: Any, note: str) -> None:
+    """Set ``model.borehole_dynamics`` / ``model.borehole_dynamics_note`` from the response in use.
+
+    ``response`` is the model's g-function (a :class:`DynamicGFunction` for
+    the dynamic model, anything else for the steady one); ``note`` says why
+    the model is not on the transit-resolved default (empty when it is, or
+    when the caller asked for what it got).
+    """
+    if isinstance(response, DynamicGFunction):
+        model.borehole_dynamics = "transit" if response.transit_time is not None else "lumped"
+    else:
+        model.borehole_dynamics = "off"
+    model.borehole_dynamics_note = note
+
+
+def configure_borehole_dynamics(model: Any, requested: bool | None, *, injected_coupler: bool = False) -> None:
+    """Constructor hook of the ground-source models for their ``borehole_dynamics`` argument.
+
+    ``requested``:
+
+    ``None`` (default)
+        The dynamic borehole response (heat capacity and fluid transit,
+        ``"transit"``) wherever the model can use it, the steady borehole
+        (``"off"``) where it cannot:
+
+        - a ``ground_coupler`` supplied by the caller owns the response;
+        - ``variable_Rb`` and variable ground flow: the response is built for
+          one resistance and one loop flow;
+        - a flow so low that the loop cannot be calibrated to ``R_b`` (the
+          loop temperature difference alone exceeds it);
+        - a cross-section that cannot be mapped onto the equivalent cylinder
+          (pipes that fill the borehole, a supplied ``R_b`` below the
+          fluid-to-pipe resistance).
+
+        Nothing is raised or warned; the outcome is ``model.borehole_dynamics``
+        and the reason, when it is ``"off"``, ``model.borehole_dynamics_note``.
+    ``True``
+        The dynamic response, or :class:`ValueError` with that reason.
+    ``False``
+        The steady borehole (resistance without heat capacity).
+
+    The lumped-fluid variant (``"lumped"``) is never chosen here. Without the
+    transit the models' loop temperature difference ``Q / (2 m c_p)`` appears
+    at once, so the fluid entering the heat pump starts *above* where it was
+    when extraction begins: 2.2 K above the undisturbed ground in a run of
+    the default boiler with ``ground_flow_control="optimal_power"`` (the
+    controller settles at half the reference flow). The steady borehole errs
+    on the cold side instead. ``enable_borehole_dynamics(model,
+    transit=False)`` remains for callers who want it.
+    """
+    if requested is not None and not isinstance(requested, bool | np.bool_):
+        raise ValueError(f"borehole_dynamics must be None, True or False, got {requested!r}")
+    requested = None if requested is None else bool(requested)
+    # Kept for FieldGroundResponse.attach, which replaces the response and keeps the choice.
+    model._borehole_dynamics_requested = requested
+    if requested is False:
+        record_borehole_dynamics(model, None, "borehole_dynamics=False")
+        return
+    settings = model._ground_settings
+    obstacle = None
+    if injected_coupler:
+        obstacle = "the ground_coupler given to the model owns the ground response"
+    elif settings["variable_Rb"]:
+        obstacle = "variable_Rb changes the borehole resistance every step; the dynamic response is built for one"
+    elif settings["control"] != "constant":
+        obstacle = (
+            "variable ground flow: the dynamic response is built for one loop flow "
+            "(enable_borehole_dynamics(model, transit=False) forces a lumped fluid)"
+        )
+    else:
+        before = (model._gfunc_interp, getattr(model, "_ground_coupler", None))
+        try:
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                dynamic = enable_borehole_dynamics(model)
+        except ValueError as exc:
+            obstacle = f"the borehole section cannot be mapped: {exc}"
+        else:
+            if dynamic.transit_time is not None:
+                for w in caught:
+                    warnings.warn_explicit(w.message, w.category, w.filename, w.lineno)
+                return
+            # Not calibrated (the constructor warned why): back to the steady borehole.
+            model._gfunc_interp = before[0]
+            if before[1] is not None:
+                model._ground_coupler = before[1]
+            obstacle = "; ".join(str(w.message) for w in caught) or "fluid transit is not resolved"
+    if requested:
+        raise ValueError(f"borehole_dynamics=True cannot be used here: {obstacle}")
+    record_borehole_dynamics(model, None, obstacle)

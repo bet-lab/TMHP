@@ -4,16 +4,16 @@ Ground response
 
 How the ground-source models (:doc:`gshpb`, :doc:`gshp`) turn the heat they
 take from the ground into the temperature of the fluid that comes back. This
-page covers the response itself: what the default path assumes, the dynamic
-borehole model for sub-hourly work, bore fields that are not a rectangular
-grid, and how each part was checked.
+page covers the response itself: the steady borehole every ground model
+starts from, the dynamic borehole model the models use by default, bore
+fields that are not a rectangular grid, and how each part was checked.
 
 .. contents::
     :local:
     :depth: 1
 
 
-The default path
+The steady model
 ================
 
 Three pieces, all derived from inputs the models already take:
@@ -61,13 +61,15 @@ What it leaves out matters below about six hours:
 With hourly steps and runs of several hours these effects are small. With
 minute-scale cycling the steady model swings the source temperature by
 :math:`q' R_b^*` (3 to 5 K) at every start and stop, which a borehole does not
-do.
+do. The models therefore add the inside of the borehole by default (next
+section).
 
 .. note::
 
-    *Steady model* below means this default path: the multipole borehole
-    resistance plus the finite-line-source g-function, the usual way to
-    compute borehole fluid temperatures. "Steady" refers to the inside of the
+    *Steady model* below means these three pieces alone: the multipole
+    borehole resistance plus the finite-line-source g-function, the usual way
+    to compute borehole fluid temperatures, and what
+    ``borehole_dynamics=False`` gives. "Steady" refers to the inside of the
     borehole, which is a resistance with no heat capacity. The ground is
     transient in both models, and the dynamic model uses the same resistance
     and the same g-function; it adds what happens inside the borehole.
@@ -76,9 +78,9 @@ do.
 Dynamic borehole model
 ======================
 
-:func:`tmhp.borehole_capacity.enable_borehole_dynamics` replaces the
-g-function of a model by one that contains the three effects. It needs no new
-inputs:
+:class:`~tmhp.GroundSourceHeatPumpBoiler` (and its solar and PV variants) and
+:class:`~tmhp.GroundSourceHeatPump` replace the g-function by one that
+contains the three effects. It needs no new inputs:
 
 .. code-block:: python
 
@@ -86,13 +88,47 @@ inputs:
    from tmhp.borehole_capacity import enable_borehole_dynamics
 
    model = GroundSourceHeatPumpBoiler(H_b=150.0, dt_s=600.0)
-   enable_borehole_dynamics(model)          # same model, dynamic ground response
+   model.borehole_dynamics                  # 'transit': dynamic borehole, transit resolved
    df = model.analyze_dynamic(...)
 
+   steady = GroundSourceHeatPumpBoiler(H_b=150.0, dt_s=600.0, borehole_dynamics=False)
+   enable_borehole_dynamics(model, rhoc_g=3.0e6)   # the same model with a known grout
+
 The heat capacities of fluid, pipe wall and grout default to water, HDPE
-(1.8 MJ/(m³·K)) and a set, saturated grout (3.4 MJ/(m³·K)) and can be passed
-(``rhoc_g``, ``rhoc_p``); everything else is read from the model. The dynamic
-response is opt-in in this release: results of the default path are unchanged.
+(1.8 MJ/(m³·K)) and a set, saturated grout (3.4 MJ/(m³·K));
+:func:`tmhp.borehole_capacity.enable_borehole_dynamics` rebuilds the response
+with other values (``rhoc_g``, ``rhoc_p``). Everything else is read from the
+model.
+
+.. list-table:: The ``borehole_dynamics`` argument of the models
+    :header-rows: 1
+    :widths: 18 82
+
+    * - Value
+      - Borehole
+    * - ``None`` (default)
+      - Dynamic wherever the model can use it, steady where it cannot (below).
+        Nothing is raised or warned: ``model.borehole_dynamics`` is
+        ``"transit"`` or ``"off"``, and ``model.borehole_dynamics_note`` says
+        why it is off.
+    * - ``True``
+      - Dynamic, or :class:`ValueError` with the reason.
+    * - ``False``
+      - Steady. The results are those of the models before the dynamic
+        borehole became the default.
+
+The response is built for one borehole resistance and one loop flow (see
+Limits), so the default keeps the steady borehole when
+
+- ``variable_Rb`` or a variable ground flow (``ground_flow_control`` other
+  than ``"constant"``) is used;
+- the model was given its own ``ground_coupler``, which owns the response;
+- the flow is so low that the loop temperature difference alone,
+  :math:`H / (2 \dot m c_p)`, is not below :math:`R_b^*` (a trickle against a
+  supplied resistance);
+- the cross-section cannot be mapped onto the equivalent cylinder (pipes that
+  fill the borehole, a supplied :math:`R_b` below the fluid-to-pipe
+  resistance).
 
 .. figure:: ../_static/ground_step_response.svg
     :alt: Two panels on a logarithmic time axis from one minute to ten days,
@@ -179,7 +215,7 @@ flow it is not:
       - 6 h
       - 12 h
       - 24 h
-    * - Default path
+    * - Steady model
       - 8.67
       - 9.09
       - 10.05
@@ -203,8 +239,10 @@ flow it is not:
 
 The two dynamic variants hand over to each other within 2.5 % of
 :math:`R_b^*` at eight transit times for 6 to 24 L/min per borehole. With a
-lumped fluid alone the first hours are too warm at low flow; keep the transit
-resolved there. Inside a field with unequal depths or series circuits the
+lumped fluid alone the first hours are too warm at low flow, and the models'
+loop temperature difference :math:`Q / (2 \dot m c_p)` appears at once: the
+fluid leaving the borehole starts *above* where it was when extraction
+begins. The models never choose it by themselves (see Limits). Inside a field with unequal depths or series circuits the
 depth-resolved fluid and wall temperatures are pygfunction's (``MIFT``, wall
 temperature in segments along each borehole).
 
@@ -218,13 +256,82 @@ loads. Two consequences for the result columns:
 
 - ``T_bhe_f_out`` and ``T_bhe_f_in`` are the dynamic outlet and inlet;
   ``T_bhe_f`` is their mean.
-- ``T_bhe`` is the *fluid-referenced* wall temperature
-  :math:`\bar T_f + q' R_b^*`, the wall the fluid would need in steady state.
-  It equals the physical wall temperature once the borehole has settled and
-  differs just after a load change. The physical wall is available from the
-  boiler's coupler as ``borehole_wall_rise(n, time_arr)``
-  (:class:`~tmhp.GroundSourceHeatPump` superposes inline and has no such
-  accessor yet).
+- ``T_bhe`` (and ``model.T_bhe``) is the physical borehole wall, the
+  superposition of the same loads with the wall response
+  (``DynamicGFunction.wall_step_mean``). The value the fluid temperatures are
+  computed from is the *fluid-referenced* wall :math:`\bar T_f + q' R_b^*`,
+  the wall the fluid would need in steady state. It is not reported: it
+  equals the physical wall once the borehole has settled, but jumps by
+  :math:`q' R_b^*` at every start and stop, above the undisturbed ground
+  when extraction begins. The solar ground-charging variants take the wall
+  as their collector inlet, so they read the physical one too.
+
+
+A compressor that runs part of a step
+-------------------------------------
+
+The boilers let the thermostat switch inside a step: a row can report a
+compressor that ran for a fraction :math:`f` of it. The ground history keeps
+the step-average load :math:`f\,q'_{run}`, while the fluid the compressor
+sees carries the running load :math:`q'_{run}`. With the step-average
+response only the share :math:`f` of the steady terms would be cancelled, and
+:math:`(1 - f)\, q'_{run} (R_b^* - H / 2 \dot m c_p)` would appear at the
+first instant: 70 % of the steady model's drop for a compressor that runs
+30 % of the step.
+
+The models therefore ask the coupler for the response over the run itself,
+:math:`[t_n, t_n + f\,\Delta t]`, under the running load
+(``preview_wall_temperature_rise(n, time, q_run, window_s=f * dt)``):
+
+.. math::
+
+   \bar T_{out,run} = T_s - \sum_{i<n} \Delta q_i\, \bar K(t_n - t_i;\, f \Delta t)
+       - (q'_{run} - q'_{n-1})\, \bar K(0;\, f \Delta t)
+       - q'_{run} \left(R_b^* - \frac{H}{2 \dot m c_p}\right),
+
+with :math:`\bar K(\tau; w)` the mean of the kernel over :math:`[\tau, \tau +
+w]`. The running fluid is then continuous in :math:`f`: it tends to the fluid
+at :math:`t_n` as the run vanishes and equals the whole-step value at
+:math:`f = 1`. Pulses of the last six hours are integrated exactly over the
+window; older ones use the step-mean table with a correction that takes the
+response as linear across one step (error under 0.001 K).
+
+.. list-table:: Mean outlet rise while running, per unit load, as a fraction of :math:`R_b^*`: every step runs for its first share :math:`f` (default borehole, 24 L/min; time-marched circulating loop as reference)
+    :header-rows: 1
+    :widths: 28 18 18 18 18
+
+    * - Step, run share
+      - Largest error, run window
+      - Largest error, step-average load
+      - Steady model
+      - First run, run window
+    * - 600 s, 0.3
+      - 0.07
+      - 0.45
+      - 0.64
+      - 0.000
+    * - 600 s, 0.7
+      - 0.04
+      - 0.20
+      - 0.65
+      - 0.000
+    * - 3600 s, 0.3
+      - 0.08
+      - 0.48
+      - 0.58
+      - 0.002
+    * - 60 s, 0.5
+      - 0.02
+      - 0.32
+      - 0.65
+      - 0.000
+
+The first run is exact; what is left afterwards is the history, which
+records a run at the start of a step as its step average. The run is taken
+as one block at the start of the step. A thermostat that starts the
+compressor late in a step starts it from a borehole at rest, for which the
+position inside the step does not matter; the step after it sees that start
+spread over the whole step, which is the residual in the table.
 
 
 Checks
@@ -378,13 +485,13 @@ The two models describe the same borehole in the same ground, so they must
 agree eventually. They do, but slowly: the difference decays like
 :math:`\ln t / t`, not exponentially.
 
-.. list-table:: Mean fluid temperature drop after a 27 W/m step: default path and dynamic model
+.. list-table:: Mean fluid temperature drop after a 27 W/m step: steady and dynamic model
     :header-rows: 1
     :widths: 14 14 18 18 18 18
 
     * - Time
       - :math:`\alpha t / r_b^2`
-      - Default [K]
+      - Steady [K]
       - Dynamic [K]
       - Difference [K]
       - Heat still stored in the borehole
@@ -441,7 +548,7 @@ How large it is depends on the borehole. The default one makes it large: it
 is wide (160 mm) and sits in light soil (1.6 MJ/(m³·K)), so the borehole
 holds twice the heat of the soil it replaces.
 
-.. list-table:: Difference from the default path [K] at 27 W/m
+.. list-table:: Difference from the steady model [K] at 27 W/m
     :header-rows: 1
     :widths: 46 13 13 14 14
 
@@ -477,7 +584,7 @@ holds twice the heat of the soil it replaces.
       - −0.01
 
 The grout heat capacity is the one input of the dynamic model that the
-default path never needed. The default, 3.4 MJ/(m³·K), is the middle of what
+steady model never needed. The default, 3.4 MJ/(m³·K), is the middle of what
 has been measured on set, water-saturated grouts: 3.0 to 3.6 for seven
 commercial cement-based and thermally enhanced grouts (Albers et al. 2024),
 3.84 for a bentonite-based grout (Javed 2010). A saturated grout is water
@@ -536,7 +643,7 @@ What changes in a run
       - 4.99
     * - DHW draws morning and evening, 600 s steps, 48 h
       - steady
-      - 12.32
+      - 12.12
       - 11.22
       - 3.46
     * -
@@ -545,10 +652,43 @@ What changes in a run
       - 12.17
       - 3.54
 
-The compressor sees a source 1.4 to 2.7 K warmer while it runs, and the COP
-is 2 to 7 % higher, most for the shortest runs. The difference shrinks with
-longer runs: the first hours of any run are warmer than the steady model
-says, the days after are the same.
+("Outlet while running" is ``T_bhe_f_out_running``, the fluid the compressor
+sees; "steady" is ``borehole_dynamics=False``.) The compressor sees a source
+1.6 to 2.7 K warmer while it runs, and the COP is 2 to 7 % higher, most for
+the shortest runs. The difference shrinks with longer runs: the first hours
+of any run are warmer than the steady model says, the days after are the
+same.
+
+.. list-table:: 4 kW ``GroundSourceHeatPump`` (defaults: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2
+    :header-rows: 1
+    :widths: 30 14 28 28
+
+    * - Case
+      - Model
+      - Outlet while running [°C]
+      - COP (load / compressor + pump)
+    * - Heating, ground at 16 °C
+      - steady
+      - 10.64
+      - 3.92
+    * -
+      - dynamic
+      - 12.66
+      - 4.05
+    * - Cooling, ground at 16 °C
+      - steady
+      - 24.66
+      - 4.82
+    * -
+      - dynamic
+      - 21.24
+      - 5.40
+
+In cooling the heat goes into the ground and the steady model *raises* the
+source at once; the borehole's heat capacity lowers the condensing
+temperature of short runs by more than it raises the evaporating temperature
+in heating, because the rejected heat (load plus compressor) is larger than
+the extracted heat.
 
 
 Limits
@@ -558,9 +698,20 @@ Limits
   only; see the finite-element comparison above for the size of the error.
 - **One flow, one resistance.** The kernel cancels the models' steady terms
   :math:`q' R_b` and :math:`Q / (2 \dot m c_p)` at the first instant, for the
-  flow it was built with. ``enable_borehole_dynamics`` therefore refuses
-  ``variable_Rb``, and variable ground flow unless ``transit=False`` (a
-  lumped fluid does not depend on the flow).
+  flow it was built with. With ``variable_Rb`` or a variable ground flow the
+  models keep the steady borehole, and ``enable_borehole_dynamics`` refuses
+  them. Its ``transit=False`` (a lumped fluid, which does not depend on the
+  flow) is accepted with variable flow but is not a default: the loop
+  temperature difference is then not cancelled, and in a run of the default
+  boiler with ``ground_flow_control="optimal_power"`` (the controller
+  settles at half the reference flow) the fluid entering the heat pump is up
+  to 2.2 K *above* the undisturbed ground while heat is extracted. The steady
+  borehole is 1.8 K below it at that moment, on the conservative side. A
+  response that follows the flow needs a time-marched loop.
+- **Runs inside a step.** The history holds step-average loads. A run that
+  covers part of a step is resolved for that step only (see "A compressor
+  that runs part of a step"); in the steps after it the fluid is off by up to
+  0.08 :math:`R_b^*` per unit load (0.35 K at 27 W/m).
 - **A loop that keeps circulating.** Superposition needs one linear system,
   so the fluid is taken to circulate also while the heat pump is off. A
   time-marched loop that circulates agrees with the kernel within 1 % of
@@ -574,7 +725,7 @@ Limits
   circuit (total length over the number of circuits).
 - **Borehole only.** The fluid in headers, in horizontal runs and in the heat
   pump adds heat capacity and transit time that are not modelled.
-- **Constant ground temperature.** As in the default path: no seasonal
+- **Constant ground temperature.** As in the steady model: no seasonal
   surface wave and no geothermal gradient.
 
 
@@ -601,12 +752,15 @@ model), already a dependency.
        t_max_s=10 * 8760 * 3600)
 
    model = GroundSourceHeatPumpBoiler(**response.model_kwargs(), hp_capacity=12000.0)
-   response.attach(model, borehole_dynamics=True)
+   response.attach(model)
 
 ``model_kwargs()`` gives the model the borehole count, the mean depth (so that
 its total length is the field's), the field resistance and the flow;
 ``attach`` replaces the model's rectangular g-function and checks that the
-two describe the same field.
+two describe the same field. The borehole stays dynamic, now with the heat
+capacity and transit of this field's pipes and circuits
+(``attach(model, borehole_dynamics=False)``, or a model constructed with
+``borehole_dynamics=False``, gives the steady borehole).
 
 :class:`~tmhp.borefield.BoreField`
     Positions, per-borehole depth and buried depth: ``from_coordinates``,
@@ -670,7 +824,7 @@ over 200 m: the inner pipe is not insulated from the annulus.
       - 1 y
       - 30 y
       - :math:`R`
-    * - 2 × 2, 200 m, 96 L/min, ``UBWT`` (default path)
+    * - 2 × 2, 200 m, 96 L/min, ``UBWT`` (the models' own rectangle)
       - 0.0311
       - 0.1450
       - 0.4817
@@ -707,7 +861,7 @@ over 200 m: the inner pipe is not insulated from the annulus.
       - 0.6304
       - 0.1607
 
-For a rectangle the field route reproduces the default path to
+For a rectangle the field route reproduces the models' own g-function to
 :math:`10^{-12}`, and a boiler built either way gives the same run. ``MIFT``
 differs from ``UBWT`` by 1 % after 30 years for the 2 × 2 field. In the
 three-borehole field the 200 m borehole carries 45 % of the load after 30

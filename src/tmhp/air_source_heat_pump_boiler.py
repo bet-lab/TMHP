@@ -69,6 +69,7 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
     TANK_LEVEL_MIN,
     ControlState,
@@ -1939,6 +1940,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
             }
         )
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, self.T_sup_w_K))
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
@@ -2510,6 +2515,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 result_save_csv_path,
                 index=False,
             )
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
     # =============================================================

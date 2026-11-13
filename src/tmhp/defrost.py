@@ -35,7 +35,37 @@ runs, an extra heating load of
 
     Q_{defrost} = 0.01\\,t_{frac}\\,(7.222 - T_{out})\\,Q_{rated} / 1.01667 .
 
-Two things differ from EnergyPlus, both so that no input is added:
+Three things differ from EnergyPlus. The first is the onset of frosting:
+
+* **Onset.** In EnergyPlus the correction is a switch at the maximum outdoor
+  temperature for defrost operation: at 5.0 degC and the default humidity the
+  capacity multiplier is 0.771, at 5.1 degC it is 1, and the system COP of a
+  unit steps by a quarter across a tenth of a kelvin. That limit is a setting
+  of the defrost controller, not a temperature at which a coil frosts over:
+  the coil-temperature correlation is at -4.5 degC there, and it puts a
+  0 degC coil at 10.5 degC outdoor. A coil does not frost all at once
+  either. Near the onset its surface is close to freezing, so frost forms on
+  part of it and for part of the time, and what a rating measures falls off
+  gradually. Here the limit keeps its EnergyPlus meaning -- no frost above
+  ``T_out_max`` (5 degC) -- and the correction grows from nothing there to
+  its full size ``transition_K`` (3 K) below, at 2 degC: the frosting rating
+  condition of EN 14511 (A2: 2 degC dry bulb, 1 degC wet bulb), which is
+  also where the default humidity comes from. In between it applies to the
+  share ``w`` of the runtime that rises linearly from zero to one:
+
+  .. math::
+
+      t_{frac} &\\leftarrow w\\,t_{frac}
+
+      \\text{capacity multiplier} &= 1 - w\\,\\left(1 - 0.875\\,(1 - t_{frac})\\right)
+
+      \\text{power multiplier} &= 1 - w\\,\\left(1 - 0.954\\,(1 - t_{frac})\\right)
+
+  -- the mean of a unit that frosts for the share ``w`` of its runtime and
+  runs frost-free for the rest. At and below 2 degC and above 5 degC nothing
+  differs from EnergyPlus; ``transition_K=0`` restores the switch.
+
+The other two are there so that no input is added:
 
 * **Defrost power.** EnergyPlus asks for a curve of defrost power per unit of
   rated capacity. Here the compressor is taken to draw, while it defrosts,
@@ -75,6 +105,7 @@ from dataclasses import dataclass
 
 __all__ = [
     "T_OUT_MAX_DEFROST_C",
+    "FROST_TRANSITION_K",
     "RH_OUT_DEFAULT",
     "DEFROST_FRACTION_KEY",
     "FROST_CAPACITY_FACTOR_KEY",
@@ -94,6 +125,10 @@ __all__ = [
 
 #: Maximum outdoor dry-bulb temperature for defrost operation [degC] (EnergyPlus default).
 T_OUT_MAX_DEFROST_C = 5.0
+#: Width of the outdoor-temperature band below ``T_out_max`` over which the frost
+#: correction grows to its full size [K]: from the EnergyPlus limit (5 degC, no
+#: frost above) to the frosting rating condition of EN 14511 (A2, 2 degC dry bulb).
+FROST_TRANSITION_K = 3.0
 #: Outdoor relative humidity used when none is given [-]: EN 14511 A2 (2 degC dry bulb, 1 degC wet bulb).
 RH_OUT_DEFAULT = 0.84
 #: Standard atmospheric pressure [Pa].
@@ -147,9 +182,9 @@ class FrostState:
     active: bool
     #: Fraction of the compressor's runtime spent defrosting [-].
     defrost_fraction: float
-    #: Heating capacity multiplier, ``0.875 (1 - t_frac)`` when frosting [-].
+    #: Heating capacity multiplier, ``0.875 (1 - t_frac)`` when frosting all the time [-].
     capacity_multiplier: float
-    #: Input power multiplier, ``0.954 (1 - t_frac)`` when frosting [-].
+    #: Input power multiplier, ``0.954 (1 - t_frac)`` when frosting all the time [-].
     power_multiplier: float
     #: Outdoor coil temperature the correction used [degC].
     T_coil_C: float = math.nan
@@ -157,10 +192,16 @@ class FrostState:
     humidity_ratio_difference: float = math.nan
     #: Outdoor relative humidity the correction used [-].
     RH_out: float = math.nan
+    #: Share of the runtime the coil frosts [-]: 0 above ``T_out_max``, rising to
+    #: 1 across the transition below it. The three figures above are the mean of
+    #: frosting for this share and frost-free operation for the rest.
+    frost_share: float = 1.0
 
 
 #: No frost: nothing is corrected.
-NO_FROST = FrostState(active=False, defrost_fraction=0.0, capacity_multiplier=1.0, power_multiplier=1.0)
+NO_FROST = FrostState(
+    active=False, defrost_fraction=0.0, capacity_multiplier=1.0, power_multiplier=1.0, frost_share=0.0
+)
 
 
 @dataclass(frozen=True)
@@ -173,15 +214,41 @@ class DefrostModel:
         Outdoor dry-bulb temperature above which the coil does not frost [degC].
     RH_out : float
         Outdoor relative humidity (0-1) used when a call does not give one.
+    transition_K : float
+        Width of the band below ``T_out_max`` over which the correction grows
+        linearly from nothing to its full size [K]; in full at and below
+        ``T_out_max - transition_K``. ``0`` is the EnergyPlus switch at
+        ``T_out_max``.
     """
 
     T_out_max: float = T_OUT_MAX_DEFROST_C
     RH_out: float = RH_OUT_DEFAULT
+    transition_K: float = FROST_TRANSITION_K
 
     def __post_init__(self) -> None:
         if isinstance(self.T_out_max, bool) or not math.isfinite(self.T_out_max):
             raise ValueError(f"T_out_max must be a finite temperature [degC], got {self.T_out_max!r}")
+        if (
+            isinstance(self.transition_K, bool)
+            or not isinstance(self.transition_K, (int, float))
+            or not math.isfinite(self.transition_K)
+            or self.transition_K < 0.0
+        ):
+            raise ValueError(f"transition_K must be a finite width >= 0 [K], got {self.transition_K!r}")
         _check_humidity(self.RH_out)
+
+    def frost_share(self, T_out_C: float) -> float:
+        """Share of the runtime the coil frosts at outdoor dry bulb ``T_out_C`` [-].
+
+        0 above ``T_out_max``, 1 at and below ``T_out_max - transition_K``,
+        linear in between. With ``transition_K = 0`` it is 1 at and below
+        ``T_out_max`` (the EnergyPlus switch).
+        """
+        if T_out_C > self.T_out_max:
+            return 0.0
+        if self.transition_K <= 0.0:
+            return 1.0
+        return min(1.0, (self.T_out_max - T_out_C) / self.transition_K)
 
     def frost_state(
         self,
@@ -194,25 +261,30 @@ class DefrostModel:
         """Frost correction at outdoor dry bulb ``T_out_C`` and relative humidity ``RH_out`` (0-1).
 
         ``T_coil_C`` replaces the coil-temperature correlation
-        ``0.82 T_out - 8.589``. No frost above ``T_out_max``, nor on a coil at
-        or above 0 degC.
+        ``0.82 T_out - 8.589``. No frost above ``T_out_max``; below it the
+        correction grows to its full size across ``transition_K``
+        (:meth:`frost_share`). No frost on a coil at or above 0 degC either.
         """
         rh = self.RH_out if RH_out is None else _check_humidity(RH_out)
         if not math.isfinite(T_out_C):
             raise ValueError(f"T_out_C must be finite, got {T_out_C!r}")
         coil = _COIL_SLOPE * T_out_C + _COIL_OFFSET_K if T_coil_C is None else float(T_coil_C)
-        if T_out_C > self.T_out_max or not coil < 0.0:
-            return FrostState(False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh)
+        share = self.frost_share(T_out_C)
+        if not share > 0.0 or not coil < 0.0:
+            return FrostState(False, 0.0, 1.0, 1.0, T_coil_C=coil, RH_out=rh, frost_share=0.0)
         dw = max(_DW_MIN, humidity_ratio(T_out_C, rh, P_Pa) - saturation_humidity_ratio(coil, P_Pa))
         t_frac = 1.0 / (1.0 + _DW_SCALE / dw)
+        # Frosting for the share of the runtime, frost-free for the rest. With
+        # a share of one these are the EnergyPlus expressions unchanged.
         return FrostState(
             active=True,
-            defrost_fraction=t_frac,
-            capacity_multiplier=_CAPACITY_FROSTED * (1.0 - t_frac),
-            power_multiplier=_POWER_FROSTED * (1.0 - t_frac),
+            defrost_fraction=share * t_frac,
+            capacity_multiplier=1.0 - share * (1.0 - _CAPACITY_FROSTED * (1.0 - t_frac)),
+            power_multiplier=1.0 - share * (1.0 - _POWER_FROSTED * (1.0 - t_frac)),
             T_coil_C=coil,
             humidity_ratio_difference=dw,
             RH_out=rh,
+            frost_share=share,
         )
 
     @staticmethod

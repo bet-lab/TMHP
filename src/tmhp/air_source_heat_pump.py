@@ -32,7 +32,14 @@ from ._opt_utils import safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
+    BINDING_CYCLE,
     BINDING_DISCHARGE,
+    BINDING_EFFICIENCY,
+    BINDING_PRESSURE_RATIO,
+    CYCLE_KEY,
+    DISCHARGE_TEMP_ABOVE_MAX,
+    ETA_ISEN_BELOW_MIN,
+    PR_ABOVE_MAX,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -88,8 +95,10 @@ from .refrigerant import (
 #   1. points that meet the requested duty  -> ranked by total power [W],
 #      which is O(1e2..1e5) and therefore always below the sentinels below;
 #   2. points that are capacity limited     -> ranked by how much of the duty
-#      they do deliver, so the optimum is the machine's maximum capacity at
-#      this condition rather than some cheaper part-load point;
+#      they do deliver, so that a capacity-limited result is recognised as
+#      one and never traded for a cheaper part-load point. The ceiling itself
+#      is not read off this ranking: it is solved (`max_capacity`), because
+#      the largest delivered heat is not where a unit runs flat out;
 #   3. points the cycle cannot reach at all -> rejected.
 #
 # The bands must stay ordered and far enough apart that no power figure or
@@ -131,8 +140,8 @@ class _NarrowFanSearch:
     (:func:`~tmhp._opt_utils.operating_point_objective`).
 
     With ``accept`` the search stops at the first candidate state it accepts
-    and keeps it in ``accepted`` (:meth:`AirSourceHeatPump._duty_is_deliverable`
-    asks only whether some approach pair meets a duty exactly).
+    and keeps it in ``accepted`` (for a caller that asks only whether some
+    approach pair meets a duty exactly).
     """
 
     class _Accepted(Exception):
@@ -299,11 +308,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
     (``E_cmp + E_iu_fan + E_ou_fan``) over the evaporator
     and condenser approach temperatures.
 
-    When the requested duty exceeds what the compressor can deliver at
-    ``rps_max``, the search switches to maximising delivered capacity — see
-    :meth:`_optimize_operation`. Such an hour is reported with
-    ``capacity_clamped == "max"`` and a ``Q_ref_iu [W]`` below the request;
-    the difference is unmet load (``Q_unmet [W]``), not a solver failure.
+    When the requested duty has no operating point -- the compressor runs
+    out of speed, or the compressor envelope or a coil binds first -- the unit
+    runs at its ceiling: flat out (``rps_max``, both fans at their largest
+    airflow), or at the largest duty the envelope admits (:meth:`max_capacity`).
+    Such an hour is reported with ``capacity_clamped == "max"``, a
+    ``Q_ref_iu [W]`` below the request and ``capacity_binding`` naming the
+    limit; the difference is unmet load (``Q_unmet [W]``), not a solver failure.
 
     When the request is below what the unit delivers at its minimum compressor
     speed, the compressor cycles on and off. Such an hour is reported with
@@ -1016,6 +1027,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 "converged": False,
                 "_ou_diag": ou_hx,
                 "_iu_diag": iu_hx,
+                # The cycle exists; only a coil does not carry it. The
+                # discharge-temperature control acts on it, so the coil margins
+                # the searches read are those of the controlled cycle -- the
+                # same cycle a candidate whose coils close is evaluated at.
+                CYCLE_KEY: reportable_state(cs),
                 "converged_rps": bool(converged_rps),
                 "capacity_clamped": capacity_clamped,
                 "ou_fan_flow_min_limit": ou_hx.get("min_limit", False),
@@ -1102,10 +1118,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
         """Find the operating point the unit would run at (2-D bounded search).
 
         Normally that is the point of minimum total electric power that meets
-        the requested duty. When no point meets it — the compressor saturates
-        at ``rps_max`` — the objective switches band and the search returns the
-        point of **maximum delivered capacity** instead, which is the machine's
-        ceiling at this condition. See :data:`OBJ_CAPACITY_LIMITED`.
+        the requested duty. The search starts from the best of a coarse set of
+        approach pairs and, where that leaves it above the cost of the
+        least-lift point (:meth:`_largest_airflow_point`) or finds nothing,
+        from the least-lift point as well. When the unit is short of the
+        request even there -- flat out -- the result is that point, in the
+        capacity-limited band (:data:`OBJ_CAPACITY_LIMITED`); the ceiling is
+        then the caller's to solve (:meth:`_capacity_limited_operating_point`).
+        ``least_lift_reason`` on an infeasible result says why the least-lift
+        point of the request is not an operating point.
 
         Parameters
         ----------
@@ -1198,6 +1219,26 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 nfev=len(search.rows),
             )
 
+        # Phase 1 seed: the least-lift point (both coils at their largest
+        # airflow). It is the widest place of the feasible set -- whatever the
+        # envelope or the speed range leaves of it contains this point -- so a
+        # feasible set thinner than any fixed candidate spacing (about 1 K
+        # wide for the default unit at -25 degC) is still entered. A unit that is
+        # short of the request even here is flat out: there is nothing to
+        # search, and the ceiling is the caller's (:meth:`max_capacity`).
+        seed: tuple[float, float] | None = None
+        seed_reason: str | None = None
+        with contextlib.suppress(Exception):
+            seed, seed_state, seed_reason = self._largest_airflow_point(
+                Q_r_iu, T0, T_a_room, rtol=self._LEAST_LIFT_SEED_RTOL
+            )
+            flat_out = seed_state is not None and seed_state.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+            if seed is not None and seed_state is not None and flat_out:
+                shortfall = max(abs(Q_r_iu) - abs(float(seed_state["Q_ref_iu [W]"])), 0.0)
+                return OptimizeResult(
+                    x=np.array(seed, dtype=float), fun=OBJ_CAPACITY_LIMITED + shortfall, success=True, nfev=0
+                )
+
         # Phase 1: coarse grid pre-scan to find a converging starting point.
         # A single fixed x0=(15,15) fails silently when the entire search space
         # is a penalty region — Nelder-Mead cannot escape because all objective
@@ -1251,8 +1292,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # discharge-temperature limit the feasible band can shrink to a few
         # kelvin between the coil's airflow limit (small approaches) and
         # T_dis_max (large ones) -- 2 x 2.5 K for Daikin RXM42A at -15 degC.
+        # Not paid either when the least-lift point is outside the envelope
+        # or beyond a coil: every other approach pair asks more of both.
+        beyond_reach = seed_reason in self._ENVELOPE_BINDING or seed_reason == self._AIR_SIDE
         for rungs in (8, 16):
-            if best_val < OBJ_INFEASIBLE:
+            if best_val < OBJ_INFEASIBLE or beyond_reach:
                 break
             lo_b, hi_b = self.dT_approach_bounds
             lattice = tuple(float(v) for v in np.linspace(lo_b, hi_b, rungs))
@@ -1264,13 +1308,34 @@ class AirSourceHeatPump(ReferenceStateMixin):
                         best_x0 = [de, dc]
 
         # Phase 2: Nelder-Mead refinement from the best candidate found above.
-        return minimize(
-            _objective,
-            x0=best_x0,
-            bounds=[self.dT_approach_bounds, self.dT_approach_bounds],
-            method="Nelder-Mead",
-            options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
-        )
+        def refine(x0) -> OptimizeResult:
+            return minimize(
+                _objective,
+                x0=x0,
+                bounds=[self.dT_approach_bounds, self.dT_approach_bounds],
+                method="Nelder-Mead",
+                options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
+            )
+
+        seed_val = _objective(seed) if seed is not None else OBJ_INFEASIBLE
+        if best_val >= OBJ_INFEASIBLE:
+            # No candidate above runs; the least-lift point does if anything does.
+            result = refine(list(seed)) if seed is not None and seed_val < OBJ_INFEASIBLE else refine(best_x0)
+            # Why the least-lift point does not run is why the request does not.
+            result["least_lift_reason"] = seed_reason
+            return result
+        result = refine(best_x0)
+        if seed is not None and seed_val < float(result.fun):
+            # The refinement stopped above the least-lift point's own cost: it
+            # sits on a flat stretch of the objective (the discharge-temperature
+            # control makes the input nearly independent of the outdoor
+            # approach) or in another basin. Refine from the least-lift point
+            # too and take it when it is materially cheaper -- by more than the
+            # two refinements differ when they end in the same place.
+            from_seed = refine(list(seed))
+            if float(from_seed.fun) < (1.0 - self._SEED_GAIN) * float(result.fun):
+                result = from_seed
+        return result
 
     # =============================================================
     # Part load: cycling below the minimum capacity, unmet load above the maximum
@@ -1556,115 +1621,300 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Capacity envelope
     # =============================================================
 
-    def _indoor_approach_band_for_duty(self, Q_r_iu: float, T0: float, T_a_room: float) -> tuple[float, float]:
-        """Indoor approaches [K] at which the indoor coil can carry exactly ``|Q_r_iu|``.
+    #: A request of this many nameplates pins the compressor at its speed ceiling.
+    _FLAT_OUT_FACTOR = 1.0e3
+    #: Relative step at which the approaches of :meth:`_largest_airflow_point` are converged.
+    _LEAST_LIFT_RTOL = 1e-9
+    #: Least gain in specific energy for which the refinement from the least-lift
+    #: point replaces the one from the pre-scan (the refinements stop at 0.1 W,
+    #: about 2e-4 of a typical input).
+    _SEED_GAIN = 1e-3
+    #: Starting approaches of :meth:`_largest_airflow_point`, as fractions of the bounds' span.
+    _LEAST_LIFT_STARTS: tuple[float, ...] = (0.0, 0.1, 0.2, 0.35, 0.55)
+    #: The same for the least-lift point used as a starting point of the search.
+    _LEAST_LIFT_SEED_RTOL = 1e-6
+    #: Relative step from the converged approaches into the fans' flow range.
+    _LEAST_LIFT_INSIDE = 1e-7
+    #: Iterations of :meth:`_largest_airflow_point` (it contracts by 0.1 to 0.5 a step).
+    _LEAST_LIFT_MAX_ITER = 80
+    #: Smallest fraction a step of :meth:`_largest_airflow_point` is cut to before
+    #: the point is taken to lie outside the compressor envelope.
+    _LEAST_LIFT_MIN_STEP = 1.0 / 16.0
+    #: ``capacity_binding`` of a ceiling set by a compressor-envelope limit
+    #: (the names the water-heating models use).
+    _ENVELOPE_BINDING: Mapping[str, str] = {
+        PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
+        DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
+        ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
+    }
+    #: Why :meth:`_largest_airflow_point` has no state although the cycle exists:
+    #: a coil cannot carry its duty inside the approach bounds.
+    _AIR_SIDE = "air_side"
+    #: Fractions of a duty tried, from the top, when that duty has no operating point.
+    _CEILING_LADDER: tuple[float, ...] = (0.8, 0.6, 0.45, 0.3, 0.2, 0.12, 0.06)
+    #: Relative width at which the bisection for a refused request stops.
+    _REDUCTION_REL_TOL = 1e-3
 
-        The coil carries a duty at a temperature difference between
-        ``duty / (C eps)`` at its largest airflow and the same at its smallest;
-        outside that band no airflow within the fan limits closes it. The band
-        is widened by 0.1 % so that the coil solver's own tolerance decides at
-        the edges. It only screens candidates for
-        :meth:`_duty_is_deliverable`, where the compressor meets the duty
-        exactly, and never admits a point the full evaluation would refuse.
+    def _largest_airflow_approaches(self, x_iu: float, x_ou: float, perf: dict) -> tuple[float, float] | None:
+        """Approaches at which each coil would carry this state's duty at its largest airflow [K].
 
-        In heating the pressure-ratio floor can lift the condensing temperature
-        above ``T_a_room + dT_ref_cond``; when that could bring a smaller
-        approach into the band, the lower edge is dropped to zero.
+        ``(indoor, outdoor)``, kept inside the approach bounds. At a fixed
+        airflow a coil's capacity is proportional to its temperature
+        difference, so the approach that closes the coil at its largest
+        airflow is the present one times duty over capacity there. ``perf`` is
+        a state of :meth:`_calc_state` whose cycle exists; its coils need not
+        have closed. ``None`` when a duty or a capacity is not a positive
+        number.
         """
-        duty = abs(Q_r_iu)
+        if "_iu_diag" in perf:
+            pairs = []
+            for diag in (perf["_iu_diag"], perf["_ou_diag"]):
+                margin = float(diag.get("max_flow_capacity_margin_W", math.nan))
+                duty = float(diag.get("Q_air", math.nan)) - float(diag.get("capacity_margin_W", math.nan))
+                pairs.append((duty, margin))
+        else:
+            # Both coils closed, so each temperature difference follows from
+            # the duty and the solved airflow (as in :meth:`_coil_margins`,
+            # which also needs the smallest airflow -- zero for a fan that
+            # can stop).
+            def at_largest_airflow(duty: float, flow: float, UA_rated: float, reference: float, n: float, high: float):
+                def per_kelvin(dV: float) -> float:
+                    C_air = c_a * rho_a * dV
+                    return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
 
-        def per_kelvin(dV: float) -> float:
-            C_air = c_a * rho_a * dV
-            return C_air * (1.0 - math.exp(-self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu / C_air))
+                if not (duty > 0.0 and flow > 0.0):
+                    return math.nan, math.nan
+                return duty, per_kelvin(high) * duty / per_kelvin(flow) - duty
 
-        low = duty / per_kelvin(self.dV_iu_fan_a_max) * (1.0 - 1e-3)
-        # A fan that can stop (minimum airflow 0) puts no finite upper bound on the approach.
-        high = duty / per_kelvin(self.dV_iu_fan_a_min) * (1.0 + 1e-3) if self.dV_iu_fan_a_min > 0.0 else math.inf
-        if Q_r_iu < 0:
-            import CoolProp.CoolProp as CP
+            pairs = [
+                at_largest_airflow(
+                    abs(float(perf.get("Q_ref_iu [W]", math.nan))),
+                    float(perf.get("dV_iu_a [m3/s]", math.nan)),
+                    self.UA_iu_rated,
+                    self.dV_iu_fan_a_ref,
+                    self.n_iu,
+                    self.dV_iu_fan_a_max,
+                ),
+                at_largest_airflow(
+                    abs(float(perf.get("Q_ref_ou [W]", math.nan))),
+                    float(perf.get("dV_ou_a [m3/s]", math.nan)),
+                    self.UA_ou_rated,
+                    self.dV_ou_fan_a_ref,
+                    self.n_ou,
+                    self.dV_ou_fan_a_max,
+                ),
+            ]
+        lo, hi = self.dT_approach_bounds
+        target = []
+        for x, (duty, margin) in zip((x_iu, x_ou), pairs, strict=True):
+            capacity = duty + margin
+            if not (math.isfinite(duty) and math.isfinite(capacity) and duty > 0.0 and capacity > 0.0):
+                return None
+            target.append(min(max(x * duty / capacity, lo), hi))
+        return target[0], target[1]
 
-            try:
-                # Highest evaporating pressure the search can propose, and the
-                # condensing temperature the pressure-ratio floor would force.
-                P_evap = CP.PropsSI("P", "T", cu.C2K(T0) - self.dT_approach_bounds[0], "Q", 1, self.ref)
-                T_cond_floor = CP.PropsSI("T", "P", self.PR_cycle_min * P_evap, "Q", 1, self.ref)
-                if T_cond_floor - cu.C2K(T_a_room) + 0.5 >= low:
-                    low = 0.0
-            except ValueError:
-                low = 0.0
-        return low, high
-
-    def _duty_is_deliverable(
+    def _largest_airflow_point(
         self,
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        grid,
-        seed: tuple[float, float] | None = None,
-    ) -> tuple[tuple[float, float] | None, dict | None]:
-        """Is there an approach pair at which the unit meets this duty exactly?
+        start: tuple[float, float] | None = None,
+        rtol: float | None = None,
+    ) -> tuple[tuple[float, float] | None, dict | None, str | None]:
+        """The operating point with both coils at their largest airflow: the least lift for a duty.
 
-        The ceiling is set by whichever of the compressor and the coils runs out
-        first, and the two bind in different places: at large approach
-        temperatures the compressor saturates, at small ones the airflow search
-        hits its rated limit. Testing a duty rather than pinning the compressor
-        at ``rps_max`` keeps both branches in play.
+        A coil carries a duty with the smallest temperature difference at its
+        largest airflow, so this is the point of the highest evaporating and
+        the lowest condensing temperature at which the unit delivers
+        ``Q_r_iu`` -- the smallest pressure ratio, the coolest discharge and
+        the slowest compressor of all the approach pairs that deliver it. If
+        this point is outside the compressor envelope, or needs more speed
+        than ``rps_max``, so is every other. That makes it the test of whether
+        a duty is deliverable at all, the state of a unit running flat out
+        (a request the compressor cannot reach: speed at ``rps_max``, both
+        fans at full flow), and a starting point for the least-power search
+        that is inside the feasible set whenever there is one.
 
-        The whole grid is swept rather than a local search because the feasible
-        set is neither convex nor necessarily connected -- the survivors form a
-        narrow curved band, and a local method walks into one piece of it and
-        stops. Measured on the exergy paper's unit, a warm-started local walk
-        reported a *higher* ceiling under a *lower* speed limit, and a heating
-        ceiling that fell as the outdoor air warmed; both are impossible, and
-        both came from the search rather than from the physics. ``seed`` is
-        tried first so that a duty known to be deliverable usually costs one
-        evaluation instead of a sweep.
+        Solved as a fixed point: each approach is replaced by the one at which
+        its coil carries the cycle's duty at its largest airflow
+        (:meth:`_largest_airflow_approaches`) until both stand still. An
+        approach the bounds do not admit stays on the bound; on the lower one
+        the fan simply runs below its largest airflow. A step into a state the
+        cycle does not have is halved, and the point is outside the envelope
+        when the cut reaches :attr:`_LEAST_LIFT_MIN_STEP`.
 
-        A fan with a narrow flow range leaves a feasible set thinner than the
-        grid spacing, so there the band search (:class:`_NarrowFanSearch`) is
-        asked first; for a constant-speed fan its answer is final.
+        ``start`` is ``(dT_ref_evap, dT_ref_cond)`` of a neighbouring solution.
+        ``rtol`` is the relative step at which the approaches are converged
+        (:attr:`_LEAST_LIFT_RTOL` by default; a search that only wants a
+        starting point passes a looser one).
+
+        Returns ``((dT_ref_evap, dT_ref_cond), state, reason)``. ``state`` is
+        the closed state of :meth:`_calc_state` (``capacity_clamped`` tells
+        whether the compressor met the duty) and ``reason`` is ``None``; or
+        ``state`` is ``None`` and ``reason`` says why: the envelope limit the
+        cycle ran into (``"pr_above_max"``, ``"discharge_temp_above_max"``,
+        ``"eta_isen_below_min"``), :attr:`_AIR_SIDE` when a coil cannot carry
+        its duty inside the approach bounds, or ``"cycle_invalid"``.
+        """
+        lo, hi = self.dT_approach_bounds
+        heating = Q_r_iu < 0
+        rtol = self._LEAST_LIFT_RTOL if rtol is None else rtol
+        # Far enough inside to be clear of what the convergence left open.
+        step_inside = max(self._LEAST_LIFT_INSIDE, 100.0 * rtol)
+
+        def approaches(x: tuple[float, float]) -> tuple[float, float]:
+            return (x[1], x[0]) if heating else (x[0], x[1])
+
+        def evaluate(x: tuple[float, float]) -> dict | None:
+            de, dc = approaches(x)
+            return self._calc_state(dT_ref_evap=de, dT_ref_cond=dc, Q_r_iu=Q_r_iu, T0=T0, T_a_room=T_a_room)
+
+        def missing() -> str:
+            event = self._last_pr_event
+            return event[0] if event is not None and event[0] != "pr_below_min" else "cycle_invalid"
+
+        # Where to start: a neighbouring solution, else the smallest approaches
+        # (the least lift the search admits). A fluid can lack a state at one
+        # candidate (a flash CoolProp cannot solve), so a few larger approaches
+        # are tried before the cycle is taken not to exist.
+        starts: list[tuple[float, float]] = []
+        if start is not None:
+            starts.append(approaches((min(max(start[0], lo), hi), min(max(start[1], lo), hi))))
+        starts.extend((lo + f * (hi - lo),) * 2 for f in self._LEAST_LIFT_STARTS)
+        x: tuple[float, float] = starts[0]
+        perf = None
+        first_reason: str | None = None
+        for x in starts:
+            perf = evaluate(x)
+            if perf is not None:
+                break
+            first_reason = first_reason or missing()
+        if perf is None:
+            return None, None, first_reason
+
+        for _ in range(self._LEAST_LIFT_MAX_ITER):
+            target = self._largest_airflow_approaches(x[0], x[1], perf)
+            if target is None:
+                return None, None, "cycle_invalid"
+            if all(abs(t - v) <= rtol * v for t, v in zip(target, x, strict=True)):
+                break
+            step = 1.0
+            while True:
+                trial = (x[0] + step * (target[0] - x[0]), x[1] + step * (target[1] - x[1]))
+                trial_perf = evaluate(trial)
+                if trial_perf is not None:
+                    break
+                reason = missing()
+                step *= 0.5
+                if step < self._LEAST_LIFT_MIN_STEP:
+                    return None, None, reason
+            x, perf = trial, trial_perf
+        else:
+            return None, None, "cycle_invalid"
+
+        # The fixed point puts each coil exactly on its largest airflow, where
+        # the coil solve closes or not by the sign of a rounding error (a fan
+        # with its own power curve is closed with no tolerance). A step inside
+        # -- far below any tolerance of the cycle -- makes the closure definite.
+        inside = (min(x[0] * (1.0 + step_inside), hi), min(x[1] * (1.0 + step_inside), hi))
+        closed = evaluate(inside)
+        if closed is None:
+            return None, None, missing()
+        if not closed.get("converged", False):
+            # Short of its duty at its largest airflow: the coil is beyond its
+            # reach inside the approach bounds, and so is every approach pair.
+            # A coil that still carries too much at its *smallest* airflow is
+            # another matter -- the pressure-ratio floor has lifted the
+            # condensing temperature off the approach -- and says nothing
+            # about the other pairs.
+            short = any(
+                not diag.get("converged", True) and float(diag.get("max_flow_capacity_margin_W", 0.0)) < 0.0
+                for diag in (closed.get("_iu_diag", {}), closed.get("_ou_diag", {}))
+            )
+            return approaches(inside), None, self._AIR_SIDE if short else "cycle_invalid"
+        return approaches(inside), closed, None
+
+    def _indoor_coil_limit(self) -> float:
+        """Largest duty the indoor coil carries inside the approach bounds [W].
+
+        Its largest airflow at the widest approach the search admits. The
+        request is the indoor coil's duty in either mode, so no larger request
+        has an operating point, whatever the compressor can do. The value is
+        a hair inside the limit (2e-7 of it), so that the coil closes there by
+        more than a rounding error (see :meth:`_largest_airflow_point`).
+        """
+        dV = self.dV_iu_fan_a_max
+        C_air = c_a * rho_a * dV
+        UA = self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu
+        limit = C_air * (1.0 - math.exp(-UA / C_air)) * self.dT_approach_bounds[1]
+        return limit / (1.0 + 2.0 * self._LEAST_LIFT_INSIDE)
+
+    def _largest_deliverable_duty(
+        self, sign: float, q_top: float, T0: float, T_a_room: float, rel_tol: float
+    ) -> tuple[tuple[float, float] | None, dict | None, str | None]:
+        """Largest duty not above ``q_top`` whose least-lift point is an operating point.
+
+        A unit asked for more than a limit allows does not stop; its
+        controller holds the compressor back until the limit holds. ``q_top``
+        itself is tried first; otherwise a ladder of smaller duties finds one
+        that runs and a bisection closes on the limit above it (to
+        ``rel_tol`` of the duty). The limits are not monotone in the duty --
+        at low speed the efficiency falls and the discharge runs hotter -- so
+        this is the boundary nearest ``q_top``, as in
+        :func:`~tmhp.compressor_envelope.reduce_duty_within_envelope`.
+
+        Returns ``((dT_ref_evap, dT_ref_cond), state, reason)``. ``reason`` is
+        ``None`` when ``q_top`` is deliverable, else why the next larger duty
+        is not (see :meth:`_largest_airflow_point`; ``"compressor"`` for the
+        speed range). ``(None, None, reason)`` when no duty runs.
         """
 
-        def meets(perf: dict | None) -> bool:
-            # Clamped at either bound means the delivered duty is not the one
-            # asked for, so this point does not demonstrate the duty.
-            return (
-                perf is not None
-                and bool(perf.get("converged", False))
-                and perf.get("capacity_clamped") is None
-                and abs(float(perf.get("Q_ref_iu [W]", 0.0))) >= 0.99 * abs(Q_r_iu)
-            )
+        def trial(q: float, start: tuple[float, float] | None = None):
+            x, perf, reason = self._largest_airflow_point(sign * q, T0, T_a_room, start=start)
+            if perf is not None and perf.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                return x, None, "compressor"
+            return x, perf, reason
 
-        if self._has_narrow_fan():
-            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room, accept=meets)
-            search.run()
-            if search.accepted is not None:
-                return search.accepted
-            if self._has_constant_speed_fan():
-                return None, None
+        x, perf, reason_hi = trial(q_top)
+        if x is not None and perf is not None:
+            return x, perf, None
+        q_hi = q_top
+        q_lo = 0.0
+        x_lo: tuple[float, float] | None = None
+        perf_lo: dict | None = None
+        for fraction in self._CEILING_LADDER:
+            q = fraction * q_top
+            x, perf, reason = trial(q)
+            if x is not None and perf is not None:
+                q_lo, x_lo, perf_lo = q, x, perf
+                break
+            q_hi, reason_hi = q, reason
+        if x_lo is None or perf_lo is None:
+            return None, None, reason_hi
+        while q_hi - q_lo > rel_tol * q_hi:
+            mid = 0.5 * (q_lo + q_hi)
+            x, perf, reason = trial(mid, start=x_lo)
+            if x is not None and perf is not None:
+                q_lo, x_lo, perf_lo = mid, x, perf
+            else:
+                q_hi, reason_hi = mid, reason
+        return x_lo, perf_lo, reason_hi
 
-        candidates: list[tuple[float, float]] = []
-        if seed is not None:
-            candidates.append(seed)
-        candidates.extend((float(de), float(dc)) for de in grid for dc in grid)
+    def _binding_of(self, reason: str | None) -> str:
+        """``capacity_binding`` for the reason the next larger duty has no operating point.
 
-        # Only an indoor approach at which the indoor coil carries exactly this
-        # duty can be the answer, so the rest of the grid is not evaluated.
-        iu_low, iu_high = self._indoor_approach_band_for_duty(Q_r_iu, T0, T_a_room)
-        for de, dc in candidates:
-            if not iu_low <= (dc if Q_r_iu < 0 else de) <= iu_high:
-                continue
-            perf = self._calc_state(
-                dT_ref_evap=de,
-                dT_ref_cond=dc,
-                Q_r_iu=Q_r_iu,
-                T0=T0,
-                T_a_room=T_a_room,
-            )
-            if meets(perf):
-                assert perf is not None
-                return (de, dc), perf
-        return None, None
+        ``"cycle_invalid"`` -- the next larger duty has no cycle the model can
+        represent, in practice a condensing temperature at the critical point
+        -- is not a binding a unit runs on: :meth:`analyze_steady` does not
+        settle there (as the water-heating models do not; see
+        :mod:`tmhp.compressor_envelope`), and only :meth:`max_capacity`
+        reports it.
+        """
+        if reason == "compressor":
+            return "compressor"
+        if reason == self._AIR_SIDE:
+            return BINDING_CYCLE
+        return self._ENVELOPE_BINDING.get(reason or "", "cycle_invalid")
 
     def max_capacity(
         self,
@@ -1672,8 +1922,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T_a_room: float | None = None,
         *,
         mode: str = "heating",
-        grid_points: int = 13,
-        rel_tol: float = 5e-3,
+        grid_points: int | None = None,
+        rel_tol: float = 1e-3,
         RH_out: float | None = None,
     ) -> dict:
         """Largest duty the unit can actually deliver at this condition.
@@ -1681,16 +1931,29 @@ class AirSourceHeatPump(ReferenceStateMixin):
         Nameplate capacity is a label attached to one rating point, not a
         ceiling. A real unit delivers more than nameplate when the outdoor air
         is mild and less when it is severe, because the limit is set by
-        whichever of the compressor speed range, the pressure-ratio envelope and
+        whichever of the compressor speed range, the compressor envelope and
         the air-side heat exchangers binds first. Clipping a load schedule at
         nameplate therefore errs in both directions at once. This returns the
         ceiling the model itself implies, so a schedule can be clipped against
         the machine rather than against its label and the shortfall reported as
         a result.
 
-        A ladder of trial duties brackets the ceiling and a bisection closes on
-        it, each duty tested against the whole approach-temperature grid so the
-        answer does not depend on a search path.
+        The ceiling is the unit running flat out: the compressor at
+        ``rps_max`` and both fans at their largest airflow, which is the least
+        lift at which that speed's duty is delivered
+        (:meth:`_largest_airflow_point`). Where that point is outside the
+        compressor envelope (pressure ratio, discharge temperature even under
+        its control, the efficiency floor) or beyond what a coil carries
+        inside the approach bounds, the ceiling is the largest duty whose
+        least-lift point is an operating point -- a unit's controller holds
+        the compressor back to it -- found by bisection on the duty.
+
+        The ceiling is not the largest heat any approach pair delivers at
+        ``rps_max``. An adiabatic compressor turns its losses into delivered
+        heat, so starving the outdoor coil of air (a lower evaporating
+        pressure, a higher pressure ratio, a lower isentropic efficiency) can
+        raise the heating duty a little while the COP collapses; no unit runs
+        its fans that way.
 
         .. warning::
 
@@ -1709,11 +1972,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
             Room air temperature [°C]. Uses the constructor default if None.
         mode : str
             ``"heating"`` or ``"cooling"``.
-        grid_points : int
-            Resolution of the approach-temperature sweep on each axis.
+        grid_points : int | None
+            Unused. The ceiling was once swept on a grid of approach
+            temperatures of this resolution; it is solved now. Accepted so
+            that existing calls keep running.
         rel_tol : float
-            Bisection stops once the bracket is this narrow relative to the
-            ceiling.
+            Relative width at which the bisection on the duty stops when the
+            unit cannot run flat out. A flat-out ceiling and one set by the
+            indoor coil are exact.
         RH_out : float | None
             Outdoor relative humidity as a fraction (0-1) for the frost
             correction in heating. None: the frost model's default.
@@ -1723,10 +1989,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dict
             ``Q_max [W]`` (0.0 when the unit cannot run at all here), the
             approach temperatures there, the electrical input and system COP at
-            that point, and ``binding`` naming what stopped it: ``"compressor"``
-            when the speed range ran out, ``"cycle"`` when the pressure-ratio
-            envelope or the air side did, and ``"unbounded"`` when the ladder
-            never ran out, which makes the figure a lower bound.
+            that point, and ``binding`` naming what stopped it:
+            ``"compressor"`` (the speed range), ``"pressure_ratio"``,
+            ``"discharge_temperature"`` or ``"compressor_efficiency"`` (the
+            compressor envelope: the next larger duty exceeds ``PR_cycle_max``,
+            ``T_dis_max`` under its control, or falls below the efficiency
+            floor), ``"cycle"`` (a coil at its largest airflow and the widest
+            approach the search admits), ``"cycle_invalid"`` (the next larger
+            duty has no cycle the model can represent -- a condensing
+            temperature at the critical point; :meth:`analyze_steady` does not
+            settle on that edge) and ``"infeasible"`` when no duty has an
+            operating point.
 
             In heating with a frosting outdoor coil the ceiling, the input and
             the COP are the mean over frosting and defrost -- what
@@ -1736,6 +2009,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
+        if not (math.isfinite(rel_tol) and rel_tol > 0.0):
+            raise ValueError(f"rel_tol must be a positive number, got {rel_tol!r}")
         if T_a_room is None:
             T_a_room = self.T_a_room
 
@@ -1754,51 +2029,21 @@ class AirSourceHeatPump(ReferenceStateMixin):
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
-        lo_b, hi_b = self.dT_approach_bounds
-        grid = np.linspace(lo_b, hi_b, grid_points)
-
-        # --- 1. ladder: bracket the ceiling between a duty that works and one
-        #        that does not. The rungs span well below the modulation floor
-        #        to well above any credible ceiling, so neither end is assumed.
-        rungs = [f * self.hp_capacity for f in (0.05, 0.1, 0.2, 0.35, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)]
-        lo_q = 0.0
-        lo_x: tuple[float, float] | None = None
-        lo_perf: dict | None = None
-        hi_q: float | None = None
-        for q in rungs:
-            x, perf = self._duty_is_deliverable(sign * q, T0, T_a_room, grid, seed=lo_x)
-            if x is not None and perf is not None:
-                lo_q, lo_x, lo_perf = q, x, perf
-            elif lo_x is not None:
-                # Already had a working duty, and this one fails: bracketed.
-                hi_q = q
-                break
+        binding = "compressor"
+        lo_x, lo_perf, _ = self._largest_airflow_point(sign * self._FLAT_OUT_FACTOR * self.hp_capacity, T0, T_a_room)
+        if lo_x is None or lo_perf is None:
+            # Not flat out: no request above the indoor coil's own limit has an
+            # operating point, so the ceiling is that limit (known exactly) or
+            # the largest duty below it the envelope admits.
+            lo_x, lo_perf, reason = self._largest_deliverable_duty(
+                sign, self._indoor_coil_limit(), T0, T_a_room, rel_tol
+            )
+            # The limit itself runs: the indoor coil at its largest airflow
+            # and the widest approach is what stops the unit.
+            binding = BINDING_CYCLE if reason is None else self._binding_of(reason)
         if lo_x is None or lo_perf is None:
             return empty
-
-        # --- 2. close on the ceiling -----------------------------------------
-        binding = "unbounded"
-        if hi_q is not None:
-            while (hi_q - lo_q) > rel_tol * hi_q:
-                mid = 0.5 * (lo_q + hi_q)
-                x, perf = self._duty_is_deliverable(sign * mid, T0, T_a_room, grid, seed=lo_x)
-                if x is not None and perf is not None:
-                    lo_q, lo_x, lo_perf = mid, x, perf
-                else:
-                    hi_q = mid
-            # Just past the ceiling, what does the machine say stopped it?
-            probe = self._calc_state(
-                dT_ref_evap=lo_x[0],
-                dT_ref_cond=lo_x[1],
-                Q_r_iu=sign * lo_q * 1.05,
-                T0=T0,
-                T_a_room=T_a_room,
-            )
-            binding = (
-                "compressor" if probe is not None and probe.get("capacity_clamped") == CAPACITY_CLAMPED_MAX else "cycle"
-            )
-            if binding == "cycle" and self._discharge_limit_binds(sign * hi_q, T0, T_a_room, grid):
-                binding = BINDING_DISCHARGE
+        lo_q = abs(float(lo_perf["Q_ref_iu [W]"]))
 
         ceiling = {
             "Q_max [W]": lo_q,
@@ -1823,35 +2068,25 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ceiling["defrost_fraction [-]"] = frost.defrost_fraction
         return ceiling
 
-    #: A capacity-limited point gives way to one delivering this fraction of its
-    #: heat below the speed ceiling ...
-    _CEILING_BACKOFF = 0.995
-    #: ... when that one needs at least this much less electricity per unit of heat
-    #: (backing off a compressor that really is flat out gains 1 to 2 %) ...
-    _CEILING_POWER_GAIN = 0.03
-    #: ... and runs below this fraction of the speed ceiling.
-    _CEILING_SPEED_MARGIN = 0.98
-
     def _least_power_at_ceiling(self, result: dict, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
-        """Capacity-limited point, or a far cheaper one delivering practically the same heat.
+        """Least-power operating point at the ceiling duty, when a coil sets the ceiling.
 
-        Capacity-limited candidates are ranked by delivered heat alone, and a
-        ceiling found by the duty ladder is the first grid point that meets
-        it. Neither looks at power. Where the limit is the air side or the
-        approach-temperature search domain rather than the compressor, that
-        can return a state that reaches the speed ceiling only because a coil
-        is starved of air -- same heat, a quarter more electricity (default
-        4 kW unit, 5.1 kW asked at 2 degC: 1,460 W against 1,178 W). The duty
-        just below the ceiling is therefore solved in the ordinary way, and
-        its least-power point is taken when it runs clear of the speed ceiling
-        and is materially cheaper per unit of heat. A compressor that really
-        is flat out has no such point, and the result stands.
+        The ceiling comes from the least-lift point, where both fans run at
+        their largest airflow. Where a coil sets the ceiling the compressor is
+        clear of its own limits and the other fan has a range to choose from:
+        the indoor coil at its largest airflow and widest approach fixes the
+        duty, while the outdoor fan can still trade its own power against the
+        compressor's (default 4 kW unit at 7 degC: 1.3 % of the input). The
+        ceiling duty is therefore solved the ordinary way, so that the row is
+        the one a request arriving at the ceiling from below ends at. At the
+        speed ceiling or on an envelope limit the least-lift point is the only
+        one that delivers the duty, and this is not called.
         """
         delivered = abs(float(result.get("Q_ref_iu [W]", 0.0)))
         power = float(result.get("E_tot [W]", math.nan))
         if not (delivered > 0.0 and math.isfinite(power) and power > 0.0):
             return result
-        duty = math.copysign(self._CEILING_BACKOFF * delivered, Q_r_iu)
+        duty = math.copysign(delivered, Q_r_iu)
         with contextlib.suppress(Exception):
             opt = self._optimize_operation(Q_r_iu=duty, T0=T0, T_a_room=T_a_room)
             if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
@@ -1860,47 +2095,64 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
                 return result
             heat, input_power = abs(float(state["Q_ref_iu [W]"])), float(state["E_tot [W]"])
-            cheaper = input_power / heat < (1.0 - self._CEILING_POWER_GAIN) * power / delivered
-            below_ceiling = float(state["cmp_rpm [rpm]"]) < self._CEILING_SPEED_MARGIN * self.rps_max * 60.0
-            if cheaper and below_ceiling:
+            if abs(heat - delivered) <= 1e-9 * delivered and input_power < power:
                 state.update(
                     {
                         "capacity_clamped": CAPACITY_CLAMPED_MAX,
                         "Q_request [W]": Q_r_iu,
                         "Q_max [W]": heat,
-                        # Clear of the speed ceiling: the air side, the search
-                        # domain or (as the ladder found) the envelope binds.
-                        "capacity_binding": result.get("capacity_binding", "cycle"),
+                        "capacity_binding": result.get("capacity_binding", BINDING_CYCLE),
                     }
                 )
                 return state
         return result
 
-    def _discharge_limit_binds(self, Q_r_iu: float, T0: float, T_a_room: float, grid) -> bool:
-        """Whether this duty, refused under ``T_dis_max``, is deliverable without it."""
-        if self.T_dis_max is None:
-            return False
-        limit, self.T_dis_max = self.T_dis_max, None
-        try:
-            x, _ = self._duty_is_deliverable(Q_r_iu, T0, T_a_room, grid)
-        finally:
-            self.T_dis_max = limit
-        return x is not None
+    #: ``binding`` values of :meth:`max_capacity` that name a ceiling.
+    _CEILING_BINDINGS = frozenset(
+        {"compressor", BINDING_CYCLE, BINDING_DISCHARGE, BINDING_PRESSURE_RATIO, BINDING_EFFICIENCY}
+    )
 
     def _capacity_limited_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
-        """Return an energy-balanced ceiling only when the request exceeds it."""
+        """The state a unit runs at when the request itself has no operating point.
+
+        Above the ceiling (:meth:`max_capacity`) that is the ceiling. A
+        request below the ceiling can still be refused -- the envelope is not
+        monotone in the duty: at mid speed the efficiency is lower and the
+        discharge hotter than flat out -- and the unit then runs at the
+        largest duty below the request that has an operating point
+        (:meth:`_largest_deliverable_duty`). Either way the state is
+        energy-balanced, with ``capacity_clamped == "max"``, ``Q_max [W]`` and
+        ``capacity_binding``. ``None`` when the request needs no such state
+        or none exists.
+        """
         mode = "cooling" if Q_r_iu > 0 else "heating"
+        request = abs(Q_r_iu)
         ceiling = self.max_capacity(T0=T0, T_a_room=T_a_room, mode=mode)
-        # An unbounded ladder result is only a lower bound, not a ceiling.
-        if ceiling.get("binding") not in {"compressor", "cycle", BINDING_DISCHARGE}:
+        # Anything else ("infeasible", a caller's own label) is not a ceiling.
+        if ceiling.get("binding") not in self._CEILING_BINDINGS:
             return None
         # The frost-free ceiling: this state is a cycle state, averaged later.
         q_ceiling = float(ceiling.get("Q_max_frost_free [W]", ceiling["Q_max [W]"]))
-        if not math.isfinite(q_ceiling) or not 0 < q_ceiling < abs(Q_r_iu):
+        if not math.isfinite(q_ceiling) or not q_ceiling > 0:
             return None
+        if q_ceiling < request:
+            x = (ceiling["dT_ref_evap [K]"], ceiling["dT_ref_cond [K]"])
+            binding = ceiling["binding"]
+        else:
+            x_below, below, reason = self._largest_deliverable_duty(
+                math.copysign(1.0, Q_r_iu), request, T0, T_a_room, self._REDUCTION_REL_TOL
+            )
+            if x_below is None or below is None or reason is None:
+                return None
+            x, binding = x_below, self._binding_of(reason)
+            if binding not in self._CEILING_BINDINGS:
+                return None
+            q_ceiling = abs(float(below["Q_ref_iu [W]"]))
+            if not 0 < q_ceiling < request:
+                return None
         state = self._calc_state(
-            dT_ref_evap=ceiling["dT_ref_evap [K]"],
-            dT_ref_cond=ceiling["dT_ref_cond [K]"],
+            dT_ref_evap=x[0],
+            dT_ref_cond=x[1],
             Q_r_iu=math.copysign(q_ceiling, Q_r_iu),
             T0=T0,
             T_a_room=T_a_room,
@@ -1919,7 +2171,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 "capacity_clamped": CAPACITY_CLAMPED_MAX,
                 "Q_request [W]": Q_r_iu,
                 "Q_max [W]": q_ceiling,
-                "capacity_binding": ceiling["binding"],
+                "capacity_binding": binding,
             }
         )
         return state
@@ -1971,13 +2223,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
               and the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``, ``"cycle_invalid"``
               (the refrigerant cycle itself was infeasible), ``"pr_above_max"``,
-              ``"discharge_temp_above_max"`` (no duty keeps the discharge
-              temperature within ``T_dis_max``; a request above that limit
-              that a smaller duty meets returns the ceiling with
-              ``capacity_binding="discharge_temperature"``),
-              ``"hx_not_converged"`` (cycle OK but the HX residual exceeded
-              tolerance), or ``"optimizer_failed"`` (SciPy reported
-              ``success=False``).
+              ``"discharge_temp_above_max"``, ``"eta_isen_below_min"`` (the
+              compressor envelope refuses the request where it is easiest to
+              meet -- at its least-lift point -- and no smaller duty runs
+              either; a request that a smaller duty meets returns that duty
+              with ``capacity_clamped="max"`` and ``capacity_binding`` naming
+              the limit), ``"hx_not_converged"`` (cycle OK but a coil cannot
+              carry the duty inside the approach bounds), or
+              ``"optimizer_failed"`` (SciPy reported ``success=False``).
 
             ASHP triggers an off-mode fallback for any of the non-``"none"``
             reasons — ``E_cmp [W]`` will be 0 and the COP keys will be NaN
@@ -1998,9 +2251,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
             degradation; temperatures, pressures and speed are those of
             the running machine (:mod:`tmhp.cycling`). A request above
             the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
-            and ``capacity_binding``.
+            and ``capacity_binding`` (``"compressor"``,
+            ``"discharge_temperature"``, ``"pressure_ratio"``,
+            ``"compressor_efficiency"`` or ``"cycle"``; see
+            :meth:`max_capacity`).
 
-            Heating at or below the frost model's outdoor limit (5 degC) is
+            Heating below the frost model's outdoor limit (5 degC; the
+            correction grows to its full size at 2 degC) is
             the mean over frosting and defrost (:mod:`tmhp.defrost`):
             ``defrost_fraction [-]`` is the share of the runtime spent
             defrosting, ``frost_capacity_factor [-]`` and
@@ -2076,7 +2333,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # less than asked, which is operation, not failure.
             opt_fun = float(getattr(opt_result, "fun", OBJ_INFEASIBLE))
             opt_success = bool(getattr(opt_result, "success", False)) and opt_fun < OBJ_INFEASIBLE
-            if result is None:
+            # Why the least-lift point of this request is not an operating
+            # point, when the search found none: the limit that refuses the
+            # request where it is easiest to meet. The probe the search ends on
+            # is an arbitrary approach pair, and the limit it happens to break
+            # (the pressure ratio at 15 K + 15 K, say) need not be the one in
+            # the way.
+            least_lift_reason = getattr(opt_result, "least_lift_reason", None)
+            if (result is None or not result.get("converged", False)) and least_lift_reason is not None:
+                failure_reason = "hx_not_converged" if least_lift_reason == self._AIR_SIDE else least_lift_reason
+            elif result is None:
                 # Distinguish a pressure-ratio ceiling rejection from a generic
                 # invalid cycle so downstream consumers see the specific cause.
                 failure_reason = (
@@ -2089,10 +2355,20 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 failure_reason = "none"
 
-            if failure_reason != "none" and (result is None or not result.get("converged", False)):
-                # The air-side/cycle envelope can bind before the compressor's
-                # speed limit. A larger request then has no feasible exact-duty
-                # point even though the machine can operate at its ceiling.
+            unsolved = failure_reason != "none" and (result is None or not result.get("converged", False))
+            limited = (
+                failure_reason == "none"
+                and result is not None
+                and result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+            )
+            if unsolved or limited:
+                # The request has no operating point of its own: the compressor
+                # runs out of speed, or the envelope or a coil binds first. The
+                # unit then runs at its ceiling (:meth:`max_capacity`), which is
+                # solved rather than searched -- ranking capacity-limited
+                # candidates by delivered heat walks into states that starve
+                # the outdoor coil (see :meth:`max_capacity`). A capacity-limited
+                # search result stands only if the ceiling cannot be solved.
                 # Match the existing numerical off-state fallback if the
                 # envelope search itself encounters an invalid cycle.
                 with contextlib.suppress(Exception):
@@ -2128,7 +2404,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 # By construction (failure_reason == "none") result is a dict.
                 assert result is not None
-                if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                # Only a ceiling set by a coil leaves a choice of operating
+                # point: at the speed ceiling and on an envelope limit the
+                # least-lift point is the only one that delivers the duty.
+                if (
+                    result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX
+                    and result.get("capacity_binding", BINDING_CYCLE) == BINDING_CYCLE
+                ):
                     result = self._least_power_at_ceiling(result, Q_r_iu, T0, T_a_room)
                 result["converged"] = True
                 result["failure_reason"] = "none"

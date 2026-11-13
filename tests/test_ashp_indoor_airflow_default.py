@@ -12,6 +12,7 @@ import math
 import pytest
 
 from tmhp import AirSourceHeatPump
+from tmhp.constants import c_a, rho_a
 from tmhp.hx_fan import INDOOR_AIRFLOW_PER_W
 
 
@@ -73,8 +74,8 @@ def test_the_earlier_default_gave_a_supply_temperature_near_the_room(hp):
     assert old["cop_sys [-]"] > new["cop_sys [-]"]
 
 
-def test_screening_the_grid_by_the_indoor_coil_band_does_not_change_the_ceiling(hp, monkeypatch):
-    """``_duty_is_deliverable`` skips approaches at which the indoor coil cannot carry the duty."""
+def test_the_mild_weather_ceiling_is_the_indoor_coil_and_is_solved_not_swept(hp, monkeypatch):
+    """The ceiling is one least-lift solve at the indoor coil's limit, not a ladder of grid sweeps."""
     calls = {"n": 0}
     original = hp._calc_state
 
@@ -83,15 +84,16 @@ def test_screening_the_grid_by_the_indoor_coil_band_does_not_change_the_ceiling(
         return original(*args, **kwargs)
 
     monkeypatch.setattr(hp, "_calc_state", counted)
-    kwargs = dict(T0=7.0, T_a_room=20.0, mode="heating", grid_points=7, rel_tol=5e-2)
-    screened, n_screened = hp.max_capacity(**kwargs), calls["n"]
+    ceiling = hp.max_capacity(T0=7.0, T_a_room=20.0, mode="heating")
+    # The ladder of duties on a 13 x 13 grid took several hundred cycle evaluations.
+    assert calls["n"] < 80
 
-    calls["n"] = 0
-    monkeypatch.setattr(hp, "_indoor_approach_band_for_duty", lambda *args: (0.0, math.inf))
-    unscreened, n_unscreened = hp.max_capacity(**kwargs), calls["n"]
-
-    assert screened == unscreened
-    assert n_screened < n_unscreened
     # The indoor coil at its largest airflow and the widest approach is the ceiling here.
-    assert screened["binding"] == "cycle"
-    assert screened["dT_ref_cond [K]"] == hp.dT_approach_bounds[1]
+    assert ceiling["binding"] == "cycle"
+    assert ceiling["dT_ref_cond [K]"] == pytest.approx(hp.dT_approach_bounds[1], rel=1e-6)
+    c_air = c_a * rho_a * hp.dV_iu_fan_a_max
+    ua = hp.UA_iu_rated * (hp.dV_iu_fan_a_max / hp.dV_iu_fan_a_ref) ** hp.n_iu
+    coil_limit = c_air * (1.0 - math.exp(-ua / c_air)) * hp.dT_approach_bounds[1]
+    assert ceiling["Q_max [W]"] == pytest.approx(coil_limit, rel=1e-6)
+    # The resolution of the old sweep is accepted and changes nothing.
+    assert hp.max_capacity(T0=7.0, T_a_room=20.0, mode="heating", grid_points=7, rel_tol=5e-2) == ceiling

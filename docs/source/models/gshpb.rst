@@ -67,8 +67,8 @@ machine: every other size follows the capacity, so the rated cycle is the same
 at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
 6 K below the entering fluid, COP of the cycle 4.2 with R410A and the default
 efficiency map). B0 is a brine point: the loop liquid leaves the heat pump at
--3 °C, so it is run with an antifreeze mixture (``source_fluid="MPG-25%"``);
-with the default water the point is refused (see :ref:`source-fluid`).
+-3 °C. The default loop liquid is therefore an antifreeze, 25 % ethylene
+glycol; a loop declared as water is refused there (see :ref:`source-fluid`).
 
 .. list-table::
     :header-rows: 1
@@ -87,9 +87,9 @@ with the default water the point is refused (see :ref:`source-fluid`).
     * - ``ground_flow_ref_lpm``
       - ``0.75 × hp_capacity / (ρ c · 3 K)``
       - Rated source-side heat at a 3 K loop temperature difference:
-        3.58 L/min per kW (28.7 L/min at 8 kW), shared evenly by the boreholes.
-        ``ρ c`` is that of ``source_fluid``: 3.77 L/min per kW with 25 %
-        propylene glycol.
+        ``ρ c`` is that of ``source_fluid``: 3.84 L/min per kW of the default
+        25 % ethylene glycol (30.8 L/min at 8 kW), 3.58 of water, shared evenly
+        by the boreholes.
     * - ``E_pmp``
       - ``75 W/ton × hp_capacity``
       - Upper bound of ASHRAE ground-loop pumping grade B, 21.3 W per kW
@@ -133,7 +133,7 @@ Two relations hold in every running result (``analyze_steady`` and each
   from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
   ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
   could not be bracketed, as on the pressure-ratio floor). On the speed floor
-  the result no longer depends on the request.
+  the running machine no longer depends on the request.
 
 The evaporator approach is searched between 1 and 20 K and, when the heat
 exchanger already carries the duty at 1 K (a compressor at low speed against
@@ -142,12 +142,16 @@ an evaporator sized for the full capacity), down to 0.05 K.
 .. _source-fluid:
 
 Ground-loop liquid and its freezing limit
-=========================================
+==================================
 
 ``source_fluid`` says what circulates between the borefield and the
 evaporator (:mod:`tmhp.source_fluid`). The same argument and the same rule
 apply to :class:`tmhp.GroundSourceHeatPump` and
-:class:`tmhp.WaterSourceHeatPumpBoiler`.
+:class:`tmhp.WaterSourceHeatPumpBoiler`. Left out, the two ground-source
+models run on **25 % ethylene glycol** (``"MEG-25%"``) and the water-source
+boiler on **water**: a ground loop is rated and operated with brine (EN 14511
+B0, ISO 13256-1 liquid entering at 0 °C), and of the common fills this one
+stays turbulent in the default U-tube at the default flow.
 
 .. list-table::
     :header-rows: 1
@@ -159,7 +163,13 @@ apply to :class:`tmhp.GroundSourceHeatPump` and
       - ``ρ c`` vs water
       - Viscosity
       - Conductivity
-    * - ``"water"`` (default)
+    * - ``"MEG-25%"`` (default of GSHP and GSHPB)
+      - -11.0 °C
+      - -8.0 °C
+      - 0.93
+      - 3.7 mPa s
+      - 0.465 W/(m K)
+    * - ``"water"`` (default of WSHPB)
       - 0.0 °C
       - 3.0 °C
       - 1.00
@@ -183,12 +193,6 @@ apply to :class:`tmhp.GroundSourceHeatPump` and
       - 0.94
       - 7.1 mPa s
       - 0.428 W/(m K)
-    * - ``"MEG-25%"``
-      - -11.0 °C
-      - -8.0 °C
-      - 0.93
-      - 3.7 mPa s
-      - 0.465 W/(m K)
     * - ``"MEG-30%"``
       - -14.6 °C
       - -11.6 °C
@@ -205,9 +209,11 @@ apply to :class:`tmhp.GroundSourceHeatPump` and
 ``MPG`` is propylene glycol, ``MEG`` ethylene glycol; the number is the
 concentration by mass, anything from 5 to 60 % (``"MPG-33%"``). Freezing point
 and properties of a mixture are read from CoolProp's incompressible mixtures
-(``INCOMP::MPG``, ``MEG``, ``MEA``) at 0 °C, the liquid inlet of the brine
-rating points, and are constants during a run; water keeps the constants the
-models have always used (1000 kg/m³, 4186 J/(kg K), 1.0 mPa s, 0.606 W/(m K)).
+(``INCOMP::MEG``, ``MPG``, ``MEA``: the fits of Å. Melinder, *Properties of
+Secondary Working Fluids for Indirect Systems*, IIR, 2010) at 0 °C, the liquid
+inlet of the brine rating points, and are constants during a run; water keeps
+the constants the models have always used (1000 kg/m³, 4186 J/(kg K),
+1.0 mPa s, 0.606 W/(m K)).
 A :class:`tmhp.source_fluid.SourceFluid` built by hand stands for any other
 liquid or any other limit.
 
@@ -237,20 +243,20 @@ happened.
 
 .. code-block:: python
 
-   water = GroundSourceHeatPumpBoiler()                        # 8 kW, water
+   gshpb = GroundSourceHeatPumpBoiler()                        # 8 kW, 25 % ethylene glycol
+   gshpb.analyze_steady(T_tank_w=35, T_source=0, Q_ref_tank=8000)    # 8.0 kW, leaves at -3.0 °C
+   gshpb.analyze_steady(T_tank_w=35, T_source=-6, Q_ref_tank=8000)   # 5.5 kW, leaves at -7.9 °C
+   gshpb.analyze_steady(T_tank_w=35, T_source=-10, Q_ref_tank=8000)  # off: source_fluid_freezing
+
+   water = GroundSourceHeatPumpBoiler(source_fluid="water")
    water.analyze_steady(T_tank_w=45, T_source=10, Q_ref_tank=8000)   # 8.0 kW, leaves at 7.1 °C
    water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.7 kW, leaves at 3.0 °C
    water.analyze_steady(T_tank_w=45, T_source=0, Q_ref_tank=8000)    # off: source_fluid_freezing
 
-   brine = GroundSourceHeatPumpBoiler(source_fluid="MPG-25%")
-   brine.analyze_steady(T_tank_w=35, T_source=0, Q_ref_tank=8000)    # 8.0 kW, leaves at -3.0 °C
-   brine.analyze_steady(T_tank_w=35, T_source=-5, Q_ref_tank=8000)   # 5.0 kW, leaves at -6.8 °C
-   brine.analyze_steady(T_tank_w=35, T_source=-10, Q_ref_tank=8000)  # off: source_fluid_freezing
-
-**What the mixture changes.** Its ``ρ c`` enters the loop temperature
+**What the loop liquid changes.** Its ``ρ c`` enters the loop temperature
 difference, the evaporator effectiveness and the default flow (which keeps the
 3 K); its viscosity and conductivity enter the borehole resistance ``R_b`` (the
-film inside the U-tube) and the laminar-flow warning. Four things do not
+film inside the U-tube) and the laminar-flow warning. Five things do not
 follow it:
 
 - ``UA_ground`` is the conductance you give or ``0.18 × hp_capacity``; it is not
@@ -263,20 +269,24 @@ follow it:
   ``ground_flow_control="optimal_power"``), the flow-dependent borehole
   resistance (``variable_Rb``) and the fluid-temperature closure of the
   coupled ground-flow solver are evaluated with the properties of water
-  (:mod:`tmhp.ground_loop`, :mod:`tmhp.ground_flow_control`). With a mixture
-  the constructor says so in a ``UserWarning``; the pump power of the
-  hydraulic model is then understated.
+  (:mod:`tmhp.ground_loop`, :mod:`tmhp.ground_flow_control`), also for the
+  default glycol. The pump power of the hydraulic model is then understated
+  (the pipe loss is computed at 1.0 instead of 3.7 mPa s), and the loop
+  temperature of the coupled solver is closed with a heat-capacity flow 7 %
+  too large: a 16 °C borehole wall is reported as 15.97 °C. For these options
+  ``source_fluid="water"`` is the consistent choice above 6 °C. A model whose
+  ``source_fluid`` you chose says so in a ``UserWarning``; one left on its
+  default does not.
+- :meth:`tmhp.borefield.FieldGroundResponse.attach` evaluates the borehole
+  resistance of its field for water.
 
 - The dynamic borehole response (``borehole_dynamics``, on by default) is built
   with the heat capacity and density of water
   (:func:`tmhp.borehole_capacity.enable_borehole_dynamics`). It cancels the
   loop temperature difference ``Q / (2 ṁ c)`` at the start of a run with
-  water's ``ṁ c``, 5 % larger than that of the default flow of 25 % propylene
-  glycol: the liquid entering the heat pump then starts 0.08 K above the
-  ground instead of at it (8 kW machine). The fluid temperatures a dynamic
-  row *reports* (``T_bhe_f*``) are likewise split around the mean with
-  water's ``ṁ c`` and can differ by that much from the ones the cycle of the
-  step was solved and the freezing limit was checked with.
+  water's ``ṁ c``, 7 % larger than that of the default flow of the default
+  glycol: the liquid entering the heat pump then starts 0.11 K above the
+  ground instead of at it (8 kW machine, rated duty).
 
 The flow optimiser of ``ground_flow_control="optimal_power"`` does not know
 the limit either: it picks the flow of least total power, which near the limit
@@ -286,17 +296,22 @@ the flow (constant control, ``ground_flow_lpm``) for a loop that runs near its
 limit.
 
 At 0 °C a glycol mixture is four to seven times as viscous as water. In the
-default 26 mm U-tube the default flow then sits near the laminar limit for a
-borehole serving less than about 4 kW (``Re`` 2300 at 15 L/min of 25 %
-propylene glycol), the borehole resistance rises by half and the constructor
-warns: give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
+default 26 mm U-tube the default 3 K flow of the default 25 % ethylene glycol
+is turbulent down to about 2.6 kW per borehole (``Re`` 2300 at 10 L/min;
+3520 for a 4 kW borehole, 7040 for 8 kW). Below that, and for propylene
+glycol of the same strength below about 4 kW per borehole, the flow is
+laminar, the borehole resistance rises by half and the constructor warns:
+give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
 
 .. note::
 
    Until November 2026 the loop liquid was water with no freezing point: a
    cold source returned a running cycle with "water" at -3 °C (B0) or -12 °C.
-   Those points are now reduced or refused for the default water. To run
-   them, name the antifreeze the loop is filled with. To reproduce the
+   The ground-source models now default to 25 % ethylene glycol, which runs
+   down to -8.0 °C and whose properties move the results a little (system
+   COP of the 4 kW ``GroundSourceHeatPump`` against a 0 °C borehole wall
+   3.508, 3.520 before; B0/W35 and B0/W55 of this boiler unchanged at 3.847
+   and 2.404), and a loop declared as water stops at 3 °C. To reproduce the
    earlier numbers exactly -- the properties of water and no limit to speak
    of -- pass a hand-built fluid:
 
@@ -306,6 +321,89 @@ warns: give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
 
       legacy = SourceFluid("water without a freezing point", -60.0, rho=1000.0, cp=4186.0, mu=0.001, k=0.606)
       gshpb = GroundSourceHeatPumpBoiler(source_fluid=legacy)
+=======
+.. _boiler-steady-cycling:
+
+Steady state below the minimum capacity
+=======================================
+
+A request below what the compressor delivers at ``rps_min`` is met by
+switching it on and off. ``analyze_steady`` reports such a point
+(``capacity_clamped == "min"``) as the mean over the cycling period, with the
+same keys as :doc:`ashp` and :doc:`gshp` (:mod:`tmhp.cycling`):
+
+- ``Q_ref_tank [W]`` equals the request. ``Q_min [W]`` is the duty of the
+  running machine and ``capacity_ratio [-]`` the request divided by it (the
+  *CR* of EN 14825).
+- ``runtime_fraction [-]``, the share of the time the compressor runs, equals
+  *CR*: heat and refrigerant rates (``Q_ref_tank``, ``Q_ref_ground``,
+  ``m_dot_ref``) are the running values times it. This is how a dynamic step
+  reports a compressor that ran part of the step.
+- The electrical inputs (``E_cmp``, ``E_pmp``, ``E_tot``) carry the EN 14825
+  degradation for a unit delivering to water,
+  ``COP = COP_min · CR / (Cc · CR + 1 − Cc)``. The standard takes the start-up
+  loss of a hydronic unit as negligible and charges the power the unit draws
+  while its compressor is off; ``Cc`` is one minus that power over the
+  running input. The mean input is therefore the running input times
+  ``CR + (1 − Cc)(1 − CR)``, and both COPs are the continuous ones times
+  ``part_load_factor [-]``. ``E_cycling_loss [W]`` is the off-state part.
+- ``Q_bhe [W]`` is the mean ground-side heat less the mean pump power.
+- Temperatures, pressures and speed are those of the running machine; the
+  loop flow keeps its running value, as in a dynamic step.
+
+``Cd_cycling`` is that coefficient ``Cc`` (the constructor argument has the
+same name in every family). The default 0.9 is the value the standard
+prescribes for a unit that has not been tested: an off-state draw of a tenth
+of the running input. For a unit with a measured standby power use
+``Cd_cycling = 1 − P_off / P_on``; ``1.0`` is loss-free cycling; ``None``
+returns the continuous minimum-speed point, which delivers more than the
+request (the behaviour before this report existed).
+
+.. list-table:: EN 14825 degradation with ``Cc = 0.9``
+   :header-rows: 1
+   :widths: 25 25 25 25
+
+   * - ``capacity_ratio``
+     - ``part_load_factor``
+     - Mean input / running input
+     - ``runtime_fraction``
+   * - 0.1
+     - 0.526
+     - 0.190
+     - 0.1
+   * - 0.2
+     - 0.714
+     - 0.280
+     - 0.2
+   * - 0.4
+     - 0.870
+     - 0.460
+     - 0.4
+   * - 0.6
+     - 0.938
+     - 0.640
+     - 0.6
+   * - 0.8
+     - 0.976
+     - 0.820
+     - 0.8
+   * - 1.0
+     - 1.000
+     - 1.000
+     - 1.0
+
+The default machine (8 kW, R410A) at a 0 °C source and a 35 °C tank delivers
+3.05 kW at its minimum speed. A 400 W request used to return those 3.05 kW at
+896 W of input; it now returns 400 W at 195 W (system COP 2.05 against 3.40
+for the running machine), and a 2 kW request 2 kW at 619 W (COP 3.23).
+
+A dynamic run is not affected. There the tank thermostat switches the
+compressor, which runs at ``hp_capacity`` — not at its minimum speed — for
+``runtime_fraction [-]`` of a step, and the row already is the step mean
+(next section). No standby power is added to the off time of a dynamic run:
+the 10 % default belongs to the standard's part-load points, and applied to
+a storage heater whose compressor runs a fifth of the day it would add more
+than 40 % to the daily electricity.
 
 Dynamic operation
 =================

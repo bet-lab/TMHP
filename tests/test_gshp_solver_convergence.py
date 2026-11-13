@@ -80,13 +80,16 @@ def test_low_cooling_requests_are_met_or_flagged_at_minimum_speed(hp):
     rows = [steady(hp, load, 27.0, 10.0) for load in (1000.0, 2000.0)]
     for load, row in zip((1000.0, 2000.0), rows, strict=True):
         assert row["converged"]
-        delivered = row["Q_ref_iu [W]"]
+        # Met exactly either way: in continuous operation, or as the mean of
+        # on/off cycling at the minimum speed (tmhp.cycling), flagged "min".
+        assert row["Q_ref_iu [W]"] == pytest.approx(load, rel=1e-9)
         if row["capacity_clamped"] == "min":
-            assert delivered > load
+            assert row["Q_min [W]"] > load
+            assert 0.0 < row["runtime_fraction [-]"] < 1.0
         else:
             assert row["capacity_clamped"] is None
-            assert delivered == pytest.approx(load, rel=1e-9)
-    assert rows[0]["Q_ref_iu [W]"] != rows[1]["Q_ref_iu [W]"] or rows[0]["capacity_clamped"] == "min"
+            assert row["runtime_fraction [-]"] == 1.0
+    assert rows[0]["capacity_clamped"] == "min"
 
 
 def test_wall_temperature_is_used_and_closes_through_borehole_resistance(hp):

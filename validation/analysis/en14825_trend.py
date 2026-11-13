@@ -233,7 +233,11 @@ def variants() -> tuple[Variant, ...]:
 def trajectory(
     variant: Variant, capacity_w: float, refrigerant: str, application: str, oversizing: float
 ) -> list[dict]:
-    model = AirSourceHeatPumpBoiler(hp_capacity=capacity_w, ref=refrigerant, **variant.kwargs)
+    # The declared COP of a part-load condition belongs to the capacity the unit
+    # runs at there; the standard applies the cycling degradation afterwards, in
+    # the bin calculation. Compare with the running machine, not with the mean
+    # over the cycling period that analyze_steady reports by default.
+    model = AirSourceHeatPumpBoiler(hp_capacity=capacity_w, ref=refrigerant, Cd_cycling=None, **variant.kwargs)
     design_load = capacity_w * oversizing
     rows = []
     for label, t_outdoor, lwt, load_ratio in EN14825_POINTS[application]:

@@ -38,7 +38,7 @@ Q_LINE = 27.0  # W/m, extraction per metre of borehole
 # "Steady" is the inside of the borehole (a resistance, no heat capacity); the
 # ground is transient in both models.
 FLOW_LPM = 24.0  # L/min through the borehole (the 8 kW default is 28.7)
-LABEL_STEADY = r"steady: $R_b$ + line-source $g$"
+LABEL_STEADY = r"steady: $R_b^*$ + FLS $g$"
 LABEL_DYNAMIC = "default: with borehole dynamics"
 ON_MIN, OFF_MIN = 10, 20
 

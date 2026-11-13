@@ -84,6 +84,7 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, rho_w
+from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
     TANK_LEVEL_MIN,
@@ -135,6 +136,7 @@ from .hybrid_tank import HybridStratifiedTank
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
 from .source_fluid import (
+    GROUND_LOOP_FLUID_DEFAULT,
     SOURCE_FLUID_FREEZING,
     SourceFluid,
     limit_duty_to_source_freeze,
@@ -184,7 +186,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     - ``UA_tank_hx = hp_capacity / 5`` [W/K] (5 K condensing approach);
     - ``UA_ground = 0.18 * hp_capacity`` [W/K];
     - source-loop flow ``ground_flow_ref_lpm = 0.75 * hp_capacity / (rho c * 3 K)``
-      (3.58 L/min per kW);
+      (3.84 L/min per kW of the default glycol, 3.58 of water);
     - ``E_pmp = 75 W/ton * hp_capacity`` (21.3 W per kW, ASHRAE pumping grade B
       upper bound; used when ``hydraulic_pump`` is off);
     - ``N_1``, ``N_2``, ``H_b``: with none given, 200 m boreholes on a
@@ -204,14 +206,29 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     the ground fluid of that same step.
 
     ``source_fluid`` names the liquid of the ground loop
-    (:mod:`tmhp.source_fluid`): ``"water"`` (default) or an antifreeze mixture
-    such as ``"MPG-25%"``. The loop liquid is never colder than its operating
-    limit, the freezing point plus 3 K (3 °C for water): a duty that would
+    (:mod:`tmhp.source_fluid`): 25 % ethylene glycol by default
+    (``"MEG-25%"``, freezing at -11.0 °C), or ``"water"``, another mixture
+    such as ``"MPG-30%"``, or a :class:`~tmhp.source_fluid.SourceFluid`. The
+    loop liquid is never colder than its operating limit, the freezing point
+    plus 3 K (-8.0 °C for the default, 3 °C for water): a duty that would
     chill it further is reduced to the largest one that does not
     (``capacity_binding == "source_fluid_freezing"``), and when no duty does
     the compressor stays off with ``failure_reason == "source_fluid_freezing"``.
-    A ground loop that runs near or below 0 °C -- the EN 14511 brine point
-    B0 included -- therefore needs an antifreeze mixture.
+    The EN 14511 brine point B0 (liquid in at 0 °C, out at -3 °C) runs on
+    the default; a loop filled with water does not.
+
+    **Below the minimum capacity.** ``analyze_steady`` reports a request below
+    what the compressor delivers at ``rps_min`` as the mean of on/off cycling
+    (``capacity_clamped == "min"``, :mod:`tmhp.cycling`): ``Q_ref_tank [W]``
+    equals the request, ``runtime_fraction [-]`` is the share of the time the
+    compressor runs, and the electrical input carries the EN 14825 degradation
+    of a unit delivering to water -- ``Cd_cycling`` is its coefficient ``Cc``
+    (0.9: while the compressor is off the unit draws a tenth of its running
+    input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
+    ``Cd_cycling=None`` returns the continuous minimum-speed point, which
+    delivers more than the request. Dynamic runs are not affected: there the
+    tank thermostat switches the compressor, which runs at ``hp_capacity`` for
+    ``runtime_fraction [-]`` of a step.
 
     **Borehole dynamics.** ``borehole_dynamics=None`` (default) adds the heat
     capacity of fluid, pipe and grout and the fluid transit through the
@@ -243,6 +260,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         "Q_tank_load [W]",
         "m_dot_ref [kg/s]",
     )
+    #: The same rates as ``analyze_steady`` averages them when the unit cycles
+    #: (:meth:`_report_part_load`): heat and refrigerant rates with the
+    #: capacity ratio, electrical inputs with the power fraction. ``Q_bhe`` and
+    #: ``E_cmp_plus_pmp`` follow from the averaged terms.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = ("Q_ref_ground [W]", "Q_ref_tank [W]", "m_dot_ref [kg/s]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
+    _CYCLING_SOURCE_HEAT_KEY: str | None = "Q_ref_ground [W]"
     _RATING_FAMILY = "GSHPB"
     _RATING_DEFAULT_MODE = "heating"
 
@@ -372,12 +396,18 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ground_hx_constant_fraction: float = 0.2,
         ground_hx_fluid_exponent: float = 0.8,
         ground_hx_refrigerant_exponent: float = 0.8,
-        source_fluid: str | SourceFluid = "water",
+        # On/off cycling below the minimum continuous capacity in analyze_steady:
+        # EN 14825 degradation coefficient Cc of a unit delivering to water
+        # (None: no cycling, the row over-delivers at the minimum speed).
+        Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
+        source_fluid: str | SourceFluid | None = None,
     ) -> None:
         validate_ctor("GSHPB", locals())
+        #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Liquid of the ground loop: its properties enter the source-side
         # balances, its freezing point the operating limit (tmhp.source_fluid).
-        fluid = resolve_source_fluid(source_fluid)
+        fluid = resolve_source_fluid(source_fluid, GROUND_LOOP_FLUID_DEFAULT)
         self.source_fluid: SourceFluid = fluid
         #: Set once a dynamic run has reported the freezing limit (one warning per run).
         self._source_freeze_warned: bool = False
@@ -624,7 +654,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
-        warn_if_loop_modelled_as_water(fluid, self._ground_settings, "GroundSourceHeatPumpBoiler")
+        warn_if_loop_modelled_as_water(
+            fluid, self._ground_settings, "GroundSourceHeatPumpBoiler", chosen=source_fluid is not None
+        )
 
         # Subsystems
         self.stc = stc
@@ -1755,7 +1787,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T_bhe_K = cu.C2K(self.Ts - dT_bhe)
         self.T_bhe = self.Ts - physical_wall_rise(coupler, n, time_arr, dT_bhe)
         R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
-        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
 
         T_bhe_f_K, self.T_bhe_f_in_K, T_bhe_f_out_K = self._borehole_fluid_K(T_bhe_K, Q_net_avg, R_b, m_cp_b)
@@ -2328,6 +2360,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         result.update({"Q_tank_loss [W]": 0.0, "tank_level [-]": 1.0})
         return result
 
+    def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
+        """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
+
+        A row on the compressor's speed floor that delivers more than the
+        request becomes the mean over the on/off cycling period
+        (:func:`tmhp.cycling.report_boiler_cycling`): the rates a dynamic step
+        averages with its run time are multiplied by ``capacity_ratio [-]``,
+        the electrical inputs by ``capacity_ratio / part_load_factor``.
+        """
+        report_boiler_cycling(
+            result,
+            self.cycling,
+            Q_ref_tank,
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
+            hp_capacity=self.hp_capacity,
+        )
+
+    @steady_cycling(duty_arg="Q_ref_tank")
     @source_freeze_limited(duty_arg="Q_ref_tank", off="_steady_freeze_off")
     @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
@@ -2390,6 +2442,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               :mod:`tmhp.ground_flow_control` apply.
             - ``"failure_detail"`` (str, failures only) — which check
               rejected a ``"cycle_invalid"`` point.
+            - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A request below the
+              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
+              request (``Q_min [W]`` is the continuous duty), heat and
+              refrigerant rates are the running machine's times
+              ``capacity_ratio [-]`` -- the compressor runs that share of the
+              time, ``runtime_fraction [-]`` -- and the electrical inputs
+              carry the EN 14825 degradation for a unit delivering to water
+              (``Cd_cycling``: the running values times
+              ``capacity_ratio / part_load_factor``), so both COPs are the
+              continuous ones times the part-load factor. Temperatures,
+              pressures and speed are those of the running machine. With
+              ``Cd_cycling=None`` the row is the continuous minimum-speed
+              point and ``Q_ref_tank [W]`` exceeds the request.
+              The loop pump is averaged like the compressor, and
+              ``Q_bhe [W]`` is the mean ground-side heat less that pump power.
 
             Every reason other than ``"none"`` comes with an off-mode state:
             ``hp_is_on=False``, ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN

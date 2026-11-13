@@ -139,9 +139,10 @@ below its peak, the compressor speed equals ``rps_min``.
     Under the same conditions as before (air 7 °C, water 42.5 °C, 9 kW R32) the
     outdoor fan now stays above 45 % of rated flow over the whole sweep and the
     air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
-    above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
-    the air-to-water model still computes no cycling loss (see below), so the sub-floor rows are a
-    continuous-operation figure at the minimum capacity, not a part-load COP.
+    above 31 % and 4.8 K. A real machine below its modulation floor cycles. The
+    sweeps on this page were run before the air-to-water model reported that
+    cycling (see below), so their sub-floor rows are a continuous-operation
+    figure at the minimum capacity, not a part-load COP.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
     At −7 °C air and 45 °C water the requests below the floor resolve to the
@@ -219,27 +220,33 @@ What is not modelled
     Below its modulation floor a real machine cycles on and off. Every start
     pushes the refrigerant pressures away from equilibrium and re-warms the heat
     exchangers, and the standard accounts for that loss with a degradation
-    coefficient applied during seasonal integration. The air-to-water model
-    (``AirSourceHeatPumpBoiler``), which every figure on this page comes from,
-    simulates continuous operation and computes no such loss, so **at light
+    coefficient applied during seasonal integration. Every air-to-water figure
+    on this page shows the running machine (``AirSourceHeatPumpBoiler`` in
+    continuous operation, what ``Cd_cycling=None`` returns), so **at light
     load it is optimistic against a machine that cycles**, and the size of that
     optimism is not estimated here.
 
-    The air-to-air model (``AirSourceHeatPump``) does apply the standard's own
-    default below its floor — EN 14825 ``C_d = 0.25`` in the form written for
-    units delivering to air — and reports the mean over the cycling period
-    (:doc:`/models/ashp`, :mod:`tmhp.cycling`). That is the coefficient the
-    standard prescribes for an untested unit, taken unchanged; it is not fitted
-    to anything here, and ``Cd_cycling=None`` restores continuous operation.
+    Both models now apply the standard's own default below their floor when
+    asked for a steady point, and report the mean over the cycling period
+    (:mod:`tmhp.cycling`): the air-to-air model (``AirSourceHeatPump``) EN
+    14825 ``C_d = 0.25`` in the form written for units delivering to air
+    (:doc:`/models/ashp`), the air-to-water model ``C_c = 0.9`` in the form
+    written for units delivering to water (:doc:`/models/ashpb`). Those are
+    the coefficients the standard prescribes for an untested unit, taken
+    unchanged; they are not fitted to anything here, and ``Cd_cycling=None``
+    restores continuous operation. A certified part-load COP is declared at
+    the capacity the unit runs at, before that degradation, so the comparisons
+    with certified values stay with the running machine.
 
 This is not an oversight to be patched with a fitted penalty. Cuevas & Lebrun
 make the same point from the hardware side: they observe the low-speed
 degradation, attribute it to oil starvation, and note that the manufacturer's
 own answer is to switch to on/off operation below 35 Hz rather than keep
-modulating. The loss lives in the cycling, and the cycling is what is absent.
+modulating. The loss lives in the cycling, and the cycling is what the
+running-machine figures leave out.
 
 A second caution concerns the degradation coefficient itself, for anyone
-tempted to add one. The published values are not interchangeable: EN 14825
+tempted to change one. The published values are not interchangeable: EN 14825
 writes ``PLF = 1 − C_d(1 − CR)`` with ``C_d = 0.25``, while Dongellini writes
 ``f_COP = CR / (1 − C_c + C_c·CR)`` with ``C_c = 0.9``. Carrying a coefficient
 from one formulation into the other means something different by it.

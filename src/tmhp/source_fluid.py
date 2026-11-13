@@ -8,8 +8,10 @@ it freezes and how cold it may run:
 - :class:`SourceFluid` -- freezing point, operating lower limit and the
   properties the source-side balances use;
 - :func:`resolve_source_fluid` -- the constructor argument ``source_fluid``
-  (``"water"`` by default, ``"MPG-25%"``, ``"MEG-30%"``, ``"ethanol-20%"``, ...
-  or a :class:`SourceFluid`);
+  (``"water"``, ``"MEG-25%"``, ``"MPG-30%"``, ``"ethanol-20%"``, ... or a
+  :class:`SourceFluid`; left out: 25 % ethylene glycol for the ground-source
+  models, :data:`GROUND_LOOP_FLUID_DEFAULT`, and water for the water-source
+  boiler);
 - :func:`limit_duty_to_source_freeze` and :func:`source_freeze_limited` -- the
   rule applied to every solved point.
 
@@ -89,9 +91,11 @@ from .constants import c_w, k_w, mu_w, rho_w
 
 __all__ = [
     "FREEZE_MARGIN_K",
+    "GROUND_LOOP_FLUID_DEFAULT",
     "PROPERTY_REFERENCE_C",
     "SOURCE_FLUID_FREEZING",
     "SOURCE_FLUID_PRESETS",
+    "WATER_LOOP_FLUID_DEFAULT",
     "SourceFluid",
     "freeze_violation",
     "limit_duty_to_source_freeze",
@@ -153,12 +157,12 @@ _MIXTURE_PATTERN = re.compile(r"^\s*([a-z]+)[\s_-]*([0-9]+(?:\.[0-9]+)?)\s*%?\s*
 #: ``_MIXTURE_RANGE_PCT`` is accepted, these are the common fills).
 SOURCE_FLUID_PRESETS: tuple[str, ...] = (
     "water",
-    "MPG-20%",
-    "MPG-25%",
-    "MPG-30%",
     "MEG-20%",
     "MEG-25%",
     "MEG-30%",
+    "MPG-20%",
+    "MPG-25%",
+    "MPG-30%",
     "ethanol-20%",
     "ethanol-25%",
 )
@@ -246,10 +250,21 @@ def _mixture(base: str, percent: float, label: str) -> SourceFluid:
 _CACHE: dict[str, SourceFluid] = {}
 
 
-def resolve_source_fluid(source_fluid: str | SourceFluid | None) -> SourceFluid:
+#: Default loop liquid of the ground-source models (GSHP, GSHPB): 25 % ethylene
+#: glycol by mass, freezing at -11.0 °C. Ground loops are rated and run with
+#: brine (EN 14511 B0, ISO 13256-1 liquid entering at 0 °C), and of the common
+#: fills this one stays turbulent in the default U-tube at the default flow
+#: (3.7 mPa s at 0 °C against 5.5 for propylene glycol of the same strength).
+GROUND_LOOP_FLUID_DEFAULT = "MEG-25%"
+#: Default loop liquid of the water-source boiler (WSHPB): plain water.
+WATER_LOOP_FLUID_DEFAULT = "water"
+
+
+def resolve_source_fluid(source_fluid: str | SourceFluid | None, default: str = "water") -> SourceFluid:
     """The :class:`SourceFluid` a constructor's ``source_fluid`` argument names.
 
-    ``"water"`` (or ``None``) is plain water. ``"<base>-<percent>%"`` is an
+    ``None`` is the family's ``default`` (:data:`GROUND_LOOP_FLUID_DEFAULT`
+    for GSHP and GSHPB, water for WSHPB). ``"water"`` is plain water. ``"<base>-<percent>%"`` is an
     antifreeze mixture by mass with ``base`` one of ``MPG`` (propylene
     glycol), ``MEG`` (ethylene glycol) or ``ethanol``, 5-60 %: its freezing
     point and properties come from CoolProp (``INCOMP::MPG``, ``MEG``,
@@ -257,7 +272,7 @@ def resolve_source_fluid(source_fluid: str | SourceFluid | None) -> SourceFluid:
     else raises ``ValueError``.
     """
     if source_fluid is None:
-        return WATER
+        source_fluid = default
     if isinstance(source_fluid, SourceFluid):
         return source_fluid
     if not isinstance(source_fluid, str):
@@ -295,8 +310,13 @@ def source_fluid_table(names: tuple[str, ...] = SOURCE_FLUID_PRESETS) -> list[di
     return rows
 
 
-def warn_if_loop_modelled_as_water(fluid: SourceFluid, settings: Mapping[str, Any], what: str) -> None:
+def warn_if_loop_modelled_as_water(
+    fluid: SourceFluid, settings: Mapping[str, Any], what: str, *, chosen: bool = True
+) -> None:
     """``UserWarning`` for the ground-loop options that still evaluate the loop as water.
+
+    Only for a fluid the caller ``chosen``: a model left on its default
+    liquid does not warn about it (the limitation is documented instead).
 
     The pipe pressure loss of the hydraulic pump model, the flow-dependent
     borehole resistance and the fluid-temperature closure of the coupled
@@ -305,7 +325,7 @@ def warn_if_loop_modelled_as_water(fluid: SourceFluid, settings: Mapping[str, An
     an antifreeze mixture the freezing limit and the heat pump's own
     source-side balance use the mixture; those three do not.
     """
-    if fluid.is_water:
+    if fluid.is_water or not chosen:
         return
     parts = []
     if settings.get("hydraulic_pump"):
@@ -423,6 +443,9 @@ def limit_duty_to_source_freeze(
     magnitude = abs(float(request))
     leaving, entering = _number(result, LEAVING_KEY), _number(result, ENTERING_KEY)
     refused_at = _coldest(result)
+    # A compressor on its speed floor (also one meeting a smaller request by
+    # switching on and off) has no smaller running state.
+    on_speed_floor = result.get("capacity_clamped") == "min"
 
     def refuse(reason_detail: str) -> dict:
         remedy = (
@@ -450,6 +473,8 @@ def limit_duty_to_source_freeze(
     # for the better.
     if not (magnitude > 0 and math.isfinite(magnitude)) or (math.isfinite(leaving) and leaving >= entering):
         return refuse(DETAIL_INLET)
+    if on_speed_floor:
+        return refuse(detail)
 
     def quiet(q: float) -> dict:
         with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
@@ -530,6 +555,8 @@ def limit_duty_to_source_freeze(
     for key in _REQUEST_KEYS:
         if key in best:
             best[key] = magnitude
+    if "Q_unmet [W]" in best:
+        best["Q_unmet [W]"] = max(magnitude - delivered(best, q_lo), 0.0)
     if "PLR_request [-]" in best and getattr(model, "hp_capacity", 0) > 0:
         best["PLR_request [-]"] = magnitude / model.hp_capacity
     if once:
@@ -597,6 +624,8 @@ def source_freeze_limited(duty_arg: str, off: str, delivered_key: str = "Q_ref_t
 
             return pd.DataFrame([result])
 
+        # ``__wrapped__`` stays the undecorated solve, as under the envelope decorator alone.
+        wrapped.__wrapped__ = getattr(function, "__wrapped__", function)  # type: ignore[attr-defined]
         return cast(_F, wrapped)
 
     return decorate

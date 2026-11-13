@@ -35,7 +35,12 @@ from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
+from ._opt_utils import (
+    OBJ_CAPACITY_LIMITED,
+    OBJ_INFEASIBLE,
+    margin_feasible_interval,
+    operating_point_objective,
+)
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
@@ -53,7 +58,16 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
-from .constants import c_a, c_w, rho_a, rho_w
+from .constants import c_a, rho_a
+from .cycling import (
+    CAPACITY_RATIO_KEY,
+    CD_AIR_DEFAULT,
+    PART_LOAD_FACTOR_KEY,
+    CyclingDegradation,
+    CyclingState,
+    report_cycling,
+    resolve_cycling,
+)
 from .enex_functions import (
     calc_energy_flow,
     calc_exergy_flow,
@@ -61,6 +75,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import g_step_mean, precompute_gfunction
+from .ground_coupling import AggregateGFunctionCoupler, reset_ground_coupler, run_window_preview
 from .ground_defaults import (
     BOREHOLE_DEFAULT_DEPTH,
     calc_rated_linear_load,
@@ -98,6 +113,7 @@ from .refrigerant import (
     reportable_state,
 )
 from .source_fluid import (
+    GROUND_LOOP_FLUID_DEFAULT,
     SOURCE_FLUID_FREEZING,
     SourceFluid,
     resolve_source_fluid,
@@ -132,6 +148,102 @@ WallTemperature = float | Callable[[float], float]
 #: Signed indoor-coil capacity margins at the fan flow limits (row keys).
 _IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
 _IU_MARGIN_AT_MIN_FLOW = "iu_hx_min_flow_margin [W]"
+
+
+class _RunHistory:
+    """Run-window response of a dynamic run whose compressor may cycle inside a step.
+
+    The step-mean response the model tabulates answers a load held over a
+    whole step. A compressor that cycles carries its running load for part of
+    the step only, and with a fluid-referenced response (a g-function with
+    borehole heat capacity, :mod:`tmhp.ground_coupling`) the fluid it sees is
+    the response over that part under the running load: the first-instant
+    terms of the response then cancel the ``q' R_b`` and ``Q / (2 m c_p)``
+    applied to the same load. That preview is the coupler's
+    (:func:`~tmhp.ground_coupling.run_window_preview`); this object keeps a
+    coupler on the same pulse history as the model for it. The run is taken
+    as one block at the start of the step, as for the boilers.
+
+    Nothing here loads the ground: the history holds the step-mean load of
+    each step, recorded once by the model and mirrored by :meth:`record`.
+    """
+
+    def __init__(self, g_interp: Any, n_steps: int, time_arr: np.ndarray, dt_s: float, Ts_K: float) -> None:
+        self._coupler = AggregateGFunctionCoupler(g_interp)
+        reset_ground_coupler(self._coupler, n_steps, time_arr, dt_s)
+        window = run_window_preview(self._coupler)
+        assert window is not None  # the caller checked that the response is fluid-referenced
+        self._window = window
+        self._dt = float(dt_s)
+        self._Ts_K = float(Ts_K)
+
+    @staticmethod
+    def applies(g_interp: Any) -> bool:
+        """Whether ``g_interp`` is fluid-referenced (only then is there a run window to ask for)."""
+        return getattr(g_interp, "wall_step_mean", None) is not None
+
+    def running_wall_K(self, n: int, time_arr: np.ndarray, q_mean: float, q_running: float) -> float | None:
+        """Fluid-referenced wall [K] over the run of step ``n``, or ``None`` when the load is held all step.
+
+        ``q_mean`` [W/m] is the step-mean load, ``q_running`` [W/m] the load
+        while the compressor runs; the run lasts ``q_mean / q_running`` of
+        the step, so the run under ``q_running`` carries the step's energy.
+        """
+        if q_running == 0.0:
+            return None
+        fraction = q_mean / q_running
+        if not 0.0 < fraction < 1.0 - 1e-12:
+            return None
+        return self._Ts_K - self._window(n, time_arr, q_running, fraction * self._dt)
+
+    def record(self, n: int, time_arr: np.ndarray, q_mean: float) -> None:
+        """Mirror the step-mean load the model recorded for step ``n``."""
+        self._coupler.wall_temperature_rise(n, time_arr, q_mean)
+
+
+class _StepWall:
+    """Borehole wall of one dynamic step as a function of the step's own load.
+
+    Calling it with a borefield load [W] returns the wall [K] of the step for
+    that load held over the whole step: the response to the earlier pulses
+    is fixed, and the candidate adds its own step-mean response. With a
+    dynamic borehole it is the fluid-referenced wall. Nothing is recorded.
+
+    :meth:`running` is the wall the fluid of a cycling compressor starts
+    from: the same value under the step-mean load with the steady borehole,
+    the wall over the run under the running load with the dynamic one
+    (:class:`_RunHistory`).
+    """
+
+    def __init__(
+        self,
+        model: GroundSourceHeatPump,
+        n: int,
+        time_arr: np.ndarray,
+        history_rise: float,
+        previous_q: float,
+        own_step_response: float,
+        run: _RunHistory | None,
+    ) -> None:
+        self._model, self._n, self._time = model, n, time_arr
+        self._history, self._previous_q, self._own = history_rise, previous_q, own_step_response
+        self._run = run
+
+    def __call__(self, q_total: float) -> float:
+        rise = self._history
+        delta = q_total / self._model.total_borehole_length - self._previous_q
+        if abs(delta) > 1e-6:
+            rise += delta * self._own
+        return self._model.Ts_K - rise
+
+    def running(self, q_mean_total: float, q_running_total: float) -> float:
+        """Wall [K] under the running fluid for a step-mean load and the load while running [W]."""
+        if self._run is not None:
+            length = self._model.total_borehole_length
+            wall = self._run.running_wall_K(self._n, self._time, q_mean_total / length, q_running_total / length)
+            if wall is not None:
+                return wall
+        return self(q_mean_total)
 
 
 class _IndoorSearch:
@@ -189,6 +301,11 @@ class _IndoorSearch:
                         self.Q_r_iu,
                         row.get("capacity_clamped"),
                     )
+                    # A minimum-speed candidate is met by cycling: rank it by
+                    # the mean input its row will report for the request.
+                    state = model._cycling_state(row, self.Q_r_iu)
+                    if state is not None and value < OBJ_CAPACITY_LIMITED:
+                        value = model._cycling_mean_power(row, state)
             self.rows[load_approach] = (value, status, row)
         return self.rows[load_approach]
 
@@ -224,8 +341,26 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     When the requested duty exceeds what the unit can deliver, the result is
     the delivered ceiling with ``capacity_clamped == "max"`` and
     ``Q_ref_iu [W]`` below the request; the difference is unmet load, not a
-    solver failure. A request below the minimum-speed duty runs at that speed
-    and reports ``capacity_clamped == "min"`` with the larger delivery.
+    solver failure.
+
+    **Below the minimum capacity.** A request below what the unit delivers at
+    its minimum compressor speed is met by switching the compressor on and
+    off. Such a row is reported with ``capacity_clamped == "min"`` as the mean
+    over the cycling period (:mod:`tmhp.cycling`), as for
+    :class:`~tmhp.AirSourceHeatPump`: ``Q_ref_iu [W]`` equals the request, the
+    electrical input carries the EN 14825 degradation (``Cd_cycling``, 0.25
+    for a unit delivering to air), and ``runtime_fraction [-]`` is the share
+    of the time the compressor runs. The loop pump is taken to run with the
+    compressor (it is off in the off state of this model too), so
+    ``E_pmp [W]`` is averaged like ``E_cmp [W]``; the indoor fan runs while
+    heat is delivered. The borefield carries the mean load: ``Q_bhe [W]`` of
+    a cycling row, and with it the pulse a dynamic step adds to the ground
+    history, is the mean ground-side heat, while the fluid temperatures of
+    the row are those of the running machine. ``Cd_cycling=None`` restores
+    continuous operation at the minimum speed (the row then delivers more
+    than the request). The coupled ground-flow solver
+    (``ground_flow_control`` other than ``"constant"``) does not cycle: there
+    a request below the minimum-speed duty is ``compressor_min_speed``.
 
     **Defaults that follow the capacity.** With only ``hp_capacity`` (and
     ``ref``) given, the ground side and the indoor airflow are sized from it,
@@ -233,7 +368,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
     - loop flow ``ground_flow_ref_lpm``:
       ``0.75 * hp_capacity / (rho c * 3 K)``
-      (:func:`~tmhp.ground_defaults.default_ground_flow_lpm`; 14.3 L/min for
+      (:func:`~tmhp.ground_defaults.default_ground_flow_lpm`; 15.4 L/min of the default glycol for
       4 kW), shared equally by the parallel boreholes;
     - pump power ``E_pmp``: ASHRAE pumping grade B, 75 W per ton of capacity
       (:func:`~tmhp.pump.default_ground_pump_power`; 85 W for 4 kW);
@@ -262,16 +397,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     to the same step.
 
     **Ground-loop liquid.** ``source_fluid`` (:mod:`tmhp.source_fluid`) is
-    ``"water"`` by default or an antifreeze mixture such as ``"MPG-25%"``. The
-    loop liquid is never colder than its operating limit, the freezing point
-    plus 3 K (3 °C for water): a heating duty that would chill it further is
-    reduced to the largest one that does not (``capacity_clamped == "max"``,
-    ``capacity_binding == "source_fluid_freezing"``), and when no duty does
-    the unit is off with ``failure_reason == "source_fluid_freezing"``. The
-    ISO 13256-1 ground-loop heating point (liquid entering at 0 °C) therefore
-    needs an antifreeze mixture. The mixture's density, heat capacity,
-    viscosity and conductivity enter the loop balance, the default flow and
-    the borehole resistance.
+    25 % ethylene glycol by default (``"MEG-25%"``, freezing at -11.0 °C);
+    ``"water"``, another mixture such as ``"MPG-30%"`` or a
+    :class:`~tmhp.source_fluid.SourceFluid` replace it. The loop liquid is
+    never colder than its operating limit, the freezing point plus 3 K
+    (-8.0 °C for the default, 3 °C for water): a heating duty that would
+    chill it further is reduced to the largest one that does not
+    (``capacity_clamped == "max"``, ``capacity_binding ==
+    "source_fluid_freezing"``), and when no duty does -- also when the
+    compressor is already on its speed floor -- the unit is off with
+    ``failure_reason == "source_fluid_freezing"``. The liquid's density, heat
+    capacity, viscosity and conductivity enter the loop balance, the default
+    flow and the borehole resistance.
 
     **Borehole dynamics.** ``borehole_dynamics=None`` (default) adds the heat
     capacity of fluid, pipe and grout and the fluid transit through the
@@ -288,6 +425,24 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
     _RATING_FAMILY = "GSHP"
     _RATING_DEFAULT_MODE = "cooling"
+
+    #: Heat and flow rates averaged with the capacity ratio while cycling.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ground [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "E_cmp_ref [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_bhe_f [m3/s]",
+        "ground_flow [m3/s]",
+        "m_dot_borehole [kg/s]",
+    )
+    #: Electrical powers averaged with the power fraction while cycling: the
+    #: compressor and the loop pump, which runs with it. The indoor fan moves
+    #: the delivered heat and is averaged with it.
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
 
     def __init__(
         self,
@@ -389,12 +544,17 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
         borehole_dynamics: bool | None = None,
-        source_fluid: str | SourceFluid = "water",
+        # On/off cycling below the minimum continuous capacity: EN 14825
+        # degradation coefficient Cd (None: no cycling, the unit over-delivers).
+        Cd_cycling: CyclingDegradation | float | None = CD_AIR_DEFAULT,
+        source_fluid: str | SourceFluid | None = None,
     ):
         validate_ctor("GSHP", locals())
+        #: EN 14825 cycling degradation (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
         # Liquid of the ground loop: its properties enter the source-side
         # balances, its freezing point the operating limit (tmhp.source_fluid).
-        fluid = resolve_source_fluid(source_fluid)
+        fluid = resolve_source_fluid(source_fluid, GROUND_LOOP_FLUID_DEFAULT)
         self.source_fluid: SourceFluid = fluid
         #: Set once a dynamic run has reported the freezing limit (one warning per run).
         self._source_freeze_warned: bool = False
@@ -704,7 +864,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
-        warn_if_loop_modelled_as_water(fluid, self._ground_settings, "GroundSourceHeatPump")
+        warn_if_loop_modelled_as_water(
+            fluid, self._ground_settings, "GroundSourceHeatPump", chosen=source_fluid is not None
+        )
 
         self.Ts: float = Ts
         self.Ts_K: float = cu.C2K(Ts)
@@ -1289,7 +1451,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             SOURCE_FLUID_FREEZING, arguments["Q_r_iu"], arguments["T0"], arguments["T_a_room"]
         )
         result["failure_detail"] = detail
-        return result
+        return self._report_part_load(result, arguments["Q_r_iu"])
 
     @source_freeze_limited(duty_arg="Q_r_iu", off="_freeze_off", delivered_key="Q_ref_iu [W]")
     def _solve_ground_flow(
@@ -1382,8 +1544,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         (:func:`calc_bhe_fluid_temperatures`). ``wall_K`` may be a function of
         the borefield load ``Q_bhe`` [W]: a dynamic step passes the wall
         response to the step's own load, so the fluid temperature of the row
-        belongs to the same step as its cycle (#96 G1). Otherwise the fluid
-        leaves the borefield at the model state ``T_bhe_f_out_K``.
+        belongs to the same step as its cycle (#96 G1). The fluid is closed for
+        the running load; the wall it starts from answers the step-mean load,
+        which is less than the running load when the compressor cycles
+        (:meth:`_running_wall_K`). Otherwise the fluid leaves the borefield at
+        the model state ``T_bhe_f_out_K``.
 
         Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
         ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
@@ -1483,8 +1648,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             if wall_K is None:
                 T_next = T_out
             else:
+                # The fluid-to-wall resistance and the loop temperature
+                # difference act on the load of the running machine; the wall
+                # they start from answers what the step puts on the ground
+                # (:meth:`_running_wall_K`).
                 _, _, T_next = calc_bhe_fluid_temperatures(
-                    wall_K(float(row["Q_bhe [W]"])) if callable(wall_K) else wall_K,
+                    self._running_wall_K(wall_K, row, Q_r_iu),
                     float(row["Q_bhe [W]"]),
                     self.n_boreholes,
                     self.H_b,
@@ -1574,7 +1743,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             result.update({"converged": True, "failure_reason": "none", "Q_request [W]": Q_r_iu})
             if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
                 result.update({"Q_max [W]": abs(float(result["Q_ref_iu [W]"])), "capacity_binding": "compressor"})
-            return result
+            return self._report_part_load(result, Q_r_iu)
 
         statuses = {status for _, status, _ in rows.values()}
         indoor_limited = any(
@@ -1591,7 +1760,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         if indoor_short or "ground_limit" in statuses:
             ceiling = self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, wall_K)
             if ceiling is not None:
-                return ceiling
+                return self._report_part_load(ceiling, Q_r_iu)
         if indoor_limited:
             reason = "hx_not_converged"
         elif "ground_limit" in statuses:
@@ -1602,7 +1771,132 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             reason = search.envelope_reason
         else:
             reason = "cycle_invalid"
-        return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)
+        return self._report_part_load(self._failed_operating_point(reason, Q_r_iu, T0, T_a_room), Q_r_iu)
+
+    # =============================================================
+    # Part load: cycling below the minimum capacity, unmet load above the maximum
+    # =============================================================
+
+    def _cycling_state(self, row: Mapping[str, Any], Q_r_iu: float) -> CyclingState | None:
+        """Cycling state of a continuous row the unit meets by cycling, else ``None``.
+
+        A row cycles when cycling is modelled, the compressor sits on its
+        speed floor and the row delivers more than the request.
+        """
+        if self.cycling is None or row.get("capacity_clamped") != "min" or not row.get("hp_is_on", False):
+            return None
+        delivered = abs(float(row.get("Q_ref_iu [W]", math.nan)))
+        request = abs(float(Q_r_iu))
+        if not (math.isfinite(delivered) and 0.0 < request < delivered):
+            return None
+        return self.cycling.state(request, delivered)
+
+    @staticmethod
+    def _cycling_mean_power(row: Mapping[str, Any], state: CyclingState) -> float:
+        """Mean electrical input [W] a continuous row reports once it is averaged."""
+        machine = float(row["E_cmp [W]"]) + float(row["E_pmp [W]"])
+        return machine * state.power_fraction + float(row["E_iu_fan [W]"]) * state.capacity_ratio
+
+    @staticmethod
+    def _ground_load(heating: bool, Q_ref_ground: float, E_pmp: float) -> float:
+        """Borefield load ``Q_bhe`` [W] (extraction positive) from the ground-HX duty and the pump heat."""
+        return Q_ref_ground - E_pmp if heating else -(Q_ref_ground + E_pmp)
+
+    def _mean_ground_load(self, row: Mapping[str, Any], Q_r_iu: float) -> float:
+        """Borefield load of a continuous row averaged over the step [W].
+
+        The row's own ``Q_bhe [W]`` unless the unit cycles; then the load its
+        averaged row reports (:meth:`_report_part_load`).
+        """
+        state = self._cycling_state(row, Q_r_iu)
+        if state is None:
+            return float(row["Q_bhe [W]"])
+        return self._ground_load(
+            Q_r_iu < 0,
+            state.capacity_ratio * float(row["Q_ref_ground [W]"]),
+            state.power_fraction * float(row["E_pmp [W]"]),
+        )
+
+    def _running_wall_K(self, wall_K: WallTemperature, row: Mapping[str, Any], Q_r_iu: float) -> float:
+        """Wall temperature [K] the running fluid of a continuous row is computed from.
+
+        A fixed wall is used as given. A wall that responds to the step's
+        load (a dynamic step) is asked for the load the step puts on the
+        ground: the row's own ``Q_bhe [W]`` in continuous operation, and for a
+        compressor that cycles the mean over the cycling period
+        (:meth:`_mean_ground_load`) -- through :meth:`_StepWall.running`,
+        which with a dynamic borehole returns the wall over the run under the
+        running load instead of the step mean under the mean load. Either way
+        the mean load is what the step records; the running load only sets
+        the temperature of the fluid while the compressor runs.
+        """
+        if not callable(wall_K):
+            return wall_K
+        running_load = float(row["Q_bhe [W]"])
+        mean_load = self._mean_ground_load(row, Q_r_iu)
+        running = getattr(wall_K, "running", None)
+        if running is None or mean_load == running_load:
+            return wall_K(mean_load)
+        return float(running(mean_load, running_load))
+
+    def _running_ground_side(self, row: Mapping[str, Any]) -> tuple[float, float]:
+        """Borefield load [W] and loop flow [m³/s] while the compressor runs.
+
+        The row's own values unless it is a cycling mean; then the values of
+        the running machine, recovered from the averaged ones.
+        """
+        load = float(row.get("Q_bhe [W]", 0.0))
+        flow = float(row.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s))
+        ratio = float(row.get(CAPACITY_RATIO_KEY, 1.0))
+        if not (row.get("hp_is_on", False) and 0.0 < ratio < 1.0):
+            return load, flow
+        power_fraction = ratio / float(row[PART_LOAD_FACTOR_KEY])
+        load = self._ground_load(
+            row.get("mode") == "heating",
+            float(row["Q_ref_ground [W]"]) / ratio,
+            float(row["E_pmp [W]"]) / power_fraction,
+        )
+        return load, flow / ratio
+
+    def _report_part_load(self, result: dict, Q_r_iu: float) -> dict:
+        """Write the part-load keys of a solved row and average a cycling one (in place).
+
+        Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
+        (how far the delivered heat falls short of the request, >= 0) and the
+        cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
+        floor is averaged over the cycling period: heat and flow rates and
+        the indoor fan with the capacity ratio, the compressor and the loop
+        pump with the power fraction. ``Q_bhe [W]`` and the two sums of
+        electrical input follow from the averaged terms, and
+        ``E_cmp_loss [W]`` stays ``E_cmp - E_cmp_ref`` (it then includes the
+        compressor's share of the cycling loss).
+        """
+        averaged = report_cycling(
+            result,
+            self.cycling,
+            Q_r_iu,
+            delivered_key="Q_ref_iu [W]",
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            delivery_power_keys=("E_iu_fan [W]",),
+        )
+        if averaged:
+            result["Q_bhe [W]"] = self._ground_load(
+                Q_r_iu < 0, float(result["Q_ref_ground [W]"]), float(result["E_pmp [W]"])
+            )
+            result["E_cmp_loss [W]"] = result["E_cmp [W]"] - result["E_cmp_ref [W]"]
+            if "E_cmp_plus_pmp [W]" in result:
+                result["E_cmp_plus_pmp [W]"] = result["E_cmp [W]"] + result["E_pmp [W]"]
+            result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"]
+            if math.isfinite(float(result["cop_sys [-]"])):
+                result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        request = abs(float(Q_r_iu))
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0))) if running else 0.0
+        unmet = max(request - delivered, 0.0)
+        result["Q_request [W]"] = float(Q_r_iu)
+        result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+        return result
 
     def _balanced_cell(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
         """Shrink ``[a, b]`` to its ground-balanced part (one end must be balanced)."""
@@ -1891,6 +2185,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # Step-mean *wall* responses of the run in progress (dynamic borehole only):
     # (the step-mean table they belong to, W̄ for every lag in reverse order).
     _bhe_wall_mean: tuple[Any, np.ndarray] | None = None
+    # Run-window response of the run in progress (dynamic borehole with the
+    # cycling model only; set by analyze_dynamic).
+    _bhe_run_history: _RunHistory | None = None
 
     def _bhe_wall_rise(self, n: int, time_arr: np.ndarray, pulses: np.ndarray, rise: float) -> float:
         """Physical borehole-wall rise [K] at step ``n`` for the pulses recorded up to it.
@@ -1935,26 +2232,44 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         the fluid temperatures are computed from the fluid-referenced wall
         (see :meth:`_bhe_wall_rise`), as before; only the reported wall is the
         physical one.
+
+        The ground history takes the row's ``Q_bhe [W]``: the step-mean load,
+        which for a cycling row is the mean over the cycling period, recorded
+        once. The fluid temperatures written to the row are those of the
+        running machine (:meth:`_running_ground_side`): the borehole
+        resistance and the loop temperature difference act on the running
+        load. They start from the step-mean wall under the mean load with the
+        steady borehole, and with the dynamic borehole from the wall over the
+        run under the running load (:class:`_StepWall`); the two are the same
+        thing for a row in continuous operation.
         """
         Q_bhe_unit = (
             calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
         )
+        Q_bhe_running, dV_running = self._running_ground_side(hp_result) if hp_is_on else (0.0, self.dV_b_f_m3s)
+        Q_bhe_unit_running = calc_borefield_linear_load(Q_bhe_running, self.n_boreholes, self.H_b)
+        # The run's wall is a preview: read it before this step's load is recorded.
+        run = self._bhe_run_history
+        T_run_wall_K = None if run is None else run.running_wall_K(n, time_arr, Q_bhe_unit, Q_bhe_unit_running)
 
         if abs(Q_bhe_unit - Q_bhe_unit_old) > 1e-6:
             Q_bhe_unit_pulse[n] = Q_bhe_unit - Q_bhe_unit_old
             Q_bhe_unit_old = Q_bhe_unit
+        if run is not None:
+            run.record(n, time_arr, Q_bhe_unit)
 
         # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
         dT_bhe = self._bhe_history_rise(n, time_arr, Q_bhe_unit_pulse, n + 1)
 
         self.T_bhe = self.Ts - self._bhe_wall_rise(n, time_arr, Q_bhe_unit_pulse, dT_bhe)
-        T_bhe_K = cu.C2K(self.Ts - dT_bhe)  # fluid-referenced
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
+        # Fluid-referenced wall the running fluid starts from.
+        T_bhe_K = cu.C2K(self.Ts - dT_bhe) if T_run_wall_K is None else T_run_wall_K
+        T_bhe_f_K = T_bhe_K - Q_bhe_unit_running * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * dV_running
 
-        dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
+        dT_half = float((Q_bhe_unit_running * self.total_borehole_length / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_half
         self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
         self.T_bhe_f_out_K = T_bhe_f_K + dT_half
@@ -2026,6 +2341,21 @@ class GroundSourceHeatPump(ReferenceStateMixin):
               ``"cycle"``, ``"discharge_temperature"`` or
               ``"source_fluid_freezing"``), ``"min"`` when the
               request is below the minimum-speed duty.
+            - ``"Q_request [W]"``, ``"Q_unmet [W]"`` and the cycling keys
+              ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A ``"min"`` row is the
+              mean over the on/off cycling period: ``Q_ref_iu [W]`` equals
+              the request, heat and flow rates are the running machine's
+              times ``capacity_ratio [-]`` (the indoor fan's power with
+              them), ``E_cmp [W]`` and ``E_pmp [W]`` carry the EN 14825
+              degradation (``Cd_cycling``; the running values times
+              ``capacity_ratio / part_load_factor``), ``Q_bhe [W]`` is the
+              mean ground load, and the COP keys are the continuous ones
+              times the part-load factor. Temperatures, pressures and speed
+              are those of the running machine (:mod:`tmhp.cycling`). With
+              ``Cd_cycling=None`` the row is the continuous minimum-speed
+              point and delivers more than the request.
 
             Every non-``"none"`` reason returns the HP-off state: heat and
             power are 0 and the COP keys are NaN. Those numbers describe no
@@ -2066,6 +2396,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 ground_flow_ratio=ground_flow_ratio,
                 T_bhe_wall=T_bhe_wall,
             )
+            # The coupled solver does not cycle (a speed clamp is its
+            # failure); its rows get the part-load keys of continuous operation.
+            self._report_part_load(result, Q_r_iu)
             return result if return_dict else pd.DataFrame([result])
 
         if Q_r_iu == 0:
@@ -2082,6 +2415,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 }
             else:
                 result["failure_reason"] = "none"
+            self._report_part_load(result, 0.0)
         else:
             wall_K = None if T_bhe_wall is None else cu.C2K(T_bhe_wall)
             result = self._solve_operating_point(Q_r_iu, T0, T_a_room, wall_K=wall_K)
@@ -2128,6 +2462,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         the compressor energy of intermittent operation by 4-7 % in heating
         and 11-21 % in cooling (20 min on / 40 min off and 1 h on / 2 h off
         at the default sizing; under 0.5 % in continuous operation).
+
+        A step whose request is below the minimum-speed duty is met by
+        cycling (``Cd_cycling``): its row is the mean over the step, the
+        delivered heat equals the request, and the ground history takes the
+        mean load, once. The wall of the step (``T_bhe [°C]``) answers that
+        mean load. The fluid temperatures of the row are those of the running
+        machine: the borehole resistance and the loop temperature difference
+        act on the running load. With the steady borehole they start from the
+        step-mean wall; with the dynamic borehole from the wall over the run
+        (a block of ``mean load / running load`` of the step at its start)
+        under the running load, so the fluid does not drop by the full
+        ``q' R_b`` of the running load the moment a short run begins.
         """
         validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
@@ -2172,6 +2518,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # each step's superposition is then a dot product, not a g-function evaluation per pulse.
         gbar = np.asarray(g_step_mean(self._gfunc_interp, time - time[0], dt_s), dtype=float) if tN else np.zeros(0)
         self._bhe_step_mean = (time, self._gfunc_interp, dt_s, np.ascontiguousarray(gbar[::-1]))
+        # A compressor that cycles inside a step carries its running load for
+        # part of it; with a dynamic borehole the fluid it sees is the response
+        # over that part (see _RunHistory). The steady borehole needs none.
+        self._bhe_run_history = (
+            _RunHistory(self._gfunc_interp, tN, time, dt_s, self.Ts_K)
+            if tN and self.cycling is not None and _RunHistory.applies(self._gfunc_interp)
+            else None
+        )
         g_own_step = float(gbar[0]) if tN else 0.0
 
         results_data: list[dict] = []
@@ -2196,13 +2550,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 # The history does not depend on the candidate: one dot
                 # product with the tabulated step-mean response per step.
                 history_rise = self._bhe_history_rise(n, time, Q_bhe_unit_pulse, n)
-
-                def wall_response(q_total, history=history_rise, previous_q=Q_bhe_unit_old):
-                    rise = history
-                    delta = q_total / self.total_borehole_length - previous_q
-                    if abs(delta) > 1e-6:
-                        rise += delta * g_own_step
-                    return self.Ts_K - rise
+                wall_response = _StepWall(
+                    self, n, time, history_rise, Q_bhe_unit_old, g_own_step, self._bhe_run_history
+                )
 
                 # The source fluid's freezing limit is reported once per run.
                 self._source_freeze_context = "analyze_dynamic"
@@ -2230,6 +2580,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 }
 
             assert hp_result is not None
+            if CAPACITY_RATIO_KEY not in hp_result:
+                # Off steps and the coupled solver's rows: part-load keys of a
+                # row that is not averaged.
+                self._report_part_load(hp_result, Q_r_iu_n)
             hp_is_on = bool(hp_result.get("hp_is_on", False))
 
             # BHE superposition
@@ -2247,6 +2601,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             results_data.append(hp_result)
 
         self._bhe_step_mean = None
+        self._bhe_run_history = None
         results_df = pd.DataFrame(results_data)
         results_df = self.postprocess_exergy(results_df)
         if result_save_csv_path:

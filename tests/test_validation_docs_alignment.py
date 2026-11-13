@@ -140,27 +140,37 @@ def test_readme_quotes_the_stated_biases(points: pd.DataFrame) -> None:
     cooling = _stats(daikin[daikin["mode"] == "cooling"])[1]
     cold = _stats(daikin[(daikin["mode"] == "heating") & (daikin.t_source_C <= -7.0)])[1]
     ashpb = points[_ashpb(points)]
+    frost_free = _stats(ashpb[ashpb.t_source_C >= 7.0])[1]
     plus_two = _stats(ashpb[ashpb.t_source_C == 2.0])[1]
+    minus_seven = _stats(ashpb[ashpb.t_source_C == -7.0])[1]
+    below = _stats(ashpb[ashpb.t_source_C < -7.0])[1]
     assert f"cooling runs low ({_signed(cooling)} %" in text
     assert f"-7 °C outdoor runs high ({_signed(cold)} %" in text
-    assert f"concentrated at +2 °C outdoor ({round(plus_two):+d} %)" in text
+    assert f"centred at +7 °C outdoor and above ({_signed(frost_free)} %)" in text
+    assert (
+        f"runs low where the adjustment applies ({round(plus_two):+d} % at +2 °C, "
+        f"{round(minus_seven):+d} % at -7 °C, {round(below):+d} % below;"
+    ) in text
 
 
 def test_index_prose_figures_match_the_harness(points: pd.DataFrame) -> None:
     """Figures quoted in the running text, each next to the words that name it."""
     text = _flat("docs/source/validation/index.rst")
     ashpb = points[_ashpb(points)]
-    at_two = ashpb[ashpb.t_source_C == 2.0]
-    rest = ashpb[ashpb.t_source_C != 2.0]
+    frost_free = _stats(ashpb[ashpb.t_source_C >= 7.0])
+    at_two = _stats(ashpb[ashpb.t_source_C == 2.0])[1]
+    at_minus_seven = _stats(ashpb[ashpb.t_source_C == -7.0])[1]
+    below = _stats(ashpb[ashpb.t_source_C < -7.0])[1]
     expected = (
-        f"(+{_stats(at_two)[1]:.0f} % over its {len(at_two)} points, "
-        f"{_stats(rest)[1]:+.0f} % over the other {len(rest)})"
+        f"the bias is {_signed(frost_free[1])} % over the {frost_free[2]} points at +7 °C outdoor and above, "
+        f"where the coil does not frost, {_signed(at_two)} % at +2 °C, {_signed(at_minus_seven)} % at -7 °C "
+        f"and {_signed(below)} % below -7 °C"
     )
     assert expected in text, f"index.rst lacks {expected!r}"
 
     per_unit = {slug: _stats(g) for slug, g in ashpb.groupby("slug")}
     outlier = per_unit["panasonic_wh_mxc16j9e8"][1]
-    assert f"unit runs {_signed(outlier)} % optimistic" in text
+    assert f"unit runs {_signed(outlier)} % optimistic where the set runs {_signed(_stats(ashpb)[1])} %" in text
 
     r410a = [per_unit[s][0] for s in per_unit if ashpb[ashpb.slug == s].refrigerant.iat[0] == "R410A"]
     assert f"R-410A air-to-water units sit at {min(r410a):.1f} to {max(r410a):.1f} % MAPE" in text

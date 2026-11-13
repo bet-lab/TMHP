@@ -69,7 +69,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 723 evaluated
+      - 757 attempted, 719 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -103,16 +103,19 @@ enter a headline. The compressor efficiencies are the shipped
 validity-domain guards (:doc:`defaults`), applied here unchanged, inside the
 compressor operating envelope (:doc:`/developer/reference-operating-limits`).
 
-**17 air-to-water points are not evaluated, all of them R32.** Nine (outdoor
+**21 air-to-water points are not evaluated, all of them R32.** Nine (outdoor
 −15 to −7 °C, leaving water 55 to 60 °C) stay above the R32 discharge limit of
 150 °C even with the discharge-temperature control: at that pressure ratio the
 default efficiency map's isentropic efficiency is near 0.4, and holding the
 limit would take a wetter suction than the quality of 0.9 the model allows
 (``discharge_temp_above_max``). Two, at 65 °C leaving water, condense above
 the 65 °C condensing limit of R32 (``condensing_temp_above_max``). The other
-six run, but only at a duty more than 1 % below the published one (the largest
+ten run, but only at a duty more than 1 % below the published one (the largest
 the operating envelope allows); their COP belongs to a smaller operating point
 and is not compared with the catalogue's full-load COP (``capacity_short``).
+Four of the ten, at −15 to −7 °C outdoor, met the published duty before the
+frost and defrost adjustment (:ref:`ashpb-frost`): the mean over frosting and
+defrost needs a larger frost-free duty, and that duty is outside the envelope.
 Other air-to-water points are evaluated under the control, with wet suction
 or reduced superheat.
 
@@ -134,10 +137,11 @@ point is the smallest unit at 0 °C.
       - Evaluated
       - What it is
     * - Air-to-water, 10 units
-      - 10.6 %
-      - +6.4 %
-      - 136 / 153
-      - Optimistic on average; the bias sits at +2 °C outdoor
+      - 8.4 %
+      - −4.4 %
+      - 132 / 153
+      - Centred where the coil does not frost; low at and below +2 °C, frost
+        and defrost adjusted
     * - Air-to-air, Daikin, 5 units
       - 8.7 %
       - −5.9 %
@@ -177,9 +181,14 @@ centred once frost is accounted for.** With the frost and defrost adjustment
 :doc:`/models/ashp`) the bias is −7.8 % at 0 °C, −5.1 % at −5 °C, +0.3 % at
 −10 °C and +12.3 % at −15 °C outdoor, against 0 to −3 % at 6 and 10 °C, where
 the coil does not frost. Without the adjustment the same rows ran +17 % from 0
-to −10 °C and +28 % at −15 °C. **Air-to-water runs high at
-+2 °C outdoor** (+22 % over its 30 points, +2 % over the other 123), the condition at
-which an outdoor coil frosts most and a declared COP carries defrost.
+to −10 °C and +28 % at −15 °C. **Air-to-water carries the same adjustment
+and runs low where it applies** (:ref:`ashpb-frost`): the bias is +0.4 % over
+the 63 points at +7 °C outdoor and above, where the coil does not frost,
+−6.3 % at +2 °C, −8.8 % at −7 °C and −12.5 % below −7 °C. Without the
+adjustment the same rows ran +21.6 % at +2 °C, +10.1 % at −7 °C and +0.1 %
+below: it removes the excess at the condition at which an outdoor coil frosts
+most, and takes a tenth too much in cold, dry air, where little frost forms
+but the correlation's capacity multiplier (0.875) still applies in full.
 
 A bias equal to the error is the signature of a systematic cause, so the
 Fujitsu result was checked before being published rather than after.
@@ -316,13 +325,14 @@ than of a specification input.
 pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
-effect: the three R-410A air-to-water units sit at 9.7 to 12.6 % MAPE,
-inside the 6.3 to 18.0 % spread of the air-to-water set.
+effect: the three R-410A air-to-water units sit at 7.7 to 9.3 % MAPE,
+inside the 6.3 to 10.7 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +18.0 % optimistic. Neither of its published inputs explains it:
-substituting its 12 kW sibling's rated air flow moves the bias by 1.5 points,
-and dropping its published displacement for the library default by 3.0.
+unit runs +7.1 % optimistic where the set runs −4.4 % (its 9 and 12 kW
+siblings −8.6 and −3.3 %). Neither of its published inputs explains it:
+substituting its 12 kW sibling's rated air flow moves the bias by 2.0 points,
+and dropping its published displacement for the library default by 1.6.
 What explains it is the catalogue itself. At every one of the fifteen
 conditions, the 16 kW machine's *published* COP is 8 to 22 % below the 9 kW
 machine's from the same product line:

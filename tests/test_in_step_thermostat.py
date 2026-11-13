@@ -201,7 +201,10 @@ def test_set_point_above_boiling_is_refused():
 
 def _model(family: str, **kw):
     if family == "ASHPB":
-        return AirSourceHeatPumpBoiler(ref="R32", **kw), {}
+        # R32 charges this tank to its 65 °C set point at 70 °C condensing,
+        # above the R32 condensing limit (65 °C); the limit is off so that the
+        # thermostat, not the envelope, ends each run.
+        return AirSourceHeatPumpBoiler(ref="R32", **{"T_cond_max": None, **kw}), {}
     # UA_tank_hx = 2000 W/K keeps the condensing approach small enough for the
     # default R410A machine to run across the 60-65 °C band (the default
     # 500 W/K has no operating point above ~56 °C, a separate defect).
@@ -308,7 +311,7 @@ def test_draw_and_capped_run_in_the_same_step():
 
 def test_step_reports_step_average_rates():
     """``step()`` (FMU/EnergyPlus contract): rates are averages over the exchange."""
-    model = AirSourceHeatPumpBoiler(ref="R32")
+    model = AirSourceHeatPumpBoiler(ref="R32", T_cond_max=None)  # runs to the 65 °C set point at nameplate duty
     state = model.make_initial_state(59.0)
     inputs = {"n": 0, "current_time_s": 0.0, "T0": 5.0, "dV_mix_w_out": 0.0, "T_sup_w": T_SUP, "T_sur": 20.0}
     state, row = model.step(state, inputs, 900.0)

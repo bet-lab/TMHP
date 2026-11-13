@@ -139,9 +139,10 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
     with pytest.warns(UserWarning, match=r"laminar, Re = 14\d\d"):
         GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0)
     # 500 W/K at 8 kW is a 16 K approach: 65 + 16 = 81 °C is above the R410A critical point.
+    # (Without the condensing limit: with it this machine is refused at its rating point.)
     for cls in FAMILIES.values():
         with pytest.warns(UserWarning, match=r"critical temperature of R410A \(71\.3 °C\)"):
-            cls(UA_tank_hx=500.0, t_max_s=86400.0)
+            cls(ref="R410A", UA_tank_hx=500.0, t_max_s=86400.0, T_cond_max=None)
     # A caller-given flow is theirs to judge.
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
@@ -328,9 +329,12 @@ def test_thermostat_off_rows_are_not_failures(default_runs, family):
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_called_step_without_a_cycle_carries_the_reason(family):
-    """An undersized tank heat exchanger (16 K approach) has no R410A cycle above ~55 °C."""
+    """An undersized tank heat exchanger (16 K approach) has no R410A cycle above ~55 °C.
+
+    Without the condensing limit, which refuses this machine at its rating point.
+    """
     dt, n = 300.0, 3
-    m = _quiet(FAMILIES[family], UA_tank_hx=500.0, dt_s=dt, t_max_s=86400.0)
+    m = _quiet(FAMILIES[family], ref="R410A", UA_tank_hx=500.0, dt_s=dt, t_max_s=86400.0, T_cond_max=None)
     df = _quiet(m.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 5.0))
     failed = df["failure_reason"] != "none"
     assert failed.any() and (df.loc[failed, "failure_reason"] == "cycle_invalid").all()

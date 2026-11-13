@@ -177,7 +177,8 @@ def test_exergy_balance_closes_on_partial_steps(family):
 
 
 def test_ashpb_tank_side_flows_use_the_solved_tank_temperature():
-    m = tmhp.AirSourceHeatPumpBoiler(ref="R32")
+    # No condensing limit: the run has to reach the 65 °C set point inside a step.
+    m = tmhp.AirSourceHeatPumpBoiler(ref="R32", T_cond_max=None)
     n = 6
     df = m.analyze_dynamic(
         n * 600, 600, 59.0, np.full(n, 3.0 / 60000.0), np.full(n, 5.0), T_sup_w_schedule=np.full(n, 15.0)

@@ -150,8 +150,13 @@ def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
 # The discharge-limit reproductions below were found on a GSHPB with the former
 # capacity-independent heat exchangers (500 W/K, 24 L/min, 200 W pump: a 16 K
 # condensing approach at 8 kW). The defaults now scale with capacity, so that
-# machine is spelled out.
-_GSHPB_UNDERSIZED_HX = dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0)
+# machine is spelled out. Its rating point (W55) condenses at 71 degC, above
+# the R410A / R32 condensing limit: the limit is off for it.
+_GSHPB_UNDERSIZED_HX = dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0, T_cond_max=None)
+# The R32 15 kW water heater of the discharge-control tests charges a tank to
+# 65 degC at 70 degC condensing, above the R32 condensing limit (65 degC): the
+# limit is off where the discharge control is what is tested.
+_R32_15KW = dict(ref="R32", hp_capacity=15000.0, T_cond_max=None)
 
 
 def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
@@ -451,7 +456,7 @@ def test_control_closes_on_the_limit_in_a_few_cycle_evaluations(monkeypatch, T_t
     finding on full cycle evaluations took eight to nine of them per candidate
     and left 1e-3 K of noise in the objective the outdoor search minimises.
     """
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, **_R32_15KW)
     calls = _count_cycle_evaluations(monkeypatch)
     state = hp._calc_state(approach, T_tank_w, 15000.0, T0, flow_state=_NO_FLOW)
     assert state["discharge_control"] is True
@@ -464,7 +469,7 @@ def test_predicted_and_bracketed_control_agree(monkeypatch):
     """Both closures find the same suction state; the bracketing one is the fallback."""
     from tmhp import compressor_envelope as envelope
 
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, **_R32_15KW)
     predicted = hp._calc_state(6.0, 65.0, 15000.0, 7.0, flow_state=_NO_FLOW)
     control = envelope._control
     # Without a fluid for the property estimate the bracketing closure runs.
@@ -495,7 +500,7 @@ def test_control_out_of_reach_costs_two_cycle_evaluations(monkeypatch):
 
 def test_steady_solve_evaluates_each_outdoor_approach_once(monkeypatch):
     """The operating point the search found is reported from the search, not solved again."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, **_R32_15KW)
     approaches: list[float] = []
     calc_state = hp._calc_state
 
@@ -546,8 +551,12 @@ def test_control_on_air_to_air_meets_the_duty_at_the_limit():
 
 
 def _one_call(T0: float, n: int = 1, dt: int = 600):
-    """R32 15 kW water heater whose thermostat calls on the first step (tank at 58 degC)."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    """R32 15 kW water heater whose thermostat calls on the first step (tank at 58 degC).
+
+    The tank passes 60 degC inside the step, where the nameplate duty condenses
+    above the R32 condensing limit; these tests are about the discharge limit.
+    """
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, **_R32_15KW)
     df = _quiet(hp.analyze_dynamic, n * dt, dt, 58.0, np.zeros(n), np.full(n, float(T0)))
     return hp, df
 
@@ -669,9 +678,9 @@ def test_duties_that_run_between_two_limits_are_found():
 
 def test_condensing_above_the_critical_point_is_not_reduced_onto_it():
     """W75 R32: 15 kW needs a 5 K condenser approach, 80 degC against a 78.1 degC critical
-    point. 7.5 kW (77.5 degC) solves, but the largest such duty would sit on the critical
-    point itself: the request stays a failure."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    point. Without a condensing limit 7.5 kW (77.5 degC) solves, but the largest such duty
+    would sit on the critical point itself: the request stays a failure."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, **_R32_15KW)
     assert _running(_steady_ashpb(hp, 75.0, 15.0, 7500.0))
     _off(_steady_ashpb(hp, 75.0, 15.0, 15000.0), "cycle_invalid")
 
@@ -689,7 +698,9 @@ def test_coil_that_absorbs_too_much_at_minimum_airflow_is_not_reduced():
     [
         ("R32", 60.0, -3.0, 15000.0, "discharge_temp_above_max"),
         ("R134a", 60.0, -25.0, 15000.0, "pr_above_max"),
-        ("R32", 75.0, 15.0, 15000.0, "cycle_invalid"),
+        # No cycle at the request (80 degC, above the critical point), and a tenth
+        # of it still condenses above the limit: that is the reason reported.
+        ("R32", 75.0, 15.0, 15000.0, "condensing_temp_above_max"),
     ],
 )
 def test_every_failure_is_the_same_off_state_row(ref, T_tank_w, T0, Q, reason):

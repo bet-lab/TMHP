@@ -47,7 +47,11 @@ long as the rated source-side heat (``0.75 × hp_capacity``) needs at 50 W/m.
 Values you pass are used as given; the constructor warns (``UserWarning``) for
 a coil above 80 W/m, a laminar default flow, and a ``T_tank_w_upper_bound``
 whose condensing temperature (set point + ``hp_capacity / UA_tank_hx``) is at
-or above the refrigerant's critical temperature.
+or above the refrigerant's critical temperature. The condensing limit of the
+compressor envelope (``T_cond_max``) acts as in :doc:`gshpb`: near it the
+duty is reduced (``capacity_binding == "condensing_temperature"``), and a
+tank at the limit stops the heat pump with
+``failure_reason == "condensing_temp_above_max"``.
 
 The cycle closures are those of :doc:`gshpb`: the suction superheat is capped
 at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound

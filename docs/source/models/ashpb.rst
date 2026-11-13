@@ -64,6 +64,15 @@ power averaged over the step; ``min_on_time_s`` / ``min_off_time_s``
 (default 0) hold the compressor to a minimum run and rest time. See
 :ref:`time-step-and-thermostat`.
 
+The upper set point has to lie inside the compressor envelope of the
+refrigerant: the cycle condenses at the tank temperature plus the condenser
+approach, and the envelope ends at ``T_cond_max`` (R134a 80 °C, R290 75 °C;
+R410A, R32 and R407C 65 °C, which reach about 60 °C in the tank; see
+:doc:`/developer/reference-operating-limits`). Near the limit the duty is
+reduced (``capacity_binding == "condensing_temperature"``); a tank at the
+limit stops the heat pump with
+``failure_reason == "condensing_temp_above_max"``.
+
 Default compressor efficiencies
 ===============================
 

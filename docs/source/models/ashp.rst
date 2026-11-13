@@ -160,7 +160,10 @@ found with ``Cd_cycling=None``.
 schedule's unmet energy is the sum of ``Q_unmet [W]`` times the time step.
 
 What stops the unit is in ``capacity_binding``. ``"compressor"`` is a
-compressor at ``rps_max``. ``"cycle"`` means the air side, the
+compressor at ``rps_max``. ``"discharge_temperature"`` and
+``"condensing_temperature"`` are the compressor envelope's limits
+(``T_dis_max``, ``T_cond_max``; :doc:`/developer/reference-operating-limits`):
+the next larger duty is deliverable once the limit is lifted. ``"cycle"`` means the air side, the
 pressure-ratio envelope or the approach-temperature search domain ran out
 first; the compressor then runs below its ceiling, and the row is the
 least-power point at that delivery rather than one that reaches the speed

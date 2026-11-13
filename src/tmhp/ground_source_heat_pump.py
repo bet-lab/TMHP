@@ -40,13 +40,13 @@ from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_DISCHARGE,
-    DISCHARGE_TEMP_ABOVE_MAX,
-    ETA_ISEN_BELOW_MIN,
+    ENVELOPE_REJECTIONS,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
+    resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -159,7 +159,7 @@ class _IndoorSearch:
             )
             if status == "invalid" and model._last_pr_event is not None:
                 self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
-                if model._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN):
+                if model._last_pr_event[0] in ENVELOPE_REJECTIONS:
                     self.envelope_reason = model._last_pr_event[0]
             value = OBJ_INFEASIBLE
             if row is not None and status in model._BALANCED:
@@ -356,6 +356,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        T_cond_max: float | Literal["auto"] | None = "auto",
     ):
         validate_ctor("GSHP", locals())
         # Ground side sized from the capacity when the caller gives none of it
@@ -447,6 +448,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
+        self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
@@ -1141,7 +1144,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 if cache[load_approach].get("failure_reason") == "cycle_invalid" and self._last_pr_event is not None:
                     cache[load_approach]["failure_reason"] = (
                         self._last_pr_event[0]
-                        if self._last_pr_event[0] in (DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN)
+                        if self._last_pr_event[0] in ENVELOPE_REJECTIONS
                         else "pressure_ratio_limit"
                     )
             return cache[load_approach]
@@ -1913,13 +1916,16 @@ class GroundSourceHeatPump(ReferenceStateMixin):
               exists: ``"hx_not_converged"`` (the indoor coil cannot carry the
               duty within its fan range), ``"ground_hx_capacity_insufficient"``,
               ``"pr_above_max"``, ``"discharge_temp_above_max"`` (no duty keeps
-              the discharge temperature within ``T_dis_max``) or
+              the discharge temperature within ``T_dis_max``),
+              ``"condensing_temp_above_max"`` (none condenses within
+              ``T_cond_max``) or
               ``"cycle_invalid"`` (coupled solver: see
               :func:`~tmhp.ground_flow_control.failed_ground_point`).
             - ``"capacity_clamped"`` — ``"max"`` when the request exceeds the
               deliverable duty (``Q_ref_iu [W]`` is the ceiling, ``Q_max [W]``
               and ``capacity_binding`` say what bound it: ``"compressor"``,
-              ``"cycle"`` or ``"discharge_temperature"``), ``"min"`` when the
+              ``"cycle"``, ``"discharge_temperature"`` or
+              ``"condensing_temperature"``), ``"min"`` when the
               request is below the minimum-speed duty.
 
             Every non-``"none"`` reason returns the HP-off state: heat and

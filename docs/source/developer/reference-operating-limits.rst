@@ -298,6 +298,136 @@ of it.
     * - ``rps_min``
       - 15 rev/s
       - Unchanged.
+    * - ``T_cond_max`` (constructor, keyword)
+      - ``"auto"``: by refrigerant (table below), never above the dew point
+        at 0.9 of the critical pressure. ``None`` switches the check off; a
+        number sets it.
+      - The top of the compressor envelope: the highest condensing pressure,
+        stated as its saturation temperature. A point above it is not an
+        operating point; see *Condensing limit* below.
+
+Condensing limit (``T_cond_max``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every published compressor envelope ends at a maximum condensing temperature,
+which is a maximum high-side pressure: the shell, the scroll set and the motor
+are built for it and the unit's high-pressure switch stops the compressor just
+above it. Before this limit the boilers returned normal operation at pressures
+no compressor is built for -- R410A charging a tank to 65 °C at 70 °C
+condensing (4.76 MPa, 97 % of the critical pressure), R32 at 77.9 °C, a
+top-coil stratified tank with R134a at 96 °C.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 14 10 76
+
+    * - Refrigerant
+      - Default
+      - Basis (upper end of the high-side working range of compressors sold for the fluid)
+    * - R410A
+      - 65 °C
+      - Copeland ZP*K3E/K5E application envelope tops at about 65.5 °C
+        (replacement guidelines C050202, fig. 2); Danfoss PSH019–039 "65 °C
+        saturated condensing temperature"; Danfoss DSH working range to
+        41.7 bar(g) = 64.9 °C (extended models 68 °C).
+    * - R32
+      - 65 °C
+      - Danfoss DSF090 working range high side to 43 bar(g) = 65.2 °C;
+        Copeland YP (R32) is stated to cover the field of application of
+        the R410A scrolls.
+    * - R407C
+      - 65 °C
+      - Danfoss HHP heat-pump scrolls: working range high side to
+        27.4 bar(g) = 65.0 °C dew point (Copeland ZR envelope: about 67 °C).
+    * - R290
+      - 75 °C
+      - Copeland ZH04KCU–ZH16KCU heat-pump scrolls: high-side PS 28 bar(g)
+        = 76.0 °C (Danfoss VZN: working range to 31.5 bar(g) = 82 °C).
+    * - R134a
+      - 80 °C
+      - Danfoss VZN with R513A, the R134a pressure class: working range high
+        side to 25.9 bar(g), 81.0 °C as R134a.
+    * - R1234yf
+      - 75 °C
+      - No envelope published for this fluid was found; the R134a pressure
+        class would allow 83.3 °C. 75 °C is about 20 K below the critical
+        point, as for R290.
+    * - R1234ze(E)
+      - 90 °C
+      - Danfoss PSG605–800: working range to 25.3 bar(g) = 93.0 °C.
+    * - R600a
+      - 100 °C
+      - Danfoss PSG605–800: working range to 19.6 bar(g) = 102.0 °C.
+    * - R717
+      - 70 °C
+      - The 40 bar class of ammonia heat-pump compressors (GEA Grasso V HP,
+        39 bar, hot water about 70 °C); 50 and 63 bar machines reach
+        82–95 °C.
+    * - any other
+      - dew point at 0.9 × ``P_crit``
+      - No published envelope reaches it, and next to the critical point the
+        condenser has almost no latent heat left. R744 gets 26.4 °C: its
+        heat pumps are transcritical, which the subcritical cycle does not
+        describe.
+
+The check compares pressures: a running state is outside when its condensing
+pressure exceeds the dew pressure at ``T_cond_max`` (by more than the pressure
+of ``CONDENSING_TOL_K`` = 0.01 K). For a zeotropic blend the envelope
+temperature is the dew point while the cycle's own condensing temperature is
+the bubble point, lower by the glide: R407C reaches the 65 °C limit when
+``T_ref_cond_sat_l`` is 61.2 °C. It is judged before the discharge
+temperature, since it depends neither on the efficiency model nor on the
+discharge-temperature control (the suction state the control moves does not
+change the condensing pressure).
+
+The condensing temperature is the demand-side temperature plus the condenser
+approach, and the approach shrinks with the duty, so the limit is answered
+like the other limits a smaller duty cures:
+
+* **ASHP, GSHP** — a candidate above the limit is rejected inside the
+  operating-point search. When that leaves a capacity ceiling the family
+  cannot name (``"cycle"``), the same request is solved once more without the
+  limit; a ceiling that then rises is reported with
+  ``capacity_binding == "condensing_temperature"``. With no deliverable duty
+  the result is the off state with
+  ``failure_reason == "condensing_temp_above_max"``.
+* **ASHPB, GSHPB, WSHPB** — the solved operating point is checked;
+  ``analyze_steady`` and each dynamic step then run at the duty that condenses
+  on the limit, with ``capacity_clamped == "max"`` and
+  ``capacity_binding == "condensing_temperature"``. That duty is not searched
+  with the ladder and bisection of the other limits: the refused request and
+  the lowest duty of the ladder give two points of the condensing temperature
+  over the duty, the secant gives the duty on the limit, and one solve
+  confirms it (exactly, for a mixed tank whose approach is ``Q / UA``; a
+  stratified tank's coil-side water warms with the duty, and the secant is
+  repeated). Three cycle solves for a step that runs against the limit, two
+  for one that cannot run. When the tank itself is at the limit no duty runs:
+  the off state with ``failure_reason == "condensing_temp_above_max"``, in a
+  dynamic run on every called step until the tank has cooled enough for the
+  minimum-speed duty.
+* A machine whose **rating point** condenses above the limit is refused at
+  construction (``ReferenceStateError`` naming the standard, the condensing
+  temperature and ``T_cond_max``): the nameplate cannot be defined outside the
+  envelope. An 8 kW R410A boiler with a 500 W/K tank coil (16 K approach,
+  71 °C at W55) is such a machine.
+
+A boiler whose upper set point is not below the limit therefore does not
+reach it. The 8 kW R410A machine (1600 W/K tank coil) against a 65 °C set
+point runs at the nameplate duty up to a 60 °C tank, at
+``1600 W/K × (64.9 °C − T_tank)`` above it, and stops near 62–63 °C where its
+minimum-speed duty no longer fits; the set point for R410A, R32 or R407C is
+60 °C, and 65 °C needs R290 or R134a (GSHPB and WSHPB default to R290 for
+this reason).
+
+Known limit: a dynamic step solves one cycle, at the tank temperature its run
+averages to (:func:`tmhp.dynamic_context.resolve_step_operation`), and applies
+its heat over the step. The limit is therefore held at that temperature, not
+at every instant: where the duty on the limit changes much within one step
+(a small tank, a long step), the temperature at which the heat pump stops
+depends on the step -- the 100 L tank above stops at 62.1 °C with 60 s steps
+and 63.0 °C with 120 s steps, and a 600 s step that starts at 55 °C carries
+the cycle of its start to the 65 °C set point. A machine whose set point is
+inside its envelope is not affected.
 
 Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
 it off, ``1`` keeps the superheat stage only) comes first. A running unit whose

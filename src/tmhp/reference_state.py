@@ -65,7 +65,7 @@ import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, make_eta_em, make_eta_isen, make_eta_vol
-from .compressor_envelope import RATED_SPEED_SEARCH_MAX, default_rps_max
+from .compressor_envelope import RATED_SPEED_SEARCH_MAX, check_rated_condensing, default_rps_max
 from .compressor_speed import solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .refrigerant import calc_ref_state
@@ -706,14 +706,24 @@ class ReferenceStateMixin:
                 rps_rated=rps_rated,
                 cache_key=cache_key,
             )
+
+            def solve_inside_envelope() -> ReferenceState:
+                # A rating point above the condensing limit is not a point the
+                # machine runs at: the nameplate cannot be defined there.
+                solved = solve_reference_state(**kwargs)
+                outside = check_rated_condensing(self, solved.T_cond_sat_C, condition.standard)
+                if outside is not None:
+                    raise ReferenceStateError(outside)
+                return solved
+
             if rps_rated is None:
-                state = solve_reference_state(**kwargs)
+                state = solve_inside_envelope()
             else:
                 # The caller fixed the machine; only m_dot_ref_rated is derived.
                 # A rating point it cannot reach leaves m_dot_ref_rated unset
                 # (and fails only if variable ground-HX UA asks for it).
                 try:
-                    state = solve_reference_state(**kwargs)
+                    state = solve_inside_envelope()
                 except ReferenceStateError as exc:
                     warnings.warn(f"m_dot_ref_rated not derived: {exc}", RuntimeWarning, stacklevel=3)
         self.rated_condition: RatingCondition = condition

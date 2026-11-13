@@ -38,6 +38,7 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
+    resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -431,6 +432,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         defrost: DefrostModel | bool | None = True,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        T_cond_max: float | Literal["auto"] | None = "auto",
     ):
         validate_ctor("ASHP", locals())
         import warnings
@@ -512,6 +514,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
+        self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
@@ -1975,6 +1979,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
               temperature within ``T_dis_max``; a request above that limit
               that a smaller duty meets returns the ceiling with
               ``capacity_binding="discharge_temperature"``),
+              ``"condensing_temp_above_max"`` (the same for the condensing
+              limit ``T_cond_max``, ``capacity_binding="condensing_temperature"``),
               ``"hx_not_converged"`` (cycle OK but the HX residual exceeded
               tolerance), or ``"optimizer_failed"`` (SciPy reported
               ``success=False``).

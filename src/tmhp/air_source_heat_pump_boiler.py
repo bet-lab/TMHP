@@ -63,6 +63,7 @@ from .compressor_envelope import (
     envelope_excess,
     envelope_violation,
     reduce_duty_within_envelope,
+    resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -372,6 +373,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        T_cond_max: float | Literal["auto"] | None = "auto",
     ):
         validate_ctor("ASHPB", locals())
         if dV_fan_a_ref is not None:
@@ -419,6 +421,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
+        self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
@@ -1496,7 +1500,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"cycle_invalid"``, ``"t_cond_below_t_in"``,
               ``"pr_above_max"``, ``"discharge_temp_above_max"`` (even
               under the discharge-temperature control and at a reduced duty
-              the discharge exceeds ``T_dis_max``), ``"eta_isen_below_min"``
+              the discharge exceeds ``T_dis_max``),
+              ``"condensing_temp_above_max"`` (even a reduced duty condenses
+              above ``T_cond_max``: the tank is too hot), ``"eta_isen_below_min"``
               (the shipped isentropic fit, extrapolated, is below 0.30),
               ``"hx_not_converged"``, or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — on
@@ -1519,6 +1525,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
               operating limit the request ran into when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
+              ``"condensing_temperature"`` (``T_cond_max``),
               ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
               coil is short at the fan's largest airflow) or
               ``"compressor_efficiency"`` (the shipped fit's floor). The

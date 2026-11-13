@@ -109,9 +109,18 @@ precedence). The constructor warns (``UserWarning``) when
 - ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
   (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
   temperature: no cycle exists there, so the tank could not reach the set
-  point. The default machine (R410A, 65 °C + 5 K = 70 °C against 71.3 °C) is
-  just inside; real R410A compressors stop near 65 °C condensing, so use
-  ``ref="R134a"`` or ``"R290"`` or a lower set point when that margin matters.
+  point.
+
+The compressor envelope also ends at a condensing pressure (``T_cond_max``,
+by refrigerant: R410A, R32, R407C 65 °C; R290 75 °C; R134a 80 °C; see
+:doc:`/developer/reference-operating-limits`). The cycle condenses at the
+tank temperature plus the tank heat-exchanger approach, so as the tank nears
+that limit the heat pump runs at the duty that condenses on it
+(``capacity_clamped == "max"``, ``capacity_binding ==
+"condensing_temperature"``) and then stops with
+``failure_reason == "condensing_temp_above_max"`` while the tank is still
+below its set point. A 65 °C set point is inside the envelope of R290 and
+R134a; R410A, R32 and R407C reach about 60 °C.
 
 Cycle closures
 ==============

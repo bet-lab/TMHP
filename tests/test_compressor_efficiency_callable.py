@@ -26,8 +26,14 @@ def test_ground_efficiency_api_and_mass_work_balances(cls, kind):
         return eff
 
     unrated = pytest.warns(RuntimeWarning, match="m_dot_ref_rated not derived")
+    # The boiler case was recorded with the former capacity-independent heat
+    # exchangers (500 W/K, 24 L/min), which this fixed machine cannot rate.
+    legacy_hx = (
+        dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0) if cls is GroundSourceHeatPumpBoiler else {}
+    )
     with unrated if cls is GroundSourceHeatPumpBoiler else contextlib.nullcontext():
         hp = cls(
+            **legacy_hx,
             ref="R410A",
             V_cmp_ref=1.2e-5,
             hp_capacity=8000,

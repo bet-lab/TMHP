@@ -258,7 +258,13 @@ variant (``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
 ``Q_stc_w_out - Q_stc_w_in = Q_solar_ground`` can be checked step by step.
 The loop runs inside the ``preheat_start_hour``–``preheat_end_hour`` window
 when the collector controller allows it (outlet at least ``dT_stc_off`` above
-the borehole wall, gain above the pump power).
+the borehole wall, gain above the pump power). The freeze protection and the
+stagnation lock-out described in :doc:`ashpb` apply
+(``stc_freeze_protected [-]``, ``stc_stagnation_lockout [-]``): the loop does
+not run while the idle collector is below ``T_stc_freeze`` or the borehole
+wall is below 0 °C (the loop carries water; ``T_stc_freeze=None`` for an
+antifreeze loop), and a collector that idled above ``T_stc_lockout`` while
+the clock window was closed is not started until it has cooled.
 
 .. autoclass:: tmhp.GSHPB_STC_ground
     :members:
@@ -275,6 +281,10 @@ While the collector is active, every step closes
 zero). On the tank route the collector is reported at the solved tank
 temperature, i.e. the heat that entered the tank balance, and charging stops
 at ``T_stc_tank_max`` within the step as in :class:`~tmhp.GSHPB_STC_tank`.
+A router that returns ``"off"`` in strong sun leaves the collector idle: at
+or above ``T_stc_lockout`` the loop is then locked out
+(``stc_stagnation_lockout [-]``) and neither route runs until the collector
+has cooled.
 
 .. autoclass:: tmhp.GSHPB_STC_routed
     :members:

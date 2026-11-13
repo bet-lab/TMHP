@@ -222,15 +222,46 @@ loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
 ``dV_stc_w`` is set. The former construction parameters (``A_stc_pipe``,
 ``alpha_stc``, ``h_o_stc`` …) are accepted with a ``DeprecationWarning``.
 
-**Loop control.** A pumped loop runs when the idle collector is
-``dT_stc_on`` (6 K) and the running outlet ``dT_stc_off`` (2 K) above the
-sink, its gain exceeds the pump power and its outlet stays below
-``T_stc_boil`` (100 °C). Charging the tank stops at ``T_stc_tank_max``
-(85 °C) within the step, and so does circulation once the outlet reaches
-``T_stc_boil`` as the tank warms: ``stc_runtime_fraction [-]`` is the share of
-the step the loop ran, and the flow, pump power and delivered heat are step
-averages. Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) +
-Q_l_stc`` with ``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
+**Loop control.** A pumped loop is run by a differential controller. A
+stopped pump starts when the idle collector is ``dT_stc_on`` (6 K) above the
+sink, provided the run would hold; a running pump runs on while its outlet
+stays ``dT_stc_off`` (2 K) above the sink. The gain must exceed the pump
+power and the outlet stay below ``T_stc_boil`` (100 °C). Charging the tank
+stops at ``T_stc_tank_max`` (85 °C) within the step, and so does circulation
+once the outlet reaches ``T_stc_boil`` as the tank warms:
+``stc_runtime_fraction [-]`` is the share of the step the loop ran, and the
+flow, pump power and delivered heat are step averages. After the tank has
+reached its limit the loop starts again only once the tank is 2 K below it.
+Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) + Q_l_stc`` with
+``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
+
+With the default flow (the ISO test flow) the running outlet is only a few
+kelvin above the inlet, so the 2 K stop threshold decides in both directions;
+the start threshold matters for low-flow loops (``dV_stc_w``).
+
+**Freeze protection.** The collector carries water (tank water or mains
+water), so the system is a drain-back one: while the idle collector is below
+``T_stc_freeze`` (4 °C) the loop does not run and the collector is drained.
+``stc_freeze_protected [-]`` marks those steps (winter nights, and dull
+winter days). ``T_stc_freeze=None`` declares a loop filled with antifreeze
+and switches the protection off; a separate antifreeze loop with a heat
+exchanger is not modelled.
+
+**Stagnation lock-out.** When the tank is at its limit the loop stops and the
+collector idles at its stagnation temperature (``T_stc_stag [°C]``, 130–160 °C
+on a clear day). Pumping tank water into an absorber that hot makes steam,
+so a loop that a protection holds off while its idle collector is at or above
+``T_stc_lockout`` (130 °C) is locked out: it is not started again, even if a
+draw cools the tank, until the collector has cooled 10 K below the lock-out
+temperature. ``stc_stagnation_lockout [-]`` marks those steps. On a clear
+day that fills the tank before noon the loop therefore collects nothing in
+the afternoon; ``T_stc_lockout=None`` switches the lock-out off. The
+collector has no heat capacity in the model, so its idle temperature is the
+equilibrium one of the step.
+
+The pump latch, the limit hold and the lock-out are state of the run: they
+travel in ``DynamicState.subsystem_state`` between ``step()`` calls, and a
+run starts with all of them cleared.
 
 STC preheat
 -----------
@@ -244,7 +275,12 @@ inflow is the reported ``T_tank_w_in [°C]``. The collector is bypassed
 outside the ``preheat_start_hour``–``preheat_end_hour`` window, without a
 draw and when it would cool the feed; when its outlet reaches
 ``T_stc_tank_max`` at the flow the end-of-step tank draws, it is bypassed for
-the rest of the step. The mains pressure drives it: no pump power.
+the rest of the step. The mains pressure drives it: no pump power. The
+freeze protection applies (bypassed and drained below ``T_stc_freeze``); the
+stagnation lock-out does not, there being no pump to hold off. Between draws
+the collector has no flow, so on a clear day it idles far above 100 °C
+(``T_stc_stag [°C]``) and the next draw passes through it: check that column
+before relying on this placement where draws are rare.
 
 .. code-block:: python
 

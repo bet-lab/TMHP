@@ -22,25 +22,58 @@ Placements
 
 Collector-loop controller (pumped loops)
 ----------------------------------------
-A differential controller as in solar domestic-hot-water systems: the pump
-runs in a step when
+A differential controller as in solar domestic-hot-water systems. Its
+collector sensor reads the idle collector (the stagnation temperature at the
+step's irradiance) while the pump is stopped and the running outlet while it
+runs:
 
-- the idle collector (its stagnation temperature at the step's irradiance) is
-  at least ``dT_stc_on`` above the sink, and the running collector outlet at
-  least ``dT_stc_off`` above it (at step resolution the start threshold is the
-  idle collector's, the run threshold the running outlet's);
-- the heat it collects exceeds the pump's electricity;
+- a stopped pump starts when the idle collector is at least ``dT_stc_on``
+  above the sink, provided the run would hold (running outlet at least
+  ``dT_stc_off`` above the sink: the collector has no heat capacity here, so
+  a run the stop rule would end at once is not started);
+- a running pump runs on while its outlet stays at least ``dT_stc_off`` above
+  the sink;
+- the heat it collects must exceed the pump's electricity;
 - the outlet stays below ``T_stc_boil`` (boiling protection);
 - for a tank sink: the tank is below the storage high limit
   ``T_stc_tank_max`` (85 °C by default). Within the step the loop stops when
   the tank reaches the limit: the tank balance carries the solar heat times a
   run fraction that falls from 1 to 0 over the last :data:`TANK_LIMIT_RAMP_K`
   above the limit, so the step ends at the limit with the share of the step
-  the loop ran (``stc_runtime_fraction [-]``).
+  the loop ran (``stc_runtime_fraction [-]``). After that the loop starts
+  again only once the tank is :data:`TANK_LIMIT_RESTART_K` below the limit.
 
-The controller is evaluated at the step-start temperatures and is stateless
-(the same inputs give the same decision); hysteresis and the collector
-emergency lock-out after stagnation are not modelled.
+With the default ISO test flow the running outlet is only a few kelvin above
+the inlet, so the stop threshold governs both ways (an idle collector 6 K
+above the tank would give a 0.3 K rise); the start threshold matters for
+low-flow loops, where the two are comparable.
+
+Protections
+-----------
+- **Freeze** (all placements). The collector carries water, so the system is
+  a drain-back one: while the idle collector is below ``T_stc_freeze`` (4 °C)
+  the loop does not run and the collector is drained
+  (``stc_freeze_protected [-]``). The same holds while the sink a pumped loop
+  would draw from is below 0 °C (a borehole field driven below freezing):
+  water cannot arrive that cold. ``T_stc_freeze=None`` declares an antifreeze
+  loop and switches the protection off.
+- **Stagnation lock-out** (pumped loops). A collector that a protection holds
+  off (storage limit, boiling protection, clock window, a router's ``"off"``)
+  idles at its stagnation temperature. At or above ``T_stc_lockout`` (130 °C)
+  the loop is locked out and is not started until the idle collector has
+  cooled :data:`STAGNATION_RELEASE_K` below it
+  (``stc_stagnation_lockout [-]``). The collector has no heat capacity in
+  this model, so its idle temperature is the equilibrium one. The mains-line
+  placement has no pump or controller and is not locked out; its idle
+  temperature is reported as ``T_stc_stag [°C]``.
+
+Controller state
+----------------
+The pump latch, the storage-limit hold and the lock-out are carried from step
+to step in ``DynamicState.subsystem_state["stc"]`` (see
+:class:`tmhp.dynamic_context.Subsystem`); the decision is taken at the
+step-start temperatures. A run starts with the pump stopped and no hold, so
+two runs with the same inputs give the same result.
 """
 
 from __future__ import annotations
@@ -53,7 +86,7 @@ import pandas as pd
 
 from . import calc_util as cu
 from .constants import c_w, rho_w
-from .dynamic_context import tank_mass_energy_residual
+from .dynamic_context import SUBSYSTEM_STATE_KEY, tank_mass_energy_residual
 from .subsystems import SolarThermalCollector, stc_result_columns, warn_if_uv_ignored
 from .thermodynamics import calc_energy_flow
 
@@ -74,6 +107,23 @@ TANK_LIMIT_RAMP_K: float = 0.05
 #: platform.
 SINK_LIMIT_TOL_K: float = 0.1
 
+#: After the tank has reached ``T_stc_tank_max`` the loop starts again only
+#: once the tank is this far below the limit: the switch-on hysteresis of a
+#: solar controller's storage maximum (2 K is the usual fixed value).
+TANK_LIMIT_RESTART_K: float = 2.0
+
+#: A stagnation lock-out is released once the idle collector has cooled this
+#: far below ``T_stc_lockout`` (130 → 120 °C with the default; the hysteresis
+#: of a controller's collector emergency shutdown).
+STAGNATION_RELEASE_K: float = 10.0
+
+#: Freezing point of the water the collector loops carry [K].
+WATER_FREEZE_K: float = 273.15
+
+#: Collector-loop controller state at the start of a run
+#: (``DynamicState.subsystem_state["stc"]``).
+STC_CONTROLLER_STATE0: dict[str, bool] = {"pump_on": False, "limit_hold": False, "lockout": False}
+
 
 class STCScenario:
     """Construction and solar hooks common to every STC scenario."""
@@ -86,6 +136,9 @@ class STCScenario:
     UA_tank_wall: float
     V_tank_full: float
     T_sur_K: float
+    # Subsystem states of the previous step (set by the host's step(), or kept
+    # here across a run when the host has no DynamicState).
+    _subsystem_state_in: dict
 
     def _init_stc(self, stc: SolarThermalCollector) -> None:
         self._stc = stc
@@ -110,6 +163,57 @@ class STCScenario:
             ctx.I_DN, ctx.I_dH, T_in_K, ctx.T0_K, dV_stc=dV, is_active=active, plane=plane
         )
 
+    # ------------------------------------------------------------------
+    # Controller state carried between steps
+    # ------------------------------------------------------------------
+
+    def _reset_run_state(self) -> None:
+        """Start a run with an empty controller state.
+
+        Called by hosts that keep the subsystem state for a run themselves
+        (``GroundSourceHeatPumpBoilerRun.analyze_dynamic``); a ``step()``-driven
+        host hands the state in through its ``DynamicState`` instead.
+        """
+        parent = getattr(super(), "_reset_run_state", None)
+        if parent is not None:
+            parent()
+        self._subsystem_state_in = {}
+
+    def _controller_in(self) -> dict[str, bool]:
+        """Controller state at the end of the previous step (run start: all off)."""
+        previous = getattr(self, "_subsystem_state_in", None) or {}
+        return {**STC_CONTROLLER_STATE0, **previous.get("stc", {})}
+
+    def _commit_controller(self, state: dict, pump_on: bool) -> None:
+        """Write the controller state the next step starts from into ``state``.
+
+        ``state`` is this step's subsystem dict; the flags are those of the
+        step-start decision and ``pump_on`` says whether the pump was running
+        at the end of the step. Hosts with a ``DynamicState`` gather the
+        entry from the dict; the others read it back from
+        ``_subsystem_state_in``, which is replaced, not modified.
+        """
+        carried = {
+            "pump_on": bool(pump_on),
+            "limit_hold": bool(state.get("limit_hold", False)),
+            "lockout": bool(state.get("lockout", False)),
+        }
+        state[SUBSYSTEM_STATE_KEY] = carried
+        previous = getattr(self, "_subsystem_state_in", None) or {}
+        self._subsystem_state_in = {**previous, "stc": carried}
+
+    def _freeze_protected(self, T_stag_K: float, T_in_K: float | None = None) -> bool:
+        """Whether the freeze protection keeps the collector drained (no flow).
+
+        True while the idle collector is below ``T_stc_freeze``, or the
+        liquid that would enter it (``T_in_K``) is below 0 °C: the loop is
+        filled with water, which cannot arrive colder than that.
+        """
+        limit = self._stc.T_stc_freeze
+        if limit is None:
+            return False
+        return bool(cu.K2C(T_stag_K) < limit or (T_in_K is not None and T_in_K < WATER_FREEZE_K))
+
     def _loop_decision(
         self,
         ctx: StepContext,
@@ -117,34 +221,65 @@ class STCScenario:
         T_in_K: float,
         *,
         sink_max_C: float | None = None,
-    ) -> tuple[bool, dict]:
-        """Differential-controller decision for a pumped loop at sink temperature ``T_in_K``.
+        enabled: bool = True,
+    ) -> tuple[bool, dict, dict[str, bool]]:
+        """Controller decision for a pumped loop at sink temperature ``T_in_K``.
 
-        Returns ``(runs, probe)`` with ``probe`` the collector running at the
-        loop flow from ``T_in_K``.
+        ``enabled`` is ``False`` when something outside the controller keeps
+        the loop off (clock window, a router that sends the heat nowhere).
+
+        Returns ``(runs, probe, flags)``: ``probe`` is the collector running
+        at the loop flow from ``T_in_K``; ``flags`` are ``freeze`` (drained
+        below ``T_stc_freeze``), ``limit_hold`` (tank at its storage limit,
+        or not yet :data:`TANK_LIMIT_RESTART_K` below it after reaching it)
+        and ``lockout`` (stagnation lock-out).
         """
         stc = self._stc
+        previous = self._controller_in()
         probe = self._stc_eval(ctx, plane, T_in_K, active=True)
         gain = probe["Q_stc_w_out"] - probe["Q_stc_w_in"]
+        T_stag_K = probe["T_stc_stag_K"]
+        rise = probe["T_stc_w_out_K"] - T_in_K
+
+        freeze = self._freeze_protected(T_stag_K, T_in_K)
+        limit_hold = False
+        if sink_max_C is not None:
+            margin = TANK_LIMIT_RESTART_K if previous["limit_hold"] else SINK_LIMIT_TOL_K
+            limit_hold = bool(cu.K2C(T_in_K) >= sink_max_C - margin)
+        boiling = bool(probe["T_stc_pump_w_out_K"] >= cu.C2K(stc.T_stc_boil))
+
+        lockout = False
+        if stc.T_stc_lockout is not None:
+            T_stag_C = cu.K2C(T_stag_K)
+            lockout = bool(previous["lockout"] and T_stag_C >= stc.T_stc_lockout - STAGNATION_RELEASE_K)
+            # A collector that a protection holds off idles at its stagnation temperature.
+            if (not enabled or limit_hold or boiling) and T_stag_C >= stc.T_stc_lockout:
+                lockout = True
+
+        if previous["pump_on"]:
+            differential = rise >= stc.dT_stc_off
+        else:
+            differential = T_stag_K - T_in_K >= stc.dT_stc_on and rise >= stc.dT_stc_off
         runs = bool(
-            plane["total"] > 0.0
-            and probe["T_stc_stag_K"] - T_in_K >= stc.dT_stc_on
-            and probe["T_stc_w_out_K"] - T_in_K >= stc.dT_stc_off
+            enabled
+            and plane["total"] > 0.0
+            and differential
             and np.isfinite(gain)
             and gain > max(0.0, stc.E_stc_pump)
-            and probe["T_stc_pump_w_out_K"] < cu.C2K(stc.T_stc_boil)
-            and (sink_max_C is None or cu.K2C(T_in_K) < sink_max_C - SINK_LIMIT_TOL_K)
+            and not (freeze or limit_hold or boiling or lockout)
         )
-        return runs, probe
+        return runs, probe, {"freeze": freeze, "limit_hold": limit_hold, "lockout": lockout}
 
     # ------------------------------------------------------------------
     # Tank loop (shared by STCTankLoop and the tank route of GSHPB_STC_routed)
     # ------------------------------------------------------------------
 
-    def _tank_loop_state(self, ctx: StepContext, dt: float, plane: dict | None = None) -> dict:
+    def _tank_loop_state(self, ctx: StepContext, dt: float, plane: dict | None = None, *, enabled: bool = True) -> dict:
         """Step state of a pumped loop charging the tank (decision at the step start)."""
         plane = self._stc_plane(ctx, dt) if plane is None else plane
-        runs, probe = self._loop_decision(ctx, plane, ctx.T_tank_w_K, sink_max_C=self._stc.T_stc_tank_max)
+        runs, probe, flags = self._loop_decision(
+            ctx, plane, ctx.T_tank_w_K, sink_max_C=self._stc.T_stc_tank_max, enabled=enabled
+        )
         result = probe if runs else self._stc_eval(ctx, plane, ctx.T_tank_w_K, active=False)
         return {
             "stc_active": runs,
@@ -153,6 +288,7 @@ class STCScenario:
             "T_tank_w_in_override_K": None,
             "E_subsystem": self._stc.E_stc_pump if runs else 0.0,
             "Q_contribution": 0.0,
+            **flags,
         }
 
     @staticmethod
@@ -230,7 +366,12 @@ class STCScenario:
         return residual
 
     def _tank_loop_columns(self, ctx: StepContext, state: dict, T_solved_K: float) -> tuple[dict, float, bool]:
-        """Result columns of a tank loop at the solved tank temperature: ``(columns, E_pump, active)``."""
+        """Result columns of a tank loop at the solved tank temperature: ``(columns, E_pump, active)``.
+
+        Also commits the controller state: the pump is on at the end of the
+        step when the loop ran the whole step (a loop stopped at a limit
+        within the step ends it stopped).
+        """
         heat, share, running = self._tank_loop_heat(ctx, state, T_solved_K)
         active = share > 0.0 and running is not None
         result = (
@@ -240,18 +381,25 @@ class STCScenario:
         gain = share * (result["Q_stc_w_out"] - result["Q_stc_w_in"]) if active else 0.0
         e_pump = share * self._stc.E_stc_pump if active else 0.0
         cols["Q_solar_tank [W]"] = gain
+        self._commit_controller(state, pump_on=active and share >= 1.0)
         return cols, e_pump, active
 
     # ------------------------------------------------------------------
     # Ground loop
     # ------------------------------------------------------------------
 
-    def _ground_loop_state(self, ctx: StepContext, dt: float, T_ground_K: float, plane: dict | None = None) -> dict:
-        """Step state of a pumped loop charging the borehole field from ``T_ground_K``."""
+    def _ground_loop_state(
+        self, ctx: StepContext, dt: float, T_ground_K: float, plane: dict | None = None, *, enabled: bool = True
+    ) -> dict:
+        """Step state of a pumped loop charging the borehole field from ``T_ground_K``.
+
+        The loop has no in-step limit, so the controller state is committed
+        here: the pump ends the step as it ran it.
+        """
         plane = self._stc_plane(ctx, dt) if plane is None else plane
-        runs, probe = self._loop_decision(ctx, plane, T_ground_K)
+        runs, probe, flags = self._loop_decision(ctx, plane, T_ground_K, enabled=enabled)
         result = probe if runs else self._stc_eval(ctx, plane, T_ground_K, active=False)
-        return {
+        state = {
             "stc_active": runs,
             "stc_result": result,
             "plane": plane,
@@ -260,7 +408,10 @@ class STCScenario:
             "Q_contribution": 0.0,
             "E_stc_pump": self._stc.E_stc_pump if runs else 0.0,
             "Q_solar_ground": (probe["Q_stc_w_out"] - probe["Q_stc_w_in"]) if runs else 0.0,
+            **flags,
         }
+        self._commit_controller(state, pump_on=runs)
+        return state
 
     # ------------------------------------------------------------------
     # Exergy (tank and preheat placements)
@@ -316,9 +467,12 @@ class STCScenario:
             df["Xc_tank [W]"] = df["Xc_tank [W]"].add(X_in_tank_add - X_out_tank_add, fill_value=0)
         return df
 
-    def _solar_columns(self, ctx: StepContext, active: bool, e_pump: float) -> dict:
+    def _solar_columns(self, ctx: StepContext, state: dict, active: bool, e_pump: float) -> dict:
+        """Status and input columns: ``state`` is the step's subsystem dict (protection flags)."""
         return {
             "stc_active [-]": bool(active),
+            "stc_freeze_protected [-]": bool(state.get("freeze", False)),
+            "stc_stagnation_lockout [-]": bool(state.get("lockout", False)),
             "I_DN_stc [W/m2]": ctx.I_DN,
             "I_dH_stc [W/m2]": ctx.I_dH,
             "E_stc_pump [W]": e_pump,
@@ -337,7 +491,10 @@ class STCTankLoop(STCScenario):
         Q_stc_w_out - Q_stc_w_in = Q_solar_tank     (heat the tank receives besides E_stc_pump)
 
     The loop is governed by the collector-loop controller (see
-    :mod:`tmhp._stc_scenarios`), not by a clock window.
+    :mod:`tmhp._stc_scenarios`), not by a clock window: differential with a
+    pump latch, storage limit with a 2 K restart band, boiling and freeze
+    protection, stagnation lock-out (``stc_freeze_protected [-]``,
+    ``stc_stagnation_lockout [-]``).
     """
 
     def __init__(self, *, stc: SolarThermalCollector, **kwargs: Any) -> None:
@@ -377,9 +534,10 @@ class STCTankLoop(STCScenario):
     def _augment_results(
         self, r: dict, ctx: StepContext, ctrl: ControlState, sub_states: dict, T_solved_K: float
     ) -> dict:
-        cols, e_pump, active = self._tank_loop_columns(ctx, sub_states["stc"], T_solved_K)
+        state = sub_states["stc"]
+        cols, e_pump, active = self._tank_loop_columns(ctx, state, T_solved_K)
         r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + e_pump
-        r.update(self._solar_columns(ctx, active, e_pump))
+        r.update(self._solar_columns(ctx, state, active, e_pump))
         r.update(cols)
         return r
 
@@ -405,6 +563,13 @@ class STCPreheat(STCScenario):
     outlet reaches ``T_stc_tank_max`` (or ``T_stc_boil``) it is bypassed for the
     rest of the step (``stc_runtime_fraction [-]``). ``T_stc_w_in`` is the mains
     temperature.
+
+    Freeze protection: while the idle collector is below ``T_stc_freeze`` it is
+    bypassed and drained (``stc_freeze_protected [-]``). There is no pump and
+    no controller in this placement, so the stagnation lock-out does not apply
+    (``stc_stagnation_lockout [-]`` stays ``False``): between draws the
+    collector idles at ``T_stc_stag [°C]``, which on a clear day is far above
+    100 °C, and the next draw passes through it.
     """
 
     def __init__(self, *, stc: SolarThermalCollector, **kwargs: Any) -> None:
@@ -453,8 +618,9 @@ class STCPreheat(STCScenario):
 
     def _run_subsystems(self, ctx: StepContext, ctrl: ControlState, dt: float, T_tank_w_in_K: float) -> dict:
         plane = self._stc_plane(ctx, dt)
+        freeze = self._freeze_protected(self._stc.stagnation_temperature_K(plane, ctx.T0_K))
         active = False
-        if ctx.activation_flags.get("stc", False) and plane["total"] > 0.0:
+        if ctx.activation_flags.get("stc", False) and plane["total"] > 0.0 and not freeze:
             flow, T_pre, probe, _ = self._preheat(ctx, ctrl, plane, ctx.T_tank_w_K)
             active = bool(
                 flow > 0.0
@@ -468,6 +634,8 @@ class STCPreheat(STCScenario):
                 "T_tank_w_in_override_K": None,
                 "E_subsystem": 0.0,
                 "Q_contribution": 0.0,
+                "freeze": freeze,
+                "lockout": False,
             }
         }
 
@@ -514,7 +682,7 @@ class STCPreheat(STCScenario):
         else:
             flow, gain, share = self._feed_flow(ctx, ctrl, T_solved_K), 0.0, 0.0
             result = self._stc_eval(ctx, state["plane"], T_mains, active=False)
-        r.update(self._solar_columns(ctx, active, 0.0))
+        r.update(self._solar_columns(ctx, state, active, 0.0))
         r.update(stc_result_columns(result, T_mains, flow, share))
         r["Q_solar_tank [W]"] = gain
         return r

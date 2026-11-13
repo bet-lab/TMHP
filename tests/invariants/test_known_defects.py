@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 import tmhp
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp.compressor_envelope import RATED_SPEED_SEARCH_MAX
 from tmhp.constants import c_w, rho_w
 
@@ -126,8 +127,9 @@ def test_c11_wshpb_suction_not_hotter_than_source():
     # The speed-floor point discharges above the R32 limit and is refused by the
     # compressor envelope; the defect is in the suction state, so look at it with
     # the discharge check off.
+    # A -5 degC loop is an antifreeze loop (water would be refused: source_fluid_freezing).
     case = SteadyCase(T_source=-5.0, T_demand=55.0, load_W=400.0)
-    _, r = FAMILIES["WSHPB"].run("R32", case, T_dis_max=None)
+    _, r = FAMILIES["WSHPB"].run("R32", case, T_dis_max=None, source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
     require(is_reported_running(r), f"expected a running result, got {r.get('failure_reason')!r}")
     expect(num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05, 'num(r, "T_ref_cmp_in [°C]") <= -5.0 + 0.05')
 

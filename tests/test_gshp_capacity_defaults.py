@@ -27,7 +27,10 @@ from tmhp.ground_defaults import (
 from tmhp.pump import calc_aux_loss_from_ashrae_grade, calc_pump_power, default_ground_pump_power
 
 SHORT = dict(t_max_s=3600.0)
-CAPACITIES = (2000.0, 4000.0, 30000.0, 100000.0)
+# From 3 kW: below about 2.6 kW per borehole the default flow of the default
+# loop liquid (25 % ethylene glycol) is laminar in the 26 mm U-tube, which the
+# constructor reports (test_small_machine_on_the_default_glycol_reports_its_laminar_loop).
+CAPACITIES = (3000.0, 4000.0, 30000.0, 100000.0)
 
 
 def build(**kwargs):
@@ -39,7 +42,7 @@ def build(**kwargs):
 
 @pytest.fixture(scope="module")
 def by_capacity():
-    """Liquid entering at 0 °C (``Ts = 0``): the ISO 13256-1 heating point."""
+    """Liquid entering at 0 °C (``Ts = 0``): the ISO 13256-1 heating point, on the default glycol loop."""
     return {cap: build(hp_capacity=cap, Ts=0.0) for cap in CAPACITIES}
 
 
@@ -128,12 +131,17 @@ def test_undersized_borefield_warning_names_the_load_and_a_field_that_fits():
 def test_default_machine_keeps_one_borehole_and_gets_capacity_based_flows():
     model = build()
     assert (model.N_1, model.N_2, model.H_b) == (1, 1, 100.0)
-    assert model.ground_flow_ref_lpm == pytest.approx(14.33, abs=0.01)
+    # 3 K loop difference with the default loop liquid, 25 % ethylene glycol (14.33 L/min for water).
+    fluid = model.source_fluid
+    assert fluid.name == "MEG-25%"
+    assert model.ground_flow_ref_lpm == pytest.approx(default_ground_flow_lpm(4000.0, rho=fluid.rho, cp=fluid.cp))
+    assert model.ground_flow_ref_lpm == pytest.approx(15.38, abs=0.01)
+    assert build(source_fluid="water").ground_flow_ref_lpm == pytest.approx(14.33, abs=0.01)
     assert model.dV_b_f_m3s == pytest.approx(model.ground_flow_ref_lpm / 60000.0)
     assert model.E_pmp == pytest.approx(85.3, abs=0.05)
     assert model.dV_iu_fan_a_ref == pytest.approx(4000.0 * 5.37e-5)
     assert model.q_bhe_rated == pytest.approx(30.0)
-    assert model.Re_bhe_ref > 10000
+    assert model.Re_bhe_ref == pytest.approx(3520.0, rel=0.01)  # turbulent; 11 700 for water
 
 
 def test_every_default_scales_with_the_capacity(by_capacity):
@@ -200,10 +208,14 @@ def test_borehole_wall_rating_no_longer_collapses_with_the_capacity():
 
 
 def test_supplied_values_are_used_as_given():
-    model = build(hp_capacity=16000.0, N_1=3, N_2=3)
+    # A water loop: nine boreholes on 16 kW keep it turbulent (Re 5200). The
+    # default glycol would be laminar there (Re 1564) and the constructor would say so.
+    model = build(hp_capacity=16000.0, N_1=3, N_2=3, source_fluid="water")
     assert (model.N_1, model.N_2, model.n_boreholes, model.H_b) == (3, 3, 9, 100.0)
     assert model.ground_flow_ref_lpm == pytest.approx(4 * 14.33, abs=0.05)  # flow still follows the capacity
     assert model.Re_bhe_ref == pytest.approx(5200.0, rel=0.01)
+    with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 1564 "):
+        GroundSourceHeatPump(**SHORT, hp_capacity=16000.0, N_1=3, N_2=3)
     # Any one of N_1, N_2, H_b fixes the field: the others take 1, 1, 100 m.
     deep = build(hp_capacity=8000.0, H_b=150.0)
     assert (deep.N_1, deep.N_2, deep.H_b) == (1, 1, 150.0)
@@ -227,12 +239,24 @@ def test_legacy_flow_alias_keeps_its_place_and_its_warning():
 
 
 def test_laminar_loop_is_reported_at_construction():
-    # The former default: 20.04 L/min shared by nine boreholes.
+    # The former default: 20.04 L/min of water shared by nine boreholes.
     with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 1817 .*9 parallel borehole"):
-        model = GroundSourceHeatPump(**SHORT, hp_capacity=16000.0, N_1=3, N_2=3, ground_flow_ref_lpm=20.04)
+        model = GroundSourceHeatPump(
+            **SHORT, hp_capacity=16000.0, N_1=3, N_2=3, ground_flow_ref_lpm=20.04, source_fluid="water"
+        )
     assert model.Re_bhe_ref == pytest.approx(1817.0, abs=1.0)
     with pytest.warns(UserWarning, match="laminar at the constant setpoint flow"):
         GroundSourceHeatPump(**SHORT, ground_flow_constant_lpm=2.5, ground_flow_min_lpm=2.0)
+
+
+def test_small_machine_on_the_default_glycol_reports_its_laminar_loop():
+    # 25 % ethylene glycol at 0 °C is 3.7 times as viscous as water: the
+    # default 3 K flow of a 2 kW machine (7.7 L/min in one 26 mm U-tube) is
+    # laminar, where water at 7.2 L/min is not.
+    with pytest.warns(UserWarning, match=r"laminar at the reference flow: Re = 17\d\d "):
+        small = GroundSourceHeatPump(**SHORT, hp_capacity=2000.0)
+    assert small.Re_bhe_ref < 2300 < build(hp_capacity=2000.0, source_fluid="water").Re_bhe_ref
+    assert build(hp_capacity=3000.0).Re_bhe_ref > 2300  # quiet from 3 kW per borehole
 
 
 def test_borefield_too_small_for_the_capacity_is_reported_at_construction():
@@ -281,7 +305,7 @@ def test_reported_fluid_temperature_is_the_one_the_cycle_was_solved_with(cold_gr
     model, heating, cooling = cold_ground_run
     df = heating if mode == "heating" else cooling
     sign = -1.0 if mode == "heating" else 1.0
-    m_cp = df["dV_bhe_f [m3/s]"] * rho_w * c_w
+    m_cp = df["dV_bhe_f [m3/s]"] * model.source_fluid.rho * model.source_fluid.cp
     source = df["T_bhe_f_out [°C]"] + df["E_pmp [W]"] / m_cp
     saturation = df["T_ref_evap_sat [°C]"] if mode == "heating" else df["T_ref_cond_sat_l [°C]"]
     # Ground-side saturation = fluid entering the heat pump -/+ the solved approach.
@@ -335,4 +359,6 @@ def test_ground_closure_at_the_pressure_ratio_floor_closes_every_candidate():
     assert "not_closed" not in statuses, statuses
     assert set(statuses) <= {"equality", "slack_floor", "slack_bound"}
     assert cycles[0] < 100
-    assert row["E_tot [W]"] == pytest.approx(370.9, rel=2e-3)  # the operating point itself is unchanged
+    # The operating point itself is unchanged (370.9 W with a water loop; the
+    # default glycol's slightly larger borehole resistance adds 0.8 W).
+    assert row["E_tot [W]"] == pytest.approx(371.7, rel=2e-3)

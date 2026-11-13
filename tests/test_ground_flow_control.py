@@ -24,6 +24,11 @@ def _model(cls, **overrides):
         m_dot_ref_rated=0.04,
         hp_capacity=8000,
         t_max_s=86400,
+        # The coupled solver closes the loop temperature and computes the pipe
+        # loss with the properties of water (tmhp.ground_flow_control,
+        # tmhp.ground_loop): its balances and the recorded regressions are
+        # those of a water loop, not of the default 25 % ethylene glycol.
+        source_fluid="water",
         # A fixed machine (12 cm3/rev cannot rate 8 kW): pin the former
         # default rated speeds so the recorded regressions keep their inputs.
         rps_rated=60 if cls is GroundSourceHeatPump else 40,

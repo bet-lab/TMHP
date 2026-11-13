@@ -85,7 +85,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
-from .constants import c_w, k_w, mu_w, rho_w
+from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
@@ -137,6 +137,15 @@ from .heat_transfer import calc_simple_tank_UA
 from .hybrid_tank import HybridStratifiedTank
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
+from .source_fluid import (
+    GROUND_LOOP_FLUID_DEFAULT,
+    SOURCE_FLUID_FREEZING,
+    SourceFluid,
+    limit_duty_to_source_freeze,
+    resolve_source_fluid,
+    source_freeze_limited,
+    warn_if_loop_modelled_as_water,
+)
 from .stratified_tank import StratifiedTank
 from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
@@ -179,7 +188,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     - ``UA_tank_hx = hp_capacity / 5`` [W/K] (5 K condensing approach);
     - ``UA_ground = 0.18 * hp_capacity`` [W/K];
     - source-loop flow ``ground_flow_ref_lpm = 0.75 * hp_capacity / (rho c * 3 K)``
-      (3.58 L/min per kW);
+      (3.84 L/min per kW of the default glycol, 3.58 of water);
     - ``E_pmp = 75 W/ton * hp_capacity`` (21.3 W per kW, ASHRAE pumping grade B
       upper bound; used when ``hydraulic_pump`` is off);
     - ``N_1``, ``N_2``, ``H_b``: with none given, 200 m boreholes on a
@@ -197,6 +206,18 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     exchanger is closed on the heat actually delivered (``dT_ref_tank [K]``,
     ``tank_hx_residual [W]``); and each dynamic step's cycle is solved against
     the ground fluid of that same step.
+
+    ``source_fluid`` names the liquid of the ground loop
+    (:mod:`tmhp.source_fluid`): 25 % ethylene glycol by default
+    (``"MEG-25%"``, freezing at -11.0 °C), or ``"water"``, another mixture
+    such as ``"MPG-30%"``, or a :class:`~tmhp.source_fluid.SourceFluid`. The
+    loop liquid is never colder than its operating limit, the freezing point
+    plus 3 K (-8.0 °C for the default, 3 °C for water): a duty that would
+    chill it further is reduced to the largest one that does not
+    (``capacity_binding == "source_fluid_freezing"``), and when no duty does
+    the compressor stays off with ``failure_reason == "source_fluid_freezing"``.
+    The EN 14511 brine point B0 (liquid in at 0 °C, out at -3 °C) runs on
+    the default; a loop filled with water does not.
 
     **Below the minimum capacity.** ``analyze_steady`` reports a request below
     what the compressor delivers at ``rps_min`` as the mean of on/off cycling
@@ -382,10 +403,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # EN 14825 degradation coefficient Cc of a unit delivering to water
         # (None: no cycling, the row over-delivers at the minimum speed).
         Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
+        source_fluid: str | SourceFluid | None = None,
     ) -> None:
         validate_ctor("GSHPB", locals())
         #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
         self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
+        # Liquid of the ground loop: its properties enter the source-side
+        # balances, its freezing point the operating limit (tmhp.source_fluid).
+        fluid = resolve_source_fluid(source_fluid, GROUND_LOOP_FLUID_DEFAULT)
+        self.source_fluid: SourceFluid = fluid
+        #: Set once a dynamic run has reported the freezing limit (one warning per run).
+        self._source_freeze_warned: bool = False
         # Capacity-scaled defaults (tmhp._source_boiler): a machine given only
         # hp_capacity and a refrigerant keeps the same rated performance at any
         # capacity. Every value the caller supplies is used as given.
@@ -401,7 +429,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if E_pmp is None:
             E_pmp = default_pump_power(hp_capacity)
         ground_rates = resolve_ground_flow_rates(
-            default_ref_lpm=default_source_flow_lpm(hp_capacity),
+            default_ref_lpm=default_source_flow_lpm(hp_capacity, fluid.rho, fluid.cp),
             legacy_ref_lpm=dV_b_f_lpm,
             min_ratio=ground_flow_min_ratio,
             max_ratio=ground_flow_max_ratio,
@@ -525,7 +553,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.E_pmp = E_pmp
         self.dV_b_f_m3s = dV_b_f_lpm / 60000
         if flow_defaulted:
-            warn_if_laminar(self.dV_b_f_m3s, self.n_boreholes, r_in, "GroundSourceHeatPumpBoiler")
+            warn_if_laminar(self.dV_b_f_m3s, self.n_boreholes, r_in, "GroundSourceHeatPumpBoiler", fluid.rho, fluid.mu)
 
         if R_b is None:
             from .borehole import (
@@ -534,7 +562,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             )
 
             n_boreholes = max(1, self.N_1 * self.N_2)
-            m_flow_total = self.dV_b_f_m3s * rho_w
+            m_flow_total = self.dV_b_f_m3s * fluid.rho
             m_flow_pipe = m_flow_total / n_boreholes
 
             R_b_local, R_a = calc_local_borehole_thermal_resistance(
@@ -546,17 +574,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 r_in=r_in,
                 D_s=D_s,
                 m_flow_pipe=m_flow_pipe,
-                rho_f=rho_w,
-                mu_f=mu_w,
-                cp_f=c_w,
-                k_f=k_w,
+                rho_f=fluid.rho,
+                mu_f=fluid.mu,
+                cp_f=fluid.cp,
+                k_f=fluid.k,
             )
             self.R_b = calc_effective_borehole_thermal_resistance(
                 R_b=R_b_local,
                 R_a=R_a,
                 H=self.H_b,
                 m_flow_pipe=m_flow_pipe,
-                cp_f=c_w,
+                cp_f=fluid.cp,
                 boundary_condition=boundary_condition,
             )
         else:
@@ -626,12 +654,15 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 r_out=r_out,
                 r_in=r_in,
                 D_s=D_s,
-                rho_f=rho_w,
-                mu_f=mu_w,
-                k_f=k_w,
+                rho_f=fluid.rho,
+                mu_f=fluid.mu,
+                k_f=fluid.k,
             ),
         )
         self.ground_flow_control = self._ground_settings["control"]
+        warn_if_loop_modelled_as_water(
+            fluid, self._ground_settings, "GroundSourceHeatPumpBoiler", chosen=source_fluid is not None
+        )
 
         # Subsystems
         self.stc = stc
@@ -778,7 +809,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T_b_out_K = float(_t_bhe) if _t_bhe is not None else cu.C2K(15.0)
         if source_temperature_K is not None:
             T_b_out_K = source_temperature_K
-        m_dot_cp_b = loop["dV"] * rho_w * c_w
+        fluid = self.source_fluid
+        m_dot_cp_b = loop["dV"] * fluid.rho * fluid.cp
         T_ground_in_K = T_b_out_K + (loop["E_pmp"] / m_dot_cp_b)
         T_ground_sat_K = T_ground_in_K - dT_ref_ground
         T_tank_sat_K = T_tank_w_K + dT_ref_tank
@@ -1030,7 +1062,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         UA_ground_actual = ground_hx_UA(self._ground_settings, self.UA_ground, ground_flow_ratio, m_dot_ref)
 
         # 4. NTU Evaporator Analysis
-        eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * rho_w, c_w)
+        eps = calc_phase_change_hx_effectiveness(UA_ground_actual, loop["dV"] * fluid.rho, fluid.cp)
         Q_ground_actual = eps * m_dot_cp_b * (T_ground_in_K - T_ground_sat_K)
 
         # 5. BHE state
@@ -1385,14 +1417,40 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         the step, for the coupled ground-flow path (see
         :meth:`_ground_flow_result`). Outside the discharge limit the step
         runs at the largest duty inside it, as ``analyze_steady`` does
-        (:func:`reduce_duty_within_envelope`).
+        (:func:`reduce_duty_within_envelope`), and likewise at the largest
+        duty that keeps the ground-loop liquid on its freezing limit
+        (:meth:`_duty_within_limits`).
         """
-        result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity, runtime_fraction)
-        return reduce_duty_within_envelope(
+        return self._duty_within_limits(
+            ctx, T_tank_w, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction)
+        )
+
+    def _duty_within_limits(self, ctx: StepContext, T_tank_w: float, at_duty: Callable[[float], dict]) -> dict:
+        """``hp_capacity``, or the largest duty below it inside the envelope and the freezing limit.
+
+        ``at_duty(q)`` is the step's cycle at duty ``q`` [W]. The compressor
+        envelope reduces first (:func:`reduce_duty_within_envelope`); the
+        result is then held on the source fluid's operating limit
+        (:func:`tmhp.source_fluid.limit_duty_to_source_freeze`), each duty it
+        tries being reduced into the envelope the same way. A step that no
+        duty saves is the off row with ``failure_reason =
+        "source_fluid_freezing"``; the first such step, or the first reduced
+        one, of a run raises one ``RuntimeWarning``.
+        """
+
+        def within_envelope(q: float) -> dict:
+            return reduce_duty_within_envelope(self, at_duty(q), at_duty, q)
+
+        return limit_duty_to_source_freeze(
             self,
-            result,
-            lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q, runtime_fraction),
+            within_envelope(self.hp_capacity),
+            within_envelope,
             self.hp_capacity,
+            lambda detail: self._failed_cycle_result(
+                T_tank_w, cu.K2C(ctx.T0_K), self._step_flow_state(ctx, T_tank_w), SOURCE_FLUID_FREEZING, detail
+            ),
+            once=True,
+            what="analyze_dynamic",
         )
 
     def _solve_cycle_at_duty(
@@ -1490,7 +1548,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             return solve(None)
         fraction = min(1.0, max(0.0, float(runtime_fraction)))
         loop = ground_flow_state(self._ground_settings, 1.0)
-        m_cp_b = c_w * rho_w * loop["dV"]
+        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * loop["dV"]
 
         def outlet_K(result: dict) -> float:
             return self._running_source_K(ctx.n, float(result["Q_bhe [W]"]), fraction, loop["R_b"], m_cp_b)
@@ -1735,7 +1793,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T_bhe_K = cu.C2K(self.Ts - dT_bhe)
         self.T_bhe = self.Ts - physical_wall_rise(coupler, n, time_arr, dT_bhe)
         R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
-        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
 
         T_bhe_f_K, self.T_bhe_f_in_K, T_bhe_f_out_K = self._borehole_fluid_K(T_bhe_K, Q_net_avg, R_b, m_cp_b)
@@ -1939,7 +1997,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_sink = self._nodal_sink_temperature(T_C, q, fraction_seen, dt_s, draw_flow, T_makeup_C)
                 return self._solve_cycle_at_duty(ctx, T_sink, q, runtime_fraction)
 
-            return reduce_duty_within_envelope(self, at_duty(self.hp_capacity), at_duty, self.hp_capacity)
+            return self._duty_within_limits(ctx, T_C, at_duty)
 
         result = solve(runtime_fraction)
         if delivered_tank_heat(result) <= 0.0 and not self._tank_is_one_mixed_node() and runtime_fraction > 0.0:
@@ -2099,6 +2157,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # second run starts from the first run's last source temperature (#96 T13).
         self.T_bhe_f_out_K = self.Ts_K
         self.Q_bhe = 0.0
+        self._source_freeze_warned = False
 
         # Initialise the ground coupler's pulse-history state for this run.
         reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
@@ -2298,6 +2357,15 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
+    def _steady_freeze_off(self, arguments: Mapping[str, Any], detail: str) -> dict:
+        """Off-state ``analyze_steady`` result of a point the freezing limit refuses."""
+        flow_state = {"dV_mix_w_out": 0.0, "dV_tank_w_out": 0.0, "dV_tank_w_in": 0.0, "dV_mix_sup_w_in": 0.0}
+        result = self._failed_cycle_result(
+            arguments["T_tank_w"], arguments["T0"], flow_state, SOURCE_FLUID_FREEZING, detail
+        )
+        result.update({"Q_tank_loss [W]": 0.0, "tank_level [-]": 1.0})
+        return result
+
     def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
         """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
 
@@ -2318,6 +2386,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         )
 
     @steady_cycling(duty_arg="Q_ref_tank")
+    @source_freeze_limited(duty_arg="Q_ref_tank", off="_steady_freeze_off")
     @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
@@ -2371,7 +2440,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               limit ``T_cond_max``: the tank is too hot for any duty; a
               reduced duty reports ``capacity_binding="condensing_temperature"``),
               ``"hx_not_converged"`` (the ground heat exchanger cannot
-              carry the duty at any approach) or ``"optimizer_failed"``.
+              carry the duty at any approach), ``"optimizer_failed"`` or
+              ``"source_fluid_freezing"`` (the ground-loop liquid would run
+              below its operating limit, 3 °C for water, at every duty; a
+              request that a smaller duty keeps on the limit returns that
+              duty with ``capacity_clamped="max"`` and
+              ``capacity_binding="source_fluid_freezing"``; see
+              :mod:`tmhp.source_fluid`).
               With the coupled ground-flow controller the reasons of
               :mod:`tmhp.ground_flow_control` apply.
             - ``"failure_detail"`` (str, failures only) — which check

@@ -402,7 +402,11 @@ def test_t5_hybrid_tank_stores_injected_heat():
 def test_t6_ashpb_time_step_independence():
     out = {}
     for dt in (60, 600):
-        m = tmhp.AirSourceHeatPumpBoiler(ref="R32")
+        # R32 with the default 60-65 °C band: the condensing limit (65 °C) caps the
+        # band at 55-60 °C (UserWarning), and the thermostat stops there in-step.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            m = tmhp.AirSourceHeatPumpBoiler(ref="R32")
         df, _ = _ashpb_dynamic(m, 1.0, dt, 50.0, None)
         out[dt] = (float(df["Q_ref_tank [W]"].fillna(0.0).sum() * dt), float(df["T_tank_w [°C]"].max()))
         upper = m.T_tank_w_upper_bound

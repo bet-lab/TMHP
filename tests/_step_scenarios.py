@@ -46,8 +46,11 @@ def make_model() -> AirSourceHeatPumpBoiler:
         # Compressor envelope as recorded in the goldens (before 2026-11-13):
         # no discharge-temperature limit, PR ceiling 20, 150 rev/s. With the
         # current defaults this machine (v2026-09-24 efficiencies) discharges at
-        # 150-198 C on most called steps and those steps are refused.
+        # 150-198 C on most called steps and those steps are refused; and no
+        # condensing limit (R32 charges this tank to 65 C at 70 C condensing,
+        # above the 65 C envelope default).
         T_dis_max=None,
+        T_cond_max=None,
         PR_cycle_max=20.0,
         rps_max=150.0,
     )

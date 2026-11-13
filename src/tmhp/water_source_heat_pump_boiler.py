@@ -52,7 +52,9 @@ from .compressor_envelope import (
     check_pr_envelope,
     discharge_controlled,
     envelope_violation,
+    limit_tank_setpoints_to_envelope,
     reduce_duty_within_envelope,
+    resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -191,7 +193,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     def __init__(
         self,
         # 1. Refrigerant / cycle / compressor
-        ref: str = "R410A",
+        ref: str = "R290",
         V_cmp_ref: float | None = None,
         eta_cmp_isen: float | Callable | None = None,
         eta_cmp_vol: float | Callable | None = None,
@@ -268,6 +270,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        T_cond_max: float | Literal["auto"] | None = "auto",
         m_dot_ref_rated: float | None = None,
         rated_condition: Mapping[str, Any] | RatingCondition | None = None,
         # Deprecated:
@@ -397,6 +400,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
+        self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
+        limit_tank_setpoints_to_envelope(self, "WaterSourceHeatPumpBoiler")
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
@@ -1588,6 +1594,9 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
               ``T_dis_max``; a request above the limit that a smaller duty
               meets returns that duty with ``capacity_clamped="max"`` and
               ``capacity_binding="discharge_temperature"``),
+              ``"condensing_temp_above_max"`` (the same for the condensing
+              limit ``T_cond_max``: the tank is too hot for any duty; a
+              reduced duty reports ``capacity_binding="condensing_temperature"``),
               ``"hx_not_converged"`` (the source-water heat exchanger cannot
               carry the duty at any approach), ``"optimizer_failed"`` or
               ``"source_fluid_freezing"`` (the loop liquid would run below its

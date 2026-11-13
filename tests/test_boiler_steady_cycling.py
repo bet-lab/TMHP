@@ -33,10 +33,15 @@ from tmhp.cycling import (
     RUNTIME_FRACTION_KEY,
 )
 
+# GSHPB / WSHPB: R410A, the refrigerant these minimum-speed duties belong to.
+# The default is now R290, whose higher rated speed puts the minimum-speed duty
+# at 1.8-2.4 kW here, at or below the 2 kW request. The 59 °C upper set point
+# is inside R410A's compressor envelope (the default 65 °C would be capped).
+_R410A = dict(ref="R410A", hp_capacity=8000.0, T_tank_w_upper_bound=59.0)
 BOILERS = {
     "ASHPB": (AirSourceHeatPumpBoiler, dict(ref="R32", hp_capacity=8000.0), dict(T_tank_w=35.0, T0=7.0)),
-    "GSHPB": (GroundSourceHeatPumpBoiler, dict(hp_capacity=8000.0), dict(T_tank_w=35.0, T_source=0.0, T0=10.0)),
-    "WSHPB": (WaterSourceHeatPumpBoiler, dict(hp_capacity=8000.0), dict(T_tank_w=35.0, T_source=10.0, T0=10.0)),
+    "GSHPB": (GroundSourceHeatPumpBoiler, _R410A, dict(T_tank_w=35.0, T_source=0.0, T0=10.0)),
+    "WSHPB": (WaterSourceHeatPumpBoiler, _R410A, dict(T_tank_w=35.0, T_source=10.0, T0=10.0)),
 }
 SOURCE_HEAT = {"ASHPB": "Q_ref_ou [W]", "GSHPB": "Q_ref_ground [W]", "WSHPB": "Q_ref_water [W]"}
 AUXILIARY = {"ASHPB": "E_ou_fan [W]", "GSHPB": "E_pmp [W]", "WSHPB": "E_pmp [W]"}

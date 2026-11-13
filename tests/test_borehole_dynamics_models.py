@@ -104,8 +104,12 @@ def test_argument_is_keyword_only_and_moves_no_positional_argument():
 def test_false_is_the_steady_borehole():
     """``borehole_dynamics=False`` is the model before the dynamic default (values recorded on main f1394dd)."""
     n, dt = 12, 600.0
-    # The recorded values are those of a water loop (the default is now 25 % ethylene glycol).
-    model = _boiler(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water")
+    # R410A charging to 65 °C without a condensing limit, on a water loop: the
+    # default machine when the values were recorded (now R290, R410A stops at
+    # 59.9 °C, and the default loop liquid is 25 % ethylene glycol).
+    model = _boiler(
+        ref="R410A", T_cond_max=None, dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water"
+    )
     assert model.borehole_dynamics == "off" and isinstance(model._gfunc_interp, GFunction)
     assert not model._ground_coupler.fluid_referenced
     assert run_window_preview(model._ground_coupler) is None

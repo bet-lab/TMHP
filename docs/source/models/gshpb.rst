@@ -48,7 +48,7 @@ Base usage
    from tmhp import GroundSourceHeatPumpBoiler
 
    gshpb = GroundSourceHeatPumpBoiler(
-       ref="R410A",
+       ref="R290",
        N_1=1, N_2=1,      # single borehole
        H_b=150.0,         # depth [m]
    )
@@ -65,10 +65,11 @@ Default sizing
 ``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
 machine: every other size follows the capacity, so the rated cycle is the same
 at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
-6 K below the entering fluid, COP of the cycle 4.2 with R410A and the default
-efficiency map). B0 is a brine point: the loop liquid leaves the heat pump at
--3 °C. The default loop liquid is therefore an antifreeze, 25 % ethylene
-glycol; a loop declared as water is refused there (see :ref:`source-fluid`).
+6 K below the entering fluid, COP of the cycle 4.2 with the default
+refrigerant, R290, and the default efficiency map). B0 is a brine point: the
+loop liquid leaves the heat pump at -3 °C. The default loop liquid is
+therefore an antifreeze, 25 % ethylene glycol; a loop declared as water is
+refused there (see :ref:`source-fluid`).
 
 .. list-table::
     :header-rows: 1
@@ -113,9 +114,26 @@ precedence). The constructor warns (``UserWarning``) when
 - ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
   (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
   temperature: no cycle exists there, so the tank could not reach the set
-  point. The default machine (R410A, 65 °C + 5 K = 70 °C against 71.3 °C) is
-  just inside; real R410A compressors stop near 65 °C condensing, so use
-  ``ref="R134a"`` or ``"R290"`` or a lower set point when that margin matters.
+  point.
+
+The compressor envelope also ends at a condensing pressure (``T_cond_max``,
+by refrigerant: R410A, R32, R407C 65 °C; R290 75 °C; R134a 80 °C; see
+:doc:`/developer/reference-operating-limits`). The cycle condenses at the
+tank temperature plus the tank heat-exchanger approach, so the highest tank
+temperature the machine heats at its nameplate duty is ``T_cond_max`` less
+``hp_capacity / UA_tank_hx``. A ``T_tank_w_upper_bound`` above that cut-out
+is capped at it (``UserWarning``; ``T_tank_w_setpoints_requested`` keeps the
+values asked for), and the thermostat stops the heat pump there.
+``analyze_steady`` against a hotter tank returns the duty that condenses on
+the limit (``capacity_clamped == "max"``, ``capacity_binding ==
+"condensing_temperature"``), or the off state with
+``failure_reason == "condensing_temp_above_max"`` when no duty fits. A 65 °C
+set point is inside the envelope of R290 and
+R134a; R410A, R32 and R407C reach about 60 °C. This is why the default
+refrigerant is R290 (it was R410A): the default machine charges its tank to
+the default 65 °C set point at 70 °C condensing, 5 K inside the limit, at the
+nameplate duty all the way. With ``ref="R410A"`` give
+``T_tank_w_upper_bound=60``.
 
 Cycle closures
 ==============
@@ -229,7 +247,12 @@ loop temperature (2.6-5.3 K below the leaving liquid at a 3 K loop
 difference) and for antifreeze whenever the loop may enter below 40-45 °F.
 
 **At the limit** a variable-speed unit lowers its compressor speed, and so does
-the model. A duty that would chill the liquid below the limit is reduced to the
+the model (``analyze_steady`` applies the limits in this order: the compressor
+envelope with its condensing limit reduces the duty first, the loop liquid's
+limit is held on what the envelope allows, and a request below the
+minimum-speed duty is then reported as the mean of on/off operation; a
+compressor already on its speed floor has no smaller state, so there the
+limit switches it off). A duty that would chill the liquid below the limit is reduced to the
 largest one that does not: the result runs with ``capacity_clamped == "max"``
 and ``capacity_binding == "source_fluid_freezing"``, ``Q_max [W]`` being what it
 delivers. When no duty helps -- the liquid already arrives below the limit, or
@@ -245,12 +268,12 @@ happened.
 
    gshpb = GroundSourceHeatPumpBoiler()                        # 8 kW, 25 % ethylene glycol
    gshpb.analyze_steady(T_tank_w=35, T_source=0, Q_ref_tank=8000)    # 8.0 kW, leaves at -3.0 °C
-   gshpb.analyze_steady(T_tank_w=35, T_source=-6, Q_ref_tank=8000)   # 5.5 kW, leaves at -7.9 °C
+   gshpb.analyze_steady(T_tank_w=35, T_source=-6, Q_ref_tank=8000)   # 5.3 kW, leaves at -7.9 °C
    gshpb.analyze_steady(T_tank_w=35, T_source=-10, Q_ref_tank=8000)  # off: source_fluid_freezing
 
    water = GroundSourceHeatPumpBoiler(source_fluid="water")
-   water.analyze_steady(T_tank_w=45, T_source=10, Q_ref_tank=8000)   # 8.0 kW, leaves at 7.1 °C
-   water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.7 kW, leaves at 3.0 °C
+   water.analyze_steady(T_tank_w=45, T_source=10, Q_ref_tank=8000)   # 8.0 kW, leaves at 7.0 °C
+   water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.5 kW, leaves at 3.0 °C
    water.analyze_steady(T_tank_w=45, T_source=0, Q_ref_tank=8000)    # off: source_fluid_freezing
 
 **What the loop liquid changes.** Its ``ρ c`` enters the loop temperature
@@ -310,8 +333,9 @@ give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
    The ground-source models now default to 25 % ethylene glycol, which runs
    down to -8.0 °C and whose properties move the results a little (system
    COP of the 4 kW ``GroundSourceHeatPump`` against a 0 °C borehole wall
-   3.508, 3.520 before; B0/W35 and B0/W55 of this boiler unchanged at 3.847
-   and 2.404), and a loop declared as water stops at 3 °C. To reproduce the
+   3.508, 3.520 before; B0/W35 and B0/W55 of this boiler are the same with
+   the glycol as they were with water, 3.870 and 2.651 with R290), and a loop
+   declared as water stops at 3 °C. To reproduce the
    earlier numbers exactly -- the properties of water and no limit to speak
    of -- pass a hand-built fluid:
 
@@ -392,10 +416,11 @@ request (the behaviour before this report existed).
      - 1.000
      - 1.0
 
-The default machine (8 kW, R410A) at a 0 °C source and a 35 °C tank delivers
-3.05 kW at its minimum speed. A 400 W request used to return those 3.05 kW at
-896 W of input; it now returns 400 W at 195 W (system COP 2.05 against 3.40
-for the running machine), and a 2 kW request 2 kW at 619 W (COP 3.23).
+The default machine (8 kW, R290) at a 0 °C source and a 35 °C tank delivers
+1.81 kW at its minimum speed. A 400 W request used to return those 1.81 kW at
+574 W of input; it now returns 400 W at 171 W (system COP 2.34 against 3.16
+for the running machine), and a 1 kW request 1 kW at 342 W (COP 2.92). (With
+R410A, whose rated speed is lower, the minimum-speed duty is 3.05 kW.)
 
 A dynamic run is not affected. There the tank thermostat switches the
 compressor, which runs at ``hp_capacity`` — not at its minimum speed — for
@@ -592,7 +617,7 @@ of, or in exclusive alternation with, the tank.
 
    .. tab-item:: Base
 
-      The standalone GSHPB: borehole-field g-function source, R32 cycle,
+      The standalone GSHPB: borehole-field g-function source, R290 cycle,
       DHW tank charge.
 
       .. code-block:: python
@@ -600,7 +625,7 @@ of, or in exclusive alternation with, the tank.
          from tmhp import GroundSourceHeatPumpBoiler
 
          gshpb = GroundSourceHeatPumpBoiler(
-             ref="R410A",
+             ref="R290",
              N_1=1, N_2=1,
              H_b=150.0,
          )
@@ -621,7 +646,7 @@ of, or in exclusive alternation with, the tank.
          from tmhp.subsystems import SolarThermalCollector
 
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
-         model = GSHPB_STC_preheat(stc=stc, ref="R410A", N_1=1, N_2=1, H_b=150.0)
+         model = GSHPB_STC_preheat(stc=stc, ref="R290", N_1=1, N_2=1, H_b=150.0)
 
    .. tab-item:: + STC tank loop
 
@@ -635,7 +660,7 @@ of, or in exclusive alternation with, the tank.
          from tmhp.subsystems import SolarThermalCollector
 
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
-         model = GSHPB_STC_tank(stc=stc, ref="R410A", N_1=1, N_2=1, H_b=150.0)
+         model = GSHPB_STC_tank(stc=stc, ref="R290", N_1=1, N_2=1, H_b=150.0)
 
    .. tab-item:: + STC ground
 
@@ -648,7 +673,7 @@ of, or in exclusive alternation with, the tank.
          from tmhp.subsystems import SolarThermalCollector
 
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
-         model = GSHPB_STC_ground(stc=stc, ref="R410A", N_1=1, N_2=1, H_b=150.0)
+         model = GSHPB_STC_ground(stc=stc, ref="R290", N_1=1, N_2=1, H_b=150.0)
 
    .. tab-item:: + STC routed
 
@@ -662,7 +687,7 @@ of, or in exclusive alternation with, the tank.
          from tmhp.subsystems import SolarThermalCollector
 
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
-         model = GSHPB_STC_routed(stc=stc, ref="R410A", N_1=1, N_2=1, H_b=150.0)
+         model = GSHPB_STC_routed(stc=stc, ref="R290", N_1=1, N_2=1, H_b=150.0)
 
    .. tab-item:: + PV / ESS
 
@@ -677,7 +702,7 @@ of, or in exclusive alternation with, the tank.
          model = GSHPB_PV_ESS(
              pv=PhotovoltaicSystem(),
              ess=EnergyStorageSystem(),
-             ref="R410A",
+             ref="R290",
              N_1=1, N_2=1, H_b=150.0,
          )
 

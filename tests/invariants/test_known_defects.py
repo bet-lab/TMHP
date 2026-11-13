@@ -120,7 +120,8 @@ def test_c6_ashpb_discharge_temperature_limit():
     expect((not is_reported_running(r)) or T_dis <= 150.0, f"T_cmp_out={T_dis:.1f} °C reported as success")
 
 
-@defect("C11", "WSHPB has no superheat cap: suction is +1.6 K above the source fluid")
+# C11 fixed: the GSHPB/WSHPB suction superheat is capped at the evaporator approach
+# less dT_hx_min (it was +1.6 K above the source fluid here).
 def test_c11_wshpb_suction_not_hotter_than_source():
     # The speed-floor point discharges above the R32 limit and is refused by the
     # compressor envelope; the defect is in the suction state, so look at it with
@@ -611,11 +612,9 @@ def _gshpb_cold_ground():
             id="GSHP",
             marks=defect("G1", "evaporator uses last step's fluid: T_evap 0.8 > T_fluid -6.3 °C"),
         ),
-        pytest.param(
-            _gshpb_cold_ground,
-            id="GSHPB",
-            marks=defect("G1", "evaporator uses last step's fluid: T_evap -4.1 > T_fluid -9.9 °C"),
-        ),
+        # G1 fixed for GSHPB: the cycle is closed against the ground fluid of the
+        # same step (it was T_evap -4.1 > T_fluid -9.9 °C).
+        pytest.param(_gshpb_cold_ground, id="GSHPB"),
     ],
 )
 def test_g1_evaporator_below_source_fluid_in_same_row(run):

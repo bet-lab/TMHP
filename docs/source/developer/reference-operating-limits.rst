@@ -167,7 +167,7 @@ Audit and validation
 The repository audit is in ``docs/audits/reference-rated-max.md``. It inventories
 reference/rated/design/ratio/max identifiers in all five released heat-pump
 families, common HX/fan and ground helpers, and compressor speed handling.
-WSHPB has fixed surface-water/tank UAs and explicit speed limits; it contains
+WSHPB has fixed (capacity-scaled by default) surface-water/tank UAs and explicit speed limits; it contains
 no fan solver or rated-flow ceiling to expand. Numerical regression tests retain
 old constructor behavior, and new tests verify identical component physics at
 an identical actual operating point across control strategies.

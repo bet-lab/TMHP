@@ -60,6 +60,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
+from ._online_convolution import OnlineHistory
 from .g_function import g_step_mean
 
 
@@ -118,6 +119,19 @@ class AggregateGFunctionCoupler:
     different time array passed later falls back to direct evaluation with
     the same step length. A non-uniform grid is rejected at :meth:`reset`.
 
+    **Long runs.** The dot product grows with the step index (a run of ``N``
+    steps costs ``N²/2``: about 7 s for 525 600 steps, half an hour for
+    5 256 000). From :attr:`FAST_MIN_STEPS` steps on (a year at ten-minute
+    steps), the same pulse sum is accumulated ahead of time by an online FFT
+    convolution (:mod:`tmhp._online_convolution`), at a cost per step that
+    does not depend on the run length (about 1 s and 10 s for the two runs
+    above). It is not a load-aggregation scheme: nothing is averaged or
+    truncated, and the values differ from the dot product by round-off only
+    (``1e-11`` K over 250 000 steps). It applies while steps are recorded in
+    increasing order on the grid given to :meth:`reset`; any other use (a
+    step recorded again, another time array) is answered by the dot product,
+    with the same values.
+
     Parameters
     ----------
     g_interp : Callable[[np.ndarray], np.ndarray]
@@ -133,6 +147,12 @@ class AggregateGFunctionCoupler:
         length is never taken from how the g-function was built.
     """
 
+    #: Run length [steps] from which the pulse history is accumulated ahead of
+    #: time (see "Long runs"). Measured break-even of a whole run: about
+    #: 50 000 steps with one call per step, below 10 000 when the host also
+    #: previews candidates and reads the wall temperature every step.
+    FAST_MIN_STEPS: int = 50_000
+
     def __init__(self, g_interp, pulse_tol: float = 1e-6, dt_s: float | None = None) -> None:
         self._g = g_interp
         self._pulse_tol = float(pulse_tol)
@@ -143,6 +163,8 @@ class AggregateGFunctionCoupler:
         self._time: np.ndarray | None = None
         self._gbar_rev: np.ndarray | None = None
         self._gwall_rev: np.ndarray | None = None
+        self._online: OnlineHistory | None = None
+        self._online_wall: OnlineHistory | None = None
 
     def reset(self, n_steps: int, time_arr: np.ndarray, dt_s: float | None = None) -> None:
         """Start a run of ``n_steps`` steps on the uniform grid ``time_arr`` [s].
@@ -186,6 +208,16 @@ class AggregateGFunctionCoupler:
         else:
             self._gbar_rev = None
             self._gwall_rev = None
+        long_run = self._gbar_rev is not None and n_steps >= self.FAST_MIN_STEPS
+        self._online = OnlineHistory(self._gbar_rev[::-1]) if long_run and self._gbar_rev is not None else None
+        self._online_wall = None  # built when the physical wall temperature is first asked for
+
+    def _pulse_recorded(self, n: int) -> None:
+        """A pulse was written at step ``n``: the accumulated history holds only if that step was not folded in yet."""
+        for online in (self._online, self._online_wall):
+            if online is not None and n < online.folded:
+                self._online = self._online_wall = None  # the dot product takes over for the rest of the run
+                return
 
     def _history_rise(self, n: int, time_arr: np.ndarray, upto: int) -> float:
         """Σ_{i<upto} p_i ḡ(t_n - t_i): response at step ``n`` to the first ``upto`` pulses."""
@@ -196,6 +228,10 @@ class AggregateGFunctionCoupler:
         if rev is not None and known is not None and (time_arr is known or np.array_equal(time_arr, known)):
             self._time = time_arr  # identity fast path from now on
             N = len(rev)
+            online = self._online
+            if online is not None and n <= upto <= n + 1 and n < N:
+                own = float(self._pulses[n]) * float(rev[-1]) if upto == n + 1 else 0.0
+                return online.history(self._pulses, n) + own
             # ḡ[n-i] for i = 0..upto-1  ->  rev[N-1-n+i]
             start = N - 1 - n
             return float(np.dot(self._pulses[:upto], rev[start : start + upto]))
@@ -232,6 +268,7 @@ class AggregateGFunctionCoupler:
         if abs(q_unit - self._q_old) > self._pulse_tol:
             self._pulses[n] = q_unit - self._q_old
             self._q_old = q_unit
+            self._pulse_recorded(n)
         return self._history_rise(n, time_arr, n + 1)
 
     def borehole_wall_rise(self, n: int, time_arr: np.ndarray) -> float:
@@ -249,6 +286,10 @@ class AggregateGFunctionCoupler:
         rev = self._gwall_rev
         known = self._time
         if rev is not None and known is not None and (time_arr is known or np.array_equal(time_arr, known)):
+            if self._online is not None and 0 <= n < len(rev):
+                if self._online_wall is None:
+                    self._online_wall = OnlineHistory(rev[::-1])
+                return self._online_wall.history(self._pulses, n) + float(self._pulses[n]) * float(rev[-1])
             start = len(rev) - 1 - n
             return float(np.dot(self._pulses[: n + 1], rev[start : start + n + 1]))
         idx = np.flatnonzero(self._pulses[: n + 1])

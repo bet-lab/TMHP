@@ -1,9 +1,11 @@
-"""The fast coupler must give the default coupler's numbers, in every call pattern it accepts.
+"""The online convolution of long runs must give the dot product's numbers, in every call pattern.
 
-:class:`~tmhp.ground_superposition.FastGFunctionCoupler` is an exact
-re-ordering of the default temporal superposition, so every test compares it
-with :class:`~tmhp.ground_coupling.AggregateGFunctionCoupler` on the same
-g-function; the only tolerance is floating-point round-off.
+:class:`~tmhp.ground_coupling.AggregateGFunctionCoupler` accumulates the
+pulse history ahead of time for runs of ``FAST_MIN_STEPS`` steps or more.
+:class:`~tmhp.ground_superposition.FastGFunctionCoupler` is the same coupler
+with that path forced on, so every test compares it with the default coupler
+on a short run (dot product) and the same g-function; the only tolerance is
+floating-point round-off.
 """
 
 from __future__ import annotations
@@ -60,6 +62,7 @@ def _pair(g, n: int, dt: float, **kw):
     fast = FastGFunctionCoupler(g, **kw)
     reset_ground_coupler(ref, n, t, dt)
     reset_ground_coupler(fast, n, t, dt)
+    assert ref._online is None and fast._online is not None  # dot product against online convolution
     return t, ref, fast
 
 
@@ -121,6 +124,7 @@ def test_pulse_tolerance_and_fixed_step_are_honoured(g_field):
     fast = FastGFunctionCoupler(g_field, pulse_tol=0.5, dt_s=dt)
     ref.reset(n, t)
     fast.reset(n, t)
+    assert ref._online is None and fast._online is not None
     q = 10.0 + 0.3 * np.sin(np.arange(n))  # mostly below the tolerance
     q[100:] += 5.0
     for i in range(n):
@@ -136,37 +140,81 @@ def test_reset_starts_a_clean_run(g_field):
     assert [fast.wall_temperature_rise(i, t, q[i]) for i in range(n)] == first
 
 
-def test_calls_it_cannot_answer_exactly_raise(g_field):
-    n, dt = 50, 3600.0
-    t, _, fast = _pair(g_field, n, dt)
-    with pytest.raises(ValueError, match="wall_temperature_rise"):
-        fast.borehole_wall_rise(0, t)  # nothing committed yet
-    fast.wall_temperature_rise(0, t, 10.0)
-    fast.wall_temperature_rise(1, t, 12.0)
-    with pytest.raises(ValueError, match="already committed"):
-        fast.wall_temperature_rise(1, t, 15.0)
-    with pytest.raises(ValueError, match="next step"):
-        fast.preview_wall_temperature_rise(0, t, 15.0)
-    with pytest.raises(ValueError, match="next step"):
-        fast.preview_wall_temperature_rise(7, t, 15.0)
-    with pytest.raises(ValueError, match="time grid"):
-        fast.wall_temperature_rise(2, t + 1.0, 15.0)
-    with pytest.raises(ValueError, match="outside"):
-        fast.wall_temperature_rise(n, t, 15.0)
-    with pytest.raises(RuntimeError, match="reset"):
-        FastGFunctionCoupler(g_field).wall_temperature_rise(0, t, 1.0)
+def _default(g, n: int, dt: float, **kw) -> AggregateGFunctionCoupler:
+    """The default coupler on the dot product (the run is far below FAST_MIN_STEPS)."""
+    assert n < AggregateGFunctionCoupler.FAST_MIN_STEPS
+    coupler = AggregateGFunctionCoupler(g, **kw)
+    reset_ground_coupler(coupler, n, np.arange(n) * dt, dt)
+    assert coupler._online is None
+    return coupler
 
 
-def test_reset_rejects_grids_the_step_mean_response_does_not_cover(g_field):
+@pytest.mark.parametrize("kernel", ["g-function", "capacity+transit"])
+def test_out_of_order_use_falls_back_to_the_dot_product_with_the_same_values(g_field, kernel):
+    """Recording a step again, previewing ahead, another time array: the default's values, never an error."""
+    g = _kernel(kernel, g_field)
+    n, dt = 400, 600.0
+    t, ref, fast = _pair(g, n, dt)
+    assert fast._online is not None
+    q = _loads(n, seed=11)
+    calls = (
+        [("commit", i, q[i]) for i in range(120)]
+        + [("preview", 150, 30.0), ("commit", 120, q[120]), ("wall", 60, 0.0)]  # ahead, then behind it
+        + [("commit", 119, -12.0), ("wall", 119, 0.0), ("commit", 119, 7.0)]  # a step recorded again, twice
+        + [("commit", i, q[i]) for i in range(121, 300)]
+        + [("preview", 300, -20.0), ("wall", 299, 0.0), ("wall", 10, 0.0)]
+    )
+    for kind, i, value in calls:
+        if kind == "commit":
+            a, b = ref.wall_temperature_rise(i, t, value), fast.wall_temperature_rise(i, t, value)
+        elif kind == "preview":
+            a, b = ref.preview_wall_temperature_rise(i, t, value), fast.preview_wall_temperature_rise(i, t, value)
+        else:
+            a, b = ref.borehole_wall_rise(i, t), fast.borehole_wall_rise(i, t)
+        assert b == pytest.approx(a, abs=ATOL), (kind, i)
+    assert fast._online is None  # the accumulated history was dropped when a folded step changed
+    np.testing.assert_array_equal(fast._pulses, ref._pulses)
+
+    other = t.copy() + 5.0  # a different array object and origin: direct evaluation, as the default does
+    assert fast.wall_temperature_rise(300, other, 3.0) == pytest.approx(
+        ref.wall_temperature_rise(300, other, 3.0), abs=ATOL
+    )
+
+
+def test_default_coupler_switches_by_run_length(g_field, monkeypatch):
+    n, dt = 3000, 600.0
+    t = np.arange(n) * dt
+    q = _loads(n, seed=13)
+    dot = _default(g_field, n, dt)
+    monkeypatch.setattr(AggregateGFunctionCoupler, "FAST_MIN_STEPS", n)
+    auto = AggregateGFunctionCoupler(g_field)
+    reset_ground_coupler(auto, n, t, dt)
+    assert auto._online is not None  # at the threshold: accumulated
+    short = AggregateGFunctionCoupler(g_field)
+    reset_ground_coupler(short, n - 1, t[:-1], dt)
+    assert short._online is None  # below it: dot product
+    for i in range(n):
+        assert auto.wall_temperature_rise(i, t, q[i]) == pytest.approx(dot.wall_temperature_rise(i, t, q[i]), abs=ATOL)
+    assert auto._online is not None and auto._online.folded == n - 1
+
+
+def test_reset_accepts_what_the_default_accepts(g_field):
     fast = FastGFunctionCoupler(g_field)
     with pytest.raises(ValueError, match="uniform"):
         fast.reset(4, np.array([0.0, 3600.0, 7200.0, 12000.0]))
     with pytest.raises(ValueError, match="step length"):
         fast.reset(1, np.array([0.0]))
-    with pytest.raises(ValueError, match="every step"):
-        fast.reset(10, np.arange(4) * 3600.0, dt_s=3600.0)
     fast.reset(1, np.array([0.0]), dt_s=3600.0)  # a one-step run with its step given
-    assert fast.wall_temperature_rise(0, np.array([0.0]), 10.0) > 0.0
+    ref = AggregateGFunctionCoupler(g_field)
+    ref.reset(1, np.array([0.0]), dt_s=3600.0)
+    assert fast.wall_temperature_rise(0, np.array([0.0]), 10.0) == ref.wall_temperature_rise(0, np.array([0.0]), 10.0)
+    # A time array that is not the whole run: no table, direct evaluation (and no accumulation).
+    short_t = np.arange(4) * 3600.0
+    fast.reset(10, short_t, dt_s=3600.0)
+    ref.reset(10, short_t, dt_s=3600.0)
+    assert fast._online is None
+    for i in range(4):
+        assert fast.wall_temperature_rise(i, short_t, 5.0 * i) == ref.wall_temperature_rise(i, short_t, 5.0 * i)
 
 
 def _run(model, n: int, dt: float):

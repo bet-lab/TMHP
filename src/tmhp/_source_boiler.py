@@ -281,10 +281,16 @@ def close_tank_hx(
     r0 = state0["Q_tank"] - UA_tank_hx * state0["dT_tank"]
     if r0 == 0.0:
         return state0
-    if state0.get("pr_event") is not None:
+    floor_event = state0.get("pr_event")
+    if floor_event is not None and not (floor_event[0] == "pr_below_min" and r0 > 0.0):
         # The pressure-ratio floor fixes the condensing state: the heat and the
         # approach no longer follow dT, so there is nothing to close.
         return None
+    # A floor event on an over-delivering compressor (speed floor) is judged
+    # on the approach of the *request*: the approach the delivered heat needs
+    # is wider, which raises the condensing pressure and can lift the cycle
+    # off the floor. The closure is tried; it is kept only when the closed
+    # state is clear of the floor (otherwise the floor does fix the state).
     tolerance = _CLOSURE_XTOL_K * UA_tank_hx
 
     def finish(closed: dict) -> dict:
@@ -349,7 +355,7 @@ def close_tank_hx(
     except (ValueError, RuntimeError):
         return None
     closed = cycle(float(dT_closed), rps_bound)
-    if closed is None:
+    if closed is None or (floor_event is not None and closed.get("pr_event") is not None):
         return None
     return finish(closed)
 

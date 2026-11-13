@@ -847,7 +847,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 # source-water HX, or no approach gave a cycle at all.
                 reason = "hx_not_converged" if evaluable else self._infeasible_cycle_reason()
                 raise
-            opt_x = bracket[0] if bracket[0] == bracket[1] else brentq(_objective, *bracket, xtol=1e-4, maxiter=50)
+            # Closed far below the energy-balance check that follows (0.01 W at
+            # small duties): with the capacity-scaled source conductance an
+            # approach known to 1e-4 K leaves about 0.1 W open.
+            opt_x = (
+                bracket[0]
+                if bracket[0] == bracket[1]
+                else brentq(_objective, *bracket, xtol=1e-9, rtol=1e-12, maxiter=100)
+            )
             final = self._calc_state(
                 opt_x, T_tank_w, Q_tank_load, T0, flow_state=flow_state, source_temperature_K=source_temperature_K
             )

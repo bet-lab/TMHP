@@ -175,6 +175,46 @@ def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
+@pytest.mark.parametrize(
+    ("ref", "T_source", "T_tank"),
+    [("R290", 0.0, 55.0), ("R1234yf", 10.0, 55.0), ("R717", 10.0, 50.0)],
+)
+def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T_source, T_tank):
+    """A request below the minimum-speed capacity runs at that capacity, whatever the refrigerant.
+
+    The evaporator approach of these points is about 1 K against the
+    capacity-scaled source conductance; the approach search used to stop at
+    1e-4 K, which left about 0.1 W of the source balance open and failed the
+    0.01 W check that follows (``hx_not_converged``).
+    """
+    m = _quiet(FAMILIES[family], ref=ref)
+    r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=400.0, T0=10.0)
+    assert r["failure_reason"] == "none" and r["hp_is_on"] and r["capacity_clamped"] == "min"
+    assert r["Q_ref_tank [W]"] > 400.0
+    assert abs(r["tank_hx_residual [W]"]) < 1e-2
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
+def test_speed_floor_closure_lifts_a_small_lift_cycle_off_the_pressure_ratio_floor(family):
+    """R32 from a 20 °C source into a 30 °C tank, far below the floor capacity.
+
+    At the approach of the 400 W request the pressure ratio is below
+    ``PR_cycle_min``; at the approach of the 5.5 kW the compressor delivers at
+    its speed floor it is not. The closure is tried before the floor is taken
+    as binding, so the point is one closed operating point (it used to fall
+    between the two formulations and fail the source balance).
+    """
+    m = _quiet(FAMILIES[family], ref="R32")
+    r = _quiet(m.analyze_steady, T_tank_w=30.0, T_source=20.0, Q_ref_tank=400.0, T0=10.0)
+    assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
+    ratio = r["P_ref_cmp_out [Pa]"] / r["P_ref_cmp_in [Pa]"]
+    assert ratio > m.PR_cycle_min + 0.05
+    delivered = r["Q_ref_tank [W]"]
+    assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-4)
+    assert abs(r["tank_hx_residual [W]"]) < 1e-2
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
 def test_modulating_point_keeps_the_requested_approach(machines, family):
     m = machines[family, 8e3]
     r = _quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=6000.0, T0=10.0)

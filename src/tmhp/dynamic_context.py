@@ -274,7 +274,10 @@ class Subsystem(Protocol):
     - *Read*: during a step the host model holds the previous step's states
       in ``host._subsystem_state_in`` (``{}`` at the start of a run); the
       subsystem's entry is ``host._subsystem_state_in.get(name, {})``. It
-      must not be modified.
+      must not be modified. The host's hooks (``_run_subsystems``,
+      ``_augment_results``) read it there; a subsystem object stepped
+      through this protocol has no reference to its host, so the hook that
+      calls it hands the entry over.
     - *Write*: the subsystem puts its next state, a new plain dict, under
       :data:`SUBSYSTEM_STATE_KEY` (``"carried_state"``) of the dict its
       ``step()`` returned, at the latest in ``assemble_results()`` (the

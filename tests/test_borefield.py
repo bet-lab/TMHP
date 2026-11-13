@@ -296,8 +296,10 @@ def test_irregular_field_matches_pygfunction_and_ignores_order():
     perm = [2, 0, 1]
     shuffled = BoreField.from_coordinates(np.asarray(_IRREGULAR_XY)[perm], np.asarray(_IRREGULAR_H)[perm])
     g2 = GFunction.from_field(shuffled, ALPHA, K_S, YEAR, num=40)
-    np.testing.assert_array_equal(g2.y, g.y)
-    np.testing.assert_array_equal(g2.borehole_load_shares(YEAR), g.borehole_load_shares(YEAR)[perm])
+    # Same sorted input to pygfunction either way; the shares are un-sorted
+    # back through different index paths, so allow round-off (not bit equality).
+    np.testing.assert_allclose(g2.y, g.y, rtol=1e-12)
+    np.testing.assert_allclose(g2.borehole_load_shares(YEAR), g.borehole_load_shares(YEAR)[perm], rtol=1e-9)
 
 
 def test_interleaved_depths_avoid_pygfunction_cluster_bug():

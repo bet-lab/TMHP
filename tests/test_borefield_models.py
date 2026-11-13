@@ -121,6 +121,33 @@ def test_attach_refuses_a_model_of_another_field(irregular):
         irregular.model_kwargs(c_s=0.0)
 
 
+def test_attach_refuses_what_the_models_cannot_represent(irregular):
+    """Non-water heat-capacity rate and pump hydraulics of a non-parallel field (the models assume both)."""
+    field = BoreField.rectangle(2, 1, 6.0, 150.0)
+    glycol = FieldGroundResponse(
+        field, k_s=K_S, alpha_s=ALPHA_S, m_flow_total=_flow(48.0) * 1.03, t_max_s=T_MAX, rho_f=rho_w * 1.03, cp_f=3900.0
+    )
+    with pytest.raises(ValueError, match="loop fluid as water"):
+        glycol.attach(_boiler(**glycol.model_kwargs()))
+    # Viscosity and conductivity only change R_b, which the model takes from the field.
+    viscous = FieldGroundResponse(
+        field, k_s=K_S, alpha_s=ALPHA_S, m_flow_total=_flow(48.0), t_max_s=T_MAX, mu_f=2.0e-3, k_f=0.5
+    )
+    viscous.attach(_boiler(**viscous.model_kwargs()))
+    # Pump hydraulics: fine for equal parallel single U-tubes, refused otherwise.
+    parallel = _response(field, 48.0)
+    parallel.attach(_boiler(hydraulic_pump=True, **parallel.model_kwargs()))
+    series = _response(field, 24.0, connectivity=[-1, 0])
+    with pytest.raises(ValueError, match="hydraulic_pump"):
+        series.attach(_boiler(hydraulic_pump=True, **series.model_kwargs()))
+    with pytest.raises(ValueError, match="hydraulic_pump"):
+        irregular.attach(_boiler(hydraulic_pump=True, **irregular.model_kwargs()))
+    double = _response(field, 48.0, BoreholePipe(kind="double_u_parallel", D_s=0.04))
+    with pytest.raises(ValueError, match="hydraulic_pump"):
+        double.attach(_boiler(hydraulic_pump=True, **double.model_kwargs()))
+    series.attach(_boiler(**series.model_kwargs()))  # with a given pump power it is accepted
+
+
 def test_space_conditioning_model_takes_a_field(irregular):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

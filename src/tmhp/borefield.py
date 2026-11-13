@@ -565,6 +565,27 @@ class FieldGroundResponse:
                 )
         if settings["variable_Rb"] or settings["control"] != "constant":
             raise ValueError("a field response holds for one flow: use constant ground flow without variable_Rb")
+        # The models compute the loop temperature difference Q / (m c_p) with
+        # water. A field built for another heat-capacity rate would give
+        # inlet and outlet temperatures inconsistent with its own g-function
+        # and transit kernel. (Viscosity and conductivity only enter R_b,
+        # which the model takes from the field.)
+        net = self.network
+        if not (math.isclose(net.rho_f, rho_w, rel_tol=1e-9) and math.isclose(net.cp_f, c_w, rel_tol=1e-9)):
+            raise ValueError(
+                f"the models take the loop fluid as water (rho {rho_w:g} kg/m3, c_p {c_w:g} J/(kg K)); "
+                f"this field was built with rho_f {net.rho_f:g}, cp_f {net.cp_f:g}"
+            )
+        # The models' pump power assumes identical parallel single U-tubes of
+        # length 2 H_b; any other circuit would be given the wrong pressure drop.
+        if settings["hydraulic_pump"] and not (
+            self.pipe.kind == "single_u" and net.is_parallel(field.n_boreholes) and field.uniform_depth
+        ):
+            raise ValueError(
+                "hydraulic_pump computes the pressure drop of equal parallel single U-tubes; "
+                "it does not describe this field (series circuits, other pipes or unequal depths). "
+                "Give the pump power directly (E_pmp) instead"
+            )
         g = self.dynamic_gfunction(rhoc_g=rhoc_g, rhoc_p=rhoc_p, transit=transit) if borehole_dynamics else self.g
         coupler = getattr(model, "_ground_coupler", None)
         if coupler is not None:

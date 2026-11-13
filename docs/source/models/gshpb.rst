@@ -273,7 +273,10 @@ follow it:
   loop temperature difference ``Q / (2 ṁ c)`` at the start of a run with
   water's ``ṁ c``, 5 % larger than that of the default flow of 25 % propylene
   glycol: the liquid entering the heat pump then starts 0.08 K above the
-  ground instead of at it (8 kW machine).
+  ground instead of at it (8 kW machine). The fluid temperatures a dynamic
+  row *reports* (``T_bhe_f*``) are likewise split around the mean with
+  water's ``ṁ c`` and can differ by that much from the ones the cycle of the
+  step was solved and the freezing limit was checked with.
 
 The flow optimiser of ``ground_flow_control="optimal_power"`` does not know
 the limit either: it picks the flow of least total power, which near the limit

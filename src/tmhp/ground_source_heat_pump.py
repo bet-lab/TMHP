@@ -53,7 +53,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
-from .constants import c_a, rho_a
+from .constants import c_a, c_w, rho_a, rho_w
 from .enex_functions import (
     calc_energy_flow,
     calc_exergy_flow,
@@ -1952,7 +1952,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
 
         dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_half

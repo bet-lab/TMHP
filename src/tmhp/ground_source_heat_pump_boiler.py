@@ -1755,7 +1755,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T_bhe_K = cu.C2K(self.Ts - dT_bhe)
         self.T_bhe = self.Ts - physical_wall_rise(coupler, n, time_arr, dT_bhe)
         R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
-        m_cp_b = self.source_fluid.cp * self.source_fluid.rho * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
 
         T_bhe_f_K, self.T_bhe_f_in_K, T_bhe_f_out_K = self._borehole_fluid_K(T_bhe_K, Q_net_avg, R_b, m_cp_b)

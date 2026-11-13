@@ -258,20 +258,30 @@ def solve_hx_scale(delivered: Callable[[float], float], q_target: float) -> tupl
 def solve_hx_temperature(delivered: Callable[[float], float], q_target: float, T_low: float, span: float) -> float:
     """Exchanger temperature [°C] with ``delivered(T_hx) == q_target``.
 
-    ``delivered`` [W] is zero at ``T_low`` (no node is colder) and grows
-    without bound with the temperature; ``span`` [K] is a first guess of how
-    far above ``T_low`` the answer lies.
+    ``delivered`` [W] grows without bound with the temperature and is zero
+    below the coldest water the step reaches. ``T_low`` is the caller's
+    estimate of that (the coldest start, make-up and ambient temperature);
+    ``span`` [K] is a first guess of how far above it the answer lies. Water
+    that a negative ``q_source`` cools during the step can end below
+    ``T_low``, where the exchanger already delivers more than ``q_target``:
+    the bracket is then widened downward until it encloses the duty.
     """
     from scipy.optimize import brentq
 
     if q_target <= 0.0:
         return T_low
-    hi = T_low + max(span, 1.0)
+    width = max(span, 1.0)
+    lo = T_low
+    while delivered(lo) >= q_target:
+        lo = T_low - 2.0 * (T_low - lo) if lo < T_low else T_low - width
+        if T_low - lo > 1.0e6:  # pragma: no cover - a finite heat sink cools the water finitely
+            raise ValueError("no exchanger temperature delivers q_hx")
+    hi = T_low + width
     while delivered(hi) < q_target:
         hi = T_low + 2.0 * (hi - T_low)
         if hi - T_low > 1.0e6:  # pragma: no cover - hx_ua > 0 is checked by the caller
             raise ValueError("no exchanger temperature delivers q_hx")
-    return float(brentq(lambda x: delivered(x) - q_target, T_low, hi, xtol=1e-10, rtol=1e-13, maxiter=200))
+    return float(brentq(lambda x: delivered(x) - q_target, lo, hi, xtol=1e-10, rtol=1e-13, maxiter=200))
 
 
 def _heat_source_array(q_source, n: int) -> np.ndarray:

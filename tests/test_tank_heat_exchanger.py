@@ -86,6 +86,27 @@ def test_heat_the_nodes_cannot_take_below_the_exchanger_is_reported(cls):
     assert abs(_balance(t, E0, out, 600.0)) < 1e-6 * out["Q_hx"] * 600.0
 
 
+@pytest.mark.parametrize("cls", [StratifiedTank, HybridStratifiedTank])
+def test_exchanger_temperature_is_found_below_the_start_when_a_heat_sink_cools_the_water(cls):
+    """A negative ``q_source`` cools the water below every start temperature.
+
+    The exchanger temperature that delivers ``q_hx`` then lies below the
+    coldest start temperature too (20 °C water, 20 kW removed for 600 s: the
+    water ends near 6.4 °C and the exchanger 2 K above it). The search used to
+    start its bracket 1 K below the coldest start temperature and raise.
+    """
+    tank = _tank(cls, n=1, profile=20.0)
+    E0 = tank.stored_energy
+    out = tank.step(600.0, q_source=-20000.0, hx_ua=500.0, q_hx=1000.0)
+    assert out["Q_hx"] == pytest.approx(1000.0, rel=1e-9)
+    assert not out["hx_limited"]
+    T_end = float(tank.T[0])
+    assert T_end < 19.0
+    # one node, implicit: Q = UA·(T_hx − T_end)
+    assert float(out["T_hx"]) == pytest.approx(T_end + 1000.0 / 500.0, abs=1e-6)
+    assert abs(_balance(tank, E0, out, 600.0, q_source=-20000.0)) < 1e-6 * 20000.0 * 600.0
+
+
 @pytest.mark.parametrize("cls", TANKS)
 def test_exchanger_colder_than_every_node_delivers_nothing(cls):
     t = _tank(cls)

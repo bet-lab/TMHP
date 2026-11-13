@@ -99,8 +99,11 @@ def test_duty_below_minimum_capacity_returns_that_minimum(hp):
     assert tiny["failure_reason"] == "none"
     assert tiny["capacity_clamped"] == CAPACITY_CLAMPED_MIN
     assert tiny["Q_ref_tank_request [W]"] == pytest.approx(50.0)
-    # The machine delivers its floor, which is well above the request.
-    assert tiny["Q_ref_tank [W]"] > 50.0
+    # The machine's floor is well above the request: it cycles at that floor,
+    # and the row is the mean over the cycling period (tmhp.cycling).
+    assert tiny["Q_min [W]"] > 1000.0
+    assert tiny["Q_ref_tank [W]"] == pytest.approx(50.0, rel=1e-12)
+    assert 0.0 < tiny["runtime_fraction [-]"] < 0.05
     assert tiny["E_cmp [W]"] > 0.0
 
 
@@ -116,9 +119,10 @@ def test_duty_inside_the_band_is_met_and_not_flagged(hp):
 def test_any_request_below_the_floor_runs_at_the_floor_speed(hp):
     """Requests under the floor all land on rps_min, whatever the shortfall.
 
-    The delivered duty still shifts marginally between them because the
-    condensing approach is set from the *requested* duty before the speed
-    search; the operating speed is the invariant.
+    The floor duty (``Q_min [W]``) still shifts marginally between them
+    because the condensing approach is set from the *requested* duty before
+    the speed search; the operating speed is the invariant. The delivered
+    heat is the request in both: the rows are means over the cycling period.
     """
     a = hp.analyze_steady(T_tank_w=54.0, T0=7.0, Q_ref_tank=50.0, m_dot_w=0.5)
     b = hp.analyze_steady(T_tank_w=54.0, T0=7.0, Q_ref_tank=200.0, m_dot_w=0.5)
@@ -126,4 +130,5 @@ def test_any_request_below_the_floor_runs_at_the_floor_speed(hp):
     assert a["capacity_clamped"] == b["capacity_clamped"] == CAPACITY_CLAMPED_MIN
     assert a["cmp_rpm [rpm]"] == pytest.approx(60.0 * hp.rps_min, rel=1e-9)
     assert b["cmp_rpm [rpm]"] == pytest.approx(60.0 * hp.rps_min, rel=1e-9)
-    assert a["Q_ref_tank [W]"] == pytest.approx(b["Q_ref_tank [W]"], rel=1e-3)
+    assert a["Q_min [W]"] == pytest.approx(b["Q_min [W]"], rel=1e-3)
+    assert (a["Q_ref_tank [W]"], b["Q_ref_tank [W]"]) == pytest.approx((50.0, 200.0), rel=1e-12)

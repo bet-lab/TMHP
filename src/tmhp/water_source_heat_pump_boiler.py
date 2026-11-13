@@ -61,7 +61,10 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
+from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     CycleSolveOutcome,
     StepContext,
@@ -72,6 +75,7 @@ from .dynamic_context import (
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -130,6 +134,19 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     ``tank_hx_residual [W]``). In ``analyze_dynamic`` the cycle of a step is
     solved against the fluid the coil returns from that step's source water
     (``T_source_w_schedule``) while it carries that step's own extraction.
+
+    **Below the minimum capacity.** ``analyze_steady`` reports a request below
+    what the compressor delivers at ``rps_min`` as the mean of on/off cycling
+    (``capacity_clamped == "min"``, :mod:`tmhp.cycling`): ``Q_ref_tank [W]``
+    equals the request, ``runtime_fraction [-]`` is the share of the time the
+    compressor runs, and the electrical input carries the EN 14825 degradation
+    of a unit delivering to water -- ``Cd_cycling`` is its coefficient ``Cc``
+    (0.9: while the compressor is off the unit draws a tenth of its running
+    input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
+    ``Cd_cycling=None`` returns the continuous minimum-speed point, which
+    delivers more than the request. Dynamic runs are not affected: there the
+    tank thermostat switches the compressor, which runs at ``hp_capacity`` for
+    ``runtime_fraction [-]`` of a step.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -145,6 +162,13 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         "Q_tank_load [W]",
         "m_dot_ref [kg/s]",
     )
+    #: The same rates as ``analyze_steady`` averages them when the unit cycles
+    #: (:meth:`_report_part_load`): heat and refrigerant rates with the
+    #: capacity ratio, electrical inputs with the power fraction. ``Q_bhe``
+    #: follows from the averaged terms.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = ("Q_ref_tank [W]", "Q_ref_water [W]", "m_dot_ref [kg/s]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
+    _CYCLING_SOURCE_HEAT_KEY: str | None = "Q_ref_water [W]"
     _RATING_FAMILY = "WSHPB"
     _RATING_DEFAULT_MODE = "heating"
 
@@ -237,8 +261,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         UA_tank: float | None = None,  # deprecated alias for UA_tank_hx
         UA_cond_design: float | None = None,
         UA_evap_design: float | None = None,
+        # On/off cycling below the minimum continuous capacity in analyze_steady:
+        # EN 14825 degradation coefficient Cc of a unit delivering to water
+        # (None: no cycling, the row over-delivers at the minimum speed).
+        Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
     ) -> None:
         validate_ctor("WSHPB", locals())
+        #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Capacity-scaled defaults (tmhp._source_boiler): a machine given only
         # hp_capacity and a refrigerant keeps the same rated performance at any
         # capacity. Every value the caller supplies is used as given.
@@ -1096,10 +1126,14 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         Q_tank_loss = self.UA_tank_wall * (T_solved_K - self.T_sur_K)
         mix = calc_mixing_valve_temp(T_solved_K, self.T_tank_w_in_K, self.T_mix_w_out_K)
-        r["T_mix_w_out [°C]"] = cu.K2C(mix["T_mix_w_out_K"])
+        T_mix_K = mix["T_mix_w_out_K"]
+        r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
 
+        # The mixed water delivered: the demand, less what a level-varying tank
+        # stopped at its lowest level could not supply.
+        dV_mix_w_out = flow_state["dV_mix_w_out"]
         r["Q_tank_loss [W]"] = Q_tank_loss
-        r["dV_mix_w_out [m3/s]"] = ctx.dV_mix_w_out
+        r["dV_mix_w_out [m3/s]"] = dV_mix_w_out
         r["dV_tank_w_in [m3/s]"] = flow_state["dV_tank_w_in"]
         r["dV_tank_w_out [m3/s]"] = flow_state["dV_tank_w_out"]
         r["dV_mix_sup_w_in [m3/s]"] = flow_state["dV_mix_sup_w_in"]
@@ -1107,6 +1141,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flow_state.get("dV_mix_w_out_unmet", 0.0)
+
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -1171,6 +1211,12 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         T_tank_w_K = cu.C2K(T_tank_w_init_C)
         tank_level = tank_level_init
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
@@ -1285,7 +1331,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
             tank_vol_change_prev = (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s
             level_next_approx = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_prev / self.V_tank_full))
-            tank_level_solve = max(0.001, level_next_approx)
+            tank_level_solve = max(TANK_LEVEL_MIN, level_next_approx)
 
             res_fn_free = self._build_residual_fn(
                 ctx=ctx,
@@ -1308,8 +1354,8 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_lower=self.T_tank_w_lower_bound,
                 T_upper=self.T_tank_w_upper_bound,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=res_fn_free,
                 solve_cycle=lambda T_C, _fraction, ctx=ctx: self._solve_cycle_at(ctx, T_C),
@@ -1354,25 +1400,24 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 ctx.T_tank_w_K,
                 T_start_K=ctx.T_tank_w_K,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 who=type(self).__name__,
                 step=n,
             )
             warn_if_tank_boiling(T_solved_K)
 
-            # Flow state evaluated at solved temperature
-            flow_state_final = self._calc_tank_flow_context(
-                dV_mix_w_out=ctx.dV_mix_w_out,
-                T_tank_w_K=T_solved_K,
-                T_tank_w_in_K=T_sup_w_K_n,
-                T_mix_w_out_K=self.T_mix_w_out_K,
-                dV_tank_w_in_override=ctrl.dV_tank_w_in_ctrl,
-            )
-
-            tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
-            level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
+            # Flows and end level the solved balance carried
+            # (tmhp.dynamic_context.tank_step_flows, the function the residual
+            # itself uses): a level-varying tank stops the draw at
+            # TANK_LEVEL_MIN and the make-up at full, and what the draw could
+            # not supply is unmet hot water. They used to be the unlimited
+            # draw, so a tank drained below its make-up reported level 0 and
+            # water it did not hold (#96 T1: +9.9 kWh, +32 %, in 1 h).
+            flows = tank_step_flows(T_solved_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+            flow_state_final = flows.as_flow_state()
+            level_next = flows.level_next
 
             # Source-water loop. The row's Q_bhe is the step average of an
             # extraction that flows only while the compressor runs. Reported
@@ -1428,8 +1473,29 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         if result_save_csv_path:
             results_df.to_csv(result_save_csv_path, index=False)
 
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
+    def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
+        """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
+
+        A row on the compressor's speed floor that delivers more than the
+        request becomes the mean over the on/off cycling period
+        (:func:`tmhp.cycling.report_boiler_cycling`): the rates a dynamic step
+        averages with its run time are multiplied by ``capacity_ratio [-]``,
+        the electrical inputs by ``capacity_ratio / part_load_factor``.
+        """
+        report_boiler_cycling(
+            result,
+            self.cycling,
+            Q_ref_tank,
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
+            hp_capacity=self.hp_capacity,
+        )
+
+    @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
@@ -1483,6 +1549,24 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
               carry the duty at any approach) or ``"optimizer_failed"``.
             - ``"failure_detail"`` (str, failures only) — which check
               rejected a ``"cycle_invalid"`` point.
+            - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A request below the
+              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
+              request (``Q_min [W]`` is the continuous duty), heat and
+              refrigerant rates are the running machine's times
+              ``capacity_ratio [-]`` -- the compressor runs that share of the
+              time, ``runtime_fraction [-]`` -- and the electrical inputs
+              (compressor and source pump) carry the EN 14825 degradation
+              for a unit delivering to water (``Cd_cycling``: the running
+              values times ``capacity_ratio / part_load_factor``), so both
+              COPs are the continuous ones times the part-load factor.
+              ``Q_bhe [W]`` is the mean source-side heat less that pump
+              power. Temperatures, pressures and speed are those of the
+              running machine. With ``Cd_cycling=None`` the row is the
+              continuous minimum-speed point and ``Q_ref_tank [W]`` exceeds
+              the request.
 
             Every reason other than ``"none"`` comes with an off-mode state:
             ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN COP. No unsolved point

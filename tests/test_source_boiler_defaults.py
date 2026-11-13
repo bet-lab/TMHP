@@ -157,13 +157,15 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
     m = machines[family, 8e3]
-    results = [
-        _quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=q, T0=10.0) for q in (400.0, 800.0, 2000.0)
-    ]
-    for r in results:
+    requests = (400.0, 800.0, 2000.0)
+    results = [_quiet(m.analyze_steady, T_tank_w=50.0, T_source=10.0, Q_ref_tank=q, T0=10.0) for q in requests]
+    for request, r in zip(requests, results, strict=True):
         assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
         assert r["cmp_rpm [rpm]"] == pytest.approx(60.0 * m.rps_min)
-        delivered = r["Q_ref_tank [W]"]
+        # The row is the mean over the on/off cycling period (tmhp.cycling);
+        # ``Q_min [W]`` is what the running machine delivers.
+        assert r["Q_ref_tank [W]"] == pytest.approx(request, rel=1e-12)
+        delivered = r["Q_min [W]"]
         assert delivered > 2000.0  # more than any of the requests
         # The condenser runs at the approach of the heat it delivers, not of the request.
         assert r["T_ref_cond_sat_l [°C]"] - 50.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-5)
@@ -171,7 +173,7 @@ def test_min_speed_clamp_closes_tank_hx_on_delivered_heat(machines, family):
         assert abs(r["tank_hx_residual [W]"]) < 1e-2
         assert r["Q_tank_load [W]"] < delivered
     # On the floor the machine no longer knows the request: one operating point.
-    for key in ("Q_ref_tank [W]", "E_cmp [W]", "T_ref_cond_sat_l [°C]"):
+    for key in ("Q_min [W]", "T_ref_cond_sat_l [°C]", "T_ref_evap_sat [°C]", "cmp_rpm [rpm]"):
         assert results[0][key] == pytest.approx(results[2][key], rel=1e-6)
 
 
@@ -191,7 +193,8 @@ def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T
     m = _quiet(FAMILIES[family], ref=ref)
     r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=400.0, T0=10.0)
     assert r["failure_reason"] == "none" and r["hp_is_on"] and r["capacity_clamped"] == "min"
-    assert r["Q_ref_tank [W]"] > 400.0
+    # Reported as the mean of cycling at that capacity: the request is delivered.
+    assert r["Q_min [W]"] > 400.0 and r["Q_ref_tank [W]"] == pytest.approx(400.0, rel=1e-12)
     assert abs(r["tank_hx_residual [W]"]) < 1e-2
 
 
@@ -210,7 +213,7 @@ def test_speed_floor_closure_lifts_a_small_lift_cycle_off_the_pressure_ratio_flo
     assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
     ratio = r["P_ref_cmp_out [Pa]"] / r["P_ref_cmp_in [Pa]"]
     assert ratio > m.PR_cycle_min + 0.05
-    delivered = r["Q_ref_tank [W]"]
+    delivered = r["Q_min [W]"]  # the running machine; the row's heat is the cycling mean
     assert r["T_ref_cond_sat_l [°C]"] - 30.0 == pytest.approx(delivered / m.UA_tank_hx, abs=1e-4)
     assert abs(r["tank_hx_residual [W]"]) < 1e-2
 

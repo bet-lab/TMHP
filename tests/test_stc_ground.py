@@ -107,10 +107,20 @@ def test_solar_charges_and_warms_ground():
     assert T_sun.mean() > T_base.mean()  # net warming, independent of field size
     # Independent convolution of the reported field-total extraction/injection.
     # A fixed 0.5 K threshold encoded the old factor-of-N normalization error.
+    # T_bhe is the physical wall: the wall response of the (dynamic) g-function.
+    g = model._gfunc_interp
+    assert model.borehole_dynamics == "transit"
+
+    class Wall:
+        x = g.x
+
+        def __call__(self, t):
+            return g.wall(t)
+
     for frame in (df_sun, base):
         loads = frame["Q_bhe [W]"].to_numpy() / (2 * 100.0)
         pulses = np.diff(loads, prepend=0.0)
         time = np.arange(len(loads)) * 3600.0
         # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
-        expected = model.Ts - step_mean_superposition(model._gfunc_interp, time, pulses, 3600.0)
+        expected = model.Ts - step_mean_superposition(Wall(), time, pulses, 3600.0)
         np.testing.assert_allclose(frame["T_bhe [°C]"], expected, atol=1e-10, rtol=0)

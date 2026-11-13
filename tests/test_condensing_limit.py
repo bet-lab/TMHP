@@ -267,6 +267,35 @@ def test_request_without_any_cycle_is_reduced_onto_the_limit(boilers):
     assert _steady(model, "GSHPB", 68.0, 2 * CAPACITY)["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX
 
 
+def test_cycling_average_sits_outside_the_condensing_reduction(boilers):
+    """On/off cycling (``steady_cycling``) averages the row the envelope returns, never a trial solve.
+
+    The duty reduction solves continuous rows (its lowest trial is the machine at
+    its minimum speed), and the cycling report then acts on the result: a row
+    reduced onto the limit is not a cycling row, a request below the minimum
+    capacity is one only where the *running* machine is inside the limit.
+    """
+    model = boilers["WSHPB"]
+    # Reduced onto the limit: continuous, at the duty on the limit.
+    reduced = _steady(model, "WSHPB", 62.0)
+    assert reduced["capacity_clamped"] == "max" and reduced["capacity_binding"] == BINDING_CONDENSING
+    assert reduced["runtime_fraction [-]"] == 1.0 and reduced["part_load_factor [-]"] == 1.0
+    assert reduced["Q_ref_tank [W]"] == pytest.approx(model.UA_tank_hx * (T_LIMIT_R410A - 62.0), rel=0.02)
+    # Below the minimum capacity, tank at 62 degC: the unit cycles; while it runs it
+    # delivers the minimum-speed duty, which condenses inside the limit.
+    cycling = _steady(model, "WSHPB", 62.0, 2000.0)
+    assert _running(cycling) and cycling["capacity_clamped"] == "min"
+    assert cycling["Q_ref_tank [W]"] == pytest.approx(2000.0, rel=1e-9)
+    assert 0.0 < cycling["runtime_fraction [-]"] < 1.0
+    assert cycling["Q_min [W]"] > 2000.0 and _inside(model, cycling)
+    assert cycling["T_ref_cond_sat_l [°C]"] == pytest.approx(62.0 + cycling["Q_min [W]"] / model.UA_tank_hx, abs=1e-6)
+    # Tank at 63.5 degC: the running machine would condense above the limit, so
+    # averaging its on-time does not make the request an operating point.
+    refused = _steady(model, "WSHPB", 63.5, 2000.0)
+    assert refused["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX and not refused["hp_is_on"]
+    assert refused["Q_ref_tank [W]"] == 0.0 and refused["runtime_fraction [-]"] == 0.0
+
+
 def test_rating_point_above_the_limit_is_refused_at_construction():
     """A 500 W/K tank coil on 8 kW rates R410A at 55 + 16 = 71 degC condensing."""
     with pytest.raises(ReferenceStateError, match=r"condenses at 71\.0 °C.*above T_cond_max=65 °C of R410A"):

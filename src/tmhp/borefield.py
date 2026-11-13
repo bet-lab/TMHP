@@ -526,7 +526,7 @@ class FieldGroundResponse:
         self,
         model: Any,
         *,
-        borehole_dynamics: bool = False,
+        borehole_dynamics: bool | None = None,
         rhoc_g: float | None = None,
         rhoc_p: float | None = None,
         transit: bool = True,
@@ -535,14 +535,22 @@ class FieldGroundResponse:
 
         ``model`` must have been constructed with :meth:`model_kwargs` (same
         borehole count, total length, resistance, ground properties and
-        flow); a mismatch raises instead of mixing two fields. With
-        ``borehole_dynamics=True`` the response is :meth:`dynamic_gfunction`.
-        Returns the g-function now used by the model.
+        flow); a mismatch raises instead of mixing two fields. Returns the
+        g-function now used by the model.
+
+        ``borehole_dynamics`` chooses the borehole model, as the models' own
+        argument does: ``True`` is :meth:`dynamic_gfunction` (heat capacity
+        and fluid transit of this field's pipes and circuits), ``False`` the
+        steady borehole (:attr:`g`). The default ``None`` keeps the model's
+        choice: dynamic unless the model was constructed with
+        ``borehole_dynamics=False``. ``model.borehole_dynamics`` says which
+        one is in use afterwards.
 
         The field resistance and a MIFT g-function hold for the flow given
         here, so the model must run that constant flow (no ``variable_Rb``,
         no variable ground flow).
         """
+        from .borehole_capacity import record_borehole_dynamics
         from .ground_coupling import AggregateGFunctionCoupler
 
         settings = getattr(model, "_ground_settings", None)
@@ -591,11 +599,14 @@ class FieldGroundResponse:
                     f"hydraulic_pump computes the pressure drop with the viscosity of water ({mu_w:g} Pa s); "
                     f"this field was built with mu_f {net.mu_f:g}. Give the pump power directly (E_pmp) instead"
                 )
-        g = self.dynamic_gfunction(rhoc_g=rhoc_g, rhoc_p=rhoc_p, transit=transit) if borehole_dynamics else self.g
         coupler = getattr(model, "_ground_coupler", None)
+        if coupler is not None and not isinstance(coupler, AggregateGFunctionCoupler):
+            raise ValueError("the model uses an injected ground_coupler; build it without one")
+        if borehole_dynamics is None:
+            borehole_dynamics = getattr(model, "_borehole_dynamics_requested", None) is not False
+        g = self.dynamic_gfunction(rhoc_g=rhoc_g, rhoc_p=rhoc_p, transit=transit) if borehole_dynamics else self.g
         if coupler is not None:
-            if not isinstance(coupler, AggregateGFunctionCoupler):
-                raise ValueError("the model uses an injected ground_coupler; build it without one")
             model._ground_coupler = AggregateGFunctionCoupler(g, pulse_tol=coupler._pulse_tol, dt_s=coupler._dt_fixed)
         model._gfunc_interp = g
+        record_borehole_dynamics(model, g, "" if borehole_dynamics else "attach(..., borehole_dynamics=False)")
         return g

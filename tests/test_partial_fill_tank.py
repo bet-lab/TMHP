@@ -414,3 +414,67 @@ def test_ground_and_water_boilers_close_partial_fill_balance(cls):
     )
     assert np.nansum(df["dV_tank_w_in [m3/s]"].to_numpy(float)) > 0.0
     _check_balances(model, df, 54.0, dt)
+
+
+@pytest.mark.parametrize("cls", [GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler])
+def test_ground_and_water_boilers_stop_at_the_floor_and_report_unmet_water(cls):
+    """15 L/min against 6 L/min of make-up for 1 h, heat pump off: the tank drains to the floor.
+
+    The reported level and flows used to be those of the unlimited draw:
+    level 0, 817 L out of a 100 L tank that took in 310 L, +9.9 kWh (+32 %).
+    """
+    dt, n = 600, 6
+    model = cls(
+        dt_s=dt,
+        t_max_s=86400.0,
+        tank_always_full=False,
+        tank_level_lower_bound=0.2,
+        dV_tank_w_in_refill=0.0001,
+        hp_on_schedule=OFF,
+    )
+    demand = np.full(n, 15.0 / 60000.0)
+    extra = {"T_source_w_schedule": np.full(n, 10.0)} if cls is WaterSourceHeatPumpBoiler else {}
+    df = model.analyze_dynamic(
+        n * dt,
+        dt,
+        54.0,
+        demand,
+        np.full(n, 5.0),
+        T_sup_w_schedule=np.full(n, T_SUP),
+        T_sur_schedule=np.full(n, 20.0),
+        **extra,
+    )
+    _check_balances(model, df, 54.0, dt)
+    level = df["tank_level [-]"].to_numpy(float)
+    assert level.min() == pytest.approx(TANK_LEVEL_MIN, abs=1e-9)
+    unmet = df["dV_mix_w_out_unmet [m3/s]"].to_numpy(float)
+    delivered = np.nan_to_num(df["dV_mix_w_out [m3/s]"].to_numpy(float))
+    assert unmet.sum() > 0.0
+    np.testing.assert_allclose(delivered + unmet, demand, rtol=1e-12, atol=1e-15)
+    out = np.nan_to_num(df["dV_tank_w_out [m3/s]"].to_numpy(float))
+    inflow = np.nan_to_num(df["dV_tank_w_in [m3/s]"].to_numpy(float))
+    # The reported flows are the ones that moved the reported level ...
+    np.testing.assert_allclose(
+        np.diff(np.concatenate([[1.0], level])), (inflow - out) * dt / model.V_tank_full, atol=1e-12
+    )
+    # ... and at the floor the tank passes its make-up: draw = make-up.
+    floor = level <= TANK_LEVEL_MIN + 1e-9
+    assert floor.sum() >= 2
+    np.testing.assert_allclose(out[floor][1:], inflow[floor][1:], rtol=1e-9)
+    # The valve's cold side follows the delivered water, not the demand.
+    cold_side = np.nan_to_num(df["dV_mix_sup_w_in [m3/s]"].to_numpy(float))
+    np.testing.assert_allclose(out + cold_side, delivered, rtol=1e-12, atol=1e-15)
+    # The water that never arrived is unmet hot-water heat at the full set-point lift.
+    q_unmet = df["Q_dhw_unmet [W]"].to_numpy(float)
+    assert np.all(q_unmet >= c_w * rho_w * unmet * (40.0 - T_SUP) * (1.0 - 1e-9))
+
+
+@pytest.mark.parametrize("cls", [GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler])
+def test_ground_and_water_level_varying_tank_cannot_start_empty(cls):
+    dt, n = 600, 1
+    model = cls(dt_s=dt, t_max_s=86400.0, tank_always_full=False, hp_on_schedule=OFF)
+    extra = {"T_source_w_schedule": np.full(n, 10.0)} if cls is WaterSourceHeatPumpBoiler else {}
+    with pytest.raises(ValueError, match="TANK_LEVEL_MIN"):
+        model.analyze_dynamic(n * dt, dt, 54.0, np.zeros(n), np.full(n, 5.0), tank_level_init=0.0, **extra)
+    df = model.analyze_dynamic(n * dt, dt, 54.0, np.zeros(n), np.full(n, 5.0), tank_level_init=TANK_LEVEL_MIN, **extra)
+    assert len(df) == 1

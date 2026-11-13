@@ -153,6 +153,61 @@ numerically (fixed Talbot). It is used alone for the first eight transit times
 and blended into the lumped-fluid response by 24
 (:func:`tmhp.borehole_capacity.loop_outlet_response`).
 
+**Local and effective resistance.** :math:`R_b` is the resistance of the
+two-dimensional cross-section. The fluid temperature needs the effective
+:math:`R_b^*`, which also contains what happens along the depth: the fluid
+temperature changes on its way down and up and the two legs exchange heat.
+Everything here settles to :math:`R_b^*`, not :math:`R_b`: the models'
+relation :math:`\bar T_f = T_b - q' R_b^*`, the section (mapped so that its
+steady resistance is :math:`R_b^*`) and the loop (its section is calibrated
+so that the circulating loop reproduces :math:`R_b^*`). What differs is when
+the three-dimensional part appears. The loop builds it up as the fluid
+travels round: the inlet follows the load at once, so the mean of inlet and
+outlet drops by :math:`q' H / (2 \dot m c_p)` immediately. The lumped section
+treats it as part of the grout resistance, which is slower. At the default
+flow the difference is small (:math:`R_b^*` is 8 % above :math:`R_b`); at low
+flow it is not:
+
+.. list-table:: Drop of the mean of inlet and outlet [K] at 27 W/m, 6 L/min per borehole (:math:`R_b` 0.158, :math:`R_b^*` 0.306 m·K/W, transit 35 min)
+    :header-rows: 1
+    :widths: 34 11 11 11 11 11 11
+
+    * - Model
+      - 0.5 h
+      - 1 h
+      - 3 h
+      - 6 h
+      - 12 h
+      - 24 h
+    * - Default path
+      - 8.67
+      - 9.09
+      - 10.05
+      - 10.73
+      - 11.44
+      - 12.17
+    * - Dynamic, transit resolved (default)
+      - 6.45
+      - 6.91
+      - 8.39
+      - 9.41
+      - 10.80
+      - 11.85
+    * - Dynamic, lumped fluid (``transit=False``)
+      - 3.86
+      - 5.35
+      - 7.98
+      - 9.54
+      - 10.82
+      - 11.85
+
+The two dynamic variants hand over to each other within 2.5 % of
+:math:`R_b^*` at eight transit times for 6 to 24 L/min per borehole. With a
+lumped fluid alone the first hours are too warm at low flow; keep the transit
+resolved there. Inside a field with unequal depths or series circuits the
+depth-resolved fluid and wall temperatures are pygfunction's (``MIFT``, wall
+temperature in segments along each borehole).
+
 **Drop-in kernel.** :class:`tmhp.borehole_capacity.DynamicGFunction` tabulates
 :math:`K(t) = S_{dyn}(t) - R_b^*` (referred to the outlet when the transit is
 resolved). It is callable and has ``step_mean`` like the g-function, so the

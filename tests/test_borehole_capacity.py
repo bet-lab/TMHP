@@ -257,6 +257,48 @@ def test_transit_keeps_the_outlet_still_for_one_pass(section, g_field):
     np.testing.assert_allclose(g_dyn.wall(window), lumped.wall(window), atol=1e-5)
 
 
+@pytest.mark.parametrize("lpm", [24.0, 12.0, 6.0])
+def test_effective_resistance_is_the_steady_limit_at_every_flow(g_field, lpm):
+    """R_b* (3-D, flow dependent), not the local R_b, is what the fluid temperature settles to.
+
+    At 6 L/min per borehole R_b* is twice the local resistance. The section
+    is mapped to R_b* and the loop is calibrated to reproduce it, so both
+    reach the host's steady relation; they hand over to each other within
+    2.5 % of R_b* at eight transit times, and the mean of inlet and outlet
+    drops by q' H / (2 m c_p) at once (the inlet follows the load immediately).
+    """
+    m_flow = lpm / 60000.0 * rho_w
+    m_cp = m_flow * c_w
+    local, internal = calc_local_borehole_thermal_resistance(
+        K_S, K_G, K_P, R_B, R_OUT, R_IN, D_S, m_flow, rho_w, mu_w, c_w, k_w
+    )
+    effective = calc_effective_borehole_thermal_resistance(local, internal, H, m_flow, c_w)
+    assert effective > local
+    section = EquivalentCylinderBorehole.from_pipes(
+        n_pipes=2,
+        r_out=R_OUT,
+        r_in=R_IN,
+        r_b=R_B,
+        R_b=effective,
+        R_fp=fluid_to_pipe_resistance(m_flow, R_IN, R_OUT, K_P),
+        k_s=K_S,
+        rhoc_s=RHOC_S,
+    )
+    assert section.steady_resistance == pytest.approx(effective, rel=1e-12)
+    calibrated = _transit_section(section, H, m_cp)
+    assert calibrated is not None and calibrated.R_in < calibrated.steady_resistance < effective
+    transit = DynamicGFunction(g_field, section, H=H, m_cp=m_cp)
+    lumped = DynamicGFunction(g_field, section)
+    hand_over = 8.0 * transit.transit_time
+    assert abs(float(transit(hand_over) - lumped(hand_over))) < 0.025 * effective
+    # Mean of inlet and outlet right after the load starts: q' (K + R_b*) = q' H / (2 m c_p).
+    assert float(transit.fluid(1.0)) == pytest.approx(H / (2.0 * m_cp), rel=1e-3)
+    # Long times: g + R_b* (the steady model), for both.
+    month = 30 * 86400.0
+    for g_dyn in (transit, lumped):
+        assert float(g_dyn.fluid(month)) == pytest.approx(float(g_field(month)) + effective, abs=3e-3 * effective)
+
+
 def test_transit_needs_both_depth_and_flow(section, g_field):
     with pytest.raises(ValueError, match="both H and m_cp"):
         DynamicGFunction(g_field, section, H=H)

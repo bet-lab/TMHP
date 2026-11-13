@@ -64,3 +64,14 @@ def test_a_candidate_without_a_fluid_state_is_infeasible_not_an_exception():
         off = co2.analyze_steady(Q_r_iu=-2000.0, T0=15.0, T_a_room=18.0, verbose=False)
         assert off["hp_is_on"] is False and off["failure_reason"] != "none"
         assert off["Q_ref_iu [W]"] == 0.0 and off["E_tot [W]"] == 0.0
+
+
+def test_a_fan_that_can_stop_does_not_break_the_capacity_ceiling():
+    """``dV_iu_fan_a_min=0`` is an accepted configuration; the ceiling search used to divide by it."""
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        hp = AirSourceHeatPump(dV_iu_fan_a_min=0.0)
+        ceiling = hp.max_capacity(T0=7.0, T_a_room=20.0, mode="heating")
+    assert ceiling["Q_max [W]"] > hp.hp_capacity

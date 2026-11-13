@@ -283,3 +283,12 @@ def test_dynamic_run_delivers_the_requested_heat(hp):
     cyc = df["capacity_clamped"] == "min"
     assert ((df.loc[cyc, RUNTIME_FRACTION_KEY] > 0) & (df.loc[cyc, RUNTIME_FRACTION_KEY] < 1)).all()
     assert (df.loc[~cyc, RUNTIME_FRACTION_KEY] == 1.0).all()
+
+
+def test_loss_free_water_coefficient_at_zero_load():
+    """Cc = 1 is the loss-free limit; the factor is 1 at every load, including none (was 0/0)."""
+    model = CyclingDegradation(coefficient=1.0, sink="water")
+    assert model.part_load_factor(0.0) == 1.0
+    assert model.part_load_factor(0.3) == pytest.approx(1.0)
+    state = model.state(0.0, 2000.0)
+    assert state.runtime_fraction == 0.0 and state.part_load_factor == 1.0

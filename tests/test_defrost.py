@@ -311,3 +311,36 @@ def test_dynamic_run_takes_a_humidity_schedule(hp):
     assert df["E_tot [W]"].iloc[1] > df["E_tot [W]"].iloc[2] > df["E_tot [W]"].iloc[0]
     with pytest.raises(ValueError, match="RH_out_schedule"):
         hp.analyze_dynamic(**kwargs, RH_out_schedule=[0.84, 0.84])
+
+
+def test_a_cycling_unit_pays_the_defrost_loss_only_while_it_runs(hp):
+    """Below the minimum continuous capacity the defrost heat loss follows the runtime.
+
+    The reverse-cycle loss was the continuous-operation figure (20 W for this
+    machine at 2 °C) whatever the runtime, so a 1 W request still drew 6.4 W
+    (COP 0.16). It is now that figure times the runtime fraction: power falls
+    to zero with the request and the COP tends to a finite limit.
+    """
+    full = hp.analyze_steady(Q_r_iu=-3000.0, T0=2.0, T_a_room=20.0, verbose=False)
+    assert full["capacity_clamped"] is None
+    q_continuous = full["Q_defrost [W]"]
+    assert q_continuous > 10.0
+    rows = {q: hp.analyze_steady(Q_r_iu=-q, T0=2.0, T_a_room=20.0, verbose=False) for q in (400.0, 100.0, 10.0, 1.0)}
+    for q, r in rows.items():
+        assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
+        assert r["Q_ref_iu [W]"] == pytest.approx(q, rel=1e-6)
+        assert r["Q_defrost [W]"] == pytest.approx(q_continuous * r["runtime_fraction [-]"], rel=1e-6)
+        assert r["Q_defrost [W]"] < q_continuous
+    # power follows the request down ...
+    assert rows[1.0]["E_tot [W]"] < 0.02 * rows[100.0]["E_tot [W]"]
+    # ... and the COP settles instead of collapsing (it was 0.16 at 1 W)
+    assert rows[1.0]["cop_sys [-]"] == pytest.approx(rows[10.0]["cop_sys [-]"], rel=0.01)
+    assert rows[1.0]["cop_sys [-]"] > 2.5
+
+
+def test_return_format_is_honoured_on_a_frosted_point(hp):
+    import pandas as pd
+
+    frame = hp.analyze_steady(Q_r_iu=-3000.0, T0=2.0, T_a_room=20.0, return_dict=False, verbose=False)
+    assert isinstance(frame, pd.DataFrame) and len(frame) == 1
+    assert frame["defrost_fraction [-]"].iloc[0] > 0.0

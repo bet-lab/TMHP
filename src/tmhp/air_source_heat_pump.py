@@ -23,7 +23,7 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import OptimizeResult, minimize, minimize_scalar
+from scipy.optimize import OptimizeResult, brentq, minimize, minimize_scalar
 from tqdm import tqdm
 
 from . import _opt_utils
@@ -52,6 +52,7 @@ from .constants import c_a, rho_a
 from .cycling import (
     CD_AIR_DEFAULT,
     CONTINUOUS,
+    MIN_CAPACITY_KEY,
     OFF,
     CyclingDegradation,
     apply_cycling,
@@ -1425,16 +1426,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         result[self._FROST_FREE_HEAT_KEY] = float(result.get("Q_ref_iu [W]", 0.0))
         result[self._FROST_FREE_POWER_KEY] = float(result.get("E_tot [W]", 0.0))
 
-    def _average_over_frost(self, result: dict, frost: FrostState, T0: float) -> float:
+    def _average_over_frost(self, result: dict, frost: FrostState, T0: float, runtime_share: float = 1.0) -> float:
         """Turn a running frost-free row into the mean over frosting and defrost (in place).
 
         Returns the mean delivered heat [W]: the frost-free heat times the
         capacity multiplier, less what a reverse-cycle defrost takes from the
         room. The indoor fan moves the delivered heat and is averaged with it.
+        ``runtime_share`` is the fraction of the time the compressor runs: a
+        cycling unit defrosts only while it runs, so the heat its defrosts
+        take from the room is that share of the continuous-operation figure.
         """
         model = self.defrost
         assert model is not None
-        q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+        q_defrost = runtime_share * model.defrost_load(frost, T0, self.hp_capacity)
         heat_frost_free = abs(float(result["Q_ref_iu [W]"]))
         power_frost_free = float(result["E_tot [W]"])
         delivered = max(frost.capacity_multiplier * heat_frost_free - q_defrost, 0.0)
@@ -1475,19 +1479,64 @@ class AirSourceHeatPump(ReferenceStateMixin):
         assert model is not None
         q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
         gross = model.gross_duty(frost, Q_r_iu, q_defrost)
-        self.defrost = None
-        try:
-            result = self.analyze_steady(
-                Q_r_iu=-gross, T0=T0, T_a_room=T_a_room, return_dict=True, postprocess=False, verbose=verbose
-            )
-        finally:
-            self.defrost = model
-        assert isinstance(result, dict)
 
+        def frost_free(duty: float) -> dict:
+            self.defrost = None
+            try:
+                solved = self.analyze_steady(
+                    Q_r_iu=-duty, T0=T0, T_a_room=T_a_room, return_dict=True, postprocess=False, verbose=verbose
+                )
+            finally:
+                self.defrost = model
+            assert isinstance(solved, dict)
+            return solved
+
+        result = frost_free(gross)
         request = abs(float(Q_r_iu))
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+
+        # Below the minimum continuous capacity the unit cycles, and it
+        # defrosts only while it runs: the defrost heat loss is the runtime
+        # fraction of the continuous-operation figure, not all of it. The
+        # frost-free duty g then satisfies
+        #     capacity multiplier * g - Q_defrost * runtime(g / Q_min) = request,
+        # a scalar balance (no cycle solve) once Q_min is known. Without it a
+        # vanishing request would still pay the whole defrost loss.
+        runtime_share = 1.0
+        cycling = self.cycling
+        if (
+            running
+            and cycling is not None
+            and q_defrost > 0.0
+            and result.get("capacity_clamped") == CAPACITY_CLAMPED_MIN
+        ):
+            multiplier = frost.capacity_multiplier
+            low = request / multiplier
+            q_min_used = math.nan
+            # Q_min moves a little with the duty (the fans' optimum follows the
+            # cycling cost), so the balance is re-solved with the Q_min of the
+            # row it produced until the two agree; two passes settle it.
+            for _ in range(4):
+                q_min = float(result.get(MIN_CAPACITY_KEY, math.nan))
+                if not (running and math.isfinite(q_min) and q_min > 0.0):
+                    break
+                if math.isfinite(q_min_used) and abs(q_min - q_min_used) <= 1e-9 * q_min:
+                    break
+
+                def balance(duty: float, q_min: float = q_min) -> float:
+                    return multiplier * duty - q_defrost * cycling.runtime_fraction(duty / q_min) - request
+
+                if not (low < gross and balance(low) < 0.0 < balance(gross)):
+                    break
+                duty = float(brentq(balance, low, gross, xtol=1e-12 * max(gross, 1.0), rtol=1e-13))
+                q_min_used = q_min
+                runtime_share = cycling.runtime_fraction(duty / q_min)
+                result = frost_free(duty)
+                running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+
         delivered = 0.0
-        if bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none":
-            delivered = self._average_over_frost(result, frost, T0)
+        if running:
+            delivered = self._average_over_frost(result, frost, T0, runtime_share)
             if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and "Q_max [W]" in result:
                 result["Q_max [W]"] = delivered
         else:
@@ -1529,7 +1578,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return C_air * (1.0 - math.exp(-self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu / C_air))
 
         low = duty / per_kelvin(self.dV_iu_fan_a_max) * (1.0 - 1e-3)
-        high = duty / per_kelvin(self.dV_iu_fan_a_min) * (1.0 + 1e-3)
+        # A fan that can stop (minimum airflow 0) puts no finite upper bound on the approach.
+        high = duty / per_kelvin(self.dV_iu_fan_a_min) * (1.0 + 1e-3) if self.dV_iu_fan_a_min > 0.0 else math.inf
         if Q_r_iu < 0:
             import CoolProp.CoolProp as CP
 

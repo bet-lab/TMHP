@@ -128,7 +128,10 @@ class CyclingDegradation:
             return 1.0
         if self.sink == "air":
             return 1.0 - self.coefficient * (1.0 - cr)
-        return cr / (self.coefficient * cr + (1.0 - self.coefficient))
+        denominator = self.coefficient * cr + (1.0 - self.coefficient)
+        # Cc = 1 is the loss-free limit (PLF = 1 at every load); at CR = 0 the
+        # expression is 0/0 there.
+        return 1.0 if denominator <= 0.0 else cr / denominator
 
     def runtime_fraction(self, capacity_ratio: float) -> float:
         """Fraction of the time the compressor runs, ``CR / PLF`` (0 at ``CR = 0``)."""

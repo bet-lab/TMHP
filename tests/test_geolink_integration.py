@@ -101,7 +101,8 @@ def test_rejects_bad_providers_and_inputs():
 
 def test_geolink_gfunction_against_pygfunction():
     """With geolink installed: its native finite line source gives the UHTR g-function."""
-    pytest.importorskip("geolink")
+    # Not importorskip("geolink"): see test_adapter_module_on_the_path_is_not_taken_for_geolink.
+    pytest.importorskip("geolink.response.mfls")
     x, y = np.array([0.0, 6.0, 0.0, 6.0]), np.array([0.0, 0.0, 6.0, 6.0])
     g = geolink_gfunction(x, y, 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=20 * 8760 * 3600.0, D=1.0)
     times = np.array([3600.0, 86400.0, 365 * 86400.0, 20 * 365 * 86400.0])
@@ -119,6 +120,38 @@ def test_geolink_gfunction_against_pygfunction():
     assert float(wet(times[0])) == pytest.approx(float(g(times[0])), rel=0.02)
     with pytest.raises(ValueError, match="rho_s and c_s"):
         geolink_gfunction(x, y, 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=1e7, groundwater_velocity=1e-6)
+
+
+def test_adapter_module_on_the_path_is_not_taken_for_geolink(monkeypatch):
+    """``tmhp/integrations`` on ``sys.path`` must not pass for an installed geolink.
+
+    PythonFMU puts that directory there when it builds the FMU adapters (the
+    FMU tests do). ``import geolink`` then finds ``tmhp/integrations/geolink.py``
+    — this adapter, a module without ``geolink.response`` — so
+    ``pytest.importorskip("geolink")`` did not skip and the geolink test above
+    failed whenever it ran after an FMU test in the same worker. The adapter
+    reports geolink as not installed; tests that need geolink ask for one of
+    its submodules.
+    """
+    import sys
+    from pathlib import Path
+
+    import tmhp.integrations.geolink as adapter
+
+    for name in [m for m in sys.modules if m == "geolink" or m.startswith("geolink.")]:
+        monkeypatch.delitem(sys.modules, name)
+    monkeypatch.syspath_prepend(str(Path(adapter.__file__).parent))
+    try:
+        shadow = pytest.importorskip("geolink")  # the old skip condition: passes
+        assert Path(shadow.__file__).name == "geolink.py" and not hasattr(shadow, "__path__")
+        with pytest.raises(pytest.skip.Exception):
+            pytest.importorskip("geolink.response.mfls")
+        with pytest.raises(pytest.skip.Exception):
+            pytest.importorskip("geolink.coupling")
+        with pytest.raises(ImportError, match="geolink is not installed"):
+            geolink_gfunction([0.0], [0.0], 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=1e7)
+    finally:
+        sys.modules.pop("geolink", None)  # the shadow; monkeypatch restores what was there
 
 
 def test_geolink_network_coupler_follows_the_host_contract():

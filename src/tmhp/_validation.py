@@ -37,6 +37,14 @@ meaning, do not block what is merely rare:
   consistent answer for them, so they must not be blocked. Warnings are only
   emitted from constructors: the steady/dynamic entry points run per time step
   and a per-step warning would flood the log.
+* A configuration the model would silently answer for something else is an
+  error too: a water heater whose refrigerant's critical temperature is not
+  above the delivery set point (R744: no subcritical cycle heats the water, and
+  the set points would be pulled below 27 degC), a multi-node tank asked to
+  stop the draw and the refill from running together (it keeps its volume, so
+  it ignores the request), and a hot-water draw that would replace the whole
+  tank in less than :data:`DHW_TANK_TURNOVER_MIN_S` (a unit slip: litres per
+  second or per minute typed as m3/s).
 * Not validated here: the refrigerant name (CoolProp raises), compressor speed
   bounds and fan-flow limits (the reference-state code already checks them with
   specific messages), ground-flow ratios (``resolve_ground_flow_rates``), and
@@ -60,6 +68,15 @@ T_WATER_MIN_C, T_WATER_MAX_C = 0.0, 100.0
 T_KELVIN_MIN, T_KELVIN_MAX = 200.0, 500.0
 #: A degC temperature above this is more likely a kelvin value than a real one.
 _KELVIN_HINT_C = 150.0
+#: Shortest time [s] in which a hot-water draw may replace the whole tank volume.
+#: Ten seconds is 15 L/s for a 151 L tank: a DN80 line at 3 m/s, beyond any
+#: hot-water service a tank of that size feeds. The draws of the documented
+#: examples and the test suite replace the tank in 400 s or more. A litre-per-
+#: second or litre-per-minute value typed as m3/s is 1000 times too large and
+#: lands far below the limit.
+DHW_TANK_TURNOVER_MIN_S = 10.0
+#: Multi-node tank models of ``tank_model`` (the lumped tank is ``"lumped"``).
+_NODAL_TANK_MODELS = ("stratified", "hybrid")
 
 
 def _fmt(value: Any) -> str:
@@ -618,6 +635,63 @@ def _warn_suspicious_pair(args: Mapping[str, Any]) -> None:
         )
 
 
+def _check_subcritical_delivery(args: Mapping[str, Any]) -> None:
+    """A water heater's refrigerant must condense above the delivery set point.
+
+    A subcritical cycle hands its heat over at the condensing temperature, below
+    the critical one; water at or above the critical temperature cannot be
+    reached at all (R744: 31.0 degC against a 40 degC delivery).
+    """
+    ref = args.get("ref")
+    delivery = args.get("T_mix_w_out")
+    if not isinstance(ref, str) or delivery is None:
+        return
+    try:
+        import CoolProp.CoolProp as CP
+
+        T_crit_C = float(CP.PropsSI("Tcrit", ref)) - 273.15
+    except ValueError:
+        return  # an unknown fluid is reported by CoolProp where it is first used
+    if T_crit_C <= float(delivery):
+        raise ValueError(
+            f"ref={ref!r}: its critical temperature ({T_crit_C:.1f} degC) is not above the delivery set point "
+            f"T_mix_w_out={_fmt(delivery)} degC, so no subcritical cycle of {ref} can heat the water; TMHP cycles "
+            "are subcritical (a transcritical heat pump is outside TMHP): choose a subcritical refrigerant, "
+            "for example R290, R32 or R134a"
+        )
+
+
+def _check_nodal_tank_flows(args: Mapping[str, Any]) -> None:
+    """A multi-node tank keeps its volume, so it cannot keep the draw and the refill apart."""
+    model = args.get("tank_model")
+    if model in _NODAL_TANK_MODELS and bool(args.get("prevent_simultaneous_flow", False)):
+        raise ValueError(
+            f"prevent_simultaneous_flow=True needs a tank whose level varies, and tank_model={model!r} "
+            "keeps the tank full: every draw is replaced at once by make-up water, so the draw and the refill "
+            "would still run together and the tank level would stay 1. Use tank_model='lumped' with "
+            "prevent_simultaneous_flow=True (the level falls during a draw and refills between draws), "
+            "or keep the multi-node tank with prevent_simultaneous_flow=False"
+        )
+
+
+def check_dhw_draw(name: str, values: Any, V_tank_full: float | None) -> None:
+    """Hot-water draw [m3/s] that replaces the tank no faster than :data:`DHW_TANK_TURNOVER_MIN_S`."""
+    if V_tank_full is None or not (math.isfinite(V_tank_full) and V_tank_full > 0.0):
+        return
+    arr = np.atleast_1d(np.asarray(values, dtype=float))
+    limit = V_tank_full / DHW_TANK_TURNOVER_MIN_S
+    bad = arr > limit
+    if bad.any():
+        i = int(np.argmax(bad))
+        where = f" at index {i}" if arr.size > 1 else ""
+        raise ValueError(
+            f"{name} must be a hot-water draw in m3/s that takes at least {DHW_TANK_TURNOVER_MIN_S:g} s to replace "
+            f"the {V_tank_full * 1000:.0f} L tank (at most {limit:.4g} m3/s), got {_fmt(float(arr[i]))}{where}, "
+            f"which replaces it in {V_tank_full / float(arr[i]):.3g} s. The schedule is a volume flow in m3/s: "
+            "1 L/s = 1e-3 m3/s, 1 L/min = 1.667e-5 m3/s"
+        )
+
+
 def validate_ctor(scope: str, args: Mapping[str, Any]) -> None:
     """Validate the constructor arguments of ``scope`` (a key of :data:`CTOR_SPECS`).
 
@@ -633,6 +707,8 @@ def validate_ctor(scope: str, args: Mapping[str, Any]) -> None:
     if args.get("dT_approach_bounds") is not None:
         _check_approach_bounds(args["dT_approach_bounds"])
     if scope in ("ASHPB", "GSHPB", "WSHPB"):
+        _check_subcritical_delivery(args)
+        _check_nodal_tank_flows(args)
         _warn_suspicious_pair(args)
 
 
@@ -729,6 +805,9 @@ def validate_dynamic(args: Mapping[str, Any]) -> None:
         values = args.get(name)
         if values is not None:
             check_schedule(name, values, n_steps, rule)
+    if args.get("dhw_usage_schedule") is not None:
+        # A water heater's draw against its tank (the model is the caller's `self`).
+        check_dhw_draw("dhw_usage_schedule", args["dhw_usage_schedule"], getattr(args.get("self"), "V_tank_full", None))
 
 
 def validate_initial_state(args: Mapping[str, Any]) -> None:
@@ -746,10 +825,12 @@ _STEP_RULES = {
 }
 
 
-def validate_step(inputs: Mapping[str, Any], dt_s: Any) -> None:
-    """Validate the per-step drivers of ``step(state, inputs, dt_s)``."""
+def validate_step(inputs: Mapping[str, Any], dt_s: Any, V_tank_full: float | None = None) -> None:
+    """Validate the per-step drivers of ``step(state, inputs, dt_s)`` (the draw against ``V_tank_full`` [m3])."""
     check_positive("dt_s", dt_s)
     _apply(_STEP_RULES, inputs)
+    if inputs.get("dV_mix_w_out") is not None:
+        check_dhw_draw("dV_mix_w_out", inputs["dV_mix_w_out"], V_tank_full)
 
 
 _TANK_STEP_RULES = {

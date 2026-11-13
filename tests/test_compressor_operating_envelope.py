@@ -570,7 +570,7 @@ def test_dynamic_step_holds_the_discharge_limit_by_control():
     assert bool(row["discharge_control"])
     assert row["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
     assert hp.x_suction_min <= row["x_ref_cmp_in [-]"] < 1.0
-    assert "capacity_binding" not in df.columns or pd.isna(row["capacity_binding"])  # the request itself fits
+    assert pd.isna(row["capacity_binding"])  # the request itself fits
 
 
 def test_dynamic_step_runs_at_the_largest_duty_inside_the_limit():
@@ -714,7 +714,7 @@ def test_every_failure_is_the_same_off_state_row(ref, T_tank_w, T0, Q, reason):
     for key in ("Q_ref_ou [W]", "E_ou_fan [W]", "E_tot [W]", "m_dot_ref [kg/s]", "cmp_rpm [rpm]"):
         assert r[key] == 0.0, key
     assert math.isnan(r["cop_ref [-]"]) and math.isnan(r["cop_sys [-]"])
-    assert r["capacity_clamped"] is None and "capacity_binding" not in r
+    assert r["capacity_clamped"] is None and r["capacity_binding"] is None
 
 
 def test_discharge_control_does_not_narrow_the_search_to_the_uncontrolled_coil_band():

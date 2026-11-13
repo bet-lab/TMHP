@@ -50,6 +50,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
+from ._boiler_results import complete_capacity_keys, fill_missing, report_condenser_dew_point, step_request
 from ._source_boiler import (
     BOREHOLE_DEPTH_DEFAULT_M,
     approach_bracket,
@@ -1702,14 +1703,66 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # draw the tank could not supply).
         r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
 
-        # Diagnostics of the steady solve, not time-series quantities: keep them
-        # on the analyze_steady dict and out of the dynamic frame (an object
-        # column of None/str breaks numeric frame comparisons downstream).
-        # `failure_reason` stays: it is always a string, one per step.
-        r.pop("capacity_clamped", None)
+        # A diagnostic of the steady solve, not a time-series quantity: keep it
+        # on the analyze_steady dict and out of the dynamic frame.
+        # `failure_reason` stays: it is always a string, one per step. The
+        # capacity keys, `capacity_clamped` with them, are on every step
+        # (_complete_dynamic_row).
         r.pop("failure_detail", None)
 
+        return self._complete_dynamic_row(r, ctx)
+
+    #: Keys a running ``analyze_steady`` row has and an off or failed one lacks, with that row's value.
+    _STEADY_ROW_DEFAULTS: dict[str, Any] = {
+        "eta_cmp [-]": math.nan,
+        "eta_cmp_isen [-]": math.nan,
+        "eta_cmp_vol [-]": math.nan,
+        "eta_em [-]": math.nan,
+        "eta_is [-]": math.nan,
+        "eta_v [-]": math.nan,
+        "n_star [-]": math.nan,
+        "pr_cmp [-]": math.nan,
+        "dT_ref_tank [K]": math.nan,
+        "tank_hx_residual [W]": math.nan,
+        "failure_detail": None,
+    }
+
+    #: Keys a running step has and an off step lacks, with the off step's value.
+    _DYNAMIC_ROW_DEFAULTS: dict[str, Any] = {
+        **{key: value for key, value in _STEADY_ROW_DEFAULTS.items() if key != "failure_detail"},
+        "dT_ref_superheat [K]": math.nan,
+        "x_ref_cmp_in [-]": math.nan,
+        "discharge_control": False,
+    }
+
+    def _complete_dynamic_row(self, r: dict, ctx: StepContext) -> dict:
+        """The keys every step carries, whatever the step did (in place).
+
+        Time at the start of the step (``time [s]``, ``time [h]``, as ASHP and
+        GSHP), the capacity keys (:func:`tmhp._boiler_results.complete_capacity_keys`:
+        the request is ``hp_capacity`` on a step the thermostat called the
+        compressor, 0 otherwise), the running-only keys of
+        :attr:`_DYNAMIC_ROW_DEFAULTS` and the condenser dew point.
+        """
+        complete_capacity_keys(r, step_request(r, self.hp_capacity), step_average=True)
+        r.setdefault("cmp_rps [rev/s]", float(r.get("cmp_rpm [rpm]", math.nan)) / 60.0)
+        fill_missing(r, self._DYNAMIC_ROW_DEFAULTS)
+        report_condenser_dew_point(r, self.ref)
+        r["time [s]"] = float(ctx.current_time_s)
+        r["time [h]"] = float(ctx.current_hour)
         return r
+
+    def _complete_steady_result(self, result: dict, Q_ref_tank: float) -> dict:
+        """The keys every ``analyze_steady`` row carries, whatever the point (in place).
+
+        The capacity keys (``Q_request [W]`` is the requested ``Q_ref_tank``
+        on every row), the running-only keys of :attr:`_STEADY_ROW_DEFAULTS` and
+        ``cmp_rps [rev/s]`` (0 on a stopped compressor), and the condenser dew point.
+        """
+        complete_capacity_keys(result, Q_ref_tank)
+        result.setdefault("cmp_rps [rev/s]", float(result.get("cmp_rpm [rpm]", math.nan)) / 60.0)
+        fill_missing(result, self._STEADY_ROW_DEFAULTS)
+        return report_condenser_dew_point(result, self.ref)
 
     def _ground_injection_W(self) -> float:
         """Heat other sources inject into the borehole field this step [W].
@@ -2384,6 +2437,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
             hp_capacity=self.hp_capacity,
         )
+        self._complete_steady_result(result, Q_ref_tank)
 
     @steady_cycling(duty_arg="Q_ref_tank")
     @source_freeze_limited(duty_arg="Q_ref_tank", off="_steady_freeze_off")
@@ -2451,6 +2505,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               :mod:`tmhp.ground_flow_control` apply.
             - ``"failure_detail"`` (str, failures only) — which check
               rejected a ``"cycle_invalid"`` point.
+            - ``"capacity_clamped"``, ``"capacity_binding"``, ``"Q_max [W]"``
+              and ``"Q_request [W]"`` are on every row (``None`` or NaN where
+              they do not apply; ``"Q_request [W]"`` is the ``Q_ref_tank``
+              asked for), and an off or failed row carries every key of a
+              running one (NaN where it has no value): the keys do not depend
+              on the point. ``"T_ref_cond_sat_v [°C]"`` is the dew point of
+              the condensing pressure, above ``"T_ref_cond_sat_l [°C]"`` by
+              the glide for a zeotropic blend.
             - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
               ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
               ``"E_cycling_loss [W]"`` — on every row. A request below the
@@ -2642,7 +2704,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         Q_ref_ground = df["Q_ref_ground [W]"].fillna(0)
         df["X_ref_tank [W]"] = np.where(
             Q_ref_tank > 0,
-            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_v [°C]"])),
+            # Condenser heat at the bubble-point condensing temperature: the value
+            # T_ref_cond_sat_v repeated before it reported a zeotrope's dew point.
+            Q_ref_tank * (1 - T0_K / cu.C2K(df["T_ref_cond_sat_l [°C]"])),
             0.0,
         )
         df["X_ref_ground [W]"] = np.where(

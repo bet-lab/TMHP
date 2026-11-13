@@ -552,7 +552,11 @@ Tank backends
 -------------
 
 ``tank_model`` selects how the tank itself is resolved (always-full tank,
-no ``stc``/``pv``/``uv`` subsystem in the multi-node modes):
+no ``stc``/``pv``/``uv`` subsystem in the multi-node modes). A multi-node tank
+keeps its volume -- every litre drawn is replaced at once -- so it cannot
+hold the draw and the make-up apart: ``prevent_simultaneous_flow=True`` with
+``"stratified"`` or ``"hybrid"`` raises ``ValueError`` (use the lumped tank
+for a level that falls during a draw):
 
 .. list-table::
    :header-rows: 1

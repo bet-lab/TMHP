@@ -303,7 +303,11 @@ it, and a make-up valve opens when the level reaches
 (1 L/s) until the level is back at ``tank_level_upper_bound`` (1.0). The
 valve is followed inside each step, so a step can refill part of its
 length. ``prevent_simultaneous_flow`` admits make-up only while nothing
-is drawn. Either way the step balances the water and its energy
+is drawn. A draw that would replace the whole tank in less than 10 s
+(``tmhp._validation.DHW_TANK_TURNOVER_MIN_S``: 15 L/s for the 151 L default
+tank) is refused as a unit slip -- the schedule is in m³/s, and a value in
+L/s or L/min lands far above it; the same check applies to GSHPB, WSHPB and
+``step()``. Either way the step balances the water and its energy
 together,
 
 .. math::

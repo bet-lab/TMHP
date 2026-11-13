@@ -384,6 +384,22 @@ def _solve(
         T_sat_K = side.T_in_C + 273.15 + (approach if condenser else -approach)
         return T_sat_K, approach
 
+    def supercritical_condensing(T_cond_K: float) -> ReferenceStateError:
+        message = (
+            f"condensing temperature {T_cond_K - 273.15:.1f} °C at {condition.standard} is at or above "
+            f"the critical temperature of {ref} ({T_crit_K - 273.15:.1f} °C); TMHP cycles are subcritical, "
+            "so supply rps_rated (and m_dot_ref_rated) or a rated_condition the cycle can reach"
+        )
+        if cond_side.T_in_C + 273.15 >= T_crit_K:
+            # The heat sink is itself above the critical point: no rating
+            # condition or speed of this fluid gives a subcritical condenser.
+            message += (
+                f". The heat sink ({cond_side.T_in_C:g} °C) is itself above it, so no subcritical cycle of {ref} "
+                "serves it (a transcritical heat pump is outside TMHP): choose a subcritical refrigerant, "
+                "for example R290, R32 or R134a"
+            )
+        return ReferenceStateError(message)
+
     cycle_properties: dict[float, dict[str, Any]] = {}
 
     def cycle(Q_other: float, rps_fixed: float | None = None, *, evaporator_only: bool = False) -> dict[str, Any]:
@@ -393,11 +409,7 @@ def _solve(
         if T_cond_K <= T_evap_K:
             raise ReferenceStateError("condensing temperature not above evaporating temperature")
         if T_cond_K >= T_crit_K:
-            raise ReferenceStateError(
-                f"condensing temperature {T_cond_K - 273.15:.1f} °C at {condition.standard} is at or above "
-                f"the critical temperature of {ref} ({T_crit_K - 273.15:.1f} °C); TMHP cycles are subcritical, "
-                "so supply rps_rated (and m_dot_ref_rated) or a rated_condition the cycle can reach"
-            )
+            raise supercritical_condensing(T_cond_K)
         # Same margin rule as the models' cycles: superheat/subcool cannot
         # exceed the approach less the minimum HX temperature difference.
         # The ideal-fluid state depends on HX duty, not trial speed. Reuse it
@@ -490,6 +502,12 @@ def _solve(
         def heating_balance(rps: float) -> float:
             return float(at_speed(rps)["Q_cond"]) - Q_rated
 
+        # The rated condensing temperature is fixed by the rated duty: refuse a
+        # supercritical one here, with its reason, rather than as a speed
+        # bracket that found no finite balance.
+        T_cond_rated_K, _ = saturation(cond_side, Q_rated, condenser=True)
+        if T_cond_rated_K >= T_crit_K:
+            raise supercritical_condensing(T_cond_rated_K)
         try:
             bracket = _evaluable_bracket(heating_balance, rps_min, rps_max)
         except ReferenceStateError as exc:

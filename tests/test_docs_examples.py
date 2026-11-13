@@ -126,7 +126,7 @@ def test_minimal_input_examples_run_and_match_the_page() -> None:
         exec(sizing, namespace)
     gshp = namespace["gshp"]
     assert (gshp.N_1, gshp.N_2, gshp.H_b) == (3, 2, 100.0)
-    assert math.isclose(gshp.ground_flow_ref_lpm, 107.5, abs_tol=0.05)
+    assert math.isclose(gshp.ground_flow_ref_lpm, 115.3, abs_tol=0.05)
     assert math.isclose(gshp.E_pmp, 640.0, abs_tol=0.5)
     assert math.isclose(gshp.UA_ground_rated, 5400.0, rel_tol=1e-9)
 

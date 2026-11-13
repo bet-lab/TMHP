@@ -89,7 +89,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``None`` when the request was met; ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
-      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB). ``None`` otherwise.
+      - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` or absent otherwise.
     * - ``efficiency_extrapolated``
       - ASHP, GSHP (s), ASHPB (s), GSHPB (s), WSHPB (s)
       - A default compressor-efficiency fit is read outside its data box (PR 1.50–7.15, 33.8–72.5 rev/s) at this point. Scalar and user efficiencies give ``False``.
@@ -138,13 +138,13 @@ What was asked for, what was delivered, and how a request outside the modulation
       - Where
       - Meaning
     * - ``Q_request [W]``
-      - ASHP, GSHP, ASHPB (s)
-      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive).
+      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
+      - The duty asked for, with the sign it was given (``Q_r_iu``: negative heating, positive cooling; boilers: positive). On every ASHP and GSHP row; in a boiler result only on a row whose duty was reduced.
     * - ``Q_unmet [W]``
       - ASHP, GSHP
       - Part of the request not delivered, ≥ 0. Sum it times the time step for a schedule's unmet energy.
     * - ``Q_max [W]``
-      - ASHP, GSHP, ASHPB (s)
+      - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
       - On a ``"max"`` row, the duty delivered (the ceiling). ``None`` or absent otherwise.
     * - ``Q_min [W]``
       - ASHP, GSHP, ASHPB (s), GSHPB (s), WSHPB (s)
@@ -486,7 +486,7 @@ reuses these names for its source-water coil.
       - Mean loop-fluid temperature, ``(T_bhe_f_in + T_bhe_f_out) / 2``.
     * - ``T_bhe_f_in [°C]``
       - GSHP, GSHPB, WSHPB
-      - Fluid entering the borehole = leaving the heat pump. Step mean in a dynamic boiler row.
+      - Fluid entering the borehole = leaving the heat pump: the temperature the freezing limit of the loop liquid applies to. Step mean in a dynamic boiler row.
     * - ``T_bhe_f_out [°C]``
       - GSHP, GSHPB, WSHPB
       - Fluid leaving the borehole = entering the heat pump.
@@ -1008,6 +1008,12 @@ These are not in every default result. Composed variants (solar thermal, PV
 and storage, UV lamp) add their own columns, described on :doc:`/models/ashpb`
 and :doc:`/models/gshpb`.
 
+A steady result is a ``dict`` built for the path the point took, so a key
+that describes a reduced or failed point can be missing from an ordinary one:
+``capacity_binding``, ``Q_max [W]`` and ``Q_request [W]`` of a boiler are
+present only on a row that delivers less than asked, and ``failure_detail``
+only on some failures. Read them with ``row.get(...)``.
+
 .. list-table::
     :header-rows: 1
     :widths: 30 24 46
@@ -1022,8 +1028,9 @@ and :doc:`/models/gshpb`.
         A boiler's dynamic frame has no ``capacity_clamped`` column: test
         ``capacity_binding`` instead.
     * - ``failure_detail``
-      - a boiler ``analyze_steady`` fails with ``cycle_invalid``, or ASHPB
-        with ``hx_not_converged``
+      - a boiler ``analyze_steady`` fails with ``cycle_invalid``, ASHPB with
+        ``hx_not_converged``, or a liquid-source family (GSHP, GSHPB, WSHPB)
+        with ``source_fluid_freezing``
       - Which check rejected the point; see :doc:`failure-reason-semantics`.
     * - ``dV_mix_w_out_unmet [m3/s]``
       - the tank level varies (``tank_always_full=False``), dynamic

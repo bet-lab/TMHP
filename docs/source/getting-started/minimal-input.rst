@@ -6,7 +6,7 @@ TMHP is meant to run from a nameplate, not from a component datasheet. For
 every released family three statements describe a machine:
 
 1. **which family** — the class says what the heat comes from and where it
-   goes;
+   goes (and, for a ground loop, that it is filled with antifreeze);
 2. **the capacity** — ``hp_capacity`` [W], the nameplate duty at the family's
    rating point;
 3. **the refrigerant** — ``ref``, a CoolProp fluid name.
@@ -153,8 +153,10 @@ always be read back.
       - ASHP, GSHP, ASHPB
       - :doc:`/models/ashp`, *Indoor airflow*
     * - Source-loop flow
-      - ``0.75 × hp_capacity / (ρ c · 3 K)``: 3.58 L/min per kW, a 3 K loop
-        temperature difference at the rated source-side heat
+      - ``0.75 × hp_capacity / (ρ c · 3 K)``: a 3 K loop temperature
+        difference at the rated source-side heat, with ``ρ c`` of the loop
+        liquid — 3.84 L/min per kW of the default glycol (GSHP, GSHPB), 3.58
+        of water (WSHPB)
       - GSHP, GSHPB, WSHPB
       - :doc:`/models/gshp`, *Defaults that follow the capacity*
     * - Source-loop pump ``E_pmp``
@@ -181,7 +183,7 @@ The size that the rules give for a machine can be checked in one line:
    gshp = GroundSourceHeatPump(hp_capacity=30_000)
 
    print(gshp.N_1, gshp.N_2, gshp.H_b)   # 3 2 100.0  -> six 100 m boreholes
-   print(gshp.ground_flow_ref_lpm)       # 107.5 L/min
+   print(gshp.ground_flow_ref_lpm)       # 115.3 L/min of 25 % ethylene glycol
    print(gshp.E_pmp)                     # 640 W
    print(gshp.UA_ground_rated)           # 5400 W/K
 
@@ -257,21 +259,19 @@ Each can be switched off to see the bare cycle.
       - GSHP and GSHPB resolve the heat capacity of fluid, pipe and grout
         and the fluid transit
       - ``borehole_dynamics=False`` (:doc:`/models/ground-response`)
+    * - Source-loop liquid and its freezing limit
+      - GSHP and GSHPB run on 25 % ethylene glycol (``"MEG-25%"``), WSHPB on
+        water. The loop liquid is never colder than its freezing point plus
+        3 K (−8.0 °C for the glycol, 3 °C for water): a duty that would chill
+        it further is reduced, and when none fits the unit is off with
+        ``failure_reason == "source_fluid_freezing"``
+      - ``source_fluid`` (``"water"``, ``"MPG-30%"``, …)
+        (:ref:`source-fluid`)
     * - Tank thermostat (boilers, dynamic)
       - Heats between ``T_tank_w_lower_bound`` and ``T_tank_w_upper_bound``,
         switching inside a step; no minimum run or rest time
       - ``min_on_time_s``, ``min_off_time_s``, ``hp_on_schedule``
         (:ref:`time-step-and-thermostat`)
-
-..
-   R4D-PENDING (feat/source-fluid-freezing): when ``source_fluid`` is on main,
-   add a row "Source-loop liquid" here -- GSHP and GSHPB default to 25 %
-   ethylene glycol ("MEG-25%", operating limit -8.0 °C), WSHPB to water
-   (limit 3 °C); a duty that would chill the liquid below the limit is
-   reduced (capacity_binding "source_fluid_freezing") or the unit is off
-   (failure_reason "source_fluid_freezing"); switch: ``source_fluid=`` --
-   link :ref:`source-fluid`. The loop-flow rule above then reads
-   "3.84 L/min per kW of the default glycol, 3.58 of water".
 
 What does not follow the capacity
 =================================

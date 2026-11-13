@@ -29,8 +29,10 @@ efficiency fit was read inside its data (``efficiency_extrapolated``).
 Refused: outside the models
 ===========================
 
-Nothing in this table returns a normal-looking result. The request either
-fails at construction with an error, or returns the off state with a reason.
+Nothing in this table is returned as if it had been met. The request fails
+at construction with an error, returns the off state with a reason, or —
+where a smaller duty stays inside the limit — runs at that duty with the limit
+named in ``capacity_binding``.
 
 .. list-table::
     :header-rows: 1
@@ -45,8 +47,9 @@ fails at construction with an error, or returns the off state with a reason.
         temperature and the critical temperature
       - :doc:`refrigerant-and-coolprop`
     * - User-defined ``HEOS::`` mixtures
-      - Not supported. With the default ``T_cond_max`` the constructor raises
-        ``ValueError`` (no envelope is known for the mixture)
+      - Not supported. The constructor raises ``ValueError`` (the default
+        ``T_cond_max`` is not defined for a mixture); with
+        ``T_cond_max=None`` it does not return
       - :doc:`refrigerant-and-coolprop`
     * - Two-stage compression, vapour or liquid injection, economisers
       - The cycle is single-stage. Where a real unit would need them the
@@ -59,6 +62,13 @@ fails at construction with an error, or returns the off state with a reason.
         pressure ratio above 11, or the shipped isentropic fit below 0.30:
         reduced duty or the off state, never a running row
       - :doc:`failure-reason-semantics`
+    * - A source loop colder than its liquid allows
+      - The loop liquid is never colder than its freezing point plus 3 K
+        (25 % ethylene glycol in GSHP and GSHPB: −8.0 °C; water in WSHPB:
+        3 °C). A heating duty that would chill it further is reduced
+        (``capacity_binding == "source_fluid_freezing"``); when none fits the
+        unit is off with ``failure_reason == "source_fluid_freezing"``
+      - :ref:`source-fluid`
     * - A machine that cannot exist
       - A nameplate the default compressor cannot deliver at the rating
         point, or one whose rating point is outside the envelope, is refused
@@ -185,14 +195,21 @@ Ground and source water
     * - Simplification
       - What it means
       - How it shows
-    * - The loop liquid is water without a freezing point
-      - Density, specific heat, viscosity and conductivity of the source
-        loop are constants of water (1000 kg/m³, 4186 J/(kg K)). Nothing
-        stops the loop below 0 °C: a brine rating point (B0) is solved as
-        "water" leaving the heat pump at −3 °C
-      - Not flagged. Check ``T_bhe_f_in [°C]`` (and, in a dynamic boiler row,
-        ``T_bhe_f_in_running [°C]``) against the freezing point of the liquid
-        you have in mind
+    * - Loop liquid with constant properties
+      - The properties of ``source_fluid`` are those of the mixture at 0 °C
+        (water: 1000 kg/m³, 4186 J/(kg K)) and do not change with temperature
+        during a run. ``UA_ground`` is not derated for an antifreeze's poorer
+        film coefficient
+      - Not flagged. ``T_bhe_f_in [°C]`` is the loop temperature the freezing
+        limit acts on
+    * - Parts of the ground model that still assume water
+      - The hydraulic pump model, the flow-dependent borehole resistance,
+        the coupled ground-flow solver and the dynamic borehole response use
+        the properties of water also for the default glycol
+      - Pump power of the hydraulic model is understated for a glycol loop,
+        and loop temperatures differ by about 0.1 K; a model whose
+        ``source_fluid`` you chose says so in a ``UserWarning``
+        (:ref:`source-fluid`)
     * - Ground as a line-source response
       - Homogeneous ground at a constant undisturbed temperature, boreholes
         through a g-function and a borehole resistance; no seasonal surface
@@ -210,16 +227,6 @@ Ground and source water
       - The source is a prescribed water temperature around a submerged
         coil; the water body itself is not modelled
       - ``Ts [°C]`` repeats the input (:doc:`/models/wshpb`)
-
-..
-   R4D-PENDING (feat/source-fluid-freezing): when ``source_fluid`` is on main,
-   replace the first row above by the freezing limit -- loop liquid never
-   colder than its freezing point plus 3 K (default MEG-25 % for GSHP/GSHPB:
-   -8.0 °C; water for WSHPB: 3 °C), reduced duty with capacity_binding
-   "source_fluid_freezing" or off with failure_reason "source_fluid_freezing",
-   and add the remaining water-property spots (hydraulic pump model, coupled
-   ground-flow solver, dynamic borehole response, FieldGroundResponse.attach)
-   with a link to :ref:`source-fluid`.
 
 Demand side
 -----------
@@ -272,7 +279,6 @@ Then, where they exist: ``capacity_clamped == "max"`` (in a boiler's dynamic
 frame, a ``capacity_binding`` column) for a row that delivered less than
 asked, ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
 that was not served, ``efficiency_extrapolated`` and ``discharge_control`` for
-points at the edge of the compressor data, and the loop temperatures for a
-source that would freeze. Warnings raised during a run (``UserWarning`` at
+points at the edge of the compressor data. Warnings raised during a run (``UserWarning`` at
 construction, ``RuntimeWarning`` for a point that fell back to off) say the
 same things once, in words.

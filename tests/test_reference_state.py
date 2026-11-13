@@ -191,7 +191,9 @@ def test_unreachable_rated_capacity_fails_instead_of_clamping():
     assert "rps_max" in str(excinfo.value)
     with pytest.raises(ReferenceStateError, match="rps_min"):
         AirSourceHeatPumpBoiler(V_cmp_ref=1e-3)
-    with pytest.raises(ReferenceStateError, match="critical temperature"):
+    # R744 cannot heat water above its 31 degC critical point: refused by the
+    # constructor's input check before any reference solve (test_input_validation).
+    with pytest.raises(ValueError, match="critical temperature"):
         AirSourceHeatPumpBoiler(ref="R744")
 
 

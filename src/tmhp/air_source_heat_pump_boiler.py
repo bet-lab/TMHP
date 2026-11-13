@@ -2263,7 +2263,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dt_s : float
             Timestep [s].
         """
-        validate_step(inputs, dt_s)
+        validate_step(inputs, dt_s, self.V_tank_full)
         n = inputs["n"]
         t_s: float = inputs["current_time_s"]
         hr: float = t_s * cu.s2h

@@ -26,13 +26,63 @@ chain (step-mean superposition, borehole resistance,
 :func:`geolink_gfunction`; :class:`ResponseMatrixGFunction` itself needs
 nothing but the method above.
 
-Why not ``geolink.coupling.NetworkGroundCoupler``
--------------------------------------------------
-That coupler was written against an earlier tmhp. It divides the load by the
-number of boreholes (tmhp now passes the load per metre of *total* borehole
-length, so the rise would be ``1/N`` of the right value for ``N > 1``) and
-evaluates the response at the start of each step instead of its mean. Use
-the g-function route above.
+Two routes from geolink to a tmhp model
+---------------------------------------
+**The g-function route** (this module) reduces the response matrix to one
+field g-function and leaves the superposition to tmhp. It is the default
+choice. Every borehole carries the same load per metre; the first hour is
+tabulated as in tmhp's own g-functions (a line from ``g(0) = 0`` to
+``g(1 h)``); the table extends itself when a run outlasts ``t_max_s``; and
+the g-function can be wrapped by
+:func:`~tmhp.borehole_capacity.with_borehole_capacity` before it is given to
+the coupler.
+
+**The coupler route** gives the model geolink's own backend as
+``ground_coupler``::
+
+    from geolink.coupling import NetworkGroundCoupler
+
+    coupler = NetworkGroundCoupler.from_rectangular(
+        N_1=2, N_2=2, B=6.0, H_b=150.0, D_b=1.0, r_b=0.08, k_s=2.0, alpha_s=1.25e-6)
+    model = GroundSourceHeatPumpBoiler(N_1=2, N_2=2, H_b=150.0, ground_coupler=coupler)
+
+Use it when the boreholes do not share the heat in proportion to their
+length (its ``weights``), or when the response model itself should be
+evaluated below one hour. It has no g-function to wrap, so the borehole is
+the steady one (a resistance without heat capacity).
+
+The coupler route needs geolink main ``5cff1aa1`` (2026-11-13,
+bet-lab/geolink#578) or later. From that commit ``NetworkGroundCoupler``
+follows the contract of :mod:`tmhp.ground_coupling`: the load is per metre
+of total borehole length (``q_unit = Q / (N H)``), the returned rise is the
+mean over ``[t_n, t_n + dt]``, ``reset`` takes ``dt_s`` and
+``preview_wall_temperature_rise`` exists. Earlier versions divided the load
+by the number of boreholes a second time and evaluated the response at the
+start of each step: an ``N``-borehole field returned ``1/N`` of the rise and
+the first loaded step returned zero.
+
+On either route the total borehole length must be the same on both sides.
+The model divides the field load by its own ``N_1 * N_2 * H_b``; geolink
+cannot see that number. A field of another total length
+(``NetworkGroundCoupler.total_length``, or the ``H`` given to
+:func:`geolink_gfunction`) is not detected and scales every rise by the
+ratio of the two lengths: a 4 x 4 coupler under a 2 x 2 model returns four
+times the rise the same heat causes in the 4 x 4 field. For boreholes of
+different lengths ``H_b`` is their mean.
+
+Checked with geolink ``5cff1aa1`` (2026-11-14). For 1 x 1, 2 x 2 and 4 x 4
+fields (200 m, 6 m spacing, 20 W/m for a year, hourly and daily steps) the
+coupler route gives 1.0001 to 1.0002 times the rise of tmhp's ``'UHTR'``
+g-function, and no step after the first differs by more than 0.002 K (of 7
+to 11 K). A 24 h run of the boiler on a 2 x 2 field of 100 m boreholes
+stays within 0.013 K of the ``'UHTR'`` run on the coupler route and within
+0.0003 K on the g-function route, for a swing of 0.65 K.
+
+What remains different is the first hour. geolink evaluates the response
+model there; a tmhp table draws the line from zero. With hourly steps the
+first loaded step rises by 0.218 K on the coupler route and by 0.252 K on
+the g-function route (20 W/m, ``k_s`` = 2 W/(m K), ``alpha_s`` = 1e-6 m2/s,
+``r_b`` = 0.08 m); with daily steps by 1.998 and 1.999 K.
 """
 
 from __future__ import annotations

@@ -101,7 +101,8 @@ def test_rejects_bad_providers_and_inputs():
 
 def test_geolink_gfunction_against_pygfunction():
     """With geolink installed: its native finite line source gives the UHTR g-function."""
-    pytest.importorskip("geolink")
+    # Not importorskip("geolink"): see test_adapter_module_on_the_path_is_not_taken_for_geolink.
+    pytest.importorskip("geolink.response.mfls")
     x, y = np.array([0.0, 6.0, 0.0, 6.0]), np.array([0.0, 0.0, 6.0, 6.0])
     g = geolink_gfunction(x, y, 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=20 * 8760 * 3600.0, D=1.0)
     times = np.array([3600.0, 86400.0, 365 * 86400.0, 20 * 365 * 86400.0])
@@ -119,3 +120,70 @@ def test_geolink_gfunction_against_pygfunction():
     assert float(wet(times[0])) == pytest.approx(float(g(times[0])), rel=0.02)
     with pytest.raises(ValueError, match="rho_s and c_s"):
         geolink_gfunction(x, y, 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=1e7, groundwater_velocity=1e-6)
+
+
+def test_adapter_module_on_the_path_is_not_taken_for_geolink(monkeypatch):
+    """``tmhp/integrations`` on ``sys.path`` must not pass for an installed geolink.
+
+    PythonFMU puts that directory there when it builds the FMU adapters (the
+    FMU tests do). ``import geolink`` then finds ``tmhp/integrations/geolink.py``
+    — this adapter, a module without ``geolink.response`` — so
+    ``pytest.importorskip("geolink")`` did not skip and the geolink test above
+    failed whenever it ran after an FMU test in the same worker. The adapter
+    reports geolink as not installed; tests that need geolink ask for one of
+    its submodules.
+    """
+    import sys
+    from pathlib import Path
+
+    import tmhp.integrations.geolink as adapter
+
+    for name in [m for m in sys.modules if m == "geolink" or m.startswith("geolink.")]:
+        monkeypatch.delitem(sys.modules, name)
+    monkeypatch.syspath_prepend(str(Path(adapter.__file__).parent))
+    try:
+        shadow = pytest.importorskip("geolink")  # the old skip condition: passes
+        assert Path(shadow.__file__).name == "geolink.py" and not hasattr(shadow, "__path__")
+        with pytest.raises(pytest.skip.Exception):
+            pytest.importorskip("geolink.response.mfls")
+        with pytest.raises(pytest.skip.Exception):
+            pytest.importorskip("geolink.coupling")
+        with pytest.raises(ImportError, match="geolink is not installed"):
+            geolink_gfunction([0.0], [0.0], 150.0, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, t_max_s=1e7)
+    finally:
+        sys.modules.pop("geolink", None)  # the shadow; monkeypatch restores what was there
+
+
+def test_geolink_network_coupler_follows_the_host_contract():
+    """With geolink installed: its own coupler gives the rise of the ``'UHTR'`` g-function.
+
+    The module docstring of ``tmhp.integrations.geolink`` states this for
+    geolink main ``5cff1aa1`` or later; earlier couplers returned ``1/N`` of
+    the rise and nothing for the first step.
+    """
+    coupling = pytest.importorskip("geolink.coupling")
+    from tmhp.g_function import precompute_gfunction
+    from tmhp.ground_coupling import GroundCoupler, reset_ground_coupler
+    from tmhp.ground_loop import calc_borefield_linear_load
+
+    depth, burial, spacing, n_steps, dt = 200.0, 4.0, 6.0, 365, 86400.0
+    time_arr = np.arange(n_steps) * dt
+    for n_1, n_2 in ((1, 1), (2, 2)):
+        count = n_1 * n_2
+        backend = coupling.NetworkGroundCoupler.from_rectangular(
+            N_1=n_1, N_2=n_2, B=spacing, H_b=depth, D_b=burial, r_b=R_B, k_s=K_S, alpha_s=ALPHA_S
+        )
+        assert isinstance(backend, GroundCoupler)
+        assert backend.total_length == pytest.approx(count * depth)  # what the model divides the load by
+        reference = AggregateGFunctionCoupler(
+            precompute_gfunction(
+                n_1, n_2, spacing, depth, burial, R_B, ALPHA_S, K_S, n_steps * dt, dt, boundary_condition="UHTR"
+            )
+        )
+        q_unit = calc_borefield_linear_load(20.0 * count * depth, count, depth)
+        rises = []
+        for coupler in (backend, reference):
+            reset_ground_coupler(coupler, n_steps, time_arr, dt)
+            assert coupler.preview_wall_temperature_rise(0, time_arr, q_unit) > 0.0  # the step answers its own load
+            rises.append(np.array([coupler.wall_temperature_rise(k, time_arr, q_unit) for k in range(n_steps)]))
+        np.testing.assert_allclose(rises[0], rises[1], rtol=1e-3)

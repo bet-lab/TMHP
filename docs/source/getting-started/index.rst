@@ -32,6 +32,10 @@ DataFrame."
         Drive ``analyze_dynamic`` over a 24-hour schedule and
         read the per-step results.
 
+Once the first call runs, :doc:`minimal-input` says what each model family
+needs from you — a capacity, a refrigerant, the kind of source and sink — and
+which defaults follow from them.
+
 .. toctree::
     :maxdepth: 1
     :hidden:
@@ -39,3 +43,4 @@ DataFrame."
     installation
     quickstart
     first-dynamic-simulation
+    minimal-input

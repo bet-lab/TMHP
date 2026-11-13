@@ -1,6 +1,6 @@
 {
-  "version": "fan-airflow-v2026-11-14a",
-  "data_sha256": "4131d328002f77c2d654359d0c5bed2ddab79c7e8a038f6d8c44aa0f8a2349a2",
+  "version": "fan-airflow-v2026-11-14b",
+  "data_sha256": "0e50ec79b3ee5fb82de2e0030ff7e0b7bd3b01de8f1cb76d287e3e47983eb592",
   "law_capacity_unit": "kW",
   "output_unit": "m3/s",
   "meaning": "largest published fan airflow (High/Max step, or the single printed outdoor value)",
@@ -76,6 +76,41 @@
         "MEUK-5330",
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
+      ]
+    },
+    "airflow|cooling|indoor|water_to_air": {
+      "selected_law": {
+        "kind": "linear",
+        "a": 0.049109066490394496,
+        "b": 0.13045183734755236
+      },
+      "capacity_range_W": [
+        4689.137119999999,
+        21628.644966
+      ],
+      "n": 52,
+      "n_families": 7,
+      "manufacturers": [
+        "ClimateMaster",
+        "Daikin Applied",
+        "Enertech Global",
+        "WaterFurnace"
+      ],
+      "nested_family_cv": {
+        "n": 52,
+        "MAPE_pct": 9.591309644382786,
+        "RMSE": 0.0753329349843951,
+        "bias_pct": 3.374453395794526
+      },
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "CLIMATEMASTER-RP1000-TE",
+        "CLIMATEMASTER-RP1002-TS",
+        "DAIKINAPPLIED-CAT1108-30",
+        "ENERTECH-20D455-01NN-YT",
+        "ENERTECH-20D455-11NN-VSVT",
+        "WATERFURNACE-SC2500AN",
+        "WATERFURNACE-SC2700ANC"
       ]
     },
     "airflow|cooling|outdoor|single_split": {
@@ -183,6 +218,41 @@
         "MEUK-5330",
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
+      ]
+    },
+    "airflow|heating|indoor|water_to_air": {
+      "selected_law": {
+        "kind": "power",
+        "a": 0.11584561389687512,
+        "b": 0.823991127374524
+      },
+      "capacity_range_W": [
+        3370.317305,
+        16939.507846
+      ],
+      "n": 52,
+      "n_families": 7,
+      "manufacturers": [
+        "ClimateMaster",
+        "Daikin Applied",
+        "Enertech Global",
+        "WaterFurnace"
+      ],
+      "nested_family_cv": {
+        "n": 52,
+        "MAPE_pct": 8.247025937869811,
+        "RMSE": 0.07138615748690551,
+        "bias_pct": 0.8444103307551536
+      },
+      "meets_shipping_gate": true,
+      "source_ids": [
+        "CLIMATEMASTER-RP1000-TE",
+        "CLIMATEMASTER-RP1002-TS",
+        "DAIKINAPPLIED-CAT1108-30",
+        "ENERTECH-20D455-01NN-YT",
+        "ENERTECH-20D455-11NN-VSVT",
+        "WATERFURNACE-SC2500AN",
+        "WATERFURNACE-SC2700ANC"
       ]
     },
     "airflow|heating|outdoor|single_split": {

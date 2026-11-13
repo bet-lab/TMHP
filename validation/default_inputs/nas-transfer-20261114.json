@@ -16,5 +16,88 @@
    "smb_readback": true,
    "nfs_read": true
   }
+ ],
+ "batches": [
+  {
+   "verified_at": "2026-11-13T15:19:49.654838+00:00",
+   "files": 1,
+   "smb_readback_sha256": "1/1 matched",
+   "nfs_read_sha256": "1/1 matched",
+   "files_detail": [
+    {
+     "path": "energy-systems/me-sci-rotary-catalogue-2026-source/files/source/SCI-ROTARY-2026.pdf",
+     "bytes": 146140346,
+     "sha256": "8e0374741f819464b2c243905eeb7c33542adece006d94a5ac57e2d1faeec6d0",
+     "smb_readback": true,
+     "nfs_read": true
+    }
+   ]
+  },
+  {
+   "verified_at": "2026-11-13T15:57:56.530146+00:00",
+   "scope": "water-to-air GSHP airflow sources",
+   "files": 8,
+   "smb_readback_sha256": "8/8 matched",
+   "nfs_read_sha256": "8/8 matched",
+   "destination_preflight": "all dataset folders absent before upload",
+   "files_detail": [
+    {
+     "path": "energy-systems/bosch-btc760108305g-sm-revc-source/files/source/BOSCH-BTC760108305G-SM-REVC.pdf",
+     "bytes": 3964927,
+     "sha256": "0fd05c160f8e89844749dcd7bc6174627287d379772099036d80bf95c9fa706c",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/climatemaster-rp1000-te-source/files/source/CLIMATEMASTER-RP1000-TE.pdf",
+     "bytes": 12245041,
+     "sha256": "e403fe7cd8bba64156120c66ae7533d11de60250d055790deb14c334068204d8",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/climatemaster-rp1002-ts-source/files/source/CLIMATEMASTER-RP1002-TS.pdf",
+     "bytes": 7364105,
+     "sha256": "3dc59cfddf95315e2da6a05ec31dc910342d1f0fbc58d6a03bfb6f0a06417505",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/daikinapplied-cat1108-30-source/files/source/DAIKINAPPLIED-CAT1108-30.pdf",
+     "bytes": 6013153,
+     "sha256": "27ab9cc983412f0dd0c14be3ed91381d6a408cf354fc8c2776deec6c38d77121",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/enertech-20d455-01nn-yt-source/files/source/ENERTECH-20D455-01NN-YT.pdf",
+     "bytes": 874081,
+     "sha256": "f960b2a6b5123b3572b56555b84cef1a2772dd496f2924198d8f96bc039535ac",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/enertech-20d455-11nn-vsvt-source/files/source/ENERTECH-20D455-11NN-VSVT.pdf",
+     "bytes": 1317277,
+     "sha256": "21eddd4006dcbd942548a78f7d0f37c213c2263f7d05f77c8f9ec423fca0cf23",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/waterfurnace-sc2500an-source/files/source/WATERFURNACE-SC2500AN.pdf",
+     "bytes": 5848524,
+     "sha256": "8b01513449e1e9ea9cececa12a56f03f805e891288dfe02144b40332b32adaa7",
+     "smb_readback": true,
+     "nfs_read": true
+    },
+    {
+     "path": "energy-systems/waterfurnace-sc2700anc-source/files/source/WATERFURNACE-SC2700ANC.pdf",
+     "bytes": 4888710,
+     "sha256": "c478484717b3becbaa30e83b061b9038ef3f1ccf3e9d00128fb19ea9f95e2dcc",
+     "smb_readback": true,
+     "nfs_read": true
+    }
+   ]
+  }
  ]
 }

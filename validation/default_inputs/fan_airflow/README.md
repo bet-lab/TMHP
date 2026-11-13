@@ -1,8 +1,23 @@
 # Fan airflow archive
 
-Largest published fan airflow [m3/s] against rated capacity for 1:1 single splits: wall-mounted and
-floor-standing indoor units and their outdoor units, cooling and heating. Ducted and cassette units are out
-of scope (user decision 2026-10-26). Strata: `airflow|<mode>|indoor|<indoor_type>` and
+Largest published fan airflow [m3/s] against rated capacity, cooling and heating, for: wall-mounted and
+floor-standing indoor units of 1:1 single splits and their outdoor units (ASHP); water-to-air packaged heat
+pumps (`indoor_type=water_to_air`, GSHP indoor side); air-to-water outdoor units (`indoor_type=air_to_water`,
+outdoor rows, ASHPB). Ducted and cassette split indoor units are out of scope (user decision 2026-10-26).
+
+Water-to-air units (added 2026-11-14):
+
+- Capacity is the ISO 13256-1 ground-loop (GLHP) full-load rating printed in the same document.
+- `airflow_text` is the largest printed blower airflow **usable with the compressor running**: the top of the
+  boldface L-H range (WaterFurnace), the `Maximum`/`MAX` row (ClimateMaster), the highest program's mode 2nd stage
+  (Enertech), Setting 4 High (Daikin Applied). Settings printed only for auxiliary/emergency electric heat are
+  larger on some sizes; TMHP models no auxiliary heater, so they stay in `note`.
+- A printed rated/nominal indoor airflow (the AHRI/ISO test airflow, e.g. Bosch 'Rated Airflow at 400 CFM/Ton')
+  is kept but excluded from fits.
+- Maximum external static pressure is defined differently by each maker (wet coil with or without filter); it is
+  recorded in `note`, not harmonised.
+- WaterFurnace, ClimateMaster and Enertech belong to the NIBE group but publish separately engineered product
+  lines; Daikin Applied is independent. The shipping gate counts brands. Strata: `airflow|<mode>|indoor|<indoor_type>` and
 `airflow|<mode>|outdoor|single_split`.
 
 The archive works like [../compressor_displacement](../compressor_displacement/README.md): hand-edited

@@ -89,7 +89,8 @@ def normalize(obs: dict, source: dict) -> dict:
     row.update(
         source_id=obs["source_id"],
         kind="airflow",
-        refrigerant_normalized=archive.normalize_refrigerant(obs["refrigerant"]),
+        # Airflow is not stratified by refrigerant; a document that prints none keeps it empty.
+        refrigerant_normalized=archive.normalize_refrigerant(obs["refrigerant"]) if obs["refrigerant"] else None,
         model_id=f"{obs['indoor_model']}/{obs['outdoor_model']}",
         capacity_raw=float(obs["capacity_text"]) if obs["capacity_text"] else None,
         capacity_W=float(obs["capacity_text"]) * CAPACITY_TO_W[obs["capacity_unit"]] if obs["capacity_text"] else None,

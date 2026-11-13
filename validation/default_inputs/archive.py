@@ -28,6 +28,7 @@ REFRIGERANTS = {name.upper(): name for name in ("R22", "R32", "R290", "R410A", "
 def normalize_refrigerant(text: str) -> str:
     """Printed refrigerant label -> canonical name ('R-32', 'R32(*1)' -> 'R32'); unknown labels raise."""
     key = re.sub(r"\(\*?\d*\)|\*\d*", "", text).replace("-", "").replace(" ", "").upper()
+    key = re.sub(r"^(HFC|HFO|HC)(?=\d)", "R", key)  # 'HFC-410A' -> 'R410A'
     if key not in REFRIGERANTS:
         raise ValueError(f"unknown refrigerant label {text!r}")
     return REFRIGERANTS[key]

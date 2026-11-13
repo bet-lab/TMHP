@@ -43,12 +43,13 @@ def make_model() -> AirSourceHeatPumpBoiler:
         # Historical 5% correlation domain, frozen for this characterization.
         vsd_coeffs={"curve_type": "custom"},
         dV_fan_a_min=0.05 * 15000 * 0.00015,
-        # Compressor envelope: the shipped defaults (R32 150 C discharge limit
-        # with discharge-temperature control, PR 11, rps_max from the rated
-        # speed). This machine discharges at 150-198 C dry on every running
-        # step of the four scenarios; the control holds all of them at the
-        # limit (wet suction), none is refused or reduced, and the heat input
-        # is unchanged -- so the goldens pin the default behaviour.
+        # Compressor envelope as recorded in the goldens (before 2026-11-13):
+        # no discharge-temperature limit, PR ceiling 20, 150 rev/s. With the
+        # current defaults this machine (v2026-09-24 efficiencies) discharges at
+        # 150-198 C on most called steps and those steps are refused.
+        T_dis_max=None,
+        PR_cycle_max=20.0,
+        rps_max=150.0,
     )
 
 

@@ -4,12 +4,13 @@ With only ``hp_capacity`` given, the loop flow, pump power, borefield and
 indoor airflow scale with it, so the machine is the same at every size: the
 rating-point COP does not depend on the capacity. A value the caller supplies
 is used as given, and a loop the caller sized badly is reported, not silently
-solved.
+solved. The dynamic run closes the ground fluid inside each step (G1).
 """
 
 import math
 import warnings
 
+import numpy as np
 import pytest
 
 from tmhp import GroundSourceHeatPump
@@ -239,3 +240,61 @@ def test_borefield_too_small_for_the_capacity_is_reported_at_construction():
         model = GroundSourceHeatPump(**SHORT, hp_capacity=8000.0, H_b=60.0)
     assert model.q_bhe_rated == pytest.approx(100.0)
     assert build(hp_capacity=8000.0, N_1=1).q_bhe_rated == pytest.approx(60.0)  # within 80 W/m: quiet
+
+
+# ── dynamic: ground fluid closed inside the step (G1) ─────────────────────
+
+
+@pytest.fixture(scope="module")
+def cold_ground_run():
+    """Two hourly steps of 8 kW heating and of 8 kW cooling on a short borehole."""
+    dt = 3600
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)  # 100 W/m on purpose: a large own-step response
+        model = GroundSourceHeatPump(
+            dt_s=dt, t_max_s=86400.0, UA_iu_rated=2000.0, Ts=10.0, H_b=60.0, N_1=1, N_2=1, hp_capacity=8000.0
+        )
+    heating = model.analyze_dynamic(2 * dt, dt, np.full(2, -8000.0), np.zeros(2), np.full(2, 20.0))
+    cooling = model.analyze_dynamic(2 * dt, dt, np.full(2, 8000.0), np.full(2, 30.0), np.full(2, 27.0))
+    return model, heating, cooling
+
+
+def test_evaporator_is_colder_than_the_ground_fluid_of_the_same_row(cold_ground_run):
+    _, heating, _ = cold_ground_run
+    assert heating["hp_is_on"].all() and (heating["failure_reason"] == "none").all()
+    # Before: the first row paired an evaporator at +3 °C (cycle solved on the
+    # undisturbed 10 °C ground) with a fluid at -6 °C (after the step's load).
+    margin = heating["T_bhe_f_in [°C]"] - heating["T_ref_evap_sat [°C]"]
+    assert (margin > 0.5).all(), margin.tolist()
+    assert (heating["T_bhe_f_out [°C]"] < 10.0 - 5.0).all()  # the first step already sees its own load
+
+
+def test_condenser_is_warmer_than_the_ground_fluid_of_the_same_row(cold_ground_run):
+    _, _, cooling = cold_ground_run
+    assert cooling["hp_is_on"].all() and (cooling["failure_reason"] == "none").all()
+    margin = cooling["T_ref_cond_sat_l [°C]"] - cooling["T_bhe_f_in [°C]"]
+    assert (margin > 0.5).all(), margin.tolist()
+
+
+@pytest.mark.parametrize("mode", ["heating", "cooling"])
+def test_reported_fluid_temperature_is_the_one_the_cycle_was_solved_with(cold_ground_run, mode):
+    model, heating, cooling = cold_ground_run
+    df = heating if mode == "heating" else cooling
+    sign = -1.0 if mode == "heating" else 1.0
+    m_cp = df["dV_bhe_f [m3/s]"] * rho_w * c_w
+    source = df["T_bhe_f_out [°C]"] + df["E_pmp [W]"] / m_cp
+    saturation = df["T_ref_evap_sat [°C]"] if mode == "heating" else df["T_ref_cond_sat_l [°C]"]
+    # Ground-side saturation = fluid entering the heat pump -/+ the solved approach.
+    np.testing.assert_allclose(saturation, source + sign * df["ground_approach [K]"], atol=1e-3)
+    # Borehole relation of the same row: wall - q' R_b* = mean fluid.
+    q_unit = df["Q_bhe [W]"] / (model.n_boreholes * model.H_b)
+    mean = 0.5 * (df["T_bhe_f_in [°C]"] + df["T_bhe_f_out [°C]"])
+    np.testing.assert_allclose(df["T_bhe [°C]"] - q_unit * df["R_b_eff [mK/W]"], mean, atol=1e-3)
+    np.testing.assert_allclose((df["T_bhe_f_out [°C]"] - df["T_bhe_f_in [°C]"]) * m_cp, df["Q_bhe [W]"], rtol=1e-4)
+
+
+def test_repeating_the_dynamic_run_gives_the_same_table(cold_ground_run):
+    model, heating, _ = cold_ground_run
+    again = model.analyze_dynamic(2 * 3600, 3600, np.full(2, -8000.0), np.zeros(2), np.full(2, 20.0))
+    for key in ("T_bhe_f_out [°C]", "T_ref_evap_sat [°C]", "E_cmp [W]", "Q_ref_iu [W]"):
+        np.testing.assert_allclose(again[key], heating[key], rtol=1e-9, atol=1e-9)

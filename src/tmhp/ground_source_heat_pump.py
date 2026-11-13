@@ -114,6 +114,11 @@ def _require_finite(**values: float | None) -> None:
 #: (0.215 m³/s = 773 m³/h for 4 kW).
 IU_AIRFLOW_PER_W = 5.37e-5
 
+#: Borehole-wall temperature seen by a ground closure [K]: a fixed value, or a
+#: function of the borefield load ``Q_bhe`` [W] of the point being evaluated
+#: (a dynamic step, whose own load moves the wall within the step).
+WallTemperature = float | Callable[[float], float]
+
 #: Signed indoor-coil capacity margins at the fan flow limits (row keys).
 _IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
 _IU_MARGIN_AT_MIN_FLOW = "iu_hx_min_flow_margin [W]"
@@ -133,7 +138,7 @@ class _IndoorSearch:
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         warm: dict[str, float] | None = None,
     ) -> None:
         self.model = model
@@ -239,6 +244,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     U-tube that is laminar at the reference flow (``Re < 2300``; the model
     attribute ``Re_bhe_ref``) and a caller-sized borefield above 80 W/m at the
     rated source-side heat (``q_bhe_rated``).
+
+    **Dynamic steps.** :meth:`analyze_dynamic` closes the ground-fluid
+    temperature inside each step against the borehole wall, including the
+    wall's response to that step's own load. The refrigerant cycle, the
+    fluid temperatures and the wall temperature of one row therefore belong
+    to the same step.
     """
 
     _RATING_FAMILY = "GSHP"
@@ -1289,7 +1300,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         warm: dict,
     ) -> tuple[str, dict | None, float, float]:
         """Close the ground-side heat balance at one indoor approach.
@@ -1305,8 +1316,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         When ``wall_K`` is given, the fluid temperature leaving the borefield is
         closed at the same time from the borehole relation used by the coupled
         solver, ``T_out = T_wall - q' R_b* + Q_bhe / (2 ṁ c_p)``
-        (:func:`calc_bhe_fluid_temperatures`). Otherwise it is the model state
-        ``T_bhe_f_out_K``.
+        (:func:`calc_bhe_fluid_temperatures`). ``wall_K`` may be a function of
+        the borefield load ``Q_bhe`` [W]: a dynamic step passes the wall
+        response to the step's own load, so the fluid temperature of the row
+        belongs to the same step as its cycle (#96 G1). Otherwise the fluid
+        leaves the borefield at the model state ``T_bhe_f_out_K``.
 
         Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
         ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
@@ -1334,7 +1348,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             q_ground = g * conductance
             Q_bhe_guess = q_ground - loop["E_pmp"] if heating else -(q_ground + loop["E_pmp"])
             T_out = calc_bhe_fluid_temperatures(
-                wall_K, Q_bhe_guess, self.n_boreholes, self.H_b, loop["R_b"], loop["dV"] * rho_w, c_w
+                wall_K(Q_bhe_guess) if callable(wall_K) else wall_K,
+                Q_bhe_guess,
+                self.n_boreholes,
+                self.H_b,
+                loop["R_b"],
+                loop["dV"] * rho_w,
+                c_w,
             )[2]
         # The compressor envelope (pressure-ratio ceiling) limits the absolute
         # ground-side saturation temperature, not the approach: as the fluid
@@ -1400,7 +1420,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 T_next = T_out
             else:
                 _, _, T_next = calc_bhe_fluid_temperatures(
-                    wall_K,
+                    wall_K(float(row["Q_bhe [W]"])) if callable(wall_K) else wall_K,
                     float(row["Q_bhe [W]"]),
                     self.n_boreholes,
                     self.H_b,
@@ -1453,7 +1473,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T0: float,
         T_a_room: float,
         *,
-        wall_K: float | None = None,
+        wall_K: WallTemperature | None = None,
     ) -> dict:
         """Operating point at a fixed ground flow, or an explicit failure.
 
@@ -1650,7 +1670,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         seed: float | None,
         warm: dict[str, float] | None = None,
     ) -> tuple[float | None, dict | None]:
@@ -1684,7 +1704,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         rel_tol: float = 5e-3,
     ) -> dict | None:
         """Largest deliverable duty below the request, reported as a ceiling.
@@ -1960,7 +1980,21 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room_schedule=None,
         result_save_csv_path: str | None = None,
     ) -> pd.DataFrame:
-        """Time-stepping dynamic simulation with BHE superposition."""
+        """Time-stepping dynamic simulation with BHE superposition.
+
+        Step ``n`` stands for the interval ``[t_n, t_n + dt]``. The borehole
+        wall of the step is the step mean of its response to all loads so
+        far, the step's own included, and the ground fluid is closed against
+        that wall inside the step (``T_out = T_wall - q' R_b* + Q_bhe /
+        (2 m c_p)``), so the evaporating temperature of a heating row is
+        below the ``T_bhe_f_out [°C]`` of the same row (above it for the
+        condensing temperature of a cooling row). Before this closure the
+        cycle used the fluid temperature left by the previous step: the first
+        step after an off period ran on undisturbed ground, which understated
+        the compressor energy of intermittent operation by 4-7 % in heating
+        and 11-21 % in cooling (20 min on / 40 min off and 1 h on / 2 h off
+        at the default sizing; under 0.5 % in continuous operation).
+        """
         validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
@@ -1999,6 +2033,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         Q_bhe_unit_pulse = np.zeros(tN)
         Q_bhe_unit_old = 0.0
+        # Step-mean response of the borehole wall to a step's own load [m K/W].
+        g_own = float(g_step_mean(self._gfunc_interp, np.array([0.0]), dt_s)[0])
 
         results_data: list[dict] = []
 
@@ -2009,33 +2045,38 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T0_n = T0_schedule[n]
             T_a_room_n = T_a_room_arr[n]
 
-            if self._ground_settings["active"]:
-                # Preview the current-time wall for each candidate, without recording pulses.
-                def wall_response(q_total, step=n, previous_q=Q_bhe_unit_old):
-                    idx = np.flatnonzero(Q_bhe_unit_pulse[:step])
-                    rise = (
-                        float(
-                            np.dot(
-                                Q_bhe_unit_pulse[idx],
-                                g_step_mean(self._gfunc_interp, time[step] - time[idx], dt_s),
-                            )
-                        )
-                        if len(idx)
-                        else 0.0
-                    )
-                    delta = q_total / self.total_borehole_length - previous_q
-                    if abs(delta) > 1e-6:
-                        rise += float(delta * g_step_mean(self._gfunc_interp, np.array([0.0]), dt_s)[0])
-                    return self.Ts_K - rise
-
-                hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
-            elif Q_r_iu_n == 0:
+            hp_result: dict | None
+            if Q_r_iu_n == 0 and not self._ground_settings["active"]:
                 hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
                 if hp_result is not None:
                     hp_result["failure_reason"] = "none"
             else:
-                # A failed step comes back as the off state with its reason.
-                hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n)
+                # Borehole wall of this step as a function of the step's own
+                # load: the response to the earlier pulses is fixed, and a
+                # candidate load adds its own step-mean response. Evaluating
+                # it never records a pulse.
+                idx = np.flatnonzero(Q_bhe_unit_pulse[:n])
+                history_rise = (
+                    float(np.dot(Q_bhe_unit_pulse[idx], g_step_mean(self._gfunc_interp, time[n] - time[idx], dt_s)))
+                    if len(idx)
+                    else 0.0
+                )
+
+                def wall_response(q_total, history=history_rise, previous_q=Q_bhe_unit_old):
+                    rise = history
+                    delta = q_total / self.total_borehole_length - previous_q
+                    if abs(delta) > 1e-6:
+                        rise += float(delta * g_own)
+                    return self.Ts_K - rise
+
+                if self._ground_settings["active"]:
+                    hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
+                else:
+                    # The ground fluid is closed against that wall inside the
+                    # step, so the cycle and the fluid temperature of one row
+                    # belong to the same step (#96 G1). A failed step comes
+                    # back as the off state with its reason.
+                    hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
 
             if hp_result is None:
                 # Off-mode cycle itself failed — fall back to an inert row so

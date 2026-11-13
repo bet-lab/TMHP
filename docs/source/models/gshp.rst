@@ -113,6 +113,16 @@ Source-side mechanics
 Same g-function-based borehole as :doc:`gshpb`. See that page for the
 detailed mechanic and the g-function figure.
 
+In ``analyze_dynamic`` the ground fluid is closed inside each step: the
+borehole wall of step ``n`` is the step mean of its response to every load
+so far, the step's own included, and the fluid temperature follows from it
+through ``R_b*`` and the loop flow. The cycle of a row is solved with the
+``T_bhe_f_out [°C]`` reported in that row, so a heating row always has its
+evaporating temperature below the fluid and a cooling row its condensing
+temperature above it. (Earlier versions solved the cycle with the fluid left
+by the previous step; after an off period the first step then ran on
+undisturbed ground.)
+
 Sink-side mechanics
 ===================
 

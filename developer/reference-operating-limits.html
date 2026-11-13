@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:37:23+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T20:29:43+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -341,7 +341,7 @@ remains infeasible and cannot enter a finite optimization objective.</p>
 <p>The repository audit is in <code class="docutils literal notranslate"><span class="pre">docs/audits/reference-rated-max.md</span></code>. It inventories
 reference/rated/design/ratio/max identifiers in all five released heat-pump
 families, common HX/fan and ground helpers, and compressor speed handling.
-WSHPB has fixed surface-water/tank UAs and explicit speed limits; it contains
+WSHPB has fixed (capacity-scaled by default) surface-water/tank UAs and explicit speed limits; it contains
 no fan solver or rated-flow ceiling to expand. Numerical regression tests retain
 old constructor behavior, and new tests verify identical component physics at
 an identical actual operating point across control strategies.</p>

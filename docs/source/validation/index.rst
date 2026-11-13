@@ -69,7 +69,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 715 evaluated
+      - 757 attempted, 723 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -103,21 +103,21 @@ enter a headline. The compressor efficiencies are the shipped
 validity-domain guards (:doc:`defaults`), applied here unchanged, inside the
 compressor operating envelope (:doc:`/developer/reference-operating-limits`).
 
-**14 air-to-water points are not evaluated, all of them R32 at a high
-pressure ratio** (outdoor −15 to −7 °C, leaving water 45 to 65 °C). With the
-default efficiency map the isentropic efficiency is 0.37–0.42 above PR 7.15,
-which puts the single-stage discharge temperature at 243–293 °C. Ten of the
-points stay above the R32 limit of 150 °C even with the discharge-temperature
-control: holding it would take a suction quality of 0.79–0.86, wetter than
-the 0.9 the model allows (``discharge_temp_above_max``). The other four run,
-but only at a duty more than 1 % below the published one (the largest the
-operating envelope allows); their COP belongs to a smaller operating point
+**17 air-to-water points are not evaluated, all of them R32.** Nine (outdoor
+−15 to −7 °C, leaving water 55 to 60 °C) stay above the R32 discharge limit of
+150 °C even with the discharge-temperature control: at that pressure ratio the
+default efficiency map's isentropic efficiency is near 0.4, and holding the
+limit would take a wetter suction than the quality of 0.9 the model allows
+(``discharge_temp_above_max``). Two, at 65 °C leaving water, condense above
+the 65 °C condensing limit of R32 (``condensing_temp_above_max``). The other
+six run, but only at a duty more than 1 % below the published one (the largest
+the operating envelope allows); their COP belongs to a smaller operating point
 and is not compared with the catalogue's full-load COP (``capacity_short``).
 Other air-to-water points are evaluated under the control, with wet suction
 or reduced superheat.
 
-**28 air-to-air heating points are not evaluated, 27 of them on the held
-Fujitsu grids.** All lie at or below 5 °C outdoor, where the frost and defrost
+**17 air-to-air heating points are not evaluated, 16 of them on the held
+Fujitsu grids.** All lie at or below 0 °C outdoor, where the frost and defrost
 adjustment (:doc:`/models/ashp`) lowers the mean heating capacity to 0.77–0.86
 of the frost-free capacity. The Fujitsu heating grid is published at maximum
 capacity (③ below), and at those points the mean the model can deliver falls
@@ -134,51 +134,51 @@ point is the smallest unit at 0 °C.
       - Evaluated
       - What it is
     * - Air-to-water, 10 units
-      - 10.3 %
-      - +5.8 %
-      - 139 / 153
+      - 10.6 %
+      - +6.4 %
+      - 136 / 153
       - Optimistic on average; the bias sits at +2 °C outdoor
     * - Air-to-air, Daikin, 5 units
-      - 8.1 %
-      - −5.0 %
+      - 8.7 %
+      - −5.9 %
       - 359 / 360
       - EN 14511; heating centred, cooling low
     * - Daikin cooling
-      - 10.5 %
-      - −9.7 %
+      - 11.6 %
+      - −11.4 %
       - 180 / 180
       - Pessimistic, growing with outdoor temperature
     * - Daikin heating
-      - 5.7 %
-      - −0.2 %
+      - 5.8 %
+      - −0.5 %
       - 179 / 180
       - Centred; frost and defrost adjusted at and below 0 °C
     * - Daikin heating at or below −7 °C
       - 7.1 %
-      - +6.4 %
+      - +6.3 %
       - 60 / 60
       - Centred at −10 °C, optimistic at −15 °C
     * - Air-to-air, Fujitsu, 2 units
-      - 28.5 %
-      - **+27.0 %**
-      - 217 / 244
+      - 28.9 %
+      - **+28.0 %**
+      - 228 / 244
       - Held: AHRI 210/240, COP boundary not stated — a uniform offset
 
 The biases are stated here, not corrected. **Air-to-air cooling runs low**,
-from −5 % at 20 °C to −12 % at 40 °C outdoor, and the dry indoor coil (see
+from −7 % at 20 °C to −14 % at 40 °C outdoor, and the dry indoor coil (see
 `Cooling and latent load`_) is not the cause: the cooling rows with no latent
 load (sensible heat ratio 0.95 or above) are the most pessimistic, at −19 %,
 and those with the most latent load the least, at −5 %. The dry-coil
 idealisation pushes the other way (② below). What the low rows share is the
 most efficient hardware: at the rating point the smallest Daikin units, with
-the highest nameplate EER, sit 17 to 19 % low (①). **Air-to-air heating is
+the highest nameplate EER, sit 18 to 20 % low (①). **Air-to-air heating is
 centred once frost is accounted for.** With the frost and defrost adjustment
 (the EnergyPlus DX heating-coil model, its constants unchanged;
-:doc:`/models/ashp`) the bias is −7.4 % at 0 °C, −4.8 % at −5 °C, +0.5 % at
-−10 °C and +12.3 % at −15 °C outdoor, against 0 to −2 % at 6 and 10 °C, where
+:doc:`/models/ashp`) the bias is −7.8 % at 0 °C, −5.1 % at −5 °C, +0.3 % at
+−10 °C and +12.3 % at −15 °C outdoor, against 0 to −3 % at 6 and 10 °C, where
 the coil does not frost. Without the adjustment the same rows ran +17 % from 0
 to −10 °C and +28 % at −15 °C. **Air-to-water runs high at
-+2 °C outdoor** (+20 % over its 30 points, +2 % over the other 123), the condition at
++2 °C outdoor** (+22 % over its 30 points, +2 % over the other 123), the condition at
 which an outdoor coil frosts most and a declared COP carries defrost.
 
 A bias equal to the error is the signature of a systematic cause, so the
@@ -194,9 +194,9 @@ Fujitsu result was checked before being published rather than after.
     comparison available -- separates them.
 
     **① Residual hardware efficiency (~20 points).** At the nominal heating
-    rating point Daikin lands between −2 and +8 % and Fujitsu at +24 to +25 %;
-    at the cooling rating point Daikin spans −19 to +4 %, falling with
-    nameplate EER, and Fujitsu +14 to +24 %. That part is
+    rating point Daikin lands between −2 and +8 % and Fujitsu at +24 %;
+    at the cooling rating point Daikin spans −20 to +1 %, falling with
+    nameplate EER, and Fujitsu +12 to +22 %. That part is
     real and it is the defaults' responsibility: the two product lines are
     built to different efficiency targets and a rule written per kilowatt
     cannot tell which one it is looking at.
@@ -208,7 +208,7 @@ Fujitsu result was checked before being published rather than after.
     point the Fujitsu removes 34 % of its duty as latent heat (SHR 0.66)
     against the Daikin's 2 % (SHR 0.98). Within the Daikin set alone, the bias
     of the 180 cooling points correlates with their sensible heat ratio at
-    *r* = −0.83: the more latent load, the more optimistic the model.
+    *r* = −0.81: the more latent load, the more optimistic the model.
 
     **③ Maximum-capacity tables, heating half.** Fujitsu's heating grid is
     published at maximum capacity, with the compressor pinned at full speed
@@ -244,34 +244,34 @@ Fujitsu result was checked before being published rather than after.
           - **outside** (high end)
         * - FTXM35A / RXM35A
           - 4.61
-          - Q/2.6
+          - none in Q/2–Q/16
           - **outside** (high end)
         * - FTXM42A / RXM42A
           - 4.20
-          - Q/3.8
-          - inside
+          - Q/3.4
+          - inside, at the high end
         * - FTXM50A / RXM50A
           - 3.68
-          - Q/5.6
+          - Q/5.3
           - inside
         * - ASUH09LPAS
           - 3.67
-          - Q/7.1
-          - at the low end
+          - Q/6.9
+          - inside, at the low end
         * - ASUH12LPAS
           - 3.23
-          - Q/8.7
+          - Q/8.4
           - **outside** (low end)
 
     The band is **Q/3.3 to Q/7.1** at p10–p90 of 1,414 component coils, on the
     nameplate-capacity basis, and the default ``Q/5.0`` sits inside it. The
     machines now split at both ends. The three most efficient Daikin units
-    would need more conductance than 90 % of the component population — the
-    two smallest more than even ``Q/2`` gives, so no conductance alone closes
-    their cooling gap — while the larger ASUH12LPAS behaves like a machine
-    with less coil per kilowatt than 90 % of it and ASUH09LPAS sits on that
-    edge (Q/7.09 against Q/7.08). A median default under-predicts the first
-    group and over-predicts the second, which is the residual pattern above.
+    would need more conductance than 90 % of the component population — more
+    than even ``Q/2`` gives, so no conductance alone closes their cooling
+    gap — while the larger ASUH12LPAS behaves like a machine with less coil
+    per kilowatt than 90 % of it and ASUH09LPAS sits just inside that edge
+    (Q/6.87 against Q/7.08). A median default under-predicts the first group
+    and over-predicts the second, which is the residual pattern above.
 
     .. note::
 
@@ -316,11 +316,11 @@ than of a specification input.
 pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
-effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
-inside the 6.1 to 17.7 % spread of the air-to-water set.
+effect: the three R-410A air-to-water units sit at 9.7 to 12.6 % MAPE,
+inside the 6.3 to 18.0 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +17.7 % optimistic. Neither of its published inputs explains it:
+unit runs +18.0 % optimistic. Neither of its published inputs explains it:
 substituting its 12 kW sibling's rated air flow moves the bias by 1.5 points,
 and dropping its published displacement for the library default by 3.0.
 What explains it is the catalogue itself. At every one of the fifteen

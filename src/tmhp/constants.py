@@ -17,6 +17,7 @@ __all__ = [
     # Air properties
     "c_a",
     "rho_a",
+    "R_a",
     "k_a",
     "Pr_a",
     # Water properties
@@ -45,7 +46,11 @@ __all__ = [
 # ═══════════════════════════════════════════════════════════════════════════════
 
 c_a = 1005  # Specific heat capacity of air [J/kgK]
-rho_a = 1.225  # Density of air [kg/m³]
+# Density of standard air [kg/m³]: dry air at 15 °C and 101 325 Pa. The air
+# coils of the cycle models take the density at their own inlet temperature
+# (``tmhp.air_properties.air_density``), which equals this value at 15 °C.
+rho_a = 1.225
+R_a = 287.055  # Specific gas constant of dry air [J/kgK]
 k_a = 0.0257  # Thermal conductivity of air [W/mK]
 Pr_a = 0.71  # Prandtl number of air [-] (at typical ambient temperature)
 

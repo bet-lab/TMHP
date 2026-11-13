@@ -16,7 +16,8 @@ import pytest
 
 from tmhp import AirSourceHeatPump
 from tmhp._opt_utils import margin_band_on_valid_range
-from tmhp.constants import c_a, rho_a
+from tmhp.air_properties import air_density
+from tmhp.constants import c_a
 
 IU_FLOW, OU_FLOW = 0.2, 0.5
 FIXED_IU = dict(dV_iu_fan_a_min=IU_FLOW, dV_iu_fan_a_max=IU_FLOW)
@@ -207,7 +208,7 @@ def test_max_capacity_with_fixed_fans_is_bounded_by_the_coil(both_fixed):
     ceiling = both_fixed.max_capacity(T0=7.0, T_a_room=20.0, mode="heating", rel_tol=5e-2)
     assert ceiling["binding"] in {"cycle", "compressor"}
     # The indoor coil at its one airflow and the widest approach the search allows.
-    c_air = c_a * rho_a * IU_FLOW
+    c_air = c_a * air_density(20.0) * IU_FLOW  # room air at 20 °C
     ua = both_fixed.UA_iu_rated * (IU_FLOW / both_fixed.dV_iu_fan_a_ref) ** both_fixed.n_iu
     coil_limit = c_air * (1.0 - math.exp(-ua / c_air)) * both_fixed.dT_approach_bounds[1]
     assert 0.9 * coil_limit <= ceiling["Q_max [W]"] <= coil_limit * (1.0 + 1e-6)

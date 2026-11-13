@@ -30,6 +30,7 @@ from . import _opt_utils
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
+from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_CONDENSING,
@@ -58,7 +59,6 @@ from .compressor_speed import (
     default_displacement,
     solve_compressor_speed,
 )
-from .constants import c_a, rho_a
 from .cycling import (
     CD_AIR_DEFAULT,
     CONTINUOUS,
@@ -82,7 +82,7 @@ from .enex_functions import (
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
-from .heat_exchanger import resolve_fan_flow_limits
+from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
@@ -686,8 +686,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Outdoor coil is the source side, indoor coil the load side, in either mode."""
         if role == "source":
-            return HXSide("air", T_in_C, self.UA_ou_rated, self.dV_ou_fan_a_ref)
-        return HXSide("air", T_in_C, self.UA_iu_rated, self.dV_iu_fan_a_ref)
+            return AirCoilSide("air", T_in_C, self.UA_ou_rated, self.dV_ou_fan_a_ref)
+        return AirCoilSide("air", T_in_C, self.UA_iu_rated, self.dV_iu_fan_a_ref)
 
     # =============================================================
     # Refrigerant cycle physics
@@ -955,6 +955,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_ou),
                 is_active=True,
                 exponent=self.n_ou,
+                rho_air="inlet",
             )
         else:
             # Outdoor = evaporator → ref absorbs heat → air is cooled
@@ -970,6 +971,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_ou),
                 is_active=True,
                 exponent=self.n_ou,
+                rho_air="inlet",
             )
 
         dV_ou_a: float = ou_hx["dV_fan"]
@@ -980,7 +982,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
             vsd_coeffs=self.vsd_coeffs_ou,
             is_active=True,
         )
-        T_ou_a_out: float = T_ou_a_mid + E_ou_fan / (c_a * rho_a * dV_ou_a) if dV_ou_a > 0 else T0
+        # The fan heat warms the same air mass the coil exchanged heat with:
+        # the fan's volume flow at the density of the air drawn in.
+        C_ou_a: float = air_heat_capacity_rate(dV_ou_a, T0)
+        T_ou_a_out: float = T_ou_a_mid + E_ou_fan / C_ou_a if dV_ou_a > 0 else T0
         v_ou_a: float = dV_ou_a / self.A_cross_ou
 
         # ── Indoor unit HX ──
@@ -999,6 +1004,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=True,
                 exponent=self.n_iu,
+                rho_air="inlet",
             )
         else:
             # Indoor = condenser → ref rejects heat → air is heated
@@ -1014,6 +1020,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=True,
                 exponent=self.n_iu,
+                rho_air="inlet",
             )
 
         dV_iu_a: float = iu_hx["dV_fan"]
@@ -1024,7 +1031,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             vsd_coeffs=self.vsd_coeffs_iu,
             is_active=True,
         )
-        T_iu_a_out: float = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if dV_iu_a > 0 else T_a_room
+        C_iu_a: float = air_heat_capacity_rate(dV_iu_a, T_a_room)
+        T_iu_a_out: float = T_iu_a_mid + E_iu_fan / C_iu_a if dV_iu_a > 0 else T_a_room
         v_iu_a: float = dV_iu_a / self.A_cross_iu
 
         # --- Check convergence for both HXs ---
@@ -1051,7 +1059,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         E_tot: float = E_cmp + E_ou_fan + E_iu_fan
         # Final outlet already includes fan heat. Keep the coil-load residual
         # and operating-point objective unchanged; only the reported COP changes.
-        G_iu_a = c_a * rho_a * dV_iu_a
+        G_iu_a = C_iu_a
         Q_a_iu_in = calc_energy_flow(G_iu_a, T_a_room_K, T0_K)
         Q_a_iu_out = calc_energy_flow(G_iu_a, cu.C2K(T_iu_a_out), T0_K)
         Q_air = Q_a_iu_out - Q_a_iu_in
@@ -1447,9 +1455,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
         else:
             # Both coils closed, so each temperature difference follows from
             # the duty and the solved airflow.
-            def limits(duty: float, flow: float, UA_rated: float, reference: float, n: float, low: float, high: float):
+            def limits(
+                duty: float,
+                flow: float,
+                T_in: float,
+                UA_rated: float,
+                reference: float,
+                n: float,
+                low: float,
+                high: float,
+            ):
                 def per_kelvin(dV: float) -> float:
-                    C_air = c_a * rho_a * dV
+                    C_air = float(air_heat_capacity_rate(dV, T_in))
                     return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
 
                 if not (duty > 0.0 and flow > 0.0):
@@ -1461,6 +1478,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 *limits(
                     abs(float(perf.get("Q_ref_iu [W]", math.nan))),
                     float(perf.get("dV_iu_a [m3/s]", math.nan)),
+                    float(perf.get("T_iu_a_in [°C]", math.nan)),
                     self.UA_iu_rated,
                     self.dV_iu_fan_a_ref,
                     self.n_iu,
@@ -1470,6 +1488,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 *limits(
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
+                    float(perf.get("T_ou_a_in [°C]", math.nan)),
                     self.UA_ou_rated,
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
@@ -1684,9 +1703,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # the duty and the solved airflow (as in :meth:`_coil_margins`,
             # which also needs the smallest airflow -- zero for a fan that
             # can stop).
-            def at_largest_airflow(duty: float, flow: float, UA_rated: float, reference: float, n: float, high: float):
+            def at_largest_airflow(
+                duty: float, flow: float, T_in: float, UA_rated: float, reference: float, n: float, high: float
+            ):
                 def per_kelvin(dV: float) -> float:
-                    C_air = c_a * rho_a * dV
+                    C_air = float(air_heat_capacity_rate(dV, T_in))
                     return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
 
                 if not (duty > 0.0 and flow > 0.0):
@@ -1697,6 +1718,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 at_largest_airflow(
                     abs(float(perf.get("Q_ref_iu [W]", math.nan))),
                     float(perf.get("dV_iu_a [m3/s]", math.nan)),
+                    float(perf.get("T_iu_a_in [°C]", math.nan)),
                     self.UA_iu_rated,
                     self.dV_iu_fan_a_ref,
                     self.n_iu,
@@ -1705,6 +1727,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 at_largest_airflow(
                     abs(float(perf.get("Q_ref_ou [W]", math.nan))),
                     float(perf.get("dV_ou_a [m3/s]", math.nan)),
+                    float(perf.get("T_ou_a_in [°C]", math.nan)),
                     self.UA_ou_rated,
                     self.dV_ou_fan_a_ref,
                     self.n_ou,
@@ -1841,17 +1864,18 @@ class AirSourceHeatPump(ReferenceStateMixin):
             return approaches(inside), None, self._AIR_SIDE if short else "cycle_invalid"
         return approaches(inside), closed, None
 
-    def _indoor_coil_limit(self) -> float:
+    def _indoor_coil_limit(self, T_a_room: float) -> float:
         """Largest duty the indoor coil carries inside the approach bounds [W].
 
-        Its largest airflow at the widest approach the search admits. The
+        Its largest airflow, of room air at ``T_a_room`` [°C], at the widest
+        approach the search admits. The
         request is the indoor coil's duty in either mode, so no larger request
         has an operating point, whatever the compressor can do. The value is
         a hair inside the limit (2e-7 of it), so that the coil closes there by
         more than a rounding error (see :meth:`_largest_airflow_point`).
         """
         dV = self.dV_iu_fan_a_max
-        C_air = c_a * rho_a * dV
+        C_air = float(air_heat_capacity_rate(dV, T_a_room))
         UA = self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu
         limit = C_air * (1.0 - math.exp(-UA / C_air)) * self.dT_approach_bounds[1]
         return limit / (1.0 + 2.0 * self._LEAST_LIFT_INSIDE)
@@ -2043,7 +2067,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # operating point, so the ceiling is that limit (known exactly) or
             # the largest duty below it the envelope admits.
             lo_x, lo_perf, reason = self._largest_deliverable_duty(
-                sign, self._indoor_coil_limit(), T0, T_a_room, rel_tol
+                sign, self._indoor_coil_limit(T_a_room), T0, T_a_room, rel_tol
             )
             # The limit itself runs: the indoor coil at its largest airflow
             # and the widest approach is what stops the unit.
@@ -2598,7 +2622,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # ── 3. Air exergy (outdoor unit) ────────────────
         if "dV_ou_a [m3/s]" in df.columns and "T_ou_a_in [°C]" in df.columns:
-            G_a_ou = c_a * rho_a * df["dV_ou_a [m3/s]"].fillna(0)
+            # Same air mass as the cycle solve: density at the coil inlet.
+            G_a_ou = air_heat_capacity_rate(df["dV_ou_a [m3/s]"].fillna(0), df["T_ou_a_in [°C]"])
             Tin_ou = cu.C2K(df["T_ou_a_in [°C]"])
             Tmid_ou = cu.C2K(df["T_ou_a_mid [°C]"])
             Tout_ou = cu.C2K(df["T_ou_a_out [°C]"]) if "T_ou_a_out [°C]" in df.columns else Tin_ou
@@ -2608,7 +2633,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # ── 3b. Air exergy (indoor unit) ────────────────
         if "dV_iu_a [m3/s]" in df.columns and "T_iu_a_in [°C]" in df.columns:
-            G_a_iu = c_a * rho_a * df["dV_iu_a [m3/s]"].fillna(0)
+            G_a_iu = air_heat_capacity_rate(df["dV_iu_a [m3/s]"].fillna(0), df["T_iu_a_in [°C]"])
             Tin_iu = cu.C2K(df["T_iu_a_in [°C]"])
             Tmid_iu = cu.C2K(df["T_iu_a_mid [°C]"])
             Tout_iu = cu.C2K(df["T_iu_a_out [°C]"]) if "T_iu_a_out [°C]" in df.columns else Tin_iu

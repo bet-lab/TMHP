@@ -43,7 +43,7 @@ def _quiet(fn, *args, **kwargs):
 
 @pytest.fixture(scope="module")
 def machines() -> dict[tuple[str, float], object]:
-    """Default R410A machines, built once per capacity."""
+    """Default (R290) machines, built once per capacity."""
     return {(fam, cap): _quiet(cls, hp_capacity=cap) for fam, cls in FAMILIES.items() for cap in (3e3, 8e3, 3e4)}
 
 
@@ -304,14 +304,31 @@ def default_runs() -> dict[str, tuple[object, object]]:
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_default_machine_charges_to_its_default_upper_set_point(default_runs, family):
     m, df = default_runs[family]
+    # The default refrigerant is R290: its envelope (75 °C condensing) holds the
+    # default 65 °C set point, which R410A's (65 °C) does not.
+    assert (m.ref, m.T_cond_max, m.T_tank_w_upper_bound) == ("R290", 75.0, 65.0)
     assert (df["failure_reason"] == "none").all()
     assert df["hp_is_on"].any() and not df["hp_is_on"].all()
     # The thermostat stops the compressor at the upper bound inside a step.
     assert df["T_tank_w [°C]"].max() == pytest.approx(m.T_tank_w_upper_bound, abs=0.1)
     ran = df["hp_is_on"].astype(bool)
-    # R410A condenses at most 5 K above the 65 °C set point, below the 71.3 °C critical point.
+    # It condenses at most 5 K above the 65 °C set point, at the nameplate duty all the way.
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() <= m.T_tank_w_upper_bound + 5.0 + 1e-6
+    assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() < m.T_cond_max - 4.0
+    assert "capacity_binding" not in df.columns or df["capacity_binding"].isna().all()
     assert df.loc[ran, "T_ref_cmp_out [°C]"].max() <= m.T_dis_max + 0.02
+
+
+@pytest.mark.parametrize("family", list(FAMILIES))
+def test_former_default_refrigerant_stops_below_the_default_set_point(family):
+    """R410A against the default 55-65 °C band: reduced duty above a 60 °C tank, then off with the reason."""
+    dt, n = 60.0, 12
+    m = _quiet(FAMILIES[family], ref="R410A", dt_s=dt, t_max_s=86400.0)
+    df = _quiet(m.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 5.0))
+    ran = df["hp_is_on"].astype(bool)
+    assert (df.loc[ran, "capacity_binding"] == "condensing_temperature").any()
+    assert (df.loc[~ran, "failure_reason"] == "condensing_temp_above_max").any()
+    assert df["T_tank_w [°C]"].max() < m.T_cond_max == 65.0
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))

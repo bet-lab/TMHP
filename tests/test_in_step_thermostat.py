@@ -205,9 +205,9 @@ def _model(family: str, **kw):
         # above the R32 condensing limit (65 °C); the limit is off so that the
         # thermostat, not the envelope, ends each run.
         return AirSourceHeatPumpBoiler(ref="R32", **{"T_cond_max": None, **kw}), {}
-    # UA_tank_hx = 2000 W/K keeps the condensing approach small enough for the
-    # default R410A machine to run across the 60-65 °C band (the default
-    # 500 W/K has no operating point above ~56 °C, a separate defect).
+    # UA_tank_hx = 2000 W/K (a 4 K condensing approach at 8 kW): the value
+    # these scenarios were written with, when the machine was R410A with a
+    # 500 W/K default. The default refrigerant is now R290.
     cls = GroundSourceHeatPumpBoiler if family == "GSHPB" else WaterSourceHeatPumpBoiler
     return cls(dt_s=600, t_max_s=86400.0, UA_tank_hx=2000.0, **kw), (
         {"T_source_w_schedule": "flat10"} if family == "WSHPB" else {}

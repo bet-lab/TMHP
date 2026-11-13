@@ -219,6 +219,7 @@ def _historical_efficiency_plant():
     # defaults (UA 500 W/K, 24 L/min, 200 W pump); they are now capacity-scaled,
     # so the recorded machine is spelled out.
     return GroundSourceHeatPumpBoiler(
+        ref="R410A",  # the default refrigerant when the plant was recorded (now R290)
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,

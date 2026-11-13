@@ -232,7 +232,7 @@ def _tank_balance_residual(model, df, T_init: float, dt: float, T_sup: float) ->
 def gshpb_failing_run():
     """Default GSHPB from just below its hysteresis floor, four 300 s steps.
 
-    The default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
+    The former default machine (R410A, UA_tank_hx 500 W/K, 8 kW) condenses 16 K
     above the tank, so above ~55.4 °C it would condense beyond the R410A
     critical point (71.3 °C): the first step heats the 100 L tank to ~60 °C
     and every later step is called but has no cycle. Before #96 each of those

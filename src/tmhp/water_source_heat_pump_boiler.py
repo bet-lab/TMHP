@@ -150,7 +150,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     def __init__(
         self,
         # 1. Refrigerant / cycle / compressor
-        ref: str = "R410A",
+        ref: str = "R290",
         V_cmp_ref: float | None = None,
         eta_cmp_isen: float | Callable | None = None,
         eta_cmp_vol: float | Callable | None = None,

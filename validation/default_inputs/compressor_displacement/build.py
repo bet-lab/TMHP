@@ -69,6 +69,7 @@ def normalize(obs: dict, source: dict, protocols: dict) -> dict:
         test_condition=obs["test_condition"],
         mode="cooling",
         kind="compressor",
+        refrigerant_normalized=archive.normalize_refrigerant(obs["refrigerant"]),
         capacity_W=number(obs["capacity_W"]),
         capacity_Btu_h=number(obs["capacity_Btu_h"]),
         power_W=number(obs["power_W"]),
@@ -132,7 +133,14 @@ def build_rows() -> list[dict]:
     rows = [normalize(o, registry[o["source_id"]], protocols) for o in observations]
     seen = {}
     for r in rows:
-        key = (r["manufacturer"], r["model_id"], r["refrigerant"], r["protocol"], r["capacity_W"], r["value"])
+        key = (
+            r["manufacturer"],
+            r["model_id"],
+            r["refrigerant_normalized"],
+            r["protocol"],
+            r["capacity_W"],
+            r["value"],
+        )
         if key in seen:
             raise ValueError(f"{r['record_id']} repeats {seen[key]}; keep one row per printed observation")
         seen[key] = r["record_id"]
@@ -143,7 +151,7 @@ def fit_groups(rows: list[dict]) -> dict:
     groups = defaultdict(list)
     for row in rows:
         if row["eligible"]:
-            groups[(row["protocol"], row["refrigerant"])].append(row)
+            groups[(row["protocol"], row["refrigerant_normalized"])].append(row)
     return {
         protocol + "|" + ref: {"protocol": protocol, "refrigerant": ref, **archive.fit_group(group)}
         for (protocol, ref), group in sorted(groups.items())

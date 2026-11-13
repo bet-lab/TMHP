@@ -10,6 +10,7 @@ import csv
 import datetime as dt
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from validation.default_inputs.regression import KINDS, cv_fixed, fit_law, metrics, nested_cv, select_kind
@@ -18,6 +19,18 @@ SELECTION = (
     "Family-balanced fits; nested leave-one-family-out. Inner simplest within2% best RMSE. "
     "Secondary nested model-token-group holdout prevents suffix variants leaking."
 )
+
+
+# Canonical refrigerant names keyed by the upper-case label without hyphens or footnote marks.
+REFRIGERANTS = {name.upper(): name for name in ("R22", "R32", "R290", "R410A", "R454B", "R454C", "R134a", "R1234yf")}
+
+
+def normalize_refrigerant(text: str) -> str:
+    """Printed refrigerant label -> canonical name ('R-32', 'R32(*1)' -> 'R32'); unknown labels raise."""
+    key = re.sub(r"\(\*?\d*\)|\*\d*", "", text).replace("-", "").replace(" ", "").upper()
+    if key not in REFRIGERANTS:
+        raise ValueError(f"unknown refrigerant label {text!r}")
+    return REFRIGERANTS[key]
 
 
 def sha(path: Path) -> str:

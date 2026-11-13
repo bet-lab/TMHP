@@ -207,7 +207,7 @@ def fluid_to_pipe_resistance(
 class CapacityStepResponse:
     """Response of the borehole section to a unit load step [m.K/W = K per W/m].
 
-    Attributes
+    Parameters
     ----------
     times : np.ndarray
         Evaluation times [s], increasing.

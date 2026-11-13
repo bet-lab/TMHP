@@ -138,6 +138,7 @@ from .hybrid_tank import HybridStratifiedTank
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
 from .source_fluid import (
+    GROUND_LOOP_DESIGN_INLET_C,
     GROUND_LOOP_FLUID_DEFAULT,
     SOURCE_FLUID_FREEZING,
     SourceFluid,
@@ -552,8 +553,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp = E_pmp
         self.dV_b_f_m3s = dV_b_f_lpm / 60000
+        #: Loop-liquid viscosity of the source-side Reynolds number [Pa s], at
+        #: the design liquid temperature (``SourceFluid.design_viscosity``).
+        self.mu_bhe_f_design: float = fluid.design_viscosity(GROUND_LOOP_DESIGN_INLET_C)
+        mu_design = self.mu_bhe_f_design
         if flow_defaulted:
-            warn_if_laminar(self.dV_b_f_m3s, self.n_boreholes, r_in, "GroundSourceHeatPumpBoiler", fluid.rho, fluid.mu)
+            warn_if_laminar(self.dV_b_f_m3s, self.n_boreholes, r_in, "GroundSourceHeatPumpBoiler", fluid.rho, mu_design)
 
         if R_b is None:
             from .borehole import (
@@ -575,7 +580,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 D_s=D_s,
                 m_flow_pipe=m_flow_pipe,
                 rho_f=fluid.rho,
-                mu_f=fluid.mu,
+                mu_f=mu_design,
                 cp_f=fluid.cp,
                 k_f=fluid.k,
             )
@@ -655,7 +660,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 r_in=r_in,
                 D_s=D_s,
                 rho_f=fluid.rho,
-                mu_f=fluid.mu,
+                mu_f=mu_design,
                 k_f=fluid.k,
             ),
         )

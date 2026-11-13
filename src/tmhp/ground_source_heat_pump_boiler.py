@@ -20,7 +20,11 @@ integrated model, its physical calculations represent the behavior of:
    - **Evaporator:** Coupled to a borehole heat exchanger (BHE) fluid loop, acting as
      a secondary heat exchanger to absorb heat from the circulating ground fluid.
 5. **Thermal Storage Tank:**
-   Modeled with lumped-capacitance and DHW mixing logic.
+   Modeled with lumped-capacitance and DHW mixing logic by default
+   (``tank_model="lumped"``). ``"stratified"`` and ``"hybrid"`` resolve the
+   tank in nodes; the condenser is then a coil that heats only the nodes
+   colder than the refrigerant, and the cycle condenses at the temperature
+   that coil needs.
 6. **Ground Source Heat Exchanger (Borefield):**
    A dynamic multi-borehole simulation using pygfunction-based g-functions. It tracks
    the transient thermal response of the ground, enabling robust modeling of long-term
@@ -41,13 +45,11 @@ import math
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Literal
 
-import CoolProp.CoolProp as CP
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import ignore_minpack_progress_warning
 from ._source_boiler import (
     BOREHOLE_DEPTH_DEFAULT_M,
     approach_bracket,
@@ -64,6 +66,7 @@ from ._source_boiler import (
     warn_if_laminar,
     warn_if_setpoint_unreachable,
 )
+from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -89,6 +92,7 @@ from .dynamic_context import (
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     resolve_step_operation,
+    scale_running_rates,
     step_hp_result,
     tank_mass_energy_residual,
     unphysical_cycle_detail,
@@ -117,13 +121,34 @@ from .ground_loop import (
 )
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
+from .hybrid_tank import HybridStratifiedTank
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
-from .refrigerant import calc_ref_state, reportable_state
+from .refrigerant import calc_ref_state, props_si, reportable_state
 from .stratified_tank import StratifiedTank
+from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
+
+#: Multi-node tank backends of ``tank_model`` (``"lumped"`` is the single node).
+NODAL_TANK_MODELS: tuple[str, ...] = ("stratified", "hybrid")
+
+#: The mixing valve of a multi-node tank is set on the water that leaves the
+#: top during the step; the draw flow is iterated until that temperature moves
+#: by less than this [K], at most :data:`NODAL_DRAW_ITERATIONS` times.
+NODAL_DRAW_TOL_K: float = 1.0e-3
+NODAL_DRAW_ITERATIONS: int = 6
+
+#: The condensing temperature of a multi-node tank step is at least the one at
+#: which the coil, with this multiple of its conductance, passes the step's
+#: heat to the nodes as they are at the end of the step. 2: the end-of-step
+#: approach is at least half the nominal ``Q / UA_tank_hx``.
+NODAL_END_CONDUCTANCE: float = 2.0
+
+#: Share of the step's condenser heat below which a multi-node tank that could
+#: not take it counts as having taken none (the compressor did not run).
+NODAL_MIN_RUN_SHARE: float = 1.0e-6
 
 
 class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
@@ -560,30 +585,42 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         self.Q_tank_LOAD_OFF_TOL: float = 50.0  # W
 
-        # Tank backend selection (swappable). Default "lumped" keeps the legacy
-        # single-node path entirely unchanged (self._tank stays None). The
-        # "stratified" backend builds a multi-node tank from the same geometry;
-        # it targets the always-full buffer-tank case (cycle sink/control use the
-        # volume-average node temperature, the hot draw uses the top node, and
-        # the HP condenser heat is spread uniformly over the nodes by default —
-        # condenser_node=None — or concentrated at a single node if given).
-        # Subsystems and partial-fill/refill are not yet supported in stratified mode.
+        # Tank backend selection (swappable). Default "lumped" keeps the
+        # single-node path (self._tank stays None). "stratified" (multi-node
+        # finite volume, sub-stepped to Courant <= 1) and "hybrid" (the same
+        # with a tracked thermocline) build a multi-node tank from the same
+        # geometry for the always-full buffer-tank case. The condenser is a
+        # coil immersed in the tank: UA_tank_hx spread over the nodes
+        # (condenser_node=None) or at one node; it heats only nodes colder
+        # than the condensing temperature (see _solve_nodal_tank). The
+        # thermostat reads the volume-average temperature, the hot draw leaves
+        # the top. Subsystems and partial fill are not supported in these modes.
         self.tank_model = tank_model
         self.condenser_node = condenser_node
-        self._tank: StratifiedTank | None = None
-        if tank_model == "stratified":
+        self._tank: StratifiedTank | HybridStratifiedTank | None = None
+        #: Result of the multi-node tank's last step (None for the lumped tank).
+        self._tank_step: dict | None = None
+        if tank_model in NODAL_TANK_MODELS:
             if self._subsystems:
-                raise NotImplementedError("stratified tank_model does not yet support subsystems (stc/pv/uv)")
+                raise NotImplementedError(f"{tank_model} tank_model does not yet support subsystems (stc/pv/uv)")
             if not tank_always_full:
-                raise NotImplementedError("stratified tank_model assumes an always-full tank (tank_always_full=True)")
-            self._tank = StratifiedTank(
+                raise NotImplementedError(
+                    f"{tank_model} tank_model assumes an always-full tank (tank_always_full=True)"
+                )
+            if condenser_node is not None and not -n_tank_nodes <= condenser_node < n_tank_nodes:
+                raise ValueError(f"condenser_node must index one of the {n_tank_nodes} nodes — got {condenser_node}")
+            geometry: dict[str, Any] = dict(
                 n_nodes=n_tank_nodes,
                 volume=self.V_tank_full,
                 height=self.tank_physical["H"],
                 ua=self.UA_tank_wall,
             )
+            if tank_model == "stratified":
+                self._tank = StratifiedTank(**geometry, max_courant=1.0)
+            else:
+                self._tank = HybridStratifiedTank(**geometry)
         elif tank_model != "lumped":
-            raise ValueError(f"tank_model must be 'lumped' or 'stratified' — got {tank_model!r}")
+            raise ValueError(f"tank_model must be 'lumped', 'stratified' or 'hybrid' — got {tank_model!r}")
 
         # Precompute g-function
         self.dt_s: float = dt_s
@@ -801,7 +838,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 pr_event_i = ("pr_below_min", ratio, self.PR_cycle_min)
                 self._last_pr_event = pr_event_i
                 P_cond_clamp = self.PR_cycle_min * P_evap
-                T_cond_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
+                T_cond_K = props_si("T", "P", P_cond_clamp, "Q", 0, self.ref)
                 cs_i = calc_ref_state(
                     T_evap_K=T_ground_sat_K,
                     T_cond_K=T_cond_K,
@@ -825,7 +862,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
             try:
                 s_cmp_in = cs_i["s_ref_cmp_in [J/(kg·K)]"]
-                h_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+                h_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_cmp_out_isen = h_cmp_in
 
@@ -980,8 +1017,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_is [-]": val_eta_isen,
                 "eta_v [-]": val_eta_vol,
                 "eta_em [-]": val_eta_electro_mech,
-                "h_ref_evap_sat [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
-                "h_ref_cond_sat_v [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
+                "h_ref_evap_sat [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
+                "h_ref_cond_sat_v [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
                 "Q_tank_load [W]": Q_tank_load,
                 # Tank heat-exchanger closure: the approach the cycle ran at and
@@ -1435,6 +1472,11 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     T_solved_K,
                 )
                 r.update(sub_record)
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the source-loop pump (the cycle assembled E_tot
+        # before the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -1467,6 +1509,21 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+
+        if self._tank is not None and self._tank_step is not None:
+            # Multi-node tank: T_tank_w is the volume average (what the stored
+            # energy and the thermostat use). The water accounts use what the
+            # tank step itself did: its wall loss and the temperature of the
+            # water that left the top, which is also what the mixing valve got.
+            tank = self._tank_step
+            T_out_K = cu.C2K(tank["T_draw_out"])
+            alp = flow_state["alp"]
+            r["Q_tank_loss [W]"] = tank["Q_loss"]
+            r["T_mix_w_out [°C]"] = cu.K2C(alp * T_out_K + (1.0 - alp) * tank["T_makeup_K"])
+            r["T_tank_w_in [°C]"] = cu.K2C(tank["T_makeup_K"])
+            r["T_tank_w_out [°C]"] = tank["T_draw_out"]
+            r["T_tank_w_top [°C]"] = tank["T_top"]
+            r["T_tank_w_bottom [°C]"] = tank["T_outlet"]
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -1585,11 +1642,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         sub_states,
         dV_tank_w_out_prev,
     ):
-        """Legacy single-node tank: implicit fsolve over (T_tank, level)."""
-        from typing import cast
+        """Single-node tank: implicit solve of the energy balance over the step.
 
-        from scipy.optimize import fsolve
-
+        A solve that does not return a root is recovered by
+        :func:`tmhp._tank_solve.recover_tank_temperature` with the same
+        residual, so the heat pump, the draw-off, the loss and the subsystem
+        heat stay in the balance, and a step that cannot be solved is named in
+        a warning instead of being replaced silently.
+        """
         res_fn = self._build_residual_fn(
             ctx=ctx,
             ctrl=ctrl,
@@ -1599,22 +1659,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             tank_level=tank_level_solve,
             sub_states=sub_states,
         )
-
-        T_guess_K = ctx.T_tank_w_K
-        try:
-            with ignore_minpack_progress_warning():
-                T_solved_K_arr = cast(np.ndarray, fsolve(res_fn, x0=[T_guess_K]))
-            T_solved_K = float(T_solved_K_arr[0])
-        except Exception:
-            # explicit Euler fallback
-            Q_hp_val = ctrl.Q_heat_source
-            Q_flow_curr = c_w * rho_w * dV_tank_w_out_prev * (T_sup_w_K_n - ctx.T_tank_w_K)
-            Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
-            Q_tot = Q_hp_val + Q_flow_curr - Q_loss_curr
-            T_solved_K = ctx.T_tank_w_K + dt_s * Q_tot / (self.C_tank * tank_level_solve)
-
-        if T_solved_K <= T_sup_w_K_n:
-            T_solved_K = T_sup_w_K_n
+        T_solved_K = solve_lumped_tank(
+            res_fn,
+            ctx.T_tank_w_K,
+            T_start_K=ctx.T_tank_w_K,
+            dt=dt_s,
+            C_curr=self.C_tank * max(0.001, ctx.tank_level),
+            C_next=self.C_tank * max(0.001, tank_level_solve),
+            C_tank=self.C_tank,
+            who=type(self).__name__,
+            step=ctx.n,
+        )
 
         # Flow state evaluated at solved temperature
         flow_state_final = self._calc_tank_flow_context(
@@ -1629,46 +1684,202 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
         return T_solved_K, flow_state_final, level_next
 
-    def _solve_stratified_tank(self, ctx, ctrl, dt_s, T_sup_w_K_n):
-        """Multi-node stratified tank advance (G2 backend).
+    # ---- multi-node tank ("stratified", "hybrid") -----------------------------
 
-        The hot draw to the load uses the top node; the HP condenser heat is
-        spread uniformly over the nodes (immersed condenser spanning the tank) or
-        concentrated at ``condenser_node`` if set; the cycle/control
-        representative temperature is the volume-average. The tank is always full
-        (level = 1).
+    def _tank_is_one_mixed_node(self) -> bool:
+        """A one-node stratified tank is the fully mixed (lumped) tank; a one-node hybrid tank is plug flow."""
+        return isinstance(self._tank, StratifiedTank) and self._tank.n == 1
+
+    def _condenser_ua(self) -> np.ndarray:
+        """Conductance of the immersed condenser coil in each tank node [W/K].
+
+        ``UA_tank_hx`` spread evenly over the nodes (a coil spanning the
+        tank), or all of it at ``condenser_node``.
         """
         assert self._tank is not None
         n = self._tank.n
-        # Hot supply to the mixing valve is the top node.
-        T_top_K = cu.C2K(float(self._tank.T[0]))
-        flow_state_final = self._calc_tank_flow_context(
+        if self.condenser_node is None:
+            return np.full(n, self.UA_tank_hx / n)
+        ua = np.zeros(n)
+        ua[self.condenser_node] = self.UA_tank_hx
+        return ua
+
+    @staticmethod
+    def _condensing_level(T_nodes: np.ndarray, ua: np.ndarray, q: float) -> float:
+        """Condensing temperature [°C] at which the coil passes ``q`` [W] to these nodes.
+
+        The ``L`` with ``Σ ua_i·(L − T_i)⁺ = q``: the coil heats only the nodes
+        colder than the refrigerant, so the colder the water around it, the
+        lower the condensing temperature the duty needs.
+        """
+        has = ua > 0.0
+        order = np.argsort(T_nodes[has], kind="stable")
+        T_sorted, ua_sorted = T_nodes[has][order], ua[has][order]
+        ua_cum = np.cumsum(ua_sorted)
+        level = (q + np.cumsum(ua_sorted * T_sorted)) / ua_cum  # with the j+1 coldest nodes heated
+        for j in range(T_sorted.size - 1):
+            if level[j] <= T_sorted[j + 1]:
+                return float(level[j])
+        return float(level[-1])
+
+    def _nodal_sink_temperature(
+        self,
+        T_mean_C: float,
+        q: float,
+        runtime_fraction: float,
+        dt_s: float,
+        draw_flow: float,
+        T_makeup_C: float,
+    ) -> float:
+        """Tank-side temperature [°C] the cycle condenses against for duty ``q`` [W].
+
+        The cycle model takes one tank temperature ``T`` and condenses at
+        ``T + q / UA_tank_hx``. For a multi-node tank the condensing
+        temperature the coil needs is its level ``L``
+        (:meth:`_condensing_level`), so the cycle is given ``L − q / UA_tank_hx``
+        and condenses exactly at ``L``. Two requirements set ``L``:
+
+        - the run's mean: ``L`` of the node profile half-way through the run
+          (a trial tank step of half the run time), expressed relative to that
+          profile's mean so that the cycle follows ``T_mean_C``, the mean
+          temperature the thermostat model gives for the run (the midpoint
+          rule the lumped tank uses);
+        - the end of the step: the coil must still pass the step's heat to the
+          nodes as they are at the end of the step. ``L`` is not taken below
+          the temperature that does so with the coil's conductance times
+          :data:`NODAL_END_CONDUCTANCE` (a trial step that solves the exchanger
+          temperature). This binds when the tank warms by more than about the
+          coil's approach within one step (a large ``UA_tank_hx``, or a long
+          step at full run time); the condensing temperature the row reports
+          is then the end-of-step one, a first-order (conservative) estimate.
+
+        With one fully mixed node the result is ``T_mean_C``: the lumped tank.
+        """
+        tank = self._tank
+        assert tank is not None
+        if self._tank_is_one_mixed_node():
+            return T_mean_C
+        ua = self._condenser_ua()
+        fraction = min(1.0, max(0.0, runtime_fraction))
+        trial = dict(draw_flow=draw_flow, T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
+        profile = tank.T
+        if fraction > 0.0:
+            T_start_level = self._condensing_level(profile, ua, q)
+            profile = tank.preview(0.5 * fraction * dt_s, hx_ua=ua, T_hx=T_start_level, q_hx=q, **trial)["T"]
+        level = T_mean_C + (self._condensing_level(profile, ua, q) - float(np.mean(profile)))
+        if fraction > 0.0:
+            end = tank.preview(dt_s, hx_ua=NODAL_END_CONDUCTANCE * fraction * ua, q_hx=fraction * q, **trial)
+            level = max(level, float(end["T_hx"]))
+        return level - q / self.UA_tank_hx
+
+    def _nodal_draw_flow(self, ctx: StepContext, T_out_C: float, T_sup_w_K_n: float) -> dict:
+        """Mixing-valve flows for hot water leaving the tank at ``T_out_C`` [°C]."""
+        return self._calc_tank_flow_context(
             dV_mix_w_out=ctx.dV_mix_w_out,
-            T_tank_w_K=T_top_K,
+            T_tank_w_K=cu.C2K(T_out_C),
             T_tank_w_in_K=T_sup_w_K_n,
             T_mix_w_out_K=self.T_mix_w_out_K,
-            dV_tank_w_in_override=ctrl.dV_tank_w_in_ctrl,
         )
 
-        # HP condenser heat: uniform over all nodes (default) or one node.
-        if self.condenser_node is None:
-            q_node = np.full(n, ctrl.Q_heat_source / n)
-        else:
-            q_node = np.zeros(n)
-            q_node[self.condenser_node] = ctrl.Q_heat_source
-        self._tank.step(
-            dt_s,
-            draw_flow=flow_state_final["dV_tank_w_out"],
-            T_makeup=cu.K2C(T_sup_w_K_n),
-            q_source=q_node,
-            T_amb=cu.K2C(self.T_sur_K),
-        )
+    def _solve_cycle_for_tank(self, ctx: StepContext, T_C: float, runtime_fraction: float, dt_s: float) -> dict:
+        """Cycle of the step for the tank backend in use (``T_C``: run-mean tank temperature [°C]).
 
-        T_solved_K = cu.C2K(float(self._tank.T.mean()))
-        if T_solved_K <= T_sup_w_K_n:
-            T_solved_K = T_sup_w_K_n
-        level_next = 1.0
-        return T_solved_K, flow_state_final, level_next
+        Lumped tank: :meth:`_solve_cycle_at`. Multi-node tank: the same solve
+        against the coil's tank-side temperature for each duty tried
+        (:meth:`_nodal_sink_temperature`). If the cycle has no operating point
+        against the mid-run profile (the water around the coil gets too hot
+        within the run), the cycle that starts the run is used; the tank step
+        then stops the compressor when that water reaches the condensing
+        temperature.
+        """
+        tank = self._tank
+        if tank is None:
+            return self._solve_cycle_at(ctx, T_C, runtime_fraction)
+        T_makeup_C = cu.K2C(ctx.T_sup_w_K)
+        draw_flow = self._nodal_draw_flow(ctx, float(tank.T[0]), ctx.T_sup_w_K)["dV_tank_w_out"]
+
+        def solve(fraction_seen: float) -> dict:
+            def at_duty(q: float) -> dict:
+                T_sink = self._nodal_sink_temperature(T_C, q, fraction_seen, dt_s, draw_flow, T_makeup_C)
+                return self._solve_cycle_at_duty(ctx, T_sink, q, runtime_fraction)
+
+            return reduce_duty_within_envelope(self, at_duty(self.hp_capacity), at_duty, self.hp_capacity)
+
+        result = solve(runtime_fraction)
+        if delivered_tank_heat(result) <= 0.0 and not self._tank_is_one_mixed_node() and runtime_fraction > 0.0:
+            at_start = solve(0.0)
+            if delivered_tank_heat(at_start) > 0.0:
+                result = at_start
+        return result
+
+    def _solve_nodal_tank(self, ctx, ctrl, dt_s, T_sup_w_K_n, hp_result):
+        """Advance the multi-node tank one step; returns the (possibly cut) heat-pump row too.
+
+        Condenser heat: node ``i`` receives ``k·UA_i·(T_cond − T_i)⁺`` with
+        ``T_cond`` the condensing temperature of the step's cycle and ``T_i``
+        the node's end-of-step temperature, ``k`` set so that the nodes receive
+        the step's condenser heat. A node as hot as the refrigerant receives
+        nothing, and no node is heated past ``T_cond`` (nor past the tank's
+        boiling limit). If the coil's nodes
+        cannot take the heat below ``T_cond`` the compressor is taken to have
+        stopped when they reached it: the row's run time, heat and power are
+        cut to what was delivered, and the thermostat call stands. (A single
+        fully mixed node has nothing to split: the heat goes in as in the
+        lumped tank.)
+
+        Draw-off: the mixing valve is set on the water that actually leaves
+        the top during the step (iterated, :data:`NODAL_DRAW_TOL_K`).
+        """
+        tank = self._tank
+        assert tank is not None
+        T_makeup_C = cu.K2C(T_sup_w_K_n)
+        common = dict(T_makeup=T_makeup_C, T_amb=cu.K2C(self.T_sur_K))
+        q_step = float(ctrl.Q_heat_source)
+        one_node = self._tank_is_one_mixed_node()
+        if q_step > 0.0 and one_node:
+            common.update(q_source=np.array([q_step]))
+        elif q_step > 0.0:
+            T_cond = min(float(hp_result["T_ref_cond_sat_v [°C]"]), float(hp_result["T_ref_cond_sat_l [°C]"]))
+            # Liquid water: the coil heats nothing past the tank's boiling limit either.
+            common.update(hx_ua=self._condenser_ua(), T_hx=min(T_cond, tank.T_boil), q_hx=q_step)
+
+        T_out_C = float(tank.T[0])
+        flow_state = self._nodal_draw_flow(ctx, T_out_C, T_sup_w_K_n)
+        if ctx.dV_mix_w_out > 0.0:
+            for _ in range(NODAL_DRAW_ITERATIONS):
+                T_new = tank.preview(dt_s, draw_flow=flow_state["dV_tank_w_out"], **common)["T_draw_out"]
+                moved = abs(T_new - T_out_C)
+                T_out_C = T_new
+                flow_state = self._nodal_draw_flow(ctx, T_out_C, T_sup_w_K_n)
+                if moved < NODAL_DRAW_TOL_K:
+                    break
+
+        out = tank.step(dt_s, draw_flow=flow_state["dV_tank_w_out"], **common)
+        out["T_makeup_K"] = T_sup_w_K_n
+        self._tank_step = out
+
+        if q_step > 0.0 and one_node:
+            out["q_hx"], out["Q_hx"] = np.array([q_step]), q_step  # the node's heat, as the coil's
+        limited = bool(q_step > 0.0 and out["hx_limited"])
+        if limited:
+            share = out["Q_hx"] / q_step
+            if share < NODAL_MIN_RUN_SHARE:
+                # Nothing could be delivered: the compressor did not run.
+                hp_result = self._failed_cycle_result(
+                    cu.K2C(ctx.T_tank_w_K),
+                    cu.K2C(ctx.T0_K),
+                    self._step_flow_state(ctx, cu.K2C(ctx.T_tank_w_K)),
+                    "hx_not_converged",
+                )
+                hp_result["runtime_fraction [-]"] = 0.0
+                hp_result["hp_starts [-]"] = 0
+            else:
+                fraction = float(hp_result.get("runtime_fraction [-]", 1.0))
+                scale_running_rates(hp_result, share, self._RUNTIME_SCALED_KEYS)
+                hp_result["runtime_fraction [-]"] = fraction * share
+
+        T_solved_K = cu.C2K(float(np.mean(out["T"])))
+        return T_solved_K, flow_state, 1.0, hp_result, limited
 
     # =============================================================
     # Orchestration
@@ -1750,9 +1961,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # Initialise the ground coupler's pulse-history state for this run.
         reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
 
-        # Initialise the stratified tank profile (uniform at the init temp).
+        # Initialise the multi-node tank profile (uniform at the init temp).
         if self._tank is not None:
             self._tank.reset(T_tank_w_init_C)
+            self._tank_step = None
 
         # DHW schedule handling: direct m³/s flow array
         dhw_flow_m3s = np.asarray(dhw_usage_schedule, dtype=float)
@@ -1862,7 +2074,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     tank_level=tank_level_solve,
                     sub_states=sub_states,
                 ),
-                solve_cycle=lambda T_C, fraction, ctx=ctx: self._solve_cycle_at(ctx, T_C, fraction),
+                solve_cycle=lambda T_C, fraction, ctx=ctx: self._solve_cycle_for_tank(ctx, T_C, fraction, dt_s),
                 Q_request=self.hp_capacity,
                 min_on_time_s=self.min_on_time_s,
                 min_off_time_s=self.min_off_time_s,
@@ -1885,8 +2097,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             )
 
             # --- Phase B: Implicit Solving ---
-            # Tank update — swappable backend. Lumped keeps the legacy implicit
-            # fsolve path (byte-identical); stratified advances the multi-node tank.
+            # Tank update — swappable backend: the single-node implicit balance,
+            # or the multi-node tank ("stratified", "hybrid").
             if self._tank is None:
                 T_solved_K, flow_state_final, level_next = self._solve_lumped_tank(
                     ctx,
@@ -1898,7 +2110,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                     dV_tank_w_out_prev,
                 )
             else:
-                T_solved_K, flow_state_final, level_next = self._solve_stratified_tank(ctx, ctrl, dt_s, T_sup_w_K_n)
+                T_solved_K, flow_state_final, level_next, hp_result, cut_out = self._solve_nodal_tank(
+                    ctx, ctrl, dt_s, T_sup_w_K_n, hp_result
+                )
+                if cut_out:
+                    # The coil's water reached the condensing temperature before
+                    # the thermostat was satisfied: the compressor has stopped,
+                    # the call for heat stands.
+                    is_on_prev, running_prev, phase_age_s = True, False, 0.0
+                    hp_is_on = bool(hp_result.get("hp_is_on", False))
+                    ctrl = ControlState(
+                        is_on=hp_is_on,
+                        Q_heat_source=delivered_tank_heat(hp_result),
+                        dV_tank_w_in_ctrl=dV_tank_w_in_ctrl,
+                    )
             warn_if_tank_boiling(T_solved_K)
 
             # --- Phase C: BHE Temporal Superposition ---
@@ -2135,7 +2360,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         T0_K = cu.C2K(df["T0 [°C]"])
         T_tank_K = cu.C2K(df["T_tank_w [°C]"])
 
-        df["Q_tank_w_out [W]"] = calc_energy_flow(c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_K, T0_K)
+        # Water leaves a multi-node tank at its top (T_tank_w_out), not at the mean.
+        T_tank_out_K = cu.C2K(df["T_tank_w_out [°C]"]) if "T_tank_w_out [°C]" in df.columns else T_tank_K
+
+        df["Q_tank_w_out [W]"] = calc_energy_flow(
+            c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_out_K, T0_K
+        )
 
         # 1. Refrigerant state points
         df = calc_refrigerant_exergy(df, self.ref, T0_K)
@@ -2166,7 +2396,9 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             cu.C2K(df["T_tank_w_in [°C]"]),
             T0_K,
         )
-        df["X_tank_w_out [W]"] = calc_exergy_flow(c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_K, T0_K)
+        df["X_tank_w_out [W]"] = calc_exergy_flow(
+            c_w * rho_w * df["dV_tank_w_out [m3/s]"].fillna(0), T_tank_out_K, T0_K
+        )
 
         df["X_mix_w_out [W]"] = calc_exergy_flow(
             c_w * rho_w * df["dV_mix_w_out [m3/s]"].fillna(0),

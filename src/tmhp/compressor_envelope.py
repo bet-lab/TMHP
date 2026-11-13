@@ -71,7 +71,11 @@ Discharge temperature (``T_dis_max``)
     with ``failure_reason='discharge_temp_above_max'`` when even a small duty
     exceeds it. A dynamic boiler step does the same with its one cycle solve
     per step (:func:`reduce_duty_within_envelope`): it runs at the reduced
-    duty, or is an off step with that reason when no duty fits.
+    duty, or is an off step with that reason when no duty fits. The boilers
+    answer every limit a smaller duty cures this way -- the pressure-ratio
+    ceiling, the source heat exchanger's range and the efficiency floor as
+    well (:func:`duty_reduction_binding`); ``capacity_binding`` names the
+    limit.
 
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
@@ -103,7 +107,9 @@ from typing import Any, Literal, TypeVar, cast
 
 from scipy.optimize import brentq
 
+from . import calc_util as cu
 from .compressor_efficiency import efficiency_extrapolated
+from .refrigerant import _props
 
 __all__ = [
     "check_pr_envelope",
@@ -115,6 +121,12 @@ __all__ = [
     "DISCHARGE_TEMP_MAX_DEFAULT_C",
     "DISCHARGE_TOL_K",
     "BINDING_DISCHARGE",
+    "BINDING_PRESSURE_RATIO",
+    "BINDING_HEAT_EXCHANGER",
+    "BINDING_EFFICIENCY",
+    "BINDING_CYCLE",
+    "CYCLE_KEY",
+    "duty_reduction_binding",
     "default_discharge_temp_max",
     "resolve_discharge_temp_max",
     "discharge_temp_exceeded",
@@ -161,6 +173,15 @@ ETA_ISEN_BELOW_MIN = "eta_isen_below_min"
 ETA_ISEN_MIN = 0.30
 #: ``capacity_binding``: the duty was reduced to stay within ``T_dis_max``.
 BINDING_DISCHARGE = "discharge_temperature"
+#: ``capacity_binding``: the duty was reduced to stay within ``PR_cycle_max``.
+BINDING_PRESSURE_RATIO = "pressure_ratio"
+#: ``capacity_binding``: the duty was reduced to what the source heat exchanger
+#: carries within its flow range (ASHPB reports ``"outdoor_coil"``).
+BINDING_HEAT_EXCHANGER = "source_heat_exchanger"
+#: ``capacity_binding``: the duty was reduced to keep the shipped isentropic fit above :data:`ETA_ISEN_MIN`.
+BINDING_EFFICIENCY = "compressor_efficiency"
+#: ``capacity_binding``: the next larger duty has no valid cycle, for a reason none of the above names.
+BINDING_CYCLE = "cycle"
 
 #: Default discharge-temperature limit by refrigerant [degC]; see the module docstring.
 DISCHARGE_TEMP_MAX_C: Mapping[str, float] = {"R32": 150.0}
@@ -192,8 +213,8 @@ RATED_SPEED_SEARCH_MAX = 150.0
 
 #: Tolerance of every discharge-temperature comparison [K]. The control solves
 #: T_dis = T_dis_max by root finding, so the check that follows has to accept
-#: the root's own residual (brentq: ~1e-3 K); 0.01 K is far below any meaning
-#: the limit has.
+#: the root's own residual (1e-5 K for the predicted closure, ~1e-3 K for the
+#: bracketing fallback); 0.01 K is far below any meaning the limit has.
 DISCHARGE_TOL_K = 0.01
 _DISCHARGE_TOL_K = DISCHARGE_TOL_K
 
@@ -402,8 +423,35 @@ _SUPERHEAT_XTOL_K = 1e-3
 _QUALITY_XTOL = 1e-5
 
 
+#: Key under which a candidate whose heat exchanger did not close keeps its solved cycle.
+CYCLE_KEY = "_cycle"
+
+
 def _state_running(result: object) -> bool:
     return isinstance(result, dict) and bool(result.get("hp_is_on")) and _T_DIS_KEY in result
+
+
+def _solved_cycle(result: object) -> Mapping[str, Any] | None:
+    """The refrigerant cycle a candidate state solved, if it solved one.
+
+    The state itself when it runs. A candidate whose heat exchanger does not
+    carry that cycle is not a running state, but its cycle exists and has a
+    discharge temperature: a family may hand it over under :data:`CYCLE_KEY`,
+    and the control then acts on it too -- which side of the heat exchanger's
+    range the candidate falls on is a question about the *controlled* cycle.
+    """
+    if _state_running(result):
+        return cast("Mapping[str, Any]", result)
+    if isinstance(result, dict):
+        cycle = result.get(CYCLE_KEY)
+        if isinstance(cycle, Mapping) and _T_DIS_KEY in cycle:
+            return cycle
+    return None
+
+
+def _discharge_of(state: object) -> float:
+    cycle = _solved_cycle(state)
+    return math.nan if cycle is None else _discharge(cycle)
 
 
 def _discharge(result: Mapping[str, Any]) -> float:
@@ -431,7 +479,10 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
     ``self.T_dis_max``, the same candidate is re-evaluated with the superheat
     reduced (root of ``T_dis(superheat) = T_dis_max`` on ``[0, superheat]``)
     and, if 0 K is not enough, with the quality reduced (root on
-    ``[x_suction_min, 1]``). Every running state gets
+    ``[x_suction_min, 1]``). The root is predicted from the fluid properties
+    and corrected with two or three evaluations (:func:`_control_predicted`);
+    root finding on the evaluations themselves is the fallback
+    (:func:`_control_bracketed`). Every running state gets
     :data:`SUPERHEAT_KEY`, :data:`QUALITY_KEY` and :data:`CONTROL_KEY`.
 
     A state still above the limit is returned as is when ``reject`` is false
@@ -448,13 +499,15 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
                 self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(result), ETA_ISEN_MIN)
                 return None
             T_max = self.T_dis_max
-            if T_max is None or not _state_running(result):
+            cycle = _solved_cycle(result)
+            if T_max is None or cycle is None:
                 # No limit: the cycle state is returned untouched (the steady
                 # wrapper still reports superheat and quality).
                 return result
-            superheat0 = _superheat(result)
-            result.update({SUPERHEAT_KEY: superheat0, QUALITY_KEY: float(self._x_suction), CONTROL_KEY: False})
-            if _discharge(result) <= T_max + _DISCHARGE_TOL_K:
+            superheat0 = _superheat(cycle)
+            if _state_running(result):
+                result.update({SUPERHEAT_KEY: superheat0, QUALITY_KEY: float(self._x_suction), CONTROL_KEY: False})
+            if _discharge(cycle) <= T_max + _DISCHARGE_TOL_K:
                 return result
 
             # A caller's diagnostics dict (ASHPB ``hx_diag``) must describe the
@@ -473,85 +526,301 @@ def discharge_controlled(reject: bool) -> Callable[[_F], _F]:
                 try:
                     state = function(self, *args, **call_kwargs)
                 except ValueError:
-                    state = None
+                    return None
                 finally:
                     self.dT_superheat, self._x_suction = saved
-                if not isinstance(state, dict) or not _state_running(state) or not math.isfinite(_discharge(state)):
+                solved = _solved_cycle(state)
+                if not isinstance(state, dict) or solved is None or not math.isfinite(_discharge(solved)):
                     return None
-                state.update({SUPERHEAT_KEY: _superheat(state), QUALITY_KEY: quality, CONTROL_KEY: True})
+                if _state_running(state):
+                    state.update({SUPERHEAT_KEY: _superheat(state), QUALITY_KEY: quality, CONTROL_KEY: True})
                 diags[id(state)] = fresh
                 return state
 
-            controlled = _control(at, superheat0, T_max, self.x_suction_min)
-            if controlled is not None and diag_out is not None:
+            controlled, held = _control(at, superheat0, T_max, self.x_suction_min, getattr(self, "ref", None), cycle)
+            if reject and not held:
+                self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, _discharge(cycle), float(T_max))
+                return None
+            if controlled is None:
+                return result
+            if diag_out is not None:
                 diag_out.clear()
                 diag_out.update(diags.get(id(controlled), {}))
-            if controlled is not None:
-                if reject and efficiency_below_floor(self, controlled):
-                    self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(controlled), ETA_ISEN_MIN)
-                    return None
-                return controlled
-            if reject:
-                self._last_pr_event = (DISCHARGE_TEMP_ABOVE_MAX, _discharge(result), float(T_max))
+            if reject and efficiency_below_floor(self, controlled):
+                self._last_pr_event = (ETA_ISEN_BELOW_MIN, _eta_isen(controlled), ETA_ISEN_MIN)
                 return None
-            return result
+            return controlled
 
         return cast(_F, wrapped)
 
     return decorate
 
 
+#: The control is closed once the discharge is within this of ``T_dis_max`` [K].
+#: Far below :data:`DISCHARGE_TOL_K`, so that the controlled state is a smooth
+#: function of the operating point the searches minimise over (a looser
+#: closure leaves root-finding noise in the objective, and the minimiser
+#: spends its iterations on it).
+_CONTROL_TOL_K = 1e-5
+#: Full cycle evaluations the predicted closure may use before the bracketing one takes over.
+_CONTROL_MAX_EVALUATIONS = 8
+_FALLBACK = object()
+
+
+class _DischargeEstimate:
+    """Discharge enthalpy over the suction state, from one solved cycle state.
+
+    The suction pressure, the condensing pressure and the isentropic
+    efficiency of ``state`` are held; only the suction state moves. The
+    coordinate ``u`` is the suction superheat [K] where positive and the
+    vapour quality minus one where negative (``u = 0``: saturated vapour).
+    The efficiency follows the compressor speed, which the suction state
+    moves a little (a wetter suction is denser, so the same duty needs fewer
+    revolutions): ``slope`` is its change per unit suction enthalpy -- a
+    coordinate continuous across saturation -- taken from two solved states
+    (:func:`_control_predicted`).
+    """
+
+    def __init__(self, ref: str, state: Mapping[str, Any], u: float, T_max: float) -> None:
+        self.ref = ref
+        self.u = u
+        self.p_in = float(state["P_ref_cmp_in [Pa]"])
+        self.p_out = float(state["P_ref_cmp_out [Pa]"])
+        self.T_evap_K = cu.C2K(float(state["T_ref_evap_sat [°C]"]))
+        self.h_in = h_in = float(state["h_ref_cmp_in [J/kg]"])
+        h_out = float(state["h_ref_cmp_out [J/kg]"])
+        (h_isen,) = _props("H", "P", self.p_out, "S", float(state["s_ref_cmp_in [J/(kg·K)]"]), ref)
+        self.eta = (h_isen - h_in) / (h_out - h_in)
+        (self.h_target,) = _props("H", "T", cu.C2K(T_max), "P", self.p_out, ref)
+        if not (math.isfinite(self.eta) and self.eta > 0.0 and self.h_target > float(state["h_ref_cond_sat_v [J/kg]"])):
+            raise ValueError("no discharge estimate for this state")
+        self.slope = 0.0
+
+    def excess(self, u: float) -> float:
+        """Estimated discharge enthalpy above that of ``T_dis_max`` at suction state ``u`` [J/kg]."""
+        if u > 1e-6:  # below it the cycle state takes saturated vapour (calc_ref_state)
+            h_in, s_in = _props("HS", "T", self.T_evap_K + u, "P", self.p_in, self.ref)
+        else:
+            h_in, s_in = _props("HS", "P", self.p_in, "Q", 1.0 + min(u, 0.0), self.ref)
+        (h_isen,) = _props("H", "P", self.p_out, "S", s_in, self.ref)
+        eta = max(self.eta + self.slope * (h_in - self.h_in), 0.5 * self.eta)
+        return h_in + (h_isen - h_in) / eta - self.h_target
+
+    def root(self, u_min: float, u_max: float) -> float:
+        """Suction state in ``[u_min, u_max]`` at the limit (an end when the limit is outside)."""
+        if self.excess(u_max) <= 0.0:
+            return u_max
+        if u_max > 0.0 >= u_min:
+            # Superheat and quality are different scales: solve on one side of saturation.
+            if self.excess(0.0) > 0.0:
+                u_max = 0.0
+            else:
+                u_min = 0.0
+        if u_min >= u_max or self.excess(u_min) >= 0.0:
+            return u_min
+        return float(brentq(self.excess, u_min, u_max, xtol=1e-12, rtol=1e-14))
+
+
+def _control_predicted(
+    at: Callable[[float, float], dict | None],
+    base: Mapping[str, Any],
+    superheat0: float,
+    T_max: float,
+    x_min: float,
+    ref: str,
+) -> Any:
+    """The controlled state by thermodynamic prediction and a few full evaluations.
+
+    Brackets the limit between the uncontrolled state (above it) and the
+    driest suction state found inside it, and proposes the next suction state
+    from :class:`_DischargeEstimate` of the latest solved state -- a pure
+    property calculation -- with the efficiency's dependence on the suction
+    state taken from the last two solved states. Each proposal costs one full
+    cycle evaluation; two or three close the control to
+    :data:`_CONTROL_TOL_K`. Returns ``(state, held)`` as :func:`_control`
+    does, or :data:`_FALLBACK` when a proposal has no cycle or the closure
+    does not settle (the bracketing closure then decides).
+    """
+    u_min = min(x_min - 1.0, 0.0)
+    if superheat0 <= u_min:
+        return None, False  # saturated suction and no wet stage: nothing to control with
+    try:
+        estimate = _DischargeEstimate(ref, base, superheat0, T_max)
+    except (KeyError, TypeError, ValueError):
+        return _FALLBACK
+    low: float | None = None
+    low_state: dict | None = None
+    high = superheat0
+    for _ in range(_CONTROL_MAX_EVALUATIONS):
+        try:
+            u = estimate.root(u_min if low is None else low, high)
+        except (ValueError, RuntimeError):
+            return _FALLBACK
+        if (low is not None and u <= low) or u >= high:
+            if low is None:
+                return _FALLBACK
+            u = 0.5 * (low + high)
+            if not (low < u < high):
+                return low_state, True
+        state = at(max(u, 0.0), 1.0 + min(u, 0.0))
+        if state is None:
+            return _FALLBACK
+        above = _discharge_of(state) - T_max
+        if abs(above) <= _CONTROL_TOL_K:
+            return state, True
+        if above > 0.0:
+            if u <= u_min:
+                return state, False  # the control's last stage, still above the limit
+            high = u
+        else:
+            low, low_state = u, state
+        try:
+            latest = _DischargeEstimate(ref, _solved_cycle(state) or {}, u, T_max)
+        except (KeyError, TypeError, ValueError):
+            return _FALLBACK
+        if latest.h_in != estimate.h_in:
+            latest.slope = (latest.eta - estimate.eta) / (latest.h_in - estimate.h_in)
+        estimate = latest
+    return _FALLBACK
+
+
 def _control(
-    at: Callable[[float, float], dict | None], superheat0: float, T_max: float, x_min: float | None
-) -> dict | None:
-    """The controlled state at the discharge limit, or ``None`` when the control cannot reach it."""
+    at: Callable[[float, float], dict | None],
+    superheat0: float,
+    T_max: float,
+    x_min: float | None,
+    ref: str | None,
+    base: Mapping[str, Any],
+) -> tuple[dict | None, bool]:
+    """``(state, held)``: the controlled state, and whether it holds the discharge limit.
+
+    ``held`` false means the control cannot bring the discharge inside the
+    limit; ``state`` is then its last stage (the suction at ``x_min``, or
+    saturated vapour when there is no wet stage) when that was solved, the
+    state closest to the envelope this candidate has, or ``None``.
+    """
     if x_min is None or not math.isfinite(superheat0):
-        return None
+        return None, False
+    if ref is not None:
+        controlled = _control_predicted(at, base, superheat0, T_max, x_min, ref)
+        if controlled is not _FALLBACK:
+            return cast("tuple[dict | None, bool]", controlled)
+    return _control_bracketed(at, superheat0, T_max, x_min)
+
+
+def _control_bracketed(
+    at: Callable[[float, float], dict | None], superheat0: float, T_max: float, x_min: float
+) -> tuple[dict | None, bool]:
+    """:func:`_control` by root finding on full cycle evaluations (about seven of them)."""
 
     def excess(superheat: float, quality: float) -> float:
-        state = at(superheat, quality)
-        return math.nan if state is None else _discharge(state) - T_max
+        return _discharge_of(at(superheat, quality)) - T_max
 
-    dry = excess(0.0, 1.0)
+    def inside(state: dict | None) -> bool:
+        return state is not None and _discharge_of(state) <= T_max + DISCHARGE_TOL_K
+
+    dry_state = at(0.0, 1.0)
+    dry = _discharge_of(dry_state) - T_max
     if not math.isfinite(dry):
-        return None
+        return None, False
     if dry <= 0.0:
         if superheat0 <= _SUPERHEAT_XTOL_K:
-            return at(0.0, 1.0)
+            return dry_state, True
         try:
             root = brentq(lambda sh: excess(sh, 1.0), 0.0, superheat0, xtol=_SUPERHEAT_XTOL_K)
         except (ValueError, RuntimeError):
-            return at(0.0, 1.0)
+            return dry_state, True
         # Take the bracket side inside the limit.
         state = at(root, 1.0)
-        if state is None or _discharge(state) > T_max + DISCHARGE_TOL_K:
+        if not inside(state):
             state = at(max(0.0, root - _SUPERHEAT_XTOL_K), 1.0)
-        return state
+        return state, inside(state)
     if x_min >= 1.0:
-        return None
-    wet = excess(0.0, x_min)
+        return dry_state, False
+    wet_state = at(0.0, x_min)
+    wet = _discharge_of(wet_state) - T_max
     if not (math.isfinite(wet) and wet <= 0.0):
-        return None
+        return wet_state, False
     try:
         root = brentq(lambda x: excess(0.0, x), x_min, 1.0, xtol=_QUALITY_XTOL)
     except (ValueError, RuntimeError):
-        return at(0.0, x_min)
+        return wet_state, True
     state = at(0.0, root)
-    if state is None or _discharge(state) > T_max + DISCHARGE_TOL_K:
+    if not inside(state):
         state = at(0.0, max(x_min, root - _QUALITY_XTOL))
-    return state
+    return state, inside(state)
 
 
 # ---------------------------------------------------------------------------
 # Steady-state wrapper
 # ---------------------------------------------------------------------------
 
-#: Fractions of the request tried, from the top, when the request exceeds ``T_dis_max``.
+#: Fractions of the request tried, from the top, when the request has no operating point.
 _REDUCTION_LADDER = (0.8, 0.6, 0.4, 0.25, 0.1)
 #: Bisection stops once the bracket is this narrow relative to the request.
 _REDUCTION_REL_TOL = 0.01
 #: Request keys the boilers report, replaced by the caller's request on a reduced point.
 _REQUEST_KEYS = ("Q_ref_tank_request [W]", "Q_tank_load [W]")
+
+#: Failure reasons of a fixed-duty request that a smaller duty can cure, and
+#: the ``capacity_binding`` each gives the reduced point.
+#:
+#: An inverter unit asked for more than an operating limit allows does not
+#: stop; its controller lowers the compressor frequency until the limit holds
+#: (discharge-temperature, compression-ratio and low-pressure protection all
+#: act this way before any trip). In the model a smaller duty moves every one
+#: of these limits the same way: the condenser needs a smaller approach, so
+#: the condensing pressure and with it the pressure ratio and the discharge
+#: temperature fall, and the source heat exchanger has less heat to absorb, so
+#: it needs a smaller approach or less flow.
+_REDUCIBLE_BINDING: Mapping[str, str] = {
+    DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
+    PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
+    ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
+    "hx_not_converged": BINDING_HEAT_EXCHANGER,
+}
+#: ``failure_detail`` of a failure a smaller duty makes worse, whatever its
+#: reason: the outdoor coil already absorbs more than the cycle takes at the
+#: smallest airflow.
+_NOT_REDUCIBLE_DETAIL = frozenset({"outdoor_coil_excess_at_min_airflow"})
+#: ``failure_detail`` of the ``cycle_invalid`` results a smaller duty can cure.
+#:
+#: Only a discharge enthalpy beyond the fluid's equation of state: that is a
+#: discharge far above any limit, cured like :data:`DISCHARGE_TEMP_ABOVE_MAX`.
+#: Every other ``cycle_invalid`` stays a failure. In particular a request with
+#: no cycle at all is not reduced: with the boilers that is a condensing
+#: temperature (tank temperature plus the condenser approach the duty needs)
+#: at or above the critical point, and the largest smaller duty would sit on
+#: the critical point itself -- a state no machine runs at, since its
+#: high-pressure limit lies far below. The envelope has no condensing-pressure
+#: ceiling to reduce onto, so the request is reported as it is: not an
+#: operating point.
+_REDUCIBLE_CYCLE_DETAIL: Mapping[str, str] = {"discharge_state_undefined": BINDING_DISCHARGE}
+#: Failure reasons a *larger* duty can cure. At low speed the efficiency falls:
+#: the discharge runs hotter, the shipped fit drops below its floor, and on the
+#: speed floor the cycle delivers more than the nameplate (``cycle_invalid``).
+#: A duty refused for one of these, below a duty refused for another reason,
+#: brackets the duties that run (:func:`_between_reasons`).
+_CURED_BY_MORE_DUTY = frozenset({DISCHARGE_TEMP_ABOVE_MAX, ETA_ISEN_BELOW_MIN, "cycle_invalid"})
+
+
+def duty_reduction_binding(result: Mapping[str, Any], bindings: Mapping[str, str] | None = None) -> str | None:
+    """The limit a failed fixed-duty result ran into, if a smaller duty may run; else ``None``.
+
+    The value is the ``capacity_binding`` a reduced point reports.
+    ``bindings`` lets a family rename one (the ASHPB's heat exchanger is its
+    outdoor coil).
+    """
+    detail = result.get("failure_detail")
+    if detail in _NOT_REDUCIBLE_DETAIL:
+        return None
+    reason = result.get("failure_reason")
+    if reason == "cycle_invalid":
+        return _REDUCIBLE_CYCLE_DETAIL.get(cast(str, detail))
+    binding = _REDUCIBLE_BINDING.get(cast(str, reason))
+    if binding is not None and bindings is not None:
+        binding = bindings.get(cast(str, reason), binding)
+    return binding
 
 
 def _running(result: Mapping[str, Any]) -> bool:
@@ -578,37 +847,146 @@ def _annotate(model: Any, result: dict) -> None:
         result["capacity_binding"] = "compressor"
 
 
-def _reduce_to_envelope(solve: Callable[[float], dict], request: float, delivered_key: str) -> dict | None:
+def _reduce_to_envelope(
+    solve: Callable[[float], dict],
+    request: float,
+    delivered_key: str,
+    nothing_below: Callable[[], bool] | None = None,
+    refused: Mapping[str, Any] | None = None,
+) -> tuple[dict | None, dict | None]:
     """Largest duty below ``request`` whose solved point is a running point.
 
     A ladder of smaller duties finds the highest one that runs; a bisection
-    between it and the rung above closes on the boundary. Returns ``None``
-    when no rung runs. The discharge temperature is not monotone in the duty
-    (at low speed the efficiency falls), so this is the boundary nearest the
-    request, not a global search.
+    between it and the rung above closes on the boundary. Returns that result
+    and the failed trial just above it (``None`` when every trial above it ran),
+    or ``(None, None)`` when no duty runs. The limits are not monotone in the
+    duty (at low speed the efficiency falls and the discharge runs hotter), so
+    this is the boundary nearest the request, not a global search.
+
+    The duties that run can lie between two rungs: above them one limit
+    refuses the duty (the pressure ratio, the source heat exchanger), below
+    them another (the discharge temperature at low speed). So when no rung
+    runs, each pair of neighbouring trials refused for *different* reasons is
+    bisected by reason (:func:`_between_reasons`), ``refused`` being the
+    result at the request itself.
+
+    Two short cuts decide "no duty runs" without the whole ladder. A request
+    refused by a limit that only tightens with the duty
+    (:func:`_tightens_with_duty`) has its lowest rung solved first: refused
+    the same way there, it is refused at every duty in between.
+    ``nothing_below()``, asked after a failed rung, says that every smaller
+    duty is the same machine state (the compressor on its speed floor at
+    every candidate); the ladder then stops.
     """
-    hi = request
+    tolerance = _REDUCTION_REL_TOL * request
+    solved: dict[float, tuple[dict, bool]] = {}
+
+    def rung(fraction: float) -> tuple[float, dict, bool]:
+        q = fraction * request
+        if q not in solved:
+            r = solve(q)
+            solved[q] = (r, nothing_below is not None and nothing_below())
+        return (q, *solved[q])
+
+    if refused is not None and _tightens_with_duty(refused):
+        _, lowest, _ = rung(_REDUCTION_LADDER[-1])
+        if not _running(lowest) and _tightens_with_duty(lowest):
+            return None, None
+    failed: list[tuple[float, Mapping[str, Any]]] = [] if refused is None else [(request, refused)]
+    hi_q, hi_r = request, None
     lo_q, lo_r = 0.0, None
     for fraction in _REDUCTION_LADDER:
-        q = fraction * request
-        r = solve(q)
+        q, r, floor_bound = rung(fraction)
         if _running(r):
             lo_q, lo_r = q, r
             break
-        hi = q
+        hi_q, hi_r = q, r
+        failed.append((q, r))
+        if floor_bound:
+            break
     if lo_r is None:
-        return None
-    while hi - lo_q > _REDUCTION_REL_TOL * request:
-        mid = 0.5 * (lo_q + hi)
+        for (q_above, r_above), (q_below, r_below) in zip(failed, failed[1:], strict=False):
+            found = _between_reasons(solve, q_above, r_above, q_below, r_below, tolerance)
+            if found is not None:
+                lo_q, lo_r, hi_q, hi_r = found
+                break
+    if lo_r is None:
+        return None, None
+    while hi_q - lo_q > tolerance:
+        mid = 0.5 * (lo_q + hi_q)
         r = solve(mid)
         if _running(r):
             lo_q, lo_r = mid, r
         else:
-            hi = mid
+            hi_q, hi_r = mid, r
     delivered = _delivered(lo_r, delivered_key)
     if not (math.isfinite(delivered) and delivered < request):
+        return None, None
+    return lo_r, hi_r
+
+
+def _on_pressure_ratio_ceiling(model: Any, result: Mapping[str, Any]) -> bool:
+    """A running state whose pressure ratio is ``PR_cycle_max`` (to 0.1 %)."""
+    ceiling = getattr(model, "PR_cycle_max", None)
+    try:
+        ratio = float(result["P_ref_cmp_out [Pa]"]) / float(result["P_ref_cmp_in [Pa]"])
+        return ceiling is not None and ratio >= float(ceiling) * (1.0 - 1e-3)
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
+        return False
+
+
+def _tightens_with_duty(result: Mapping[str, Any]) -> bool:
+    """A refusal by a limit that a larger duty can only make worse.
+
+    The pressure ratio: a larger duty needs a larger condenser approach and a
+    larger source approach, so it rises with the duty at every candidate. And
+    an outdoor coil that absorbs too little at its largest airflow at every
+    approach the cycle reaches (``failure_detail``): a larger duty asks more
+    of it. The discharge temperature is not such a limit (it also rises
+    towards low speed), nor is a heat exchanger refusal without that detail.
+    """
+    reason = result.get("failure_reason")
+    if reason == PR_ABOVE_MAX:
+        return True
+    return reason == "hx_not_converged" and result.get("failure_detail") == "outdoor_coil_short_at_max_airflow"
+
+
+def _between_reasons(
+    solve: Callable[[float], dict],
+    q_above: float,
+    r_above: Mapping[str, Any],
+    q_below: float,
+    r_below: Mapping[str, Any],
+    tolerance: float,
+) -> tuple[float, dict, float, dict] | None:
+    """A running duty between two refused ones, if their reasons differ.
+
+    The upper duty is refused by a limit a smaller duty cures and the lower
+    one by a limit a larger duty cures; duties that run, if any, lie where
+    the two reasons meet. Bisect by reason: a trial refused like the upper
+    duty moves the upper end down, one refused like the lower duty moves the
+    lower end up. Returns ``(duty, result, refused duty above, its result)``
+    for the first trial that runs, or ``None`` when the reasons meet without
+    one (or a third reason appears, which this cannot order).
+    """
+    reason_above, reason_below = r_above.get("failure_reason"), r_below.get("failure_reason")
+    low_side = reason_below in _CURED_BY_MORE_DUTY or r_below.get("failure_detail") in _NOT_REDUCIBLE_DETAIL
+    if reason_above == reason_below or not low_side:
         return None
-    return lo_r
+    upper: dict = dict(r_above)
+    while q_above - q_below > tolerance:
+        mid = 0.5 * (q_above + q_below)
+        r = solve(mid)
+        if _running(r):
+            return mid, r, q_above, upper
+        reason = r.get("failure_reason")
+        if reason == reason_above:
+            q_above, upper = mid, r
+        elif reason == reason_below:
+            q_below = mid
+        else:
+            return None
+    return None
 
 
 def reduce_duty_within_envelope(
@@ -617,22 +995,25 @@ def reduce_duty_within_envelope(
     solve: Callable[[float], Any],
     request: float,
     delivered_key: str = "Q_ref_tank [W]",
+    bindings: Mapping[str, str] | None = None,
 ) -> dict:
-    """The largest duty inside the discharge limit when ``result`` is refused for it.
+    """The largest duty with an operating point when the request has none.
 
     ``result`` is the solve at ``request``; ``solve(q)`` solves the same
-    point at duty ``q``. When ``result`` failed with
-    :data:`DISCHARGE_TEMP_ABOVE_MAX` (even under the discharge-temperature
-    control), smaller duties are tried (:func:`_reduce_to_envelope`) and the
-    largest that runs is returned with ``capacity_clamped='max'``,
-    ``capacity_binding='discharge_temperature'``, ``Q_max [W]`` and
-    ``Q_request [W]``; otherwise ``result`` is returned. The boilers use it
-    for ``analyze_steady`` (:func:`steady_envelope`) and for each dynamic
-    step's cycle, so a step runs at the same reduced duty as the steady
-    solve -- its run time and step-average heat follow from that duty. The
-    trial solves run silently.
+    point at duty ``q``. When ``result`` failed on a limit a smaller duty can
+    cure (:func:`duty_reduction_binding`: the discharge-temperature limit even
+    under its control, the pressure-ratio ceiling, the source heat exchanger's
+    range, the efficiency floor), smaller duties are tried
+    (:func:`_reduce_to_envelope`) and the largest that runs is returned with
+    ``capacity_clamped='max'``, ``Q_max [W]``, ``Q_request [W]`` and
+    ``capacity_binding`` naming the limit the next larger duty tried ran into;
+    otherwise ``result`` is returned. The boilers use it for
+    ``analyze_steady`` (:func:`steady_envelope`) and for each dynamic step's
+    cycle, so a step runs at the same reduced duty as the steady solve -- its
+    run time and step-average heat follow from that duty. The trial solves run
+    silently.
     """
-    if not (request > 0 and math.isfinite(request) and result.get("failure_reason") == DISCHARGE_TEMP_ABOVE_MAX):
+    if not (request > 0 and math.isfinite(request) and duty_reduction_binding(result, bindings) is not None):
         return result
 
     def quiet(q: float) -> dict:
@@ -641,13 +1022,23 @@ def reduce_duty_within_envelope(
             out = solve(q)
         return out if isinstance(out, dict) else {}
 
-    reduced = _reduce_to_envelope(quiet, request, delivered_key)
+    def nothing_below() -> bool:
+        # Set by a family whose solve knows it (ASHPB: `_optimize_operation`).
+        return bool(getattr(model, "_solve_bound_at_speed_floor", False))
+
+    reduced, above = _reduce_to_envelope(quiet, request, delivered_key, nothing_below, result)
     if reduced is None:
         return result
+    binding = duty_reduction_binding(above if above is not None else result, bindings) or BINDING_CYCLE
+    if _on_pressure_ratio_ceiling(model, reduced):
+        # The source heat exchanger asks for a larger approach than the
+        # pressure-ratio ceiling leaves it: the next larger duty is refused
+        # for the exchanger, but the point returned sits on the ceiling.
+        binding = BINDING_PRESSURE_RATIO
     reduced.update(
         {
             "capacity_clamped": "max",
-            "capacity_binding": BINDING_DISCHARGE,
+            "capacity_binding": binding,
             "Q_max [W]": _delivered(reduced, delivered_key),
             "Q_request [W]": request,
         }
@@ -660,17 +1051,22 @@ def reduce_duty_within_envelope(
     return reduced
 
 
-def steady_envelope(duty_arg: str | None = None, delivered_key: str = "Q_ref_tank [W]") -> Callable[[_F], _F]:
+def steady_envelope(
+    duty_arg: str | None = None,
+    delivered_key: str = "Q_ref_tank [W]",
+    bindings: Mapping[str, str] | None = None,
+) -> Callable[[_F], _F]:
     """Decorate an ``analyze_steady`` with the envelope's steady-state reporting.
 
     Every result gains ``efficiency_extrapolated``. With ``duty_arg`` (the
-    boilers, whose requested duty is fixed), a request rejected with
-    :data:`DISCHARGE_TEMP_ABOVE_MAX` is retried at smaller duties; the largest
-    one inside the limit is returned with ``capacity_clamped='max'``,
-    ``capacity_binding='discharge_temperature'``, ``Q_max [W]`` and
-    ``Q_request [W]`` (the request keys of the family hold the caller's
-    request). If no smaller duty runs, the original off-state result stands.
-    The trial solves run silently.
+    boilers, whose requested duty is fixed), a request that fails on a limit a
+    smaller duty can cure (:func:`duty_reduction_binding`) is retried at
+    smaller duties; the largest one with an operating point is returned with
+    ``capacity_clamped='max'``, ``capacity_binding`` naming the limit,
+    ``Q_max [W]`` and ``Q_request [W]`` (the request keys of the family hold
+    the caller's request). If no smaller duty runs, the original off-state
+    result stands. The trial solves run silently. ``bindings`` renames a
+    ``capacity_binding`` for the family (:func:`duty_reduction_binding`).
     """
 
     def decorate(function: _F) -> _F:
@@ -691,7 +1087,7 @@ def steady_envelope(duty_arg: str | None = None, delivered_key: str = "Q_ref_tan
                 duty_arg is not None
                 and request > 0
                 and math.isfinite(request)
-                and result.get("failure_reason") == DISCHARGE_TEMP_ABOVE_MAX
+                and duty_reduction_binding(result, bindings) is not None
             ):
 
                 def solve(q: float) -> Any:
@@ -700,7 +1096,7 @@ def steady_envelope(duty_arg: str | None = None, delivered_key: str = "Q_ref_tan
                     trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
                     return function(*trial.args, **trial.kwargs)
 
-                result = reduce_duty_within_envelope(self, result, solve, request, delivered_key)
+                result = reduce_duty_within_envelope(self, result, solve, request, delivered_key, bindings)
             _annotate(self, result)
             if want_dict:
                 return result

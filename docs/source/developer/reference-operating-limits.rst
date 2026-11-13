@@ -101,7 +101,9 @@ flow to lie inside 0.15--1.0 of the reference. The coil cannot change its
 airflow, so a duty is carried only through the approach temperature: ASHPB and
 GSHP solve that single approach (the band of approaches the fan can serve
 collapses to a point) and report the duty exactly. A request the coil cannot
-carry fails with ``failure_reason == "hx_not_converged"`` as for a variable fan.
+carry is answered as for a variable fan: ASHPB runs at the largest duty the
+coil carries (``capacity_clamped == "max"``, ``capacity_binding ==
+"outdoor_coil"``), GSHP fails with ``failure_reason == "hx_not_converged"``.
 
 A constant-speed fan sits at both limits, so both ``fan_flow_min_limit`` and
 ``fan_flow_max_limit`` (``iu_*`` / ``ou_*``) are true; the direction in which a
@@ -305,7 +307,7 @@ is two-phase, so the evaporator duty is ``m_dot (h_1 - h_4)`` with the wet
 ``1 / (x v_g + (1 - x) v_l)``; the isentropic work is that of the two-phase
 state. The cycle balance (condenser = evaporator + refrigerant work) closes
 exactly. The efficiency maps were fitted to dry suction; using them for wet
-suction is an approximation. The quality floor 0.9 is a conservative default
+suction is an approximation (its size is discussed below). The quality floor 0.9 is a conservative default
 without a quantitative basis, and ``x_suction_min`` overrides it: two-phase
 suction is an experimentally used way to hold R32 scroll discharge temperature
 (Wang et al., ICEC 2014, paper 1595; Yang et al., Int. J. Refrig. 2015), but no
@@ -314,8 +316,80 @@ liquid-injection ratios used for this purpose. Running results report
 ``dT_ref_superheat [K]``, ``x_ref_cmp_in [-]`` and ``discharge_control``
 (bool), the same names in all five families; the invariant suite allows a wet
 suction only on a controlled row and only down to ``x_suction_min``. Every
-discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K (the
-control's root residual).
+discharge comparison uses the tolerance ``DISCHARGE_TOL_K`` = 0.01 K.
+
+The suction state at the limit is not searched with full cycle solves. At
+fixed suction and condensing pressure the discharge enthalpy follows from the
+suction state and the isentropic efficiency alone, so the suction state whose
+discharge is ``T_dis_max`` is first computed from the fluid properties with
+the efficiency of the state just solved; the cycle is then solved there, and
+the estimate corrected with the efficiency that solve returned (it moves with
+the compressor speed, which a denser, wetter suction lowers). Two or three
+cycle solves close the control to 1e-5 K of the limit, and a point still above
+the limit at ``x_suction_min`` is recognised with one. Root finding on full
+cycle solves is kept as the fallback for a fluid without a property state or
+a candidate where a proposed suction state has no cycle.
+
+Known limit: no efficiency penalty for wet suction. A controlled point uses
+the dry-suction efficiency maps unchanged, which is optimistic. Liquid in a
+scroll's suction or compression pockets raises the compression power and
+lowers the compressor efficiency, by an amount that depends on the heat
+exchanged with the liquid and that is partly recovered in practice through
+cooler oil and scroll walls (Dutta, Yanagisawa & Fukuta, Int. J. Refrig. 24
+(2001) 577--587). No relation between suction quality and isentropic
+efficiency was found that could be applied to an unspecified compressor
+without a new input, so none is applied. The size of what is missing, for the
+default R32 15 kW boiler, if the isentropic efficiency fell with the liquid
+fraction as ``eta_is (1 - k (1 - x))``:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 34 16 16 16 18
+
+    * - Quantity
+      - ``k = 0`` (model)
+      - ``k = 0.5``
+      - ``k = 1``
+      - ``k = 2``
+    * - ``eta_is`` at ``x = 0.9``
+      - unchanged
+      - −5 %
+      - −10 %
+      - −20 %
+    * - A7/W65 15 kW: ``cop_ref`` (suction quality)
+      - 2.307 (0.961)
+      - 2.278 (0.956)
+      - 2.241 (0.949)
+      - 2.096 (0.920)
+    * - A2/W60 15 kW: ``cop_ref`` (suction quality)
+      - 2.283 (0.952)
+      - 2.250 (0.946)
+      - 2.205 (0.937)
+      - 2.037 at 14.3 kW (0.900)
+    * - A0/W60: duty delivered of 15 kW
+      - 15.0 kW
+      - 15.0 kW
+      - 13.3 kW
+      - none (off)
+    * - A−3/W58: duty delivered of 15 kW
+      - 12.6 kW
+      - 8.3 kW
+      - none (off)
+      - none (off)
+    * - Mild day (A1–13, 21 of 144 steps controlled): daily COP
+      - 2.484
+      - 2.474
+      - 2.461
+      - 2.451
+
+So the COP of a controlled point is high by a few percent at most (2.8 % at
+A7/W65 for a 10 % efficiency loss at ``x = 0.9``; 0.9 % over the mild day),
+and the same point uncontrolled, without a discharge limit, is 2.288: the
+model credits wet suction with 0.8 % where a real compressor loses. The
+larger effect is on what runs. A less efficient wet compression discharges
+hotter, so the control needs a wetter suction and reaches ``x_suction_min``
+sooner; the duty the model reports at the edge of the discharge limit, more
+than its COP, is an upper estimate.
 
 How each family answers a point the control cannot hold:
 
@@ -332,27 +406,52 @@ How each family answers a point the control cannot hold:
   the control) ranks after every solved candidate, including one short of the
   request at ``rps_max``, and before an unphysical state, a coil that cannot
   carry the duty and no cycle; within that tier it is graded by how far
-  outside it is, so the search moves to the smaller lift that may be inside.
+  outside it is *at the control's last stage* (the suction at
+  ``x_suction_min``), so the search moves to the smaller lift that may be
+  inside. The control also acts on a candidate whose coil does not carry the
+  cycle, so the band of approaches the fan can serve is that of the
+  controlled cycle: wet suction adds to the evaporator duty (about 100 W of
+  15 kW), which moves the band's lower edge up by a few hundredths of a
+  kelvin, and above the band the control runs out at ``x_suction_min``. Read
+  from the uncontrolled cycle, the band left a window of running approaches
+  that the scan could step over (a request of 15 kW at A-6/W50 was then
+  "reduced" to 14.7 kW, and to 8.4 kW one step earlier).
 * **ASHPB, GSHPB, WSHPB** (``analyze_steady``) — the solved operating point is
   checked after :func:`tmhp.dynamic_context.unphysical_cycle_detail`. A
-  request above the limit is retried at 80/60/40/25/10 % and the boundary is
-  bisected to 1 % of the request; the largest duty that runs is returned with
-  ``capacity_clamped == "max"``, ``capacity_binding ==
-  "discharge_temperature"``, ``Q_max [W]`` and ``Q_request [W]``. If none runs
-  the off state carries ``discharge_temp_above_max``. The discharge
-  temperature is not monotone in the duty (at low speed the efficiency
-  falls), so this is the boundary nearest the request.
+  request with no operating point for a reason a smaller duty cures -- the
+  discharge limit, the pressure-ratio ceiling, the source heat exchanger's
+  range, the efficiency floor
+  (:func:`tmhp.compressor_envelope.duty_reduction_binding`) -- is retried at
+  80/60/40/25/10 % and the boundary is bisected to 1 % of the request; the
+  largest duty that runs is returned with ``capacity_clamped == "max"``,
+  ``capacity_binding`` naming the limit (see
+  :doc:`/concepts/failure-reason-semantics`), ``Q_max [W]`` and
+  ``Q_request [W]``. If none runs the off state carries the request's own
+  reason. The limits are not monotone in the duty together: above the duties
+  that run the pressure ratio or the heat exchanger refuses, below them the
+  discharge temperature does (at low speed the efficiency falls). So when no
+  rung runs, two neighbouring rungs refused for different reasons are
+  bisected by reason, which finds a running range narrower than the ladder
+  spacing (R1234yf A-15/W65: 4.0--5.7 kW of a 15 kW request). Three short
+  cuts keep "no duty runs" cheap: a request refused by the pressure ratio,
+  or by a coil short at full airflow, has its 10 % rung solved first, and if
+  that is refused the same way nothing in between is tried (those limits
+  only tighten with the duty); a rung at which every approach has the
+  compressor on its speed floor ends the ladder (smaller requests are the
+  same cycles); and a request with no cycle at all is not reduced.
 * **Boiler dynamic steps** answer the same way. Each step solves its cycle
   once (at the mean tank temperature of its run, see
   :func:`tmhp.dynamic_context.resolve_step_operation`): held by the control
-  if possible, otherwise at the largest duty inside the limit, whose heat then
+  if possible, otherwise at the largest duty that runs, whose heat then
   sets the run time and the step-average rates (the tank reaches its upper
-  bound later); a step with no duty inside the limit is an off step with
-  ``discharge_temp_above_max``. The start-temperature retry of that function
-  applies the same reduction. A step that needs the reduction costs one cycle
-  solve per ladder rung and bisection point: 24 h of the default R32 boiler
-  on a cold day (outdoor −8 to 0 °C, dt 600 s) took 9.9 solves per called
-  step and 24 min, against 1 solve and 6 s without the limit.
+  bound later); a step with no duty that runs is an off step with the
+  reason. The start-temperature retry of that function applies the same
+  reduction. A step that needs the reduction costs one cycle solve per
+  ladder rung and bisection point: 24 h of the default R32 boiler on a cold
+  day (outdoor −8 to 0 °C, dt 600 s; 10 of 22 running steps at a reduced
+  duty, 70 called steps with no duty that runs) takes about half a minute,
+  against one to two seconds on a mild day where the control alone holds the
+  limit.
 
 Steady results of every family carry ``efficiency_extrapolated`` (bool):
 the point lies outside the (PR, N) box of a default efficiency fit. Scalar

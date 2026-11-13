@@ -266,10 +266,11 @@ A short checklist for any result
 .. code-block:: python
 
    ok = (df["failure_reason"] == "none") & df["converged"]   # an operating point (or a legitimate off row)
-   short = df["capacity_clamped"] == "max"                   # delivered less than asked
    averaged = df["runtime_fraction [-]"] < 1                 # a time average, not a continuous point
 
-Then, where they exist: ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
+Then, where they exist: ``capacity_clamped == "max"`` (in a boiler's dynamic
+frame, a ``capacity_binding`` column) for a row that delivered less than
+asked, ``Q_unmet [W]`` or ``Q_dhw_unmet [W]`` for demand
 that was not served, ``efficiency_extrapolated`` and ``discharge_control`` for
 points at the edge of the compressor data, and the loop temperatures for a
 source that would freeze. Warnings raised during a run (``UserWarning`` at

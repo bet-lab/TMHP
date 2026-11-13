@@ -1001,11 +1001,11 @@ without a running cycle carry NaN or 0.
       - ASHP, GSHP (d), ASHPB (d), GSHPB (d), WSHPB (d)
       - Specific flow exergy of the refrigerant at the expansion-valve outlet.
 
-Keys that appear only with an option
-====================================
+Keys that appear only in some results
+=====================================
 
-These are not in a default result. Composed variants (solar thermal, PV and
-storage, UV lamp) add their own columns, described on :doc:`/models/ashpb`
+These are not in every default result. Composed variants (solar thermal, PV
+and storage, UV lamp) add their own columns, described on :doc:`/models/ashpb`
 and :doc:`/models/gshpb`.
 
 .. list-table::
@@ -1015,6 +1015,12 @@ and :doc:`/models/gshpb`.
     * - Key
       - Appears when
       - Meaning
+    * - ``capacity_binding``, ``Q_max [W]``, ``Q_request [W]`` in a boiler's
+        dynamic frame
+      - at least one step of the run ran at a reduced duty
+      - As in ``analyze_steady``, on the reduced steps; empty on the others.
+        A boiler's dynamic frame has no ``capacity_clamped`` column: test
+        ``capacity_binding`` instead.
     * - ``failure_detail``
       - a boiler ``analyze_steady`` fails with ``cycle_invalid``, or ASHPB
         with ``hx_not_converged``
@@ -1040,8 +1046,13 @@ Checking a result in code
 
    ok = (df["failure_reason"] == "none") & df["converged"]
    running = df["hp_is_on"]
-   reduced = df["capacity_clamped"] == "max"
+   averaged = df["runtime_fraction [-]"] < 1
    electricity_kWh = (df["E_tot [W]"] * dt_s).sum() / 3.6e6
+
+These four columns are in every frame of every family. A row that delivered
+less than asked has ``capacity_clamped == "max"`` in a steady result and in an
+ASHP or GSHP frame; in a boiler frame look for a ``capacity_binding`` column
+(see the table above).
 
 A new key added to a model has to be added here as well:
 ``tests/test_docs_alignment.py`` runs each family and fails when a result

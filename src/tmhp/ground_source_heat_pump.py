@@ -37,6 +37,7 @@ from tqdm import tqdm
 from . import calc_util as cu
 from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
+from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_DISCHARGE,
@@ -252,6 +253,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     wall's response to that step's own load. The refrigerant cycle, the
     fluid temperatures and the wall temperature of one row therefore belong
     to the same step.
+
+    **Borehole dynamics.** ``borehole_dynamics=None`` (default) adds the heat
+    capacity of fluid, pipe and grout and the fluid transit through the
+    U-tube to the ground response, from the geometry and properties already
+    given (:mod:`tmhp.borehole_capacity`), wherever the model can use it;
+    with ``variable_Rb``, a variable ground flow or a cross-section that
+    cannot be mapped it keeps the steady borehole.
+    ``model.borehole_dynamics`` (``"transit"`` or ``"off"``) and
+    ``model.borehole_dynamics_note`` say which and why. ``True`` raises
+    instead of falling back; ``False`` is the steady borehole (a resistance
+    without heat capacity). ``T_bhe [°C]`` is the physical borehole wall in
+    both.
     """
 
     _RATING_FAMILY = "GSHP"
@@ -356,6 +369,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        borehole_dynamics: bool | None = None,
     ):
         validate_ctor("GSHP", locals())
         # Ground side sized from the capacity when the caller gives none of it
@@ -683,6 +697,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             t_max_s=t_max_s,
             dt_s=dt_s,
         )
+        # Borehole heat capacity and fluid transit (tmhp.borehole_capacity):
+        # on wherever the model can use them, see the class docstring.
+        #: ``"transit"``, ``"lumped"`` or ``"off"``: the borehole response in use.
+        self.borehole_dynamics: str = "off"
+        #: Why it is not ``"transit"`` (empty otherwise).
+        self.borehole_dynamics_note: str = ""
+        configure_borehole_dynamics(self, borehole_dynamics)
 
         # --- Simulation state ---
         self.time: np.ndarray = np.array([])
@@ -1825,6 +1846,38 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             return 0.0
         return float(np.dot(pulses[idx], g_step_mean(self._gfunc_interp, time_arr[n] - time_arr[idx], self.dt)))
 
+    # Step-mean *wall* responses of the run in progress (dynamic borehole only):
+    # (the step-mean table they belong to, W̄ for every lag in reverse order).
+    _bhe_wall_mean: tuple[Any, np.ndarray] | None = None
+
+    def _bhe_wall_rise(self, n: int, time_arr: np.ndarray, pulses: np.ndarray, rise: float) -> float:
+        """Physical borehole-wall rise [K] at step ``n`` for the pulses recorded up to it.
+
+        ``rise`` is the superposition with the model's g-function. For a
+        plain g-function that is the wall. A g-function with borehole heat
+        capacity (:class:`~tmhp.borehole_capacity.DynamicGFunction`) is
+        fluid-referenced: ``rise`` is the wall that gives the dynamic fluid
+        temperature through ``T_f = T_wall − q' R_b``, and the wall itself is
+        the same pulse sum with its wall response (``wall_step_mean``).
+        """
+        wall_mean = getattr(self._gfunc_interp, "wall_step_mean", None)
+        if wall_mean is None:
+            return rise
+        table = self._bhe_step_mean
+        if table is not None and table[0] is time_arr and table[1] is self._gfunc_interp and table[2] == self.dt:
+            cached = self._bhe_wall_mean
+            if cached is None or cached[0] is not table:
+                lags = time_arr - time_arr[0]
+                cached = (table, np.ascontiguousarray(np.asarray(wall_mean(lags, self.dt), dtype=float)[::-1]))
+                self._bhe_wall_mean = cached
+            rev = cached[1]
+            start = len(rev) - 1 - n
+            return float(np.dot(pulses[: n + 1], rev[start : start + n + 1]))
+        idx = np.flatnonzero(pulses[: n + 1])
+        if len(idx) == 0:
+            return 0.0
+        return float(np.dot(pulses[idx], wall_mean(time_arr[n] - time_arr[idx], self.dt)))
+
     def _compute_bhe_superposition(
         self,
         n: int,
@@ -1834,7 +1887,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         hp_result: dict,
         hp_is_on: bool,
     ) -> float:
-        """Temporal superposition for BHE — from GSHPB."""
+        """Temporal superposition for BHE — from GSHPB.
+
+        ``T_bhe`` is the borehole wall (step mean). With the dynamic borehole
+        the fluid temperatures are computed from the fluid-referenced wall
+        (see :meth:`_bhe_wall_rise`), as before; only the reported wall is the
+        physical one.
+        """
         Q_bhe_unit = (
             calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
         )
@@ -1846,8 +1905,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
         dT_bhe = self._bhe_history_rise(n, time_arr, Q_bhe_unit_pulse, n + 1)
 
-        self.T_bhe = self.Ts - dT_bhe
-        T_bhe_K = cu.C2K(self.T_bhe)
+        self.T_bhe = self.Ts - self._bhe_wall_rise(n, time_arr, Q_bhe_unit_pulse, dT_bhe)
+        T_bhe_K = cu.C2K(self.Ts - dT_bhe)  # fluid-referenced
         T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length

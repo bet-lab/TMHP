@@ -43,7 +43,12 @@ FLUID = ("T_bhe_f [°C]", "T_bhe_f_in [°C]", "T_bhe_f_out [°C]")
 
 
 def _ground_step(fraction: float, solar: bool, compressor: bool) -> tuple[tmhp.GSHPB_STC_ground, dict]:
-    m = tmhp.GSHPB_STC_ground(stc=SolarThermalCollector(), N_1=2, N_2=1, H_b=100.0, dt_s=DT, t_max_s=48 * 3600.0)
+    # Steady borehole: these tests pin the wall-to-fluid relations of one step
+    # (T_f = T_wall - q' R_b). The dynamic borehole's first step is in
+    # test_borehole_dynamics_models.py.
+    m = tmhp.GSHPB_STC_ground(
+        stc=SolarThermalCollector(), N_1=2, N_2=1, H_b=100.0, dt_s=DT, t_max_s=48 * 3600.0, borehole_dynamics=False
+    )
     time = np.arange(2) * DT
     reset_ground_coupler(m._ground_coupler, 2, time, DT)
     m._q_solar_ground_W = Q_SOL if solar else 0.0

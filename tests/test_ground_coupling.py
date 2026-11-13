@@ -27,6 +27,8 @@ from ._ground_oracle import step_mean_superposition  # noqa: E402
 
 
 def _gshpb() -> GroundSourceHeatPumpBoiler:
+    # The steady borehole: these tests pin the coupler's step-mean convention on a plain
+    # g-function (the dynamic default is covered in test_borehole_dynamics_models.py).
     return GroundSourceHeatPumpBoiler(
         ref="R32",
         N_1=2,
@@ -34,6 +36,7 @@ def _gshpb() -> GroundSourceHeatPumpBoiler:
         H_b=100.0,
         dt_s=3600.0,
         t_max_s=200 * 3600,
+        borehole_dynamics=False,
     )
 
 
@@ -217,8 +220,10 @@ _ARCHIVED_BHE_LOAD_W = {4: 6723.479372235796, 5: 5922.149254862031, 10: 5341.249
 def _historical_efficiency_plant():
     # The archived plant was recorded with the former capacity-independent
     # defaults (UA 500 W/K, 24 L/min, 200 W pump); they are now capacity-scaled,
-    # so the recorded machine is spelled out.
+    # so the recorded machine is spelled out. It was recorded with the steady
+    # borehole (resistance without heat capacity), now ``borehole_dynamics=False``.
     return GroundSourceHeatPumpBoiler(
+        borehole_dynamics=False,
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,

@@ -159,15 +159,66 @@ found with ``Cd_cycling=None``.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` are on every row, so a
 schedule's unmet energy is the sum of ``Q_unmet [W]`` times the time step.
 
-What stops the unit is in ``capacity_binding``. ``"compressor"`` is a
-compressor at ``rps_max``. ``"discharge_temperature"`` and
-``"condensing_temperature"`` are the compressor envelope's limits
-(``T_dis_max``, ``T_cond_max``; :doc:`/developer/reference-operating-limits`):
-the next larger duty is deliverable once the limit is lifted. ``"cycle"`` means the air side, the
-pressure-ratio envelope or the approach-temperature search domain ran out
-first; the compressor then runs below its ceiling, and the row is the
-least-power point at that delivery rather than one that reaches the speed
-ceiling by starving a coil of air.
+The ceiling is the unit running **flat out**: the compressor at ``rps_max`` and
+both fans at their largest airflow. A coil carries a duty with the smallest
+temperature difference at its largest airflow, so this is the least lift — the
+smallest pressure ratio and the coolest discharge — at which that speed's duty
+is delivered; if this point is outside the compressor envelope, so is every
+other approach pair delivering the duty. It is solved directly (both approach
+temperatures as a fixed point, about twenty cycle evaluations), not searched
+for. Where it is outside the envelope, or beyond what a coil carries inside
+the approach bounds, a unit's controller holds the compressor back, and the
+ceiling is the largest duty whose least-lift point is an operating point,
+bisected to 0.1 %.
+
+What stops the unit is in ``capacity_binding``, with the names the
+water-heating models use (:doc:`/concepts/failure-reason-semantics`):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - ``capacity_binding``
+     - What the next larger duty runs into
+   * - ``"compressor"``
+     - The speed range: the compressor is at ``rps_max``.
+   * - ``"discharge_temperature"``
+     - ``T_dis_max``, with the suction already as wet as the
+       discharge-temperature control allows.
+   * - ``"condensing_temperature"``
+     - ``T_cond_max``, the highest condensing pressure of the compressor
+       envelope (:doc:`/developer/reference-operating-limits`).
+   * - ``"pressure_ratio"``
+     - ``PR_cycle_max``.
+   * - ``"compressor_efficiency"``
+     - The floor of the shipped isentropic fit outside its data.
+   * - ``"cycle"``
+     - A coil at its largest airflow and the widest approach the search
+       admits (``dT_approach_bounds``). The compressor is clear of its own
+       limits and the other fan still has a range, so the row is the
+       least-power point at that duty.
+
+The same holds below the ceiling. The envelope is not monotone in the duty: at
+mid speed the compressor is less efficient and its discharge hotter than flat
+out, so a duty can be refused although a larger one runs (default unit, −25 °C
+outdoor / 24 °C room: 2.3 kW has no operating point, 3.6 kW has). Such a
+request runs at the largest duty below it that has one, again with
+``capacity_clamped == "max"`` and the binding that names the limit, as the
+water-heating models do. A request is switched off (``failure_reason``) only
+when no smaller duty runs either, and the reason is then the limit its own
+least-lift point breaks — not the one an arbitrary probe of the search
+happened to break.
+
+.. note::
+
+   The ceiling is not the largest heat any pair of approach temperatures
+   delivers at ``rps_max``. An adiabatic compressor turns its losses into
+   delivered heat, so starving a coil of air (a higher pressure ratio, a lower
+   isentropic efficiency) can raise the heating duty by up to a tenth while the
+   COP falls by up to a quarter; no unit runs its fans that way. Earlier
+   versions ranked capacity-limited candidates by delivered heat and returned
+   such states — the default R290 unit at −15 °C / 18 °C with the outdoor fan at
+   18 % of its airflow and a COP of 1.9 against 2.8.
 
 What the cycling model does not contain: the indoor fan is taken to run only
 while heat is delivered, no standby or crankcase power is added while the unit is off,
@@ -178,7 +229,7 @@ Frost and defrost
 =================
 
 In heating the outdoor coil runs below the outdoor air. Below about 5 °C it is
-below freezing and colder than the air's dew point, so frost builds on it,
+below freezing and colder than the air's dew point, so frost begins to build on it,
 capacity and power fall, and the unit periodically stops heating to melt the
 frost. A catalogue figure at 2 °C or −7 °C is the mean over that; the
 frost-free cycle the model solves is not.
@@ -199,7 +250,20 @@ reverse-cycle defrost; from DOE-2.1E), with its published constants unchanged
    \text{capacity multiplier} = 0.875\,(1 - t_{frac}), \qquad
    \text{power multiplier} = 0.954\,(1 - t_{frac})
 
-and no correction above an outdoor temperature of 5 °C. A request ``Q`` has to
+and no correction above an outdoor temperature of 5 °C. EnergyPlus switches
+the whole correction on at that limit; here it grows from nothing at 5 °C to
+its full size at 2 °C, the frosting rating condition of EN 14511 (A2), as the
+share :math:`w` of the runtime the coil frosts:
+
+.. math::
+
+   w = \min\left(1,\ \frac{5 - T_{out}}{3}\right), \qquad
+   t_{frac} \leftarrow w\,t_{frac}, \qquad
+   \text{multiplier} \leftarrow 1 - w\,(1 - \text{multiplier})
+
+— the mean of a unit that frosts for that share and runs frost-free for the
+rest. At and below 2 °C and above 5 °C nothing differs from EnergyPlus. A
+request ``Q`` has to
 be met by the mean, so the cycle is solved frost-free at
 ``(Q + Q_defrost) / capacity multiplier`` and the row is then averaged:
 
@@ -229,9 +293,14 @@ be met by the mean, so the cycle is solved frost-free at
      - Power multiplier
    * - 5
      - −4.5
-     - 0.119
-     - 0.771
-     - 0.841
+     - 0
+     - 1
+     - 1
+   * - 3.5
+     - −5.7
+     - 0.054
+     - 0.890
+     - 0.925
    * - 2
      - −6.9
      - 0.098
@@ -252,19 +321,27 @@ The outdoor humidity is an optional input: ``analyze_steady(..., RH_out=0.7)``
 and ``analyze_dynamic(..., RH_out_schedule=...)`` take a relative humidity as a
 fraction. Without it the model uses 84 %, the humidity of the EN 14511 rating
 condition A2 (dry bulb 2 °C, wet bulb 1 °C). ``defrost=None`` switches the
-correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit and the
-default humidity.
+correction off, and a :class:`tmhp.DefrostModel` sets the outdoor limit, the
+width of the transition below it and the default humidity.
 
-Two things differ from EnergyPlus, both so that nothing has to be entered.
-EnergyPlus asks for a curve of defrost power; here the compressor draws, while
-it defrosts, what it draws while it heats. And the coil temperature is
-EnergyPlus' correlation rather than the evaporating temperature this model
-solves — the constants were fitted with that estimate.
+Three things differ from EnergyPlus. The transition above replaces a switch:
+in EnergyPlus the correction is in full at 5.0 °C and absent at 5.1 °C, where
+its cost is at its largest, so the COP of the default unit stepped from 3.49 to
+4.64 between 5.0 and 5.5 °C. The 5 °C limit is a setting of the defrost
+controller, not the temperature at which a coil frosts over, and a coil near
+freezing frosts on part of its surface and for part of the time.
+``DefrostModel(transition_K=0)`` restores the switch. The other two are there
+so that nothing has to be entered: EnergyPlus asks for a curve of defrost
+power, and here the compressor draws, while it defrosts, what it draws while it
+heats; and the coil temperature is EnergyPlus' correlation rather than the
+evaporating temperature this model solves — the constants were fitted with
+that estimate.
 
-What it leaves out: the correction is a step at 5 °C, where the cost is at its
-largest (about a fifth of the COP), because that is how the source model is
-written; and the room is not cooled in time during a defrost — its effect is in
-the mean. :meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
+What it leaves out: dry air is not frost-free in the source model (the
+frosted-coil multipliers 0.875 and 0.954 apply whenever the outdoor air is
+below the limit, whatever its humidity), and that is kept; and the room is not
+cooled in time during a defrost — its effect is in the mean.
+:meth:`~tmhp.AirSourceHeatPump.max_capacity` reports the same mean
 ceiling, with the frost-free one as ``Q_max_frost_free [W]``.
 
 COP boundary

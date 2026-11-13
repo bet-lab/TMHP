@@ -22,6 +22,7 @@ from tmhp.defrost import (
     DEFROST_POWER_KEY,
     FROST_CAPACITY_FACTOR_KEY,
     FROST_POWER_FACTOR_KEY,
+    FROST_TRANSITION_K,
     NO_FROST,
     RH_OUT_DEFAULT,
     RH_OUT_KEY,
@@ -51,7 +52,9 @@ def test_defaults_are_the_energyplus_limit_and_the_en14511_a2_humidity():
 
 @pytest.mark.parametrize("T_out,RH", [(2.0, 0.84), (-7.0, 0.75), (-15.0, 0.9), (5.0, 0.6)])
 def test_on_demand_defrost_follows_the_published_equations(T_out, RH):
-    frost = MODEL.frost_state(T_out, RH)
+    # At and below 2 degC the default model is EnergyPlus'; up to its 5 degC
+    # limit the switch (``transition_K=0``) is.
+    frost = (MODEL if T_out <= 2.0 else DefrostModel(transition_K=0.0)).frost_state(T_out, RH)
     assert frost.active
     coil = 0.82 * T_out - 8.589
     assert frost.T_coil_C == pytest.approx(coil, rel=1e-12)
@@ -73,12 +76,46 @@ def test_values_at_the_a2_rating_condition():
 
 
 def test_no_frost_above_the_outdoor_limit():
-    assert MODEL.frost_state(5.0).active
-    warm = MODEL.frost_state(5.001)
-    assert not warm.active
-    assert (warm.defrost_fraction, warm.capacity_multiplier, warm.power_multiplier) == (0.0, 1.0, 1.0)
+    assert FROST_TRANSITION_K == 3.0 and MODEL.transition_K == 3.0
+    for T_out in (5.0, 5.001, 7.0):
+        warm = MODEL.frost_state(T_out)
+        assert not warm.active and warm.frost_share == 0.0
+        assert (warm.defrost_fraction, warm.capacity_multiplier, warm.power_multiplier) == (0.0, 1.0, 1.0)
+    assert MODEL.frost_state(4.999).active
     assert DefrostModel(T_out_max=2.0).frost_state(3.0).active is False
     assert DefrostModel(T_out_max=7.0).frost_state(6.0).active
+
+
+def test_the_correction_grows_from_the_limit_to_the_frosting_rating_condition():
+    """Frosting for a share of the runtime: the mean of the frosted and the frost-free unit."""
+    full = MODEL.frost_state(2.0)  # EN 14511 A2
+    assert full.frost_share == 1.0 and MODEL.frost_state(-7.0).frost_share == 1.0
+    for T_out, share in [(4.25, 0.25), (3.5, 0.5), (2.75, 0.75)]:
+        frost = MODEL.frost_state(T_out)
+        assert frost.active and frost.frost_share == pytest.approx(share, rel=1e-12)
+        dw = humidity_ratio(T_out, 0.84) - saturation_humidity_ratio(0.82 * T_out - 8.589)
+        t_frac = 1.0 / (1.0 + 0.01446 / dw)
+        assert frost.defrost_fraction == pytest.approx(share * t_frac, rel=1e-12)
+        assert frost.capacity_multiplier == pytest.approx(1.0 - share * (1.0 - 0.875 * (1.0 - t_frac)), rel=1e-12)
+        assert frost.power_multiplier == pytest.approx(1.0 - share * (1.0 - 0.954 * (1.0 - t_frac)), rel=1e-12)
+        assert full.capacity_multiplier < frost.capacity_multiplier < 1.0
+    # Continuous at both ends (EnergyPlus switches from 0.771 to 1 at the limit).
+    assert MODEL.frost_state(5.0 - 1e-9).capacity_multiplier == pytest.approx(1.0, abs=1e-8)
+    assert MODEL.frost_state(2.0 + 1e-9).capacity_multiplier == pytest.approx(full.capacity_multiplier, abs=1e-8)
+
+
+def test_a_zero_transition_is_the_energyplus_switch():
+    switch = DefrostModel(transition_K=0.0)
+    at_limit = switch.frost_state(5.0)
+    assert at_limit.active and at_limit.frost_share == 1.0
+    assert at_limit.capacity_multiplier == pytest.approx(0.771, abs=1e-3)
+    assert not switch.frost_state(5.001).active
+    # At and below the frosting rating condition the two are the same model.
+    assert switch.frost_state(2.0) == MODEL.frost_state(2.0)
+    assert switch.frost_state(-7.0, 0.75) == MODEL.frost_state(-7.0, 0.75)
+    for bad in (-1.0, math.nan, math.inf, True, "2"):
+        with pytest.raises(ValueError):
+            DefrostModel(transition_K=bad)  # type: ignore[arg-type]
 
 
 def test_dry_air_leaves_only_the_frosted_coil_multipliers():
@@ -344,3 +381,20 @@ def test_return_format_is_honoured_on_a_frosted_point(hp):
     frame = hp.analyze_steady(Q_r_iu=-3000.0, T0=2.0, T_a_room=20.0, return_dict=False, verbose=False)
     assert isinstance(frame, pd.DataFrame) and len(frame) == 1
     assert frame["defrost_fraction [-]"].iloc[0] > 0.0
+
+
+def test_the_steady_result_has_no_step_at_the_frost_limit(hp):
+    """COP 3.49 at 5.0 degC and 4.64 at 5.5 degC: a switch, not a coil frosting over."""
+    room = dict(T_a_room=20.0)
+    temps = np.arange(1.0, 6.01, 0.25)
+    cop = np.array([_solve(hp, -2000.0, T0=float(T), **room)["cop_sys [-]"] for T in temps])
+    assert np.all(np.diff(cop) > 0.0)  # warmer air, less frost: never worse
+    # No quarter-kelvin step carries more than a seventh of the whole frost penalty.
+    assert np.max(np.diff(cop)) < 0.15 * (cop[-1] - cop[0])
+    # Outside the transition nothing moved: full correction at 2 degC, none above 5 degC.
+    switch = AirSourceHeatPump(defrost=DefrostModel(transition_K=0.0))
+    for T in (-7.0, 2.0, 5.5, 7.0):
+        a, b = _solve(hp, -2000.0, T0=T, **room), _solve(switch, -2000.0, T0=T, **room)
+        assert a["cop_sys [-]"] == pytest.approx(b["cop_sys [-]"], rel=1e-12)
+    stepped = [_solve(switch, -2000.0, T0=T, **room)["cop_sys [-]"] for T in (5.0, 5.25)]
+    assert stepped[1] / stepped[0] > 1.2

@@ -410,6 +410,50 @@ def test_air_to_air_ceiling_names_the_condensing_limit():
     assert off["failure_reason"] == CONDENSING_TEMP_ABOVE_MAX and off["E_cmp [W]"] == 0.0
 
 
+def test_air_to_air_direct_ceiling_and_the_shared_check_agree_on_the_condensing_limit():
+    """The ASHP's own ceiling solve (least-lift point, bisected) names the condensing limit,
+    and it is the answer the shared decorator's check gives: the largest duty under the limit.
+
+    A unit never condenses above 58 degC at its default limit, so the limit is lowered
+    on the built machine (30 degC, heating a 20 degC room from 7 degC air).
+    """
+    from tmhp import compressor_envelope as envelope
+
+    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, defrost=None)
+    case = dict(T0=7.0, T_a_room=20.0, verbose=False)
+    hp.T_cond_max = 30.0
+    r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, **case)
+    assert _running(r) and r["capacity_clamped"] == "max" and r["capacity_binding"] == BINDING_CONDENSING
+    q_max = r["Q_max [W]"]
+    assert abs(r["Q_ref_iu [W]"]) == pytest.approx(q_max) and q_max < 3000.0
+    # The ceiling sits on the limit, not merely below it ...
+    assert _inside(hp, r)
+    assert r["T_ref_cond_sat_l [°C]"] == pytest.approx(30.0, abs=0.05)
+    # ... and is what ``max_capacity`` reports, with the same binding.
+    ceiling = _quiet(hp.max_capacity, T0=7.0, T_a_room=20.0, mode="heating")
+    assert ceiling["binding"] == BINDING_CONDENSING
+    assert ceiling["Q_max [W]"] == pytest.approx(q_max, rel=2e-3)
+    # Just below it the request runs as asked; a larger request returns the same ceiling.
+    below = _quiet(hp.analyze_steady, Q_r_iu=-0.99 * q_max, **case)
+    assert _running(below) and below["capacity_clamped"] is None and _inside(hp, below)
+    above = _quiet(hp.analyze_steady, Q_r_iu=-4000.0, **case)
+    assert above["capacity_binding"] == BINDING_CONDENSING
+    assert above["Q_max [W]"] == pytest.approx(q_max, rel=2e-3)
+
+    # The shared check (the decorator's second solve without the limit) on the
+    # same row, had the family named the ceiling only "cycle": the ceiling rises
+    # once the limit is lifted, so it is the condensing limit that binds.
+    unnamed = {**r, "capacity_binding": envelope.BINDING_CYCLE}
+    hp._condensing_rejected = True
+    raw = tmhp.AirSourceHeatPump.analyze_steady.__wrapped__
+    assert envelope._condensing_limit_binds(hp, unnamed, lambda: raw(hp, Q_r_iu=-3000.0, **case))
+    assert hp.T_cond_max == 30.0  # restored after the second solve
+    # A ceiling the limit does not set is not renamed: the compressor's speed ceiling.
+    hp.T_cond_max = 65.0
+    flat_out = _quiet(hp.analyze_steady, Q_r_iu=-9000.0, T0=-7.0, T_a_room=20.0, verbose=False)
+    assert flat_out["capacity_clamped"] == "max" and flat_out["capacity_binding"] != BINDING_CONDENSING
+
+
 def test_gshp_reports_the_condensing_limit():
     hp = _quiet(tmhp.GroundSourceHeatPump, ref="R32")
     case = dict(Q_r_iu=3000.0, T0=30.0, T_a_room=26.0, T_bhe_wall=25.0)

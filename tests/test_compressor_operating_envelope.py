@@ -260,7 +260,8 @@ def test_air_to_air_ceiling_names_the_discharge_limit():
     assert r["capacity_clamped"] == "max"
     assert r["capacity_binding"] == BINDING_DISCHARGE
     assert abs(r["Q_ref_iu [W]"]) < 3000.0
-    assert r["T_ref_cmp_out [°C]"] <= 80.0
+    # The ceiling is closed onto the limit, which every check reads with DISCHARGE_TOL_K.
+    assert r["T_ref_cmp_out [°C]"] <= 80.0 + DISCHARGE_TOL_K
 
 
 def test_air_to_air_without_any_duty_inside_the_limit_is_off():

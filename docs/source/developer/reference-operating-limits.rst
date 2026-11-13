@@ -134,9 +134,9 @@ seed the ordinary one whenever the coarse pre-scan finds no operating point.
    (``dT_approach_bounds``, 1--20 K by default) is the only freedom the coil
    has, so it can become the capacity limit: the largest duty is then what the
    coil carries at the upper bound, reported with ``capacity_clamped == "max"``
-   and ``capacity_binding == "cycle"``. Finding that ceiling repeats the band
-   solve along a ladder of duties and takes 5--10 s per operating point; widen
-   the bounds if the coil is meant to run a larger approach.
+   and ``capacity_binding == "cycle"``. The ceiling is one least-lift solve
+   (:meth:`tmhp.AirSourceHeatPump.max_capacity`); widen the bounds if the coil
+   is meant to run a larger approach.
 
 The unchanged empirical equation is
 
@@ -552,13 +552,27 @@ How each family answers a point the control cannot hold:
 
 * **ASHP, GSHP** — the candidate is rejected inside the operating-point
   search, like a pressure-ratio ceiling. The search moves to a smaller lift
-  if one carries the duty (ASHP adds a 16 × 16 approach lattice when its 8 × 8
-  one finds nothing: the band between the coil's airflow limit and the
-  discharge limit can be a few kelvin wide); otherwise the capacity search
-  returns the largest deliverable duty with ``capacity_clamped == "max"`` and
-  ``capacity_binding == "discharge_temperature"`` (the next larger duty is
-  deliverable once the limit is lifted). With no deliverable duty the result
-  is the off state with ``failure_reason == "discharge_temp_above_max"``.
+  if one carries the duty; otherwise the capacity search returns the largest
+  deliverable duty with ``capacity_clamped == "max"`` and
+  ``capacity_binding == "discharge_temperature"``. With no deliverable duty
+  the result is the off state with
+  ``failure_reason == "discharge_temp_above_max"``.
+
+  ASHP decides both questions at the **least-lift point** of a duty — both
+  coils at their largest airflow, the smallest pressure ratio and the coolest
+  discharge at which the duty is delivered
+  (``AirSourceHeatPump._largest_airflow_point``). It is solved as a fixed
+  point of the two approach temperatures and is one of the starting points of
+  the least-power search, so a band of running approaches thinner than any
+  lattice is still entered (about 1 K wide for the default unit at −25 °C). A duty
+  whose least-lift point is outside the envelope has no operating point; the
+  unit then runs at the largest duty below the request whose least-lift point
+  is inside (bisected to 0.1 %), ``capacity_binding`` naming the limit the
+  next larger duty runs into — also when a still larger duty would run again,
+  which happens because at mid speed the compressor is less efficient and its
+  discharge hotter than flat out. As for ASHPB below, the control also acts
+  on a candidate whose coils do not carry the cycle, so the coil margins the
+  search reads are those of the controlled cycle.
 * **ASHPB outdoor-approach search** — a candidate outside the envelope (after
   the control) ranks after every solved candidate, including one short of the
   request at ``rps_max``, and before an unphysical state, a coil that cannot

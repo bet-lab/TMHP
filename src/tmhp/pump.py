@@ -195,6 +195,35 @@ def calc_aux_loss_from_ashrae_grade(
     }
 
 
+#: Kavanaugh & Rafferty (2014), Table 6.2: upper bound of each pumping grade as
+#: installed pump input power per unit of heat-pump capacity [W/ton]. The same
+#: table gives the pressure budgets used by :func:`calc_aux_loss_from_ashrae_grade`
+#: (at 3 gpm/ton and a 70 % pump): 50 W/ton <-> 140 kPa, 75 <-> 210, 100 <-> 280,
+#: 150 <-> 420. Grade F (> 150 W/ton) has no upper bound.
+ASHRAE_PUMP_GRADE_W_PER_TON: dict[str, float] = {"A": 50.0, "B": 75.0, "C": 100.0, "D": 150.0}
+#: One ton of refrigeration [W].
+WATT_PER_TON = 3516.853
+
+
+def default_ground_pump_power(hp_capacity: float, grade: str = "B") -> float:
+    """Default ground-loop pump electrical input [W] for a rated capacity [W].
+
+    The upper bound of an ASHRAE pumping grade (Kavanaugh & Rafferty 2014,
+    Table 6.2) times the capacity: grade B is 75 W/ton = 21.3 W per kW, so
+    4 kW gets 85 W and 30 kW gets 640 W. This is the fixed pump power used
+    when the hydraulic pump model is off. It is consistent with that model
+    at the same grade: 210 kPa (:func:`calc_aux_loss_from_ashrae_grade`,
+    grade B) at the default flow of 3.58 L/min per kW
+    (:func:`tmhp.ground_loop.default_ground_flow_lpm`) and the default 60 %
+    wire-to-water efficiency is 20.9 W per kW.
+    """
+    if not isinstance(grade, str) or grade.upper() not in ASHRAE_PUMP_GRADE_W_PER_TON:
+        raise ValueError("Require ASHRAE grade A, B, C or D; F has no finite upper bound")
+    if not math.isfinite(hp_capacity) or hp_capacity <= 0:
+        raise ValueError("hp_capacity must be finite and positive [W]")
+    return ASHRAE_PUMP_GRADE_W_PER_TON[grade.upper()] / WATT_PER_TON * hp_capacity
+
+
 def calc_pump_power(pressure_drop: float, volume_flow: float, efficiency: float) -> float:
     """Electric pump power [W] from pressure [Pa], flow [m³/s] and efficiency."""
     if not all(math.isfinite(x) for x in (pressure_drop, volume_flow, efficiency)):

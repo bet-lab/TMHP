@@ -100,10 +100,18 @@ def test_coil_short_at_every_approach_is_named():
     # UA_ou 1/14 of the default: even at full airflow and the largest approach
     # the cycle reaches, the outdoor coil absorbs less than the duty.
     model = AirSourceHeatPumpBoiler(ref="R32", UA_ou_rated=150.0)
+    opt = model._optimize_operation(50.0, 10000.0, 7.0, flow_state=_FLOW_STATE)
+    assert opt.failure_detail == OUTDOOR_COIL_SHORT
+    # The machine does not stop: it runs at a duty the coil carries at full
+    # airflow. The approach that takes is so large that the discharge
+    # temperature, held by wet suction, is what the next larger duty runs into.
     result = _steady(model, T_tank_w=50.0, T0=7.0, Q_ref_tank=10000.0)
-    assert result["failure_reason"] == "hx_not_converged"
-    assert result["failure_detail"] == OUTDOOR_COIL_SHORT
-    assert result["converged"] is False
+    assert result["failure_reason"] == "none" and result["hp_is_on"] and result["converged"]
+    assert result["capacity_clamped"] == "max" and result["capacity_binding"] == "discharge_temperature"
+    assert result["discharge_control"] is True
+    assert 0.0 < result["Q_ref_tank [W]"] < 10000.0
+    assert result["Q_max [W]"] == result["Q_ref_tank [W]"] and result["Q_request [W]"] == 10000.0
+    assert result["fan_flow_max_limit"]
 
 
 def test_coil_excess_at_every_approach_is_named():

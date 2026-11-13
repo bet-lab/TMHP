@@ -29,7 +29,9 @@ __all__ = [
     "bound_tolerance",
     "Subsystem",
     "SubsystemExergy",
+    "SUBSYSTEM_STATE_KEY",
     "check_hp_schedule_active",
+    "collect_subsystem_state",
     "delivered_tank_heat",
     "determine_heat_source_on_off",
     "determine_tank_refill_flow",
@@ -38,8 +40,12 @@ __all__ = [
     "simulate_thermostat_step",
     "step_hp_result",
     "T_WATER_BOIL_C",
+    "TANK_LEVEL_MIN",
+    "TankStepFlows",
+    "limit_tank_flows",
     "tank_free_heat_rate",
     "tank_mass_energy_residual",
+    "tank_step_flows",
     "unphysical_cycle_detail",
     "warn_if_tank_boiling",
 ]
@@ -176,6 +182,15 @@ class DynamicState:
         Time the compressor has been in its current running state (on or
         off) at the end of the previous step [s]; ``inf`` at the start of a
         run. Read by the minimum on/off time rules.
+    subsystem_state : dict[str, dict]
+        State the subsystems carry from one step to the next, keyed by
+        subsystem name (e.g. ``{"stc": {"pump_on": True, ...}}`` for the
+        collector-loop controller: pump latch, storage-limit hold,
+        stagnation lock-out). Empty at the start of a run. Each value is a
+        plain dict of bools and numbers, replaced (never mutated) every
+        step, so a ``DynamicState`` can be kept, copied or pickled and a step
+        re-run from it gives the same result. See :class:`Subsystem` for how
+        a subsystem reads and writes its entry.
     """
 
     T_tank_w_K: float
@@ -185,6 +200,7 @@ class DynamicState:
     dV_tank_w_out_prev: float
     hp_running_prev: bool = False
     hp_phase_age_s: float = math.inf
+    subsystem_state: dict = field(default_factory=dict)  # dict[str, dict]
 
 
 # ------------------------------------------------------------------
@@ -226,6 +242,25 @@ class SubsystemExergy:
 # ------------------------------------------------------------------
 
 
+#: Key under which a subsystem's step dict carries its next-step state.
+SUBSYSTEM_STATE_KEY: str = "carried_state"
+
+
+def collect_subsystem_state(previous: Mapping[str, dict], sub_states: Mapping[str, Any]) -> dict[str, dict]:
+    """Next ``DynamicState.subsystem_state`` from this step's subsystem dicts.
+
+    Each subsystem whose step dict has a :data:`SUBSYSTEM_STATE_KEY` entry
+    contributes a copy of it; a subsystem that reported none keeps its
+    previous entry. A new dict is returned and ``previous`` is not modified,
+    so the state a step was given can be stepped from again.
+    """
+    carried: dict[str, dict] = {name: dict(value) for name, value in previous.items()}
+    for name, step_state in sub_states.items():
+        if isinstance(step_state, Mapping) and step_state.get(SUBSYSTEM_STATE_KEY) is not None:
+            carried[name] = dict(step_state[SUBSYSTEM_STATE_KEY])
+    return carried
+
+
 class Subsystem(Protocol):
     """Pluggable subsystem interface.
 
@@ -233,6 +268,30 @@ class Subsystem(Protocol):
     timestep and assembles result columns for the output
     DataFrame.  New subsystems (PV, battery, …) implement
     this protocol and register with the boiler model.
+
+    Carried state
+    -------------
+    A subsystem with memory between steps (a controller latch, a lock-out)
+    does not keep it on its own instance: it is part of the run and travels
+    in ``DynamicState.subsystem_state[name]``.
+
+    - *Read*: during a step the host model holds the previous step's states
+      in ``host._subsystem_state_in`` (``{}`` at the start of a run); the
+      subsystem's entry is ``host._subsystem_state_in.get(name, {})``. It
+      must not be modified. The host's hooks (``_run_subsystems``,
+      ``_augment_results``) read it there; a subsystem object stepped
+      through this protocol has no reference to its host, so the hook that
+      calls it hands the entry over.
+    - *Write*: the subsystem puts its next state, a new plain dict, under
+      :data:`SUBSYSTEM_STATE_KEY` (``"carried_state"``) of the dict its
+      ``step()`` returned, at the latest in ``assemble_results()`` (the
+      state may depend on the solved tank temperature). The host gathers
+      these with :func:`collect_subsystem_state`.
+
+    A ``step()``-driven host (ASHPB) threads the states through the
+    ``DynamicState`` it returns; a host that only offers ``analyze_dynamic``
+    (GSHPB) keeps them for the run and clears them when a run starts. Either
+    way a second run with the same inputs starts from empty state.
     """
 
     def step(
@@ -483,6 +542,9 @@ def tank_free_heat_rate(
     ``r(T) = [C_next·T - C_curr·T_start - dt·(Q_heat_source + P(T))] / C_tank``,
     for ``P(T)``: draw-off enthalpy, envelope loss and subsystem heat (a
     subsystem residual that re-evaluates its physics at ``T`` is included).
+    With ``C_next = C_curr`` it returns the temperature-form rate
+    ``P(T) - (C_next_true - C_curr)·T/dt`` that drives ``C_curr·dT/dt``
+    (see :func:`resolve_step_operation`).
     """
     r = float(residual(T_K))
     return (C_next * T_K - C_curr * T_start_K - C_tank * r) / dt - Q_heat_source
@@ -745,7 +807,12 @@ def resolve_step_operation(
     ``residual_free(T_K)`` is the boiler's own implicit tank residual built
     with a zero heat-source rate; it supplies the heat the tank gains or
     loses from everything else (:func:`tank_free_heat_rate`), linearised
-    between ``min(T_start, T_lower)`` and ``max(T_start, T_upper)``.
+    between ``min(T_start, T_lower)`` and ``max(T_start, T_upper)``. The
+    thermostat integrates ``C_curr·dT/dt`` (the start-of-step capacity); for
+    a tank whose level changes in the step the free heat is taken in that
+    temperature form, so the make-up enters as ``ρc·V̇_in·(T_in - T)`` and
+    the draw, which leaves at the tank temperature, does not change ``T``.
+    ``C_next`` is accepted for compatibility and not used.
     ``solve_cycle(T_C)`` returns the boiler's cycle result at tank
     temperature ``T_C`` (a running result, or an off-mode row with a
     ``failure_reason``); ``Q_request`` [W] is the heat it is asked for.
@@ -781,6 +848,13 @@ def resolve_step_operation(
     T_b = max(T0_C, T_upper)
     if T_b - T_a < 1.0:
         T_b = T_a + 1.0
+    # Temperature form of the balance at the start capacity: inverting the
+    # residual with C_next = C_curr leaves P(T) - (C_next - C_curr)·T/dt, i.e.
+    # the make-up's heat V̇_in·ρc·(T_in - T) instead of the absolute enthalpy
+    # of the water that changes the level. The conservative step
+    # C_next·T1 - C_curr·T0 = dt·(Q + P(T1)) is C_curr·(T1 - T0) = dt·(Q + P'(T1)),
+    # the thermostat's equation. The two are the same for an always-full tank
+    # (C_next == C_curr); ``C_next`` is accepted for the callers and unused.
     free = tuple(
         (
             T,
@@ -789,7 +863,7 @@ def resolve_step_operation(
                 T + 273.15,
                 T_start_K=T_start_K,
                 C_curr=C_curr,
-                C_next=C_next,
+                C_next=C_curr,
                 C_tank=C_tank,
                 dt=dt,
                 Q_heat_source=0.0,
@@ -852,8 +926,10 @@ def resolve_step_operation(
 
 
 TANK_BOILING_WARNING = (
-    "tank water above 100 °C: the heat pump stops at its upper set point (at the latest at 100 °C), "
-    "so this heat comes from another source (e.g. a solar collector loop without a high limit, #96 T9). "
+    "tank water above 100 °C: the heat pump stops at its upper set point (at the latest at 100 °C) and "
+    "the solar collector loops at their storage limit (T_stc_tank_max, 85 °C by default), so this heat "
+    "comes from another source: a subsystem that heats the tank without a limit of its own (e.g. a UV "
+    "lamp), or a collector storage limit set at 100 °C. "
     "The lumped tank model has no boiling or relief valve; temperatures above 100 °C are not physical."
 )
 
@@ -1033,6 +1109,25 @@ def determine_tank_refill_flow(
     tuple[float | None, bool]
         ``(dV_tank_w_in, is_refilling)``.
         ``None`` means always-full sentinel (no PSF).
+
+    Notes
+    -----
+    ``dV_tank_w_out`` is the draw expected over the step. The returned
+    make-up is a step-average rate:
+
+    * ``tank_always_full=False``: the refill valve is followed through the
+      step (:func:`_refill_within_step`). It opens when the falling level
+      reaches ``tank_level_lower_bound`` and closes when it is back at
+      ``tank_level_upper_bound``, at any point of the step, and admits
+      ``dV_tank_w_in_refill`` while open.
+    * ``prevent_simultaneous_flow``: no make-up in a step that draws;
+      otherwise ``dV_tank_w_in_refill`` until the tank is full.
+
+    Either way a step whose full-rate refill would overshoot the target takes
+    the part that reaches it. It used to take none: with
+    ``dV_tank_w_in_refill·dt`` above the tank volume (the default 1 L/s at
+    any step above 151 s) the tank never refilled. The tank balance then
+    limits both flows to what the tank can pass (:func:`limit_tank_flows`).
     """
     lv: float = tank_level
     if not tank_always_full or (tank_always_full and prevent_simultaneous_flow):
@@ -1047,25 +1142,198 @@ def determine_tank_refill_flow(
         if dV_tank_w_out > 0:
             is_refilling = False
         elif lv < 1.0:
-            req: float = (1.0 - lv) * V_tank_full
-            if dV_tank_w_in_refill * dt <= req:
-                dV_tank_w_in = dV_tank_w_in_refill
+            dV_tank_w_in = min(dV_tank_w_in_refill, (1.0 - lv) * V_tank_full / dt)
     elif tank_always_full:
         return None, is_refilling  # sentinel
     else:
-        lo: float = tank_level_lower_bound
-        hi: float = tank_level_upper_bound
-        if not is_refilling and lv < lo - 1e-6:
-            is_refilling = True
-        if is_refilling:
-            req = (hi - lv) * V_tank_full
-            if dV_tank_w_in_refill * dt <= req:
-                dV_tank_w_in = dV_tank_w_in_refill
-            chk: float = lv + dV_tank_w_in * dt / V_tank_full
-            if chk >= hi - 1e-6:
-                is_refilling = False
+        return _refill_within_step(
+            dt,
+            tank_level,
+            dV_tank_w_out,
+            V_tank_full,
+            tank_level_lower_bound,
+            tank_level_upper_bound,
+            dV_tank_w_in_refill,
+            is_refilling,
+        )
 
     return dV_tank_w_in, is_refilling
+
+
+LEVEL_TOL: float = 1e-6
+"""Width of the refill bounds [-]: a level within it of a bound is on it."""
+
+
+def _refill_within_step(
+    dt: float,
+    level: float,
+    dV_out: float,
+    V_tank_full: float,
+    lo: float,
+    hi: float,
+    dV_refill: float,
+    refilling: bool,
+) -> tuple[float, bool]:
+    """Refill valve of a level-varying tank followed through one step.
+
+    The level falls at ``dV_out/V`` (the step's expected draw); the valve
+    opens when it reaches ``lo`` and closes at ``hi``, at any point of the
+    step, and admits ``dV_refill`` while open. Returns the step-average
+    make-up rate and the valve state at the step end. Following the events
+    makes the refilled volume, and so the level at each step end, the same
+    for any step length (a valve that opened on the level expected at the
+    step end filled earlier and more at long steps).
+    """
+    t = 0.0
+    vol_in = 0.0
+    for _ in range(1000):
+        rem = dt - t
+        if rem <= 0.0:
+            break
+        if refilling and level >= hi - LEVEL_TOL:
+            # Carried in open but already at (or above) the upper bound: the
+            # previous step latched the valve on its start-temperature draw
+            # and solved a smaller one. Close it; a closing time computed
+            # from here would be negative.
+            refilling = False
+            continue
+        if refilling:
+            net = dV_refill - dV_out
+            t_close = (hi - level) * V_tank_full / net if net > 0.0 else math.inf
+            if t_close >= rem:
+                vol_in += dV_refill * rem
+                level += net * rem / V_tank_full
+                break
+            vol_in += dV_refill * t_close
+            t += t_close
+            level, refilling = hi, False
+        else:
+            if level < lo - LEVEL_TOL:
+                refilling = True
+                continue
+            t_open = max(0.0, level - lo) * V_tank_full / dV_out if dV_out > 0.0 else math.inf
+            if t_open >= rem:
+                break
+            t += t_open
+            level, refilling = lo, True
+    else:
+        # Valve cycling faster than the step resolves (a band far narrower than
+        # one step of draw): it passes the draw, holding the level.
+        vol_in += dV_out * (dt - t)
+    if refilling and level >= hi - LEVEL_TOL:
+        refilling = False
+    return vol_in / dt, refilling
+
+
+TANK_LEVEL_MIN: float = 0.001
+"""Lowest fill level of a tank whose level varies [-].
+
+A level-varying tank (``tank_always_full=False``, or
+``prevent_simultaneous_flow``) keeps this much water: a draw that would take
+it lower is cut to the water above it plus the step's make-up, and the cut
+is reported as unmet hot water (``dV_mix_w_out_unmet [m3/s]``). The value is
+the floor the tank heat capacity used to be clamped to; the clamp now has the
+water behind it, so it no longer creates energy.
+"""
+
+
+def limit_tank_flows(
+    tank_level: float,
+    dV_tank_w_in: float,
+    dV_tank_w_out: float,
+    dt: float,
+    V_tank_full: float,
+    level_min: float = TANK_LEVEL_MIN,
+    level_max: float = 1.0,
+) -> tuple[float, float, float]:
+    """Make-up and draw a tank can pass in one step, and its end level.
+
+    The draw takes no more than the water above ``level_min`` plus the
+    make-up over the step; the make-up adds no more than the room below
+    ``level_max`` plus the draw. The end level is
+    ``tank_level + (dV_in - dV_out)·dt / V_tank_full`` and stays within
+    ``[level_min, level_max]`` (a tank already below ``level_min`` is not
+    drawn from until the make-up lifts it).
+
+    Returns
+    -------
+    tuple[float, float, float]
+        ``(dV_tank_w_in, dV_tank_w_out, level_next)`` [m³/s, m³/s, -].
+    """
+    # Neither port runs backwards.
+    dV_tank_w_in = max(0.0, dV_tank_w_in)
+    dV_tank_w_out = max(0.0, dV_tank_w_out)
+    room_out = (tank_level - level_min) * V_tank_full / dt
+    dV_out = min(dV_tank_w_out, max(0.0, room_out + dV_tank_w_in))
+    room_in = (level_max - tank_level) * V_tank_full / dt
+    dV_in = min(dV_tank_w_in, max(0.0, room_in + dV_out))
+    level_next = tank_level + (dV_in - dV_out) * dt / V_tank_full
+    # Round-off only: the limits above already keep the level in range.
+    level_next = min(level_max, max(min(level_min, tank_level), level_next))
+    return dV_in, dV_out, level_next
+
+
+@dataclass(frozen=True)
+class TankStepFlows:
+    """Tank-side flows of one step at the end-of-step tank temperature.
+
+    Attributes
+    ----------
+    alp : float
+        Mixing-valve hot share at the end-of-step tank temperature [-].
+    dV_tank_w_out : float
+        Hot water leaving the tank for the mixing valve [m³/s].
+    dV_tank_w_in : float
+        Make-up water entering the tank [m³/s].
+    level_next : float
+        End-of-step fill level [-].
+    dV_mix_w_out : float
+        Mixed water delivered at the set point [m³/s]: the demand, less what
+        the tank could not supply.
+    dV_mix_w_out_unmet : float
+        Mixed-water demand the tank could not supply [m³/s] (a level-varying
+        tank at :data:`TANK_LEVEL_MIN`).
+    """
+
+    alp: float
+    dV_tank_w_out: float
+    dV_tank_w_in: float
+    level_next: float
+    dV_mix_w_out: float
+    dV_mix_w_out_unmet: float
+
+
+def tank_step_flows(
+    T_next_K: float,
+    ctx: StepContext,
+    ctrl: ControlState,
+    dt: float,
+    T_sup_w_K: float,
+    T_mix_w_out_K: float,
+    V_tank_full: float,
+) -> TankStepFlows:
+    """Tank flows and end level of a step whose tank ends at ``T_next_K``.
+
+    The mixing valve takes the hot share ``alp`` of the demand
+    ``ctx.dV_mix_w_out`` from the tank at the end-of-step temperature
+    (implicit, as :func:`tank_mass_energy_residual`). An always-full tank
+    (``ctrl.dV_tank_w_in_ctrl is None``) takes in what it gives and keeps its
+    level. A level-varying tank takes in ``ctrl.dV_tank_w_in_ctrl`` and both
+    flows pass :func:`limit_tank_flows`; a draw it cuts delivers
+    proportionally less mixed water, at the same set point.
+    """
+    den: float = max(1e-6, T_next_K - T_sup_w_K)
+    alp: float = min(1.0, max(0.0, (T_mix_w_out_K - T_sup_w_K) / den))
+    dV_out_request: float = alp * ctx.dV_mix_w_out
+    if ctrl.dV_tank_w_in_ctrl is None:
+        return TankStepFlows(alp, dV_out_request, dV_out_request, ctx.tank_level, ctx.dV_mix_w_out, 0.0)
+    dV_in, dV_out, level_next = limit_tank_flows(
+        ctx.tank_level, float(ctrl.dV_tank_w_in_ctrl), dV_out_request, dt, V_tank_full
+    )
+    delivered = ctx.dV_mix_w_out
+    if dV_out < dV_out_request:
+        delivered = ctx.dV_mix_w_out * dV_out / dV_out_request
+    return TankStepFlows(alp, dV_out, dV_in, level_next, delivered, ctx.dV_mix_w_out - delivered)
 
 
 def tank_mass_energy_residual(
@@ -1088,13 +1356,24 @@ def tank_mass_energy_residual(
     The 3-way mixing valve ratio α(T) makes the outflow a
     nonlinear function of T^{n+1}, requiring ``fsolve``.
 
+    The energy residual is the conservative implicit balance
+    ``C_tank·(L1·T1 - L0·T0) = dt·(Q + ρc·(V̇_in·T_in - V̇_out·T1) - UA·(T1 - T_sur))``
+    with ``L1 = L0 + (V̇_in - V̇_out)·dt/V``. An always-full tank keeps
+    ``L1 = L0``. A level-varying tank (``ctrl.dV_tank_w_in_ctrl`` set) takes
+    ``L1`` and both flows from :func:`tank_step_flows` at ``T1``, so the
+    water the balance adds or removes is the water that flows; the draw
+    stops at :data:`TANK_LEVEL_MIN` and the make-up at full. The envelope
+    loss ``UA·(T1 - T_sur)`` does not depend on the level.
+
     Subsystem energy contributions and tank-inlet temperature
     overrides are read from ``sub_states``.
 
     Parameters
     ----------
     x : list[float]
-        ``[T_next_K, level_next]``.
+        ``[T_next_K, level_next]``. For a level-varying tank ``level_next``
+        enters only the mass residual (the energy residual uses the level its
+        flows give).
     ctx : StepContext
         Current-step immutable context.
     ctrl : ControlState
@@ -1128,18 +1407,31 @@ def tank_mass_energy_residual(
     T_next: float = x[0]
     level_next: float = x[1]
 
-    den: float = max(1e-6, T_next - T_sup_w_K)
-    alp: float = min(
-        1.0,
-        max(0.0, (T_mix_w_out_K - T_sup_w_K) / den),
-    )
-    dV_tank_w_out: float = alp * ctx.dV_mix_w_out
-    dV_tank_w_in: float = dV_tank_w_out if ctrl.dV_tank_w_in_ctrl is None else ctrl.dV_tank_w_in_ctrl
+    if ctrl.dV_tank_w_in_ctrl is None:
+        # Always full: the make-up equals the draw and the level holds.
+        den: float = max(1e-6, T_next - T_sup_w_K)
+        alp: float = min(
+            1.0,
+            max(0.0, (T_mix_w_out_K - T_sup_w_K) / den),
+        )
+        dV_tank_w_out: float = alp * ctx.dV_mix_w_out
+        dV_tank_w_in: float = dV_tank_w_out
 
-    r_mass: float = level_next - ctx.tank_level - (dV_tank_w_in - dV_tank_w_out) * dt / V_tank_full
+        r_mass: float = level_next - ctx.tank_level - (dV_tank_w_in - dV_tank_w_out) * dt / V_tank_full
 
-    C_curr: float = C_tank * max(0.001, ctx.tank_level)
-    C_next: float = C_tank * max(0.001, level_next)
+        C_curr: float = C_tank * max(TANK_LEVEL_MIN, ctx.tank_level)
+        C_next: float = C_tank * max(TANK_LEVEL_MIN, level_next)
+    else:
+        # Level varies: the mass the energy balance carries comes from the
+        # same flows it uses (the draw at T^{n+1}, limited to what the tank
+        # holds), so the end level is computed here and ``x[1]`` only enters
+        # the mass residual. ``max`` guards a start below TANK_LEVEL_MIN only.
+        flows = tank_step_flows(T_next, ctx, ctrl, dt, T_sup_w_K, T_mix_w_out_K, V_tank_full)
+        dV_tank_w_out = flows.dV_tank_w_out
+        dV_tank_w_in = flows.dV_tank_w_in
+        r_mass = level_next - flows.level_next
+        C_curr = C_tank * max(TANK_LEVEL_MIN, ctx.tank_level)
+        C_next = C_tank * max(TANK_LEVEL_MIN, flows.level_next)
     T_sur_K = T_sur_K if T_sur_K is not None else ctx.T0_K
     Q_loss: float = UA_tank_wall * (T_next - T_sur_K)
 

@@ -46,17 +46,18 @@ Common to all families
     * - ``hx_not_converged``
       - HX residual exceeded tolerance, but the cycle itself
         produced a state.
-      - Depends on the family. GSHPB, WSHPB, ASHP and every
-        ``analyze_dynamic`` row: no — off-mode (``E_cmp = 0``,
-        ``Q_ref_tank = 0``, NaN COP). ASHPB ``analyze_steady``: no —
-        only the HX diagnostics, without duty or power keys. GSHP
+      - Depends on the family. ASHPB, GSHPB, WSHPB, ASHP and every
+        ``analyze_dynamic`` row: no — off-mode (``hp_is_on = False``,
+        ``E_cmp = 0``, ``Q_ref_tank = 0``, NaN COP). GSHP
         ``analyze_steady``: yes — the unconverged cycle state, to be
-        treated as approximate. ``converged == False`` throughout.
+        treated as approximate. ``converged == False`` throughout. On the
+        boilers this reason is reported only when no smaller duty runs
+        either (see *A request above a limit* below).
     * - ``optimizer_failed``
       - SciPy couldn't satisfy its own success criteria, even
         though the cycle returned a state.
-      - Depends on the family. GSHPB, WSHPB, ASHP and every
-        ``analyze_dynamic`` row: no — off-mode. ASHPB and GSHP
+      - Depends on the family. ASHPB, GSHPB, WSHPB, ASHP and every
+        ``analyze_dynamic`` row: no — off-mode. GSHP
         ``analyze_steady``: yes — numbers exist, but the
         evaporating-temperature choice is not provably optimal.
     * - ``cycle_invalid``
@@ -71,7 +72,9 @@ Common to all families
         (default 11 for every family, the single-stage scroll limit). The
         single-stage envelope is rejected rather than clamped, so no cycle
         state is produced. Reported instead of ``cycle_invalid`` when the
-        last pressure-ratio check was a ceiling violation.
+        last pressure-ratio check was a ceiling violation. A boiler
+        request above the ceiling that a smaller duty meets is not a
+        failure (see *A request above a limit* below).
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
     * - ``discharge_temp_above_max``
@@ -86,7 +89,9 @@ Common to all families
         "max"`` and ``capacity_binding == "discharge_temperature"``. A
         dynamic boiler step does the same: it runs at the reduced duty (its
         run time and step-average heat follow from it) and is an off step
-        with this reason only when no duty fits.
+        with this reason only when no duty fits. The other limits a smaller
+        duty cures are answered the same way (see *A request above a limit*
+        below).
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
 
@@ -157,6 +162,58 @@ also appear).
       - The ground heat exchanger could not supply the required evaporator
         duty at any approach temperature in the search band.
 
+A request above a limit (boilers)
+---------------------------------
+
+A boiler is asked for a fixed duty. An inverter unit asked for more than an
+operating limit allows does not stop: its controller lowers the compressor
+frequency until the limit holds. So when the requested duty has no operating
+point for one of the reasons below and a smaller duty has one,
+``analyze_steady`` and each dynamic step return the **largest duty that runs**
+(found to 1 % of the request), not a failure:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 34 26 40
+
+    * - The request fails with
+      - ``capacity_binding``
+      - Why a smaller duty helps
+    * - ``discharge_temp_above_max``, or ``cycle_invalid`` with
+        ``failure_detail == "discharge_state_undefined"``
+      - ``"discharge_temperature"``
+      - A smaller condenser approach lowers the condensing pressure and
+        with it the discharge temperature.
+    * - ``pr_above_max``
+      - ``"pressure_ratio"``
+      - The condenser and the source heat exchanger both need a smaller
+        approach, so the pressure ratio falls.
+    * - ``hx_not_converged``
+      - ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB)
+      - The source heat exchanger has less heat to absorb. Not tried when
+        ``failure_detail == "outdoor_coil_excess_at_min_airflow"``: a
+        smaller duty makes that worse.
+    * - ``eta_isen_below_min``
+      - ``"compressor_efficiency"``
+      - A lower pressure ratio moves the shipped fit back above its floor.
+
+The result is a running point with ``capacity_clamped == "max"``,
+``Q_max [W]`` (the duty delivered) and ``Q_request [W]`` (the duty asked for);
+``capacity_binding`` names the limit the next larger duty tried ran into, or
+``"pressure_ratio"`` when the point returned sits on ``PR_cycle_max`` (the
+source heat exchanger then asks for a larger approach than the ceiling leaves
+it). ``"compressor"`` remains the value for the speed ceiling ``rps_max``.
+When no smaller duty runs, the result is the off state with the request's own
+``failure_reason``.
+
+Not reduced: ``cycle_invalid`` for any other cause, ``t_cond_below_t_in`` and
+``optimizer_failed``. In particular a request with no cycle at all stays a
+failure. With the boilers that is a condensing temperature -- the tank
+temperature plus the condenser approach the duty needs -- at or above the
+critical point; the largest smaller duty would sit on the critical point
+itself, a state no machine runs at, and the envelope has no
+condensing-pressure ceiling below it to reduce onto.
+
 ``failure_detail``
 ------------------
 
@@ -169,7 +226,8 @@ solver accepted but which is not an operating point is reported as
 (``tmhp.dynamic_context.unphysical_cycle_detail``). An ASHPB
 ``analyze_steady`` result reported as ``hx_not_converged`` because no outdoor
 approach lets the outdoor coil carry the evaporator duty within the fan's flow
-limits names the limit it fails at. The outdoor-approach search solves the band
+limits names the limit it fails at (the off-mode row carries it; the request
+is first retried at smaller duties as described above). The outdoor-approach search solves the band
 of approaches the fan can serve from the coil's capacity margins at its largest
 and smallest airflow; these values say why that band is empty.
 
@@ -287,11 +345,12 @@ the recommended lever to pull when you hit each one.
 
     The HX residual didn't drop below tolerance inside the inner
     iteration, but the cycle still produced a state. Only GSHP's
-    ``analyze_steady`` returns that state, as an approximation; GSHPB,
-    WSHPB, ASHP and every ``analyze_dynamic`` row report an off-mode
-    row with zero heat and power, and ASHPB's ``analyze_steady``
-    returns only the HX diagnostics. ``converged`` is ``False`` so you
-    can filter rows downstream.
+    ``analyze_steady`` returns that state, as an approximation; ASHPB,
+    GSHPB, WSHPB, ASHP and every ``analyze_dynamic`` row report an
+    off-mode row with zero heat and power. ``converged`` is ``False`` so
+    you can filter rows downstream. A boiler reports it only when no
+    smaller duty runs: otherwise it runs at the largest duty its source
+    heat exchanger carries (``capacity_clamped == "max"``).
 
     **What to do.** Treat ``converged`` as the source of truth
     for "trust this row?" decisions. If the rate of
@@ -306,9 +365,9 @@ the recommended lever to pull when you hit each one.
 
     The outer SciPy optimiser exited with ``success == False``.
     The cycle still has a state at the optimiser's best
-    ``dT_ref_evap``, just not a provably optimal one. ASHPB and GSHP
-    ``analyze_steady`` return that state; GSHPB, WSHPB, ASHP and every
-    ``analyze_dynamic`` row report an off-mode row instead.
+    ``dT_ref_evap``, just not a provably optimal one. GSHP
+    ``analyze_steady`` returns that state; ASHPB, GSHPB, WSHPB, ASHP and
+    every ``analyze_dynamic`` row report an off-mode row instead.
 
     **What to do.** Where numbers are returned they are reasonable but not
     optimisation-grade — fine for most aggregations, suspect for

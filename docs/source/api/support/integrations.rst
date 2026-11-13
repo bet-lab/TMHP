@@ -77,3 +77,14 @@ EnergyPlus Python Plugin
     :members:
     :undoc-members:
     :show-inheritance:
+
+Ground response from geolink
+============================
+
+Optional. ``geolink`` is a separate package and is imported only when
+:func:`~tmhp.integrations.geolink.geolink_gfunction` is called; see
+:doc:`../../models/ground-response`.
+
+.. automodule:: tmhp.integrations.geolink
+    :members:
+    :show-inheritance:

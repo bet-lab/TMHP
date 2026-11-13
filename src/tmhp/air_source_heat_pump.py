@@ -76,6 +76,7 @@ from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_gener
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
+    props_si,
     reportable_state,
 )
 
@@ -861,7 +862,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             import CoolProp.CoolProp as CP
 
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
-            h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+            h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
             h_ref_cmp_out_isen = h_cmp_in
 

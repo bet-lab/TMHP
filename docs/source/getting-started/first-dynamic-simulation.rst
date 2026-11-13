@@ -94,7 +94,11 @@ time step. The columns are the same units-bracketed keys you get from
   ``hp_starts [-]`` (compressor starts in the step) and
   ``failure_reason``.
 - **Tank state** — ``T_tank_w [°C]`` at the end of the step,
-  ``tank_level [-]``.
+  ``tank_level [-]``. A tank whose level varies
+  (``tank_always_full=False`` or ``prevent_simultaneous_flow``) also
+  reports ``dV_mix_w_out_unmet [m3/s]``: hot-water demand it could not
+  supply because it had drained to its lowest level
+  (``dV_mix_w_out [m3/s]`` is then the water delivered).
 - **Figures of merit** — ``cop_ref [-]``, ``cop_sys [-]`` of the running
   cycle (``NaN`` on steps it did not run); equal to the step-average heat
   over the step-average compressor (and fan / source pump) power.

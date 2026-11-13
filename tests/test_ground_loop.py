@@ -55,7 +55,10 @@ def test_model_superposition_uses_field_length(monkeypatch, cls, n, q):
     assert model.Q_bhe == pytest.approx(q)
     assert model.T_bhe == pytest.approx(16 - q / (n * 100) * 0.2)
     assert model.T_bhe - model.T_bhe_f == pytest.approx(q / (n * 100) * 0.1)
-    assert (model.T_bhe_f_out - model.T_bhe_f_in) * 0.001 * rho_w * c_w == pytest.approx(q)
+    # The loop temperature difference carries the load with the loop liquid's own heat capacity.
+    fluid = model.source_fluid
+    assert (fluid.name, fluid.rho * fluid.cp) != ("water", rho_w * c_w)  # the default is a glycol mixture
+    assert (model.T_bhe_f_out - model.T_bhe_f_in) * 0.001 * fluid.rho * fluid.cp == pytest.approx(q)
 
 
 def test_off_flow_guard():

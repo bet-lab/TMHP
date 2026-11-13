@@ -48,20 +48,12 @@ def machines() -> dict[tuple[str, float], object]:
     return {(fam, cap): _quiet(cls, hp_capacity=cap) for fam, cls in FAMILIES.items() for cap in (3e3, 8e3, 3e4)}
 
 
-#: Loop liquid of the points at or below 0 °C (B0 and colder): an antifreeze
-#: with the properties of water, so the machine and its numbers are the default
-#: ones while the freezing limit of water (3 °C) does not refuse the point.
-COLD_LOOP = dict(source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
-
-
-@pytest.fixture(scope="module")
-def brine_machines() -> dict[tuple[str, float], object]:
-    """The machines of :func:`machines` on :data:`COLD_LOOP`, for the brine rating point B0."""
-    return {
-        (fam, cap): _quiet(cls, hp_capacity=cap, **COLD_LOOP)
-        for fam, cls in FAMILIES.items()
-        for cap in (3e3, 8e3, 3e4)
-    }
+#: Loop liquid for the points at or below 0 °C (B0 and colder). The ground
+#: loop's default, 25 % ethylene glycol, runs them as it is. The water-source
+#: boiler's default is water (operating limit 3 °C): there the loop gets an
+#: antifreeze with the properties of water, which keeps the machine and its
+#: numbers those of the default one.
+COLD_LOOP: dict[str, dict] = {"GSHPB": {}, "WSHPB": dict(source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)}
 
 
 # ---------------------------------------------------------------------------
@@ -76,8 +68,15 @@ def test_defaults_scale_with_capacity(machines, family, capacity):
     assert m.UA_tank_hx == pytest.approx(capacity / 5.0)
     assert getattr(m, SOURCE_UA[family]) == pytest.approx(0.18 * capacity)
     assert m.E_pmp == pytest.approx(75.0 / 3516.85 * capacity) == pytest.approx(PUMP_POWER_PER_CAPACITY * capacity)
-    # 0.75 x capacity at a 3 K loop temperature difference: 3.58 L/min per kW.
-    assert m.dV_b_f_m3s * 60000.0 == pytest.approx(default_source_flow_lpm(capacity))
+    # 0.75 x capacity at a 3 K loop temperature difference of the loop liquid:
+    # 3.58 L/min per kW of water (WSHPB), 3.84 of 25 % ethylene glycol (GSHPB).
+    fluid = m.source_fluid
+    assert fluid.name == {"GSHPB": "MEG-25%", "WSHPB": "water"}[family]
+    assert m.dV_b_f_m3s * 60000.0 == pytest.approx(default_source_flow_lpm(capacity, fluid.rho, fluid.cp))
+    assert m.dV_b_f_m3s * fluid.rho * fluid.cp * 3.0 == pytest.approx(0.75 * capacity)
+    if family == "GSHPB":
+        assert m.dV_b_f_m3s * 60000.0 == pytest.approx(3.844 * capacity / 1000.0, rel=2e-3)
+        return
     assert m.dV_b_f_m3s * 60000.0 == pytest.approx(3.583 * capacity / 1000.0, rel=2e-3)
 
 
@@ -98,12 +97,13 @@ def test_default_8kw_machine_keeps_one_borehole_and_larger_ones_stay_below_50_w_
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
-def test_rated_cop_does_not_depend_on_capacity(machines, brine_machines, family):
+def test_rated_cop_does_not_depend_on_capacity(machines, family):
     """B0/W35 (GSHPB) and W10/W35 (WSHPB) at the rated duty: the same cycle at every capacity."""
     cops = []
     for cap in (3e3, 8e3, 3e4):
-        machine = (brine_machines if RATING_SOURCE_C[family] < 5.0 else machines)[family, cap]
-        r = _quiet(machine.analyze_steady, T_tank_w=35.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap)
+        r = _quiet(
+            machines[family, cap].analyze_steady, T_tank_w=35.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap
+        )
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["T_ref_cond_sat_l [°C]"] - 35.0 == pytest.approx(5.0, abs=1e-6)
         cops.append((r["cop_ref [-]"], r["cop_sys [-]"]))
@@ -151,9 +151,12 @@ def test_overloaded_field_laminar_flow_and_unreachable_set_point_warn():
     # 30 kW on the caller's single 200 m borehole: 112 W/m.
     with pytest.warns(UserWarning, match=r"112 W per metre.*above 80 W/m"):
         GroundSourceHeatPumpBoiler(hp_capacity=3e4, N_1=1, t_max_s=86400.0)
-    # The default flow of 8 kW split over 16 boreholes: Re 1463.
-    with pytest.warns(UserWarning, match=r"laminar, Re = 14\d\d"):
+    # The default flow of 8 kW split over 16 boreholes: Re 440 with the default
+    # 25 % ethylene glycol (1463 with water).
+    with pytest.warns(UserWarning, match=r"laminar, Re = 4\d\d "):
         GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0)
+    with pytest.warns(UserWarning, match=r"laminar, Re = 14\d\d "):
+        GroundSourceHeatPumpBoiler(N_1=4, N_2=4, H_b=50.0, t_max_s=86400.0, source_fluid="water")
     # 500 W/K at 8 kW is a 16 K approach: 65 + 16 = 81 °C is above the R410A critical point.
     for cls in FAMILIES.values():
         with pytest.warns(UserWarning, match=r"critical temperature of R410A \(71\.3 °C\)"):
@@ -205,7 +208,7 @@ def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T
     1e-4 K, which left about 0.1 W of the source balance open and failed the
     0.01 W check that follows (``hx_not_converged``).
     """
-    m = _quiet(FAMILIES[family], ref=ref, **(COLD_LOOP if T_source < 5.0 else {}))
+    m = _quiet(FAMILIES[family], ref=ref, **(COLD_LOOP[family] if T_source < 5.0 else {}))
     r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=400.0, T0=10.0)
     assert r["failure_reason"] == "none" and r["hp_is_on"] and r["capacity_clamped"] == "min"
     # Reported as the mean of cycling at that capacity: the request is delivered.
@@ -246,7 +249,7 @@ def test_modulating_point_keeps_the_requested_approach(machines, family):
 @pytest.mark.parametrize("ref", ["R290", "R134a"])
 def test_suction_is_not_hotter_than_the_entering_source(family, ref):
     """C11: at low load the evaporator approach is below the nominal superheat."""
-    m = _quiet(FAMILIES[family], ref=ref, **COLD_LOOP)
+    m = _quiet(FAMILIES[family], ref=ref, **COLD_LOOP[family])
     for T_source, T_tank, load in ((0.0, 50.0, 2000.0), (10.0, 55.0, 400.0)):
         r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=load, T0=10.0)
         assert r["failure_reason"] == "none"
@@ -257,8 +260,8 @@ def test_suction_is_not_hotter_than_the_entering_source(family, ref):
         assert r["T_ref_cmp_in [°C]"] >= r["T_ref_evap_sat [°C]"] - 1e-9
 
 
-def test_superheat_is_untouched_where_the_approach_allows_it(brine_machines):
-    m = brine_machines["GSHPB", 8e3]
+def test_superheat_is_untouched_where_the_approach_allows_it(machines):
+    m = machines["GSHPB", 8e3]
     r = _quiet(m.analyze_steady, T_tank_w=35.0, T_source=0.0, Q_ref_tank=8000.0)
     assert r["T_ref_cmp_in [°C]"] - r["T_ref_evap_sat [°C]"] == pytest.approx(m.dT_superheat, abs=1e-6)
 
@@ -269,10 +272,11 @@ def test_low_speed_balance_below_1_K_approach_is_solved():
     The approach search started at 1 K, reported ``hx_not_converged`` and took
     its 1024-point scan to say so.
     """
-    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0, **COLD_LOOP)
+    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0)
     r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=2000.0)
     assert r["failure_reason"] == "none"
-    approach = r["T_bhe_f_out [°C]"] + r["E_pmp [W]"] / (m.dV_b_f_m3s * 4.186e6) - r["T_ref_evap_sat [°C]"]
+    rho_c = m.source_fluid.rho * m.source_fluid.cp
+    approach = r["T_bhe_f_out [°C]"] + r["E_pmp [W]"] / (m.dV_b_f_m3s * rho_c) - r["T_ref_evap_sat [°C]"]
     assert 0.5 < approach < 1.0
 
 
@@ -371,7 +375,7 @@ def test_evaporator_is_solved_against_the_source_fluid_of_the_same_step(default_
     assert (rows["T_ref_evap_sat [°C]"] < rows["T_bhe_f_out [°C]"] - 0.3).all()
     assert (rows["T_ref_cmp_in [°C]"] <= rows["T_bhe_f_out_running [°C]"] - 0.3).all()
     # ... and the evaporator balance closes on that same fluid (pump heat included).
-    C = m.dV_b_f_m3s * 1000.0 * 4186.0
+    C = m.dV_b_f_m3s * m.source_fluid.rho * m.source_fluid.cp
     eps = -np.expm1(-getattr(m, SOURCE_UA[family]) / C)
     fraction = rows["runtime_fraction [-]"].to_numpy(float)
     q_run = rows[SOURCE_HEAT[family]].to_numpy(float) / fraction

@@ -104,7 +104,8 @@ def test_argument_is_keyword_only_and_moves_no_positional_argument():
 def test_false_is_the_steady_borehole():
     """``borehole_dynamics=False`` is the model before the dynamic default (values recorded on main f1394dd)."""
     n, dt = 12, 600.0
-    model = _boiler(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False)
+    # The recorded values are those of a water loop (the default is now 25 % ethylene glycol).
+    model = _boiler(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water")
     assert model.borehole_dynamics == "off" and isinstance(model._gfunc_interp, GFunction)
     assert not model._ground_coupler.fluid_referenced
     assert run_window_preview(model._ground_coupler) is None
@@ -117,7 +118,7 @@ def test_false_is_the_steady_borehole():
     np.testing.assert_allclose(out["T_bhe_f_out [°C]"].to_numpy()[11], 11.791746328219, rtol=0, atol=1e-6)
     np.testing.assert_allclose(out["E_cmp [W]"].to_numpy()[:5], power, rtol=1e-6)
 
-    space = _space(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False)
+    space = _space(dt_s=dt, t_max_s=4 * 86400.0, borehole_dynamics=False, source_fluid="water")
     assert space.borehole_dynamics == "off" and isinstance(space._gfunc_interp, GFunction)
     load = np.where(np.arange(n) % 3 == 0, 0.0, -3000.0)
     with warnings.catch_warnings():

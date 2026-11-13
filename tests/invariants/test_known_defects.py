@@ -592,27 +592,15 @@ def test_t13_same_model_same_inputs_same_result(make_run):
 # ---------------------------------------------------------------------------
 
 
-# Both overloaded fields chill the loop to -8 / -10 degC: antifreeze loops (with
-# water the steps would be reduced or refused by the freezing limit).
 def _gshp_cold_ground():
     dt = 3600
-    m = tmhp.GroundSourceHeatPump(
-        dt_s=dt,
-        t_max_s=86400.0,
-        UA_iu_rated=2000.0,
-        Ts=8.0,
-        H_b=60,
-        hp_capacity=8000,
-        source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES,
-    )
+    m = tmhp.GroundSourceHeatPump(dt_s=dt, t_max_s=86400.0, UA_iu_rated=2000.0, Ts=8.0, H_b=60, hp_capacity=8000)
     return m.analyze_dynamic(2 * dt, dt, _flat(2, -8000.0), np.zeros(2))
 
 
 def _gshpb_cold_ground():
     dt = 600
-    m = tmhp.GroundSourceHeatPumpBoiler(
-        dt_s=dt, t_max_s=86400.0, Ts=8.0, H_b=40.0, source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES
-    )
+    m = tmhp.GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400.0, Ts=8.0, H_b=40.0)
     return m.analyze_dynamic(2 * dt, dt, 40.0, np.zeros(2), _flat(2, 0.0))
 
 

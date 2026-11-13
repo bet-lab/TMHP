@@ -31,6 +31,8 @@ def ground_model(cls=GroundSourceHeatPump, maximum=36, constant=24, control="con
         hydraulic_pump=True,
         variable_Rb=True,
         variable_ground_hx_UA=True,
+        # The hydraulic model and the flow-dependent R_b are evaluated for water (tmhp.ground_loop).
+        source_fluid="water",
         m_dot_ref_rated=0.04,
         t_max_s=3600,
         ground_flow_control=control,

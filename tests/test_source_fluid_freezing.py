@@ -4,9 +4,10 @@ Before this limit the models returned running cycles whose loop *water* left
 the evaporator below 0 °C (GSHPB at ``T_source = -10 °C``: ``T_bhe_f_in =
 -11.7 °C``, COP 2.5). The tests cover
 
-1. the fluid table (freezing point, operating limit, properties, parsing);
-2. the default fluid: water, with unchanged properties and unchanged results
-   wherever the loop stays above its limit;
+1. the fluid table (freezing point, operating limit, properties, parsing) and
+   the defaults: 25 % ethylene glycol for the ground loops, water for WSHPB;
+2. water: unchanged properties and unchanged results wherever the loop stays
+   above its limit;
 3. the limit in ``analyze_steady``: off below it, the largest duty on it;
 4. an antifreeze mixture: sub-zero operation down to its own limit;
 5. the limit in ``analyze_dynamic``: reduced or off steps, one warning per run.
@@ -25,6 +26,7 @@ from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHe
 from tmhp.constants import c_w, k_w, mu_w, rho_w
 from tmhp.source_fluid import (
     FREEZE_MARGIN_K,
+    GROUND_LOOP_FLUID_DEFAULT,
     SOURCE_FLUID_FREEZING,
     SOURCE_FLUID_PRESETS,
     SourceFluid,
@@ -56,10 +58,12 @@ def machines() -> dict[tuple[str, str], object]:
     """One default machine per family and fluid, built once."""
     built: dict[tuple[str, str], object] = {}
     for family, cls in BOILERS.items():
-        built[family, "water"] = _quiet(cls, **SHORT)
+        built[family, "default"] = _quiet(cls, **SHORT)
+        built[family, "water"] = _quiet(cls, source_fluid="water", **SHORT)
         built[family, "MPG-25%"] = _quiet(cls, source_fluid="MPG-25%", **SHORT)
         built[family, "unlimited"] = _quiet(cls, source_fluid=UNLIMITED_WATER, **SHORT)
-    built["GSHP", "water"] = _quiet(GroundSourceHeatPump, t_max_s=3600.0)
+    built["GSHP", "default"] = _quiet(GroundSourceHeatPump, t_max_s=3600.0)
+    built["GSHP", "water"] = _quiet(GroundSourceHeatPump, source_fluid="water", t_max_s=3600.0)
     built["GSHP", "MPG-30%"] = _quiet(GroundSourceHeatPump, source_fluid="MPG-30%", t_max_s=3600.0)
     return built
 
@@ -69,13 +73,52 @@ def machines() -> dict[tuple[str, str], object]:
 # ---------------------------------------------------------------------------
 
 
-def test_water_is_the_default_and_keeps_the_model_constants(machines):
+def test_water_keeps_the_model_constants(machines):
     water = resolve_source_fluid("water")
     assert (water.T_freeze_C, water.T_min_C) == (0.0, FREEZE_MARGIN_K)
     assert (water.rho, water.cp, water.mu, water.k) == (rho_w, c_w, mu_w, k_w)
     assert water.is_water and resolve_source_fluid(None) is water and resolve_source_fluid(" Water ") is water
     for family in ("GSHPB", "WSHPB", "GSHP"):
         assert machines[family, "water"].source_fluid is water
+
+
+def test_default_loop_liquid_is_glycol_for_the_ground_and_water_for_the_water_source(machines):
+    """Ground loops default to 25 % ethylene glycol (freezes at -11.0 °C, limit -8.0 °C), WSHPB to water."""
+    glycol = resolve_source_fluid(GROUND_LOOP_FLUID_DEFAULT)
+    assert GROUND_LOOP_FLUID_DEFAULT == "MEG-25%" and resolve_source_fluid(None, GROUND_LOOP_FLUID_DEFAULT) is glycol
+    assert glycol.T_freeze_C == pytest.approx(-11.0, abs=0.05) and glycol.T_min_C == pytest.approx(-8.0, abs=0.05)
+    assert machines["GSHP", "default"].source_fluid is glycol
+    assert machines["GSHPB", "default"].source_fluid is glycol
+    assert machines["WSHPB", "default"].source_fluid is resolve_source_fluid("water")
+
+
+def test_default_constructors_are_quiet():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        GroundSourceHeatPump(t_max_s=3600.0)
+        GroundSourceHeatPumpBoiler(**SHORT)
+        WaterSourceHeatPumpBoiler(**SHORT)
+
+
+def test_default_machines_run_their_brine_rating_points(machines):
+    """EN 14511 B0/W35 and B0/W55 (GSHPB) and a 0 °C borehole wall (GSHP) with nothing but the defaults."""
+    gshpb = machines["GSHPB", "default"]
+    for T_tank, cop_sys in ((35.0, 3.847), (55.0, 2.404)):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            r = gshpb.analyze_steady(T_tank_w=T_tank, T_source=0.0, Q_ref_tank=8000.0)
+        assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
+        assert r["Q_ref_tank [W]"] == pytest.approx(8000.0)
+        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.3, abs=0.1)
+        assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
+    gshp = machines["GSHP", "default"]
+    # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
+    # borehole resistance is 0.168 against 0.162 m K/W.
+    for load, cop_sys in ((-4000.0, 3.508), (-2000.0, 3.915)):
+        r = _quiet(gshp.analyze_steady, Q_r_iu=load, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
+        assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
+        assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
+        assert gshp.source_fluid.T_min_C < r["T_bhe_f_in [°C]"] < 0.0
 
 
 @pytest.mark.parametrize(
@@ -127,14 +170,15 @@ def test_model_page_table_states_the_values_of_the_code():
     from pathlib import Path
 
     page = (Path(__file__).resolve().parents[1] / "docs/source/models/gshpb.rst").read_text(encoding="utf-8")
-    for row in source_fluid_table(("MPG-20%", "MPG-25%", "MPG-30%", "MEG-25%", "MEG-30%", "ethanol-20%")):
+    assert '    * - ``"MEG-25%"`` (default of GSHP and GSHPB)\n      - -11.0 °C\n      - -8.0 °C\n' in page
+    for row in source_fluid_table(("MPG-20%", "MPG-25%", "MPG-30%", "MEG-30%", "ethanol-20%")):
         listed = (
             f'    * - ``"{row["source_fluid"]}"``\n'
             f"      - {row['T_freeze [°C]']:.1f} °C\n"
             f"      - {row['T_min [°C]']:.1f} °C\n"
         )
         assert listed in page, row["source_fluid"]
-    assert '    * - ``"water"`` (default)\n      - 0.0 °C\n      - 3.0 °C\n' in page
+    assert '    * - ``"water"`` (default of WSHPB)\n      - 0.0 °C\n      - 3.0 °C\n' in page
 
 
 # ---------------------------------------------------------------------------
@@ -294,7 +338,7 @@ def test_duty_search_closes_in_a_few_solves_and_knows_when_to_stop():
 
 def test_wall_coupled_boiler_runs_the_duty_its_borehole_allows():
     """Coupled ground-flow path: a 6 °C wall returns 2.7 °C liquid at 8 kW, 4.4 °C at half the duty."""
-    gshpb = _quiet(GroundSourceHeatPumpBoiler, hydraulic_pump=True, **SHORT)
+    gshpb = _quiet(GroundSourceHeatPumpBoiler, hydraulic_pump=True, source_fluid="water", **SHORT)
     r = _quiet(gshpb.analyze_steady, T_tank_w=45.0, T_source=6.0, Q_ref_tank=8000.0, T_bhe_wall=6.0)
     assert r["failure_reason"] == "none" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
     assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
@@ -334,12 +378,16 @@ def test_gshp_antifreeze_runs_against_a_freezing_borehole_wall(machines):
     assert brine.source_fluid.T_min_C - TOL_K <= r["T_bhe_f_in [°C]"] < 0.0
 
 
-def test_ground_loop_options_that_assume_water_are_named():
-    with pytest.warns(UserWarning, match="viscosity of water"):
-        GroundSourceHeatPumpBoiler(source_fluid="MPG-25%", hydraulic_pump=True, **SHORT)
+def test_ground_loop_options_that_assume_water_are_named_for_a_chosen_fluid():
+    for chosen in ("MPG-25%", "MEG-25%"):
+        with pytest.warns(UserWarning, match="viscosity of water"):
+            GroundSourceHeatPumpBoiler(source_fluid=chosen, hydraulic_pump=True, **SHORT)
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
         GroundSourceHeatPumpBoiler(source_fluid="MPG-25%", **SHORT)  # nothing to report without them
+        # A model left on its default liquid does not warn about it (documented instead).
+        GroundSourceHeatPumpBoiler(hydraulic_pump=True, **SHORT)
+        GroundSourceHeatPumpBoiler(source_fluid="water", hydraulic_pump=True, **SHORT)
 
 
 # ---------------------------------------------------------------------------
@@ -395,11 +443,12 @@ def test_gshpb_dynamic_ground_near_freezing(borehole_dynamics):
     the step in both.
     """
     kwargs = dict(Ts=6.5, borehole_dynamics=borehole_dynamics, **SHORT)
+    water = dict(source_fluid="water", **kwargs)
     n = 3
     args = (n * 600.0, 600.0, 30.0, np.zeros(n), np.full(n, 5.0))
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        df = _quiet(GroundSourceHeatPumpBoiler, **kwargs).analyze_dynamic(*args)
+        df = _quiet(GroundSourceHeatPumpBoiler, **water).analyze_dynamic(*args)
         messages = _freezing_warnings(caught)
     free = _quiet(_quiet(GroundSourceHeatPumpBoiler, source_fluid=UNLIMITED_WATER, **kwargs).analyze_dynamic, *args)
     # The defect: water leaving the evaporator below its limit in a running step.
@@ -415,8 +464,29 @@ def test_gshpb_dynamic_ground_near_freezing(borehole_dynamics):
     assert (df.loc[~reduced, "Q_ref_tank [W]"] == free.loc[~reduced, "Q_ref_tank [W]"]).all()
 
 
+def test_default_glycol_rows_report_the_fluid_the_limit_was_checked_with():
+    """Ground at -3 °C on the default glycol (limit -8.0 °C), steady borehole: the steps turn down.
+
+    The reported running fluid is the one the step's cycle was solved and the
+    limit was checked with, and its loop temperature difference carries the
+    row's ground heat with the glycol's own heat capacity.
+    """
+    model = _quiet(GroundSourceHeatPumpBoiler, Ts=-3.0, borehole_dynamics=False, **SHORT)
+    fluid, n = model.source_fluid, 3
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        df = model.analyze_dynamic(n * 600.0, 600.0, 30.0, np.zeros(n), np.full(n, 5.0))
+    assert len(_freezing_warnings(caught)) == 1 and "MEG-25%" in _freezing_warnings(caught)[0]
+    reduced = df["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert df["hp_is_on"].all() and reduced.iloc[:2].all()
+    leaving, entering = df["T_bhe_f_in_running [°C]"], df["T_bhe_f_out_running [°C]"]
+    assert (leaving >= fluid.T_min_C - TOL_K).all() and (leaving[reduced] <= fluid.T_min_C + 0.05).all()
+    carried = (entering - leaving) * df["dV_bhe_f [m3/s]"] * fluid.rho * fluid.cp
+    np.testing.assert_allclose(carried, df["Q_bhe [W]"] / df["runtime_fraction [-]"], rtol=1e-6)
+
+
 def test_gshp_dynamic_reports_the_limit_once():
-    gshp = _quiet(GroundSourceHeatPump, Ts=2.0, t_max_s=7200.0, dt_s=600.0)
+    gshp = _quiet(GroundSourceHeatPump, Ts=2.0, t_max_s=7200.0, dt_s=600.0, source_fluid="water")
     n = 3
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")

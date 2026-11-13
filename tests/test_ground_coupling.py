@@ -224,6 +224,7 @@ def _historical_efficiency_plant():
     # borehole (resistance without heat capacity), now ``borehole_dynamics=False``.
     return GroundSourceHeatPumpBoiler(
         borehole_dynamics=False,
+        source_fluid="water",  # the archived loop liquid (the default is now 25 % ethylene glycol)
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,

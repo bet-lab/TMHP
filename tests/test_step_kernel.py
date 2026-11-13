@@ -64,9 +64,10 @@ def _assert_frames_close(df: pd.DataFrame, golden: pd.DataFrame) -> None:
         else:
             # pandas 3 keeps NaN through astype(str); an off step's
             # discharge_control is NaN in both frames and must compare equal.
-            assert (d.astype(object).fillna("<NA>").astype(str).to_numpy() == g.astype(object).fillna("<NA>").astype(str).to_numpy()).all(), (
-                f"column {col!r} (non-numeric) diverged"
-            )
+            assert (
+                d.astype(object).fillna("<NA>").astype(str).to_numpy()
+                == g.astype(object).fillna("<NA>").astype(str).to_numpy()
+            ).all(), f"column {col!r} (non-numeric) diverged"
 
 
 @pytest.fixture(

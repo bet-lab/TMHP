@@ -85,7 +85,9 @@ from .compressor_envelope import (
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     CycleSolveOutcome,
     StepContext,
@@ -97,6 +99,7 @@ from .dynamic_context import (
     scale_running_rates,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -1597,10 +1600,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         Q_tank_loss = self.UA_tank_wall * (T_solved_K - self.T_sur_K)
         mix = calc_mixing_valve_temp(T_solved_K, self.T_tank_w_in_K, self.T_mix_w_out_K)
-        r["T_mix_w_out [°C]"] = cu.K2C(mix["T_mix_w_out_K"])
+        T_mix_K = mix["T_mix_w_out_K"]
+        r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
 
+        # The mixed water delivered: the demand, less what a level-varying tank
+        # stopped at its lowest level could not supply.
+        dV_mix_w_out = flow_state["dV_mix_w_out"]
         r["Q_tank_loss [W]"] = Q_tank_loss
-        r["dV_mix_w_out [m3/s]"] = ctx.dV_mix_w_out
+        r["dV_mix_w_out [m3/s]"] = dV_mix_w_out
         r["dV_tank_w_in [m3/s]"] = flow_state["dV_tank_w_in"]
         r["dV_tank_w_out [m3/s]"] = flow_state["dV_tank_w_out"]
         r["dV_mix_sup_w_in [m3/s]"] = flow_state["dV_mix_sup_w_in"]
@@ -1608,6 +1615,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flow_state.get("dV_mix_w_out_unmet", 0.0)
 
         if self._tank is not None and self._tank_step is not None:
             # Multi-node tank: T_tank_w is the volume average (what the stored
@@ -1618,11 +1626,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             T_out_K = cu.C2K(tank["T_draw_out"])
             alp = flow_state["alp"]
             r["Q_tank_loss [W]"] = tank["Q_loss"]
-            r["T_mix_w_out [°C]"] = cu.K2C(alp * T_out_K + (1.0 - alp) * tank["T_makeup_K"])
+            T_mix_K = alp * T_out_K + (1.0 - alp) * tank["T_makeup_K"]
+            r["T_mix_w_out [°C]"] = cu.K2C(T_mix_K)
             r["T_tank_w_in [°C]"] = cu.K2C(tank["T_makeup_K"])
             r["T_tank_w_out [°C]"] = tank["T_draw_out"]
             r["T_tank_w_top [°C]"] = tank["T_top"]
             r["T_tank_w_bottom [°C]"] = tank["T_outlet"]
+
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, ctx.T_sup_w_K))
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -1759,6 +1773,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     ):
         """Single-node tank: implicit solve of the energy balance over the step.
 
+        Returns the end temperature, the flows of the step at that temperature
+        and the end level. The reported flows and level are the ones the
+        balance was solved with; they used to be the unlimited draw, so a tank
+        drained below its make-up reported level 0 and water it did not hold
+        (#96 T1: +9.9 kWh, +32 %, in 1 h).
+
         A solve that does not return a root is recovered by
         :func:`tmhp._tank_solve.recover_tank_temperature` with the same
         residual, so the heat pump, the draw-off, the loss and the subsystem
@@ -1779,25 +1799,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             ctx.T_tank_w_K,
             T_start_K=ctx.T_tank_w_K,
             dt=dt_s,
-            C_curr=self.C_tank * max(0.001, ctx.tank_level),
-            C_next=self.C_tank * max(0.001, tank_level_solve),
+            C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+            C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
             C_tank=self.C_tank,
             who=type(self).__name__,
             step=ctx.n,
         )
 
-        # Flow state evaluated at solved temperature
-        flow_state_final = self._calc_tank_flow_context(
-            dV_mix_w_out=ctx.dV_mix_w_out,
-            T_tank_w_K=T_solved_K,
-            T_tank_w_in_K=T_sup_w_K_n,
-            T_mix_w_out_K=self.T_mix_w_out_K,
-            dV_tank_w_in_override=ctrl.dV_tank_w_in_ctrl,
-        )
-
-        tank_vol_change_final = (flow_state_final["dV_tank_w_in"] - flow_state_final["dV_tank_w_out"]) * dt_s
-        level_next = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_final / self.V_tank_full))
-        return T_solved_K, flow_state_final, level_next
+        # Flows and end level the solved balance carried
+        # (tmhp.dynamic_context.tank_step_flows, the function the residual
+        # itself uses): a level-varying tank stops the draw at TANK_LEVEL_MIN
+        # and the make-up at full, and what the draw could not supply is unmet
+        # hot water. An always-full tank takes in what it gives.
+        flows = tank_step_flows(T_solved_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+        return T_solved_K, flows.as_flow_state(), flows.level_next
 
     # ---- multi-node tank ("stratified", "hybrid") -----------------------------
 
@@ -2058,6 +2073,12 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         T_tank_w_K = cu.C2K(T_tank_w_init_C)
         tank_level = tank_level_init
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         is_on_prev = False
         running_prev = False
         phase_age_s = math.inf
@@ -2164,7 +2185,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
             tank_vol_change_prev = (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s
             level_next_approx = min(1.0, max(0.0, ctx.tank_level + tank_vol_change_prev / self.V_tank_full))
-            tank_level_solve = max(0.001, level_next_approx)
+            tank_level_solve = max(TANK_LEVEL_MIN, level_next_approx)
 
             # Thermostat events inside the step (#96 T6): the compressor runs
             # until the tank reaches the upper bound and starts when it
@@ -2178,8 +2199,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 T_lower=self.T_tank_w_lower_bound,
                 T_upper=self.T_tank_w_upper_bound,
                 dt=dt_s,
-                C_curr=self.C_tank * max(0.001, ctx.tank_level),
-                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level_solve),
                 C_tank=self.C_tank,
                 residual_free=self._build_residual_fn(
                     ctx=ctx,
@@ -2268,6 +2289,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if result_save_csv_path:
             results_df.to_csv(result_save_csv_path, index=False)
 
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
     def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:

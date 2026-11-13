@@ -318,6 +318,24 @@ subsystems) and a ``tmhp._tank_solve.TankSolveWarning`` names it. The tank
 temperature is not held at the mains temperature: a tank in a cold room cools
 below it.
 
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
+A tank whose level varies (``tank_always_full=False`` or
+``prevent_simultaneous_flow``) follows the rules of the air-source boiler
+(:doc:`ashpb`, Sink-side mechanics): the draw stops at ``TANK_LEVEL_MIN``
+(0.1 % of the volume), the make-up at full, and the reported
+``tank_level [-]``, ``dV_tank_w_out [m3/s]`` and ``dV_tank_w_in [m3/s]``
+are the ones the step's energy balance was solved with.
+``dV_mix_w_out [m3/s]`` is then the mixed water delivered and
+``dV_mix_w_out_unmet [m3/s]`` the demand the tank could not supply. Such a
+run starts with ``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
+
 Tank backends
 -------------
 

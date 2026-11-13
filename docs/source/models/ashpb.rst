@@ -188,6 +188,14 @@ holds plus its make-up is cut, and the cut is reported as
 ``dV_mix_w_out_unmet [m3/s]``. A run of a level-varying tank starts with
 ``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
 
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered — the tank was
+colder than the set point, so the water arrived cold, or a level-varying
+tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
 Composed variants
 =================
 

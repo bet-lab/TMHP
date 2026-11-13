@@ -1,0 +1,216 @@
+[
+  {
+    "source_id": "PANASONIC-CGZ-2025",
+    "title": "Panasonic rotary compressor catalogue CGZ 2025",
+    "role": "observations",
+    "url": "https://industrial.panasonic.com/cdbs/www-data/pdf/ADM0000/ast-ind-368085.pdf",
+    "evidence_path": "validation/evidence/default_inputs/PANASONIC-CGZ-2025.pdf",
+    "sha256": "103cbfcbba9c8f26b45d1750451ac62f5a2c95f30b1dedeb100d119024375cb5",
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp",
+    "accessed_at": "2026-10-22",
+    "pages": 27,
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_pdf_page": 26,
+        "assumption": "Printed displacement and N-TEC capacity (Te7.2/Tc54.4/Ts35/Tl46.1/Ta35, PDF p26). Series letters S/R/P/K/V are single-rotary per the nomenclature on PDF p5; 50 Hz supply is not measured shaft speed."
+      }
+    }
+  },
+  {
+    "source_id": "HIGHLY-INDIA-2015",
+    "title": "Highly recommended models (2015)",
+    "role": "conditions",
+    "url": "https://www.highly.co.in/pdf/recommended-models.pdf",
+    "evidence_path": "validation/evidence/default_inputs/HIGHLY-INDIA-2015.pdf",
+    "sha256": "284e55d2ba288fa51737bffd7b3e2702b21449cba540c7315be3fb46e7a8e35f",
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp",
+    "accessed_at": "2026-10-22",
+    "pages": 2
+  },
+  {
+    "source_id": "LG-ROTARY-2024",
+    "title": "LG Rotary Compressor Catalogue (2024)",
+    "role": "observations",
+    "url": "https://www.lg.com/global/images/business/compressor-motor/resource-download/pdf-file/LG_Rotary_Compressor_Catalogue.pdf",
+    "evidence_path": "validation/evidence/default_inputs/LG-ROTARY-2024.pdf",
+    "sha256": "c65bf81f6180d36ea2c2df103b223d989d9af86d27cae18593462b86881a5d0a",
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "chrome_cdp_fetch",
+    "accessed_at": "2026-10-25",
+    "pages": 20,
+    "displacement_decoding": {
+      "lg_model_token": {
+        "factor_to_cm3_rev": 0.1,
+        "rule_pdf_page": 5,
+        "rule": "141 = 14.1 cc/rev; displacement = numeric model token / 10"
+      }
+    },
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": null,
+        "ambient_basis": "not specified in LG condition table; not imputed",
+        "temperature_basis": "LG table superheat/subcooling; Ts=Te+SH and Tl=Tc-SC",
+        "frequency_confirmation": "direct_model_table_heading_and_power_code",
+        "conditions_pdf_page": 10,
+        "frequency_source_pdf_page": 5,
+        "assumption": "Manufacturer nomenclature decoded. ASHRAE condition table uses superheat27.8K/subcooling8.3K, hence suction35C/liquid46.1C. Supply50Hz is not measured shaft speed."
+      },
+      "ARI_60Hz_variable_twin": {
+        "T_ambient_C": null,
+        "ambient_basis": "not specified in LG condition table; not imputed",
+        "temperature_basis": "LG table superheat/subcooling; Ts=Te+SH and Tl=Tc-SC",
+        "frequency_confirmation": "cross_document_manufacturer_default; 2024 model-row frequency not directly specified",
+        "conditions_pdf_page": 10,
+        "frequency_source_id": "LG-ROTARY-WEB-20261025",
+        "frequency_source_pdf_page": 4,
+        "table_scope": "Air Conditioner; printed pp10–11, not Unitary in US Market",
+        "assumption": "Geometry decoded only by manufacturer nomenclature p5, not inferred from capacity or rescaled. ARI conditions p10: superheat 11.1K and subcooling8.3K; test frequency60Hz from official product-page note, not measured shaft rps. Same printed numeric displacement retained."
+      }
+    }
+  },
+  {
+    "source_id": "LG-ROTARY-WEB-20261025",
+    "title": "LG rotary compressor product page",
+    "role": "frequency",
+    "url": "https://www.lg.com/global/business/compressor-motor/compressor/rotary-compressor/",
+    "evidence_path": "validation/evidence/default_inputs/expansion/LG-ROTARY-product-page-20261025.web-snapshot.pdf",
+    "sha256": "a77d102938c8eed47187434b99bf094f38b6a328717cb0cc3bb77e6c8134d10a",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:15:11.963495+09:00",
+    "pages": 12,
+    "html_path": "validation/evidence/default_inputs/expansion/LG-ROTARY-product-page-20261025.html",
+    "html_sha256": "aa0fa37f489aefa5cc8e408cbabc683c5972f1ebbbfa90a96657bde89bd00cb4"
+  },
+  {
+    "source_id": "HIGHLY-WEB-D-20261025",
+    "title": "Highly D compressor series web table",
+    "role": "observations",
+    "url": "https://www.highly.co.in/d-compressor-series.html",
+    "evidence_path": "validation/evidence/default_inputs/expansion/HIGHLY-D-20261025-web-snapshot.pdf",
+    "sha256": "13f475f2cc665303540407d070584c4931876c585e05e7febfd480f9a5d0327f",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:13:29.668315+09:00",
+    "pages": 2,
+    "html_path": "validation/evidence/default_inputs/expansion/HIGHLY-D-20261025.html",
+    "html_sha256": "4a90a564a97f9322ce2ce7b01fae79acd6fd4c4395b8319c39f96f725f3096ea",
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_source_id": "HIGHLY-INDIA-2015",
+        "conditions_pdf_page": 2,
+        "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
+      }
+    }
+  },
+  {
+    "source_id": "HIGHLY-WEB-G-20261025",
+    "title": "Highly G compressor series web table",
+    "role": "observations",
+    "url": "https://www.highly.co.in/g-compressor-series.html",
+    "evidence_path": "validation/evidence/default_inputs/expansion/HIGHLY-G-20261025-web-snapshot.pdf",
+    "sha256": "b6be636678ba39920a36d7b00f53be733ee5e4855364c61b6d62239a50952d51",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:13:31.141106+09:00",
+    "pages": 2,
+    "html_path": "validation/evidence/default_inputs/expansion/HIGHLY-G-20261025.html",
+    "html_sha256": "f5c1415de44814d092acc58544c6e1e87e0c10aa33f168264e491e4a5cc151dd",
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_source_id": "HIGHLY-INDIA-2015",
+        "conditions_pdf_page": 2,
+        "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
+      }
+    }
+  },
+  {
+    "source_id": "HIGHLY-WEB-H-20261025",
+    "title": "Highly H compressor series web table",
+    "role": "observations",
+    "url": "https://www.highly.co.in/h-compressor-series.html",
+    "evidence_path": "validation/evidence/default_inputs/expansion/HIGHLY-H-20261025-web-snapshot.pdf",
+    "sha256": "278eb7dce5b8b77be7c8ef1becaf0d3f679f0f3736f625ab5b9dc1a4f54383f5",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:13:35.166693+09:00",
+    "pages": 3,
+    "html_path": "validation/evidence/default_inputs/expansion/HIGHLY-H-20261025.html",
+    "html_sha256": "089bdf1c0bff3b3acff2477e5248c5d34edf7c7a7c4d4927356c7327876e9229",
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_source_id": "HIGHLY-INDIA-2015",
+        "conditions_pdf_page": 2,
+        "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
+      }
+    }
+  },
+  {
+    "source_id": "HIGHLY-WEB-L-20261025",
+    "title": "Highly L compressor series web table",
+    "role": "observations",
+    "url": "https://www.highly.co.in/l-compressor-series.html",
+    "evidence_path": "validation/evidence/default_inputs/expansion/HIGHLY-L-20261025-web-snapshot.pdf",
+    "sha256": "ce35d1221be6fcac0d2c0b61a4e8e30fedaa764e68e401d2517e17780477af44",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:13:33.735351+09:00",
+    "pages": 2,
+    "html_path": "validation/evidence/default_inputs/expansion/HIGHLY-L-20261025.html",
+    "html_sha256": "a523b2fde1daed265c28f6f4bd22463e90e0bf3818f6e491bff5906b060eaa46",
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_source_id": "HIGHLY-INDIA-2015",
+        "conditions_pdf_page": 2,
+        "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
+      }
+    }
+  },
+  {
+    "source_id": "HIGHLY-WEB-TH-20261025",
+    "title": "Highly TH compressor series web table",
+    "role": "observations",
+    "url": "https://www.highly.co.in/th-compressor-series.html",
+    "evidence_path": "validation/evidence/default_inputs/expansion/HIGHLY-TH-20261025-web-snapshot.pdf",
+    "sha256": "098b225b050336d5159a9d3de0160c96943a2637bcde3cde7d0fd1d07664486f",
+    "evidence_type": "manufacturer_web_page_snapshot",
+    "access_method": "chrome_cdp_dom_and_Page.printToPDF",
+    "accessed_at": "2026-10-25T16:13:36.642895+09:00",
+    "pages": 2,
+    "html_path": "validation/evidence/default_inputs/expansion/HIGHLY-TH-20261025.html",
+    "html_sha256": "85fb8786206ce05b929c076fbeddd80076ad6fc76e54c3e5e4113b7745fdac41",
+    "row_defaults": {
+      "ASHRAE_50Hz_fixed_single": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "explicit manufacturer test condition table",
+        "temperature_basis": "explicit absolute suction/liquid temperature",
+        "frequency_confirmation": "direct_model_table_heading",
+        "conditions_source_id": "HIGHLY-INDIA-2015",
+        "conditions_pdf_page": 2,
+        "assumption": "Web ASHRAE/T label matched to explicit 2015 manufacturer condition table. Original HTML/PDF snapshot archived. Supply frequency is not measured shaft speed. Compressor power not inferred from web COP due known source typos."
+      }
+    }
+  }
+]

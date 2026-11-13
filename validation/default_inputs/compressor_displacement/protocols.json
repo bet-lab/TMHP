@@ -1,0 +1,28 @@
+{
+  "ASHRAE_50Hz_fixed_single": {
+    "description": "Fixed-speed single-rotary compressor at 50 Hz supply, ASHRAE-type rating point",
+    "test_condition_labels": ["N-TEC", "ASHRAE/T", "ASHRAE"],
+    "T_evap_C": 7.2,
+    "T_cond_C": 54.4,
+    "T_suction_C": 35.0,
+    "T_liquid_C": 46.1,
+    "superheat_K": 27.8,
+    "subcooling_K": 8.3,
+    "frequency_Hz": 50,
+    "speed_basis": "fixed-speed supply frequency as printed",
+    "compressor_type": "rotary_single"
+  },
+  "ARI_60Hz_variable_twin": {
+    "description": "DC inverter twin-rotary compressor at 60 Hz published test frequency, ARI rating point",
+    "test_condition_labels": ["ARI"],
+    "T_evap_C": 7.2,
+    "T_cond_C": 54.4,
+    "T_suction_C": 18.3,
+    "T_liquid_C": 46.1,
+    "superheat_K": 11.1,
+    "subcooling_K": 8.3,
+    "frequency_Hz": 60,
+    "speed_basis": "DC inverter test frequency as published; not measured shaft speed",
+    "compressor_type": "rotary_twin"
+  }
+}

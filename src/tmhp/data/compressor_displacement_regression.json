@@ -1,0 +1,224 @@
+{
+  "version": "displacement-v2026-10-26",
+  "data_sha256": "1efb2a4107f9991ada5ee5ec0e18ce50e7ba6ecd93ec09f11ccfbb02a5ac7ad1",
+  "capacity_input_unit": "W",
+  "law_capacity_unit": "kW",
+  "output_unit": "cm3/rev",
+  "capacity_duty": "cooling",
+  "protocols": {
+    "ASHRAE_50Hz_fixed_single": {
+      "description": "Fixed-speed single-rotary compressor at 50 Hz supply, ASHRAE-type rating point",
+      "T_evap_C": 7.2,
+      "T_cond_C": 54.4,
+      "T_suction_C": 35.0,
+      "T_liquid_C": 46.1,
+      "superheat_K": 27.8,
+      "subcooling_K": 8.3,
+      "frequency_Hz": 50,
+      "speed_basis": "fixed-speed supply frequency as printed",
+      "compressor_type": "rotary_single"
+    },
+    "ARI_60Hz_variable_twin": {
+      "description": "DC inverter twin-rotary compressor at 60 Hz published test frequency, ARI rating point",
+      "T_evap_C": 7.2,
+      "T_cond_C": 54.4,
+      "T_suction_C": 18.3,
+      "T_liquid_C": 46.1,
+      "superheat_K": 11.1,
+      "subcooling_K": 8.3,
+      "frequency_Hz": 60,
+      "speed_basis": "DC inverter test frequency as published; not measured shaft speed",
+      "compressor_type": "rotary_twin"
+    }
+  },
+  "selection": "Family-balanced fits; nested leave-one-family-out. Inner simplest within2% best RMSE. Secondary nested model-token-group holdout prevents suffix variants leaking.",
+  "rules": {
+    "rotary_twin|R32": {
+      "protocol": "ARI_60Hz_variable_twin",
+      "selected_law": {
+        "kind": "proportional",
+        "a": 3.046227548315233
+      },
+      "capacity_range_W": [
+        4308.0,
+        14877.0
+      ],
+      "n": 15,
+      "n_families": 5,
+      "manufacturers": [
+        "LG"
+      ],
+      "nested_family_cv": {
+        "n": 15,
+        "valid": true,
+        "MAE": 0.714640861998097,
+        "RMSE": 1.068395095394375,
+        "MAPE_pct": 2.233919212612983,
+        "bias_pct": -0.10377760585202271
+      },
+      "source_ids": [
+        "LG-ROTARY-2024"
+      ],
+      "status": "component_regression_only"
+    },
+    "rotary_twin|R410A": {
+      "protocol": "ARI_60Hz_variable_twin",
+      "selected_law": {
+        "kind": "linear",
+        "a": 3.088141665228154,
+        "b": 1.1139561387095223
+      },
+      "capacity_range_W": [
+        3921.0,
+        13921.0
+      ],
+      "n": 12,
+      "n_families": 5,
+      "manufacturers": [
+        "LG"
+      ],
+      "nested_family_cv": {
+        "n": 12,
+        "valid": true,
+        "MAE": 0.39170914695540987,
+        "RMSE": 0.4334664120893679,
+        "MAPE_pct": 2.065455263993006,
+        "bias_pct": 0.03571944987352659
+      },
+      "source_ids": [
+        "LG-ROTARY-2024"
+      ],
+      "status": "component_regression_only"
+    },
+    "rotary_single|R22": {
+      "protocol": "ASHRAE_50Hz_fixed_single",
+      "selected_law": {
+        "kind": "proportional",
+        "a": 5.86344385299745
+      },
+      "capacity_range_W": [
+        2220.0,
+        8300.0
+      ],
+      "n": 35,
+      "n_families": 6,
+      "manufacturers": [
+        "Highly",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 35,
+        "valid": true,
+        "MAE": 0.468627683565949,
+        "RMSE": 0.6976430116376253,
+        "MAPE_pct": 1.4622800225608852,
+        "bias_pct": 0.005500473544153819
+      },
+      "source_ids": [
+        "HIGHLY-WEB-H-20261025",
+        "HIGHLY-WEB-L-20261025",
+        "HIGHLY-WEB-TH-20261025",
+        "PANASONIC-CGZ-2025"
+      ],
+      "status": "component_regression_only"
+    },
+    "rotary_single|R290": {
+      "protocol": "ASHRAE_50Hz_fixed_single",
+      "selected_law": {
+        "kind": "power",
+        "a": 6.840728491488348,
+        "b": 0.9862407744485889
+      },
+      "capacity_range_W": [
+        950.0,
+        5475.0
+      ],
+      "n": 11,
+      "n_families": 8,
+      "manufacturers": [
+        "Highly",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 11,
+        "valid": true,
+        "MAE": 0.4528758714225274,
+        "RMSE": 0.61662087630063,
+        "MAPE_pct": 2.2458052357305927,
+        "bias_pct": -0.09754417692692946
+      },
+      "source_ids": [
+        "HIGHLY-WEB-G-20261025",
+        "HIGHLY-WEB-H-20261025",
+        "HIGHLY-WEB-L-20261025",
+        "PANASONIC-CGZ-2025"
+      ],
+      "status": "component_regression_only"
+    },
+    "rotary_single|R32": {
+      "protocol": "ASHRAE_50Hz_fixed_single",
+      "selected_law": {
+        "kind": "proportional",
+        "a": 3.925463435459472
+      },
+      "capacity_range_W": [
+        2260.0,
+        5896.0
+      ],
+      "n": 5,
+      "n_families": 4,
+      "manufacturers": [
+        "Highly"
+      ],
+      "nested_family_cv": {
+        "n": 5,
+        "valid": true,
+        "MAE": 0.5683298143773641,
+        "RMSE": 0.6977768674646548,
+        "MAPE_pct": 3.583093269416498,
+        "bias_pct": -2.5620831786663394
+      },
+      "source_ids": [
+        "HIGHLY-WEB-D-20261025",
+        "HIGHLY-WEB-G-20261025",
+        "HIGHLY-WEB-H-20261025",
+        "HIGHLY-WEB-L-20261025"
+      ],
+      "status": "component_regression_only"
+    },
+    "rotary_single|R410A": {
+      "protocol": "ASHRAE_50Hz_fixed_single",
+      "selected_law": {
+        "kind": "linear",
+        "a": 4.0386182163191675,
+        "b": 0.24810773578009743
+      },
+      "capacity_range_W": [
+        960.0,
+        8045.0
+      ],
+      "n": 58,
+      "n_families": 12,
+      "manufacturers": [
+        "Highly",
+        "LG",
+        "Panasonic"
+      ],
+      "nested_family_cv": {
+        "n": 58,
+        "valid": true,
+        "MAE": 0.4288990689954457,
+        "RMSE": 0.5147449581213189,
+        "MAPE_pct": 3.289335318269239,
+        "bias_pct": -1.5608367364330906
+      },
+      "source_ids": [
+        "HIGHLY-WEB-H-20261025",
+        "HIGHLY-WEB-L-20261025",
+        "LG-ROTARY-2024",
+        "PANASONIC-CGZ-2025"
+      ],
+      "status": "component_regression_only"
+    }
+  }
+}

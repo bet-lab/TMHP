@@ -1,0 +1,21 @@
+{
+  "records": 624,
+  "eligible": 566,
+  "excluded": {
+    "no nominal capacity printed": 6,
+    "floor_ceiling_convertible: indoor type ambiguous, not fitted": 36,
+    "indoor airflow without a printed fan step is not a maximum": 16
+  },
+  "strata": {
+    "airflow|cooling|indoor|floor_standing": 26,
+    "airflow|cooling|indoor|wall_mounted": 130,
+    "airflow|cooling|outdoor|single_split": 128,
+    "airflow|heating|indoor|floor_standing": 26,
+    "airflow|heating|indoor|wall_mounted": 131,
+    "airflow|heating|outdoor|single_split": 125
+  },
+  "source_count": 14,
+  "data_sha256": "578eb193bbb1ad71460705c33820ee6bdbef1eb6a25fcf9c1e2c6ed81ef51dc2",
+  "is_latest_release": true,
+  "all_checks_passed": true
+}

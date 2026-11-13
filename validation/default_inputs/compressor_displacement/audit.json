@@ -1,0 +1,41 @@
+{
+  "records": 137,
+  "eligible": 136,
+  "excluded": [
+    {
+      "record_id": "lg:ARI60:DAT134MC",
+      "model_id": "DAT134MC",
+      "source_pdf_page": 6,
+      "exclusion_reason": "manufacturer_W_and_Btu_h_capacity_columns_differ_over_2pct"
+    }
+  ],
+  "errata_applied": [
+    {
+      "record_id": "compressor:7VS355EA*:cooling:N-TEC:50",
+      "field": "displacement_text",
+      "from_value": "35.5",
+      "to_value": "35.6",
+      "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), R290 220-240V 50Hz table, row 7VS355EA*",
+      "reason": "Transcription slip: 35.5 belongs to the R454C row GVS355EAA41 on the same page",
+      "date": "2026-10-26"
+    }
+  ],
+  "group_count": 6,
+  "evidence_type_counts": {
+    "explicit_numeric_geometry": 97,
+    "manufacturer_nomenclature_decoded": 40
+  },
+  "source_count": 9,
+  "data_sha256": "1efb2a4107f9991ada5ee5ec0e18ce50e7ba6ecd93ec09f11ccfbb02a5ac7ad1",
+  "is_latest_release": true,
+  "latest_release": "displacement-v2026-10-26",
+  "all_checks_passed": true,
+  "limitations": [
+    "LG ambient temperature unspecified; refrigerant-side temperature boundaries and frequency/type are matched, not every environmental variable.",
+    "Variable-speed 60Hz means published test/drive-frequency basis, not a measured shaft speed.",
+    "LG variable-speed frequency is a cross-document manufacturer default from the current product page, not directly printed on each 2024 capacity row.",
+    "ASHRAE fixed50 and ARI variable60 are distinct protocols and never pooled into a single refrigerant law.",
+    "Only LG provides the near-15 kW matched R32/R410A comparison; multi-manufacturer coverage is strongest in the lower-capacity fixed50 protocol.",
+    "Highly web snapshots are browser-generated evidence of official HTML, not original manufacturer PDFs."
+  ]
+}

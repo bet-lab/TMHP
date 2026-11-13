@@ -35,7 +35,12 @@ from scipy.optimize import minimize_scalar
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import OBJ_INFEASIBLE, margin_feasible_interval, operating_point_objective
+from ._opt_utils import (
+    OBJ_CAPACITY_LIMITED,
+    OBJ_INFEASIBLE,
+    margin_feasible_interval,
+    operating_point_objective,
+)
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -53,6 +58,15 @@ from .compressor_envelope import (
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, k_w, mu_w, rho_a, rho_w
+from .cycling import (
+    CAPACITY_RATIO_KEY,
+    CD_AIR_DEFAULT,
+    PART_LOAD_FACTOR_KEY,
+    CyclingDegradation,
+    CyclingState,
+    report_cycling,
+    resolve_cycling,
+)
 from .enex_functions import (
     calc_energy_flow,
     calc_exergy_flow,
@@ -181,6 +195,11 @@ class _IndoorSearch:
                         self.Q_r_iu,
                         row.get("capacity_clamped"),
                     )
+                    # A minimum-speed candidate is met by cycling: rank it by
+                    # the mean input its row will report for the request.
+                    state = model._cycling_state(row, self.Q_r_iu)
+                    if state is not None and value < OBJ_CAPACITY_LIMITED:
+                        value = model._cycling_mean_power(row, state)
             self.rows[load_approach] = (value, status, row)
         return self.rows[load_approach]
 
@@ -216,8 +235,26 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     When the requested duty exceeds what the unit can deliver, the result is
     the delivered ceiling with ``capacity_clamped == "max"`` and
     ``Q_ref_iu [W]`` below the request; the difference is unmet load, not a
-    solver failure. A request below the minimum-speed duty runs at that speed
-    and reports ``capacity_clamped == "min"`` with the larger delivery.
+    solver failure.
+
+    **Below the minimum capacity.** A request below what the unit delivers at
+    its minimum compressor speed is met by switching the compressor on and
+    off. Such a row is reported with ``capacity_clamped == "min"`` as the mean
+    over the cycling period (:mod:`tmhp.cycling`), as for
+    :class:`~tmhp.AirSourceHeatPump`: ``Q_ref_iu [W]`` equals the request, the
+    electrical input carries the EN 14825 degradation (``Cd_cycling``, 0.25
+    for a unit delivering to air), and ``runtime_fraction [-]`` is the share
+    of the time the compressor runs. The loop pump is taken to run with the
+    compressor (it is off in the off state of this model too), so
+    ``E_pmp [W]`` is averaged like ``E_cmp [W]``; the indoor fan runs while
+    heat is delivered. The borefield carries the mean load: ``Q_bhe [W]`` of
+    a cycling row, and with it the pulse a dynamic step adds to the ground
+    history, is the mean ground-side heat, while the fluid temperatures of
+    the row are those of the running machine. ``Cd_cycling=None`` restores
+    continuous operation at the minimum speed (the row then delivers more
+    than the request). The coupled ground-flow solver
+    (``ground_flow_control`` other than ``"constant"``) does not cycle: there
+    a request below the minimum-speed duty is ``compressor_min_speed``.
 
     **Defaults that follow the capacity.** With only ``hp_capacity`` (and
     ``ref``) given, the ground side and the indoor airflow are sized from it,
@@ -256,6 +293,24 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
     _RATING_FAMILY = "GSHP"
     _RATING_DEFAULT_MODE = "cooling"
+
+    #: Heat and flow rates averaged with the capacity ratio while cycling.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ground [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "E_cmp_ref [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_bhe_f [m3/s]",
+        "ground_flow [m3/s]",
+        "m_dot_borehole [kg/s]",
+    )
+    #: Electrical powers averaged with the power fraction while cycling: the
+    #: compressor and the loop pump, which runs with it. The indoor fan moves
+    #: the delivered heat and is averaged with it.
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
 
     def __init__(
         self,
@@ -356,8 +411,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        # On/off cycling below the minimum continuous capacity: EN 14825
+        # degradation coefficient Cd (None: no cycling, the unit over-delivers).
+        Cd_cycling: CyclingDegradation | float | None = CD_AIR_DEFAULT,
     ):
         validate_ctor("GSHP", locals())
+        #: EN 14825 cycling degradation (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
         # Ground side sized from the capacity when the caller gives none of it
         # (see tmhp.ground_defaults): flow, pump power and the borefield.
         borefield_defaulted = N_1 is None and N_2 is None and H_b is None
@@ -1321,8 +1381,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         (:func:`calc_bhe_fluid_temperatures`). ``wall_K`` may be a function of
         the borefield load ``Q_bhe`` [W]: a dynamic step passes the wall
         response to the step's own load, so the fluid temperature of the row
-        belongs to the same step as its cycle (#96 G1). Otherwise the fluid
-        leaves the borefield at the model state ``T_bhe_f_out_K``.
+        belongs to the same step as its cycle (#96 G1). It is called with the
+        step-mean load (:meth:`_mean_ground_load`: less than the running load
+        when the compressor cycles), while the fluid is closed for the running
+        load. Otherwise the fluid leaves the borefield at the model state
+        ``T_bhe_f_out_K``.
 
         Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
         ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
@@ -1421,8 +1484,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             if wall_K is None:
                 T_next = T_out
             else:
+                # The wall answers the load the step puts on the ground (the
+                # cycling mean when the compressor cycles); the fluid-to-wall
+                # resistance and the loop temperature difference act on the
+                # load of the running machine.
                 _, _, T_next = calc_bhe_fluid_temperatures(
-                    wall_K(float(row["Q_bhe [W]"])) if callable(wall_K) else wall_K,
+                    wall_K(self._mean_ground_load(row, Q_r_iu)) if callable(wall_K) else wall_K,
                     float(row["Q_bhe [W]"]),
                     self.n_boreholes,
                     self.H_b,
@@ -1511,7 +1578,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             result.update({"converged": True, "failure_reason": "none", "Q_request [W]": Q_r_iu})
             if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
                 result.update({"Q_max [W]": abs(float(result["Q_ref_iu [W]"])), "capacity_binding": "compressor"})
-            return result
+            return self._report_part_load(result, Q_r_iu)
 
         statuses = {status for _, status, _ in rows.values()}
         indoor_limited = any(
@@ -1528,7 +1595,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         if indoor_short or "ground_limit" in statuses:
             ceiling = self._capacity_limited_operating_point(Q_r_iu, T0, T_a_room, wall_K)
             if ceiling is not None:
-                return ceiling
+                return self._report_part_load(ceiling, Q_r_iu)
         if indoor_limited:
             reason = "hx_not_converged"
         elif "ground_limit" in statuses:
@@ -1539,7 +1606,110 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             reason = search.envelope_reason
         else:
             reason = "cycle_invalid"
-        return self._failed_operating_point(reason, Q_r_iu, T0, T_a_room)
+        return self._report_part_load(self._failed_operating_point(reason, Q_r_iu, T0, T_a_room), Q_r_iu)
+
+    # =============================================================
+    # Part load: cycling below the minimum capacity, unmet load above the maximum
+    # =============================================================
+
+    def _cycling_state(self, row: Mapping[str, Any], Q_r_iu: float) -> CyclingState | None:
+        """Cycling state of a continuous row the unit meets by cycling, else ``None``.
+
+        A row cycles when cycling is modelled, the compressor sits on its
+        speed floor and the row delivers more than the request.
+        """
+        if self.cycling is None or row.get("capacity_clamped") != "min" or not row.get("hp_is_on", False):
+            return None
+        delivered = abs(float(row.get("Q_ref_iu [W]", math.nan)))
+        request = abs(float(Q_r_iu))
+        if not (math.isfinite(delivered) and 0.0 < request < delivered):
+            return None
+        return self.cycling.state(request, delivered)
+
+    @staticmethod
+    def _cycling_mean_power(row: Mapping[str, Any], state: CyclingState) -> float:
+        """Mean electrical input [W] a continuous row reports once it is averaged."""
+        machine = float(row["E_cmp [W]"]) + float(row["E_pmp [W]"])
+        return machine * state.power_fraction + float(row["E_iu_fan [W]"]) * state.capacity_ratio
+
+    @staticmethod
+    def _ground_load(heating: bool, Q_ref_ground: float, E_pmp: float) -> float:
+        """Borefield load ``Q_bhe`` [W] (extraction positive) from the ground-HX duty and the pump heat."""
+        return Q_ref_ground - E_pmp if heating else -(Q_ref_ground + E_pmp)
+
+    def _mean_ground_load(self, row: Mapping[str, Any], Q_r_iu: float) -> float:
+        """Borefield load of a continuous row averaged over the step [W].
+
+        The row's own ``Q_bhe [W]`` unless the unit cycles; then the load its
+        averaged row reports (:meth:`_report_part_load`).
+        """
+        state = self._cycling_state(row, Q_r_iu)
+        if state is None:
+            return float(row["Q_bhe [W]"])
+        return self._ground_load(
+            Q_r_iu < 0,
+            state.capacity_ratio * float(row["Q_ref_ground [W]"]),
+            state.power_fraction * float(row["E_pmp [W]"]),
+        )
+
+    def _running_ground_side(self, row: Mapping[str, Any]) -> tuple[float, float]:
+        """Borefield load [W] and loop flow [m³/s] while the compressor runs.
+
+        The row's own values unless it is a cycling mean; then the values of
+        the running machine, recovered from the averaged ones.
+        """
+        load = float(row.get("Q_bhe [W]", 0.0))
+        flow = float(row.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s))
+        ratio = float(row.get(CAPACITY_RATIO_KEY, 1.0))
+        if not (row.get("hp_is_on", False) and 0.0 < ratio < 1.0):
+            return load, flow
+        power_fraction = ratio / float(row[PART_LOAD_FACTOR_KEY])
+        load = self._ground_load(
+            row.get("mode") == "heating",
+            float(row["Q_ref_ground [W]"]) / ratio,
+            float(row["E_pmp [W]"]) / power_fraction,
+        )
+        return load, flow / ratio
+
+    def _report_part_load(self, result: dict, Q_r_iu: float) -> dict:
+        """Write the part-load keys of a solved row and average a cycling one (in place).
+
+        Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
+        (how far the delivered heat falls short of the request, >= 0) and the
+        cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
+        floor is averaged over the cycling period: heat and flow rates and
+        the indoor fan with the capacity ratio, the compressor and the loop
+        pump with the power fraction. ``Q_bhe [W]`` and the two sums of
+        electrical input follow from the averaged terms, and
+        ``E_cmp_loss [W]`` stays ``E_cmp - E_cmp_ref`` (it then includes the
+        compressor's share of the cycling loss).
+        """
+        averaged = report_cycling(
+            result,
+            self.cycling,
+            Q_r_iu,
+            delivered_key="Q_ref_iu [W]",
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            delivery_power_keys=("E_iu_fan [W]",),
+        )
+        if averaged:
+            result["Q_bhe [W]"] = self._ground_load(
+                Q_r_iu < 0, float(result["Q_ref_ground [W]"]), float(result["E_pmp [W]"])
+            )
+            result["E_cmp_loss [W]"] = result["E_cmp [W]"] - result["E_cmp_ref [W]"]
+            if "E_cmp_plus_pmp [W]" in result:
+                result["E_cmp_plus_pmp [W]"] = result["E_cmp [W]"] + result["E_pmp [W]"]
+            result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"]
+            if math.isfinite(float(result["cop_sys [-]"])):
+                result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        request = abs(float(Q_r_iu))
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0))) if running else 0.0
+        unmet = max(request - delivered, 0.0)
+        result["Q_request [W]"] = float(Q_r_iu)
+        result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+        return result
 
     def _balanced_cell(self, search: _IndoorSearch, a: float, b: float) -> tuple[float, float] | None:
         """Shrink ``[a, b]`` to its ground-balanced part (one end must be balanced)."""
@@ -1834,10 +2004,19 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         hp_result: dict,
         hp_is_on: bool,
     ) -> float:
-        """Temporal superposition for BHE — from GSHPB."""
+        """Temporal superposition for BHE — from GSHPB.
+
+        The ground history takes the row's ``Q_bhe [W]``: the step-mean load,
+        which for a cycling row is the mean over the cycling period. The fluid
+        temperatures written to the row are those of the running machine
+        against the wall of the step (:meth:`_running_ground_side`); they are
+        the same thing for a row in continuous operation.
+        """
         Q_bhe_unit = (
             calc_borefield_linear_load(hp_result.get("Q_bhe [W]", 0.0), self.n_boreholes, self.H_b) if hp_is_on else 0.0
         )
+        Q_bhe_running, dV_running = self._running_ground_side(hp_result) if hp_is_on else (0.0, self.dV_b_f_m3s)
+        Q_bhe_unit_running = calc_borefield_linear_load(Q_bhe_running, self.n_boreholes, self.H_b)
 
         if abs(Q_bhe_unit - Q_bhe_unit_old) > 1e-6:
             Q_bhe_unit_pulse[n] = Q_bhe_unit - Q_bhe_unit_old
@@ -1848,12 +2027,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
-        T_bhe_f_K = T_bhe_K - Q_bhe_unit * hp_result.get("R_b_eff [mK/W]", self.R_b)
+        T_bhe_f_K = T_bhe_K - Q_bhe_unit_running * hp_result.get("R_b_eff [mK/W]", self.R_b)
         self.T_bhe_f = cu.K2C(T_bhe_f_K)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
-        m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
+        m_cp_b = c_w * rho_w * dV_running
 
-        dT_half = float((self.Q_bhe / m_cp_b) / 2) if m_cp_b > 0 else 0.0
+        dT_half = float((Q_bhe_unit_running * self.total_borehole_length / m_cp_b) / 2) if m_cp_b > 0 else 0.0
         self.T_bhe_f_in_K = T_bhe_f_K - dT_half
         self.T_bhe_f_in = cu.K2C(self.T_bhe_f_in_K)
         self.T_bhe_f_out_K = T_bhe_f_K + dT_half
@@ -1921,6 +2100,21 @@ class GroundSourceHeatPump(ReferenceStateMixin):
               and ``capacity_binding`` say what bound it: ``"compressor"``,
               ``"cycle"`` or ``"discharge_temperature"``), ``"min"`` when the
               request is below the minimum-speed duty.
+            - ``"Q_request [W]"``, ``"Q_unmet [W]"`` and the cycling keys
+              ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A ``"min"`` row is the
+              mean over the on/off cycling period: ``Q_ref_iu [W]`` equals
+              the request, heat and flow rates are the running machine's
+              times ``capacity_ratio [-]`` (the indoor fan's power with
+              them), ``E_cmp [W]`` and ``E_pmp [W]`` carry the EN 14825
+              degradation (``Cd_cycling``; the running values times
+              ``capacity_ratio / part_load_factor``), ``Q_bhe [W]`` is the
+              mean ground load, and the COP keys are the continuous ones
+              times the part-load factor. Temperatures, pressures and speed
+              are those of the running machine (:mod:`tmhp.cycling`). With
+              ``Cd_cycling=None`` the row is the continuous minimum-speed
+              point and delivers more than the request.
 
             Every non-``"none"`` reason returns the HP-off state: heat and
             power are 0 and the COP keys are NaN. Those numbers describe no
@@ -1961,6 +2155,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 ground_flow_ratio=ground_flow_ratio,
                 T_bhe_wall=T_bhe_wall,
             )
+            # The coupled solver does not cycle (a speed clamp is its
+            # failure); its rows get the part-load keys of continuous operation.
+            self._report_part_load(result, Q_r_iu)
             return result if return_dict else pd.DataFrame([result])
 
         if Q_r_iu == 0:
@@ -1977,6 +2174,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 }
             else:
                 result["failure_reason"] = "none"
+            self._report_part_load(result, 0.0)
         else:
             wall_K = None if T_bhe_wall is None else cu.C2K(T_bhe_wall)
             result = self._solve_operating_point(Q_r_iu, T0, T_a_room, wall_K=wall_K)
@@ -2023,6 +2221,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         the compressor energy of intermittent operation by 4-7 % in heating
         and 11-21 % in cooling (20 min on / 40 min off and 1 h on / 2 h off
         at the default sizing; under 0.5 % in continuous operation).
+
+        A step whose request is below the minimum-speed duty is met by
+        cycling (``Cd_cycling``): its row is the mean over the step, the
+        delivered heat equals the request, and the ground history takes the
+        mean load. The wall of the step answers that mean load, the fluid
+        temperatures of the row are those of the running machine against it.
         """
         validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
@@ -2119,6 +2323,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 }
 
             assert hp_result is not None
+            if CAPACITY_RATIO_KEY not in hp_result:
+                # Off steps and the coupled solver's rows: part-load keys of a
+                # row that is not averaged.
+                self._report_part_load(hp_result, Q_r_iu_n)
             hp_is_on = bool(hp_result.get("hp_is_on", False))
 
             # BHE superposition

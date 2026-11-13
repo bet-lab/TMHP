@@ -131,6 +131,107 @@ A zone temperature / load proxy stands in for the building, as in
 positive values are cooling, negative values are heating, and zero
 values are off operation.
 
+Part load: cycling and unmet load
+=================================
+
+The compressor modulates between ``rps_min`` and ``rps_max``. A request
+outside what the unit delivers over that range is still answered, and the row
+says how — the same convention as :doc:`ashp`.
+
+**Below the minimum capacity** the compressor cycles on and off, and the row
+is the mean over the cycling period (``capacity_clamped == "min"``):
+
+- ``Q_ref_iu [W]`` equals the request. ``Q_min [W]`` is what the unit delivers
+  running continuously at its minimum speed, and ``capacity_ratio [-]`` is the
+  request divided by it (the *CR* of EN 14825).
+- The electrical input carries the EN 14825 degradation for a unit delivering
+  to air: ``COP = COP_min · (1 − Cd · (1 − CR))`` with ``Cd = 0.25``, the value
+  the standard prescribes when a unit has not been tested for it
+  (``part_load_factor [-]`` is that bracket; the table in :doc:`ashp` lists
+  it). ``runtime_fraction [-]``, the share of the time the compressor runs, is
+  ``CR / part_load_factor``.
+- Compressor and loop-pump power (``E_cmp``, ``E_pmp``) are the running values
+  times the runtime fraction. The pump is taken to run with the compressor —
+  the usual interlock of a residential flow centre, and what the model already
+  does in its off state, where ``E_pmp`` is zero. Heat and flow rates
+  (``Q_ref_iu``, ``Q_ref_ground``, ``Q_a_iu_in``, ``Q_a_iu_out``,
+  ``m_dot_ref``, ``dV_iu_a``, ``dV_bhe_f``) are the running values times *CR*,
+  and so is the indoor fan's power (``E_iu_fan``): it runs while heat is
+  delivered. The refrigerant cycle and the room air thus stay in balance with
+  the delivered heat. Temperatures, pressures, compressor speed and
+  efficiencies are those of the running machine.
+- ``Q_bhe [W]`` is the mean load on the borefield: the mean ground-side duty
+  less (heating) or plus (cooling) the mean pump power.
+- ``E_cycling_loss [W]`` is the mean electrical power the compressor and the
+  pump draw beyond *CR* times their continuous power. It is not part of any
+  heat flow of the row: the ground-side duty of the mean row is the running
+  duty times *CR*.
+
+The default unit running continuously at its minimum speed delivers about
+1.7 kW in heating from a 0 °C borehole wall and 2.4 kW in cooling into a 25 °C
+one — 41 % and 59 % of the nameplate. Until this model every request below
+that was answered with the minimum capacity itself: 8.3 times a 200 W heating
+request and 11.8 times a cooling one, and over a mild 24 h schedule 18 %
+(heating) and 29 % (cooling) more heat than was asked for.
+
+.. list-table:: 4 kW R32 unit, heating at 20 °C room and 0 °C borehole wall
+   :header-rows: 1
+   :widths: 16 16 16 16 18 18
+
+   * - Request
+     - ``Q_ref_iu``
+     - ``runtime_fraction``
+     - ``E_tot``
+     - ``cop_sys``
+     - ``Q_bhe``
+   * - 200 W
+     - 200 W
+     - 0.155
+     - 66 W
+     - 3.08
+     - 148 W
+   * - 1 000 W
+     - 1 000 W
+     - 0.669
+     - 286 W
+     - 3.54
+     - 749 W
+   * - 1 659 W (``Q_min``)
+     - 1 659 W
+     - 1.000
+     - 430 W
+     - 3.91
+     - 1 252 W
+
+``Cd_cycling`` sets the coefficient: a number replaces 0.25, ``0`` is
+loss-free cycling, and ``None`` restores the earlier behaviour (continuous
+operation at the minimum speed, ``Q_ref_iu [W]`` above the request,
+``runtime_fraction [-]`` of 1). The operating-point search weighs the
+degradation, so the minimum-speed point may sit a few watts from the one found
+with ``Cd_cycling=None``.
+
+**In a dynamic run** a cycling step loads the ground with its mean: the pulse
+added to the ground history is the row's ``Q_bhe [W]``, and the borehole wall
+of the step (``T_bhe [°C]``) answers that mean load. The fluid temperatures of
+the row (``T_bhe_f [°C]``, ``T_bhe_f_in [°C]``, ``T_bhe_f_out [°C]``) are
+those of the running machine against that wall — the borehole resistance and
+the loop temperature difference act on the running load — so the row's cycle
+and its fluid still belong together. Changes of the wall temperature within
+one cycling period are not resolved.
+
+**Above the maximum capacity** the unit runs flat out
+(``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,
+``Q_max [W]`` repeats it and ``capacity_binding`` names what set it.
+``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` (the part of the
+request that is not delivered) are on every row.
+
+What the cycling model does not contain: no standby power is added while the
+compressor is off, and a start is not resolved in time — the degradation is
+the standard's seasonal-average figure. The coupled ground-flow solver
+(:doc:`ground-flow`, ``ground_flow_control`` other than ``"constant"``) does
+not cycle: a request below its minimum-speed duty is reported as the failure
+``compressor_min_speed``.
+
 COP boundary
 ============
 

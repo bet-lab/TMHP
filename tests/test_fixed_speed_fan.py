@@ -48,7 +48,9 @@ def test_issue_104_example_constructs_and_solves():
     # ``min == max`` on a 0.8 m3/s reference (the issue's numbers; 0.8 was the
     # default reference of a 4 kW unit when it was filed).
     fixed = dict(dV_iu_fan_a_rated=0.80, dV_iu_fan_a_min=0.80, dV_iu_fan_a_max=0.80)
-    hp = GroundSourceHeatPump(ref="R32", R_b=0.2, t_max_s=3600, **fixed)
+    # 2.5 kW is just below this unit's minimum-speed duty: read the running
+    # machine (``Cd_cycling=None``), whose airflow is the fixed one.
+    hp = GroundSourceHeatPump(ref="R32", R_b=0.2, t_max_s=3600, Cd_cycling=None, **fixed)
     assert hp.dV_iu_fan_a_min == hp.dV_iu_fan_a_max == 0.80
     out = hp.analyze_steady(Q_r_iu=-2500, T0=7, T_a_room=20)
     assert out["converged"] and out["failure_reason"] == "none"
@@ -162,12 +164,20 @@ FLOW_GSHP = 0.5
 EPS = 5e-4  # +/- 0.05 % around the fixed flow
 
 
+# These tests read the airflow and fan power of the running machine, so the
+# models are built with ``Cd_cycling=None``: a request below the minimum-speed
+# duty then returns the continuous point, not the mean over the on/off cycling
+# period (whose airflow and powers are the running ones times the capacity
+# ratio or the power fraction; ``tests/test_gshp_cycling.py`` and
+# ``tests/test_boiler_steady_cycling.py``).
+
+
 def _ashpb(**fan):
     return AirSourceHeatPumpBoiler(**fan)
 
 
 def _gshp(**fan):
-    return GroundSourceHeatPump(R_b=0.2, t_max_s=3600, **fan)
+    return GroundSourceHeatPump(R_b=0.2, t_max_s=3600, Cd_cycling=None, **fan)
 
 
 def _assert_same_state(a, b):

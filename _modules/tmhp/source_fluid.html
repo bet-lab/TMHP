@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>tmhp.source_fluid - TMHP</title><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/_modules/tmhp/source_fluid.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="../../getting-started/index.html">Start</a></li><li class="link"><a href="../../concepts/index.html">Concepts</a></li><li class="link"><a href="../../models/index.html">Models</a></li><li class="link"><a href="../../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../../integrations/index.html">Integrations</a></li><li class="link"><a href="../../api/index.html">API</a></li><li class="link"><a href="../../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../getting-started/index.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">Module code</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">tmhp.source_fluid</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <h1>Source code for tmhp.source_fluid</h1><div class="highlight"><pre>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Source-loop fluid of the liquid-source models: water or an antifreeze mixture.</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="sd">The ground- and water-source models (GSHP, GSHPB, WSHPB) circulate a liquid</span>
+</span><span data-line="4"><span class="sd">between the source (a borefield, a coil lying in surface water) and the heat</span>
+</span><span data-line="5"><span class="sd">pump&#39;s source-side heat exchanger. This module says what that liquid is, where</span>
+</span><span data-line="6"><span class="sd">it freezes and how cold it may run:</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="sd">- :class:`SourceFluid` -- freezing point, operating lower limit and the</span>
+</span><span data-line="9"><span class="sd">  properties the source-side balances use;</span>
+</span><span data-line="10"><span class="sd">- :func:`resolve_source_fluid` -- the constructor argument ``source_fluid``</span>
+</span><span data-line="11"><span class="sd">  (``&quot;water&quot;``, ``&quot;MEG-25%&quot;``, ``&quot;MPG-30%&quot;``, ``&quot;ethanol-20%&quot;``, ... or a</span>
+</span><span data-line="12"><span class="sd">  :class:`SourceFluid`; left out: 25 % ethylene glycol for the ground-source</span>
+</span><span data-line="13"><span class="sd">  models, :data:`GROUND_LOOP_FLUID_DEFAULT`, and water for the water-source</span>
+</span><span data-line="14"><span class="sd">  boiler);</span>
+</span><span data-line="15"><span class="sd">- :func:`limit_duty_to_source_freeze` and :func:`source_freeze_limited` -- the</span>
+</span><span data-line="16"><span class="sd">  rule applied to every solved point.</span>
+</span><span data-line="17">
+</span><span data-line="18"><span class="sd">Why a limit</span>
+</span><span data-line="19"><span class="sd">-----------</span>
+</span><span data-line="20"><span class="sd">Water freezes at 0 °C. Without the limit a model fed with a cold source</span>
+</span><span data-line="21"><span class="sd">returned a running cycle whose loop &quot;water&quot; left the evaporator at -3 °C or</span>
+</span><span data-line="22"><span class="sd">-12 °C. A real water loop does not do that: ice forms on the evaporator</span>
+</span><span data-line="23"><span class="sd">plates, which are colder than the liquid, the flow stops and the plate heat</span>
+</span><span data-line="24"><span class="sd">exchanger bursts. Loops that run near or below 0 °C are filled with an</span>
+</span><span data-line="25"><span class="sd">antifreeze mixture (propylene or ethylene glycol, ethanol), and the heat</span>
+</span><span data-line="26"><span class="sd">pump&#39;s controller stops the compressor before the mixture can freeze.</span>
+</span><span data-line="27">
+</span><span data-line="28"><span class="sd">Operating lower limit</span>
+</span><span data-line="29"><span class="sd">---------------------</span>
+</span><span data-line="30"><span class="sd">``T_min = T_freeze + 3 K`` (:data:`FREEZE_MARGIN_K`), applied to the coldest</span>
+</span><span data-line="31"><span class="sd">liquid in the loop: in heating the liquid leaving the heat pump</span>
+</span><span data-line="32"><span class="sd">(``T_bhe_f_in [°C]``). Two things set the margin.</span>
+</span><span data-line="33">
+</span><span data-line="34"><span class="sd">- The evaporator surface is colder than the liquid leaving it. With the</span>
+</span><span data-line="35"><span class="sd">  default source heat exchanger (``UA = 0.18 * hp_capacity``) and the default</span>
+</span><span data-line="36"><span class="sd">  flow (3 K loop temperature difference at the rated source heat) the</span>
+</span><span data-line="37"><span class="sd">  refrigerant evaporates 2.9 K below the leaving liquid at the rated duty</span>
+</span><span data-line="38"><span class="sd">  (effectiveness 0.51: ``3 K / 0.51 - 3 K``). A 3 K margin therefore keeps the</span>
+</span><span data-line="39"><span class="sd">  refrigerant, and with it the plate surface, at or above the freezing point</span>
+</span><span data-line="40"><span class="sd">  at that duty.</span>
+</span><span data-line="41"><span class="sd">- Manufacturers of water-to-water and water-to-air units ask for antifreeze</span>
+</span><span data-line="42"><span class="sd">  whenever the loop may enter the unit below 40-45 °F (4.4-7.2 °C), and for a</span>
+</span><span data-line="43"><span class="sd">  freezing point 10-15 °F (5.6-8.3 K) below the lowest entering temperature</span>
+</span><span data-line="44"><span class="sd">  (ClimateMaster and Carrier installation manuals: 15 °F; Enertech technical</span>
+</span><span data-line="45"><span class="sd">  bulletin TB19.001: 10-15 °F; Trane GETB/WPHF: antifreeze below 45 °F). With</span>
+</span><span data-line="46"><span class="sd">  the 3 K loop difference the leaving liquid is 3 K colder than the entering</span>
+</span><span data-line="47"><span class="sd">  one, so those rules put the freezing point 2.6-5.3 K below the *leaving*</span>
+</span><span data-line="48"><span class="sd">  liquid. 3 K is inside that range; for water it means: full duty down to</span>
+</span><span data-line="49"><span class="sd">  about 6 °C entering, none below 3 °C.</span>
+</span><span data-line="50">
+</span><span data-line="51"><span class="sd">A :class:`SourceFluid` built by the caller can carry any other limit.</span>
+</span><span data-line="52">
+</span><span data-line="53"><span class="sd">What happens at the limit</span>
+</span><span data-line="54"><span class="sd">-------------------------</span>
+</span><span data-line="55"><span class="sd">A variable-speed unit does not trip the moment the limit is reached: its</span>
+</span><span data-line="56"><span class="sd">controller lowers the compressor speed, the evaporator takes less heat from</span>
+</span><span data-line="57"><span class="sd">the liquid and the liquid leaves warmer. The models do the same</span>
+</span><span data-line="58"><span class="sd">(:func:`limit_duty_to_source_freeze`): the result is the largest duty whose</span>
+</span><span data-line="59"><span class="sd">loop liquid stays at or above ``T_min``, with ``capacity_clamped == &quot;max&quot;``</span>
+</span><span data-line="60"><span class="sd">and ``capacity_binding == &quot;source_fluid_freezing&quot;``. When no duty helps --</span>
+</span><span data-line="61"><span class="sd">the liquid already reaches the heat pump below the limit, or it leaves below</span>
+</span><span data-line="62"><span class="sd">the limit even at the compressor&#39;s lowest speed -- the compressor does not</span>
+</span><span data-line="63"><span class="sd">run: the off state with ``failure_reason == &quot;source_fluid_freezing&quot;``.</span>
+</span><span data-line="64">
+</span><span data-line="65"><span class="sd">Properties</span>
+</span><span data-line="66"><span class="sd">----------</span>
+</span><span data-line="67"><span class="sd">Water keeps the constants of :mod:`tmhp.constants` (1000 kg/m³, 4186 J/(kg K),</span>
+</span><span data-line="68"><span class="sd">1.0 mPa s, 0.606 W/(m K)), so every result with the default fluid is unchanged</span>
+</span><span data-line="69"><span class="sd">by the property path. Mixtures are read from CoolProp&#39;s incompressible</span>
+</span><span data-line="70"><span class="sd">mixtures (``INCOMP::MPG[0.25]`` and the like; concentrations by mass) at</span>
+</span><span data-line="71"><span class="sd">:data:`PROPERTY_REFERENCE_C` = 0 °C, the liquid inlet temperature of the</span>
+</span><span data-line="72"><span class="sd">ISO 13256-1 ground-loop and EN 14511 brine rating points and the cold end an</span>
+</span><span data-line="73"><span class="sd">antifreeze loop is designed for. They are constants in a run, like water&#39;s.</span>
+</span><span data-line="74"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="75">
+</span><span data-line="76"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="77">
+</span><span data-line="78"><span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+</span><span data-line="79"><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+</span><span data-line="80"><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+</span><span data-line="81"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="82"><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+</span><span data-line="83"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="84"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
+</span><span data-line="85"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="86"><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+</span><span data-line="87"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="88">
+</span><span data-line="89"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_envelope</span><span class="w"> </span><span class="kn">import</span> <span class="n">CONTROL_KEY</span><span class="p">,</span> <span class="n">QUALITY_KEY</span><span class="p">,</span> <span class="n">SUPERHEAT_KEY</span>
+</span><span data-line="90"><span class="kn">from</span><span class="w"> </span><span class="nn">.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">,</span> <span class="n">mu_w</span><span class="p">,</span> <span class="n">rho_w</span>
+</span><span data-line="91">
+</span><span data-line="92"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="93">    <span class="s2">&quot;FREEZE_MARGIN_K&quot;</span><span class="p">,</span>
+</span><span data-line="94">    <span class="s2">&quot;GROUND_LOOP_FLUID_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="95">    <span class="s2">&quot;PROPERTY_REFERENCE_C&quot;</span><span class="p">,</span>
+</span><span data-line="96">    <span class="s2">&quot;SOURCE_FLUID_FREEZING&quot;</span><span class="p">,</span>
+</span><span data-line="97">    <span class="s2">&quot;SOURCE_FLUID_PRESETS&quot;</span><span class="p">,</span>
+</span><span data-line="98">    <span class="s2">&quot;WATER_LOOP_FLUID_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="99">    <span class="s2">&quot;SourceFluid&quot;</span><span class="p">,</span>
+</span><span data-line="100">    <span class="s2">&quot;freeze_violation&quot;</span><span class="p">,</span>
+</span><span data-line="101">    <span class="s2">&quot;limit_duty_to_source_freeze&quot;</span><span class="p">,</span>
+</span><span data-line="102">    <span class="s2">&quot;resolve_source_fluid&quot;</span><span class="p">,</span>
+</span><span data-line="103">    <span class="s2">&quot;source_fluid_table&quot;</span><span class="p">,</span>
+</span><span data-line="104">    <span class="s2">&quot;source_freeze_limited&quot;</span><span class="p">,</span>
+</span><span data-line="105">    <span class="s2">&quot;warn_if_loop_modelled_as_water&quot;</span><span class="p">,</span>
+</span><span data-line="106"><span class="p">]</span>
+</span><span data-line="107">
+</span><span data-line="108"><span class="c1">#: ``failure_reason`` of a point whose loop liquid would run below its</span>
+</span><span data-line="109"><span class="c1">#: operating limit, and ``capacity_binding`` of a duty reduced to stay on it.</span>
+</span><span data-line="110"><span class="n">SOURCE_FLUID_FREEZING</span> <span class="o">=</span> <span class="s2">&quot;source_fluid_freezing&quot;</span>
+</span><span data-line="111"><span class="c1">#: ``failure_detail``: the liquid reaches the heat pump below the limit already.</span>
+</span><span data-line="112"><span class="n">DETAIL_INLET</span> <span class="o">=</span> <span class="s2">&quot;source_inlet_below_limit&quot;</span>
+</span><span data-line="113"><span class="c1">#: ``failure_detail``: the liquid would leave the heat pump below the limit.</span>
+</span><span data-line="114"><span class="n">DETAIL_OUTLET</span> <span class="o">=</span> <span class="s2">&quot;source_outlet_below_limit&quot;</span>
+</span><span data-line="115"><span class="c1">#: Operating lower limit above the freezing point [K]; see the module docstring.</span>
+</span><span data-line="116"><span class="n">FREEZE_MARGIN_K</span> <span class="o">=</span> <span class="mf">3.0</span>
+</span><span data-line="117"><span class="c1">#: Temperature at which the properties of an antifreeze mixture are read [°C].</span>
+</span><span data-line="118"><span class="n">PROPERTY_REFERENCE_C</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="119"><span class="c1">#: Tolerance of the comparison with the limit [K]. Results are solved by root</span>
+</span><span data-line="120"><span class="c1">#: finding and differ between platforms at the 1e-9 level; 0.01 K is far below</span>
+</span><span data-line="121"><span class="c1">#: any meaning the limit has.</span>
+</span><span data-line="122"><span class="n">FREEZE_TOL_K</span> <span class="o">=</span> <span class="mf">0.01</span>
+</span><span data-line="123"><span class="c1">#: A reduced duty is accepted once the coldest liquid is within this of the limit [K]</span>
+</span><span data-line="124"><span class="c1">#: (1 % of the 3 K loop temperature difference, i.e. about 1 % of the duty).</span>
+</span><span data-line="125"><span class="n">_BAND_K</span> <span class="o">=</span> <span class="mf">0.03</span>
+</span><span data-line="126"><span class="c1">#: Smallest share of the request tried (the lowest rung of the envelope&#39;s reduction).</span>
+</span><span data-line="127"><span class="n">_MIN_FRACTION</span> <span class="o">=</span> <span class="mf">0.1</span>
+</span><span data-line="128"><span class="c1">#: A reduction also stops once the duty is bracketed this closely, relative to the request.</span>
+</span><span data-line="129"><span class="n">_REL_TOL</span> <span class="o">=</span> <span class="mf">0.01</span>
+</span><span data-line="130"><span class="n">_MAX_TRIALS</span> <span class="o">=</span> <span class="mi">12</span>
+</span><span data-line="131"><span class="c1">#: Result keys: the liquid leaving the heat pump (entering the ground) and entering it.</span>
+</span><span data-line="132"><span class="n">LEAVING_KEY</span> <span class="o">=</span> <span class="s2">&quot;T_bhe_f_in [°C]&quot;</span>
+</span><span data-line="133"><span class="n">ENTERING_KEY</span> <span class="o">=</span> <span class="s2">&quot;T_bhe_f_out [°C]&quot;</span>
+</span><span data-line="134"><span class="c1">#: Request keys the boilers report, replaced by the caller&#39;s request on a reduced point.</span>
+</span><span data-line="135"><span class="n">_REQUEST_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Q_ref_tank_request [W]&quot;</span><span class="p">,</span> <span class="s2">&quot;Q_tank_load [W]&quot;</span><span class="p">)</span>
+</span><span data-line="136"><span class="c1">#: Keys :func:`tmhp.compressor_envelope.steady_envelope` puts on every steady</span>
+</span><span data-line="137"><span class="c1">#: result, with the values an off state has; a refused point keeps them.</span>
+</span><span data-line="138"><span class="n">_OFF_ANNOTATIONS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="139">    <span class="s2">&quot;efficiency_extrapolated&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="140">    <span class="n">SUPERHEAT_KEY</span><span class="p">:</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="141">    <span class="n">QUALITY_KEY</span><span class="p">:</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="142">    <span class="n">CONTROL_KEY</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="143"><span class="p">}</span>
+</span><span data-line="144">
+</span><span data-line="145"><span class="c1">#: Antifreeze bases: name accepted in ``source_fluid`` -&gt; (CoolProp incompressible</span>
+</span><span data-line="146"><span class="c1">#: mixture, description). Concentrations are mass fractions of the base in water.</span>
+</span><span data-line="147"><span class="n">_MIXTURE_BASES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+</span><span data-line="148">    <span class="s2">&quot;mpg&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;MPG&quot;</span><span class="p">,</span> <span class="s2">&quot;propylene glycol&quot;</span><span class="p">),</span>
+</span><span data-line="149">    <span class="s2">&quot;meg&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;MEG&quot;</span><span class="p">,</span> <span class="s2">&quot;ethylene glycol&quot;</span><span class="p">),</span>
+</span><span data-line="150">    <span class="s2">&quot;ethanol&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;MEA&quot;</span><span class="p">,</span> <span class="s2">&quot;ethanol&quot;</span><span class="p">),</span>
+</span><span data-line="151"><span class="p">}</span>
+</span><span data-line="152"><span class="c1">#: Concentration range accepted for a mixture [% by mass].</span>
+</span><span data-line="153"><span class="n">_MIXTURE_RANGE_PCT</span> <span class="o">=</span> <span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">)</span>
+</span><span data-line="154"><span class="n">_MIXTURE_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\s*([a-z]+)[\s_-]*([0-9]+(?:\.[0-9]+)?)\s*%?\s*$&quot;</span><span class="p">)</span>
+</span><span data-line="155">
+</span><span data-line="156"><span class="c1">#: The fluids listed in the documentation (any concentration in</span>
+</span><span data-line="157"><span class="c1">#: ``_MIXTURE_RANGE_PCT`` is accepted, these are the common fills).</span>
+</span><span data-line="158"><span class="n">SOURCE_FLUID_PRESETS</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="159">    <span class="s2">&quot;water&quot;</span><span class="p">,</span>
+</span><span data-line="160">    <span class="s2">&quot;MEG-20%&quot;</span><span class="p">,</span>
+</span><span data-line="161">    <span class="s2">&quot;MEG-25%&quot;</span><span class="p">,</span>
+</span><span data-line="162">    <span class="s2">&quot;MEG-30%&quot;</span><span class="p">,</span>
+</span><span data-line="163">    <span class="s2">&quot;MPG-20%&quot;</span><span class="p">,</span>
+</span><span data-line="164">    <span class="s2">&quot;MPG-25%&quot;</span><span class="p">,</span>
+</span><span data-line="165">    <span class="s2">&quot;MPG-30%&quot;</span><span class="p">,</span>
+</span><span data-line="166">    <span class="s2">&quot;ethanol-20%&quot;</span><span class="p">,</span>
+</span><span data-line="167">    <span class="s2">&quot;ethanol-25%&quot;</span><span class="p">,</span>
+</span><span data-line="168"><span class="p">)</span>
+</span><span data-line="169">
+</span><span data-line="170">
+<div class="viewcode-block" id="SourceFluid">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid">[docs]</a>
+</span><span data-line="171"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="172"><span class="k">class</span><span class="w"> </span><span class="nc">SourceFluid</span><span class="p">:</span>
+</span><span data-line="173"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Liquid of the source loop: freezing point, operating limit and properties.</span>
+</span><span data-line="174">
+</span><span data-line="175"><span class="sd">    Parameters</span>
+</span><span data-line="176"><span class="sd">    ----------</span>
+</span><span data-line="177"><span class="sd">    name : str</span>
+</span><span data-line="178"><span class="sd">        Label used in messages and results.</span>
+</span><span data-line="179"><span class="sd">    T_freeze_C : float</span>
+</span><span data-line="180"><span class="sd">        Freezing point [°C].</span>
+</span><span data-line="181"><span class="sd">    rho, cp, mu, k : float</span>
+</span><span data-line="182"><span class="sd">        Density [kg/m³], specific heat [J/(kg K)], dynamic viscosity [Pa s]</span>
+</span><span data-line="183"><span class="sd">        and thermal conductivity [W/(m K)], constant during a run.</span>
+</span><span data-line="184"><span class="sd">    T_min_C : float | None</span>
+</span><span data-line="185"><span class="sd">        Coldest the liquid may run [°C]. ``None`` (default):</span>
+</span><span data-line="186"><span class="sd">        ``T_freeze_C + FREEZE_MARGIN_K``. It may not lie below the freezing</span>
+</span><span data-line="187"><span class="sd">        point.</span>
+</span><span data-line="188"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="189">
+</span><span data-line="190">    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span data-line="191">    <span class="n">T_freeze_C</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="192">    <span class="n">rho</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="193">    <span class="n">cp</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="194">    <span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="195">    <span class="n">k</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="196">    <span class="n">T_min_C</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="197">
+</span><span data-line="198">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="199">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+</span><span data-line="200">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SourceFluid name must be a non-empty string&quot;</span><span class="p">)</span>
+</span><span data-line="201">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="p">):</span>
+</span><span data-line="202">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SourceFluid T_freeze_C must be finite, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="203">        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">&quot;rho&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;cp&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;mu&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">)):</span>
+</span><span data-line="204">            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="205">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SourceFluid </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> must be finite and positive, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="206">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min_C</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="207">            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;T_min_C&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span> <span class="o">+</span> <span class="n">FREEZE_MARGIN_K</span><span class="p">)</span>
+</span><span data-line="208">        <span class="n">limit</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min_C</span><span class="p">)</span>
+</span><span data-line="209">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span> <span class="ow">or</span> <span class="n">limit</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="p">:</span>
+</span><span data-line="210">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="211">                <span class="sa">f</span><span class="s2">&quot;SourceFluid T_min_C must be finite and not below the freezing point &quot;</span>
+</span><span data-line="212">                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> °C), got </span><span class="si">{</span><span class="n">limit</span><span class="si">!r}</span><span class="s2">&quot;</span>
+</span><span data-line="213">            <span class="p">)</span>
+</span><span data-line="214">
+</span><span data-line="215">    <span class="nd">@property</span>
+</span><span data-line="216">    <span class="k">def</span><span class="w"> </span><span class="nf">limit_C</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="217"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The operating lower limit [°C] as a float (``T_min_C`` after defaulting).&quot;&quot;&quot;</span>
+</span><span data-line="218">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_min_C</span><span class="p">)</span>
+</span><span data-line="219">
+</span><span data-line="220">    <span class="nd">@property</span>
+</span><span data-line="221">    <span class="k">def</span><span class="w"> </span><span class="nf">is_water</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="222"><span class="w">        </span><span class="sd">&quot;&quot;&quot;True for the default fluid, whose properties the ground-loop helpers assume.&quot;&quot;&quot;</span>
+</span><span data-line="223">        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">rho_w</span><span class="p">,</span> <span class="n">c_w</span><span class="p">,</span> <span class="n">mu_w</span><span class="p">,</span> <span class="n">k_w</span><span class="p">)</span>
+</span><span data-line="224">
+<div class="viewcode-block" id="SourceFluid.describe">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.describe">[docs]</a>
+</span><span data-line="225">    <span class="k">def</span><span class="w"> </span><span class="nf">describe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="226"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``&quot;water (freezes at 0.0 °C, operating limit 3.0 °C)&quot;``.&quot;&quot;&quot;</span>
+</span><span data-line="227">        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (freezes at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C, operating limit </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">limit_C</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C)&quot;</span></div>
+</div>
+
+</span><span data-line="228">
+</span><span data-line="229">
+</span><span data-line="230"><span class="c1">#: Plain water with the constants every model has always used.</span>
+</span><span data-line="231"><span class="n">WATER</span> <span class="o">=</span> <span class="n">SourceFluid</span><span class="p">(</span><span class="s2">&quot;water&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">rho_w</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">c_w</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">mu_w</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">k_w</span><span class="p">))</span>
+</span><span data-line="232">
+</span><span data-line="233">
+</span><span data-line="234"><span class="k">def</span><span class="w"> </span><span class="nf">_mixture</span><span class="p">(</span><span class="n">base</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">percent</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SourceFluid</span><span class="p">:</span>
+</span><span data-line="235">    <span class="kn">import</span><span class="w"> </span><span class="nn">CoolProp.CoolProp</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">CP</span>
+</span><span data-line="236">
+</span><span data-line="237">    <span class="n">coolprop</span><span class="p">,</span> <span class="n">described</span> <span class="o">=</span> <span class="n">_MIXTURE_BASES</span><span class="p">[</span><span class="n">base</span><span class="p">]</span>
+</span><span data-line="238">    <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">_MIXTURE_RANGE_PCT</span>
+</span><span data-line="239">    <span class="k">if</span> <span class="ow">not</span> <span class="n">low</span> <span class="o">&lt;=</span> <span class="n">percent</span> <span class="o">&lt;=</span> <span class="n">high</span><span class="p">:</span>
+</span><span data-line="240">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="241">            <span class="sa">f</span><span class="s2">&quot;source_fluid </span><span class="si">{</span><span class="n">label</span><span class="si">!r}</span><span class="s2">: the </span><span class="si">{</span><span class="n">described</span><span class="si">}</span><span class="s2"> concentration must be </span><span class="si">{</span><span class="n">low</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">high</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> % by mass, got </span><span class="si">{</span><span class="n">percent</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> %&quot;</span>
+</span><span data-line="242">        <span class="p">)</span>
+</span><span data-line="243">    <span class="n">fluid</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;INCOMP::</span><span class="si">{</span><span class="n">coolprop</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">percent</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100.0</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">]&quot;</span>
+</span><span data-line="244">    <span class="n">T_ref_K</span><span class="p">,</span> <span class="n">pressure</span> <span class="o">=</span> <span class="n">PROPERTY_REFERENCE_C</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">,</span> <span class="mf">2.0e5</span>
+</span><span data-line="245">    <span class="n">T_freeze_C</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="s2">&quot;T_freeze&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_ref_K</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">pressure</span><span class="p">,</span> <span class="n">fluid</span><span class="p">))</span> <span class="o">-</span> <span class="mf">273.15</span>
+</span><span data-line="246">    <span class="n">rho</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">CP</span><span class="o">.</span><span class="n">PropsSI</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="n">T_ref_K</span><span class="p">,</span> <span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="n">pressure</span><span class="p">,</span> <span class="n">fluid</span><span class="p">))</span> <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;V&quot;</span><span class="p">,</span> <span class="s2">&quot;L&quot;</span><span class="p">))</span>
+</span><span data-line="247">    <span class="k">return</span> <span class="n">SourceFluid</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">coolprop</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">base</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">&#39;ethanol&#39;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;ethanol&#39;</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">percent</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">%&quot;</span><span class="p">,</span> <span class="n">T_freeze_C</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+</span><span data-line="248">
+</span><span data-line="249">
+</span><span data-line="250"><span class="n">_CACHE</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SourceFluid</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="251">
+</span><span data-line="252">
+</span><span data-line="253"><span class="c1">#: Default loop liquid of the ground-source models (GSHP, GSHPB): 25 % ethylene</span>
+</span><span data-line="254"><span class="c1">#: glycol by mass, freezing at -11.0 °C. Ground loops are rated and run with</span>
+</span><span data-line="255"><span class="c1">#: brine (EN 14511 B0, ISO 13256-1 liquid entering at 0 °C), and of the common</span>
+</span><span data-line="256"><span class="c1">#: fills this one stays turbulent in the default U-tube at the default flow</span>
+</span><span data-line="257"><span class="c1">#: (3.7 mPa s at 0 °C against 5.5 for propylene glycol of the same strength).</span>
+</span><span data-line="258"><span class="n">GROUND_LOOP_FLUID_DEFAULT</span> <span class="o">=</span> <span class="s2">&quot;MEG-25%&quot;</span>
+</span><span data-line="259"><span class="c1">#: Default loop liquid of the water-source boiler (WSHPB): plain water.</span>
+</span><span data-line="260"><span class="n">WATER_LOOP_FLUID_DEFAULT</span> <span class="o">=</span> <span class="s2">&quot;water&quot;</span>
+</span><span data-line="261">
+</span><span data-line="262">
+<div class="viewcode-block" id="resolve_source_fluid">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.resolve_source_fluid">[docs]</a>
+</span><span data-line="263"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_source_fluid</span><span class="p">(</span><span class="n">source_fluid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">SourceFluid</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;water&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SourceFluid</span><span class="p">:</span>
+</span><span data-line="264"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The :class:`SourceFluid` a constructor&#39;s ``source_fluid`` argument names.</span>
+</span><span data-line="265">
+</span><span data-line="266"><span class="sd">    ``None`` is the family&#39;s ``default`` (:data:`GROUND_LOOP_FLUID_DEFAULT`</span>
+</span><span data-line="267"><span class="sd">    for GSHP and GSHPB, water for WSHPB). ``&quot;water&quot;`` is plain water. ``&quot;&lt;base&gt;-&lt;percent&gt;%&quot;`` is an</span>
+</span><span data-line="268"><span class="sd">    antifreeze mixture by mass with ``base`` one of ``MPG`` (propylene</span>
+</span><span data-line="269"><span class="sd">    glycol), ``MEG`` (ethylene glycol) or ``ethanol``, 5-60 %: its freezing</span>
+</span><span data-line="270"><span class="sd">    point and properties come from CoolProp (``INCOMP::MPG``, ``MEG``,</span>
+</span><span data-line="271"><span class="sd">    ``MEA``) at 0 °C. A :class:`SourceFluid` is returned as given. Anything</span>
+</span><span data-line="272"><span class="sd">    else raises ``ValueError``.</span>
+</span><span data-line="273"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="274">    <span class="k">if</span> <span class="n">source_fluid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="275">        <span class="n">source_fluid</span> <span class="o">=</span> <span class="n">default</span>
+</span><span data-line="276">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_fluid</span><span class="p">,</span> <span class="n">SourceFluid</span><span class="p">):</span>
+</span><span data-line="277">        <span class="k">return</span> <span class="n">source_fluid</span>
+</span><span data-line="278">    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_fluid</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span data-line="279">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;source_fluid must be a name or a SourceFluid, got </span><span class="si">{</span><span class="n">source_fluid</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="280">    <span class="n">key</span> <span class="o">=</span> <span class="n">source_fluid</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span data-line="281">    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;water&quot;</span><span class="p">:</span>
+</span><span data-line="282">        <span class="k">return</span> <span class="n">WATER</span>
+</span><span data-line="283">    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_CACHE</span><span class="p">:</span>
+</span><span data-line="284">        <span class="n">match</span> <span class="o">=</span> <span class="n">_MIXTURE_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span data-line="285">        <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_MIXTURE_BASES</span><span class="p">:</span>
+</span><span data-line="286">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span data-line="287">                <span class="sa">f</span><span class="s2">&quot;source_fluid must be &#39;water&#39;, &#39;&lt;base&gt;-&lt;percent&gt;%&#39; with base MPG, MEG or ethanol &quot;</span>
+</span><span data-line="288">                <span class="sa">f</span><span class="s2">&quot;(e.g. &#39;MPG-25%&#39;), or a SourceFluid, got </span><span class="si">{</span><span class="n">source_fluid</span><span class="si">!r}</span><span class="s2">&quot;</span>
+</span><span data-line="289">            <span class="p">)</span>
+</span><span data-line="290">        <span class="n">_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_mixture</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span> <span class="n">source_fluid</span><span class="p">)</span>
+</span><span data-line="291">    <span class="k">return</span> <span class="n">_CACHE</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+</span><span data-line="292">
+</span><span data-line="293">
+<div class="viewcode-block" id="source_fluid_table">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.source_fluid_table">[docs]</a>
+</span><span data-line="294"><span class="k">def</span><span class="w"> </span><span class="nf">source_fluid_table</span><span class="p">(</span><span class="n">names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">SOURCE_FLUID_PRESETS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+</span><span data-line="295"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Freezing point, operating limit and properties of the listed fluids (for documentation).&quot;&quot;&quot;</span>
+</span><span data-line="296">    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="297">    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+</span><span data-line="298">        <span class="n">fluid</span> <span class="o">=</span> <span class="n">resolve_source_fluid</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+</span><span data-line="299">        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="300">            <span class="p">{</span>
+</span><span data-line="301">                <span class="s2">&quot;source_fluid&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+</span><span data-line="302">                <span class="s2">&quot;T_freeze [°C]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">T_freeze_C</span><span class="p">,</span>
+</span><span data-line="303">                <span class="s2">&quot;T_min [°C]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">limit_C</span><span class="p">,</span>
+</span><span data-line="304">                <span class="s2">&quot;rho [kg/m3]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+</span><span data-line="305">                <span class="s2">&quot;cp [J/(kg·K)]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">cp</span><span class="p">,</span>
+</span><span data-line="306">                <span class="s2">&quot;mu [mPa·s]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">mu</span> <span class="o">*</span> <span class="mf">1000.0</span><span class="p">,</span>
+</span><span data-line="307">                <span class="s2">&quot;k [W/(m·K)]&quot;</span><span class="p">:</span> <span class="n">fluid</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+</span><span data-line="308">            <span class="p">}</span>
+</span><span data-line="309">        <span class="p">)</span>
+</span><span data-line="310">    <span class="k">return</span> <span class="n">rows</span></div>
+
+</span><span data-line="311">
+</span><span data-line="312">
+<div class="viewcode-block" id="warn_if_loop_modelled_as_water">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.warn_if_loop_modelled_as_water">[docs]</a>
+</span><span data-line="313"><span class="k">def</span><span class="w"> </span><span class="nf">warn_if_loop_modelled_as_water</span><span class="p">(</span>
+</span><span data-line="314">    <span class="n">fluid</span><span class="p">:</span> <span class="n">SourceFluid</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">chosen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="315"><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="316"><span class="w">    </span><span class="sd">&quot;&quot;&quot;``UserWarning`` for the ground-loop options that still evaluate the loop as water.</span>
+</span><span data-line="317">
+</span><span data-line="318"><span class="sd">    Only for a fluid the caller ``chosen``: a model left on its default</span>
+</span><span data-line="319"><span class="sd">    liquid does not warn about it (the limitation is documented instead).</span>
+</span><span data-line="320">
+</span><span data-line="321"><span class="sd">    The pipe pressure loss of the hydraulic pump model, the flow-dependent</span>
+</span><span data-line="322"><span class="sd">    borehole resistance and the fluid-temperature closure of the coupled</span>
+</span><span data-line="323"><span class="sd">    ground-flow solver live in :mod:`tmhp.ground_loop` and</span>
+</span><span data-line="324"><span class="sd">    :mod:`tmhp.ground_flow_control`, which use the properties of water. With</span>
+</span><span data-line="325"><span class="sd">    an antifreeze mixture the freezing limit and the heat pump&#39;s own</span>
+</span><span data-line="326"><span class="sd">    source-side balance use the mixture; those three do not.</span>
+</span><span data-line="327"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="328">    <span class="k">if</span> <span class="n">fluid</span><span class="o">.</span><span class="n">is_water</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">chosen</span><span class="p">:</span>
+</span><span data-line="329">        <span class="k">return</span>
+</span><span data-line="330">    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span data-line="331">    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hydraulic_pump&quot;</span><span class="p">):</span>
+</span><span data-line="332">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+</span><span data-line="333">            <span class="sa">f</span><span class="s2">&quot;the hydraulic pump model computes the pipe loss with the viscosity of water &quot;</span>
+</span><span data-line="334">            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">mu_w</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> mPa s, against </span><span class="si">{</span><span class="n">fluid</span><span class="o">.</span><span class="n">mu</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> mPa s), so the pump power is understated&quot;</span>
+</span><span data-line="335">        <span class="p">)</span>
+</span><span data-line="336">    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;variable_Rb&quot;</span><span class="p">):</span>
+</span><span data-line="337">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;the flow-dependent borehole resistance uses the heat capacity of water&quot;</span><span class="p">)</span>
+</span><span data-line="338">    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active&quot;</span><span class="p">):</span>
+</span><span data-line="339">        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;the coupled ground-flow solver closes the loop temperature with the heat capacity of water&quot;</span><span class="p">)</span>
+</span><span data-line="340">    <span class="k">if</span> <span class="n">parts</span><span class="p">:</span>
+</span><span data-line="341">        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span data-line="342">            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: source_fluid=</span><span class="si">{</span><span class="n">fluid</span><span class="o">.</span><span class="n">name</span><span class="si">!r}</span><span class="s2"> is applied to the freezing limit and to the heat pump&#39;s &quot;</span>
+</span><span data-line="343">            <span class="s2">&quot;source-side heat balance, but &quot;</span> <span class="o">+</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
+</span><span data-line="344">            <span class="ne">UserWarning</span><span class="p">,</span>
+</span><span data-line="345">            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+</span><span data-line="346">        <span class="p">)</span></div>
+
+</span><span data-line="347">
+</span><span data-line="348">
+</span><span data-line="349"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="350"><span class="c1"># The limit on a solved point</span>
+</span><span data-line="351"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="352">
+</span><span data-line="353">
+</span><span data-line="354"><span class="k">def</span><span class="w"> </span><span class="nf">_number</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="355">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="356">        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+</span><span data-line="357">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="358">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="359">
+</span><span data-line="360">
+</span><span data-line="361"><span class="k">def</span><span class="w"> </span><span class="nf">_running</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="362">    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="363">
+</span><span data-line="364">
+</span><span data-line="365"><span class="k">def</span><span class="w"> </span><span class="nf">_coldest</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="366"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Coldest liquid of the loop in a running result [°C] (NaN when it reports none).&quot;&quot;&quot;</span>
+</span><span data-line="367">    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">LEAVING_KEY</span><span class="p">),</span> <span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">ENTERING_KEY</span><span class="p">))</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span>
+</span><span data-line="368">    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="n">values</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="369">
+</span><span data-line="370">
+<div class="viewcode-block" id="freeze_violation">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.freeze_violation">[docs]</a>
+</span><span data-line="371"><span class="k">def</span><span class="w"> </span><span class="nf">freeze_violation</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">fluid</span><span class="p">:</span> <span class="n">SourceFluid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="372"><span class="w">    </span><span class="sd">&quot;&quot;&quot;``failure_detail`` when a running result&#39;s loop liquid is below the limit, else ``None``.</span>
+</span><span data-line="373">
+</span><span data-line="374"><span class="sd">    :data:`DETAIL_INLET` when the liquid already reaches the heat pump below</span>
+</span><span data-line="375"><span class="sd">    ``fluid.T_min_C``, :data:`DETAIL_OUTLET` when only the liquid leaving it</span>
+</span><span data-line="376"><span class="sd">    is. A result that is not a running point is never a violation.</span>
+</span><span data-line="377"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="378">    <span class="k">if</span> <span class="ow">not</span> <span class="n">_running</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+</span><span data-line="379">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="380">    <span class="n">limit</span> <span class="o">=</span> <span class="n">fluid</span><span class="o">.</span><span class="n">limit_C</span> <span class="o">-</span> <span class="n">FREEZE_TOL_K</span>
+</span><span data-line="381">    <span class="k">if</span> <span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">ENTERING_KEY</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">:</span>
+</span><span data-line="382">        <span class="k">return</span> <span class="n">DETAIL_INLET</span>
+</span><span data-line="383">    <span class="k">if</span> <span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">LEAVING_KEY</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">:</span>
+</span><span data-line="384">        <span class="k">return</span> <span class="n">DETAIL_OUTLET</span>
+</span><span data-line="385">    <span class="k">return</span> <span class="kc">None</span></div>
+
+</span><span data-line="386">
+</span><span data-line="387">
+</span><span data-line="388"><span class="k">def</span><span class="w"> </span><span class="nf">_message</span><span class="p">(</span><span class="n">fluid</span><span class="p">:</span> <span class="n">SourceFluid</span><span class="p">,</span> <span class="n">coldest</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="389">    <span class="k">return</span> <span class="p">(</span>
+</span><span data-line="390">        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">: the source-loop liquid would run at </span><span class="si">{</span><span class="n">coldest</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> °C, below the operating limit of &quot;</span>
+</span><span data-line="391">        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fluid</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="si">}</span><span class="s2">. &quot;</span>
+</span><span data-line="392">    <span class="p">)</span>
+</span><span data-line="393">
+</span><span data-line="394">
+</span><span data-line="395"><span class="k">def</span><span class="w"> </span><span class="nf">_warn</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">once</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="396">    <span class="k">if</span> <span class="n">once</span><span class="p">:</span>
+</span><span data-line="397">        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;_source_freeze_warned&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+</span><span data-line="398">            <span class="k">return</span>
+</span><span data-line="399">        <span class="n">model</span><span class="o">.</span><span class="n">_source_freeze_warned</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="400">    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</span><span data-line="401">
+</span><span data-line="402">
+<div class="viewcode-block" id="limit_duty_to_source_freeze">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.limit_duty_to_source_freeze">[docs]</a>
+</span><span data-line="403"><span class="k">def</span><span class="w"> </span><span class="nf">limit_duty_to_source_freeze</span><span class="p">(</span>
+</span><span data-line="404">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="405">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="406">    <span class="n">solve</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="407">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="408">    <span class="n">off</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">dict</span><span class="p">],</span>
+</span><span data-line="409">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="410">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span>
+</span><span data-line="411">    <span class="n">once</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span data-line="412">    <span class="n">what</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;analyze_steady&quot;</span><span class="p">,</span>
+</span><span data-line="413"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="414"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Keep a solved point&#39;s loop liquid at or above the fluid&#39;s operating limit.</span>
+</span><span data-line="415">
+</span><span data-line="416"><span class="sd">    ``result`` is the solve at the duty ``request`` (signed as the model takes</span>
+</span><span data-line="417"><span class="sd">    it); ``solve(q)`` solves the same point at a duty of magnitude ``q``;</span>
+</span><span data-line="418"><span class="sd">    ``off(detail)`` is the model&#39;s off-state row for a point that does not run</span>
+</span><span data-line="419"><span class="sd">    (``failure_reason = &quot;source_fluid_freezing&quot;``).</span>
+</span><span data-line="420">
+</span><span data-line="421"><span class="sd">    A running ``result`` whose coldest liquid is at or above</span>
+</span><span data-line="422"><span class="sd">    ``model.source_fluid.T_min_C`` is returned as it is, and so is a result</span>
+</span><span data-line="423"><span class="sd">    that does not run. Otherwise the duty is lowered until the liquid stays on</span>
+</span><span data-line="424"><span class="sd">    the limit: the coldest liquid falls almost linearly with the duty, so a</span>
+</span><span data-line="425"><span class="sd">    false-position search between the refused duty and zero closes in two or</span>
+</span><span data-line="426"><span class="sd">    three solves (where the liquid arrives below the limit and a smaller duty</span>
+</span><span data-line="427"><span class="sd">    warms it, the first two refused duties are extrapolated; a duty another</span>
+</span><span data-line="428"><span class="sd">    limit refuses bounds the search from below). The largest duty found is</span>
+</span><span data-line="429"><span class="sd">    returned with</span>
+</span><span data-line="430"><span class="sd">    ``capacity_clamped = &quot;max&quot;``, ``capacity_binding = &quot;source_fluid_freezing&quot;``,</span>
+</span><span data-line="431"><span class="sd">    ``Q_max [W]`` and ``Q_request [W]``. When no duty runs -- the liquid enters</span>
+</span><span data-line="432"><span class="sd">    below the limit while it gives heat up (:data:`DETAIL_INLET`), it leaves</span>
+</span><span data-line="433"><span class="sd">    below the limit at the compressor&#39;s lowest speed, or another limit refuses</span>
+</span><span data-line="434"><span class="sd">    every smaller duty -- ``off(detail)`` is returned and a ``RuntimeWarning``</span>
+</span><span data-line="435"><span class="sd">    names the temperatures (``once``: only the first time in a dynamic run,</span>
+</span><span data-line="436"><span class="sd">    where a reduced duty is reported the same way).</span>
+</span><span data-line="437"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="438">    <span class="n">fluid</span><span class="p">:</span> <span class="n">SourceFluid</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">source_fluid</span>
+</span><span data-line="439">    <span class="n">detail</span> <span class="o">=</span> <span class="n">freeze_violation</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">fluid</span><span class="p">)</span>
+</span><span data-line="440">    <span class="k">if</span> <span class="n">detail</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="441">        <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="442">    <span class="n">limit</span> <span class="o">=</span> <span class="n">fluid</span><span class="o">.</span><span class="n">limit_C</span>
+</span><span data-line="443">    <span class="n">magnitude</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+</span><span data-line="444">    <span class="n">leaving</span><span class="p">,</span> <span class="n">entering</span> <span class="o">=</span> <span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">LEAVING_KEY</span><span class="p">),</span> <span class="n">_number</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">ENTERING_KEY</span><span class="p">)</span>
+</span><span data-line="445">    <span class="n">refused_at</span> <span class="o">=</span> <span class="n">_coldest</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span data-line="446">    <span class="c1"># A compressor on its speed floor (also one meeting a smaller request by</span>
+</span><span data-line="447">    <span class="c1"># switching on and off) has no smaller running state.</span>
+</span><span data-line="448">    <span class="n">on_speed_floor</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span>
+</span><span data-line="449">
+</span><span data-line="450">    <span class="k">def</span><span class="w"> </span><span class="nf">refuse</span><span class="p">(</span><span class="n">reason_detail</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="451">        <span class="n">remedy</span> <span class="o">=</span> <span class="p">(</span>
+</span><span data-line="452">            <span class="s2">&quot;an antifreeze mixture, e.g. source_fluid=&#39;MPG-25%&#39;&quot;</span>
+</span><span data-line="453">            <span class="k">if</span> <span class="n">fluid</span><span class="o">.</span><span class="n">is_water</span>
+</span><span data-line="454">            <span class="k">else</span> <span class="s2">&quot;a mixture with a lower freezing point&quot;</span>
+</span><span data-line="455">        <span class="p">)</span>
+</span><span data-line="456">        <span class="n">_warn</span><span class="p">(</span>
+</span><span data-line="457">            <span class="n">model</span><span class="p">,</span>
+</span><span data-line="458">            <span class="n">_message</span><span class="p">(</span><span class="n">fluid</span><span class="p">,</span> <span class="n">refused_at</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;No smaller duty keeps it above the limit: the compressor does not &quot;</span>
+</span><span data-line="459">            <span class="sa">f</span><span class="s2">&quot;run (failure_reason=</span><span class="si">{</span><span class="n">SOURCE_FLUID_FREEZING</span><span class="si">!r}</span><span class="s2">). A loop this cold needs </span><span class="si">{</span><span class="n">remedy</span><span class="si">}</span><span class="s2">.&quot;</span>
+</span><span data-line="460">            <span class="o">+</span> <span class="p">(</span><span class="s2">&quot; Reported once per run.&quot;</span> <span class="k">if</span> <span class="n">once</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+</span><span data-line="461">            <span class="n">once</span><span class="p">,</span>
+</span><span data-line="462">        <span class="p">)</span>
+</span><span data-line="463">        <span class="n">row</span> <span class="o">=</span> <span class="n">off</span><span class="p">(</span><span class="n">reason_detail</span><span class="p">)</span>
+</span><span data-line="464">        <span class="n">row</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;failure_detail&quot;</span><span class="p">,</span> <span class="n">reason_detail</span><span class="p">)</span>
+</span><span data-line="465">        <span class="c1"># The steady-state keys every result carries (compressor envelope), in their off values.</span>
+</span><span data-line="466">        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_OFF_ANNOTATIONS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span data-line="467">            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="468">                <span class="n">row</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</span><span data-line="469">        <span class="k">return</span> <span class="n">row</span>
+</span><span data-line="470">
+</span><span data-line="471">    <span class="c1"># Heat rejected to the loop (cooling) warms the liquid through the heat</span>
+</span><span data-line="472">    <span class="c1"># pump: its coldest point is where it arrives, and no duty changes that</span>
+</span><span data-line="473">    <span class="c1"># for the better.</span>
+</span><span data-line="474">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">magnitude</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">magnitude</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">leaving</span><span class="p">)</span> <span class="ow">and</span> <span class="n">leaving</span> <span class="o">&gt;=</span> <span class="n">entering</span><span class="p">):</span>
+</span><span data-line="475">        <span class="k">return</span> <span class="n">refuse</span><span class="p">(</span><span class="n">DETAIL_INLET</span><span class="p">)</span>
+</span><span data-line="476">    <span class="k">if</span> <span class="n">on_speed_floor</span><span class="p">:</span>
+</span><span data-line="477">        <span class="k">return</span> <span class="n">refuse</span><span class="p">(</span><span class="n">detail</span><span class="p">)</span>
+</span><span data-line="478">
+</span><span data-line="479">    <span class="k">def</span><span class="w"> </span><span class="nf">quiet</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="480">        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">redirect_stdout</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()):</span>
+</span><span data-line="481">            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+</span><span data-line="482">            <span class="n">out</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span data-line="483">        <span class="k">return</span> <span class="n">out</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+</span><span data-line="484">
+</span><span data-line="485">    <span class="k">def</span><span class="w"> </span><span class="nf">delivered</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">fallback</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="486">        <span class="n">value</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">))</span>
+</span><span data-line="487">        <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">fallback</span>
+</span><span data-line="488">
+</span><span data-line="489">    <span class="n">target</span> <span class="o">=</span> <span class="n">limit</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_BAND_K</span>
+</span><span data-line="490">    <span class="n">floor</span> <span class="o">=</span> <span class="n">_MIN_FRACTION</span> <span class="o">*</span> <span class="n">magnitude</span>
+</span><span data-line="491">    <span class="n">step</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_REL_TOL</span> <span class="o">*</span> <span class="n">magnitude</span>
+</span><span data-line="492">    <span class="c1"># The duty is bracketed between the refused point (q_hi: the liquid leaves</span>
+</span><span data-line="493">    <span class="c1"># at T_hi, having entered at in_hi) and either the best running point</span>
+</span><span data-line="494">    <span class="c1"># (q_lo, T_lo) or, before one is found, q_dead: the largest duty another</span>
+</span><span data-line="495">    <span class="c1"># limit refuses (the speed floor, the discharge temperature at low speed),</span>
+</span><span data-line="496">    <span class="c1"># below which nothing runs.</span>
+</span><span data-line="497">    <span class="n">q_hi</span><span class="p">,</span> <span class="n">T_hi</span><span class="p">,</span> <span class="n">in_hi</span> <span class="o">=</span> <span class="n">delivered</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">magnitude</span><span class="p">),</span> <span class="n">leaving</span><span class="p">,</span> <span class="n">entering</span>
+</span><span data-line="498">    <span class="n">q_lo</span> <span class="o">=</span> <span class="n">T_lo</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="499">    <span class="n">q_dead</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="500">    <span class="n">earlier</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># the refused point before (q_hi, T_hi)</span>
+</span><span data-line="501">    <span class="n">best</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="502">    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">_MAX_TRIALS</span><span class="p">):</span>
+</span><span data-line="503">        <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">q_hi</span> <span class="o">-</span> <span class="n">q_dead</span> <span class="o">&lt;=</span> <span class="n">_REL_TOL</span> <span class="o">*</span> <span class="n">magnitude</span><span class="p">:</span>
+</span><span data-line="504">            <span class="k">break</span>  <span class="c1"># refused for freezing just above a duty another limit refuses</span>
+</span><span data-line="505">        <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="506">            <span class="c1"># False position between a running and a refused point.</span>
+</span><span data-line="507">            <span class="n">q</span> <span class="o">=</span> <span class="n">q_lo</span> <span class="o">+</span> <span class="p">(</span><span class="n">T_lo</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_hi</span> <span class="o">-</span> <span class="n">q_lo</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">T_lo</span> <span class="o">-</span> <span class="n">T_hi</span><span class="p">)</span>
+</span><span data-line="508">        <span class="k">elif</span> <span class="n">earlier</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">T_hi</span> <span class="o">&gt;</span> <span class="n">earlier</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+</span><span data-line="509">            <span class="c1"># Two refused duties: the liquid leaves warmer at the smaller one</span>
+</span><span data-line="510">            <span class="c1"># (also where it arrives warmer there, with a borehole wall or a</span>
+</span><span data-line="511">            <span class="c1"># coil behind the loop). Extrapolate to the limit.</span>
+</span><span data-line="512">            <span class="n">q</span> <span class="o">=</span> <span class="n">q_hi</span> <span class="o">-</span> <span class="p">(</span><span class="n">target</span> <span class="o">-</span> <span class="n">T_hi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">earlier</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">q_hi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">T_hi</span> <span class="o">-</span> <span class="n">earlier</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="513">        <span class="k">elif</span> <span class="n">in_hi</span> <span class="o">&gt;</span> <span class="n">target</span><span class="p">:</span>
+</span><span data-line="514">            <span class="c1"># Without extraction the liquid leaves as it arrives: the entering</span>
+</span><span data-line="515">            <span class="c1"># temperature is the leaving one at zero duty.</span>
+</span><span data-line="516">            <span class="n">q</span> <span class="o">=</span> <span class="n">q_hi</span> <span class="o">*</span> <span class="p">(</span><span class="n">in_hi</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">in_hi</span> <span class="o">-</span> <span class="n">T_hi</span><span class="p">)</span>
+</span><span data-line="517">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="518">            <span class="n">q</span> <span class="o">=</span> <span class="n">q_dead</span> <span class="o">+</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_hi</span> <span class="o">-</span> <span class="n">q_dead</span><span class="p">)</span>
+</span><span data-line="519">        <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">q</span> <span class="o">&lt;=</span> <span class="n">q_dead</span> <span class="o">+</span> <span class="n">step</span><span class="p">:</span>
+</span><span data-line="520">            <span class="n">q</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">q_dead</span> <span class="o">+</span> <span class="n">q_hi</span><span class="p">)</span>  <span class="c1"># the estimate lies where nothing runs: bisect</span>
+</span><span data-line="521">        <span class="n">q</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">floor</span><span class="p">)</span>
+</span><span data-line="522">        <span class="k">if</span> <span class="ow">not</span> <span class="n">q</span> <span class="o">&lt;</span> <span class="n">q_hi</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">step</span><span class="p">:</span>
+</span><span data-line="523">            <span class="k">break</span>
+</span><span data-line="524">        <span class="n">row</span> <span class="o">=</span> <span class="n">quiet</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span data-line="525">        <span class="k">if</span> <span class="ow">not</span> <span class="n">_running</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+</span><span data-line="526">            <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="527">                <span class="k">break</span>
+</span><span data-line="528">            <span class="n">q_dead</span> <span class="o">=</span> <span class="n">q</span>
+</span><span data-line="529">            <span class="k">continue</span>
+</span><span data-line="530">        <span class="n">q_row</span><span class="p">,</span> <span class="n">T_row</span><span class="p">,</span> <span class="n">in_row</span> <span class="o">=</span> <span class="n">delivered</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">q</span><span class="p">),</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">LEAVING_KEY</span><span class="p">),</span> <span class="n">_number</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">ENTERING_KEY</span><span class="p">)</span>
+</span><span data-line="531">        <span class="k">if</span> <span class="n">freeze_violation</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">fluid</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="532">            <span class="n">best</span><span class="p">,</span> <span class="n">q_lo</span><span class="p">,</span> <span class="n">T_lo</span> <span class="o">=</span> <span class="n">row</span><span class="p">,</span> <span class="n">q_row</span><span class="p">,</span> <span class="n">T_row</span>
+</span><span data-line="533">            <span class="k">if</span> <span class="n">T_row</span> <span class="o">&lt;=</span> <span class="n">limit</span> <span class="o">+</span> <span class="n">_BAND_K</span> <span class="ow">or</span> <span class="n">q_hi</span> <span class="o">-</span> <span class="n">q_row</span> <span class="o">&lt;=</span> <span class="n">_REL_TOL</span> <span class="o">*</span> <span class="n">magnitude</span><span class="p">:</span>
+</span><span data-line="534">                <span class="k">break</span>
+</span><span data-line="535">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="536">            <span class="c1"># No smaller state exists (speed floor), or the liquid arrives</span>
+</span><span data-line="537">            <span class="c1"># below the limit whatever the duty: nothing to search for.</span>
+</span><span data-line="538">            <span class="n">stuck</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">q_row</span> <span class="o">&lt;</span> <span class="n">q_hi</span>
+</span><span data-line="539">            <span class="n">hopeless</span> <span class="o">=</span> <span class="n">in_row</span> <span class="o">&lt;</span> <span class="n">limit</span> <span class="o">-</span> <span class="n">FREEZE_TOL_K</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">in_row</span> <span class="o">&gt;</span> <span class="n">in_hi</span> <span class="o">+</span> <span class="mf">1e-9</span>
+</span><span data-line="540">            <span class="n">earlier</span> <span class="o">=</span> <span class="p">(</span><span class="n">q_hi</span><span class="p">,</span> <span class="n">T_hi</span><span class="p">)</span>
+</span><span data-line="541">            <span class="n">q_hi</span><span class="p">,</span> <span class="n">T_hi</span><span class="p">,</span> <span class="n">in_hi</span> <span class="o">=</span> <span class="n">q_row</span><span class="p">,</span> <span class="n">T_row</span><span class="p">,</span> <span class="n">in_row</span>
+</span><span data-line="542">            <span class="k">if</span> <span class="n">stuck</span> <span class="ow">or</span> <span class="n">hopeless</span><span class="p">:</span>
+</span><span data-line="543">                <span class="k">break</span>
+</span><span data-line="544">    <span class="k">if</span> <span class="n">best</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="545">        <span class="k">return</span> <span class="n">refuse</span><span class="p">(</span><span class="n">DETAIL_INLET</span> <span class="k">if</span> <span class="n">in_hi</span> <span class="o">&lt;</span> <span class="n">limit</span> <span class="o">-</span> <span class="n">FREEZE_TOL_K</span> <span class="k">else</span> <span class="n">DETAIL_OUTLET</span><span class="p">)</span>
+</span><span data-line="546">
+</span><span data-line="547">    <span class="n">best</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span data-line="548">        <span class="p">{</span>
+</span><span data-line="549">            <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">:</span> <span class="s2">&quot;max&quot;</span><span class="p">,</span>
+</span><span data-line="550">            <span class="s2">&quot;capacity_binding&quot;</span><span class="p">:</span> <span class="n">SOURCE_FLUID_FREEZING</span><span class="p">,</span>
+</span><span data-line="551">            <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">:</span> <span class="n">delivered</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">q_lo</span><span class="p">),</span>
+</span><span data-line="552">            <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">:</span> <span class="n">request</span><span class="p">,</span>
+</span><span data-line="553">        <span class="p">}</span>
+</span><span data-line="554">    <span class="p">)</span>
+</span><span data-line="555">    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_REQUEST_KEYS</span><span class="p">:</span>
+</span><span data-line="556">        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">best</span><span class="p">:</span>
+</span><span data-line="557">            <span class="n">best</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">magnitude</span>
+</span><span data-line="558">    <span class="k">if</span> <span class="s2">&quot;Q_unmet [W]&quot;</span> <span class="ow">in</span> <span class="n">best</span><span class="p">:</span>
+</span><span data-line="559">        <span class="n">best</span><span class="p">[</span><span class="s2">&quot;Q_unmet [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">magnitude</span> <span class="o">-</span> <span class="n">delivered</span><span class="p">(</span><span class="n">best</span><span class="p">,</span> <span class="n">q_lo</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="560">    <span class="k">if</span> <span class="s2">&quot;PLR_request [-]&quot;</span> <span class="ow">in</span> <span class="n">best</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;hp_capacity&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="561">        <span class="n">best</span><span class="p">[</span><span class="s2">&quot;PLR_request [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">magnitude</span> <span class="o">/</span> <span class="n">model</span><span class="o">.</span><span class="n">hp_capacity</span>
+</span><span data-line="562">    <span class="k">if</span> <span class="n">once</span><span class="p">:</span>
+</span><span data-line="563">        <span class="n">_warn</span><span class="p">(</span>
+</span><span data-line="564">            <span class="n">model</span><span class="p">,</span>
+</span><span data-line="565">            <span class="n">_message</span><span class="p">(</span><span class="n">fluid</span><span class="p">,</span> <span class="n">refused_at</span><span class="p">,</span> <span class="n">what</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;The duty is reduced to keep it on the limit &quot;</span>
+</span><span data-line="566">            <span class="sa">f</span><span class="s2">&quot;(capacity_binding=</span><span class="si">{</span><span class="n">SOURCE_FLUID_FREEZING</span><span class="si">!r}</span><span class="s2">; steps where no duty does are off with that &quot;</span>
+</span><span data-line="567">            <span class="s2">&quot;failure_reason). Reported once per run.&quot;</span><span class="p">,</span>
+</span><span data-line="568">            <span class="n">once</span><span class="p">,</span>
+</span><span data-line="569">        <span class="p">)</span>
+</span><span data-line="570">    <span class="k">return</span> <span class="n">best</span></div>
+
+</span><span data-line="571">
+</span><span data-line="572">
+</span><span data-line="573"><span class="n">_F</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_F&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span>
+</span><span data-line="574">
+</span><span data-line="575">
+<div class="viewcode-block" id="source_freeze_limited">
+<a class="viewcode-back" href="../../api/support/heat-transfer.html#tmhp.source_fluid.source_freeze_limited">[docs]</a>
+</span><span data-line="576"><span class="k">def</span><span class="w"> </span><span class="nf">source_freeze_limited</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">off</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="577"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate a single-duty solver method with the source-fluid freezing limit.</span>
+</span><span data-line="578">
+</span><span data-line="579"><span class="sd">    ``duty_arg`` names the method&#39;s duty parameter (signed as the model takes</span>
+</span><span data-line="580"><span class="sd">    it); ``off`` names the model method ``off(arguments, detail) -&gt; dict``</span>
+</span><span data-line="581"><span class="sd">    that builds the off-state row from the call&#39;s bound arguments. The</span>
+</span><span data-line="582"><span class="sd">    decorated method returns :func:`limit_duty_to_source_freeze` of its</span>
+</span><span data-line="583"><span class="sd">    result. Put it outside a compressor-envelope decorator, so the duties it</span>
+</span><span data-line="584"><span class="sd">    tries are themselves inside the envelope. A ``return_dict=False`` call</span>
+</span><span data-line="585"><span class="sd">    gets its one-row DataFrame back. A model that sets</span>
+</span><span data-line="586"><span class="sd">    ``_source_freeze_context`` to ``&quot;analyze_dynamic&quot;`` around the calls of a</span>
+</span><span data-line="587"><span class="sd">    dynamic run gets the limit reported once per run instead of on every call.</span>
+</span><span data-line="588"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="589">
+</span><span data-line="590">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="591">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="592">
+</span><span data-line="593">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="594">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="595">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="596">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
+</span><span data-line="597">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="598">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
+</span><span data-line="599">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="600">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="601">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="602">                <span class="n">request</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">])</span>
+</span><span data-line="603">
+</span><span data-line="604">                <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="605">                    <span class="n">arguments</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span><span data-line="606">                    <span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+</span><span data-line="607">                    <span class="n">trial</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">BoundArguments</span><span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">arguments</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="608">                    <span class="k">return</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">trial</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">trial</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="609">
+</span><span data-line="610">                <span class="n">context</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_source_freeze_context&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="611">                <span class="n">result</span> <span class="o">=</span> <span class="n">limit_duty_to_source_freeze</span><span class="p">(</span>
+</span><span data-line="612">                    <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="613">                    <span class="n">result</span><span class="p">,</span>
+</span><span data-line="614">                    <span class="n">solve</span><span class="p">,</span>
+</span><span data-line="615">                    <span class="n">request</span><span class="p">,</span>
+</span><span data-line="616">                    <span class="k">lambda</span> <span class="n">detail</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">off</span><span class="p">)(</span><span class="nb">dict</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">),</span> <span class="n">detail</span><span class="p">),</span>
+</span><span data-line="617">                    <span class="n">delivered_key</span><span class="o">=</span><span class="n">delivered_key</span><span class="p">,</span>
+</span><span data-line="618">                    <span class="n">once</span><span class="o">=</span><span class="n">context</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="619">                    <span class="n">what</span><span class="o">=</span><span class="n">context</span> <span class="ow">or</span> <span class="s2">&quot;analyze_steady&quot;</span><span class="p">,</span>
+</span><span data-line="620">                <span class="p">)</span>
+</span><span data-line="621">            <span class="k">if</span> <span class="n">want_dict</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="622">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="623">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="624">
+</span><span data-line="625">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="626">
+</span><span data-line="627">        <span class="c1"># ``__wrapped__`` stays the undecorated solve, as under the envelope decorator alone.</span>
+</span><span data-line="628">        <span class="n">wrapped</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s2">&quot;__wrapped__&quot;</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+</span><span data-line="629">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="630">
+</span><span data-line="631">    <span class="k">return</span> <span class="n">decorate</span></div>
+
+</span></pre></div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../../_static/shibuya.js?v=cac61aee"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script defer="defer" src="../../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

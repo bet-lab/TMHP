@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="How the ground-source models ( Ground-source heat pump boiler (GSHPB), Ground-source heat pump (GSHP — space conditioning)) turn the heat they take from the ground into the temperature of the fluid..." />
 
-    <meta property="article:modified_time" content="2026-11-13T23:13:37+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -890,8 +890,8 @@ than 40 % water by volume. Pass <code class="docutils literal notranslate"><span
 <a class="reference internal image-reference" href="../_images/ground_cycling_outlet.svg"><img alt="Borehole outlet temperature over two hours of 10 minutes on, 20 minutes off. The steady model jumps between 10.9 and 14.4 degrees Celsius at every switch; the dynamic model stays between 12.7 and 13.7." src="../_images/ground_cycling_outlet.svg" style="width: 80%;" />
 </a>
 <figcaption>
-<p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> (8 kW defaults, 24 L/min through the
-borehole) with 60 s steps, 10 min on / 20 min off, second day of
+<p><span class="caption-text"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> (8 kW defaults with a water loop, 24 L/min
+through the borehole) with 60 s steps, 10 min on / 20 min off, second day of
 operation. The steady model puts the outlet 3.5 K lower the moment the
 compressor starts. In the dynamic model the outlet holds for
 one transit and then falls by under 1 K. While the compressor is off the
@@ -901,7 +901,7 @@ of the last run is still on its way out); the model does not use it.</span><a cl
 </figure>
 <div class="table-wrapper colwidths-given docutils container" id="id11">
 <table class="docutils align-default" id="id11">
-<caption><span class="caption-text">8 kW GSHPB (defaults, 24 L/min through the borehole), steady against dynamic response</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
+<caption><span class="caption-text">8 kW GSHPB (defaults with <code class="docutils literal notranslate"><span class="pre">source_fluid=&quot;water&quot;</span></code>, 24 L/min through the borehole), steady against dynamic response</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 34.0%" />
 <col style="width: 12.0%" />
@@ -965,7 +965,7 @@ of any run are warmer than the steady model says, the days after are the
 same.</p>
 <div class="table-wrapper colwidths-given docutils container" id="id12">
 <table class="docutils align-default" id="id12">
-<caption><span class="caption-text">4 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> (defaults: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2</span><a class="headerlink" href="#id12" title="Link to this table">¶</a></caption>
+<caption><span class="caption-text">4 kW <code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> (defaults with <code class="docutils literal notranslate"><span class="pre">source_fluid=&quot;water&quot;</span></code>: one 100 m borehole, 14.3 L/min), full load 20 min on / 40 min off, 600 s steps, day 2</span><a class="headerlink" href="#id12" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 30.0%" />
 <col style="width: 14.0%" />
@@ -1265,7 +1265,7 @@ model for vertical ground loop heat exchangers. <em>ASHRAE Transactions</em>, 10
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

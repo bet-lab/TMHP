@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every compressor-based model – tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPump, tmhp.AirSourceHeatPumpBoiler, tmhp.GroundSourceHeatPumpBoiler, tmhp.WaterSourceHeatPumpBoiler and the composed vari..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -329,7 +329,14 @@ temperature.</p>
 </div>
 <p>Secondary flows are each model’s own reference flows (<code class="docutils literal notranslate"><span class="pre">dV_*_fan_a_ref</span></code>,
 <code class="docutils literal notranslate"><span class="pre">ground_flow_ref_lpm</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_b_f_lpm</span></code>) and both heat exchangers use their
-rated UA. A manufacturer or user rating point replaces the standard one:</p>
+rated UA. The ground-loop points of GSHP (heating) and GSHPB are brine points:
+the liquid enters at 0 °C and leaves below it. The reference state is a sizing
+calculation and is solved there whatever <code class="docutils literal notranslate"><span class="pre">source_fluid</span></code> is (with the heat
+capacity of water for the source stream). <em>Running</em> the model at such a
+point needs an antifreeze, which the default loop liquid of both models is
+(25 % ethylene glycol); a loop declared as water is refused there
+(<a class="reference internal" href="gshpb.html#source-fluid"><span class="std std-ref">Ground-loop liquid and its freezing limit</span></a>). A manufacturer or user rating point replaces the
+standard one:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">AirSourceHeatPump</span><span class="p">,</span> <span class="n">AirSourceHeatPumpBoiler</span>
 </span><span data-line="2">
 </span><span data-line="3"><span class="n">AirSourceHeatPump</span><span class="p">(</span><span class="n">rated_condition</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;heating&quot;</span><span class="p">})</span>   <span class="c1"># ISO 5151 H1</span>

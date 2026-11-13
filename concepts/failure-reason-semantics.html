@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -149,6 +149,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#invalid-input-versus-an-unsolvable-point">Invalid input versus an unsolvable point</a></li>
 <li><a class="reference internal" href="#the-values">The values</a><ul>
 <li><a class="reference internal" href="#common-to-all-families">Common to all families</a></li>
+<li><a class="reference internal" href="#liquid-source-families-gshp-gshpb-wshpb">Liquid-source families (GSHP, GSHPB, WSHPB)</a></li>
 <li><a class="reference internal" href="#ashpb-only">ASHPB only</a></li>
 <li><a class="reference internal" href="#ground-coupled-solve-path-gshp-and-gshpb-with-an-active-ground-loop">Ground-coupled solve path (GSHP and GSHPB with an active ground loop)</a></li>
 <li><a class="reference internal" href="#a-request-above-a-limit-boilers">A request above a limit (boilers)</a></li>
@@ -319,6 +320,41 @@ low-speed continuation), is below <code class="docutils literal notranslate"><sp
 solved point (ASHP, GSHP: at every candidate). The fit never goes
 below 0.336 inside its data. Not checked for scalar or user
 efficiencies.</p></td>
+<td><p>No — only off-mode placeholders.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="liquid-source-families-gshp-gshpb-wshpb">
+<h3>Liquid-source families (GSHP, GSHPB, WSHPB)<a class="headerlink" href="#liquid-source-families-gshp-gshpb-wshpb" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Means</p></th>
+<th class="head"><p>Result dict carries cycle numbers?</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">source_fluid_freezing</span></code></p></td>
+<td><p>The source-loop liquid would run below its
+operating limit – its freezing point plus 3 K: -8.0 °C for the
+default 25 % ethylene glycol of GSHP and GSHPB, 3 °C for the default
+water of WSHPB – at every duty the model tried: it already reaches
+the heat pump below the limit (<code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span>
+<span class="pre">&quot;source_inlet_below_limit&quot;</span></code>), or it leaves below it even at the
+compressor’s lowest speed (<code class="docutils literal notranslate"><span class="pre">&quot;source_outlet_below_limit&quot;</span></code>). A request
+that a <em>smaller</em> duty keeps on the limit is not a failure: it returns
+that duty with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span>
+<span class="pre">&quot;source_fluid_freezing&quot;</span></code>, in <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and in every dynamic
+step. Fill the loop with an antifreeze mixture, or a stronger one
+(<code class="docutils literal notranslate"><span class="pre">source_fluid=&quot;MEG-30%&quot;</span></code>; see <a class="reference internal" href="../models/gshpb.html#source-fluid"><span class="std std-ref">Ground-loop liquid and its freezing limit</span></a>).</p></td>
 <td><p>No — only off-mode placeholders.</p></td>
 </tr>
 </tbody>

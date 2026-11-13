@@ -176,6 +176,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
         <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateError.__init__">(tmhp.reference_state.ReferenceStateError method)</a>
 </li>
+        <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.__init__">(tmhp.source_fluid.SourceFluid method)</a>
+</li>
         <li><a href="api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank.__init__">(tmhp.stratified_tank.StratifiedTank method)</a>
 </li>
         <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.__init__">(tmhp.subsystems.EnergyStorageSystem method)</a>
@@ -485,10 +487,10 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/subsystems.html#tmhp.uv_treatment.calc_uv_exposure_time">(in module tmhp.uv_treatment)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.uv_treatment.calc_uv_lamp_energy">calc_uv_lamp_energy() (in module tmhp.uv_treatment)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.enex_functions.calc_uv_lamp_power">calc_uv_lamp_power() (in module tmhp.enex_functions)</a>
 
       <ul>
@@ -571,6 +573,8 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.cop">cop (tmhp.reference_state.ReferenceState property)</a>
 </li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.cp">cp (tmhp.source_fluid.SourceFluid attribute)</a>
+</li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.cp_f">cp_f (tmhp.borefield.BoreNetwork attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.refrigerant.create_lmtd_constraints">create_lmtd_constraints() (in module tmhp.refrigerant)</a>
@@ -648,6 +652,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/simulation.html#tmhp.defrost.DefrostModel">DefrostModel (class in tmhp.defrost)</a>
 </li>
       <li><a href="api/support/integrations.html#tmhp.integrations.energyplus_plugin.delivered_heat_and_power">delivered_heat_and_power() (in module tmhp.integrations.energyplus_plugin)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.describe">describe() (tmhp.source_fluid.SourceFluid method)</a>
 </li>
       <li><a href="api/support/integrations.html#tmhp.integrations.fmu.TmhpAshpbSlave.description">description (tmhp.integrations.fmu.TmhpAshpbSlave attribute)</a>
 
@@ -961,10 +967,10 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.DynamicGFunction.fluid">fluid() (tmhp.borehole_capacity.DynamicGFunction method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.fluid_deviation">fluid_deviation (tmhp.borehole_capacity.CapacityStepResponse property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.fluid_no_capacity">fluid_no_capacity (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.fluid_referenced">fluid_referenced (tmhp.ground_coupling.AggregateGFunctionCoupler property)</a>
@@ -978,6 +984,10 @@ data-aria-dark="Switch to auto color mode">
 </li>
       </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp._online_convolution.OnlineHistory.folded">folded (tmhp._online_convolution.OnlineHistory attribute)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.FREEZE_MARGIN_K">FREEZE_MARGIN_K (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.freeze_violation">freeze_violation() (in module tmhp.source_fluid)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreField.from_coordinates">from_coordinates() (tmhp.borefield.BoreField class method)</a>
 </li>
@@ -1052,6 +1062,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.CapacityStepResponse.ground_line">ground_line (tmhp.borehole_capacity.CapacityStepResponse attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_defaults.GROUND_LOOP_DESIGN_DT_K">GROUND_LOOP_DESIGN_DT_K (in module tmhp.ground_defaults)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.GROUND_LOOP_FLUID_DEFAULT">GROUND_LOOP_FLUID_DEFAULT (in module tmhp.source_fluid)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler">GroundCoupler (class in tmhp.ground_coupling)</a>
 </li>
@@ -1139,13 +1151,15 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.stratified_tank.INVERSION_TOL_K">INVERSION_TOL_K (in module tmhp.stratified_tank)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.hx_fan.is_generic_fan_curve">is_generic_fan_curve() (in module tmhp.hx_fan)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.is_parallel">is_parallel() (tmhp.borefield.BoreNetwork method)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.is_preheat_on">is_preheat_on() (tmhp.subsystems.SolarThermalCollector method)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.is_water">is_water (tmhp.source_fluid.SourceFluid property)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.IU_AIRFLOW_PER_W">IU_AIRFLOW_PER_W (in module tmhp.ground_source_heat_pump)</a>
 </li>
@@ -1163,6 +1177,8 @@ data-aria-dark="Switch to auto color mode">
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.k">k (tmhp.source_fluid.SourceFluid attribute)</a>
+</li>
       <li><a href="api/support/utilities.html#tmhp.calc_util.K2C">K2C() (in module tmhp.calc_util)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.K_d_stc">K_d_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
@@ -1177,10 +1193,10 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.k_g">(tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       </ul></li>
-      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.k_grout">k_grout (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.k_grout">k_grout (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.k_ins_stc">k_ins_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.k_p">k_p (tmhp.borehole.BoreholePipe attribute)</a>
@@ -1217,14 +1233,18 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.latitude">(tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.limit_C">limit_C (tmhp.source_fluid.SourceFluid property)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.limit_duty_to_source_freeze">limit_duty_to_source_freeze() (in module tmhp.source_fluid)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.limit_tank_setpoints_to_envelope">limit_tank_setpoints_to_envelope() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.line_source_wall">line_source_wall() (in module tmhp.borehole_capacity)</a>
 </li>
-      <li><a href="api/support/simulation.html#tmhp.enex_functions.linear_function">linear_function() (in module tmhp.enex_functions)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/simulation.html#tmhp.enex_functions.linear_function">linear_function() (in module tmhp.enex_functions)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.load">load (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.weather.load_kma_solar_csv">load_kma_solar_csv() (in module tmhp.weather)</a>
@@ -1375,6 +1395,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
         <li><a href="api/support/simulation.html#module-tmhp.simulation_summary">tmhp.simulation_summary</a>
 </li>
+        <li><a href="api/support/heat-transfer.html#module-tmhp.source_fluid">tmhp.source_fluid</a>
+</li>
         <li><a href="api/support/subsystems.html#module-tmhp.stratified_tank">tmhp.stratified_tank</a>
 </li>
         <li><a href="api/support/refrigerant-thermo.html#module-tmhp.thermodynamics">tmhp.thermodynamics</a>
@@ -1390,6 +1412,8 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.mu">mu (tmhp.source_fluid.SourceFluid attribute)</a>
+</li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.mu_f">mu_f (tmhp.borefield.BoreNetwork attribute)</a>
 </li>
   </ul></td>
@@ -1411,6 +1435,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       </ul></li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole.BoreholePipe.n_pipes">n_pipes (tmhp.borehole.BoreholePipe property)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.name">name (tmhp.source_fluid.SourceFluid attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -1582,6 +1608,8 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/visualization.html#tmhp.visualization.print_simulation_summary">(in module tmhp.visualization)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.PROPERTY_REFERENCE_C">PROPERTY_REFERENCE_C (in module tmhp.source_fluid)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.refrigerant.props_si">props_si() (in module tmhp.refrigerant)</a>
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.pv">pv (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
@@ -1730,6 +1758,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_discharge_temp_max">resolve_discharge_temp_max() (in module tmhp.compressor_envelope)</a>
 </li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.resolve_source_fluid">resolve_source_fluid() (in module tmhp.source_fluid)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_x_suction_min">resolve_x_suction_min() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.resolved_connectivity">resolved_connectivity() (tmhp.borefield.BoreNetwork method)</a>
@@ -1745,6 +1775,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/simulation.html#tmhp.defrost.RH_OUT_DEFAULT">RH_OUT_DEFAULT (in module tmhp.defrost)</a>
 </li>
       <li><a href="api/support/simulation.html#tmhp.defrost.RH_OUT_KEY">RH_OUT_KEY (in module tmhp.defrost)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.rho">rho (tmhp.source_fluid.SourceFluid attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borefield.BoreNetwork.rho_f">rho_f (tmhp.borefield.BoreNetwork attribute)</a>
 </li>
@@ -1842,10 +1874,28 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.source">source (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
+      <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.source_fluid">source_fluid (tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+
+      <ul>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.source_fluid">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SOURCE_FLUID_FREEZING">SOURCE_FLUID_FREEZING (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SOURCE_FLUID_PRESETS">SOURCE_FLUID_PRESETS (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.source_fluid_table">source_fluid_table() (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.source_freeze_limited">source_freeze_limited() (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid">SourceFluid (class in tmhp.source_fluid)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stagnation_temperature_K">stagnation_temperature_K() (tmhp.subsystems.SolarThermalCollector method)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition.standard">standard (tmhp.reference_state.RatingCondition attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.start_time">start_time (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 
       <ul>
@@ -1856,8 +1906,6 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc">stc (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_azimuth">stc_azimuth (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_tilt">stc_tilt (tmhp.subsystems.SolarThermalCollector attribute)</a>
@@ -1996,11 +2044,15 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.T_evap_sat_C">T_evap_sat_C (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.T_freeze_C">T_freeze_C (tmhp.source_fluid.SourceFluid attribute)</a>
+</li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.T_g">T_g (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.HXSide.T_in_C">T_in_C (tmhp.reference_state.HXSide attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.borehole_capacity.DynamicGFunction.T_JOIN">T_JOIN (tmhp.borehole_capacity.DynamicGFunction attribute)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.SourceFluid.T_min_C">T_min_C (tmhp.source_fluid.SourceFluid attribute)</a>
 </li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.T_mix_w_out">T_mix_w_out (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
@@ -2342,6 +2394,13 @@ data-aria-dark="Switch to auto color mode">
 </li>
       </ul></li>
       <li>
+    tmhp.source_fluid
+
+      <ul>
+        <li><a href="api/support/heat-transfer.html#module-tmhp.source_fluid">module</a>
+</li>
+      </ul></li>
+      <li>
     tmhp.stratified_tank
 
       <ul>
@@ -2521,15 +2580,19 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.GroundCoupler.wall_temperature_rise">(tmhp.ground_coupling.GroundCoupler method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.WallTemperature">WallTemperature (in module tmhp.ground_source_heat_pump)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_defaults.warn_if_borefield_undersized">warn_if_borefield_undersized() (in module tmhp.ground_defaults)</a>
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.warn_if_dhw_unmet">warn_if_dhw_unmet() (in module tmhp.dhw)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_defaults.warn_if_laminar_ground_flow">warn_if_laminar_ground_flow() (in module tmhp.ground_defaults)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.warn_if_loop_modelled_as_water">warn_if_loop_modelled_as_water() (in module tmhp.source_fluid)</a>
+</li>
+      <li><a href="api/support/heat-transfer.html#tmhp.source_fluid.WATER_LOOP_FLUID_DEFAULT">WATER_LOOP_FLUID_DEFAULT (in module tmhp.source_fluid)</a>
 </li>
       <li><a href="models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler">WaterSourceHeatPumpBoiler (class in tmhp.water_source_heat_pump_boiler)</a>
 </li>

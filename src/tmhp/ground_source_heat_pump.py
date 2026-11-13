@@ -1342,7 +1342,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         """Ground loop is the source side, indoor coil the load side, in either mode."""
         UA_ground, UA_iu = self._rated_hx_UAs(mode)
         if role == "source":
-            return HXSide("water", T_in_C, UA_ground, self.dV_b_f_m3s)
+            # The loop liquid the cycle uses on this side (25 % glycol by default), not water.
+            fluid = self.source_fluid
+            return HXSide("water", T_in_C, UA_ground, self.dV_b_f_m3s, fluid.rho * fluid.cp)
         return AirCoilSide("air", T_in_C, UA_iu, self.dV_iu_fan_a_ref)
 
     def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:

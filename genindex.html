@@ -469,12 +469,12 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/simulation.html#tmhp.enex_functions.calc_stc_performance">calc_stc_performance() (in module tmhp.enex_functions)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.g_function.calc_submerged_coil_thermal_resistance">calc_submerged_coil_thermal_resistance() (in module tmhp.g_function)</a>
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.calc_total_water_use_from_schedule">calc_total_water_use_from_schedule() (in module tmhp.dhw)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/simulation.html#tmhp.enex_functions.calc_UA_from_dV_fan">calc_UA_from_dV_fan() (in module tmhp.enex_functions)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.heat_transfer.calc_UA_tank_arr">calc_UA_tank_arr() (in module tmhp.heat_transfer)</a>
@@ -562,7 +562,15 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.cycling">cycling (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 
       <ul>
+        <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.cycling">(tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
+</li>
         <li><a href="api/support/simulation.html#tmhp.cycling.CyclingState.cycling">(tmhp.cycling.CyclingState property)</a>
+</li>
+        <li><a href="models/gshp.html#tmhp.ground_source_heat_pump.GroundSourceHeatPump.cycling">(tmhp.ground_source_heat_pump.GroundSourceHeatPump attribute)</a>
+</li>
+        <li><a href="models/gshpb.html#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.cycling">(tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler attribute)</a>
+</li>
+        <li><a href="models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.cycling">(tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler attribute)</a>
 </li>
       </ul></li>
       <li><a href="api/support/simulation.html#tmhp.cycling.CYCLING_LOSS_KEY">CYCLING_LOSS_KEY (in module tmhp.cycling)</a>
@@ -1474,6 +1482,10 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="models/wshpb.html#tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler.postprocess_exergy">(tmhp.water_source_heat_pump_boiler.WaterSourceHeatPumpBoiler method)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/simulation.html#tmhp.cycling.CyclingState.power_fraction">power_fraction (tmhp.cycling.CyclingState property)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.cycling.CyclingDegradation.power_fraction">power_fraction() (tmhp.cycling.CyclingDegradation method)</a>
+</li>
       <li><a href="api/support/simulation.html#tmhp.defrost.FrostState.power_multiplier">power_multiplier (tmhp.defrost.FrostState attribute)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.PR_ABOVE_MAX">PR_ABOVE_MAX (in module tmhp.compressor_envelope)</a>
@@ -1658,6 +1670,10 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin">ReferenceStateMixin (class in tmhp.reference_state)</a>
 </li>
+      <li><a href="api/support/simulation.html#tmhp.cycling.report_boiler_cycling">report_boiler_cycling() (in module tmhp.cycling)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.cycling.report_cycling">report_cycling() (in module tmhp.cycling)</a>
+</li>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.reset">reset() (tmhp.ground_coupling.AggregateGFunctionCoupler method)</a>
 
       <ul>
@@ -1804,13 +1820,15 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/simulation.html#tmhp.cycling.CyclingDegradation.state">state() (tmhp.cycling.CyclingDegradation method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.stc">stc (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_azimuth">stc_azimuth (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_tilt">stc_tilt (tmhp.subsystems.SolarThermalCollector attribute)</a>
+</li>
+      <li><a href="api/support/simulation.html#tmhp.cycling.steady_cycling">steady_cycling() (in module tmhp.cycling)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.steady_envelope">steady_envelope() (in module tmhp.compressor_envelope)</a>
 </li>

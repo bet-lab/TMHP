@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page exists because the assumption it started from turned out to be wrong, and the correction changed what the library does. The assumption was the familiar one: a real inverter heat pump peak..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T23:57:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -325,9 +325,10 @@ output carries both.</p>
 <p>Under the same conditions as before (air 7 °C, water 42.5 °C, 9 kW R32) the
 outdoor fan now stays above 45 % of rated flow over the whole sweep and the
 air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
-above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
-the air-to-water model still computes no cycling loss (see below), so the sub-floor rows are a
-continuous-operation figure at the minimum capacity, not a part-load COP.
+above 31 % and 4.8 K. A real machine below its modulation floor cycles. The
+sweeps on this page were run before the air-to-water model reported that
+cycling (see below), so their sub-floor rows are a continuous-operation
+figure at the minimum capacity, not a part-load COP.
 They are drawn hollow in the figures and excluded from every trend verdict.</p>
 <p>At −7 °C air and 45 °C water the requests below the floor resolve to the
 minimum-capacity point as well (COP 2.77 at the floor, reached at 33 %
@@ -415,25 +416,31 @@ from the speed floor alone; nothing was added to produce it.</p>
 <p>Below its modulation floor a real machine cycles on and off. Every start
 pushes the refrigerant pressures away from equilibrium and re-warms the heat
 exchangers, and the standard accounts for that loss with a degradation
-coefficient applied during seasonal integration. The air-to-water model
-(<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code>), which every figure on this page comes from,
-simulates continuous operation and computes no such loss, so <strong>at light
+coefficient applied during seasonal integration. Every air-to-water figure
+on this page shows the running machine (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> in
+continuous operation, what <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> returns), so <strong>at light
 load it is optimistic against a machine that cycles</strong>, and the size of that
 optimism is not estimated here.</p>
-<p>The air-to-air model (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code>) does apply the standard’s own
-default below its floor — EN 14825 <code class="docutils literal notranslate"><span class="pre">C_d</span> <span class="pre">=</span> <span class="pre">0.25</span></code> in the form written for
-units delivering to air — and reports the mean over the cycling period
-(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>). That is the coefficient the
-standard prescribes for an untested unit, taken unchanged; it is not fitted
-to anything here, and <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> restores continuous operation.</p>
+<p>Both models now apply the standard’s own default below their floor when
+asked for a steady point, and report the mean over the cycling period
+(<a class="reference internal" href="../api/support/simulation.html#module-tmhp.cycling" title="tmhp.cycling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.cycling</span></code></a>): the air-to-air model (<code class="docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code>) EN
+14825 <code class="docutils literal notranslate"><span class="pre">C_d</span> <span class="pre">=</span> <span class="pre">0.25</span></code> in the form written for units delivering to air
+(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>), the air-to-water model <code class="docutils literal notranslate"><span class="pre">C_c</span> <span class="pre">=</span> <span class="pre">0.9</span></code> in the form
+written for units delivering to water (<a class="reference internal" href="../models/ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>). Those are
+the coefficients the standard prescribes for an untested unit, taken
+unchanged; they are not fitted to anything here, and <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code>
+restores continuous operation. A certified part-load COP is declared at
+the capacity the unit runs at, before that degradation, so the comparisons
+with certified values stay with the running machine.</p>
 </div>
 <p>This is not an oversight to be patched with a fitted penalty. Cuevas &amp; Lebrun
 make the same point from the hardware side: they observe the low-speed
 degradation, attribute it to oil starvation, and note that the manufacturer’s
 own answer is to switch to on/off operation below 35 Hz rather than keep
-modulating. The loss lives in the cycling, and the cycling is what is absent.</p>
+modulating. The loss lives in the cycling, and the cycling is what the
+running-machine figures leave out.</p>
 <p>A second caution concerns the degradation coefficient itself, for anyone
-tempted to add one. The published values are not interchangeable: EN 14825
+tempted to change one. The published values are not interchangeable: EN 14825
 writes <code class="docutils literal notranslate"><span class="pre">PLF</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">−</span> <span class="pre">C_d(1</span> <span class="pre">−</span> <span class="pre">CR)</span></code> with <code class="docutils literal notranslate"><span class="pre">C_d</span> <span class="pre">=</span> <span class="pre">0.25</span></code>, while Dongellini writes
 <code class="docutils literal notranslate"><span class="pre">f_COP</span> <span class="pre">=</span> <span class="pre">CR</span> <span class="pre">/</span> <span class="pre">(1</span> <span class="pre">−</span> <span class="pre">C_c</span> <span class="pre">+</span> <span class="pre">C_c·CR)</span></code> with <code class="docutils literal notranslate"><span class="pre">C_c</span> <span class="pre">=</span> <span class="pre">0.9</span></code>. Carrying a coefficient
 from one formulation into the other means something different by it.</p>

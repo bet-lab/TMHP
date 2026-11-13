@@ -196,255 +196,440 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="25">
 </span><span data-line="26"><span class="sd">      COP_cyc = COP_min * CR / (Cc * CR + (1 - Cc))</span>
 </span><span data-line="27">
-</span><span data-line="28"><span class="sd">The ratio ``COP_cyc / COP_min`` is the *part-load factor* ``PLF``. The</span>
-</span><span data-line="29"><span class="sd">compressor then runs for the fraction ``CR / PLF`` of the time (the *runtime</span>
-</span><span data-line="30"><span class="sd">fraction*): it delivers ``CR`` of the minimum capacity while drawing</span>
-</span><span data-line="31"><span class="sd">``CR / PLF`` of the power it draws there.</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="sd">The coefficients are the defaults the standard prescribes when a unit has not</span>
-</span><span data-line="34"><span class="sd">been tested for them; a tested value replaces them without any other change.</span>
-</span><span data-line="35">
-</span><span data-line="36"><span class="sd">How a result row is averaged</span>
-</span><span data-line="37"><span class="sd">----------------------------</span>
-</span><span data-line="38"><span class="sd">:func:`apply_cycling` turns the continuous minimum-speed operating point into</span>
-</span><span data-line="39"><span class="sd">the mean over the cycling period:</span>
-</span><span data-line="40">
-</span><span data-line="41"><span class="sd">* heat and flow rates are multiplied by ``CR`` -- the delivered heat equals</span>
-</span><span data-line="42"><span class="sd">  the request, and the refrigerant cycle and both air streams stay in balance</span>
-</span><span data-line="43"><span class="sd">  with it. Power that only moves the delivered heat (an indoor fan) belongs</span>
-</span><span data-line="44"><span class="sd">  here: it runs while heat is delivered, and its heat is part of the delivery;</span>
-</span><span data-line="45"><span class="sd">* the electrical powers of the refrigeration machine (compressor, outdoor fan)</span>
-</span><span data-line="46"><span class="sd">  are multiplied by the runtime fraction ``CR / PLF``;</span>
-</span><span data-line="47"><span class="sd">* temperatures, pressures, speed and efficiencies keep the values of the</span>
-</span><span data-line="48"><span class="sd">  running machine.</span>
-</span><span data-line="49">
-</span><span data-line="50"><span class="sd">The electrical energy the machine draws beyond ``CR`` times its continuous</span>
-</span><span data-line="51"><span class="sd">power is the cycling loss; it is reported, and it is the only place where the</span>
-</span><span data-line="52"><span class="sd">mean row is not the running row scaled by one number.</span>
-</span><span data-line="53"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="54">
-</span><span data-line="55"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="28"><span class="sd">The ratio ``COP_cyc / COP_min`` is the *part-load factor* ``PLF``. The unit</span>
+</span><span data-line="29"><span class="sd">delivers ``CR`` of the minimum capacity while drawing ``CR / PLF`` of the</span>
+</span><span data-line="30"><span class="sd">power it draws there (the *power fraction*).</span>
+</span><span data-line="31">
+</span><span data-line="32"><span class="sd">What the two forms describe</span>
+</span><span data-line="33"><span class="sd">---------------------------</span>
+</span><span data-line="34"><span class="sd">* **Air.** The loss is in the start: the compressor runs longer than the heat</span>
+</span><span data-line="35"><span class="sd">  it delivers accounts for. The *runtime fraction* -- the share of the time</span>
+</span><span data-line="36"><span class="sd">  the compressor runs -- is ``CR / PLF``, the same number as the power</span>
+</span><span data-line="37"><span class="sd">  fraction.</span>
+</span><span data-line="38"><span class="sd">* **Water.** The standard takes the start-up loss of a hydronic unit as</span>
+</span><span data-line="39"><span class="sd">  negligible; what it charges is the power the unit keeps drawing while the</span>
+</span><span data-line="40"><span class="sd">  compressor is off (controls, crankcase heater, circulation). ``Cc`` is one</span>
+</span><span data-line="41"><span class="sd">  minus that off-state power over the power drawn while running, so the mean</span>
+</span><span data-line="42"><span class="sd">  input is ``P_min * (CR + (1 - Cc) * (1 - CR))``, which is ``P_min * CR /</span>
+</span><span data-line="43"><span class="sd">  PLF``. The compressor runs for ``CR`` of the time: the runtime fraction is</span>
+</span><span data-line="44"><span class="sd">  ``CR``, the power fraction is larger by the off-state draw. The default 0.9</span>
+</span><span data-line="45"><span class="sd">  is an off-state draw of a tenth of the running input; a unit with a measured</span>
+</span><span data-line="46"><span class="sd">  standby power ``P_off`` has ``Cc = 1 - P_off / P_min``. A request of exactly</span>
+</span><span data-line="47"><span class="sd">  zero is the unit switched off, not on standby: no power.</span>
+</span><span data-line="48">
+</span><span data-line="49"><span class="sd">The coefficients are the defaults the standard prescribes when a unit has not</span>
+</span><span data-line="50"><span class="sd">been tested for them; a tested value replaces them without any other change.</span>
+</span><span data-line="51">
+</span><span data-line="52"><span class="sd">How a result row is averaged</span>
+</span><span data-line="53"><span class="sd">----------------------------</span>
+</span><span data-line="54"><span class="sd">:func:`apply_cycling` turns the continuous minimum-speed operating point into</span>
+</span><span data-line="55"><span class="sd">the mean over the cycling period:</span>
 </span><span data-line="56">
-</span><span data-line="57"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-</span><span data-line="58"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
-</span><span data-line="59"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-</span><span data-line="60"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
-</span><span data-line="61">
-</span><span data-line="62"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-</span><span data-line="63">    <span class="s2">&quot;CD_AIR_DEFAULT&quot;</span><span class="p">,</span>
-</span><span data-line="64">    <span class="s2">&quot;CC_WATER_DEFAULT&quot;</span><span class="p">,</span>
-</span><span data-line="65">    <span class="s2">&quot;CAPACITY_RATIO_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="66">    <span class="s2">&quot;PART_LOAD_FACTOR_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="67">    <span class="s2">&quot;RUNTIME_FRACTION_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="68">    <span class="s2">&quot;MIN_CAPACITY_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="69">    <span class="s2">&quot;CYCLING_LOSS_KEY&quot;</span><span class="p">,</span>
-</span><span data-line="70">    <span class="s2">&quot;CyclingDegradation&quot;</span><span class="p">,</span>
-</span><span data-line="71">    <span class="s2">&quot;CyclingState&quot;</span><span class="p">,</span>
-</span><span data-line="72">    <span class="s2">&quot;resolve_cycling&quot;</span><span class="p">,</span>
-</span><span data-line="73">    <span class="s2">&quot;apply_cycling&quot;</span><span class="p">,</span>
-</span><span data-line="74">    <span class="s2">&quot;continuous_keys&quot;</span><span class="p">,</span>
-</span><span data-line="75"><span class="p">]</span>
-</span><span data-line="76">
-</span><span data-line="77"><span class="c1">#: EN 14825 default degradation coefficient of a unit delivering to air [-].</span>
-</span><span data-line="78"><span class="n">CD_AIR_DEFAULT</span> <span class="o">=</span> <span class="mf">0.25</span>
-</span><span data-line="79"><span class="c1">#: EN 14825 default degradation coefficient of a unit delivering to water [-].</span>
-</span><span data-line="80"><span class="n">CC_WATER_DEFAULT</span> <span class="o">=</span> <span class="mf">0.9</span>
+</span><span data-line="57"><span class="sd">* heat and flow rates are multiplied by ``CR`` -- the delivered heat equals</span>
+</span><span data-line="58"><span class="sd">  the request, and the refrigerant cycle and both secondary streams stay in</span>
+</span><span data-line="59"><span class="sd">  balance with it. Power that only moves the delivered heat (an indoor fan)</span>
+</span><span data-line="60"><span class="sd">  belongs here: it runs while heat is delivered, and its heat is part of the</span>
+</span><span data-line="61"><span class="sd">  delivery;</span>
+</span><span data-line="62"><span class="sd">* the electrical powers of the refrigeration machine (compressor, outdoor fan,</span>
+</span><span data-line="63"><span class="sd">  source-side pump) are multiplied by the power fraction ``CR / PLF``;</span>
+</span><span data-line="64"><span class="sd">* temperatures, pressures, speed and efficiencies keep the values of the</span>
+</span><span data-line="65"><span class="sd">  running machine.</span>
+</span><span data-line="66">
+</span><span data-line="67"><span class="sd">The electrical energy the machine draws beyond ``CR`` times its continuous</span>
+</span><span data-line="68"><span class="sd">power is the cycling loss; it is reported, and it is the only place where the</span>
+</span><span data-line="69"><span class="sd">mean row is not the running row scaled by one number. It is not part of any</span>
+</span><span data-line="70"><span class="sd">heat flow of the row: the refrigerant duties of the mean row are the running</span>
+</span><span data-line="71"><span class="sd">duties times ``CR``, on the source side as on the delivery side.</span>
+</span><span data-line="72">
+</span><span data-line="73"><span class="sd">:func:`report_cycling` is the same step for a solved row of any family (it</span>
+</span><span data-line="74"><span class="sd">decides whether the row cycles). The boilers use it for ``analyze_steady``</span>
+</span><span data-line="75"><span class="sd">only (:func:`report_boiler_cycling`, :func:`steady_cycling`): in a dynamic run</span>
+</span><span data-line="76"><span class="sd">their tank thermostat already switches the compressor, which then runs at its</span>
+</span><span data-line="77"><span class="sd">nominal duty for part of a step, so nothing is left to average there.</span>
+</span><span data-line="78"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="79">
+</span><span data-line="80"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span data-line="81">
-</span><span data-line="82"><span class="c1">#: Requested heat over the capacity at the minimum compressor speed [-].</span>
-</span><span data-line="83"><span class="n">CAPACITY_RATIO_KEY</span> <span class="o">=</span> <span class="s2">&quot;capacity_ratio [-]&quot;</span>
-</span><span data-line="84"><span class="c1">#: Mean COP over the continuous COP at the minimum compressor speed [-].</span>
-</span><span data-line="85"><span class="n">PART_LOAD_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;part_load_factor [-]&quot;</span>
-</span><span data-line="86"><span class="c1">#: Fraction of the time the compressor runs [-] (the boilers&#39; step key).</span>
-</span><span data-line="87"><span class="n">RUNTIME_FRACTION_KEY</span> <span class="o">=</span> <span class="s2">&quot;runtime_fraction [-]&quot;</span>
-</span><span data-line="88"><span class="c1">#: Heat delivered in continuous operation at the minimum compressor speed [W].</span>
-</span><span data-line="89"><span class="n">MIN_CAPACITY_KEY</span> <span class="o">=</span> <span class="s2">&quot;Q_min [W]&quot;</span>
-</span><span data-line="90"><span class="c1">#: Mean electrical power drawn beyond the continuous power times ``CR`` [W].</span>
-</span><span data-line="91"><span class="n">CYCLING_LOSS_KEY</span> <span class="o">=</span> <span class="s2">&quot;E_cycling_loss [W]&quot;</span>
-</span><span data-line="92">
-</span><span data-line="93">
+</span><span data-line="82"><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+</span><span data-line="83"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="84"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterable</span>
+</span><span data-line="85"><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+</span><span data-line="86"><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+</span><span data-line="87"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="88">
+</span><span data-line="89"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="90">    <span class="s2">&quot;CD_AIR_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="91">    <span class="s2">&quot;CC_WATER_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="92">    <span class="s2">&quot;CAPACITY_RATIO_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="93">    <span class="s2">&quot;PART_LOAD_FACTOR_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="94">    <span class="s2">&quot;RUNTIME_FRACTION_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="95">    <span class="s2">&quot;MIN_CAPACITY_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="96">    <span class="s2">&quot;CYCLING_LOSS_KEY&quot;</span><span class="p">,</span>
+</span><span data-line="97">    <span class="s2">&quot;CyclingDegradation&quot;</span><span class="p">,</span>
+</span><span data-line="98">    <span class="s2">&quot;CyclingState&quot;</span><span class="p">,</span>
+</span><span data-line="99">    <span class="s2">&quot;resolve_cycling&quot;</span><span class="p">,</span>
+</span><span data-line="100">    <span class="s2">&quot;apply_cycling&quot;</span><span class="p">,</span>
+</span><span data-line="101">    <span class="s2">&quot;continuous_keys&quot;</span><span class="p">,</span>
+</span><span data-line="102">    <span class="s2">&quot;report_cycling&quot;</span><span class="p">,</span>
+</span><span data-line="103">    <span class="s2">&quot;report_boiler_cycling&quot;</span><span class="p">,</span>
+</span><span data-line="104">    <span class="s2">&quot;steady_cycling&quot;</span><span class="p">,</span>
+</span><span data-line="105"><span class="p">]</span>
+</span><span data-line="106">
+</span><span data-line="107"><span class="n">_F</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_F&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span>
+</span><span data-line="108">
+</span><span data-line="109"><span class="c1">#: EN 14825 default degradation coefficient of a unit delivering to air [-].</span>
+</span><span data-line="110"><span class="n">CD_AIR_DEFAULT</span> <span class="o">=</span> <span class="mf">0.25</span>
+</span><span data-line="111"><span class="c1">#: EN 14825 default degradation coefficient of a unit delivering to water [-].</span>
+</span><span data-line="112"><span class="n">CC_WATER_DEFAULT</span> <span class="o">=</span> <span class="mf">0.9</span>
+</span><span data-line="113">
+</span><span data-line="114"><span class="c1">#: Requested heat over the capacity at the minimum compressor speed [-].</span>
+</span><span data-line="115"><span class="n">CAPACITY_RATIO_KEY</span> <span class="o">=</span> <span class="s2">&quot;capacity_ratio [-]&quot;</span>
+</span><span data-line="116"><span class="c1">#: Mean COP over the continuous COP at the minimum compressor speed [-].</span>
+</span><span data-line="117"><span class="n">PART_LOAD_FACTOR_KEY</span> <span class="o">=</span> <span class="s2">&quot;part_load_factor [-]&quot;</span>
+</span><span data-line="118"><span class="c1">#: Fraction of the time the compressor runs [-] (the boilers&#39; step key too).</span>
+</span><span data-line="119"><span class="n">RUNTIME_FRACTION_KEY</span> <span class="o">=</span> <span class="s2">&quot;runtime_fraction [-]&quot;</span>
+</span><span data-line="120"><span class="c1">#: Heat delivered in continuous operation at the minimum compressor speed [W].</span>
+</span><span data-line="121"><span class="n">MIN_CAPACITY_KEY</span> <span class="o">=</span> <span class="s2">&quot;Q_min [W]&quot;</span>
+</span><span data-line="122"><span class="c1">#: Mean electrical power drawn beyond the continuous power times ``CR`` [W].</span>
+</span><span data-line="123"><span class="n">CYCLING_LOSS_KEY</span> <span class="o">=</span> <span class="s2">&quot;E_cycling_loss [W]&quot;</span>
+</span><span data-line="124">
+</span><span data-line="125">
 <div class="viewcode-block" id="CyclingDegradation">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation">[docs]</a>
-</span><span data-line="94"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="95"><span class="k">class</span><span class="w"> </span><span class="nc">CyclingDegradation</span><span class="p">:</span>
-</span><span data-line="96"><span class="w">    </span><span class="sd">&quot;&quot;&quot;EN 14825 degradation of the COP while the compressor cycles on and off.</span>
-</span><span data-line="97">
-</span><span data-line="98"><span class="sd">    Parameters</span>
-</span><span data-line="99"><span class="sd">    ----------</span>
-</span><span data-line="100"><span class="sd">    coefficient : float</span>
-</span><span data-line="101"><span class="sd">        ``Cd`` for ``sink=&quot;air&quot;`` (0 &lt;= Cd &lt; 1; 0 is loss-free cycling) or</span>
-</span><span data-line="102"><span class="sd">        ``Cc`` for ``sink=&quot;water&quot;`` (0 &lt; Cc &lt;= 1; 1 is loss-free cycling).</span>
-</span><span data-line="103"><span class="sd">    sink : {&quot;air&quot;, &quot;water&quot;}</span>
-</span><span data-line="104"><span class="sd">        Which of the two EN 14825 forms applies: the medium the unit delivers</span>
-</span><span data-line="105"><span class="sd">        its heat (or cooling) to.</span>
-</span><span data-line="106"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="107">
-</span><span data-line="108">    <span class="n">coefficient</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CD_AIR_DEFAULT</span>
-</span><span data-line="109">    <span class="n">sink</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;air&quot;</span>
-</span><span data-line="110">
-</span><span data-line="111">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="112">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span>
-</span><span data-line="113">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">):</span>
-</span><span data-line="114">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sink must be &#39;air&#39; or &#39;water&#39;, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sink</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="115">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
-</span><span data-line="116">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cycling degradation coefficient must be a finite number, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="117">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;air&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
-</span><span data-line="118">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cd (sink=&#39;air&#39;) must satisfy 0 &lt;= Cd &lt; 1, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="119">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;water&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
-</span><span data-line="120">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cc (sink=&#39;water&#39;) must satisfy 0 &lt; Cc &lt;= 1, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="121">
+</span><span data-line="126"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="127"><span class="k">class</span><span class="w"> </span><span class="nc">CyclingDegradation</span><span class="p">:</span>
+</span><span data-line="128"><span class="w">    </span><span class="sd">&quot;&quot;&quot;EN 14825 degradation of the COP while the compressor cycles on and off.</span>
+</span><span data-line="129">
+</span><span data-line="130"><span class="sd">    Parameters</span>
+</span><span data-line="131"><span class="sd">    ----------</span>
+</span><span data-line="132"><span class="sd">    coefficient : float</span>
+</span><span data-line="133"><span class="sd">        ``Cd`` for ``sink=&quot;air&quot;`` (0 &lt;= Cd &lt; 1; 0 is loss-free cycling) or</span>
+</span><span data-line="134"><span class="sd">        ``Cc`` for ``sink=&quot;water&quot;`` (0 &lt; Cc &lt;= 1; 1 is loss-free cycling).</span>
+</span><span data-line="135"><span class="sd">    sink : {&quot;air&quot;, &quot;water&quot;}</span>
+</span><span data-line="136"><span class="sd">        Which of the two EN 14825 forms applies: the medium the unit delivers</span>
+</span><span data-line="137"><span class="sd">        its heat (or cooling) to.</span>
+</span><span data-line="138"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="139">
+</span><span data-line="140">    <span class="n">coefficient</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">CD_AIR_DEFAULT</span>
+</span><span data-line="141">    <span class="n">sink</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;air&quot;</span>
+</span><span data-line="142">
+</span><span data-line="143">    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="144">        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span>
+</span><span data-line="145">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">):</span>
+</span><span data-line="146">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;sink must be &#39;air&#39; or &#39;water&#39;, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sink</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="147">        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+</span><span data-line="148">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cycling degradation coefficient must be a finite number, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="149">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;air&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="150">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cd (sink=&#39;air&#39;) must satisfy 0 &lt;= Cd &lt; 1, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="151">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;water&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">c</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="152">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cc (sink=&#39;water&#39;) must satisfy 0 &lt; Cc &lt;= 1, got </span><span class="si">{</span><span class="n">c</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="153">
 <div class="viewcode-block" id="CyclingDegradation.part_load_factor">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.part_load_factor">[docs]</a>
-</span><span data-line="122">    <span class="k">def</span><span class="w"> </span><span class="nf">part_load_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="123"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``COP_cyc / COP_min`` at a capacity ratio (1.0 at or above ``CR = 1``).&quot;&quot;&quot;</span>
-</span><span data-line="124">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">)</span>
-</span><span data-line="125">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cr</span><span class="p">)</span> <span class="ow">or</span> <span class="n">cr</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="126">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;capacity_ratio must be finite and &gt;= 0, got </span><span class="si">{</span><span class="n">capacity_ratio</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="127">        <span class="k">if</span> <span class="n">cr</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
-</span><span data-line="128">            <span class="k">return</span> <span class="mf">1.0</span>
-</span><span data-line="129">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;air&quot;</span><span class="p">:</span>
-</span><span data-line="130">            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">cr</span><span class="p">)</span>
-</span><span data-line="131">        <span class="n">denominator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span> <span class="o">*</span> <span class="n">cr</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span><span class="p">)</span>
-</span><span data-line="132">        <span class="c1"># Cc = 1 is the loss-free limit (PLF = 1 at every load); at CR = 0 the</span>
-</span><span data-line="133">        <span class="c1"># expression is 0/0 there.</span>
-</span><span data-line="134">        <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">denominator</span> <span class="o">&lt;=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="n">cr</span> <span class="o">/</span> <span class="n">denominator</span></div>
+</span><span data-line="154">    <span class="k">def</span><span class="w"> </span><span class="nf">part_load_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="155"><span class="w">        </span><span class="sd">&quot;&quot;&quot;``COP_cyc / COP_min`` at a capacity ratio (1.0 at or above ``CR = 1``).&quot;&quot;&quot;</span>
+</span><span data-line="156">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">)</span>
+</span><span data-line="157">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cr</span><span class="p">)</span> <span class="ow">or</span> <span class="n">cr</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="158">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;capacity_ratio must be finite and &gt;= 0, got </span><span class="si">{</span><span class="n">capacity_ratio</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="159">        <span class="k">if</span> <span class="n">cr</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="160">            <span class="k">return</span> <span class="mf">1.0</span>
+</span><span data-line="161">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;air&quot;</span><span class="p">:</span>
+</span><span data-line="162">            <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">cr</span><span class="p">)</span>
+</span><span data-line="163">        <span class="n">denominator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span> <span class="o">*</span> <span class="n">cr</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient</span><span class="p">)</span>
+</span><span data-line="164">        <span class="c1"># Cc = 1 is the loss-free limit (PLF = 1 at every load); at CR = 0 the</span>
+</span><span data-line="165">        <span class="c1"># expression is 0/0 there.</span>
+</span><span data-line="166">        <span class="k">return</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">denominator</span> <span class="o">&lt;=</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="n">cr</span> <span class="o">/</span> <span class="n">denominator</span></div>
 
-</span><span data-line="135">
-<div class="viewcode-block" id="CyclingDegradation.runtime_fraction">
-<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.runtime_fraction">[docs]</a>
-</span><span data-line="136">    <span class="k">def</span><span class="w"> </span><span class="nf">runtime_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="137"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fraction of the time the compressor runs, ``CR / PLF`` (0 at ``CR = 0``).&quot;&quot;&quot;</span>
-</span><span data-line="138">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">))</span>
-</span><span data-line="139">        <span class="k">if</span> <span class="n">cr</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-</span><span data-line="140">            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span data-line="141">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">cr</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_load_factor</span><span class="p">(</span><span class="n">cr</span><span class="p">))</span></div>
-
-</span><span data-line="142">
-<div class="viewcode-block" id="CyclingDegradation.state">
-<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.state">[docs]</a>
-</span><span data-line="143">    <span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Q_request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CyclingState</span><span class="p">:</span>
-</span><span data-line="144"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Cycling state for a request below the minimum continuous capacity.</span>
-</span><span data-line="145">
-</span><span data-line="146"><span class="sd">        ``Q_request`` and ``Q_min`` are magnitudes [W]. A request at or above</span>
-</span><span data-line="147"><span class="sd">        ``Q_min`` is continuous operation: ``CR = PLF = runtime fraction = 1``.</span>
-</span><span data-line="148"><span class="sd">        &quot;&quot;&quot;</span>
-</span><span data-line="149">        <span class="n">request</span><span class="p">,</span> <span class="n">floor</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_request</span><span class="p">)),</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_min</span><span class="p">))</span>
-</span><span data-line="150">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">floor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">floor</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
-</span><span data-line="151">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Require finite Q_request and Q_min &gt; 0, got </span><span class="si">{</span><span class="n">Q_request</span><span class="si">!r}</span><span class="s2">, </span><span class="si">{</span><span class="n">Q_min</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="152">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">request</span> <span class="o">/</span> <span class="n">floor</span><span class="p">)</span>
-</span><span data-line="153">        <span class="k">return</span> <span class="n">CyclingState</span><span class="p">(</span>
-</span><span data-line="154">            <span class="n">capacity_ratio</span><span class="o">=</span><span class="n">cr</span><span class="p">,</span>
-</span><span data-line="155">            <span class="n">part_load_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">part_load_factor</span><span class="p">(</span><span class="n">cr</span><span class="p">),</span>
-</span><span data-line="156">            <span class="n">runtime_fraction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">runtime_fraction</span><span class="p">(</span><span class="n">cr</span><span class="p">),</span>
-</span><span data-line="157">        <span class="p">)</span></div>
-</div>
-
-</span><span data-line="158">
-</span><span data-line="159">
-<div class="viewcode-block" id="CyclingState">
-<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingState">[docs]</a>
-</span><span data-line="160"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span data-line="161"><span class="k">class</span><span class="w"> </span><span class="nc">CyclingState</span><span class="p">:</span>
-</span><span data-line="162"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Where a cycling unit sits between off and continuous minimum-speed operation.&quot;&quot;&quot;</span>
-</span><span data-line="163">
-</span><span data-line="164">    <span class="c1">#: Requested heat over the capacity at the minimum compressor speed [-].</span>
-</span><span data-line="165">    <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="166">    <span class="c1">#: Mean COP over the continuous COP at the minimum compressor speed [-].</span>
-</span><span data-line="167">    <span class="n">part_load_factor</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="168">    <span class="c1">#: Fraction of the time the compressor runs [-].</span>
-</span><span data-line="169">    <span class="n">runtime_fraction</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="170">
-</span><span data-line="171">    <span class="nd">@property</span>
-</span><span data-line="172">    <span class="k">def</span><span class="w"> </span><span class="nf">cycling</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="173">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity_ratio</span> <span class="o">&lt;</span> <span class="mf">1.0</span></div>
+</span><span data-line="167">
+<div class="viewcode-block" id="CyclingDegradation.power_fraction">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.power_fraction">[docs]</a>
+</span><span data-line="168">    <span class="k">def</span><span class="w"> </span><span class="nf">power_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="169"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean electrical input over the input at the minimum speed, ``CR / PLF`` (0 at ``CR = 0``).&quot;&quot;&quot;</span>
+</span><span data-line="170">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">))</span>
+</span><span data-line="171">        <span class="k">if</span> <span class="n">cr</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="172">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="173">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">cr</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_load_factor</span><span class="p">(</span><span class="n">cr</span><span class="p">))</span></div>
 
 </span><span data-line="174">
-</span><span data-line="175">
-</span><span data-line="176"><span class="c1">#: Continuous operation: nothing to average.</span>
-</span><span data-line="177"><span class="n">CONTINUOUS</span> <span class="o">=</span> <span class="n">CyclingState</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">part_load_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">runtime_fraction</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-</span><span data-line="178"><span class="c1">#: Compressor off for the whole period.</span>
-</span><span data-line="179"><span class="n">OFF</span> <span class="o">=</span> <span class="n">CyclingState</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">part_load_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">runtime_fraction</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="180">
-</span><span data-line="181">
+<div class="viewcode-block" id="CyclingDegradation.runtime_fraction">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.runtime_fraction">[docs]</a>
+</span><span data-line="175">    <span class="k">def</span><span class="w"> </span><span class="nf">runtime_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="176"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Fraction of the time the compressor runs (0 at ``CR = 0``).</span>
+</span><span data-line="177">
+</span><span data-line="178"><span class="sd">        ``CR / PLF`` for ``sink=&quot;air&quot;``, where the loss is run time that</span>
+</span><span data-line="179"><span class="sd">        delivers no heat; ``CR`` for ``sink=&quot;water&quot;``, where the loss is the</span>
+</span><span data-line="180"><span class="sd">        power drawn while the compressor is off (see the module docstring).</span>
+</span><span data-line="181"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="182">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sink</span> <span class="o">==</span> <span class="s2">&quot;water&quot;</span><span class="p">:</span>
+</span><span data-line="183">            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">)))</span>
+</span><span data-line="184">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">power_fraction</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="p">)</span></div>
+
+</span><span data-line="185">
+<div class="viewcode-block" id="CyclingDegradation.state">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingDegradation.state">[docs]</a>
+</span><span data-line="186">    <span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Q_request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Q_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CyclingState</span><span class="p">:</span>
+</span><span data-line="187"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Cycling state for a request below the minimum continuous capacity.</span>
+</span><span data-line="188">
+</span><span data-line="189"><span class="sd">        ``Q_request`` and ``Q_min`` are magnitudes [W]. A request at or above</span>
+</span><span data-line="190"><span class="sd">        ``Q_min`` is continuous operation: ``CR = PLF = runtime fraction = 1``.</span>
+</span><span data-line="191"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="192">        <span class="n">request</span><span class="p">,</span> <span class="n">floor</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_request</span><span class="p">)),</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Q_min</span><span class="p">))</span>
+</span><span data-line="193">        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">floor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">floor</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">):</span>
+</span><span data-line="194">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Require finite Q_request and Q_min &gt; 0, got </span><span class="si">{</span><span class="n">Q_request</span><span class="si">!r}</span><span class="s2">, </span><span class="si">{</span><span class="n">Q_min</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="195">        <span class="n">cr</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">request</span> <span class="o">/</span> <span class="n">floor</span><span class="p">)</span>
+</span><span data-line="196">        <span class="k">return</span> <span class="n">CyclingState</span><span class="p">(</span>
+</span><span data-line="197">            <span class="n">capacity_ratio</span><span class="o">=</span><span class="n">cr</span><span class="p">,</span>
+</span><span data-line="198">            <span class="n">part_load_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">part_load_factor</span><span class="p">(</span><span class="n">cr</span><span class="p">),</span>
+</span><span data-line="199">            <span class="n">runtime_fraction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">runtime_fraction</span><span class="p">(</span><span class="n">cr</span><span class="p">),</span>
+</span><span data-line="200">        <span class="p">)</span></div>
+</div>
+
+</span><span data-line="201">
+</span><span data-line="202">
+<div class="viewcode-block" id="CyclingState">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.CyclingState">[docs]</a>
+</span><span data-line="203"><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span data-line="204"><span class="k">class</span><span class="w"> </span><span class="nc">CyclingState</span><span class="p">:</span>
+</span><span data-line="205"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Where a cycling unit sits between off and continuous minimum-speed operation.&quot;&quot;&quot;</span>
+</span><span data-line="206">
+</span><span data-line="207">    <span class="c1">#: Requested heat over the capacity at the minimum compressor speed [-].</span>
+</span><span data-line="208">    <span class="n">capacity_ratio</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="209">    <span class="c1">#: Mean COP over the continuous COP at the minimum compressor speed [-].</span>
+</span><span data-line="210">    <span class="n">part_load_factor</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="211">    <span class="c1">#: Fraction of the time the compressor runs [-].</span>
+</span><span data-line="212">    <span class="n">runtime_fraction</span><span class="p">:</span> <span class="nb">float</span>
+</span><span data-line="213">
+</span><span data-line="214">    <span class="nd">@property</span>
+</span><span data-line="215">    <span class="k">def</span><span class="w"> </span><span class="nf">cycling</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="216">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity_ratio</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
+</span><span data-line="217">
+</span><span data-line="218">    <span class="nd">@property</span>
+</span><span data-line="219">    <span class="k">def</span><span class="w"> </span><span class="nf">power_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="220"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mean electrical input of the machine over its continuous input, ``CR / PLF``.&quot;&quot;&quot;</span>
+</span><span data-line="221">        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity_ratio</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="222">            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span data-line="223">        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity_ratio</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_load_factor</span><span class="p">)</span></div>
+
+</span><span data-line="224">
+</span><span data-line="225">
+</span><span data-line="226"><span class="c1">#: Continuous operation: nothing to average.</span>
+</span><span data-line="227"><span class="n">CONTINUOUS</span> <span class="o">=</span> <span class="n">CyclingState</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">part_load_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">runtime_fraction</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="228"><span class="c1">#: Compressor off for the whole period.</span>
+</span><span data-line="229"><span class="n">OFF</span> <span class="o">=</span> <span class="n">CyclingState</span><span class="p">(</span><span class="n">capacity_ratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">part_load_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">runtime_fraction</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="230">
+</span><span data-line="231">
 <div class="viewcode-block" id="resolve_cycling">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.resolve_cycling">[docs]</a>
-</span><span data-line="182"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_cycling</span><span class="p">(</span>
-</span><span data-line="183">    <span class="n">value</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="184">    <span class="n">sink</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">],</span>
-</span><span data-line="185"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="186"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; degradation model.</span>
-</span><span data-line="187">
-</span><span data-line="188"><span class="sd">    ``None`` switches cycling off (the unit is reported running continuously</span>
-</span><span data-line="189"><span class="sd">    at its minimum speed, delivering more than the request); a number is the</span>
-</span><span data-line="190"><span class="sd">    coefficient of the form that belongs to ``sink``; a</span>
-</span><span data-line="191"><span class="sd">    :class:`CyclingDegradation` is used as given.</span>
-</span><span data-line="192"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="193">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="194">        <span class="k">return</span> <span class="kc">None</span>
-</span><span data-line="195">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">CyclingDegradation</span><span class="p">):</span>
-</span><span data-line="196">        <span class="k">return</span> <span class="n">value</span>
-</span><span data-line="197">    <span class="k">return</span> <span class="n">CyclingDegradation</span><span class="p">(</span><span class="n">coefficient</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">sink</span><span class="o">=</span><span class="n">sink</span><span class="p">)</span></div>
+</span><span data-line="232"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_cycling</span><span class="p">(</span>
+</span><span data-line="233">    <span class="n">value</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="234">    <span class="n">sink</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;air&quot;</span><span class="p">,</span> <span class="s2">&quot;water&quot;</span><span class="p">],</span>
+</span><span data-line="235"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="236"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; degradation model.</span>
+</span><span data-line="237">
+</span><span data-line="238"><span class="sd">    ``None`` switches cycling off (the unit is reported running continuously</span>
+</span><span data-line="239"><span class="sd">    at its minimum speed, delivering more than the request); a number is the</span>
+</span><span data-line="240"><span class="sd">    coefficient of the form that belongs to ``sink``; a</span>
+</span><span data-line="241"><span class="sd">    :class:`CyclingDegradation` is used as given.</span>
+</span><span data-line="242"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="243">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="244">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="245">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">CyclingDegradation</span><span class="p">):</span>
+</span><span data-line="246">        <span class="k">return</span> <span class="n">value</span>
+</span><span data-line="247">    <span class="k">return</span> <span class="n">CyclingDegradation</span><span class="p">(</span><span class="n">coefficient</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">sink</span><span class="o">=</span><span class="n">sink</span><span class="p">)</span></div>
 
-</span><span data-line="198">
-</span><span data-line="199">
+</span><span data-line="248">
+</span><span data-line="249">
 <div class="viewcode-block" id="continuous_keys">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.continuous_keys">[docs]</a>
-</span><span data-line="200"><span class="k">def</span><span class="w"> </span><span class="nf">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">CyclingState</span> <span class="o">=</span> <span class="n">CONTINUOUS</span><span class="p">,</span> <span class="n">Q_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="201"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the cycling keys of a row that was not averaged (in place).&quot;&quot;&quot;</span>
-</span><span data-line="202">    <span class="n">result</span><span class="p">[</span><span class="n">CAPACITY_RATIO_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span>
-</span><span data-line="203">    <span class="n">result</span><span class="p">[</span><span class="n">PART_LOAD_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">part_load_factor</span>
-</span><span data-line="204">    <span class="n">result</span><span class="p">[</span><span class="n">RUNTIME_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">runtime_fraction</span>
-</span><span data-line="205">    <span class="n">result</span><span class="p">[</span><span class="n">MIN_CAPACITY_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q_min</span>
-</span><span data-line="206">    <span class="n">result</span><span class="p">[</span><span class="n">CYCLING_LOSS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="207">    <span class="k">return</span> <span class="n">result</span></div>
+</span><span data-line="250"><span class="k">def</span><span class="w"> </span><span class="nf">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">CyclingState</span> <span class="o">=</span> <span class="n">CONTINUOUS</span><span class="p">,</span> <span class="n">Q_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="251"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the cycling keys of a row that was not averaged (in place).&quot;&quot;&quot;</span>
+</span><span data-line="252">    <span class="n">result</span><span class="p">[</span><span class="n">CAPACITY_RATIO_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span>
+</span><span data-line="253">    <span class="n">result</span><span class="p">[</span><span class="n">PART_LOAD_FACTOR_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">part_load_factor</span>
+</span><span data-line="254">    <span class="n">result</span><span class="p">[</span><span class="n">RUNTIME_FRACTION_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">runtime_fraction</span>
+</span><span data-line="255">    <span class="n">result</span><span class="p">[</span><span class="n">MIN_CAPACITY_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">Q_min</span>
+</span><span data-line="256">    <span class="n">result</span><span class="p">[</span><span class="n">CYCLING_LOSS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="257">    <span class="k">return</span> <span class="n">result</span></div>
 
-</span><span data-line="208">
-</span><span data-line="209">
+</span><span data-line="258">
+</span><span data-line="259">
 <div class="viewcode-block" id="apply_cycling">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.apply_cycling">[docs]</a>
-</span><span data-line="210"><span class="k">def</span><span class="w"> </span><span class="nf">apply_cycling</span><span class="p">(</span>
-</span><span data-line="211">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="212">    <span class="n">state</span><span class="p">:</span> <span class="n">CyclingState</span><span class="p">,</span>
-</span><span data-line="213">    <span class="o">*</span><span class="p">,</span>
-</span><span data-line="214">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span data-line="215">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-</span><span data-line="216">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-</span><span data-line="217">    <span class="n">delivery_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
-</span><span data-line="218">    <span class="n">total_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span>
-</span><span data-line="219"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="220"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Average a continuous minimum-speed row over the cycling period (in place).</span>
-</span><span data-line="221">
-</span><span data-line="222"><span class="sd">    ``rate_keys`` -- heat and flow rates, ``delivered_key`` among them -- and</span>
-</span><span data-line="223"><span class="sd">    ``delivery_power_keys`` -- power that runs only while heat is delivered,</span>
-</span><span data-line="224"><span class="sd">    such as an indoor fan -- are multiplied by the capacity ratio;</span>
-</span><span data-line="225"><span class="sd">    ``power_keys`` -- the refrigeration machine -- by the runtime fraction.</span>
-</span><span data-line="226"><span class="sd">    ``total_power_key`` is reduced by what the powers in both groups lost.</span>
-</span><span data-line="227"><span class="sd">    Adds the cycling keys: ``Q_min [W]`` is the magnitude of the continuous</span>
-</span><span data-line="228"><span class="sd">    delivery the row came in with, ``E_cycling_loss [W]`` what ``power_keys``</span>
-</span><span data-line="229"><span class="sd">    draw beyond the capacity ratio times their continuous value. COP columns</span>
-</span><span data-line="230"><span class="sd">    are left to the caller, which knows how they are defined.</span>
-</span><span data-line="231"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="232">
-</span><span data-line="233">    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="234"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale in place; return (sum before, sum after) of the finite values.&quot;&quot;&quot;</span>
-</span><span data-line="235">        <span class="n">before</span> <span class="o">=</span> <span class="n">after</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="236">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-</span><span data-line="237">            <span class="n">value</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-</span><span data-line="238">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-</span><span data-line="239">                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span>
-</span><span data-line="240">                <span class="n">before</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-</span><span data-line="241">                <span class="n">after</span> <span class="o">+=</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-</span><span data-line="242">        <span class="k">return</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span>
-</span><span data-line="243">
-</span><span data-line="244">    <span class="n">q_min</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">delivered_key</span><span class="p">]))</span>
-</span><span data-line="245">    <span class="n">scale</span><span class="p">(</span><span class="n">rate_keys</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
-</span><span data-line="246">    <span class="n">with_delivery</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">delivery_power_keys</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
-</span><span data-line="247">    <span class="n">machine</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">power_keys</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">runtime_fraction</span><span class="p">)</span>
-</span><span data-line="248">    <span class="n">total</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">total_power_key</span><span class="p">)</span>
-</span><span data-line="249">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">):</span>
-</span><span data-line="250">        <span class="n">result</span><span class="p">[</span><span class="n">total_power_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">with_delivery</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">with_delivery</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">machine</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">machine</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</span><span data-line="251">    <span class="n">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">q_min</span><span class="p">)</span>
-</span><span data-line="252">    <span class="n">result</span><span class="p">[</span><span class="n">CYCLING_LOSS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">machine</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">runtime_fraction</span> <span class="o">-</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
-</span><span data-line="253">    <span class="k">return</span> <span class="n">result</span></div>
+</span><span data-line="260"><span class="k">def</span><span class="w"> </span><span class="nf">apply_cycling</span><span class="p">(</span>
+</span><span data-line="261">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="262">    <span class="n">state</span><span class="p">:</span> <span class="n">CyclingState</span><span class="p">,</span>
+</span><span data-line="263">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="264">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="265">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="266">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="267">    <span class="n">delivery_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="268">    <span class="n">total_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span>
+</span><span data-line="269"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="270"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Average a continuous minimum-speed row over the cycling period (in place).</span>
+</span><span data-line="271">
+</span><span data-line="272"><span class="sd">    ``rate_keys`` -- heat and flow rates, ``delivered_key`` among them -- and</span>
+</span><span data-line="273"><span class="sd">    ``delivery_power_keys`` -- power that runs only while heat is delivered,</span>
+</span><span data-line="274"><span class="sd">    such as an indoor fan -- are multiplied by the capacity ratio;</span>
+</span><span data-line="275"><span class="sd">    ``power_keys`` -- the refrigeration machine -- by the power fraction</span>
+</span><span data-line="276"><span class="sd">    ``CR / PLF`` (the runtime fraction of a unit delivering to air).</span>
+</span><span data-line="277"><span class="sd">    ``total_power_key`` is reduced by what the powers in both groups lost.</span>
+</span><span data-line="278"><span class="sd">    Adds the cycling keys: ``Q_min [W]`` is the magnitude of the continuous</span>
+</span><span data-line="279"><span class="sd">    delivery the row came in with, ``E_cycling_loss [W]`` what ``power_keys``</span>
+</span><span data-line="280"><span class="sd">    draw beyond the capacity ratio times their continuous value. COP columns</span>
+</span><span data-line="281"><span class="sd">    are left to the caller, which knows how they are defined.</span>
+</span><span data-line="282"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="283">
+</span><span data-line="284">    <span class="k">def</span><span class="w"> </span><span class="nf">scale</span><span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="285"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale in place; return (sum before, sum after) of the finite values.&quot;&quot;&quot;</span>
+</span><span data-line="286">        <span class="n">before</span> <span class="o">=</span> <span class="n">after</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="287">        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+</span><span data-line="288">            <span class="n">value</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span data-line="289">            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+</span><span data-line="290">                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">factor</span>
+</span><span data-line="291">                <span class="n">before</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="292">                <span class="n">after</span> <span class="o">+=</span> <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</span><span data-line="293">        <span class="k">return</span> <span class="n">before</span><span class="p">,</span> <span class="n">after</span>
+</span><span data-line="294">
+</span><span data-line="295">    <span class="n">q_min</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">delivered_key</span><span class="p">]))</span>
+</span><span data-line="296">    <span class="n">scale</span><span class="p">(</span><span class="n">rate_keys</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
+</span><span data-line="297">    <span class="n">with_delivery</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">delivery_power_keys</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
+</span><span data-line="298">    <span class="n">power_fraction</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">power_fraction</span>
+</span><span data-line="299">    <span class="n">machine</span> <span class="o">=</span> <span class="n">scale</span><span class="p">(</span><span class="n">power_keys</span><span class="p">,</span> <span class="n">power_fraction</span><span class="p">)</span>
+</span><span data-line="300">    <span class="n">total</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">total_power_key</span><span class="p">)</span>
+</span><span data-line="301">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">total</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">total</span><span class="p">):</span>
+</span><span data-line="302">        <span class="n">result</span><span class="p">[</span><span class="n">total_power_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">with_delivery</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">with_delivery</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="p">(</span><span class="n">machine</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">machine</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</span><span data-line="303">    <span class="n">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">q_min</span><span class="p">)</span>
+</span><span data-line="304">    <span class="n">result</span><span class="p">[</span><span class="n">CYCLING_LOSS_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">machine</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">power_fraction</span> <span class="o">-</span> <span class="n">state</span><span class="o">.</span><span class="n">capacity_ratio</span><span class="p">)</span>
+</span><span data-line="305">    <span class="k">return</span> <span class="n">result</span></div>
+
+</span><span data-line="306">
+</span><span data-line="307">
+<div class="viewcode-block" id="report_cycling">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.report_cycling">[docs]</a>
+</span><span data-line="308"><span class="k">def</span><span class="w"> </span><span class="nf">report_cycling</span><span class="p">(</span>
+</span><span data-line="309">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="310">    <span class="n">cycling</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="311">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="312">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="313">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span data-line="314">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="315">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="316">    <span class="n">delivery_power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+</span><span data-line="317">    <span class="n">total_power_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span>
+</span><span data-line="318"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="319"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write the cycling keys of a solved row; average it if the unit cycles (in place).</span>
+</span><span data-line="320">
+</span><span data-line="321"><span class="sd">    The row cycles when it is a running operating point on the compressor&#39;s</span>
+</span><span data-line="322"><span class="sd">    speed floor (``capacity_clamped == &quot;min&quot;``) that delivers more than the</span>
+</span><span data-line="323"><span class="sd">    ``request`` and a degradation model is given: it is then averaged with</span>
+</span><span data-line="324"><span class="sd">    :func:`apply_cycling`. Every other row -- continuous operation, the off</span>
+</span><span data-line="325"><span class="sd">    state, a failed solve, cycling switched off (``cycling=None``) -- is left</span>
+</span><span data-line="326"><span class="sd">    as it is and gets the keys of :func:`continuous_keys` (``Q_min [W]`` is</span>
+</span><span data-line="327"><span class="sd">    the continuous delivery of a row on the speed floor, NaN elsewhere).</span>
+</span><span data-line="328"><span class="sd">    Returns whether the row was averaged; COP columns and sums the caller</span>
+</span><span data-line="329"><span class="sd">    derives from the averaged terms are left to the caller.</span>
+</span><span data-line="330"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="331">    <span class="n">running</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="332">    <span class="n">delivered</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">delivered_key</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)))</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="333">    <span class="n">on_floor</span> <span class="o">=</span> <span class="n">running</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span>
+</span><span data-line="334">    <span class="n">asked</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">request</span><span class="p">))</span>
+</span><span data-line="335">    <span class="k">if</span> <span class="n">on_floor</span> <span class="ow">and</span> <span class="n">cycling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">asked</span> <span class="o">&lt;</span> <span class="n">delivered</span><span class="p">:</span>
+</span><span data-line="336">        <span class="n">state</span> <span class="o">=</span> <span class="n">cycling</span><span class="o">.</span><span class="n">state</span><span class="p">(</span><span class="n">asked</span><span class="p">,</span> <span class="n">delivered</span><span class="p">)</span>
+</span><span data-line="337">        <span class="n">apply_cycling</span><span class="p">(</span>
+</span><span data-line="338">            <span class="n">result</span><span class="p">,</span>
+</span><span data-line="339">            <span class="n">state</span><span class="p">,</span>
+</span><span data-line="340">            <span class="n">delivered_key</span><span class="o">=</span><span class="n">delivered_key</span><span class="p">,</span>
+</span><span data-line="341">            <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
+</span><span data-line="342">            <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
+</span><span data-line="343">            <span class="n">delivery_power_keys</span><span class="o">=</span><span class="n">delivery_power_keys</span><span class="p">,</span>
+</span><span data-line="344">            <span class="n">total_power_key</span><span class="o">=</span><span class="n">total_power_key</span><span class="p">,</span>
+</span><span data-line="345">        <span class="p">)</span>
+</span><span data-line="346">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="347">    <span class="n">continuous_keys</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">CONTINUOUS</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="n">OFF</span><span class="p">,</span> <span class="n">delivered</span> <span class="k">if</span> <span class="n">on_floor</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="348">    <span class="k">return</span> <span class="kc">False</span></div>
+
+</span><span data-line="349">
+</span><span data-line="350">
+<div class="viewcode-block" id="report_boiler_cycling">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.report_boiler_cycling">[docs]</a>
+</span><span data-line="351"><span class="k">def</span><span class="w"> </span><span class="nf">report_boiler_cycling</span><span class="p">(</span>
+</span><span data-line="352">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="353">    <span class="n">cycling</span><span class="p">:</span> <span class="n">CyclingDegradation</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="354">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="355">    <span class="o">*</span><span class="p">,</span>
+</span><span data-line="356">    <span class="n">rate_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="357">    <span class="n">power_keys</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span data-line="358">    <span class="n">source_heat_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="359">    <span class="n">hp_capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+</span><span data-line="360"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="361"><span class="w">    </span><span class="sd">&quot;&quot;&quot;:func:`report_cycling` for a boiler&#39;s steady row (heat to the tank, ``Q_ref_tank [W]``).</span>
+</span><span data-line="362">
+</span><span data-line="363"><span class="sd">    An averaged row also gets back what a boiler row derives from the averaged</span>
+</span><span data-line="364"><span class="sd">    terms: both COPs (the heat to the tank over the compressor input and over</span>
+</span><span data-line="365"><span class="sd">    the total input), ``PLR_delivered [-]`` (with ``hp_capacity``), the source</span>
+</span><span data-line="366"><span class="sd">    loop&#39;s net heat ``Q_bhe [W]`` (``source_heat_key`` less the pump power)</span>
+</span><span data-line="367"><span class="sd">    and ``E_cmp_plus_pmp [W]``, each where the row has it.</span>
+</span><span data-line="368"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="369">    <span class="n">averaged</span> <span class="o">=</span> <span class="n">report_cycling</span><span class="p">(</span>
+</span><span data-line="370">        <span class="n">result</span><span class="p">,</span>
+</span><span data-line="371">        <span class="n">cycling</span><span class="p">,</span>
+</span><span data-line="372">        <span class="n">request</span><span class="p">,</span>
+</span><span data-line="373">        <span class="n">delivered_key</span><span class="o">=</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span>
+</span><span data-line="374">        <span class="n">rate_keys</span><span class="o">=</span><span class="n">rate_keys</span><span class="p">,</span>
+</span><span data-line="375">        <span class="n">power_keys</span><span class="o">=</span><span class="n">power_keys</span><span class="p">,</span>
+</span><span data-line="376">    <span class="p">)</span>
+</span><span data-line="377">    <span class="k">if</span> <span class="n">averaged</span><span class="p">:</span>
+</span><span data-line="378">        <span class="n">delivered</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">])</span>
+</span><span data-line="379">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_ref [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="380">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;cop_sys [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span>
+</span><span data-line="381">        <span class="k">if</span> <span class="s2">&quot;PLR_delivered [-]&quot;</span> <span class="ow">in</span> <span class="n">result</span> <span class="ow">and</span> <span class="n">hp_capacity</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="382">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;PLR_delivered [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delivered</span> <span class="o">/</span> <span class="n">hp_capacity</span>
+</span><span data-line="383">        <span class="k">if</span> <span class="n">source_heat_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;Q_bhe [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="384">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;Q_bhe [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">source_heat_key</span><span class="p">]</span> <span class="o">-</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="385">        <span class="k">if</span> <span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="386">            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp_plus_pmp [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_cmp [W]&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;E_pmp [W]&quot;</span><span class="p">]</span>
+</span><span data-line="387">    <span class="k">return</span> <span class="n">averaged</span></div>
+
+</span><span data-line="388">
+</span><span data-line="389">
+<div class="viewcode-block" id="steady_cycling">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.cycling.steady_cycling">[docs]</a>
+</span><span data-line="390"><span class="k">def</span><span class="w"> </span><span class="nf">steady_cycling</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="391"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate a boiler&#39;s ``analyze_steady`` with the part-load report.</span>
+</span><span data-line="392">
+</span><span data-line="393"><span class="sd">    The decorated method is solved as before; its result row is then handed</span>
+</span><span data-line="394"><span class="sd">    to the model&#39;s ``_report_part_load(result, request)`` with the caller&#39;s</span>
+</span><span data-line="395"><span class="sd">    ``duty_arg``. It sits outside the envelope&#39;s duty reduction</span>
+</span><span data-line="396"><span class="sd">    (:func:`tmhp.compressor_envelope.steady_envelope`), whose trial solves</span>
+</span><span data-line="397"><span class="sd">    must see the continuous rows.</span>
+</span><span data-line="398"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="399">
+</span><span data-line="400">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="401">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="402">
+</span><span data-line="403">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="404">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="405">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="406">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
+</span><span data-line="407">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="408">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
+</span><span data-line="409">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="410">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="411">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="412">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="413">            <span class="bp">self</span><span class="o">.</span><span class="n">_report_part_load</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]))</span>
+</span><span data-line="414">            <span class="k">if</span> <span class="n">want_dict</span><span class="p">:</span>
+</span><span data-line="415">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="416">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="417">
+</span><span data-line="418">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="419">
+</span><span data-line="420">        <span class="c1"># ``analyze_steady.__wrapped__`` stays the undecorated solve (one</span>
+</span><span data-line="421">        <span class="c1"># request, no duty reduction, no averaging), as it is under</span>
+</span><span data-line="422">        <span class="c1"># ``steady_envelope`` alone.</span>
+</span><span data-line="423">        <span class="n">wrapped</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">function</span><span class="p">,</span> <span class="s2">&quot;__wrapped__&quot;</span><span class="p">,</span> <span class="n">function</span><span class="p">)</span>  <span class="c1"># type: ignore[attr-defined]</span>
+</span><span data-line="424">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="425">
+</span><span data-line="426">    <span class="k">return</span> <span class="n">decorate</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

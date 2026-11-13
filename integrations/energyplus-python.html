@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP’s current EnergyPlus adapter exposes AirSourceHeatPumpBoiler as a PlantComponent:UserDefined surrogate. EnergyPlus still owns the plant loop, timestep, load dispatch, and storage-tank objects;..." />
 
-    <meta property="article:modified_time" content="2026-11-13T04:18:25+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T23:57:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -461,7 +461,13 @@ connection that meets the loop load, and the loop outlet temperature fixes the h
 the loop receives, so delivering <code class="docutils literal notranslate"><span class="pre">Q_cycle</span></code> would overheat the loop and its
 storage tank. The plugin therefore treats the clamp as on/off cycling: the
 time-averaged heat equals the request and the electricity is scaled by the same
-duty fraction. No cycling-degradation penalty is applied.</p></li>
+duty fraction. <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> now reports such a point as that cycling mean
+itself (<a class="reference internal" href="../models/gshpb.html#boiler-steady-cycling"><span class="std std-ref">Steady state below the minimum capacity</span></a>): the heat of the row is the request and
+its electrical input carries the EN 14825 degradation for a unit delivering to
+water (<code class="docutils literal notranslate"><span class="pre">Cc</span> <span class="pre">=</span> <span class="pre">0.9</span></code> unless the model is built with another <code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code>), so
+the plugin’s own scaling leaves the row as it is and the metered electricity
+includes that degradation. A model built with <code class="docutils literal notranslate"><span class="pre">Cd_cycling=None</span></code> returns the
+continuous point and is scaled by the plugin as before, without a penalty.</p></li>
 <li><p><strong>Outlet limit.</strong> Heat that would push the outlet above <code class="docutils literal notranslate"><span class="pre">TOUT_MAX</span></code> is not
 delivered, and the electricity that would have produced it is not metered.</p></li>
 </ul>

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T23:57:16+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -181,6 +181,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.cycling">On/off cycling below the minimum capacity</a><ul>
+<li><a class="reference internal" href="#what-the-two-forms-describe">What the two forms describe</a></li>
 <li><a class="reference internal" href="#how-a-result-row-is-averaged">How a result row is averaged</a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CD_AIR_DEFAULT"><code class="docutils literal notranslate"><span class="pre">CD_AIR_DEFAULT</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CC_WATER_DEFAULT"><code class="docutils literal notranslate"><span class="pre">CC_WATER_DEFAULT</span></code></a></li>
@@ -193,6 +194,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.coefficient"><code class="docutils literal notranslate">coefficient</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.sink"><code class="docutils literal notranslate">sink</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.part_load_factor"><code class="docutils literal notranslate">part_load_factor()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.power_fraction"><code class="docutils literal notranslate">power_fraction()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.runtime_fraction"><code class="docutils literal notranslate">runtime_fraction()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.state"><code class="docutils literal notranslate">state()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingDegradation.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
@@ -203,12 +205,16 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.cycling.CyclingState.part_load_factor"><code class="docutils literal notranslate">part_load_factor</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingState.runtime_fraction"><code class="docutils literal notranslate">runtime_fraction</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingState.cycling"><code class="docutils literal notranslate">cycling</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.CyclingState.power_fraction"><code class="docutils literal notranslate">power_fraction</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.CyclingState.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#tmhp.cycling.resolve_cycling"><code class="docutils literal notranslate"><span class="pre">resolve_cycling()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.apply_cycling"><code class="docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.cycling.continuous_keys"><code class="docutils literal notranslate"><span class="pre">continuous_keys()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.report_cycling"><code class="docutils literal notranslate"><span class="pre">report_cycling()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.report_boiler_cycling"><code class="docutils literal notranslate"><span class="pre">report_boiler_cycling()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.cycling.steady_cycling"><code class="docutils literal notranslate"><span class="pre">steady_cycling()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.defrost">Frost and defrost of an outdoor coil</a><ul>
@@ -2845,29 +2851,55 @@ degradation coefficient <code class="docutils literal notranslate"><span class="
 </div>
 </li>
 </ul>
-<p>The ratio <code class="docutils literal notranslate"><span class="pre">COP_cyc</span> <span class="pre">/</span> <span class="pre">COP_min</span></code> is the <em>part-load factor</em> <code class="docutils literal notranslate"><span class="pre">PLF</span></code>. The
-compressor then runs for the fraction <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> of the time (the <em>runtime
-fraction</em>): it delivers <code class="docutils literal notranslate"><span class="pre">CR</span></code> of the minimum capacity while drawing
-<code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> of the power it draws there.</p>
+<p>The ratio <code class="docutils literal notranslate"><span class="pre">COP_cyc</span> <span class="pre">/</span> <span class="pre">COP_min</span></code> is the <em>part-load factor</em> <code class="docutils literal notranslate"><span class="pre">PLF</span></code>. The unit
+delivers <code class="docutils literal notranslate"><span class="pre">CR</span></code> of the minimum capacity while drawing <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> of the
+power it draws there (the <em>power fraction</em>).</p>
+<section id="what-the-two-forms-describe">
+<h3>What the two forms describe<a class="headerlink" href="#what-the-two-forms-describe" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Air.</strong> The loss is in the start: the compressor runs longer than the heat
+it delivers accounts for. The <em>runtime fraction</em> – the share of the time
+the compressor runs – is <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code>, the same number as the power
+fraction.</p></li>
+<li><p><strong>Water.</strong> The standard takes the start-up loss of a hydronic unit as
+negligible; what it charges is the power the unit keeps drawing while the
+compressor is off (controls, crankcase heater, circulation). <code class="docutils literal notranslate"><span class="pre">Cc</span></code> is one
+minus that off-state power over the power drawn while running, so the mean
+input is <code class="docutils literal notranslate"><span class="pre">P_min</span> <span class="pre">*</span> <span class="pre">(CR</span> <span class="pre">+</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">Cc)</span> <span class="pre">*</span> <span class="pre">(1</span> <span class="pre">-</span> <span class="pre">CR))</span></code>, which is <code class="docutils literal notranslate"><span class="pre">P_min</span> <span class="pre">*</span> <span class="pre">CR</span> <span class="pre">/</span>
+<span class="pre">PLF</span></code>. The compressor runs for <code class="docutils literal notranslate"><span class="pre">CR</span></code> of the time: the runtime fraction is
+<code class="docutils literal notranslate"><span class="pre">CR</span></code>, the power fraction is larger by the off-state draw. The default 0.9
+is an off-state draw of a tenth of the running input; a unit with a measured
+standby power <code class="docutils literal notranslate"><span class="pre">P_off</span></code> has <code class="docutils literal notranslate"><span class="pre">Cc</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">P_off</span> <span class="pre">/</span> <span class="pre">P_min</span></code>. A request of exactly
+zero is the unit switched off, not on standby: no power.</p></li>
+</ul>
 <p>The coefficients are the defaults the standard prescribes when a unit has not
 been tested for them; a tested value replaces them without any other change.</p>
+</section>
 <section id="how-a-result-row-is-averaged">
 <h3>How a result row is averaged<a class="headerlink" href="#how-a-result-row-is-averaged" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="#tmhp.cycling.apply_cycling" title="tmhp.cycling.apply_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a> turns the continuous minimum-speed operating point into
 the mean over the cycling period:</p>
 <ul class="simple">
 <li><p>heat and flow rates are multiplied by <code class="docutils literal notranslate"><span class="pre">CR</span></code> – the delivered heat equals
-the request, and the refrigerant cycle and both air streams stay in balance
-with it. Power that only moves the delivered heat (an indoor fan) belongs
-here: it runs while heat is delivered, and its heat is part of the delivery;</p></li>
-<li><p>the electrical powers of the refrigeration machine (compressor, outdoor fan)
-are multiplied by the runtime fraction <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code>;</p></li>
+the request, and the refrigerant cycle and both secondary streams stay in
+balance with it. Power that only moves the delivered heat (an indoor fan)
+belongs here: it runs while heat is delivered, and its heat is part of the
+delivery;</p></li>
+<li><p>the electrical powers of the refrigeration machine (compressor, outdoor fan,
+source-side pump) are multiplied by the power fraction <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code>;</p></li>
 <li><p>temperatures, pressures, speed and efficiencies keep the values of the
 running machine.</p></li>
 </ul>
 <p>The electrical energy the machine draws beyond <code class="docutils literal notranslate"><span class="pre">CR</span></code> times its continuous
 power is the cycling loss; it is reported, and it is the only place where the
-mean row is not the running row scaled by one number.</p>
+mean row is not the running row scaled by one number. It is not part of any
+heat flow of the row: the refrigerant duties of the mean row are the running
+duties times <code class="docutils literal notranslate"><span class="pre">CR</span></code>, on the source side as on the delivery side.</p>
+<p><a class="reference internal" href="#tmhp.cycling.report_cycling" title="tmhp.cycling.report_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">report_cycling()</span></code></a> is the same step for a solved row of any family (it
+decides whether the row cycles). The boilers use it for <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code>
+only (<a class="reference internal" href="#tmhp.cycling.report_boiler_cycling" title="tmhp.cycling.report_boiler_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">report_boiler_cycling()</span></code></a>, <a class="reference internal" href="#tmhp.cycling.steady_cycling" title="tmhp.cycling.steady_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">steady_cycling()</span></code></a>): in a dynamic run
+their tank thermostat already switches the compressor, which then runs at its
+nominal duty for part of a step, so nothing is left to average there.</p>
 </section>
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.cycling.CD_AIR_DEFAULT">
@@ -2896,7 +2928,7 @@ mean row is not the running row scaled by one number.</p>
 <dl class="py data">
 <dt class="sig sig-object py" id="tmhp.cycling.RUNTIME_FRACTION_KEY">
 <span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">RUNTIME_FRACTION_KEY</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'runtime_fraction</span> <span class="pre">[-]'</span></span><a class="headerlink" href="#tmhp.cycling.RUNTIME_FRACTION_KEY" title="Link to this definition">¶</a></dt>
-<dd><p>Fraction of the time the compressor runs [-] (the boilers’ step key).</p>
+<dd><p>Fraction of the time the compressor runs [-] (the boilers’ step key too).</p>
 </dd></dl>
 
 <dl class="py data">
@@ -2951,9 +2983,26 @@ its heat (or cooling) to.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.power_fraction">
+<span class="sig-name descname"><span class="pre">power_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation.power_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.power_fraction" title="Link to this definition">¶</a></dt>
+<dd><p>Mean electrical input over the input at the minimum speed, <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> (0 at <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="tmhp.cycling.CyclingDegradation.runtime_fraction">
 <span class="sig-name descname"><span class="pre">runtime_fraction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#CyclingDegradation.runtime_fraction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.CyclingDegradation.runtime_fraction" title="Link to this definition">¶</a></dt>
-<dd><p>Fraction of the time the compressor runs, <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> (0 at <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p>
+<dd><p>Fraction of the time the compressor runs (0 at <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> for <code class="docutils literal notranslate"><span class="pre">sink=&quot;air&quot;</span></code>, where the loss is run time that
+delivers no heat; <code class="docutils literal notranslate"><span class="pre">CR</span></code> for <code class="docutils literal notranslate"><span class="pre">sink=&quot;water&quot;</span></code>, where the loss is the
+power drawn while the compressor is off (see the module docstring).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>capacity_ratio</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p>
@@ -3035,6 +3084,12 @@ its heat (or cooling) to.</p></li>
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cycling</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.cycling" title="Link to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="tmhp.cycling.CyclingState.power_fraction">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">power_fraction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.cycling.CyclingState.power_fraction" title="Link to this definition">¶</a></dt>
+<dd><p>Mean electrical input of the machine over its continuous input, <code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code>.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.cycling.CyclingState.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capacity_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_load_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime_fraction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tmhp.cycling.CyclingState.__init__" title="Link to this definition">¶</a></dt>
@@ -3079,7 +3134,8 @@ coefficient of the form that belongs to <code class="docutils literal notranslat
 <p><code class="docutils literal notranslate"><span class="pre">rate_keys</span></code> – heat and flow rates, <code class="docutils literal notranslate"><span class="pre">delivered_key</span></code> among them – and
 <code class="docutils literal notranslate"><span class="pre">delivery_power_keys</span></code> – power that runs only while heat is delivered,
 such as an indoor fan – are multiplied by the capacity ratio;
-<code class="docutils literal notranslate"><span class="pre">power_keys</span></code> – the refrigeration machine – by the runtime fraction.
+<code class="docutils literal notranslate"><span class="pre">power_keys</span></code> – the refrigeration machine – by the power fraction
+<code class="docutils literal notranslate"><span class="pre">CR</span> <span class="pre">/</span> <span class="pre">PLF</span></code> (the runtime fraction of a unit delivering to air).
 <code class="docutils literal notranslate"><span class="pre">total_power_key</span></code> is reduced by what the powers in both groups lost.
 Adds the cycling keys: <code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is the magnitude of the continuous
 delivery the row came in with, <code class="docutils literal notranslate"><span class="pre">E_cycling_loss</span> <span class="pre">[W]</span></code> what <code class="docutils literal notranslate"><span class="pre">power_keys</span></code>
@@ -3117,6 +3173,84 @@ are left to the caller, which knows how they are defined.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.report_cycling">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">report_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivered_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delivery_power_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_power_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'E_tot</span> <span class="pre">[W]'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#report_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.report_cycling" title="Link to this definition">¶</a></dt>
+<dd><p>Write the cycling keys of a solved row; average it if the unit cycles (in place).</p>
+<p>The row cycles when it is a running operating point on the compressor’s
+speed floor (<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;min&quot;</span></code>) that delivers more than the
+<code class="docutils literal notranslate"><span class="pre">request</span></code> and a degradation model is given: it is then averaged with
+<a class="reference internal" href="#tmhp.cycling.apply_cycling" title="tmhp.cycling.apply_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_cycling()</span></code></a>. Every other row – continuous operation, the off
+state, a failed solve, cycling switched off (<code class="docutils literal notranslate"><span class="pre">cycling=None</span></code>) – is left
+as it is and gets the keys of <a class="reference internal" href="#tmhp.cycling.continuous_keys" title="tmhp.cycling.continuous_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">continuous_keys()</span></code></a> (<code class="docutils literal notranslate"><span class="pre">Q_min</span> <span class="pre">[W]</span></code> is
+the continuous delivery of a row on the speed floor, NaN elsewhere).
+Returns whether the row was averaged; COP columns and sums the caller
+derives from the averaged terms are left to the caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>cycling</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingDegradation" title="tmhp.cycling.CyclingDegradation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>delivered_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>delivery_power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>total_power_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.report_boiler_cycling">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">report_boiler_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cycling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rate_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">power_keys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_heat_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#report_boiler_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.report_boiler_cycling" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#tmhp.cycling.report_cycling" title="tmhp.cycling.report_cycling"><code class="xref py py-func docutils literal notranslate"><span class="pre">report_cycling()</span></code></a> for a boiler’s steady row (heat to the tank, <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">[W]</span></code>).</p>
+<p>An averaged row also gets back what a boiler row derives from the averaged
+terms: both COPs (the heat to the tank over the compressor input and over
+the total input), <code class="docutils literal notranslate"><span class="pre">PLR_delivered</span> <span class="pre">[-]</span></code> (with <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>), the source
+loop’s net heat <code class="docutils literal notranslate"><span class="pre">Q_bhe</span> <span class="pre">[W]</span></code> (<code class="docutils literal notranslate"><span class="pre">source_heat_key</span></code> less the pump power)
+and <code class="docutils literal notranslate"><span class="pre">E_cmp_plus_pmp</span> <span class="pre">[W]</span></code>, each where the row has it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
+<li><p><strong>cycling</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tmhp.cycling.CyclingDegradation" title="tmhp.cycling.CyclingDegradation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CyclingDegradation</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>rate_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>power_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Iterable</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+<li><p><strong>source_heat_key</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>)</p></li>
+<li><p><strong>hp_capacity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.cycling.steady_cycling">
+<span class="sig-prename descclassname"><span class="pre">tmhp.cycling.</span></span><span class="sig-name descname"><span class="pre">steady_cycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duty_arg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/cycling.html#steady_cycling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.cycling.steady_cycling" title="Link to this definition">¶</a></dt>
+<dd><p>Decorate a boiler’s <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> with the part-load report.</p>
+<p>The decorated method is solved as before; its result row is then handed
+to the model’s <code class="docutils literal notranslate"><span class="pre">_report_part_load(result,</span> <span class="pre">request)</span></code> with the caller’s
+<code class="docutils literal notranslate"><span class="pre">duty_arg</span></code>. It sits outside the envelope’s duty reduction
+(<a class="reference internal" href="refrigerant-thermo.html#tmhp.compressor_envelope.steady_envelope" title="tmhp.compressor_envelope.steady_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.steady_envelope()</span></code></a>), whose trial solves
+must see the continuous rows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>duty_arg</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_F</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>])], <code class="xref py py-class docutils literal notranslate"><span class="pre">TypeVar</span></code>(<code class="docutils literal notranslate"><span class="pre">_F</span></code>, bound= <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">...</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>])]</span></p>
 </dd>
 </dl>
 </dd></dl>

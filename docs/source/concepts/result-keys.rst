@@ -86,7 +86,7 @@ are an operating point, a reduced one, a time average, or placeholders.
       - ``"none"`` or why a requested point has no operating point; the row then holds off-state placeholders. Values: :doc:`failure-reason-semantics`.
     * - ``capacity_clamped``
       - all
-      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*); ``"max"`` when the unit delivers less than asked.
+      - ``None`` when the request was met (and on an off or failed row); ``"min"`` when it was below the minimum-speed duty (the row is then the on/off mean, see *Request, capacity and part load*; ASHP also when it was below the smallest duty the envelope's efficiency floor admits); ``"max"`` when the unit delivers less than asked.
     * - ``capacity_binding``
       - all
       - On a ``"max"`` row, the limit the next larger duty runs into: ``"compressor"`` (``rps_max``), ``"discharge_temperature"``, ``"condensing_temperature"``, ``"pressure_ratio"``, ``"compressor_efficiency"``, ``"cycle"`` (ASHP, GSHP: a coil at the edge of the approach search), ``"outdoor_coil"`` (ASHPB), ``"source_heat_exchanger"`` (GSHPB, WSHPB), ``"source_fluid_freezing"`` (GSHP, GSHPB, WSHPB: the loop liquid at its freezing limit). ``None`` otherwise: on every boiler row, on the ASHP and GSHP rows that have it.

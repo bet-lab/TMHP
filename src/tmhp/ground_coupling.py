@@ -39,6 +39,18 @@ the positive magnitude such that the disturbed wall temperature is
 ``geolink``'s ``q' > 0`` = injection convention; a ``geolink`` coupler maps the
 sign at its boundary so the value returned here keeps the extraction-positive
 meaning.)
+
+Borehole heat capacity (fluid-referenced wall temperature)
+----------------------------------------------------------
+The host turns the wall temperature into the mean fluid temperature with the
+steady relation ``T_f = T_wall - q' R_b``. A backend that models the heat
+capacity of the borehole (:class:`~tmhp.borehole_capacity.DynamicGFunction`)
+therefore returns the *fluid-referenced* rise: the wall-temperature rise that
+gives the dynamic fluid temperature through that unchanged relation. It
+equals the physical wall rise once the borehole has settled (hours) and
+differs from it just after a load change, when the fluid has not yet followed.
+Such a backend reports the physical wall rise separately through the optional
+``borehole_wall_rise(n, time_arr)``.
 """
 
 from __future__ import annotations
@@ -130,6 +142,7 @@ class AggregateGFunctionCoupler:
         self._q_old: float = 0.0
         self._time: np.ndarray | None = None
         self._gbar_rev: np.ndarray | None = None
+        self._gwall_rev: np.ndarray | None = None
 
     def reset(self, n_steps: int, time_arr: np.ndarray, dt_s: float | None = None) -> None:
         """Start a run of ``n_steps`` steps on the uniform grid ``time_arr`` [s].
@@ -164,8 +177,15 @@ class AggregateGFunctionCoupler:
             # one contiguous dot product: Σ_i p_i ḡ[n-i] = p[:n+1] · rev[N-1-n:].
             gbar = np.asarray(g_step_mean(self._g, lags, self._dt), dtype=float)
             self._gbar_rev = np.ascontiguousarray(gbar[::-1])
+            wall_mean = getattr(self._g, "wall_step_mean", None)
+            self._gwall_rev = (
+                None
+                if wall_mean is None
+                else np.ascontiguousarray(np.asarray(wall_mean(lags, self._dt), dtype=float)[::-1])
+            )
         else:
             self._gbar_rev = None
+            self._gwall_rev = None
 
     def _history_rise(self, n: int, time_arr: np.ndarray, upto: int) -> float:
         """Σ_{i<upto} p_i ḡ(t_n - t_i): response at step ``n`` to the first ``upto`` pulses."""
@@ -213,6 +233,29 @@ class AggregateGFunctionCoupler:
             self._pulses[n] = q_unit - self._q_old
             self._q_old = q_unit
         return self._history_rise(n, time_arr, n + 1)
+
+    def borehole_wall_rise(self, n: int, time_arr: np.ndarray) -> float:
+        """Physical borehole-wall temperature rise [K] at step ``n`` for the committed loads.
+
+        Call it after :meth:`wall_temperature_rise` for the same step. For a
+        plain g-function it is that method's value. For a g-function with
+        borehole heat capacity (one that has ``wall_step_mean``) the value
+        returned by :meth:`wall_temperature_rise` is fluid-referenced (see the
+        module docstring) and this is the wall itself.
+        """
+        wall_mean = getattr(self._g, "wall_step_mean", None)
+        if wall_mean is None:
+            return self._history_rise(n, time_arr, n + 1)
+        rev = self._gwall_rev
+        known = self._time
+        if rev is not None and known is not None and (time_arr is known or np.array_equal(time_arr, known)):
+            start = len(rev) - 1 - n
+            return float(np.dot(self._pulses[: n + 1], rev[start : start + n + 1]))
+        idx = np.flatnonzero(self._pulses[: n + 1])
+        if len(idx) == 0:
+            return 0.0
+        tau = np.asarray(time_arr, dtype=float)[n] - np.asarray(time_arr, dtype=float)[idx]
+        return float(np.dot(self._pulses[idx], wall_mean(tau, self._step())))
 
 
 def reset_ground_coupler(coupler: GroundCoupler, n_steps: int, time_arr: np.ndarray, dt_s: float) -> None:

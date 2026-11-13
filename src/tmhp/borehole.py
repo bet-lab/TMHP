@@ -1,9 +1,14 @@
 """Borehole wall-to-fluid resistance; ground response lives in g_function."""
 
+import math
 from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from scipy.interpolate import PchipInterpolator
+
+from .constants import c_w, k_w, mu_w, rho_w
 
 try:
     import pygfunction as gt
@@ -11,6 +16,319 @@ try:
     HAS_PYGFUNCTION = True
 except ImportError:
     HAS_PYGFUNCTION = False
+
+#: Pipe configurations understood by :class:`BoreholePipe`.
+PIPE_KINDS = ("single_u", "double_u_parallel", "double_u_series", "coaxial")
+#: Which channel of a coaxial pipe carries the fluid down the borehole.
+COAXIAL_FLOW_DOWN = ("annulus", "inner")
+
+
+def _require_pygfunction() -> None:
+    if not HAS_PYGFUNCTION:
+        raise ImportError("pygfunction is not installed.")
+
+
+def _positive_finite(**values: float) -> None:
+    for name, value in values.items():
+        if not (isinstance(value, (int, float, np.floating, np.integer)) and math.isfinite(value) and value > 0):
+            raise ValueError(f"{name} must be positive and finite, got {value!r}")
+
+
+@dataclass(frozen=True)
+class BoreholePipe:
+    """Pipe configuration inside one borehole: single/double U-tube or coaxial.
+
+    All lengths in metres, conductivities in W/(m·K). The defaults are those of
+    :class:`~tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler`, so
+    ``BoreholePipe()`` reproduces the resistance the boiler computes today.
+
+    U-tubes (``"single_u"``, ``"double_u_parallel"``, ``"double_u_series"``):
+    every leg is a pipe of radii ``r_in``/``r_out`` whose centre is ``D_s``
+    from the borehole axis. A single U-tube has its two legs at
+    ``(-D_s, 0)`` and ``(D_s, 0)``. A double U-tube puts its four legs 90°
+    apart on the same circle, each U-tube's legs facing each other
+    (pygfunction order: down legs ``(-D_s, 0)``, ``(0, -D_s)``; up legs
+    ``(D_s, 0)``, ``(0, D_s)``). In ``"double_u_parallel"`` each U-tube carries
+    half the borehole flow; in ``"double_u_series"`` the fluid runs through
+    one U-tube and then the other, so each leg carries the whole flow.
+
+    Coaxial (``"coaxial"``): an inner pipe ``(r_in_inner, r_out_inner)``
+    centred inside an outer pipe ``(r_in_outer, r_out_outer)``; the annulus
+    between them is the second channel. ``flow_down`` says which channel takes
+    the fluid down (``"annulus"``: down the annulus, up the inner pipe).
+    ``k_p`` is the outer pipe's conductivity and ``k_p_inner`` the inner
+    pipe's (``None``: same as ``k_p``). Build one with :meth:`coaxial`.
+
+    ``k_g`` is the grout conductivity, ``epsilon`` the pipe roughness [m] and
+    ``J`` the multipole order (pygfunction default 2).
+    """
+
+    kind: str = "single_u"
+    r_in: float = 0.013
+    r_out: float = 0.016
+    D_s: float = 0.025
+    k_p: float = 0.4
+    k_g: float = 1.5
+    r_in_inner: float | None = None
+    r_out_inner: float | None = None
+    r_in_outer: float | None = None
+    r_out_outer: float | None = None
+    k_p_inner: float | None = None
+    flow_down: str = "annulus"
+    epsilon: float = 1e-6
+    J: int = 2
+
+    def __post_init__(self) -> None:
+        if self.kind not in PIPE_KINDS:
+            raise ValueError(f"kind must be one of {PIPE_KINDS}, got {self.kind!r}")
+        _positive_finite(k_p=self.k_p, k_g=self.k_g)
+        if not (math.isfinite(self.epsilon) and self.epsilon >= 0):
+            raise ValueError("epsilon must be finite and nonnegative")
+        if isinstance(self.J, bool) or not isinstance(self.J, int) or self.J < 0:
+            raise ValueError("J must be a nonnegative integer")
+        if self.kind == "coaxial":
+            radii = (self.r_in_inner, self.r_out_inner, self.r_in_outer, self.r_out_outer)
+            if any(r is None for r in radii):
+                raise ValueError("a coaxial pipe needs r_in_inner, r_out_inner, r_in_outer and r_out_outer")
+            _positive_finite(
+                r_in_inner=self.r_in_inner,  # type: ignore[arg-type]
+                r_out_inner=self.r_out_inner,  # type: ignore[arg-type]
+                r_in_outer=self.r_in_outer,  # type: ignore[arg-type]
+                r_out_outer=self.r_out_outer,  # type: ignore[arg-type]
+            )
+            if not (self.r_in_inner < self.r_out_inner < self.r_in_outer < self.r_out_outer):  # type: ignore[operator]
+                raise ValueError(
+                    "coaxial radii must satisfy r_in_inner < r_out_inner < r_in_outer < r_out_outer "
+                    "(the inner pipe must fit inside the outer pipe's bore)"
+                )
+            if self.k_p_inner is not None:
+                _positive_finite(k_p_inner=self.k_p_inner)
+            if self.flow_down not in COAXIAL_FLOW_DOWN:
+                raise ValueError(f"flow_down must be one of {COAXIAL_FLOW_DOWN}, got {self.flow_down!r}")
+            return
+        _positive_finite(r_in=self.r_in, r_out=self.r_out, D_s=self.D_s)
+        if not self.r_in < self.r_out:
+            raise ValueError("r_out must be greater than r_in")
+        # Closest pair of legs: opposite legs (single U) are 2 D_s apart,
+        # neighbouring legs of a double U-tube sqrt(2) D_s apart.
+        gap = 2.0 * self.D_s if self.kind == "single_u" else math.sqrt(2.0) * self.D_s
+        if not gap > 2.0 * self.r_out:
+            raise ValueError(
+                f"pipes overlap: legs {gap:.4g} m apart (centre to centre) but 2*r_out = {2 * self.r_out:.4g} m"
+            )
+
+    @classmethod
+    def coaxial(
+        cls,
+        r_in_inner: float = 0.0221,
+        r_out_inner: float = 0.025,
+        r_in_outer: float = 0.0487,
+        r_out_outer: float = 0.055,
+        k_p: float = 0.4,
+        k_g: float = 1.5,
+        *,
+        k_p_inner: float | None = None,
+        flow_down: str = "annulus",
+        epsilon: float = 1e-6,
+        J: int = 2,
+    ) -> "BoreholePipe":
+        """Coaxial pipe; default radii are pygfunction's coaxial example (outer pipe 110 mm OD)."""
+        return cls(
+            kind="coaxial",
+            k_p=k_p,
+            k_g=k_g,
+            r_in_inner=r_in_inner,
+            r_out_inner=r_out_inner,
+            r_in_outer=r_in_outer,
+            r_out_outer=r_out_outer,
+            k_p_inner=k_p_inner,
+            flow_down=flow_down,
+            epsilon=epsilon,
+            J=J,
+        )
+
+    # -- geometry ----------------------------------------------------------
+    @property
+    def n_pipes(self) -> int:
+        """Number of U-tubes (pygfunction ``nPipes``): 1 single U, 2 double U, 1 coaxial."""
+        return 2 if self.kind.startswith("double_u") else 1
+
+    @property
+    def outer_radius(self) -> float:
+        """Distance from the borehole axis to the outermost pipe surface [m]."""
+        if self.kind == "coaxial":
+            return float(self.r_out_outer)  # type: ignore[arg-type]
+        return self.D_s + self.r_out
+
+    def positions(self) -> list[tuple[float, float]]:
+        """Pipe centre positions in pygfunction order (down legs first)."""
+        if self.kind == "coaxial":
+            return [(0.0, 0.0)]
+        d = self.D_s
+        if self.kind == "single_u":
+            return [(-d, 0.0), (d, 0.0)]
+        return [(-d, 0.0), (0.0, -d), (d, 0.0), (0.0, d)]
+
+    def check_fits(self, r_b: float) -> None:
+        """Raise ``ValueError`` if the pipes do not fit inside a borehole of radius ``r_b`` [m]."""
+        _positive_finite(r_b=r_b)
+        if self.outer_radius > r_b:
+            raise ValueError(
+                f"pipes cross the borehole wall: outermost pipe surface at {self.outer_radius:.4g} m "
+                f"from the axis, borehole radius {r_b:.4g} m"
+            )
+
+    # -- resistances ---------------------------------------------------------
+    def _coaxial_radii(self) -> tuple[np.ndarray, np.ndarray]:
+        """(r_in, r_out) arrays in pygfunction order: first element is the down (inlet) channel."""
+        inner = (float(self.r_in_inner), float(self.r_out_inner))  # type: ignore[arg-type]
+        outer = (float(self.r_in_outer), float(self.r_out_outer))  # type: ignore[arg-type]
+        first, second = (outer, inner) if self.flow_down == "annulus" else (inner, outer)
+        return np.array([first[0], second[0]]), np.array([first[1], second[1]])
+
+    @staticmethod
+    def _check_flow(m_flow_borehole: float) -> float:
+        m = float(m_flow_borehole)
+        if not (math.isfinite(m) and m > 0):
+            raise ValueError(f"m_flow_borehole must be positive and finite, got {m_flow_borehole!r}")
+        return m
+
+    def fluid_to_pipe_resistance(
+        self,
+        m_flow_borehole: float,
+        rho_f: float = rho_w,
+        mu_f: float = mu_w,
+        cp_f: float = c_w,
+        k_f: float = k_w,
+    ) -> float:
+        """Fluid-to-outer-pipe-wall resistance ``R_fp`` [m·K/W] of one pipe.
+
+        U-tubes: convection inside one leg (Gnielinski, pygfunction) plus the
+        pipe wall. In ``"double_u_parallel"`` each leg carries half the
+        borehole flow. Coaxial: convection on the annulus's outer surface plus
+        the outer pipe wall (the path from the annulus fluid to the grout).
+        """
+        _require_pygfunction()
+        m = self._check_flow(m_flow_borehole)
+        _positive_finite(rho_f=rho_f, mu_f=mu_f, cp_f=cp_f, k_f=k_f)
+        if self.kind == "coaxial":
+            r_a_in, r_a_out = float(self.r_out_inner), float(self.r_in_outer)  # type: ignore[arg-type]
+            _, h_out = gt.pipes.convective_heat_transfer_coefficient_concentric_annulus(
+                m, r_a_in, r_a_out, mu_f, rho_f, k_f, cp_f, self.epsilon
+            )
+            R_wall = gt.pipes.conduction_thermal_resistance_circular_pipe(r_a_out, float(self.r_out_outer), self.k_p)  # type: ignore[arg-type]
+            return float(R_wall + 1.0 / (2.0 * np.pi * r_a_out * h_out))
+        m_pipe = m / 2.0 if self.kind == "double_u_parallel" else m
+        h_f = gt.pipes.convective_heat_transfer_coefficient_circular_pipe(
+            m_pipe, self.r_in, mu_f, rho_f, k_f, cp_f, epsilon=self.epsilon
+        )
+        R_conv = 1.0 / (2.0 * np.pi * self.r_in * h_f)
+        R_cond = gt.pipes.conduction_thermal_resistance_circular_pipe(self.r_in, self.r_out, self.k_p)
+        return float(R_conv + R_cond)
+
+    def fluid_to_fluid_resistance(
+        self,
+        m_flow_borehole: float,
+        rho_f: float = rho_w,
+        mu_f: float = mu_w,
+        cp_f: float = c_w,
+        k_f: float = k_w,
+    ) -> float:
+        """Coaxial only: inner-pipe fluid to annulus fluid resistance ``R_ff`` [m·K/W]."""
+        _require_pygfunction()
+        if self.kind != "coaxial":
+            raise ValueError("fluid_to_fluid_resistance applies to coaxial pipes only")
+        m = self._check_flow(m_flow_borehole)
+        _positive_finite(rho_f=rho_f, mu_f=mu_f, cp_f=cp_f, k_f=k_f)
+        r_i_in, r_i_out = float(self.r_in_inner), float(self.r_out_inner)  # type: ignore[arg-type]
+        r_a_out = float(self.r_in_outer)  # type: ignore[arg-type]
+        k_p_inner = self.k_p if self.k_p_inner is None else self.k_p_inner
+        h_in = gt.pipes.convective_heat_transfer_coefficient_circular_pipe(
+            m, r_i_in, mu_f, rho_f, k_f, cp_f, self.epsilon
+        )
+        h_a_in, _ = gt.pipes.convective_heat_transfer_coefficient_concentric_annulus(
+            m, r_i_out, r_a_out, mu_f, rho_f, k_f, cp_f, self.epsilon
+        )
+        R_wall = gt.pipes.conduction_thermal_resistance_circular_pipe(r_i_in, r_i_out, k_p_inner)
+        return float(1.0 / (2.0 * np.pi * r_i_in * h_in) + R_wall + 1.0 / (2.0 * np.pi * r_i_out * h_a_in))
+
+    def pygfunction_pipe(
+        self,
+        borehole: Any,
+        k_s: float,
+        m_flow_borehole: float,
+        rho_f: float = rho_w,
+        mu_f: float = mu_w,
+        cp_f: float = c_w,
+        k_f: float = k_w,
+    ) -> Any:
+        """pygfunction pipe object for ``borehole`` (a ``pygfunction.boreholes.Borehole``)."""
+        _require_pygfunction()
+        _positive_finite(k_s=k_s)
+        self.check_fits(float(borehole.r_b))
+        R_fp = self.fluid_to_pipe_resistance(m_flow_borehole, rho_f, mu_f, cp_f, k_f)
+        if self.kind == "single_u":
+            return gt.pipes.SingleUTube(
+                self.positions(), self.r_in, self.r_out, borehole, k_s, self.k_g, R_fp, J=self.J
+            )
+        if self.kind.startswith("double_u"):
+            config = "parallel" if self.kind == "double_u_parallel" else "series"
+            return gt.pipes.MultipleUTube(
+                self.positions(),
+                self.r_in,
+                self.r_out,
+                borehole,
+                k_s,
+                self.k_g,
+                R_fp,
+                nPipes=2,
+                config=config,
+                J=self.J,
+            )
+        R_ff = self.fluid_to_fluid_resistance(m_flow_borehole, rho_f, mu_f, cp_f, k_f)
+        r_in, r_out = self._coaxial_radii()
+        return gt.pipes.Coaxial((0.0, 0.0), r_in, r_out, borehole, k_s, self.k_g, R_ff, R_fp, J=self.J)
+
+    def _pipe(self, H: float, r_b: float, k_s: float, m_flow_borehole: float, fluid: tuple) -> Any:
+        _positive_finite(H=H)
+        borehole = gt.boreholes.Borehole(H=float(H), D=0.0, r_b=float(r_b), x=0.0, y=0.0)
+        return self.pygfunction_pipe(borehole, k_s, m_flow_borehole, *fluid)
+
+    def local_resistance(
+        self,
+        *,
+        r_b: float,
+        k_s: float,
+        m_flow_borehole: float,
+        rho_f: float = rho_w,
+        mu_f: float = mu_w,
+        cp_f: float = c_w,
+        k_f: float = k_w,
+    ) -> float:
+        """Local (cross-section) borehole resistance ``R_b`` [m·K/W], multipole method."""
+        pipe = self._pipe(100.0, r_b, k_s, m_flow_borehole, (rho_f, mu_f, cp_f, k_f))
+        return float(pipe.local_borehole_thermal_resistance())
+
+    def effective_resistance(
+        self,
+        H: float,
+        *,
+        r_b: float,
+        k_s: float,
+        m_flow_borehole: float,
+        rho_f: float = rho_w,
+        mu_f: float = mu_w,
+        cp_f: float = c_w,
+        k_f: float = k_w,
+    ) -> float:
+        """Effective borehole resistance ``R_b*`` [m·K/W] for a uniform wall temperature.
+
+        Defined by ``Q/H = (T_b - (T_in + T_out)/2) / R_b*`` over a borehole of
+        length ``H`` [m] (pygfunction ``effective_borehole_thermal_resistance``);
+        it includes the thermal short-circuit between down and up channels.
+        """
+        pipe = self._pipe(H, r_b, k_s, m_flow_borehole, (rho_f, mu_f, cp_f, k_f))
+        return float(pipe.effective_borehole_thermal_resistance(self._check_flow(m_flow_borehole), cp_f))
 
 
 def precompute_borehole_resistance(
@@ -299,9 +617,11 @@ def calc_borehole_thermal_resistance(
 
     Stage 2 — 2D cross-section (Local R_b via multipole method):
         SingleUTube solves the steady-state 2D Laplace equation in the grout
-        cross-section using Hellström's multipole expansion (default order
-        J=10); see Javed and Spitler (2016) for an accuracy benchmark of this
-        method.
+        cross-section using Hellström's multipole expansion at pygfunction's
+        default order J=2 (for the default GSHPB geometry at 24 L/min and
+        H_b = 200 m, R_b* is 5e-5 relative below its J=10 value: 0.164398 vs
+        0.164405 m·K/W); see Javed and Spitler (2016) for an accuracy
+        benchmark of this method.
         Boundary conditions: R_fp at each pipe surface, T=const at borehole wall.
         Outputs: Local R_b (fluid → borehole wall, cross-section only).
 

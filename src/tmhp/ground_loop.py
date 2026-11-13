@@ -259,6 +259,9 @@ def configure_ground_flow(
         ua_fractions=ua_fractions,
         ua_exponents=ua_exponents,
         rb_interp=interp,
+        # Borehole cross-section, kept for models that derive more than R_b
+        # from it (tmhp.borehole_capacity.enable_borehole_dynamics).
+        geometry=dict(geometry),
     )
 
 

@@ -66,7 +66,7 @@ Parity
     * - Manufacturers
       - Panasonic, Samsung, Daikin, Fujitsu
     * - Points
-      - 757 attempted, 740 evaluated
+      - 757 attempted, 743 evaluated
     * - Modes
       - Heating and cooling
     * - Source temperature
@@ -122,9 +122,9 @@ under the control (21 with wet suction, 2 with reduced superheat).
       - Evaluated
       - What it is
     * - Air-to-water, 10 units
-      - 10.5 %
-      - +5.9 %
-      - 136 / 153
+      - 10.3 %
+      - +5.8 %
+      - 139 / 153
       - Optimistic on average; the bias sits at +2 °C outdoor
     * - Air-to-air, Daikin, 5 units
       - 12.1 %
@@ -302,10 +302,10 @@ pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is *not* a refrigerant
 effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
-inside the 6.1 to 18.6 % spread of the air-to-water set.
+inside the 6.1 to 17.7 % spread of the air-to-water set.
 
 **The one air-to-water outlier turns out to be the same story.** The 16 kW R32
-unit runs +18.6 % optimistic. Neither of its published inputs explains it:
+unit runs +17.7 % optimistic. Neither of its published inputs explains it:
 substituting its 12 kW sibling's rated air flow moves the bias by 1.5 points,
 and dropping its published displacement for the library default by 3.0.
 What explains it is the catalogue itself. At every one of the fifteen

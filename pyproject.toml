@@ -7,7 +7,7 @@ authors = [
     { name = "Habin Jo", email = "habinjo0608@gmail.com" }
 ]
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 requires-python = ">=3.10"
 keywords = [
     "heat pump",

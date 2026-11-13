@@ -30,6 +30,8 @@ Per-step balances (every term is a result column, [W])::
 
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 from ._run_reset import GroundSourceHeatPumpBoilerRun
@@ -37,7 +39,6 @@ from ._validation import validate_ctor
 from .subsystems import (
     EnergyStorageSystem,
     PhotovoltaicSystem,
-    add_uv_power_to_e_tot,
     pv_ess_postprocess,
     pv_ess_result_columns,
     route_pv_ess,
@@ -129,8 +130,11 @@ class GSHPB_PV_ESS(GroundSourceHeatPumpBoilerRun):
         # 1. Base HP results (+ attached subsystems such as UV)
         hp_res = super()._augment_results(base_result, ctx, ctrl, sub_states, T_solved_K)
 
-        # 2. Electric load this step [W]: compressor + source-loop pump + UV lamp (NaN-safe)
-        E_load = add_uv_power_to_e_tot(hp_res)
+        # 2. Electric load this step [W]: the base boiler's E_tot, which already
+        #    holds compressor + source-loop pump + UV lamp (NaN-safe).
+        e_tot = hp_res.get("E_tot [W]")
+        E_load = float(e_tot) if e_tot is not None and math.isfinite(e_tot) else 0.0
+        hp_res["E_tot [W]"] = E_load
 
         # 3. PV generation (pure physics)
         dt = getattr(self, "_current_dt", 3600.0)

@@ -24,11 +24,13 @@ extend it the same way ASHPB's do:
 - :class:`tmhp.GSHPB_STC_routed`
 - :class:`tmhp.GSHPB_PV_ESS`
 
-All variants report ``E_tot [W]`` as the whole electric draw: compressor
-``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop pump ``E_stc_pump``
-(tank, ground, routed; the mains-driven preheat has none) + the UV lamp ``E_uv``
-(``GSHPB_PV_ESS``; the STC variants do not simulate a ``uv=`` lamp and warn if
-one is passed). A model run twice with the same inputs gives the same result.
+The base class and all variants report ``E_tot [W]`` as the whole electric
+draw: compressor ``E_cmp`` + source-loop pump ``E_pmp`` + the collector-loop
+pump ``E_stc_pump`` (tank, ground, routed; the mains-driven preheat has none)
++ the UV lamp ``E_uv`` (the base class and ``GSHPB_PV_ESS`` with ``uv=``; the
+STC variants do not simulate a ``uv=`` lamp and warn if one is passed). The
+lamp is counted once: ``GSHPB_PV_ESS`` routes the base class's ``E_tot``.
+A model run twice with the same inputs gives the same result.
 
 The collector, its irradiance inputs (direct-normal ``I_DN`` and
 diffuse-horizontal ``I_dH``, transposed to the collector plane with the sun
@@ -57,6 +59,82 @@ Base usage
        Q_ref_tank=8_000,
    )
 
+Default sizing
+==============
+
+``hp_capacity`` (default 8 kW) and the refrigerant are enough to build a
+machine: every other size follows the capacity, so the rated cycle is the same
+at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
+6 K below the entering fluid, COP of the cycle 4.2 with R410A and the default
+efficiency map).
+
+.. list-table::
+    :header-rows: 1
+    :widths: 26 34 40
+
+    * - Argument
+      - Default
+      - Rule
+    * - ``UA_tank_hx``
+      - ``hp_capacity / 5`` [W/K]
+      - 5 K condensing approach at the rated duty (as ASHPB).
+    * - ``UA_ground``
+      - ``0.18 × hp_capacity`` [W/K]
+      - Fluid-to-refrigerant evaporator, the coefficient of
+        :class:`tmhp.GroundSourceHeatPump` (``ground_hx_ua_per_capacity``).
+    * - ``ground_flow_ref_lpm``
+      - ``0.75 × hp_capacity / (ρ c · 3 K)``
+      - Rated source-side heat at a 3 K loop temperature difference:
+        3.58 L/min per kW (28.7 L/min at 8 kW), shared evenly by the boreholes.
+    * - ``E_pmp``
+      - ``75 W/ton × hp_capacity``
+      - Upper bound of ASHRAE ground-loop pumping grade B, 21.3 W per kW
+        (171 W at 8 kW). Used when the hydraulic pump model
+        (``hydraulic_pump``) is off; it enters ``cop_sys`` in full and warms
+        the fluid entering the evaporator.
+    * - ``N_1``, ``N_2``, ``H_b``
+      - 200 m boreholes on a near-square grid
+      - With none of the three given, boreholes are added until the rated
+        source-side heat (``0.75 × hp_capacity``) is at most 50 W per metre:
+        one borehole up to 13.3 kW, 2 at 14 kW, 2 × 2 at 30 kW, 3 × 3 at
+        100 kW.
+
+A value you pass is used as given (the deprecated aliases ``UA_tank``,
+``UA_cond_design``, ``UA_evap_design`` and ``dV_b_f_lpm`` keep their
+precedence). The constructor warns (``UserWarning``) when
+
+- a field you describe carries more than 80 W/m at the rated point;
+- the default flow is laminar in the U-tubes (``Re < 2300``, e.g. many
+  boreholes on a small machine);
+- ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
+  (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
+  temperature: no cycle exists there, so the tank could not reach the set
+  point. The default machine (R410A, 65 °C + 5 K = 70 °C against 71.3 °C) is
+  just inside; real R410A compressors stop near 65 °C condensing, so use
+  ``ref="R134a"`` or ``"R290"`` or a lower set point when that margin matters.
+
+Cycle closures
+==============
+
+Two relations hold in every running result (``analyze_steady`` and each
+``analyze_dynamic`` row).
+
+- **Suction superheat.** The gas leaves the evaporator no hotter than the
+  entering ground fluid: the superheat is ``dT_superheat`` or the evaporator
+  approach less ``dT_hx_min``, whichever is smaller (the same cap as ASHPB).
+- **Tank heat exchanger on a speed bound.** When the request is below what the
+  compressor delivers at ``rps_min`` (``capacity_clamped == "min"``) or above
+  its ``rps_max`` duty (``"max"``), the condensing temperature is solved from
+  the heat actually delivered, ``Q_ref_tank = UA_tank_hx × dT_ref_tank``, not
+  from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
+  ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
+  could not be bracketed, as on the pressure-ratio floor). On the speed floor
+  the result no longer depends on the request.
+
+The evaporator approach is searched between 1 and 20 K and, when the heat
+exchanger already carries the duty at 1 K (a compressor at low speed against
+an evaporator sized for the full capacity), down to 0.05 K.
+
 Dynamic operation
 =================
 
@@ -76,10 +154,19 @@ load (the ground's step-mean response). The reported fluid temperatures
 ``T_bhe_f*`` are step-time averages -- the borehole resistance and loop
 temperature difference are linear in the load, so continuous in the run
 fraction and equal to the injection-only state when the compressor does
-not run; the next cycle reads that outlet (one-step source lag).
-``T_bhe_f*_running`` are the fluid while the compressor runs (its running
-extraction net of the injection), which the evaporator's source-side
-exergy uses.
+not run. ``T_bhe_f*_running`` are the fluid while the compressor runs (its
+running extraction net of the injection), which the evaporator's
+source-side exergy uses.
+
+The cycle of a step is solved against that running fluid of the *same*
+step: the borehole wall's response to the step's own load, the borehole
+resistance and the loop temperature difference are closed together with
+the cycle (to 10\ :sup:`-4` K), so in every running row
+``T_ref_evap_sat < T_bhe_f_out_running <= T_bhe_f_out``. (Earlier releases
+fed the evaporator the previous step's outlet, which could put the
+evaporating temperature above the row's own fluid.) A ground coupler
+without ``preview_wall_temperature_rise`` cannot evaluate an uncommitted
+load; with such a backend the cycle still reads the previous step's outlet.
 
 The constructor's ``dt_s`` (default 3600 s) is not the simulation step:
 it sets the shortest lag time tabulated for the g-function (never below
@@ -108,8 +195,12 @@ Each step ``n`` reports the borehole-wall and fluid temperatures averaged over
 ``[t_n, t_n + dt]``, including the response to that step's own load; with an
 hourly load history the hourly means are the same for ``dt`` = 60, 600 or
 3600 s. Below one hour the g-function is the straight line from zero to its
-one-hour value (no grout or fluid heat capacity), so minute-scale start-up
-transients are approximate.
+one-hour value and the borehole has no heat capacity, so minute-scale
+start-up transients are approximate on the default path.
+:func:`tmhp.borehole_capacity.enable_borehole_dynamics` adds the heat
+capacity of fluid, pipe and grout, the short-time wall response and the fluid
+transit through the U-tube; bore fields other than a rectangular grid are set
+up with :mod:`tmhp.borefield`. Both are described in :doc:`ground-response`.
 
 .. figure:: ../_static/g_function_curve.svg
     :alt: g-function vs ln(t/t_s) for three rectangular borehole
@@ -127,7 +218,68 @@ Sink-side mechanics
 ===================
 
 Single-node DHW tank, implicit per-step solve — the same demand-side
-sink used by the air-source and water-source boiler families.
+sink used by the air-source and water-source boiler families. A step whose
+implicit solve returns no root is solved again with the same energy balance
+by bracketing over 0-200 °C; if the balance has no solution there the step is
+taken explicitly with the whole heat rate (heat pump, draw-off, loss,
+subsystems) and a ``tmhp._tank_solve.TankSolveWarning`` names it. The tank
+temperature is not held at the mains temperature: a tank in a cold room cools
+below it.
+
+Tank backends
+-------------
+
+``tank_model`` selects how the tank itself is resolved (always-full tank,
+no ``stc``/``pv``/``uv`` subsystem in the multi-node modes):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 82
+
+   * - ``tank_model``
+     - Tank
+   * - ``"lumped"`` (default)
+     - One fully mixed node.
+   * - ``"stratified"``
+     - ``n_tank_nodes`` nodes (:class:`tmhp.stratified_tank.StratifiedTank`,
+       sub-stepped to a Courant number of 1): smooth, numerically diffusive.
+   * - ``"hybrid"``
+     - The same nodes with a tracked thermocline
+       (:class:`tmhp.hybrid_tank.HybridStratifiedTank`): a sharp front
+       between drawn and stored water.
+
+In the multi-node modes the condenser is a coil immersed in the tank:
+``UA_tank_hx`` spread evenly over the nodes, or all of it at
+``condenser_node`` (0 = top). Heat flows only into water colder than the
+refrigerant:
+
+- Node ``i`` receives ``k·UA_i·(T_cond − T_i)⁺``, with ``T_cond`` the
+  condensing temperature of the step's cycle (``T_ref_cond_sat_l``) and
+  ``T_i`` the node's end-of-step temperature; ``k`` is set so that the nodes
+  receive the step's condenser heat ``Q_ref_tank``. A node as hot as the
+  refrigerant receives nothing and no node is heated past ``T_cond``.
+- The cycle condenses at the temperature that coil needs. With cold water
+  at the bottom and hot water above the refrigerant temperature, only the
+  cold nodes take heat and the cycle condenses near them, below what the
+  mean tank temperature would give; in a mixed tank the two agree, and a
+  one-node ``"stratified"`` tank reproduces ``"lumped"``.
+- If the water around the coil cannot take the step's heat below ``T_cond``
+  (a coil in the top node only), the compressor stops when that water
+  reaches ``T_cond``: the row's ``runtime_fraction``, heat and power are cut
+  to what was delivered and the thermostat call stands.
+
+The thermostat reads the volume-average temperature ``T_tank_w [°C]``, so
+on/off timing and delivered heat follow the lumped tank; with a coil that
+reaches the top, the top node can sit several kelvin above
+``T_tank_w_upper_bound`` while staying below ``T_cond``. Hot water leaves
+from the top: the mixing valve, ``T_mix_w_out``, ``Q_tank_w_out`` and
+``X_tank_w_out`` use ``T_tank_w_out [°C]``, the temperature of the water that
+left during the step. The multi-node modes add ``T_tank_w_out``,
+``T_tank_w_top`` and ``T_tank_w_bottom`` to the result, and ``Q_tank_loss``
+is the wall loss of the node profile. Each run closes
+``Σ Q_ref_tank·dt = C_tank·ΔT_tank_w + Σ ρc·dV_tank_w_out·(T_tank_w_out −
+T_tank_w_in)·dt + Σ Q_tank_loss·dt``. The storage exergy ``Xst_tank`` is still
+evaluated at the mean temperature.
 
 Composed variants
 =================
@@ -258,7 +410,13 @@ variant (``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,
 ``Q_stc_w_out - Q_stc_w_in = Q_solar_ground`` can be checked step by step.
 The loop runs inside the ``preheat_start_hour``–``preheat_end_hour`` window
 when the collector controller allows it (outlet at least ``dT_stc_off`` above
-the borehole wall, gain above the pump power).
+the borehole wall, gain above the pump power). The freeze protection and the
+stagnation lock-out described in :doc:`ashpb` apply
+(``stc_freeze_protected [-]``, ``stc_stagnation_lockout [-]``): the loop does
+not run while the idle collector is below ``T_stc_freeze`` or the borehole
+wall is below 0 °C (the loop carries water; ``T_stc_freeze=None`` for an
+antifreeze loop), and a collector that idled above ``T_stc_lockout`` while
+the clock window was closed is not started until it has cooled.
 
 .. autoclass:: tmhp.GSHPB_STC_ground
     :members:
@@ -275,6 +433,10 @@ While the collector is active, every step closes
 zero). On the tank route the collector is reported at the solved tank
 temperature, i.e. the heat that entered the tank balance, and charging stops
 at ``T_stc_tank_max`` within the step as in :class:`~tmhp.GSHPB_STC_tank`.
+A router that returns ``"off"`` in strong sun leaves the collector idle: at
+or above ``T_stc_lockout`` the loop is then locked out
+(``stc_stagnation_lockout [-]``) and neither route runs until the collector
+has cooled.
 
 .. autoclass:: tmhp.GSHPB_STC_routed
     :members:

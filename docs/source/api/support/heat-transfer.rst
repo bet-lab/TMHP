@@ -38,6 +38,31 @@ Ground coupling
     :undoc-members:
     :show-inheritance:
 
+Borehole resistance and pipe configurations
+===========================================
+
+.. automodule:: tmhp.borehole
+    :members:
+    :show-inheritance:
+
+Bore fields
+===========
+
+See :doc:`/models/ground-response` for usage and checks.
+
+.. automodule:: tmhp.borefield
+    :members:
+    :show-inheritance:
+
+Borehole heat capacity and short-time response
+==============================================
+
+See :doc:`/models/ground-response` for the model and its checks.
+
+.. automodule:: tmhp.borehole_capacity
+    :members:
+    :show-inheritance:
+
 Ground-side defaults
 ====================
 

@@ -148,6 +148,13 @@ _COLLAPSE_CASES = [
     # ASHPB's optimiser steers around a partial collapse, so collapse everywhere.
     pytest.param("ASHPB", "R32", {"T_tank_w": 45.0, "T0": 7.0, "Q_ref_tank": 6000.0}, 0.0, id="ASHPB-R32-45-7"),
 ]
+# The #96 points were found with the former capacity-independent heat
+# exchangers of the liquid-source boilers (500 W/K, 24 L/min, 200 W pump);
+# with the capacity-scaled defaults the same inputs stay below PR 7.15.
+_LEGACY_HX = {
+    "GSHPB": dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0),
+    "WSHPB": dict(UA_tank_hx=500.0, UA_water=500.0, dV_b_f_lpm=24.0, E_pmp=200.0),
+}
 _FAMILY_CLASS = {
     "ASHPB": AirSourceHeatPumpBoiler,
     "GSHPB": GroundSourceHeatPumpBoiler,
@@ -157,7 +164,7 @@ _FAMILY_CLASS = {
 
 @pytest.mark.parametrize(("family", "ref", "point", "pr_limit"), _COLLAPSE_CASES)
 def test_collapsed_user_efficiency_is_reported_as_failure(family: str, ref: str, point: dict, pr_limit: float) -> None:
-    model = _FAMILY_CLASS[family](ref=ref)
+    model = _FAMILY_CLASS[family](ref=ref, **_LEGACY_HX.get(family, {}))
     model.eta_cmp_isen = _collapse_above(model.eta_cmp_isen, pr_limit)
     result = _steady(model, **point)
     _assert_off_mode_failure(result, "cycle_invalid")
@@ -206,7 +213,7 @@ def gshpb_failing_run():
     steps still put the requested 8 kW into the tank.
     """
     dt, n = 300.0, 4
-    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400)
+    model = GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400, UA_tank_hx=500.0)
     df = model.analyze_dynamic(
         n * dt,
         dt,
@@ -292,10 +299,11 @@ def test_ashpb_unsolved_called_steps_are_off_mode_rows(ashpb_failing_run) -> Non
 
 @pytest.fixture(scope="module")
 def wshpb_failing_run():
-    """Default WSHPB, same scenario as GSHPB: its 16 K condenser approach
-    also crosses the R410A critical point once the tank passes ~55.4 °C."""
+    """WSHPB with an undersized tank heat exchanger (500 W/K), same scenario as
+    GSHPB: its 16 K condenser approach also crosses the R410A critical point
+    once the tank passes ~55.4 °C."""
     dt, n = 300.0, 3
-    model = WaterSourceHeatPumpBoiler()
+    model = WaterSourceHeatPumpBoiler(UA_tank_hx=500.0)
     df = model.analyze_dynamic(
         n * dt,
         dt,

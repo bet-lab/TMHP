@@ -143,9 +143,16 @@ def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
 # ---------------------------------------------------------------------------
 
 
+# The discharge-limit reproductions below were found on a GSHPB with the former
+# capacity-independent heat exchangers (500 W/K, 24 L/min, 200 W pump: a 16 K
+# condensing approach at 8 kW). The defaults now scale with capacity, so that
+# machine is spelled out.
+_GSHPB_UNDERSIZED_HX = dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0)
+
+
 def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
     case = dict(T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
-    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0)
+    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, **_GSHPB_UNDERSIZED_HX)
     r = _quiet(hp.analyze_steady, **case)
     # Wet suction holds 150 degC only at a smaller duty: the request is the ceiling.
     assert _running(r) and r["discharge_control"] is True
@@ -154,11 +161,15 @@ def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
     assert 0.9 - 1e-9 <= r["x_ref_cmp_in [-]"] < 1.0
     assert r["T_ref_cmp_out [°C]"] <= 150.0 + DISCHARGE_TOL_K
     # Without the control, even the minimum-speed duty discharges at 173 degC.
-    uncontrolled = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None)
+    uncontrolled = _quiet(
+        tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None, **_GSHPB_UNDERSIZED_HX
+    )
     _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
     # With the discharge limit off, the 357 degC point (eta_is 0.23 at 25 rev/s,
     # the guard's low-speed continuation) is still refused, by the efficiency floor.
-    legacy = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None)
+    legacy = _quiet(
+        tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None, **_GSHPB_UNDERSIZED_HX
+    )
     old = _quiet(legacy.analyze_steady, **case)
     assert old["failure_reason"] == ETA_ISEN_BELOW_MIN and not old["hp_is_on"]
 
@@ -199,7 +210,7 @@ def test_switching_the_check_off_restores_the_unbounded_answer():
 
 
 def test_boiler_request_above_the_limit_returns_the_largest_duty_inside_it():
-    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A", hp_capacity=8000.0)
+    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A", hp_capacity=8000.0, **_GSHPB_UNDERSIZED_HX)
     r = _quiet(hp.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0)
     assert _running(r)
     assert r["capacity_clamped"] == "max"
@@ -214,7 +225,7 @@ def test_boiler_request_above_the_limit_returns_the_largest_duty_inside_it():
 
 
 def test_boiler_dataframe_return_keeps_the_envelope_keys():
-    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A", hp_capacity=8000.0)
+    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R410A", hp_capacity=8000.0, **_GSHPB_UNDERSIZED_HX)
     df = _quiet(hp.analyze_steady, T_tank_w=55.0, T_source=0.0, Q_ref_tank=8000.0, return_dict=False)
     assert isinstance(df, pd.DataFrame) and len(df) == 1
     assert df["capacity_binding"].iat[0] == BINDING_DISCHARGE

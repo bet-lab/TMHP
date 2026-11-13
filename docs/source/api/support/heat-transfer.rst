@@ -38,6 +38,13 @@ Ground coupling
     :undoc-members:
     :show-inheritance:
 
+Fast temporal superposition for long runs
+=========================================
+
+.. automodule:: tmhp.ground_superposition
+    :members:
+    :show-inheritance:
+
 Borehole resistance and pipe configurations
 ===========================================
 

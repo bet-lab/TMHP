@@ -52,6 +52,7 @@ from .compressor_envelope import (
     check_pr_envelope,
     discharge_controlled,
     envelope_violation,
+    limit_tank_setpoints_to_envelope,
     reduce_duty_within_envelope,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
@@ -346,6 +347,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
         # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
         self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
+        limit_tank_setpoints_to_envelope(self, "WaterSourceHeatPumpBoiler")
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).

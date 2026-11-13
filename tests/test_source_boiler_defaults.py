@@ -321,14 +321,16 @@ def test_default_machine_charges_to_its_default_upper_set_point(default_runs, fa
 
 @pytest.mark.parametrize("family", list(FAMILIES))
 def test_former_default_refrigerant_stops_below_the_default_set_point(family):
-    """R410A against the default 55-65 °C band: reduced duty above a 60 °C tank, then off with the reason."""
+    """R410A against the default 55-65 °C band: the envelope (65 °C condensing) caps the set point at 59.9 °C."""
     dt, n = 60.0, 12
-    m = _quiet(FAMILIES[family], ref="R410A", dt_s=dt, t_max_s=86400.0)
+    with pytest.warns(UserWarning, match=r"T_tank_w_upper_bound=65 °C is above .* R410A .* 59\.9 °C"):
+        m = FAMILIES[family](ref="R410A", dt_s=dt, t_max_s=86400.0)
+    assert m.T_tank_w_setpoints_requested == (55.0, 65.0)
+    assert m.T_tank_w_upper_bound == pytest.approx(59.93, abs=0.01)
     df = _quiet(m.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 5.0))
-    ran = df["hp_is_on"].astype(bool)
-    assert (df.loc[ran, "capacity_binding"] == "condensing_temperature").any()
-    assert (df.loc[~ran, "failure_reason"] == "condensing_temp_above_max").any()
-    assert df["T_tank_w [°C]"].max() < m.T_cond_max == 65.0
+    assert (df["failure_reason"] == "none").all()
+    assert df["hp_is_on"].any() and not df["hp_is_on"].all()
+    assert df["T_tank_w [°C]"].max() == pytest.approx(m.T_tank_w_upper_bound, abs=0.05)
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))

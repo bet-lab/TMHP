@@ -147,6 +147,14 @@ Condensing pressure (``T_cond_max``)
     (a tank at ``T_cond_max``) no duty runs: the off state with
     ``failure_reason='condensing_temp_above_max'``.
 
+    A boiler's thermostat is told where the envelope ends
+    (:func:`limit_tank_setpoints_to_envelope`): an upper set point above the
+    tank temperature at which the nameplate duty condenses on the limit
+    (:func:`condensing_tank_cutout`) is capped there at construction, with a
+    ``UserWarning``. A dynamic step solves one cycle and applies its heat over
+    the step, so without the cap a long step overran the limit and the
+    temperature at which the heat pump stopped depended on the step.
+
 Speed (``rps_min`` / ``rps_max``)
     ``rps_min`` is the inverter's floor (15 rev/s). ``rps_max`` defaults to
     :func:`default_rps_max` of the rated speed the model solves at its rating
@@ -201,6 +209,8 @@ __all__ = [
     "condensing_temp_exceeded",
     "condensing_violation",
     "check_rated_condensing",
+    "condensing_tank_cutout",
+    "limit_tank_setpoints_to_envelope",
     "BINDING_DISCHARGE",
     "BINDING_CONDENSING",
     "BINDING_PRESSURE_RATIO",
@@ -532,6 +542,62 @@ def check_rated_condensing(model: Any, T_cond_sat_C: float, standard: str) -> st
         f"({_condensing_pressure_limits(ref, float(limit))[0] / 1e5:.1f} bar): the machine cannot be rated "
         "outside its own envelope. Give a larger condenser (UA), a rated_condition it reaches, the "
         "T_cond_max of the actual compressor, or T_cond_max=None"
+    )
+
+
+def condensing_tank_cutout(model: Any) -> float | None:
+    """Highest tank temperature a boiler heats at its nameplate duty inside the condensing limit [degC].
+
+    The cycle condenses at the tank temperature plus the tank heat exchanger's
+    approach, ``hp_capacity / UA_tank_hx`` at the nameplate duty, and the
+    hottest it may condense is the bubble point of the limit pressure. ``None``
+    without a limit.
+    """
+    limit, ref = getattr(model, "T_cond_max", None), getattr(model, "ref", None)
+    if limit is None or ref is None:
+        return None
+    try:
+        (T_reach_K,) = _props("T", "P", _condensing_pressure_limits(ref, float(limit))[0], "Q", 0, ref)
+    except ValueError:
+        return None
+    return float(cu.K2C(T_reach_K)) - float(model.hp_capacity) / float(model.UA_tank_hx)
+
+
+def limit_tank_setpoints_to_envelope(model: Any, what: str) -> None:
+    """Cap a boiler's thermostat band at the tank temperature its compressor envelope allows.
+
+    A heat pump whose set point lies above what its compressor can reach does
+    not charge the tank to it: the controller stops at the unit's maximum.
+    The thermostat has to know that temperature -- a dynamic step solves one
+    cycle and applies its heat over the step, so a cut-out the thermostat does
+    not see is overrun inside a long step, by an amount that depends on the
+    step. So when ``T_tank_w_upper_bound`` is above
+    :func:`condensing_tank_cutout`, the model's upper bound becomes that
+    cut-out; a lower bound that is not below it is moved down to keep the
+    width of the band. The values asked for stay in
+    ``T_tank_w_setpoints_requested`` (lower, upper), and a ``UserWarning``
+    says what was changed. Up to the cut-out the machine runs at its nameplate
+    duty; the duty reduction of :func:`reduce_duty_within_envelope` then
+    serves ``analyze_steady`` and the steps a tank model or a minimum run
+    time takes past it.
+    """
+    lower, upper = float(model.T_tank_w_lower_bound), float(model.T_tank_w_upper_bound)
+    model.T_tank_w_setpoints_requested = (lower, upper)
+    cutout = condensing_tank_cutout(model)
+    if cutout is None or upper <= cutout:
+        return
+    new_lower = lower if lower < cutout else cutout - (upper - lower)
+    model.T_tank_w_upper_bound, model.T_tank_w_lower_bound = cutout, new_lower
+    approach = float(model.hp_capacity) / float(model.UA_tank_hx)
+    moved = "" if new_lower == lower else f", and the lower bound is moved from {lower:g} to {new_lower:.1f} °C"
+    warnings.warn(
+        f"{what}: T_tank_w_upper_bound={upper:g} °C is above the tank temperature the compressor envelope "
+        f"of {model.ref} allows at the nameplate duty, {cutout:.1f} °C (T_cond_max={float(model.T_cond_max):g} °C "
+        f"less the {approach:.1f} K tank heat-exchanger approach). The thermostat stops the heat pump at "
+        f"{cutout:.1f} °C{moved}. Lower the set points, use a refrigerant with a higher limit (e.g. R290, "
+        "R134a), or give the T_cond_max of the actual compressor (None switches the limit off)",
+        UserWarning,
+        stacklevel=3,
     )
 
 

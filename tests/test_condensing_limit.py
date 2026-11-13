@@ -24,6 +24,7 @@ from tmhp.compressor_envelope import (
     CONDENSING_TEMP_ABOVE_MAX,
     CONDENSING_TOL_K,
     condensing_pressure_max,
+    condensing_tank_cutout,
     condensing_temp_exceeded,
     default_condensing_temp_max,
     envelope_excess,
@@ -275,19 +276,69 @@ def test_rating_point_above_the_limit_is_refused_at_construction():
 
 
 # ---------------------------------------------------------------------------
-# boilers, dynamic: reduced duty, then off below the set point with the reason
+# boilers, dynamic: the thermostat stops at the envelope's cut-out
 # ---------------------------------------------------------------------------
 
+#: Highest tank temperature the 8 kW R410A machines heat at the nameplate duty (5 K approach).
+T_CUTOUT_R410A = T_LIMIT_R410A - 5.0
 
-def test_dynamic_steps_reduce_the_duty_then_stop_below_the_set_point():
-    """R410A against a 65 degC set point, called from just below 55 degC, no draw (WSHPB, 12 x 60 s).
 
-    Short steps: a step solves one cycle, at the tank temperature its run averages
-    to, so the limit is held at that temperature and not at every instant inside
-    a long step.
+def test_set_point_above_the_envelope_is_capped_with_a_warning():
+    """65 degC is out of reach of R410A: the band the thermostat works with is capped, and says so."""
+    with pytest.warns(UserWarning, match=r"thermostat stops the heat pump at 59\.9 °C\. Lower"):
+        hp = tmhp.WaterSourceHeatPumpBoiler(ref="R410A", hp_capacity=CAPACITY)
+    assert hp.T_tank_w_setpoints_requested == (55.0, 65.0)
+    assert hp.T_tank_w_lower_bound == 55.0
+    assert hp.T_tank_w_upper_bound == pytest.approx(T_CUTOUT_R410A, abs=1e-9)
+    assert condensing_tank_cutout(hp) == pytest.approx(T_CUTOUT_R410A, abs=1e-9)
+    # A lower bound that is not below the cut-out moves down with it (ASHPB: 60-65 degC).
+    with pytest.warns(UserWarning, match=r"lower bound is moved from 60 to 54\.9 °C"):
+        ashpb = tmhp.AirSourceHeatPumpBoiler(ref="R410A", hp_capacity=CAPACITY)
+    assert ashpb.T_tank_w_upper_bound == pytest.approx(T_CUTOUT_R410A, abs=1e-9)
+    assert ashpb.T_tank_w_upper_bound - ashpb.T_tank_w_lower_bound == pytest.approx(5.0)
+    # Inside the envelope, or without the limit, the set points are the caller's and nothing warns.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        for kwargs in (
+            dict(ref="R410A", T_tank_w_upper_bound=59.0),
+            dict(ref="R410A", T_cond_max=None),
+            dict(ref="R290"),
+            dict(ref="R134a"),
+        ):
+            kept = tmhp.WaterSourceHeatPumpBoiler(hp_capacity=CAPACITY, **kwargs)
+            assert kept.T_tank_w_upper_bound == kwargs.get("T_tank_w_upper_bound", 65.0)
+            assert kept.T_tank_w_lower_bound == 55.0
+
+
+@pytest.mark.parametrize("family", ["ASHPB", "WSHPB"])
+def test_dynamic_run_stops_at_the_cut_out_whatever_the_step(family):
+    """R410A against a 65 degC set point, 1 h from 50 degC: 60 s and 600 s steps agree.
+
+    Without the cap a 600 s step carried the cycle of its start to the set point
+    (called at 54.9 degC: 1.19 kWh and a 65.0 degC tank, against 0.84 kWh and
+    62.1 degC with 60 s steps).
     """
+    cls = BOILERS[family][0]
+    out = {}
+    for dt in (60.0, 600.0):
+        n = int(3600 / dt)
+        model = _quiet(cls, ref="R410A", hp_capacity=CAPACITY)
+        df = _quiet(model.analyze_dynamic, n * dt, dt, 50.0, np.zeros(n), np.full(n, 10.0))
+        ran = df["hp_is_on"].astype(bool)
+        assert ran.any() and (df["failure_reason"] == "none").all()
+        assert not any(condensing_temp_exceeded(p, 65.0, "R410A") for p in df.loc[ran, "P_ref_cmp_out [Pa]"])
+        assert "capacity_binding" not in df.columns or df["capacity_binding"].isna().all()  # nameplate duty
+        assert df["T_tank_w [°C]"].max() == pytest.approx(T_CUTOUT_R410A, abs=0.05)
+        out[dt] = float(df["Q_ref_tank [W]"].sum() * dt)
+    assert out[600.0] == pytest.approx(out[60.0], rel=0.01)
+
+
+def test_dynamic_steps_past_the_cut_out_reduce_the_duty_then_stop():
+    """The envelope's own guard, with the thermostat's cap lifted (as a tank model or a minimum
+    run time takes a step past the cut-out): R410A, called from just below 55 degC (12 x 60 s)."""
     dt, n = 60.0, 12
     model = _quiet(tmhp.WaterSourceHeatPumpBoiler, ref="R410A", hp_capacity=CAPACITY)
+    model.T_tank_w_upper_bound = 65.0
     df = _quiet(model.analyze_dynamic, n * dt, dt, 54.9, np.zeros(n), np.full(n, 10.0))
     ran = df["hp_is_on"].astype(bool)
     assert ran.any() and (~ran).any()

@@ -466,13 +466,17 @@ the recommended lever to pull when you hit each one.
     exchanger's approach, and the unit reduces its duty as the tank
     approaches the limit (``capacity_binding == "condensing_temperature"``)
     until even the minimum-speed duty condenses above it. In a dynamic run
-    the called step is then an off row with this reason while the tank is
-    still below its set point; the tank is held below ``T_cond_max``, and
-    the set point is not reached.
+    the thermostat normally stops the heat pump before that: an upper set
+    point above the tank temperature the envelope allows at the nameplate
+    duty is capped there at construction (``UserWarning``,
+    ``T_tank_w_setpoints_requested``). A called step past that cut-out -- a
+    stratified tank whose coil-side water is hotter than the sensor, a
+    minimum run time -- runs at the reduced duty or is an off row with this
+    reason.
 
     **What to do.** Choose an upper set point the refrigerant reaches
-    (``T_cond_max`` less the condenser approach at the smallest duty, a few
-    kelvin), or a refrigerant with a higher limit (R290, R134a). For a
+    (``T_cond_max`` less the condenser approach at the nameplate duty,
+    ``hp_capacity / UA_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
     compressor with a different high-pressure rating give its own
     ``T_cond_max=<°C>``; ``None`` removes the limit for a sensitivity
     study. A zeotropic blend is judged at its dew point: R407C reaches the

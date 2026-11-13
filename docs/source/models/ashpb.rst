@@ -68,9 +68,11 @@ The upper set point has to lie inside the compressor envelope of the
 refrigerant: the cycle condenses at the tank temperature plus the condenser
 approach, and the envelope ends at ``T_cond_max`` (R134a 80 °C, R290 75 °C;
 R410A, R32 and R407C 65 °C, which reach about 60 °C in the tank; see
-:doc:`/developer/reference-operating-limits`). Near the limit the duty is
-reduced (``capacity_binding == "condensing_temperature"``); a tank at the
-limit stops the heat pump with
+:doc:`/developer/reference-operating-limits`). A band above that is capped at
+construction with a ``UserWarning`` -- the default 60–65 °C becomes
+55–60 °C with R32 or R410A -- and the thermostat stops the heat pump at the
+cap. ``analyze_steady`` against a hotter tank returns a reduced duty
+(``capacity_binding == "condensing_temperature"``) or the off state with
 ``failure_reason == "condensing_temp_above_max"``.
 
 Default compressor efficiencies

@@ -62,6 +62,7 @@ from .compressor_envelope import (
     discharge_controlled,
     envelope_excess,
     envelope_violation,
+    limit_tank_setpoints_to_envelope,
     reduce_duty_within_envelope,
     resolve_condensing_temp_max,
     resolve_discharge_temp_max,
@@ -526,6 +527,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         self.dV_mix_w_out_max: float = dV_mix_w_out_max
         self.T_tank_w_upper_bound: float = T_tank_w_upper_bound
         self.T_tank_w_lower_bound: float = T_tank_w_lower_bound
+        limit_tank_setpoints_to_envelope(self, "AirSourceHeatPumpBoiler")
         self.T_sup_w: float = T_sup_w
         self.T_sup_w_K: float = cu.C2K(T_sup_w)
         self.T_tank_w_in: float = T_sup_w

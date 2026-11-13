@@ -402,32 +402,45 @@ like the other limits a smaller duty cures:
   stratified tank's coil-side water warms with the duty, and the secant is
   repeated). Three cycle solves for a step that runs against the limit, two
   for one that cannot run. When the tank itself is at the limit no duty runs:
-  the off state with ``failure_reason == "condensing_temp_above_max"``, in a
-  dynamic run on every called step until the tank has cooled enough for the
-  minimum-speed duty.
+  the off state with ``failure_reason == "condensing_temp_above_max"``.
 * A machine whose **rating point** condenses above the limit is refused at
   construction (``ReferenceStateError`` naming the standard, the condensing
   temperature and ``T_cond_max``): the nameplate cannot be defined outside the
   envelope. An 8 kW R410A boiler with a 500 W/K tank coil (16 K approach,
   71 °C at W55) is such a machine.
 
-A boiler whose upper set point is not below the limit therefore does not
-reach it. The 8 kW R410A machine (1600 W/K tank coil) against a 65 °C set
-point runs at the nameplate duty up to a 60 °C tank, at
-``1600 W/K × (64.9 °C − T_tank)`` above it, and stops near 62–63 °C where its
-minimum-speed duty no longer fits; the set point for R410A, R32 or R407C is
-60 °C, and 65 °C needs R290 or R134a (GSHPB and WSHPB default to R290 for
-this reason).
+**The thermostat band is capped at the envelope's cut-out.** A boiler whose
+upper set point lies above what its compressor reaches does not charge the
+tank to it; a real controller stops at the unit's maximum. The thermostat has
+to know that temperature: a dynamic step solves one cycle, at the tank
+temperature its run averages to
+(:func:`tmhp.dynamic_context.resolve_step_operation`), and applies its heat
+over the step, so a cut-out the thermostat does not see is overrun inside a
+long step by an amount that depends on the step (8 kW R410A, 100 L, 65 °C set
+point, called at 54.9 °C: the tank stopped at 62.1 °C after 0.84 kWh with
+60 s steps and at 65.0 °C after 1.19 kWh with 600 s steps, and with short
+steps every later step was a called-but-refused one).
+So at construction (:func:`tmhp.compressor_envelope.limit_tank_setpoints_to_envelope`):
 
-Known limit: a dynamic step solves one cycle, at the tank temperature its run
-averages to (:func:`tmhp.dynamic_context.resolve_step_operation`), and applies
-its heat over the step. The limit is therefore held at that temperature, not
-at every instant: where the duty on the limit changes much within one step
-(a small tank, a long step), the temperature at which the heat pump stops
-depends on the step -- the 100 L tank above stops at 62.1 °C with 60 s steps
-and 63.0 °C with 120 s steps, and a 600 s step that starts at 55 °C carries
-the cycle of its start to the 65 °C set point. A machine whose set point is
-inside its envelope is not affected.
+* the cut-out is the tank temperature at which the nameplate duty condenses
+  on the limit, ``T_cond_max`` (as the cycle's bubble point) less
+  ``hp_capacity / UA_tank_hx`` -- 59.9 °C for R410A with the default 5 K
+  approach, 60.0 °C for R32, 69.9 °C for R290;
+* a ``T_tank_w_upper_bound`` above it is replaced by it, and a
+  ``T_tank_w_lower_bound`` that is not below it is moved down to keep the
+  width of the band (the ASHPB's 60–65 °C becomes 54.9–59.9 °C with R410A);
+* a ``UserWarning`` says what was changed, and
+  ``T_tank_w_setpoints_requested`` keeps the values asked for.
+
+Up to the cut-out the machine runs at its nameplate duty and the thermostat
+ends the run inside the step, as at any set point: the same machine, one hour
+from 50 °C, takes 1.165 kWh and stops at 59.9 °C with 60 s and with 600 s
+steps alike. A set point
+inside the envelope is untouched and nothing warns -- 65 °C with R290 or
+R134a, which is why GSHPB and WSHPB default to R290. The duty reduction above
+then serves ``analyze_steady`` and the steps that go past the cut-out all the
+same: a stratified tank whose coil-side water is hotter than the sensor, a
+minimum run time, a set point moved after construction.
 
 Discharge-temperature control (``x_suction_min``, default 0.9; ``None`` switches
 it off, ``1`` keeps the superheat stage only) comes first. A running unit whose

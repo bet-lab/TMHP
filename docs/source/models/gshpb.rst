@@ -114,12 +114,16 @@ precedence). The constructor warns (``UserWarning``) when
 The compressor envelope also ends at a condensing pressure (``T_cond_max``,
 by refrigerant: R410A, R32, R407C 65 °C; R290 75 °C; R134a 80 °C; see
 :doc:`/developer/reference-operating-limits`). The cycle condenses at the
-tank temperature plus the tank heat-exchanger approach, so as the tank nears
-that limit the heat pump runs at the duty that condenses on it
-(``capacity_clamped == "max"``, ``capacity_binding ==
-"condensing_temperature"``) and then stops with
-``failure_reason == "condensing_temp_above_max"`` while the tank is still
-below its set point. A 65 °C set point is inside the envelope of R290 and
+tank temperature plus the tank heat-exchanger approach, so the highest tank
+temperature the machine heats at its nameplate duty is ``T_cond_max`` less
+``hp_capacity / UA_tank_hx``. A ``T_tank_w_upper_bound`` above that cut-out
+is capped at it (``UserWarning``; ``T_tank_w_setpoints_requested`` keeps the
+values asked for), and the thermostat stops the heat pump there.
+``analyze_steady`` against a hotter tank returns the duty that condenses on
+the limit (``capacity_clamped == "max"``, ``capacity_binding ==
+"condensing_temperature"``), or the off state with
+``failure_reason == "condensing_temp_above_max"`` when no duty fits. A 65 °C
+set point is inside the envelope of R290 and
 R134a; R410A, R32 and R407C reach about 60 °C. This is why the default
 refrigerant is R290 (it was R410A): the default machine charges its tank to
 the default 65 °C set point at 70 °C condensing, 5 K inside the limit, at the

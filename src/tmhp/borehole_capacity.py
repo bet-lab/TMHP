@@ -109,6 +109,8 @@ __all__ = [
     "enable_borehole_dynamics",
     "fluid_to_pipe_resistance",
     "line_source_wall",
+    "loop_outlet_response",
+    "section_admittance",
     "with_borehole_capacity",
 ]
 

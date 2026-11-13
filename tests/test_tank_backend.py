@@ -407,8 +407,9 @@ def test_bottom_coil_mixes_instead_of_inverting(model):
 def test_condenser_node_concentrates_vs_spreads(day_runs, top_coil):
     """condenser_node=None spreads the coil over the tank; a fixed node concentrates it."""
     spread, concen = day_runs["stratified"][0], top_coil[0]
-    assert spread._condenser_ua().tolist() == [50.0] * 10
-    assert concen._condenser_ua().tolist() == [500.0] + [0.0] * 7
+    # UA_tank_hx follows hp_capacity (hp_capacity / 5): the whole coil, on ten nodes or on one.
+    assert spread._condenser_ua().tolist() == pytest.approx([spread.UA_tank_hx / 10.0] * 10)
+    assert concen._condenser_ua().tolist() == pytest.approx([concen.UA_tank_hx] + [0.0] * 7)
     assert spread._tank.T[-1] > 40.0 > concen._tank.T[-1]
 
 

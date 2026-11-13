@@ -30,7 +30,12 @@ def test_nonfinite_residuals_cannot_certify_a_reference_balance(unavailable):
 
 
 def test_default_raw_fit_reference_closes_despite_decreasing_low_speed_condenser_duty():
-    hp = GroundSourceHeatPumpBoiler(ref="R32", R_b=0.2, t_max_s=3600)
+    # The former capacity-independent heat exchangers (500 W/K, 24 L/min) put
+    # this rating point at PR 7.40; they are spelled out now that the defaults
+    # scale with capacity.
+    hp = GroundSourceHeatPumpBoiler(
+        ref="R32", R_b=0.2, t_max_s=3600, UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0
+    )
     state = hp.reference_state
     assert state is not None
     # This reference is independently obtained from the coupled mass-flow and

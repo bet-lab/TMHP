@@ -18,8 +18,7 @@ Every result is checked by :func:`._checks.check_steady`:
 
 Grid points chosen keep every measured margin away from the check tolerance
 (>= 0.3 K, >= 0.001 on efficiencies) so the outcome does not depend on the
-platform. Two otherwise-selected points sat within 0.3 K of the suction check
-and are excluded (``_EXCLUDED``).
+platform; a point that does not is listed in ``_EXCLUDED``.
 
 Points that fail today are listed in ``KNOWN_FAILURES`` with their #96 defect
 ID and run as ``xfail(strict=True)``; a fix removes exactly its entries.
@@ -49,30 +48,22 @@ GRID: dict[str, tuple[tuple[float, ...], tuple[float, ...]]] = {
     "GSHP-cool": ((22, 26, 30), (15, 25)),  # room air / borehole wall
 }
 
-# Within 0.3 K of the suction <= source check on the reference platform.
-_EXCLUDED = {("GSHPB", "R290", 5, 50, 0.25), ("WSHPB", "R410A", 10, 55, 0.25)}
+# Grid points left out because a margin sits within the check tolerance on the
+# reference platform. (The two suction-check exclusions went with #96 C11: the
+# GSHPB/WSHPB superheat is capped at the evaporator approach less dT_hx_min, so
+# the suction stays 0.4 K or more below the source.)
+_EXCLUDED: set[tuple[str, str, float, float, float]] = set()
 # What each grid defect is allowed to produce. A known-failing point that shows any
 # *other* violation (or a different exception) fails hard instead of hiding behind
 # its xfail mark.
-_EXPECTED_TAGS: dict[str, set[str]] = {
-    "C11": {"suction_vs_source"},
-}
+_EXPECTED_TAGS: dict[str, set[str]] = {}
 # Defects that show up as a constructor failure: (exception type, text that identifies it).
 _EXPECTED_CTOR_ERROR: dict[str, tuple[type[Exception], str]] = {}
-_WHY = {
-    "C11": "no superheat cap in GSHPB/WSHPB: suction refrigerant hotter than the source water",
-}
+_WHY: dict[str, str] = {}
 
 # (family, refrigerant) -> {defect ID: [(T_source, T_demand, part_load), ...]} failing on 7fbd20c.
-KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]]] = {
-    ("WSHPB", "R134a"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
-    ("WSHPB", "R290"): {"C11": [(s, d, 0.25) for s in (0, 10, 20) for d in (50, 55)]},
-    # R32 0/50 and 0/55 at 0.25 discharge above 150 °C on the speed floor; the
-    # discharge-temperature control holds them by lowering the suction
-    # superheat, which also brings the suction below the source -- C11 no
-    # longer shows there. R410A keeps its 5 K superheat at these points.
-    ("WSHPB", "R410A"): {"C11": [(0, 50, 0.25), (0, 55, 0.25)]},
-}
+# C11 (WSHPB R134a/R290/R410A at 0.25: suction hotter than the source water) fixed by the superheat cap.
+KNOWN_FAILURES: dict[tuple[str, str], dict[str, list[tuple[float, float, float]]]] = {}
 
 
 def _known_ids(family: str, ref: str, point: tuple[float, float, float]) -> list[str]:

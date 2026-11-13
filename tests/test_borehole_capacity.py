@@ -299,6 +299,35 @@ def test_horizon_follows_the_field_g_function(section):
         g_dyn.step_mean(0.0, 0.0)
 
 
+@pytest.mark.parametrize("transit", [False, True])
+def test_short_field_horizon_is_extended_not_clamped(section, transit):
+    """A model built for a short run and run longer: the field g-function is recomputed.
+
+    The capacity kernel spans about a month. With a field grid that ends
+    earlier (t_max_s of two days -> three days) the table must end there too;
+    otherwise later times read the last field value and the ground stops
+    cooling.
+    """
+    field = precompute_gfunction(1, 1, 6.0, H, 0.0, R_B, ALPHA_S, K_S, 2 * 86400.0, 3600.0)
+    reference = precompute_gfunction(1, 1, 6.0, H, 0.0, R_B, ALPHA_S, K_S, 400 * 86400.0, 3600.0)
+    field_end = field.t_end
+    g_dyn = DynamicGFunction(field, section, **(dict(H=H, m_cp=M_CP) if transit else {}))
+    assert g_dyn.t_end == pytest.approx(field_end)
+    times = np.array([5.0, 10.0, 20.0, 60.0, 300.0]) * 86400.0
+    deviation = np.array([float(g_dyn(t) - reference(t)) for t in times])
+    assert field.t_end >= times[-1] and field.n_builds > 1
+    # Dynamic minus steady: the capacity correction only (negative, vanishing), never a flat g.
+    assert np.all(deviation < 0) and np.all(np.diff(deviation) > 0)
+    assert abs(deviation[0]) < 0.02 * section.steady_resistance
+    assert abs(deviation[-1]) < 1e-3 * section.steady_resistance
+    # The step-mean path extends the horizon as well.
+    fresh = precompute_gfunction(1, 1, 6.0, H, 0.0, R_B, ALPHA_S, K_S, 2 * 86400.0, 3600.0)
+    g_fresh = DynamicGFunction(fresh, section)
+    lag = 15 * 86400.0
+    assert float(g_fresh.step_mean(lag, 3600.0)) == pytest.approx(float(g_dyn.step_mean(lag, 3600.0)), rel=2e-3)
+    assert float(g_fresh.wall_step_mean(lag, 3600.0)) > float(reference(10 * 86400.0))
+
+
 def test_plain_callable_needs_a_horizon(section):
     def g_line(t):
         return line_source_wall(np.asarray(t, dtype=float), K_S, ALPHA_S, R_B)

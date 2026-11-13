@@ -833,6 +833,11 @@ class DynamicGFunction:
         nodes = np.union1d(t_k, x_g)
         if self._transit is not None:
             nodes = np.union1d(nodes, self._transit[0])
+        # The table ends where the field g-function ends. The capacity kernel
+        # reaches about a month; kept past a shorter field grid its nodes
+        # would read a clamped (flat) g and the horizon would look covered,
+        # so a longer run would never extend the field g-function.
+        nodes = nodes[nodes <= x_g[-1]]
         ils = line_source_wall(nodes, sec.k_s, sec.ground_diffusivity, sec.r_b)
         # Field response: the g-function from T_JOIN on; below it the line
         # source at r_b plus the (tiny) offset of the two at T_JOIN.

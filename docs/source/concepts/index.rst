@@ -39,6 +39,20 @@ interpret the diagnostic fields each call returns.
         Subcritical vs supercritical operation, why CoolProp is the
         backing dependency, and how to swap refrigerants safely.
 
+    .. grid-item-card:: Result keys
+        :link: result-keys
+        :link-type: doc
+
+        Every key a result carries: meaning, unit, sign, and which
+        family returns it.
+
+    .. grid-item-card:: Scope and limits
+        :link: scope-and-limits
+        :link-type: doc
+
+        What the models refuse, what they simplify, and how each
+        limit shows in a result.
+
 .. toctree::
     :maxdepth: 1
     :hidden:
@@ -47,3 +61,5 @@ interpret the diagnostic fields each call returns.
     cycle-architecture
     failure-reason-semantics
     refrigerant-and-coolprop
+    result-keys
+    scope-and-limits

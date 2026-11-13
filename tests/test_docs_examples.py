@@ -1,5 +1,7 @@
 """Regression tests for copy-runnable documentation examples."""
 
+import math
+import warnings
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -96,3 +98,51 @@ def test_coolprop_refrigerant_list_example_is_copy_runnable() -> None:
     )
 
     exec(code, {})
+
+
+def test_minimal_input_examples_run_and_match_the_page() -> None:
+    """Capacity, refrigerant and family are enough; the page's numbers are the model's."""
+    path = REPO_ROOT / "docs/source/getting-started/minimal-input.rst"
+    blocks = _rst_python_blocks(path)
+    text = path.read_text(encoding="utf-8")
+
+    five = _find_block(blocks, "wshpb = WaterSourceHeatPumpBoiler(hp_capacity=9_000")
+    namespace: dict[str, object] = {}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        exec(five, namespace)
+    cops = []
+    for name in ("a2a", "g2a", "a2w", "g2w", "w2w"):
+        row = namespace[name]
+        assert row["failure_reason"] == "none" and row["hp_is_on"] and row["capacity_clamped"] is None, name
+        cops.append(row["cop_sys [-]"])
+    quoted = "COP of " + ", ".join(f"{cop:.2f}" for cop in cops[:-1]) + f" and {cops[-1]:.2f}"
+    assert quoted in " ".join(text.split()), quoted
+
+    sizing = _find_block(blocks, "gshp = GroundSourceHeatPump(hp_capacity=30_000)")
+    namespace = {}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        exec(sizing, namespace)
+    gshp = namespace["gshp"]
+    assert (gshp.N_1, gshp.N_2, gshp.H_b) == (3, 2, 100.0)
+    assert math.isclose(gshp.ground_flow_ref_lpm, 115.3, abs_tol=0.05)
+    assert math.isclose(gshp.E_pmp, 640.0, abs_tol=0.5)
+    assert math.isclose(gshp.UA_ground_rated, 5400.0, rel_tol=1e-9)
+
+
+def test_result_keys_example_is_copy_runnable() -> None:
+    path = REPO_ROOT / "docs/source/concepts/result-keys.rst"
+    code = _find_block(_rst_python_blocks(path), "row = AirSourceHeatPump().analyze_steady(Q_r_iu=-9_000")
+
+    namespace: dict[str, object] = {}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        exec(code, namespace)
+    row = namespace["row"]
+    assert row["failure_reason"] == "none"
+    assert row["capacity_clamped"] == "max"
+    assert row["capacity_binding"] == "compressor"
+    assert math.isclose(row["Q_ref_iu [W]"], 3770.0, rel_tol=0.02)
+    assert math.isclose(row["Q_unmet [W]"], 5230.0, rel_tol=0.02)
+    assert math.isclose(row["Q_ref_iu [W]"] + row["Q_unmet [W]"], 9000.0, rel_tol=1e-9)

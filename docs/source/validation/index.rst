@@ -42,13 +42,16 @@ Parity
 .. figure:: ../_static/validation_parity.svg
     :alt: Predicted against published COP for every catalogue point, split into
         air-to-water and air-to-air panels, coloured by refrigerant and sized
-        by nominal capacity, with ±10 % and ±20 % bands.
+        by nominal capacity, with ±10 % and ±20 % bands. Units on hold are
+        hollow grey rings.
     :align: center
     :width: 100%
 
     Predicted against published COP. Colour is refrigerant, marker size is
     nominal capacity. A model quietly tuned to one unit would show one tight
-    cluster on the diagonal and the rest scattered.
+    cluster on the diagonal and the rest scattered. The statistics on each
+    panel are those of the adopted units; the two units on hold are drawn as
+    hollow grey rings and not scored.
 
 .. list-table:: Coverage
     :header-rows: 1

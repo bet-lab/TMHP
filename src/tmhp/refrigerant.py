@@ -2,6 +2,8 @@
 Refrigerant cycle calculations and optimization.
 """
 
+import math
+import threading
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -14,7 +16,120 @@ __all__ = [
     "calc_ref_state",
     "create_lmtd_constraints",
     "find_ref_loop_optimal_operation",
+    "props_si",
 ]
+
+# ---------------------------------------------------------------------------
+# Fast property evaluation
+# ---------------------------------------------------------------------------
+#
+# ``CP.PropsSI`` builds a new equation-of-state object on every call, and that
+# construction -- not the flash -- is nearly all of its cost for the Helmholtz
+# fluids (R32, R134a, R290: 0.1--0.6 ms per call, about 5 ms for the twenty
+# calls of one cycle state). The low-level ``AbstractState`` runs the same
+# flash routines on an object kept between calls: one cycle state in about
+# 0.05 ms, with bit-identical values. The states are kept per thread (a
+# CoolProp state is not thread-safe) and per fluid string.
+
+_STATES = threading.local()
+
+#: ``(name1, name2)`` of a ``PropsSI`` input pair -> (CoolProp input pair, inputs swapped).
+_INPUT_PAIRS: dict[tuple[str, str], tuple[int, bool]] = {
+    ("T", "Q"): (CP.QT_INPUTS, True),
+    ("Q", "T"): (CP.QT_INPUTS, False),
+    ("P", "Q"): (CP.PQ_INPUTS, False),
+    ("Q", "P"): (CP.PQ_INPUTS, True),
+    ("T", "P"): (CP.PT_INPUTS, True),
+    ("P", "T"): (CP.PT_INPUTS, False),
+    ("P", "S"): (CP.PSmass_INPUTS, False),
+    ("S", "P"): (CP.PSmass_INPUTS, True),
+    ("P", "H"): (CP.HmassP_INPUTS, True),
+    ("H", "P"): (CP.HmassP_INPUTS, False),
+}
+
+
+def _fluid_state(refrigerant: str) -> Any:
+    """This thread's low-level CoolProp state of ``refrigerant``, or ``None``.
+
+    ``None`` for anything but a single (pure or pseudo-pure) fluid of the
+    default Helmholtz backend -- a mixture string, a ``.mix`` file, another
+    backend -- which then goes through ``CP.PropsSI`` as before.
+    """
+    cache: dict[str, Any] = _STATES.__dict__.setdefault("states", {})
+    try:
+        return cache[refrigerant]
+    except KeyError:
+        pass
+    state = None
+    if isinstance(refrigerant, str) and not any(mark in refrigerant for mark in ("[", "&", ".mix")):
+        try:
+            backend, fluid = CP.extract_backend(refrigerant)
+            if backend in ("?", "HEOS"):
+                candidate = CP.AbstractState("HEOS", fluid)
+                if len(candidate.fluid_names()) == 1:
+                    state = candidate
+        except Exception:
+            state = None
+    cache[refrigerant] = state
+    return state
+
+
+def _read(state: Any, outputs: str) -> tuple[float, ...]:
+    values = []
+    for output in outputs:
+        if output == "P":
+            value = state.p()
+        elif output == "T":
+            value = state.T()
+        elif output == "H":
+            value = state.hmass()
+        elif output == "S":
+            value = state.smass()
+        elif output == "D":
+            value = state.rhomass()
+        else:
+            raise KeyError(output)
+        if not math.isfinite(value):
+            # ``PropsSI`` raises for a value it could not evaluate.
+            raise ValueError(f"CoolProp output {output!r} is not finite")
+        values.append(value)
+    return tuple(values)
+
+
+def _props(outputs: str, name1: str, value1: float, name2: str, value2: float, refrigerant: str) -> tuple[float, ...]:
+    """Several outputs (letters of ``PTHSD``, mass based) of one state, e.g. ``_props("PHS", "T", T, "Q", 1, ref)``.
+
+    One flash serves every output. Same values and the same ``ValueError`` on
+    an invalid state as one ``CP.PropsSI`` call per output.
+    """
+    state = _fluid_state(refrigerant)
+    pair = _INPUT_PAIRS.get((name1, name2))
+    if state is None or pair is None:
+        return tuple(float(CP.PropsSI(output, name1, value1, name2, value2, refrigerant)) for output in outputs)
+    input_pair, swapped = pair
+    if swapped:
+        state.update(input_pair, value2, value1)
+    else:
+        state.update(input_pair, value1, value2)
+    return _read(state, outputs)
+
+
+def props_si(output: str, name1: str, value1: float, name2: str, value2: float, refrigerant: str) -> float:
+    """``CoolProp.PropsSI`` for one of ``P``, ``T``, ``H``, ``S``, ``D`` (mass based), without its per-call set-up.
+
+    A drop-in for the cycle solvers' inner loops: the same value and the same
+    ``ValueError`` on an invalid state as ``CP.PropsSI(output, name1, value1,
+    name2, value2, refrigerant)``, evaluated on a CoolProp state kept between
+    calls. Input pairs ``(T, Q)``, ``(P, Q)``, ``(T, P)``, ``(P, S)`` and
+    ``(P, H)`` of a single Helmholtz-backend fluid take the fast path; anything
+    else is passed to ``CP.PropsSI``.
+    """
+    if output not in _FAST_OUTPUTS:
+        return float(CP.PropsSI(output, name1, value1, name2, value2, refrigerant))
+    return _props(output, name1, value1, name2, value2, refrigerant)[0]
+
+
+_FAST_OUTPUTS = frozenset("PTHSD")
 
 
 def calc_ref_state(
@@ -107,18 +222,19 @@ def calc_ref_state(
             "mode": mode,
         }
 
-    # Step 1: saturation temperatures and pressures.
+    # Step 1: saturation temperatures and pressures, with the saturation-state
+    # enthalpy / entropy at the evaporator and condenser.
     T_ref_evap_sat_K = T_evap_K
     T_ref_cond_sat_l_K = T_cond_K
 
-    P_evap = CP.PropsSI("P", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)
-    P_cond = CP.PropsSI("P", "T", T_ref_cond_sat_l_K, "Q", 0, refrigerant)
-
-    # Saturation-state enthalpy / entropy at the evaporator and condenser.
-    h_ref_evap_sat = CP.PropsSI("H", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)
-    s_ref_evap_sat = CP.PropsSI("S", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)
-    h_ref_cond_sat_l = CP.PropsSI("H", "T", T_ref_cond_sat_l_K, "Q", 0, refrigerant)
-    s_ref_cond_sat_l = CP.PropsSI("S", "T", T_ref_cond_sat_l_K, "Q", 0, refrigerant)
+    dry_saturated = not x_suction < 1.0 and abs(dT_superheat) < 1e-6
+    if dry_saturated:
+        P_evap, h_ref_evap_sat, s_ref_evap_sat, rho_ref_cmp_in = _props(
+            "PHSD", "T", T_ref_evap_sat_K, "Q", 1, refrigerant
+        )
+    else:
+        P_evap, h_ref_evap_sat, s_ref_evap_sat = _props("PHS", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)
+    P_cond, h_ref_cond_sat_l, s_ref_cond_sat_l = _props("PHS", "T", T_ref_cond_sat_l_K, "Q", 0, refrigerant)
 
     # Step 2: State 1 — actual superheated vapour at the compressor inlet.
     T_ref_cmp_in_K = T_ref_evap_sat_K + dT_superheat
@@ -126,20 +242,15 @@ def calc_ref_state(
     if x_suction < 1.0:
         # Wet suction (see "Wet suction" above): saturation temperature, no superheat.
         T_ref_cmp_in_K = T_ref_evap_sat_K
-        h_ref_cmp_in = CP.PropsSI("H", "P", P_evap, "Q", x_suction, refrigerant)
-        s_ref_cmp_in = CP.PropsSI("S", "P", P_evap, "Q", x_suction, refrigerant)
-        rho_ref_cmp_in = CP.PropsSI("D", "P", P_evap, "Q", x_suction, refrigerant)
-    elif abs(dT_superheat) < 1e-6:
+        h_ref_cmp_in, s_ref_cmp_in, rho_ref_cmp_in = _props("HSD", "P", P_evap, "Q", x_suction, refrigerant)
+    elif dry_saturated:
         h_ref_cmp_in = h_ref_evap_sat
         s_ref_cmp_in = s_ref_evap_sat
-        rho_ref_cmp_in = CP.PropsSI("D", "T", T_ref_evap_sat_K, "Q", 1, refrigerant)
     else:
-        h_ref_cmp_in = CP.PropsSI("H", "T", T_ref_cmp_in_K, "P", P_evap, refrigerant)
-        s_ref_cmp_in = CP.PropsSI("S", "T", T_ref_cmp_in_K, "P", P_evap, refrigerant)
-        rho_ref_cmp_in = CP.PropsSI("D", "T", T_ref_cmp_in_K, "P", P_evap, refrigerant)
+        h_ref_cmp_in, s_ref_cmp_in, rho_ref_cmp_in = _props("HSD", "T", T_ref_cmp_in_K, "P", P_evap, refrigerant)
 
     # Step 3: State 2 — high-pressure superheated vapour at the compressor outlet.
-    h2_isen = CP.PropsSI("H", "P", P_cond, "S", s_ref_cmp_in, refrigerant)
+    (h2_isen,) = _props("H", "P", P_cond, "S", s_ref_cmp_in, refrigerant)
 
     if callable(eta_cmp_isen):
         import inspect
@@ -154,8 +265,7 @@ def calc_ref_state(
 
     h_ref_cmp_out = h_ref_cmp_in + (h2_isen - h_ref_cmp_in) / val_eta_cmp_isen
     try:
-        T_ref_cmp_out_K = CP.PropsSI("T", "P", P_cond, "H", h_ref_cmp_out, refrigerant)
-        s_ref_cmp_out = CP.PropsSI("S", "P", P_cond, "H", h_ref_cmp_out, refrigerant)
+        T_ref_cmp_out_K, s_ref_cmp_out = _props("TS", "P", P_cond, "H", h_ref_cmp_out, refrigerant)
     except ValueError:
         # H is too high — it exceeds CoolProp's Tmax for this fluid
         # (e.g. 435 K for R32). Do NOT clip h_ref_cmp_out, since that would
@@ -167,8 +277,7 @@ def calc_ref_state(
     # the condenser saturation vapour line.
     T_ref_cond_sat_v_K = T_ref_cond_sat_l_K
     P_ref_cond_sat_v = P_cond
-    h_ref_cond_sat_v = CP.PropsSI("H", "P", P_cond, "Q", 1, refrigerant)
-    s_ref_cond_sat_v = CP.PropsSI("S", "P", P_cond, "Q", 1, refrigerant)
+    h_ref_cond_sat_v, s_ref_cond_sat_v = _props("HS", "P", P_cond, "Q", 1, refrigerant)
 
     # Step 4: State 3 — actual subcooled liquid at the expansion-valve inlet.
     T_ref_exp_in_K = T_ref_cond_sat_l_K - dT_subcool
@@ -177,14 +286,12 @@ def calc_ref_state(
         h_ref_exp_in = h_ref_cond_sat_l
         s_ref_exp_in = s_ref_cond_sat_l
     else:
-        h_ref_exp_in = CP.PropsSI("H", "T", T_ref_exp_in_K, "P", P_cond, refrigerant)
-        s_ref_exp_in = CP.PropsSI("S", "T", T_ref_exp_in_K, "P", P_cond, refrigerant)
+        h_ref_exp_in, s_ref_exp_in = _props("HS", "T", T_ref_exp_in_K, "P", P_cond, refrigerant)
 
     # Step 5: State 4 — two-phase mixture at the expansion-valve outlet
     # (isenthalpic expansion: h_4 = h_3).
     h_ref_exp_out = h_ref_exp_in
-    T_ref_exp_out_K = CP.PropsSI("T", "P", P_evap, "H", h_ref_exp_out, refrigerant)
-    s_ref_exp_out = CP.PropsSI("S", "P", P_evap, "H", h_ref_exp_out, refrigerant)
+    T_ref_exp_out_K, s_ref_exp_out = _props("TS", "P", P_evap, "H", h_ref_exp_out, refrigerant)
 
     result = {
         "P_ref_cmp_in [Pa]": P_evap,

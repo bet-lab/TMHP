@@ -108,7 +108,7 @@ from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .hybrid_tank import HybridStratifiedTank
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin, _evaluable_bracket
-from .refrigerant import calc_ref_state, reportable_state
+from .refrigerant import calc_ref_state, props_si, reportable_state
 from .stratified_tank import StratifiedTank
 from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
@@ -787,7 +787,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         try:
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
-            h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+            h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
             h_ref_cmp_out_isen = h_ref_cmp_in
 
@@ -885,8 +885,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_is [-]": val_eta_isen,
                 "eta_v [-]": val_eta_vol,
                 "eta_em [-]": val_eta_electro_mech,
-                "h_ref_evap_sat [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
-                "h_ref_cond_sat_v [J/kg]": CP.PropsSI("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
+                "h_ref_evap_sat [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref),
+                "h_ref_cond_sat_v [J/kg]": props_si("H", "P", cs.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
                 "Q_tank_load [W]": Q_tank_load,
                 "Q_ref_tank [W]": Q_ref_tank,

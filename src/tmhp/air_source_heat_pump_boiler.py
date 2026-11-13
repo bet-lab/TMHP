@@ -91,7 +91,7 @@ from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
-from .refrigerant import calc_ref_state, reportable_state
+from .refrigerant import calc_ref_state, props_si, reportable_state
 from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
 
@@ -148,6 +148,8 @@ class _OutdoorSearch:
         self.storable = math.inf if T_tank_w < model.T_tank_w_upper_bound - 0.5 else 0.0
         #: approach -> (objective, max-flow margin [W], min-flow margin [W])
         self.rows: dict[float, tuple[float, float, float]] = {}
+        #: approach -> (cycle state, pressure-ratio event, cycle failure reason) as evaluated
+        self.states: dict[float, tuple[dict | None, tuple[str, float, float] | None, str | None]] = {}
 
     def entry(self, x: float) -> tuple[float, float, float]:
         x = float(x)
@@ -155,8 +157,9 @@ class _OutdoorSearch:
         if hit is not None:
             return hit
         diag: dict = {}
+        model = self.model
         try:
-            perf = self.model._calc_state(
+            perf = model._calc_state(
                 dT_ref_ou=x,
                 T_tank_w=self.T_tank_w,
                 Q_ref_tank=self.Q_ref_tank,
@@ -167,6 +170,7 @@ class _OutdoorSearch:
             )
         except (ValueError, ArithmeticError):
             perf = None
+        self.states[x] = (perf, model._last_pr_event, model._last_cycle_failure_reason)
         m_max = float(diag.get("max_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
         m_min = float(diag.get("min_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
         row = (self._rank(perf, m_max, m_min), m_max, m_min)
@@ -745,11 +749,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 return None
             if pr_event == "pr_below_min":
                 self._last_pr_event = ("pr_below_min", ratio, self.PR_cycle_min)
-                import CoolProp.CoolProp as CP
-
                 P_evap_clamp = cs_i["P_ref_cmp_in [Pa]"]
                 P_cond_clamp = self.PR_cycle_min * P_evap_clamp
-                T_cond_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
+                T_cond_K = props_si("T", "P", P_cond_clamp, "Q", 0, self.ref)
                 cs_i = calc_ref_state(
                     T_evap_K=T_ou_sat_K,
                     T_cond_K=T_cond_K,
@@ -781,9 +783,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
             # Compute isentropic enthalpy once before loop
             try:
-                import CoolProp.CoolProp as CP
-
-                h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+                h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_ref_cmp_out_isen = h_cmp_in
 
@@ -1184,7 +1184,39 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             success=True,
             nfev=len(search.rows),
             failure_detail=search.coil_failure() if value >= _OBJ_OUTSIDE_ENVELOPE else None,
+            # The cycle state the search evaluated at ``x`` (:meth:`_state_at_optimum`).
+            solved=search.states[x],
         )
+
+    def _state_at_optimum(
+        self,
+        opt: object,
+        T_tank_w: float,
+        Q_ref_tank: float,
+        T0: float,
+        *,
+        flow_state: dict,
+        m_dot_w: float | None = None,
+    ) -> dict | None:
+        """Cycle state at the best approach of :meth:`_optimize_operation`.
+
+        The search has already evaluated that approach, so its state is taken
+        from the search (with the pressure-ratio event and the cycle failure
+        reason of that evaluation restored) instead of being solved a second
+        time. A result without it (a substituted search) is evaluated here.
+        """
+        solved = getattr(opt, "solved", None)
+        if solved is None:
+            return self._calc_state(
+                dT_ref_ou=safe_float_attr(opt, "x", 5.0),
+                T_tank_w=T_tank_w,
+                Q_ref_tank=Q_ref_tank,
+                T0=T0,
+                flow_state=flow_state,
+                m_dot_w=m_dot_w,
+            )
+        state, self._last_pr_event, self._last_cycle_failure_reason = solved
+        return state if isinstance(state, dict) else None
 
     def _cycle_cell(self, search: "_OutdoorSearch", a: float, b: float) -> tuple[float, float] | None:
         """Shrink ``[a, b]`` to its part where a cycle exists (one end must have one)."""
@@ -1502,13 +1534,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             )
             result = None
             with contextlib.suppress(Exception):
-                result = self._calc_state(
-                    dT_ref_ou=safe_float_attr(opt_result, "x", 5.0),
-                    T_tank_w=T_tank_w,
-                    T0=T0,
-                    Q_ref_tank=Q_ref_tank,
-                    flow_state=flow_state,
-                    m_dot_w=m_dot_w,
+                result = self._state_at_optimum(
+                    opt_result, T_tank_w, Q_ref_tank, T0, flow_state=flow_state, m_dot_w=m_dot_w
                 )
 
             # A solved cycle that is not an operating point (undefined
@@ -1736,13 +1763,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             ctx.T0,
             flow_state=flow_state,
         )
-        solved = self._calc_state(
-            float(getattr(opt, "x", 5.0)),
-            T_tank_w,
-            Q_ref_tank,
-            ctx.T0,
-            flow_state=flow_state,
-        )
+        solved = self._state_at_optimum(opt, T_tank_w, Q_ref_tank, ctx.T0, flow_state=flow_state)
         reason = self._active_step_failure(opt, solved)
         if reason is None:
             assert solved is not None

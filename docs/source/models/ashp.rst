@@ -159,6 +159,13 @@ found with ``Cd_cycling=None``.
 ``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` are on every row, so a
 schedule's unmet energy is the sum of ``Q_unmet [W]`` times the time step.
 
+What stops the unit is in ``capacity_binding``. ``"compressor"`` is a
+compressor at ``rps_max``. ``"cycle"`` means the air side, the
+pressure-ratio envelope or the approach-temperature search domain ran out
+first; the compressor then runs below its ceiling, and the row is the
+least-power point at that delivery rather than one that reaches the speed
+ceiling by starving a coil of air.
+
 What the cycling model does not contain: the indoor fan is taken to run only
 while heat is delivered, no standby or crankcase power is added while the unit is off,
 and a start is not resolved in time — the degradation is the standard's

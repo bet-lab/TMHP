@@ -1765,6 +1765,59 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ceiling["defrost_fraction [-]"] = frost.defrost_fraction
         return ceiling
 
+    #: A capacity-limited point gives way to one delivering this fraction of its
+    #: heat below the speed ceiling ...
+    _CEILING_BACKOFF = 0.995
+    #: ... when that one needs at least this much less electricity per unit of heat
+    #: (backing off a compressor that really is flat out gains 1 to 2 %) ...
+    _CEILING_POWER_GAIN = 0.03
+    #: ... and runs below this fraction of the speed ceiling.
+    _CEILING_SPEED_MARGIN = 0.98
+
+    def _least_power_at_ceiling(self, result: dict, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
+        """Capacity-limited point, or a far cheaper one delivering practically the same heat.
+
+        Capacity-limited candidates are ranked by delivered heat alone, and a
+        ceiling found by the duty ladder is the first grid point that meets
+        it. Neither looks at power. Where the limit is the air side or the
+        approach-temperature search domain rather than the compressor, that
+        can return a state that reaches the speed ceiling only because a coil
+        is starved of air -- same heat, a quarter more electricity (default
+        4 kW unit, 5.1 kW asked at 2 degC: 1,460 W against 1,178 W). The duty
+        just below the ceiling is therefore solved in the ordinary way, and
+        its least-power point is taken when it runs clear of the speed ceiling
+        and is materially cheaper per unit of heat. A compressor that really
+        is flat out has no such point, and the result stands.
+        """
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0)))
+        power = float(result.get("E_tot [W]", math.nan))
+        if not (delivered > 0.0 and math.isfinite(power) and power > 0.0):
+            return result
+        duty = math.copysign(self._CEILING_BACKOFF * delivered, Q_r_iu)
+        with contextlib.suppress(Exception):
+            opt = self._optimize_operation(Q_r_iu=duty, T0=T0, T_a_room=T_a_room)
+            if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
+                return result
+            state = self._calc_state(dT_ref_evap=opt.x[0], dT_ref_cond=opt.x[1], Q_r_iu=duty, T0=T0, T_a_room=T_a_room)
+            if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
+                return result
+            heat, input_power = abs(float(state["Q_ref_iu [W]"])), float(state["E_tot [W]"])
+            cheaper = input_power / heat < (1.0 - self._CEILING_POWER_GAIN) * power / delivered
+            below_ceiling = float(state["cmp_rpm [rpm]"]) < self._CEILING_SPEED_MARGIN * self.rps_max * 60.0
+            if cheaper and below_ceiling:
+                state.update(
+                    {
+                        "capacity_clamped": CAPACITY_CLAMPED_MAX,
+                        "Q_request [W]": Q_r_iu,
+                        "Q_max [W]": heat,
+                        # Clear of the speed ceiling: the air side, the search
+                        # domain or (as the ladder found) the envelope binds.
+                        "capacity_binding": result.get("capacity_binding", "cycle"),
+                    }
+                )
+                return state
+        return result
+
     def _discharge_limit_binds(self, Q_r_iu: float, T0: float, T_a_room: float, grid) -> bool:
         """Whether this duty, refused under ``T_dis_max``, is deliverable without it."""
         if self.T_dis_max is None:
@@ -2017,6 +2070,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 # By construction (failure_reason == "none") result is a dict.
                 assert result is not None
+                if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                    result = self._least_power_at_ceiling(result, Q_r_iu, T0, T_a_room)
                 result["converged"] = True
                 result["failure_reason"] = "none"
 

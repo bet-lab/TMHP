@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every compressor-based model – tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPump, tmhp.AirSourceHeatPumpBoiler, tmhp.GroundSourceHeatPumpBoiler, tmhp.WaterSourceHeatPumpBoiler and the composed vari..." />
 
-    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -386,12 +386,17 @@ unset (with a <code class="docutils literal notranslate"><span class="pre">Runti
 <p>The pressure-ratio envelope (<code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> / <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>) and the
 discharge-temperature limit <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> are operating limits and are not
 imposed on the rating point; <code class="docutils literal notranslate"><span class="pre">reference_state.pressure_ratio</span></code> reports the
-ratio.</p>
+ratio. The condensing limit <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> is imposed: a rating point that
+condenses above it (an undersized condenser, e.g. a 16 K tank-coil approach
+with R410A at W55) raises <code class="docutils literal notranslate"><span class="pre">ReferenceStateError</span></code> with the condensing
+temperature and the limit, because the nameplate capacity cannot be defined
+at a pressure the compressor is not built for. Enlarge the condenser, give
+the <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> of the actual compressor, or pass <code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code>.</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 13, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

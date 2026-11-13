@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every analyze_steady result carries a failure_reason key. It is a diagnostic report — independent of whether the result dict contains usable cycle numbers — that lets callers branch on why a step l..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:12:42+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -295,7 +295,25 @@ below).</p></td>
 <td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
 <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code></p></td>
+<td><p>The condensing pressure exceeds the dew pressure at <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>,
+the top of the compressor envelope (default by refrigerant: R410A,
+R32, R407C 65 °C; R290, R1234yf 75 °C; R134a 80 °C; R717 70 °C; never
+above 0.9 of the critical pressure; <code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code> switches
+the check off), at every duty the model tried. The condensing
+temperature is the demand-side temperature plus the condenser
+approach, so a smaller duty lowers it: a boiler request that a
+<em>smaller</em> duty meets is not a failure, it returns the duty that
+condenses on the limit with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code> (steady and
+dynamic). The reason is reported when no duty fits — the tank, room
+or ground is itself at the limit — and for a boiler request whose
+condensing temperature would be above the critical point (formerly
+<code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>) when a tenth of it is still above the limit.</p></td>
+<td><p>No — only off-mode placeholders (<code class="docutils literal notranslate"><span class="pre">E_cmp</span> <span class="pre">=</span> <span class="pre">0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span> <span class="pre">=</span> <span class="pre">0</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
 <td><p>The shipped isentropic-efficiency fit, read outside its data (the
 low-speed continuation), is below <code class="docutils literal notranslate"><span class="pre">ETA_ISEN_MIN</span></code> = 0.30 at the
 solved point (ASHP, GSHP: at every candidate). The fit never goes
@@ -358,8 +376,9 @@ also appear).</p>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pressure_ratio_limit</span></code></p></td>
 <td><p>The cycle was invalid and the last pressure-ratio check hit
 <code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> or <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>. It replaces <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code>
-in this path. (A discharge-temperature rejection keeps
-<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>.)</p></td>
+in this path. (An envelope rejection keeps its own reason:
+<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>, <code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> or
+<code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code>.)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">compressor_min_speed</span></code></p></td>
 <td><p>The requested duty is below what the compressor delivers at
@@ -415,24 +434,32 @@ point for one of the reasons below and a smaller duty has one,
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>, or <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> with
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code>, or <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> without a
+<code class="docutils literal notranslate"><span class="pre">failure_detail</span></code> (no cycle: condensing at or above the critical
+point) when the duties that run end on the condensing limit</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;condensing_temperature&quot;</span></code></p></td>
+<td><p>A smaller condenser approach lowers the condensing pressure. The
+duty that condenses on the limit is found by a secant on the
+condensing temperature (three cycle solves), not by the ladder.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>, or <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> with
 <code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span> <span class="pre">&quot;discharge_state_undefined&quot;</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;discharge_temperature&quot;</span></code></p></td>
 <td><p>A smaller condenser approach lowers the condensing pressure and
 with it the discharge temperature.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pr_above_max</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;pressure_ratio&quot;</span></code></p></td>
 <td><p>The condenser and the source heat exchanger both need a smaller
 approach, so the pressure ratio falls.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hx_not_converged</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;outdoor_coil&quot;</span></code> (ASHPB), <code class="docutils literal notranslate"><span class="pre">&quot;source_heat_exchanger&quot;</span></code> (GSHPB, WSHPB)</p></td>
 <td><p>The source heat exchanger has less heat to absorb. Not tried when
 <code class="docutils literal notranslate"><span class="pre">failure_detail</span> <span class="pre">==</span> <span class="pre">&quot;outdoor_coil_excess_at_min_airflow&quot;</span></code>: a
 smaller duty makes that worse.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">eta_isen_below_min</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">&quot;compressor_efficiency&quot;</span></code></p></td>
 <td><p>A lower pressure ratio moves the shipped fit back above its floor.</p></td>
 </tr>
@@ -448,12 +475,15 @@ it). <code class="docutils literal notranslate"><span class="pre">&quot;compress
 When no smaller duty runs, the result is the off state with the request’s own
 <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>.</p>
 <p>Not reduced: <code class="docutils literal notranslate"><span class="pre">cycle_invalid</span></code> for any other cause, <code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code> and
-<code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code>. In particular a request with no cycle at all stays a
-failure. With the boilers that is a condensing temperature – the tank
-temperature plus the condenser approach the duty needs – at or above the
-critical point; the largest smaller duty would sit on the critical point
-itself, a state no machine runs at, and the envelope has no
-condensing-pressure ceiling below it to reduce onto.</p>
+<code class="docutils literal notranslate"><span class="pre">optimizer_failed</span></code>. A request with no cycle at all is, with the boilers, a
+condensing temperature – the tank temperature plus the condenser approach
+the duty needs – at or above the critical point. With the condensing limit
+it is treated as beyond that limit: reduced onto it when a smaller duty runs
+and the duties that run end on the limit, reported as
+<code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> when a tenth of the request is still above the
+limit, and otherwise left as it is. With <code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code> it stays a
+failure: the largest smaller duty would sit on the critical point itself, a
+state no machine runs at.</p>
 </section>
 <section id="failure-detail">
 <h3><code class="docutils literal notranslate"><span class="pre">failure_detail</span></code><a class="headerlink" href="#failure-detail" title="Link to this heading">¶</a></h3>
@@ -659,6 +689,32 @@ allowed suction <code class="docutils literal notranslate"><span class="pre">x_s
 </div>
 </details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
 <summary class="sd-summary-title sd-card-header sd-bg-danger sd-bg-text-danger">
+<span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-x-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">condensing_temp_above_max</span></code> — condensing pressure above the envelope</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The compressor would have to discharge at a pressure above the top of
+its envelope (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>, stated as the saturation temperature of
+that pressure). For a boiler this is a tank too hot for the refrigerant:
+the cycle condenses at the tank temperature plus the tank heat
+exchanger’s approach, and the unit reduces its duty as the tank
+approaches the limit (<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code>)
+until even the minimum-speed duty condenses above it. In a dynamic run
+the thermostat normally stops the heat pump before that: an upper set
+point above the tank temperature the envelope allows at the nameplate
+duty is capped there at construction (<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_setpoints_requested</span></code>). A called step past that cut-out – a
+stratified tank whose coil-side water is hotter than the sensor, a
+minimum run time – runs at the reduced duty or is an off row with this
+reason.</p>
+<p class="sd-card-text"><strong>What to do.</strong> Choose an upper set point the refrigerant reaches
+(<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> less the condenser approach at the nameplate duty,
+<code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>), or a refrigerant with a higher limit (R290, R134a). For a
+compressor with a different high-pressure rating give its own
+<code class="docutils literal notranslate"><span class="pre">T_cond_max=&lt;°C&gt;</span></code>; <code class="docutils literal notranslate"><span class="pre">None</span></code> removes the limit for a sensitivity
+study. A zeotropic blend is judged at its dew point: R407C reaches the
+65 °C limit when the cycle’s own (bubble-point) condensing temperature
+is 61.2 °C.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header sd-bg-danger sd-bg-text-danger">
 <span class="sd-summary-icon"><svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-x-circle" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.344 2.343h-.001a8 8 0 0 1 11.314 11.314A8.002 8.002 0 0 1 .234 10.089a8 8 0 0 1 2.11-7.746Zm1.06 10.253a6.5 6.5 0 1 0 9.108-9.275 6.5 6.5 0 0 0-9.108 9.275ZM6.03 4.97 8 6.94l1.97-1.97a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l1.97 1.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-1.97 1.97a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L6.94 8 4.97 6.03a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018Z"></path></svg></span><span class="sd-summary-text"><code class="docutils literal notranslate"><span class="pre">t_cond_below_t_in</span></code> — condensing below the water inlet (ASHPB)</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
 <p class="sd-card-text">Inside <code class="docutils literal notranslate"><span class="pre">_calc_state</span></code> the condensing temperature
 <code class="docutils literal notranslate"><span class="pre">T_cond_K</span> <span class="pre">&lt;=</span> <span class="pre">T_tank_w_K</span></code>, so the condenser cannot heat the water.
@@ -686,7 +742,8 @@ the name points at (<code class="docutils literal notranslate"><span class="pre"
 <section id="off-mode-fallback">
 <h2>Off-mode fallback<a class="headerlink" href="#off-mode-fallback" title="Link to this heading">¶</a></h2>
 <p>When <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> is <code class="docutils literal notranslate"><span class="pre">&quot;cycle_invalid&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;pr_above_max&quot;</span></code>,
-<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;discharge_temp_above_max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;condensing_temp_above_max&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;eta_isen_below_min&quot;</span></code> or
 <code class="docutils literal notranslate"><span class="pre">&quot;t_cond_below_t_in&quot;</span></code> — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> — the
 steady-state path

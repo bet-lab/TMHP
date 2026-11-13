@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Developer naming rules: rated means a manufacturer/design reference operating point, not a maximum operating limit. ref denotes a fixed normalization point in flow scaling APIs. Physical/control li..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:12:42+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -158,7 +158,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#compressor-efficiency-range-2026-11-12">Compressor efficiency range (2026-11-12)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#compressor-operating-envelope-2026-11-13">Compressor operating envelope (2026-11-13)</a></li>
+<li><a class="reference internal" href="#compressor-operating-envelope-2026-11-13">Compressor operating envelope (2026-11-13)</a><ul>
+<li><a class="reference internal" href="#condensing-limit-t-cond-max">Condensing limit (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>)</a></li>
+</ul>
+</li>
 </ul>
 </div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
   </aside>
@@ -473,9 +476,168 @@ capacity ratio. A user value is kept.</p></td>
 <td><p>15 rev/s</p></td>
 <td><p>Unchanged.</p></td>
 </tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> (constructor, keyword)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>: by refrigerant (table below), never above the dew point
+at 0.9 of the critical pressure. <code class="docutils literal notranslate"><span class="pre">None</span></code> switches the check off; a
+number sets it.</p></td>
+<td><p>The top of the compressor envelope: the highest condensing pressure,
+stated as its saturation temperature. A point above it is not an
+operating point; see <em>Condensing limit</em> below.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
+<section id="condensing-limit-t-cond-max">
+<h3>Condensing limit (<code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>)<a class="headerlink" href="#condensing-limit-t-cond-max" title="Link to this heading">¶</a></h3>
+<p>Every published compressor envelope ends at a maximum condensing temperature,
+which is a maximum high-side pressure: the shell, the scroll set and the motor
+are built for it and the unit’s high-pressure switch stops the compressor just
+above it. Before this limit the boilers returned normal operation at pressures
+no compressor is built for – R410A charging a tank to 65 °C at 70 °C
+condensing (4.76 MPa, 97 % of the critical pressure), R32 at 77.9 °C, a
+top-coil stratified tank with R134a at 96 °C.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.0%" />
+<col style="width: 10.0%" />
+<col style="width: 76.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Refrigerant</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Basis (upper end of the high-side working range of compressors sold for the fluid)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>R410A</p></td>
+<td><p>65 °C</p></td>
+<td><p>Copeland ZP*K3E/K5E application envelope tops at about 65.5 °C
+(replacement guidelines C050202, fig. 2); Danfoss PSH019–039 “65 °C
+saturated condensing temperature”; Danfoss DSH working range to
+41.7 bar(g) = 64.9 °C (extended models 68 °C).</p></td>
+</tr>
+<tr class="row-odd"><td><p>R32</p></td>
+<td><p>65 °C</p></td>
+<td><p>Danfoss DSF090 working range high side to 43 bar(g) = 65.2 °C;
+Copeland YP (R32) is stated to cover the field of application of
+the R410A scrolls.</p></td>
+</tr>
+<tr class="row-even"><td><p>R407C</p></td>
+<td><p>65 °C</p></td>
+<td><p>Danfoss HHP heat-pump scrolls: working range high side to
+27.4 bar(g) = 65.0 °C dew point (Copeland ZR envelope: about 67 °C).</p></td>
+</tr>
+<tr class="row-odd"><td><p>R290</p></td>
+<td><p>75 °C</p></td>
+<td><p>Copeland ZH04KCU–ZH16KCU heat-pump scrolls: high-side PS 28 bar(g)
+= 76.0 °C (Danfoss VZN: working range to 31.5 bar(g) = 82 °C).</p></td>
+</tr>
+<tr class="row-even"><td><p>R134a</p></td>
+<td><p>80 °C</p></td>
+<td><p>Danfoss VZN with R513A, the R134a pressure class: working range high
+side to 25.9 bar(g), 81.0 °C as R134a.</p></td>
+</tr>
+<tr class="row-odd"><td><p>R1234yf</p></td>
+<td><p>75 °C</p></td>
+<td><p>No envelope published for this fluid was found; the R134a pressure
+class would allow 83.3 °C. 75 °C is about 20 K below the critical
+point, as for R290.</p></td>
+</tr>
+<tr class="row-even"><td><p>R1234ze(E)</p></td>
+<td><p>90 °C</p></td>
+<td><p>Danfoss PSG605–800: working range to 25.3 bar(g) = 93.0 °C.</p></td>
+</tr>
+<tr class="row-odd"><td><p>R600a</p></td>
+<td><p>100 °C</p></td>
+<td><p>Danfoss PSG605–800: working range to 19.6 bar(g) = 102.0 °C.</p></td>
+</tr>
+<tr class="row-even"><td><p>R717</p></td>
+<td><p>70 °C</p></td>
+<td><p>The 40 bar class of ammonia heat-pump compressors (GEA Grasso V HP,
+39 bar, hot water about 70 °C); 50 and 63 bar machines reach
+82–95 °C.</p></td>
+</tr>
+<tr class="row-odd"><td><p>any other</p></td>
+<td><p>dew point at 0.9 × <code class="docutils literal notranslate"><span class="pre">P_crit</span></code></p></td>
+<td><p>No published envelope reaches it, and next to the critical point the
+condenser has almost no latent heat left. R744 gets 26.4 °C: its
+heat pumps are transcritical, which the subcritical cycle does not
+describe.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The check compares pressures: a running state is outside when its condensing
+pressure exceeds the dew pressure at <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> (by more than the pressure
+of <code class="docutils literal notranslate"><span class="pre">CONDENSING_TOL_K</span></code> = 0.01 K). For a zeotropic blend the envelope
+temperature is the dew point while the cycle’s own condensing temperature is
+the bubble point, lower by the glide: R407C reaches the 65 °C limit when
+<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span></code> is 61.2 °C. It is judged before the discharge
+temperature, since it depends neither on the efficiency model nor on the
+discharge-temperature control (the suction state the control moves does not
+change the condensing pressure).</p>
+<p>The condensing temperature is the demand-side temperature plus the condenser
+approach, and the approach shrinks with the duty, so the limit is answered
+like the other limits a smaller duty cures:</p>
+<ul class="simple">
+<li><p><strong>ASHP, GSHP</strong> — a candidate above the limit is rejected inside the
+operating-point search. When that leaves a capacity ceiling the family
+cannot name (<code class="docutils literal notranslate"><span class="pre">&quot;cycle&quot;</span></code>), the same request is solved once more without the
+limit; a ceiling that then rises is reported with
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code>. With no deliverable duty
+the result is the off state with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temp_above_max&quot;</span></code>.</p></li>
+<li><p><strong>ASHPB, GSHPB, WSHPB</strong> — the solved operating point is checked;
+<code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and each dynamic step then run at the duty that condenses
+on the limit, with <code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">capacity_binding</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temperature&quot;</span></code>. That duty is not searched
+with the ladder and bisection of the other limits: the refused request and
+the lowest duty of the ladder give two points of the condensing temperature
+over the duty, the secant gives the duty on the limit, and one solve
+confirms it (exactly, for a mixed tank whose approach is <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">UA</span></code>; a
+stratified tank’s coil-side water warms with the duty, and the secant is
+repeated). Three cycle solves for a step that runs against the limit, two
+for one that cannot run. When the tank itself is at the limit no duty runs:
+the off state with <code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;condensing_temp_above_max&quot;</span></code>.</p></li>
+<li><p>A machine whose <strong>rating point</strong> condenses above the limit is refused at
+construction (<code class="docutils literal notranslate"><span class="pre">ReferenceStateError</span></code> naming the standard, the condensing
+temperature and <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>): the nameplate cannot be defined outside the
+envelope. An 8 kW R410A boiler with a 500 W/K tank coil (16 K approach,
+71 °C at W55) is such a machine.</p></li>
+</ul>
+<p><strong>The thermostat band is capped at the envelope’s cut-out.</strong> A boiler whose
+upper set point lies above what its compressor reaches does not charge the
+tank to it; a real controller stops at the unit’s maximum. The thermostat has
+to know that temperature: a dynamic step solves one cycle, at the tank
+temperature its run averages to
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dynamic_context.resolve_step_operation()</span></code>), and applies its heat
+over the step, so a cut-out the thermostat does not see is overrun inside a
+long step by an amount that depends on the step (8 kW R410A, 100 L, 65 °C set
+point, called at 54.9 °C: the tank stopped at 62.1 °C after 0.84 kWh with
+60 s steps and at 65.0 °C after 1.19 kWh with 600 s steps, and with short
+steps every later step was a called-but-refused one).
+So at construction (<a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.limit_tank_setpoints_to_envelope" title="tmhp.compressor_envelope.limit_tank_setpoints_to_envelope"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.compressor_envelope.limit_tank_setpoints_to_envelope()</span></code></a>):</p>
+<ul class="simple">
+<li><p>the cut-out is the tank temperature at which the nameplate duty condenses
+on the limit, <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> (as the cycle’s bubble point) less
+<code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code> – 59.9 °C for R410A with the default 5 K
+approach, 60.0 °C for R32, 69.9 °C for R290;</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> above it is replaced by it, and a
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_lower_bound</span></code> that is not below it is moved down to keep the
+width of the band (the ASHPB’s 60–65 °C becomes 54.9–59.9 °C with R410A);</p></li>
+<li><p>a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> says what was changed, and
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_setpoints_requested</span></code> keeps the values asked for.</p></li>
+</ul>
+<p>Up to the cut-out the machine runs at its nameplate duty and the thermostat
+ends the run inside the step, as at any set point: the same machine, one hour
+from 50 °C, takes 1.165 kWh and stops at 59.9 °C with 60 s and with 600 s
+steps alike. A set point
+inside the envelope is untouched and nothing warns – 65 °C with R290 or
+R134a, which is why GSHPB and WSHPB default to R290. The duty reduction above
+then serves <code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> and the steps that go past the cut-out all the
+same: a stratified tank whose coil-side water is hotter than the sensor, a
+minimum run time, a set point moved after construction.</p>
 <p>Discharge-temperature control (<code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>, default 0.9; <code class="docutils literal notranslate"><span class="pre">None</span></code> switches
 it off, <code class="docutils literal notranslate"><span class="pre">1</span></code> keeps the superheat stage only) comes first. A running unit whose
 discharge runs hot opens its expansion valve and, if that is not enough, lets
@@ -742,6 +904,7 @@ discharge is 243–293 °C: they would need suction quality 0.79–0.86, because
 the fitted eta_is is 0.37–0.42 at PR 8.2–12.1 (both in the default and the
 <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> correlations). The other 7, all R32, run at a reduced duty
 (<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>, 42–98 % of the published duty) at x 0.90–0.93.</p>
+</section>
 </section>
 </section>
 

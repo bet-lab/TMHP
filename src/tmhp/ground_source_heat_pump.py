@@ -422,9 +422,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     (-8.0 °C for the default, 3 °C for water): a heating duty that would
     chill it further is reduced to the largest one that does not
     (``capacity_clamped == "max"``, ``capacity_binding ==
-    "source_fluid_freezing"``), and when no duty does -- also when the
-    compressor is already on its speed floor -- the unit is off with
-    ``failure_reason == "source_fluid_freezing"``. The liquid's density, heat
+    "source_fluid_freezing"``), and when no duty does the unit is off with
+    ``failure_reason == "source_fluid_freezing"``. A compressor on its speed
+    floor has no smaller running state: against a prescribed wall or fluid
+    temperature a minimum-speed machine that leaves the liquid below the
+    limit is off at every request. In a dynamic step the wall answers the
+    mean load, so a cycling unit is reduced to the largest mean duty whose
+    running liquid stays on the limit (a ``"max"`` row that is an on/off
+    mean, ``runtime_fraction [-]`` below 1). The liquid's density, heat
     capacity, viscosity and conductivity enter the loop balance, the default
     flow and the borehole resistance.
 

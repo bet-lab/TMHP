@@ -135,9 +135,16 @@ ethylene glycol by default (``"MEG-25%"``, freezing at -11.0 °C), or
 never colder than its freezing point plus 3 K -- -8.0 °C for the default,
 3 °C for water. A heating duty that would chill it further is reduced to the
 largest one that does not (``capacity_clamped == "max"``,
-``capacity_binding == "source_fluid_freezing"``), and when none does -- also
-when the compressor is already on its speed floor, switching on and off --
-the unit is off with ``failure_reason == "source_fluid_freezing"``. Cooling
+``capacity_binding == "source_fluid_freezing"``), and when none does the unit
+is off with ``failure_reason == "source_fluid_freezing"``. On the compressor's
+speed floor the running machine has no smaller state, so against a prescribed
+wall or fluid temperature (``analyze_steady``) a minimum-speed machine that
+leaves the liquid below the limit is off at every request. In a dynamic step
+the borehole wall answers the *mean* load: a unit that cycles with shorter
+runs sees a warmer loop, and the step is reduced to the largest mean duty
+whose running liquid stays on the limit (a ``"max"`` row that is an on/off
+mean: ``runtime_fraction [-]`` and ``capacity_ratio [-]`` below 1, ``Q_unmet
+[W]`` the part not delivered). Cooling
 warms the loop and is not affected unless the ground itself is below the
 limit. The ISO 13256-1 ground-loop heating point (liquid entering at 0 °C,
 leaving near -3 °C) and a 0 °C borehole wall are antifreeze conditions, which

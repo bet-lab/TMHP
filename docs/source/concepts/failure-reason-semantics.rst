@@ -141,7 +141,10 @@ Liquid-source families (GSHP, GSHPB, WSHPB)
         that a *smaller* duty keeps on the limit is not a failure: it returns
         that duty with ``capacity_clamped == "max"`` and ``capacity_binding ==
         "source_fluid_freezing"``, in ``analyze_steady`` and in every dynamic
-        step. Fill the loop with an antifreeze mixture, or a stronger one
+        step. On the speed floor a smaller duty helps only where the unit
+        cycles and the source answers the mean load (a GSHP dynamic step:
+        shorter runs see a warmer borehole); the reduced row is then an
+        on/off mean. Fill the loop with an antifreeze mixture, or a stronger one
         (``source_fluid="MEG-30%"``; see :ref:`source-fluid`).
       - No — only off-mode placeholders.
 

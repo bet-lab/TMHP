@@ -473,6 +473,11 @@ def _borehole_shares(solver: Any, H: np.ndarray, nt: int) -> np.ndarray:
 
 # Gauss–Legendre nodes for the step mean of an arbitrary g(t) callable.
 _GL_NODES, _GL_WEIGHTS = np.polynomial.legendre.leggauss(8)
+# An interval that starts within one width of t = 0 is split into this many
+# log-spaced panels, the first one starting this fraction of the width after
+# the interval start (one more panel covers the stretch before it).
+_EARLY_PANELS = 24
+_EARLY_FRACTION = 1.0e-6
 
 
 def g_step_mean(g, tau, dt: float):
@@ -481,6 +486,16 @@ def g_step_mean(g, tau, dt: float):
     Uses :meth:`GFunction.step_mean` (exact) when available; any other
     callable ``g(t)`` (a user or test g-function) is integrated with an
     8-point Gauss–Legendre rule per step.
+
+    A g-function rises from zero on the time scale ``r_b²/α`` (tens of
+    minutes) and like ``ln t`` afterwards, so one rule cannot resolve an
+    interval that starts at or near ``t = 0`` and is much longer than that:
+    for the first step of a line source it is 5e-4 off with daily steps and
+    1e-3 with monthly ones. An interval with ``τ < dt`` (the first step of a
+    run, a run window of the current step) is therefore integrated on panels
+    that narrow towards its start, 8 points each; against the closed-form
+    step mean of a line source that is exact to 2e-9 for steps from a minute
+    to a year. Intervals with ``τ >= dt`` use the single rule.
     """
     method = getattr(g, "step_mean", None)
     if method is not None:
@@ -488,7 +503,21 @@ def g_step_mean(g, tau, dt: float):
     tau_arr = np.maximum(np.asarray(tau, dtype=float), 0.0)
     nodes = tau_arr[..., None] + 0.5 * dt * (_GL_NODES + 1.0)
     vals = np.asarray(g(nodes.reshape(-1)), dtype=float).reshape(nodes.shape)
-    return 0.5 * vals @ _GL_WEIGHTS
+    mean = 0.5 * vals @ _GL_WEIGHTS
+    early = tau_arr < dt
+    if not np.any(early):
+        return mean
+    offsets = np.concatenate(([0.0], np.geomspace(_EARLY_FRACTION * dt, dt, _EARLY_PANELS + 1)))
+    offsets[-1] = dt
+    width = np.diff(offsets)
+    nodes = tau_arr[early][:, None, None] + offsets[:-1, None] + 0.5 * width[:, None] * (_GL_NODES + 1.0)
+    vals = np.asarray(g(nodes.reshape(-1)), dtype=float).reshape(nodes.shape)
+    graded = ((0.5 * vals @ _GL_WEIGHTS) @ width) / dt
+    if mean.ndim == 0:
+        return graded[0]
+    mean = np.array(mean, dtype=float)
+    mean[early] = graded
+    return mean
 
 
 def precompute_gfunction(

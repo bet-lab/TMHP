@@ -168,71 +168,760 @@ data-aria-dark="Switch to auto color mode">
       <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
   <article class="yue" role="main">
           <h1>Source code for tmhp.compressor_envelope</h1><div class="highlight"><pre>
-<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Compressor operating-envelope guard (pressure-ratio based).</span>
+<span></span><span data-line="1"><span class="sd">&quot;&quot;&quot;Compressor operating envelope shared by every cycle-resolved heat-pump model.</span>
 </span><span data-line="2">
-</span><span data-line="3"><span class="sd">The physically primary limit on a vapour-compression cycle is the compressor</span>
-</span><span data-line="4"><span class="sd">**pressure ratio** ``PR = P_cond / P_evap``, not a fixed temperature lift: the</span>
-</span><span data-line="5"><span class="sd">lift required to reach a given ``PR`` maps non-linearly through the refrigerant</span>
-</span><span data-line="6"><span class="sd">saturation curve (Clausius--Clapeyron) and therefore differs by refrigerant and</span>
-</span><span data-line="7"><span class="sd">operating level. A fixed minimum lift (e.g. 20 K) over- or under-states the true</span>
-</span><span data-line="8"><span class="sd">physical minimum depending on conditions; a ``PR`` floor is transferable.</span>
-</span><span data-line="9">
-</span><span data-line="10"><span class="sd">This module provides the shared envelope decision used by every heat-pump model</span>
-</span><span data-line="11"><span class="sd">so the floor/ceiling logic and reason codes stay consistent. Each model owns its</span>
-</span><span data-line="12"><span class="sd">own ``PR_cycle_min`` / ``PR_cycle_max`` attributes (user-configurable) and calls</span>
-</span><span data-line="13"><span class="sd">:func:`check_pr_envelope`; the caller then **clamps** the floor (project the</span>
-</span><span data-line="14"><span class="sd">cycle onto ``PR_cycle_min`` for a continuous low-lift transition) and **rejects**</span>
-</span><span data-line="15"><span class="sd">the ceiling (outside the single-stage envelope).</span>
-</span><span data-line="16">
-</span><span data-line="17"><span class="sd">Physical rationale: scroll axial-loading / built-in volume ratio, oil-feed</span>
-</span><span data-line="18"><span class="sd">pressure differential, and isentropic-efficiency collapse all place the floor</span>
-</span><span data-line="19"><span class="sd">near ``PR ~ 1.5`` (1.3--2.0 band). For the ceiling, the AC-scroll hardware</span>
-</span><span data-line="20"><span class="sd">self-unload limit sits near ``PR ~ 11:1`` and the single-stage modelling</span>
-</span><span data-line="21"><span class="sd">boundary near ``PR ~ 7--8``; the heat-pump models nonetheless default</span>
-</span><span data-line="22"><span class="sd">``PR_cycle_max`` to ``20`` as a deliberately generous sanity bound so that</span>
-</span><span data-line="23"><span class="sd">legitimate high-lift domestic-hot-water operation (condensing at 55--75 degC</span>
-</span><span data-line="24"><span class="sd">from a 0--12 degC source) is admitted while still rejecting non-physical</span>
-</span><span data-line="25"><span class="sd">pressure ratios (Cuevas &amp; Lebrun 2009; Bertsch &amp; Groll 2008; Gayeski et al.</span>
-</span><span data-line="26"><span class="sd">2011).</span>
-</span><span data-line="27"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="28">
-</span><span data-line="29"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="30">
-</span><span data-line="31"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;check_pr_envelope&quot;</span><span class="p">,</span> <span class="s2">&quot;PR_BELOW_MIN&quot;</span><span class="p">,</span> <span class="s2">&quot;PR_ABOVE_MAX&quot;</span><span class="p">]</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="c1">#: Reason code: pressure ratio is below ``PR_cycle_min`` (floor -&gt; clamp).</span>
-</span><span data-line="34"><span class="n">PR_BELOW_MIN</span> <span class="o">=</span> <span class="s2">&quot;pr_below_min&quot;</span>
-</span><span data-line="35"><span class="c1">#: Reason code: pressure ratio is above ``PR_cycle_max`` (ceiling -&gt; reject).</span>
-</span><span data-line="36"><span class="n">PR_ABOVE_MAX</span> <span class="o">=</span> <span class="s2">&quot;pr_above_max&quot;</span>
-</span><span data-line="37">
-</span><span data-line="38">
+</span><span data-line="3"><span class="sd">A real compressor runs inside an envelope that its manufacturer publishes and</span>
+</span><span data-line="4"><span class="sd">its controller enforces. Four limits matter for the single-stage vapour</span>
+</span><span data-line="5"><span class="sd">compression cycle TMHP solves, and this module holds the rule for each so the</span>
+</span><span data-line="6"><span class="sd">five families (ASHP, GSHP, ASHPB, GSHPB, WSHPB) apply them identically.</span>
+</span><span data-line="7">
+</span><span data-line="8"><span class="sd">Pressure ratio (``PR_cycle_min`` / ``PR_cycle_max``)</span>
+</span><span data-line="9"><span class="sd">    The physically primary lift limit is the **pressure ratio**</span>
+</span><span data-line="10"><span class="sd">    ``PR = P_cond / P_evap``, not a fixed temperature lift: the lift needed to</span>
+</span><span data-line="11"><span class="sd">    reach a given ``PR`` maps non-linearly through the saturation curve and</span>
+</span><span data-line="12"><span class="sd">    differs by refrigerant and level, so a fixed minimum lift (e.g. 20 K) over-</span>
+</span><span data-line="13"><span class="sd">    or under-states the true limit; a ``PR`` floor is transferable. Scroll axial</span>
+</span><span data-line="14"><span class="sd">    loading / built-in volume ratio, the oil-feed pressure difference and the</span>
+</span><span data-line="15"><span class="sd">    collapse of isentropic efficiency place the floor near ``PR ~ 1.5``</span>
+</span><span data-line="16"><span class="sd">    (1.3--2.0); below it the cycle is **clamped** onto the floor. The ceiling is</span>
+</span><span data-line="17"><span class="sd">    the single-stage scroll&#39;s hardware limit, about ``11:1`` (self-unloading of</span>
+</span><span data-line="18"><span class="sd">    AC scrolls; Cuevas &amp; Lebrun 2009; Bertsch &amp; Groll 2008; Gayeski et al.</span>
+</span><span data-line="19"><span class="sd">    2011); above it the point is **rejected** (:data:`PR_ABOVE_MAX`). Every</span>
+</span><span data-line="20"><span class="sd">    family defaults to :data:`PR_CYCLE_MAX_SINGLE_STAGE`. Higher ratios belong</span>
+</span><span data-line="21"><span class="sd">    to two-stage or vapour-injection machines, which the single-stage cycle</span>
+</span><span data-line="22"><span class="sd">    does not describe. Since the discharge-temperature limit below binds first</span>
+</span><span data-line="23"><span class="sd">    almost everywhere, the ratio ceiling acts as a hardware sanity bound.</span>
+</span><span data-line="24">
+</span><span data-line="25"><span class="sd">Discharge temperature (``T_dis_max``)</span>
+</span><span data-line="26"><span class="sd">    Lubricant breakdown and valve / motor temperature limit the gas leaving the</span>
+</span><span data-line="27"><span class="sd">    compressor. Compressor application guides give the protection setting:</span>
+</span><span data-line="28"><span class="sd">    Danfoss SH scrolls (R410A) &quot;discharge gas temperature must not exceed</span>
+</span><span data-line="29"><span class="sd">    135 degC&quot;; Danfoss PSH (R410A/R454B) start wet injection at 121 degC with a</span>
+</span><span data-line="30"><span class="sd">    135 degC maximum safety value; the external discharge-gas protection of</span>
+</span><span data-line="31"><span class="sd">    Danfoss DSF scrolls (R32, which &quot;leads to higher discharge temperatures</span>
+</span><span data-line="32"><span class="sd">    than R410A&quot;) opens at 150 degC at most. Unit controllers act earlier on</span>
+</span><span data-line="33"><span class="sd">    the discharge *pipe* temperature (Daikin room units reduce frequency from</span>
+</span><span data-line="34"><span class="sd">    about 100 degC and stop at 110--120 degC). A point whose computed</span>
+</span><span data-line="35"><span class="sd">    discharge temperature exceeds the limit is **not an operating point**</span>
+</span><span data-line="36"><span class="sd">    (:data:`DISCHARGE_TEMP_ABOVE_MAX`). The defaults</span>
+</span><span data-line="37"><span class="sd">    (:data:`DISCHARGE_TEMP_MAX_C`, :func:`default_discharge_temp_max`) are the</span>
+</span><span data-line="38"><span class="sd">    *protection* values -- R32 150 degC, every other fluid 135 degC -- not the</span>
+</span><span data-line="39"><span class="sd">    controllers&#39; earlier set points, because the cycle model has no shell heat</span>
+</span><span data-line="40"><span class="sd">    loss and puts every compressor loss into the gas (the default</span>
+</span><span data-line="41"><span class="sd">    electro-mechanical efficiency is about 1), so its discharge temperature is</span>
+</span><span data-line="42"><span class="sd">    an upper estimate of the machine&#39;s.</span>
+</span><span data-line="43">
+</span><span data-line="44"><span class="sd">    Discharge-temperature control comes first (:func:`discharge_controlled`,</span>
+</span><span data-line="45"><span class="sd">    ``x_suction_min``). A unit whose discharge runs hot does not stop: its</span>
+</span><span data-line="46"><span class="sd">    controller opens the expansion valve, so the suction superheat falls, and</span>
+</span><span data-line="47"><span class="sd">    then lets the suction go wet or injects liquid. The cycle at a candidate</span>
+</span><span data-line="48"><span class="sd">    operating point is therefore re-solved, compressor speed included, first</span>
+</span><span data-line="49"><span class="sd">    with the suction superheat reduced from its value towards 0 K until the</span>
+</span><span data-line="50"><span class="sd">    discharge temperature equals ``T_dis_max``, then -- if 0 K is not enough --</span>
+</span><span data-line="51"><span class="sd">    with a two-phase suction of quality ``x`` lowered towards</span>
+</span><span data-line="52"><span class="sd">    ``x_suction_min`` (default :data:`X_SUCTION_MIN_DEFAULT` = 0.9). Wet</span>
+</span><span data-line="53"><span class="sd">    suction is modelled as a homogeneous two-phase state at the evaporating</span>
+</span><span data-line="54"><span class="sd">    pressure (see :func:`tmhp.refrigerant.calc_ref_state`); the evaporator</span>
+</span><span data-line="55"><span class="sd">    outlet is then two-phase, the swept mass flow follows the homogeneous</span>
+</span><span data-line="56"><span class="sd">    density, and the isentropic work is that of the two-phase state, so the</span>
+</span><span data-line="57"><span class="sd">    cycle energy balance stays closed. The efficiency maps were fitted to dry</span>
+</span><span data-line="58"><span class="sd">    suction, so applying them to wet suction is an approximation. Only a point</span>
+</span><span data-line="59"><span class="sd">    that is still above the limit at ``x_suction_min`` is outside the envelope.</span>
+</span><span data-line="60"><span class="sd">    ``x_suction_min=1`` keeps the superheat stage only; ``None`` switches the</span>
+</span><span data-line="61"><span class="sd">    control off.</span>
+</span><span data-line="62">
+</span><span data-line="63"><span class="sd">    How a family answers a point the control cannot bring inside the limit: the space-conditioning models</span>
+</span><span data-line="64"><span class="sd">    (ASHP, GSHP) reject the candidate inside the operating-point search, so the</span>
+</span><span data-line="65"><span class="sd">    search moves to a smaller lift if one carries the duty, and otherwise the</span>
+</span><span data-line="66"><span class="sd">    existing capacity search returns the largest duty the envelope allows with</span>
+</span><span data-line="67"><span class="sd">    ``capacity_clamped=&#39;max&#39;`` and ``capacity_binding=&#39;discharge_temperature&#39;``.</span>
+</span><span data-line="68"><span class="sd">    The boilers (fixed requested duty) check the solved operating point;</span>
+</span><span data-line="69"><span class="sd">    ``analyze_steady`` then tries smaller duties (:func:`steady_envelope`) and</span>
+</span><span data-line="70"><span class="sd">    returns the largest one inside the limit the same way, or the off state</span>
+</span><span data-line="71"><span class="sd">    with ``failure_reason=&#39;discharge_temp_above_max&#39;`` when even a small duty</span>
+</span><span data-line="72"><span class="sd">    exceeds it. A dynamic boiler step does the same with its one cycle solve</span>
+</span><span data-line="73"><span class="sd">    per step (:func:`reduce_duty_within_envelope`): it runs at the reduced</span>
+</span><span data-line="74"><span class="sd">    duty, or is an off step with that reason when no duty fits.</span>
+</span><span data-line="75">
+</span><span data-line="76"><span class="sd">Speed (``rps_min`` / ``rps_max``)</span>
+</span><span data-line="77"><span class="sd">    ``rps_min`` is the inverter&#39;s floor (15 rev/s). ``rps_max`` defaults to</span>
+</span><span data-line="78"><span class="sd">    :func:`default_rps_max` of the rated speed the model solves at its rating</span>
+</span><span data-line="79"><span class="sd">    point: twice the rated speed, at most :data:`RPS_MAX_ABSOLUTE`, at least</span>
+</span><span data-line="80"><span class="sd">    1.5 times the rated speed. The rated</span>
+</span><span data-line="81"><span class="sd">    speed itself is solved over ``[rps_min, RATED_SPEED_SEARCH_MAX]``.</span>
+</span><span data-line="82">
+</span><span data-line="83"><span class="sd">Efficiency domain</span>
+</span><span data-line="84"><span class="sd">    The default efficiency fits are guarded outside their (PR, N) data</span>
+</span><span data-line="85"><span class="sd">    (:mod:`tmhp.compressor_efficiency`). Steady results carry</span>
+</span><span data-line="86"><span class="sd">    ``efficiency_extrapolated`` so a caller can see a point evaluated outside</span>
+</span><span data-line="87"><span class="sd">    the fitted data. At low speed and high pressure ratio the guard&#39;s</span>
+</span><span data-line="88"><span class="sd">    first-order continuation reaches eta_is 0.14; no separate speed floor is</span>
+</span><span data-line="89"><span class="sd">    imposed there because every such point already exceeds the discharge</span>
+</span><span data-line="90"><span class="sd">    limit (85 of 85 running points of the 2026-11-13 sweep, at 191--348 degC).</span>
+</span><span data-line="91"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="92">
+</span><span data-line="93"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="94">
+</span><span data-line="95"><span class="kn">import</span><span class="w"> </span><span class="nn">contextlib</span>
+</span><span data-line="96"><span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+</span><span data-line="97"><span class="kn">import</span><span class="w"> </span><span class="nn">io</span>
+</span><span data-line="98"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+</span><span data-line="99"><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+</span><span data-line="100"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
+</span><span data-line="101"><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+</span><span data-line="102"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="103">
+</span><span data-line="104"><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">brentq</span>
+</span><span data-line="105">
+</span><span data-line="106"><span class="kn">from</span><span class="w"> </span><span class="nn">.compressor_efficiency</span><span class="w"> </span><span class="kn">import</span> <span class="n">efficiency_extrapolated</span>
+</span><span data-line="107">
+</span><span data-line="108"><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+</span><span data-line="109">    <span class="s2">&quot;check_pr_envelope&quot;</span><span class="p">,</span>
+</span><span data-line="110">    <span class="s2">&quot;PR_BELOW_MIN&quot;</span><span class="p">,</span>
+</span><span data-line="111">    <span class="s2">&quot;PR_ABOVE_MAX&quot;</span><span class="p">,</span>
+</span><span data-line="112">    <span class="s2">&quot;PR_CYCLE_MAX_SINGLE_STAGE&quot;</span><span class="p">,</span>
+</span><span data-line="113">    <span class="s2">&quot;DISCHARGE_TEMP_ABOVE_MAX&quot;</span><span class="p">,</span>
+</span><span data-line="114">    <span class="s2">&quot;DISCHARGE_TEMP_MAX_C&quot;</span><span class="p">,</span>
+</span><span data-line="115">    <span class="s2">&quot;DISCHARGE_TEMP_MAX_DEFAULT_C&quot;</span><span class="p">,</span>
+</span><span data-line="116">    <span class="s2">&quot;DISCHARGE_TOL_K&quot;</span><span class="p">,</span>
+</span><span data-line="117">    <span class="s2">&quot;BINDING_DISCHARGE&quot;</span><span class="p">,</span>
+</span><span data-line="118">    <span class="s2">&quot;default_discharge_temp_max&quot;</span><span class="p">,</span>
+</span><span data-line="119">    <span class="s2">&quot;resolve_discharge_temp_max&quot;</span><span class="p">,</span>
+</span><span data-line="120">    <span class="s2">&quot;discharge_temp_exceeded&quot;</span><span class="p">,</span>
+</span><span data-line="121">    <span class="s2">&quot;discharge_violation&quot;</span><span class="p">,</span>
+</span><span data-line="122">    <span class="s2">&quot;ETA_ISEN_BELOW_MIN&quot;</span><span class="p">,</span>
+</span><span data-line="123">    <span class="s2">&quot;ETA_ISEN_MIN&quot;</span><span class="p">,</span>
+</span><span data-line="124">    <span class="s2">&quot;envelope_violation&quot;</span><span class="p">,</span>
+</span><span data-line="125">    <span class="s2">&quot;envelope_excess&quot;</span><span class="p">,</span>
+</span><span data-line="126">    <span class="s2">&quot;efficiency_below_floor&quot;</span><span class="p">,</span>
+</span><span data-line="127">    <span class="s2">&quot;RPS_MAX_PER_RATED&quot;</span><span class="p">,</span>
+</span><span data-line="128">    <span class="s2">&quot;RPS_MAX_ABSOLUTE&quot;</span><span class="p">,</span>
+</span><span data-line="129">    <span class="s2">&quot;RPS_MAX_MIN_PER_RATED&quot;</span><span class="p">,</span>
+</span><span data-line="130">    <span class="s2">&quot;RATED_SPEED_SEARCH_MAX&quot;</span><span class="p">,</span>
+</span><span data-line="131">    <span class="s2">&quot;default_rps_max&quot;</span><span class="p">,</span>
+</span><span data-line="132">    <span class="s2">&quot;efficiency_extrapolated_at&quot;</span><span class="p">,</span>
+</span><span data-line="133">    <span class="s2">&quot;steady_envelope&quot;</span><span class="p">,</span>
+</span><span data-line="134">    <span class="s2">&quot;reduce_duty_within_envelope&quot;</span><span class="p">,</span>
+</span><span data-line="135">    <span class="s2">&quot;X_SUCTION_MIN_DEFAULT&quot;</span><span class="p">,</span>
+</span><span data-line="136">    <span class="s2">&quot;resolve_x_suction_min&quot;</span><span class="p">,</span>
+</span><span data-line="137">    <span class="s2">&quot;discharge_controlled&quot;</span><span class="p">,</span>
+</span><span data-line="138"><span class="p">]</span>
+</span><span data-line="139">
+</span><span data-line="140"><span class="c1">#: Reason code: pressure ratio is below ``PR_cycle_min`` (floor -&gt; clamp).</span>
+</span><span data-line="141"><span class="n">PR_BELOW_MIN</span> <span class="o">=</span> <span class="s2">&quot;pr_below_min&quot;</span>
+</span><span data-line="142"><span class="c1">#: Reason code: pressure ratio is above ``PR_cycle_max`` (ceiling -&gt; reject).</span>
+</span><span data-line="143"><span class="n">PR_ABOVE_MAX</span> <span class="o">=</span> <span class="s2">&quot;pr_above_max&quot;</span>
+</span><span data-line="144"><span class="c1">#: Default ``PR_cycle_max`` of every family: the single-stage scroll hardware limit.</span>
+</span><span data-line="145"><span class="n">PR_CYCLE_MAX_SINGLE_STAGE</span> <span class="o">=</span> <span class="mf">11.0</span>
+</span><span data-line="146">
+</span><span data-line="147"><span class="c1">#: ``failure_reason``: even the smallest duty tried exceeds ``T_dis_max``.</span>
+</span><span data-line="148"><span class="n">DISCHARGE_TEMP_ABOVE_MAX</span> <span class="o">=</span> <span class="s2">&quot;discharge_temp_above_max&quot;</span>
+</span><span data-line="149"><span class="c1">#: ``failure_reason``: the default isentropic-efficiency fit, extrapolated, is below :data:`ETA_ISEN_MIN`.</span>
+</span><span data-line="150"><span class="n">ETA_ISEN_BELOW_MIN</span> <span class="o">=</span> <span class="s2">&quot;eta_isen_below_min&quot;</span>
+</span><span data-line="151"><span class="c1">#: Lowest isentropic efficiency of the default fit accepted outside its data [-].</span>
+</span><span data-line="152"><span class="c1">#:</span>
+</span><span data-line="153"><span class="c1">#: Inside the convex hull of its 3899 data points the default scroll fit never</span>
+</span><span data-line="154"><span class="c1">#: goes below 0.336 (at PR 7.13, 38.6 rev/s), and its lowest value over the</span>
+</span><span data-line="155"><span class="c1">#: whole (PR, N) box is 0.297 (corner PR 7.15, 33.8 rev/s). Below that the</span>
+</span><span data-line="156"><span class="c1">#: value comes only from the guard&#39;s first-order continuation towards 15 rev/s</span>
+</span><span data-line="157"><span class="c1">#: (down to 0.14) -- a compressor wasting more than 70 % of its work with no</span>
+</span><span data-line="158"><span class="c1">#: datum behind it. Such a point is outside the envelope. The rule applies only</span>
+</span><span data-line="159"><span class="c1">#: to the shipped fits (which carry a validity domain) and only where they are</span>
+</span><span data-line="160"><span class="c1">#: extrapolated; a scalar or a user model is the caller&#39;s statement.</span>
+</span><span data-line="161"><span class="n">ETA_ISEN_MIN</span> <span class="o">=</span> <span class="mf">0.30</span>
+</span><span data-line="162"><span class="c1">#: ``capacity_binding``: the duty was reduced to stay within ``T_dis_max``.</span>
+</span><span data-line="163"><span class="n">BINDING_DISCHARGE</span> <span class="o">=</span> <span class="s2">&quot;discharge_temperature&quot;</span>
+</span><span data-line="164">
+</span><span data-line="165"><span class="c1">#: Default discharge-temperature limit by refrigerant [degC]; see the module docstring.</span>
+</span><span data-line="166"><span class="n">DISCHARGE_TEMP_MAX_C</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;R32&quot;</span><span class="p">:</span> <span class="mf">150.0</span><span class="p">}</span>
+</span><span data-line="167"><span class="c1">#: Default for every refrigerant not in :data:`DISCHARGE_TEMP_MAX_C` [degC].</span>
+</span><span data-line="168"><span class="n">DISCHARGE_TEMP_MAX_DEFAULT_C</span> <span class="o">=</span> <span class="mf">135.0</span>
+</span><span data-line="169">
+</span><span data-line="170"><span class="c1">#: Default lowest suction vapour quality the discharge-temperature control may use.</span>
+</span><span data-line="171"><span class="c1">#:</span>
+</span><span data-line="172"><span class="c1">#: Two-phase suction (wet compression) is one of the methods experimentally used</span>
+</span><span data-line="173"><span class="c1">#: to hold the discharge temperature of R32 scroll compressors (Wang et al.,</span>
+</span><span data-line="174"><span class="c1">#: International Compressor Engineering Conference 2014, paper 1595; Yang et</span>
+</span><span data-line="175"><span class="c1">#: al., Int. J. Refrig. 2015), alongside liquid and two-phase injection; lower</span>
+</span><span data-line="176"><span class="c1">#: suction quality lowers the discharge temperature but raises the risk of</span>
+</span><span data-line="177"><span class="c1">#: over-wet compression and liquid slugging. No published lower bound on the</span>
+</span><span data-line="178"><span class="c1">#: suction quality was found: 0.9 is a conservative default without a</span>
+</span><span data-line="179"><span class="c1">#: quantitative basis (at most 10 % liquid by mass, of the order of the</span>
+</span><span data-line="180"><span class="c1">#: liquid-injection ratios used for discharge-temperature control). Override it</span>
+</span><span data-line="181"><span class="c1">#: with the constructor argument ``x_suction_min``.</span>
+</span><span data-line="182"><span class="n">X_SUCTION_MIN_DEFAULT</span> <span class="o">=</span> <span class="mf">0.9</span>
+</span><span data-line="183">
+</span><span data-line="184"><span class="c1">#: ``rps_max`` default: this multiple of the rated speed ...</span>
+</span><span data-line="185"><span class="n">RPS_MAX_PER_RATED</span> <span class="o">=</span> <span class="mf">2.0</span>
+</span><span data-line="186"><span class="c1">#: ... but no more than this [rev/s] (7200 rpm, the top of variable-speed scroll and rotary ranges) ...</span>
+</span><span data-line="187"><span class="n">RPS_MAX_ABSOLUTE</span> <span class="o">=</span> <span class="mf">120.0</span>
+</span><span data-line="188"><span class="c1">#: ... and never less than this multiple of the rated speed (catalogue maximum / rated capacity &lt;= 1.52).</span>
+</span><span data-line="189"><span class="n">RPS_MAX_MIN_PER_RATED</span> <span class="o">=</span> <span class="mf">1.5</span>
+</span><span data-line="190"><span class="c1">#: Upper speed bound for *solving* the rated speed when ``rps_max`` is not given [rev/s].</span>
+</span><span data-line="191"><span class="n">RATED_SPEED_SEARCH_MAX</span> <span class="o">=</span> <span class="mf">150.0</span>
+</span><span data-line="192">
+</span><span data-line="193"><span class="c1">#: Tolerance of every discharge-temperature comparison [K]. The control solves</span>
+</span><span data-line="194"><span class="c1">#: T_dis = T_dis_max by root finding, so the check that follows has to accept</span>
+</span><span data-line="195"><span class="c1">#: the root&#39;s own residual (brentq: ~1e-3 K); 0.01 K is far below any meaning</span>
+</span><span data-line="196"><span class="c1">#: the limit has.</span>
+</span><span data-line="197"><span class="n">DISCHARGE_TOL_K</span> <span class="o">=</span> <span class="mf">0.01</span>
+</span><span data-line="198"><span class="n">_DISCHARGE_TOL_K</span> <span class="o">=</span> <span class="n">DISCHARGE_TOL_K</span>
+</span><span data-line="199">
+</span><span data-line="200">
 <div class="viewcode-block" id="check_pr_envelope">
 <a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.check_pr_envelope">[docs]</a>
-</span><span data-line="39"><span class="k">def</span><span class="w"> </span><span class="nf">check_pr_envelope</span><span class="p">(</span><span class="n">pr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pr_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pr_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="40"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify a compressor pressure ratio against the operating envelope.</span>
-</span><span data-line="41">
-</span><span data-line="42"><span class="sd">    Parameters</span>
-</span><span data-line="43"><span class="sd">    ----------</span>
-</span><span data-line="44"><span class="sd">    pr</span>
-</span><span data-line="45"><span class="sd">        Compressor pressure ratio ``P_cond / P_evap`` (dimensionless, &gt;= 1).</span>
-</span><span data-line="46"><span class="sd">    pr_min</span>
-</span><span data-line="47"><span class="sd">        Lower envelope bound (floor). Below this the scrolls unload / oil-feed</span>
-</span><span data-line="48"><span class="sd">        differential and isentropic efficiency collapse.</span>
-</span><span data-line="49"><span class="sd">    pr_max</span>
-</span><span data-line="50"><span class="sd">        Upper envelope bound (ceiling). Above this a single-stage cycle is no</span>
-</span><span data-line="51"><span class="sd">        longer representative.</span>
-</span><span data-line="52">
-</span><span data-line="53"><span class="sd">    Returns</span>
-</span><span data-line="54"><span class="sd">    -------</span>
-</span><span data-line="55"><span class="sd">    str | None</span>
-</span><span data-line="56"><span class="sd">        ``None`` when ``pr_min &lt;= pr &lt;= pr_max`` (feasible); otherwise</span>
-</span><span data-line="57"><span class="sd">        :data:`PR_BELOW_MIN` or :data:`PR_ABOVE_MAX`.</span>
-</span><span data-line="58"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="59">    <span class="k">if</span> <span class="n">pr</span> <span class="o">&lt;</span> <span class="n">pr_min</span><span class="p">:</span>
-</span><span data-line="60">        <span class="k">return</span> <span class="n">PR_BELOW_MIN</span>
-</span><span data-line="61">    <span class="k">if</span> <span class="n">pr</span> <span class="o">&gt;</span> <span class="n">pr_max</span><span class="p">:</span>
-</span><span data-line="62">        <span class="k">return</span> <span class="n">PR_ABOVE_MAX</span>
-</span><span data-line="63">    <span class="k">return</span> <span class="kc">None</span></div>
+</span><span data-line="201"><span class="k">def</span><span class="w"> </span><span class="nf">check_pr_envelope</span><span class="p">(</span><span class="n">pr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pr_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pr_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="202"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify a compressor pressure ratio against the operating envelope.</span>
+</span><span data-line="203">
+</span><span data-line="204"><span class="sd">    Returns ``None`` when ``pr_min &lt;= pr &lt;= pr_max`` (feasible); otherwise</span>
+</span><span data-line="205"><span class="sd">    :data:`PR_BELOW_MIN` or :data:`PR_ABOVE_MAX`.</span>
+</span><span data-line="206"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="207">    <span class="k">if</span> <span class="n">pr</span> <span class="o">&lt;</span> <span class="n">pr_min</span><span class="p">:</span>
+</span><span data-line="208">        <span class="k">return</span> <span class="n">PR_BELOW_MIN</span>
+</span><span data-line="209">    <span class="k">if</span> <span class="n">pr</span> <span class="o">&gt;</span> <span class="n">pr_max</span><span class="p">:</span>
+</span><span data-line="210">        <span class="k">return</span> <span class="n">PR_ABOVE_MAX</span>
+</span><span data-line="211">    <span class="k">return</span> <span class="kc">None</span></div>
+
+</span><span data-line="212">
+</span><span data-line="213">
+</span><span data-line="214"><span class="k">def</span><span class="w"> </span><span class="nf">_fluid_name</span><span class="p">(</span><span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="215">    <span class="c1"># &quot;HEOS::R32&quot; and &quot;R32&quot; name the same fluid; mixtures keep their spelling.</span>
+</span><span data-line="216">    <span class="k">return</span> <span class="n">ref</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;HEOS::&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;[&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ref</span> <span class="k">else</span> <span class="n">ref</span>
+</span><span data-line="217">
+</span><span data-line="218">
+<div class="viewcode-block" id="default_discharge_temp_max">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.default_discharge_temp_max">[docs]</a>
+</span><span data-line="219"><span class="k">def</span><span class="w"> </span><span class="nf">default_discharge_temp_max</span><span class="p">(</span><span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="220"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default discharge-temperature limit for refrigerant ``ref`` [degC].&quot;&quot;&quot;</span>
+</span><span data-line="221">    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">DISCHARGE_TEMP_MAX_C</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_fluid_name</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="n">DISCHARGE_TEMP_MAX_DEFAULT_C</span><span class="p">))</span></div>
+
+</span><span data-line="222">
+</span><span data-line="223">
+<div class="viewcode-block" id="resolve_discharge_temp_max">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_discharge_temp_max">[docs]</a>
+</span><span data-line="224"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_discharge_temp_max</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;auto&quot;</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="225"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; limit: ``&quot;auto&quot;`` the refrigerant default, ``None`` no check.&quot;&quot;&quot;</span>
+</span><span data-line="226">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="227">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="228">    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span data-line="229">        <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+</span><span data-line="230">            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T_dis_max must be a temperature in degC, &#39;auto&#39; or None, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="231">        <span class="k">return</span> <span class="n">default_discharge_temp_max</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+</span><span data-line="232">    <span class="n">limit</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="233">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">limit</span><span class="p">):</span>
+</span><span data-line="234">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;T_dis_max must be finite (use None to switch the check off)&quot;</span><span class="p">)</span>
+</span><span data-line="235">    <span class="k">return</span> <span class="n">limit</span></div>
+
+</span><span data-line="236">
+</span><span data-line="237">
+<div class="viewcode-block" id="resolve_x_suction_min">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_x_suction_min">[docs]</a>
+</span><span data-line="238"><span class="k">def</span><span class="w"> </span><span class="nf">resolve_x_suction_min</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="239"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Constructor argument -&gt; lowest suction quality of the control (``None``: no control).&quot;&quot;&quot;</span>
+</span><span data-line="240">    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="241">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="242">    <span class="n">x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+</span><span data-line="243">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+</span><span data-line="244">        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;x_suction_min must be a vapour quality in (0, 1] or None, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="245">    <span class="k">return</span> <span class="n">x</span></div>
+
+</span><span data-line="246">
+</span><span data-line="247">
+<div class="viewcode-block" id="discharge_temp_exceeded">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_temp_exceeded">[docs]</a>
+</span><span data-line="248"><span class="k">def</span><span class="w"> </span><span class="nf">discharge_temp_exceeded</span><span class="p">(</span><span class="n">T_dis_C</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">T_dis_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="249"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether a discharge temperature [degC] violates ``T_dis_max``.</span>
+</span><span data-line="250">
+</span><span data-line="251"><span class="sd">    A non-finite discharge temperature (no discharge state: the enthalpy left</span>
+</span><span data-line="252"><span class="sd">    the fluid&#39;s equation of state) counts as exceeded. ``T_dis_max=None``</span>
+</span><span data-line="253"><span class="sd">    switches the check off.</span>
+</span><span data-line="254"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="255">    <span class="k">if</span> <span class="n">T_dis_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="256">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="257">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="258">        <span class="n">T</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">T_dis_C</span><span class="p">))</span>
+</span><span data-line="259">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="260">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="261">    <span class="k">return</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="ow">or</span> <span class="n">T_dis_max</span> <span class="o">+</span> <span class="n">_DISCHARGE_TOL_K</span> <span class="o">&lt;</span> <span class="n">T</span></div>
+
+</span><span data-line="262">
+</span><span data-line="263">
+<div class="viewcode-block" id="discharge_violation">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_violation">[docs]</a>
+</span><span data-line="264"><span class="k">def</span><span class="w"> </span><span class="nf">discharge_violation</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">T_dis_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="265"><span class="w">    </span><span class="sd">&quot;&quot;&quot;:data:`DISCHARGE_TEMP_ABOVE_MAX` if a solved state exceeds ``T_dis_max``, else ``None``.&quot;&quot;&quot;</span>
+</span><span data-line="266">    <span class="k">if</span> <span class="n">discharge_temp_exceeded</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_ref_cmp_out [°C]&quot;</span><span class="p">),</span> <span class="n">T_dis_max</span><span class="p">):</span>
+</span><span data-line="267">        <span class="k">return</span> <span class="n">DISCHARGE_TEMP_ABOVE_MAX</span>
+</span><span data-line="268">    <span class="k">return</span> <span class="kc">None</span></div>
+
+</span><span data-line="269">
+</span><span data-line="270">
+</span><span data-line="271"><span class="k">def</span><span class="w"> </span><span class="nf">_eta_isen</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="272">    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;eta_cmp_isen [-]&quot;</span><span class="p">,</span> <span class="s2">&quot;eta_is [-]&quot;</span><span class="p">):</span>
+</span><span data-line="273">        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="274">            <span class="k">try</span><span class="p">:</span>
+</span><span data-line="275">                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+</span><span data-line="276">            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="277">                <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="278">    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="279">
+</span><span data-line="280">
+<div class="viewcode-block" id="efficiency_below_floor">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.efficiency_below_floor">[docs]</a>
+</span><span data-line="281"><span class="k">def</span><span class="w"> </span><span class="nf">efficiency_below_floor</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="282"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The shipped isentropic fit, evaluated outside its data, is below :data:`ETA_ISEN_MIN`.&quot;&quot;&quot;</span>
+</span><span data-line="283">    <span class="n">eta_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="284">    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">eta_model</span><span class="p">,</span> <span class="s2">&quot;validity_domain&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="285">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="286">    <span class="n">eta</span> <span class="o">=</span> <span class="n">_eta_isen</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span data-line="287">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">eta</span><span class="p">)</span> <span class="ow">and</span> <span class="n">eta</span> <span class="o">&lt;</span> <span class="n">ETA_ISEN_MIN</span><span class="p">):</span>
+</span><span data-line="288">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="289">    <span class="k">return</span> <span class="n">efficiency_extrapolated_at</span><span class="p">((</span><span class="n">eta_model</span><span class="p">,),</span> <span class="n">result</span><span class="p">)</span></div>
+
+</span><span data-line="290">
+</span><span data-line="291">
+<div class="viewcode-block" id="envelope_violation">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.envelope_violation">[docs]</a>
+</span><span data-line="292"><span class="k">def</span><span class="w"> </span><span class="nf">envelope_violation</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="293"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Why a solved running state is outside the compressor envelope, or ``None``.</span>
+</span><span data-line="294">
+</span><span data-line="295"><span class="sd">    :data:`DISCHARGE_TEMP_ABOVE_MAX` (after the discharge-temperature control)</span>
+</span><span data-line="296"><span class="sd">    or :data:`ETA_ISEN_BELOW_MIN`.</span>
+</span><span data-line="297"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="298">    <span class="n">reason</span> <span class="o">=</span> <span class="n">discharge_violation</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;T_dis_max&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+</span><span data-line="299">    <span class="k">if</span> <span class="n">reason</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="300">        <span class="k">return</span> <span class="n">reason</span>
+</span><span data-line="301">    <span class="k">if</span> <span class="n">efficiency_below_floor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+</span><span data-line="302">        <span class="k">return</span> <span class="n">ETA_ISEN_BELOW_MIN</span>
+</span><span data-line="303">    <span class="k">return</span> <span class="kc">None</span></div>
+
+</span><span data-line="304">
+</span><span data-line="305">
+<div class="viewcode-block" id="envelope_excess">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.envelope_excess">[docs]</a>
+</span><span data-line="306"><span class="k">def</span><span class="w"> </span><span class="nf">envelope_excess</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="307"><span class="w">    </span><span class="sd">&quot;&quot;&quot;How far a solved running state is outside the envelope, as a ranking weight [W-equivalent].</span>
+</span><span data-line="308">
+</span><span data-line="309"><span class="sd">    0 inside. 1000 per kelvin of discharge above ``T_dis_max`` (beyond</span>
+</span><span data-line="310"><span class="sd">    :data:`DISCHARGE_TOL_K`; an undefined discharge state counts as very far)</span>
+</span><span data-line="311"><span class="sd">    plus 1e6 per unit of isentropic efficiency below :data:`ETA_ISEN_MIN` where</span>
+</span><span data-line="312"><span class="sd">    the floor applies. Used by searches to rank candidates outside the</span>
+</span><span data-line="313"><span class="sd">    envelope among themselves.</span>
+</span><span data-line="314"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="315">    <span class="n">excess</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="316">    <span class="n">T_max</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;T_dis_max&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="317">    <span class="k">if</span> <span class="n">T_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="318">        <span class="n">T</span> <span class="o">=</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span data-line="319">        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+</span><span data-line="320">            <span class="n">excess</span> <span class="o">+=</span> <span class="mf">1.0e9</span>
+</span><span data-line="321">        <span class="k">elif</span> <span class="n">T_max</span> <span class="o">+</span> <span class="n">DISCHARGE_TOL_K</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+</span><span data-line="322">            <span class="n">excess</span> <span class="o">+=</span> <span class="mf">1000.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="n">T_max</span><span class="p">)</span>
+</span><span data-line="323">    <span class="k">if</span> <span class="n">efficiency_below_floor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+</span><span data-line="324">        <span class="n">excess</span> <span class="o">+=</span> <span class="mf">1.0e6</span> <span class="o">*</span> <span class="p">(</span><span class="n">ETA_ISEN_MIN</span> <span class="o">-</span> <span class="n">_eta_isen</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</span><span data-line="325">    <span class="k">return</span> <span class="n">excess</span></div>
+
+</span><span data-line="326">
+</span><span data-line="327">
+<div class="viewcode-block" id="default_rps_max">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.default_rps_max">[docs]</a>
+</span><span data-line="328"><span class="k">def</span><span class="w"> </span><span class="nf">default_rps_max</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="329"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Default upper speed bound from the rated speed [rev/s].</span>
+</span><span data-line="330">
+</span><span data-line="331"><span class="sd">    ``max(min(2 * rps_rated, 120), 1.5 * rps_rated)``. Inverter heat pumps</span>
+</span><span data-line="332"><span class="sd">    reach their published maximum capacity at 1.0--1.52 times the nameplate</span>
+</span><span data-line="333"><span class="sd">    (the adopted validation catalogues); the model needs at most 1.66 times</span>
+</span><span data-line="334"><span class="sd">    the rated speed for those points (Daikin RXM20A heating). Twice the rated</span>
+</span><span data-line="335"><span class="sd">    speed keeps them all with margin while refusing the 2.5--5.9 times</span>
+</span><span data-line="336"><span class="sd">    nameplate compressor capacity the former fixed 150 rev/s allowed, and</span>
+</span><span data-line="337"><span class="sd">    120 rev/s (7200 rpm) is the top of the variable-speed scroll and rotary</span>
+</span><span data-line="338"><span class="sd">    ranges. A machine whose *rated* speed is already high -- a</span>
+</span><span data-line="339"><span class="sd">    low-volumetric-capacity fluid with the refrigerant-independent default</span>
+</span><span data-line="340"><span class="sd">    displacement, e.g. R134a at 90 rev/s (#86) -- keeps at least</span>
+</span><span data-line="341"><span class="sd">    :data:`RPS_MAX_MIN_PER_RATED` times its rated speed, so it can still reach</span>
+</span><span data-line="342"><span class="sd">    the catalogue maximum-to-rated ratio; such a machine should be given its</span>
+</span><span data-line="343"><span class="sd">    real ``V_cmp_ref``.</span>
+</span><span data-line="344"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="345">    <span class="n">rated</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rps_rated</span><span class="p">)</span>
+</span><span data-line="346">    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">RPS_MAX_PER_RATED</span> <span class="o">*</span> <span class="n">rated</span><span class="p">,</span> <span class="n">RPS_MAX_ABSOLUTE</span><span class="p">),</span> <span class="n">RPS_MAX_MIN_PER_RATED</span> <span class="o">*</span> <span class="n">rated</span><span class="p">)</span></div>
+
+</span><span data-line="347">
+</span><span data-line="348">
+<div class="viewcode-block" id="efficiency_extrapolated_at">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.efficiency_extrapolated_at">[docs]</a>
+</span><span data-line="349"><span class="k">def</span><span class="w"> </span><span class="nf">efficiency_extrapolated_at</span><span class="p">(</span><span class="n">models</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="350"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether any default efficiency fit is evaluated outside its data at this state.</span>
+</span><span data-line="351">
+</span><span data-line="352"><span class="sd">    Pressure ratio and speed are read from the result row</span>
+</span><span data-line="353"><span class="sd">    (``P_ref_cmp_out / P_ref_cmp_in`` and ``cmp_rpm / 60``). False for a state</span>
+</span><span data-line="354"><span class="sd">    that does not run, and for scalar or user-supplied efficiencies.</span>
+</span><span data-line="355"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="356">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="357">        <span class="n">p_in</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_in [Pa]&quot;</span><span class="p">])</span>
+</span><span data-line="358">        <span class="n">p_out</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;P_ref_cmp_out [Pa]&quot;</span><span class="p">])</span>
+</span><span data-line="359">        <span class="n">rps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;cmp_rpm [rpm]&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mf">60.0</span>
+</span><span data-line="360">    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="361">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="362">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">p_in</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">p_out</span><span class="p">)</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">rps</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p_in</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">rps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+</span><span data-line="363">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="364">    <span class="n">pr</span> <span class="o">=</span> <span class="n">p_out</span> <span class="o">/</span> <span class="n">p_in</span>
+</span><span data-line="365">    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">_outside_domain</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">rps</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">models</span><span class="p">)</span></div>
+
+</span><span data-line="366">
+</span><span data-line="367">
+</span><span data-line="368"><span class="c1">#: Relative margin inside which a point on the edge of a fit&#39;s (PR, N) box</span>
+</span><span data-line="369"><span class="c1">#: counts as inside. The pressure ratio and speed are read back from the</span>
+</span><span data-line="370"><span class="c1">#: result row (``P_out / P_in``, ``cmp_rpm / 60``), so a point solved exactly</span>
+</span><span data-line="371"><span class="c1">#: on an edge -- the pressure-ratio floor sits next to the fit&#39;s PR 1.5016, and</span>
+</span><span data-line="372"><span class="c1">#: a speed bound can coincide with 33.8 or 72.5 rev/s -- comes back a few ulp</span>
+</span><span data-line="373"><span class="c1">#: either side, and the flag (and the efficiency floor that uses it) would</span>
+</span><span data-line="374"><span class="c1">#: differ between platforms. 1e-6 is the relative tolerance of the step-kernel</span>
+</span><span data-line="375"><span class="c1">#: goldens and far below any physical meaning of the box.</span>
+</span><span data-line="376"><span class="n">_DOMAIN_RTOL</span> <span class="o">=</span> <span class="mf">1e-6</span>
+</span><span data-line="377">
+</span><span data-line="378">
+</span><span data-line="379"><span class="k">def</span><span class="w"> </span><span class="nf">_outside_domain</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">pressure_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rps</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="380">    <span class="n">domain</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;validity_domain&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span data-line="381">    <span class="k">if</span> <span class="n">domain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">efficiency_extrapolated</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">pressure_ratio</span><span class="p">,</span> <span class="n">rps</span><span class="p">):</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="382">        <span class="k">return</span> <span class="kc">False</span>
+</span><span data-line="383">    <span class="n">tol</span> <span class="o">=</span> <span class="n">_DOMAIN_RTOL</span>
+</span><span data-line="384">    <span class="k">return</span> <span class="ow">not</span> <span class="p">(</span>
+</span><span data-line="385">        <span class="n">domain</span><span class="o">.</span><span class="n">pr_min</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tol</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">pressure_ratio</span> <span class="o">&lt;=</span> <span class="n">domain</span><span class="o">.</span><span class="n">pr_max</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">tol</span><span class="p">)</span>
+</span><span data-line="386">        <span class="ow">and</span> <span class="n">domain</span><span class="o">.</span><span class="n">rps_min</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tol</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">rps</span> <span class="o">&lt;=</span> <span class="n">domain</span><span class="o">.</span><span class="n">rps_max</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">tol</span><span class="p">)</span>
+</span><span data-line="387">    <span class="p">)</span>
+</span><span data-line="388">
+</span><span data-line="389">
+</span><span data-line="390"><span class="n">_F</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_F&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span>
+</span><span data-line="391">
+</span><span data-line="392"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="393"><span class="c1"># Discharge-temperature control (wraps a family&#39;s cycle evaluation)</span>
+</span><span data-line="394"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="395">
+</span><span data-line="396"><span class="c1">#: Result keys the control adds to every running cycle state (all five families).</span>
+</span><span data-line="397"><span class="n">SUPERHEAT_KEY</span> <span class="o">=</span> <span class="s2">&quot;dT_ref_superheat [K]&quot;</span>
+</span><span data-line="398"><span class="n">QUALITY_KEY</span> <span class="o">=</span> <span class="s2">&quot;x_ref_cmp_in [-]&quot;</span>
+</span><span data-line="399"><span class="n">CONTROL_KEY</span> <span class="o">=</span> <span class="s2">&quot;discharge_control&quot;</span>
+</span><span data-line="400"><span class="n">_T_DIS_KEY</span> <span class="o">=</span> <span class="s2">&quot;T_ref_cmp_out [°C]&quot;</span>
+</span><span data-line="401"><span class="n">_SUPERHEAT_XTOL_K</span> <span class="o">=</span> <span class="mf">1e-3</span>
+</span><span data-line="402"><span class="n">_QUALITY_XTOL</span> <span class="o">=</span> <span class="mf">1e-5</span>
+</span><span data-line="403">
+</span><span data-line="404">
+</span><span data-line="405"><span class="k">def</span><span class="w"> </span><span class="nf">_state_running</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="406">    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">))</span> <span class="ow">and</span> <span class="n">_T_DIS_KEY</span> <span class="ow">in</span> <span class="n">result</span>
+</span><span data-line="407">
+</span><span data-line="408">
+</span><span data-line="409"><span class="k">def</span><span class="w"> </span><span class="nf">_discharge</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="410">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="411">        <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="n">_T_DIS_KEY</span><span class="p">])</span>
+</span><span data-line="412">    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="413">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="414">    <span class="k">return</span> <span class="n">value</span> <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">inf</span>
+</span><span data-line="415">
+</span><span data-line="416">
+</span><span data-line="417"><span class="k">def</span><span class="w"> </span><span class="nf">_superheat</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="418">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="419">        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;T_ref_cmp_in [°C]&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;T_ref_evap_sat [°C]&quot;</span><span class="p">]))</span>
+</span><span data-line="420">    <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="421">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="422">
+</span><span data-line="423">
+<div class="viewcode-block" id="discharge_controlled">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_controlled">[docs]</a>
+</span><span data-line="424"><span class="k">def</span><span class="w"> </span><span class="nf">discharge_controlled</span><span class="p">(</span><span class="n">reject</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="425"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrap a family&#39;s ``_calc_state`` with the discharge-temperature control.</span>
+</span><span data-line="426">
+</span><span data-line="427"><span class="sd">    The wrapped method evaluates one candidate operating point; it reads the</span>
+</span><span data-line="428"><span class="sd">    suction superheat from ``self.dT_superheat`` (capped by the evaporator</span>
+</span><span data-line="429"><span class="sd">    approach where the family caps it) and the suction quality from</span>
+</span><span data-line="430"><span class="sd">    ``self._x_suction``. When the running state discharges above</span>
+</span><span data-line="431"><span class="sd">    ``self.T_dis_max``, the same candidate is re-evaluated with the superheat</span>
+</span><span data-line="432"><span class="sd">    reduced (root of ``T_dis(superheat) = T_dis_max`` on ``[0, superheat]``)</span>
+</span><span data-line="433"><span class="sd">    and, if 0 K is not enough, with the quality reduced (root on</span>
+</span><span data-line="434"><span class="sd">    ``[x_suction_min, 1]``). Every running state gets</span>
+</span><span data-line="435"><span class="sd">    :data:`SUPERHEAT_KEY`, :data:`QUALITY_KEY` and :data:`CONTROL_KEY`.</span>
+</span><span data-line="436">
+</span><span data-line="437"><span class="sd">    A state still above the limit is returned as is when ``reject`` is false</span>
+</span><span data-line="438"><span class="sd">    (the boilers check the solved operating point and reduce the duty), and is</span>
+</span><span data-line="439"><span class="sd">    rejected -- ``None``, with ``self._last_pr_event`` naming the discharge</span>
+</span><span data-line="440"><span class="sd">    limit -- when ``reject`` is true (ASHP, GSHP: a candidate inside the search).</span>
+</span><span data-line="441"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="442">
+</span><span data-line="443">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="444">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="445">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="446">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="447">            <span class="k">if</span> <span class="n">reject</span> <span class="ow">and</span> <span class="n">_state_running</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="ow">and</span> <span class="n">efficiency_below_floor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+</span><span data-line="448">                <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span> <span class="o">=</span> <span class="p">(</span><span class="n">ETA_ISEN_BELOW_MIN</span><span class="p">,</span> <span class="n">_eta_isen</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="n">ETA_ISEN_MIN</span><span class="p">)</span>
+</span><span data-line="449">                <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="450">            <span class="n">T_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_dis_max</span>
+</span><span data-line="451">            <span class="k">if</span> <span class="n">T_max</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_state_running</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+</span><span data-line="452">                <span class="c1"># No limit: the cycle state is returned untouched (the steady</span>
+</span><span data-line="453">                <span class="c1"># wrapper still reports superheat and quality).</span>
+</span><span data-line="454">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="455">            <span class="n">superheat0</span> <span class="o">=</span> <span class="n">_superheat</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span data-line="456">            <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">SUPERHEAT_KEY</span><span class="p">:</span> <span class="n">superheat0</span><span class="p">,</span> <span class="n">QUALITY_KEY</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_x_suction</span><span class="p">),</span> <span class="n">CONTROL_KEY</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+</span><span data-line="457">            <span class="k">if</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">T_max</span> <span class="o">+</span> <span class="n">_DISCHARGE_TOL_K</span><span class="p">:</span>
+</span><span data-line="458">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="459">
+</span><span data-line="460">            <span class="c1"># A caller&#39;s diagnostics dict (ASHPB ``hx_diag``) must describe the</span>
+</span><span data-line="461">            <span class="c1"># state returned: each re-evaluation fills a fresh one, copied back</span>
+</span><span data-line="462">            <span class="c1"># only for the state the control keeps.</span>
+</span><span data-line="463">            <span class="n">diag_out</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hx_diag&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hx_diag&quot;</span><span class="p">),</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+</span><span data-line="464">            <span class="n">diags</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="465">
+</span><span data-line="466">            <span class="k">def</span><span class="w"> </span><span class="nf">at</span><span class="p">(</span><span class="n">superheat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">quality</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="467">                <span class="n">saved</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_suction</span><span class="p">)</span>
+</span><span data-line="468">                <span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_suction</span> <span class="o">=</span> <span class="n">superheat</span><span class="p">,</span> <span class="n">quality</span>
+</span><span data-line="469">                <span class="n">call_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="470">                <span class="n">fresh</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span data-line="471">                <span class="k">if</span> <span class="n">diag_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="472">                    <span class="n">call_kwargs</span><span class="p">[</span><span class="s2">&quot;hx_diag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fresh</span>
+</span><span data-line="473">                <span class="k">try</span><span class="p">:</span>
+</span><span data-line="474">                    <span class="n">state</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">call_kwargs</span><span class="p">)</span>
+</span><span data-line="475">                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+</span><span data-line="476">                    <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span data-line="477">                <span class="k">finally</span><span class="p">:</span>
+</span><span data-line="478">                    <span class="bp">self</span><span class="o">.</span><span class="n">dT_superheat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x_suction</span> <span class="o">=</span> <span class="n">saved</span>
+</span><span data-line="479">                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">_state_running</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">_discharge</span><span class="p">(</span><span class="n">state</span><span class="p">)):</span>
+</span><span data-line="480">                    <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="481">                <span class="n">state</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">SUPERHEAT_KEY</span><span class="p">:</span> <span class="n">_superheat</span><span class="p">(</span><span class="n">state</span><span class="p">),</span> <span class="n">QUALITY_KEY</span><span class="p">:</span> <span class="n">quality</span><span class="p">,</span> <span class="n">CONTROL_KEY</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</span><span data-line="482">                <span class="n">diags</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">state</span><span class="p">)]</span> <span class="o">=</span> <span class="n">fresh</span>
+</span><span data-line="483">                <span class="k">return</span> <span class="n">state</span>
+</span><span data-line="484">
+</span><span data-line="485">            <span class="n">controlled</span> <span class="o">=</span> <span class="n">_control</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">superheat0</span><span class="p">,</span> <span class="n">T_max</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_suction_min</span><span class="p">)</span>
+</span><span data-line="486">            <span class="k">if</span> <span class="n">controlled</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">diag_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="487">                <span class="n">diag_out</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span data-line="488">                <span class="n">diag_out</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">diags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">controlled</span><span class="p">),</span> <span class="p">{}))</span>
+</span><span data-line="489">            <span class="k">if</span> <span class="n">controlled</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="490">                <span class="k">if</span> <span class="n">reject</span> <span class="ow">and</span> <span class="n">efficiency_below_floor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">controlled</span><span class="p">):</span>
+</span><span data-line="491">                    <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span> <span class="o">=</span> <span class="p">(</span><span class="n">ETA_ISEN_BELOW_MIN</span><span class="p">,</span> <span class="n">_eta_isen</span><span class="p">(</span><span class="n">controlled</span><span class="p">),</span> <span class="n">ETA_ISEN_MIN</span><span class="p">)</span>
+</span><span data-line="492">                    <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="493">                <span class="k">return</span> <span class="n">controlled</span>
+</span><span data-line="494">            <span class="k">if</span> <span class="n">reject</span><span class="p">:</span>
+</span><span data-line="495">                <span class="bp">self</span><span class="o">.</span><span class="n">_last_pr_event</span> <span class="o">=</span> <span class="p">(</span><span class="n">DISCHARGE_TEMP_ABOVE_MAX</span><span class="p">,</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">T_max</span><span class="p">))</span>
+</span><span data-line="496">                <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="497">            <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="498">
+</span><span data-line="499">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="500">
+</span><span data-line="501">    <span class="k">return</span> <span class="n">decorate</span></div>
+
+</span><span data-line="502">
+</span><span data-line="503">
+</span><span data-line="504"><span class="k">def</span><span class="w"> </span><span class="nf">_control</span><span class="p">(</span>
+</span><span data-line="505">    <span class="n">at</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">superheat0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">x_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span data-line="506"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="507"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The controlled state at the discharge limit, or ``None`` when the control cannot reach it.&quot;&quot;&quot;</span>
+</span><span data-line="508">    <span class="k">if</span> <span class="n">x_min</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">superheat0</span><span class="p">):</span>
+</span><span data-line="509">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="510">
+</span><span data-line="511">    <span class="k">def</span><span class="w"> </span><span class="nf">excess</span><span class="p">(</span><span class="n">superheat</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">quality</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="512">        <span class="n">state</span> <span class="o">=</span> <span class="n">at</span><span class="p">(</span><span class="n">superheat</span><span class="p">,</span> <span class="n">quality</span><span class="p">)</span>
+</span><span data-line="513">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span> <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">-</span> <span class="n">T_max</span>
+</span><span data-line="514">
+</span><span data-line="515">    <span class="n">dry</span> <span class="o">=</span> <span class="n">excess</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="516">    <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dry</span><span class="p">):</span>
+</span><span data-line="517">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="518">    <span class="k">if</span> <span class="n">dry</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+</span><span data-line="519">        <span class="k">if</span> <span class="n">superheat0</span> <span class="o">&lt;=</span> <span class="n">_SUPERHEAT_XTOL_K</span><span class="p">:</span>
+</span><span data-line="520">            <span class="k">return</span> <span class="n">at</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="521">        <span class="k">try</span><span class="p">:</span>
+</span><span data-line="522">            <span class="n">root</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span><span class="k">lambda</span> <span class="n">sh</span><span class="p">:</span> <span class="n">excess</span><span class="p">(</span><span class="n">sh</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">superheat0</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="n">_SUPERHEAT_XTOL_K</span><span class="p">)</span>
+</span><span data-line="523">        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">):</span>
+</span><span data-line="524">            <span class="k">return</span> <span class="n">at</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="525">        <span class="c1"># Take the bracket side inside the limit.</span>
+</span><span data-line="526">        <span class="n">state</span> <span class="o">=</span> <span class="n">at</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="527">        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">T_max</span> <span class="o">+</span> <span class="n">DISCHARGE_TOL_K</span><span class="p">:</span>
+</span><span data-line="528">            <span class="n">state</span> <span class="o">=</span> <span class="n">at</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">root</span> <span class="o">-</span> <span class="n">_SUPERHEAT_XTOL_K</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span data-line="529">        <span class="k">return</span> <span class="n">state</span>
+</span><span data-line="530">    <span class="k">if</span> <span class="n">x_min</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
+</span><span data-line="531">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="532">    <span class="n">wet</span> <span class="o">=</span> <span class="n">excess</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">x_min</span><span class="p">)</span>
+</span><span data-line="533">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">wet</span><span class="p">)</span> <span class="ow">and</span> <span class="n">wet</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+</span><span data-line="534">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="535">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="536">        <span class="n">root</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">excess</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">x</span><span class="p">),</span> <span class="n">x_min</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">xtol</span><span class="o">=</span><span class="n">_QUALITY_XTOL</span><span class="p">)</span>
+</span><span data-line="537">    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">):</span>
+</span><span data-line="538">        <span class="k">return</span> <span class="n">at</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">x_min</span><span class="p">)</span>
+</span><span data-line="539">    <span class="n">state</span> <span class="o">=</span> <span class="n">at</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">root</span><span class="p">)</span>
+</span><span data-line="540">    <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">_discharge</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">T_max</span> <span class="o">+</span> <span class="n">DISCHARGE_TOL_K</span><span class="p">:</span>
+</span><span data-line="541">        <span class="n">state</span> <span class="o">=</span> <span class="n">at</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">root</span> <span class="o">-</span> <span class="n">_QUALITY_XTOL</span><span class="p">))</span>
+</span><span data-line="542">    <span class="k">return</span> <span class="n">state</span>
+</span><span data-line="543">
+</span><span data-line="544">
+</span><span data-line="545"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="546"><span class="c1"># Steady-state wrapper</span>
+</span><span data-line="547"><span class="c1"># ---------------------------------------------------------------------------</span>
+</span><span data-line="548">
+</span><span data-line="549"><span class="c1">#: Fractions of the request tried, from the top, when the request exceeds ``T_dis_max``.</span>
+</span><span data-line="550"><span class="n">_REDUCTION_LADDER</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+</span><span data-line="551"><span class="c1">#: Bisection stops once the bracket is this narrow relative to the request.</span>
+</span><span data-line="552"><span class="n">_REDUCTION_REL_TOL</span> <span class="o">=</span> <span class="mf">0.01</span>
+</span><span data-line="553"><span class="c1">#: Request keys the boilers report, replaced by the caller&#39;s request on a reduced point.</span>
+</span><span data-line="554"><span class="n">_REQUEST_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Q_ref_tank_request [W]&quot;</span><span class="p">,</span> <span class="s2">&quot;Q_tank_load [W]&quot;</span><span class="p">)</span>
+</span><span data-line="555">
+</span><span data-line="556">
+</span><span data-line="557"><span class="k">def</span><span class="w"> </span><span class="nf">_running</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="558">    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hp_is_on&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
+</span><span data-line="559">
+</span><span data-line="560">
+</span><span data-line="561"><span class="k">def</span><span class="w"> </span><span class="nf">_delivered</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="562">    <span class="k">try</span><span class="p">:</span>
+</span><span data-line="563">        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)))</span>
+</span><span data-line="564">    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+</span><span data-line="565">        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span>
+</span><span data-line="566">
+</span><span data-line="567">
+</span><span data-line="568"><span class="k">def</span><span class="w"> </span><span class="nf">_annotate</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="569">    <span class="n">models</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;eta_cmp_isen&quot;</span><span class="p">,</span> <span class="s2">&quot;eta_cmp_vol&quot;</span><span class="p">,</span> <span class="s2">&quot;eta_cmp&quot;</span><span class="p">))</span>
+</span><span data-line="570">    <span class="n">result</span><span class="p">[</span><span class="s2">&quot;efficiency_extrapolated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_running</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="ow">and</span> <span class="n">efficiency_extrapolated_at</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+</span><span data-line="571">    <span class="c1"># Suction state and control flag on every steady result of every family.</span>
+</span><span data-line="572">    <span class="n">running</span> <span class="o">=</span> <span class="n">_running</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_T_DIS_KEY</span> <span class="ow">in</span> <span class="n">result</span>
+</span><span data-line="573">    <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">SUPERHEAT_KEY</span><span class="p">,</span> <span class="n">_superheat</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="574">    <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">QUALITY_KEY</span><span class="p">,</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">running</span> <span class="k">else</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</span><span data-line="575">    <span class="n">result</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">CONTROL_KEY</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span data-line="576">    <span class="k">if</span> <span class="n">_running</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capacity_clamped&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span> <span class="ow">and</span> <span class="s2">&quot;capacity_binding&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
+</span><span data-line="577">        <span class="c1"># The boilers reach their ceiling only through the speed bound.</span>
+</span><span data-line="578">        <span class="n">result</span><span class="p">[</span><span class="s2">&quot;capacity_binding&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;compressor&quot;</span>
+</span><span data-line="579">
+</span><span data-line="580">
+</span><span data-line="581"><span class="k">def</span><span class="w"> </span><span class="nf">_reduce_to_envelope</span><span class="p">(</span><span class="n">solve</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">dict</span><span class="p">],</span> <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="582"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Largest duty below ``request`` whose solved point is a running point.</span>
+</span><span data-line="583">
+</span><span data-line="584"><span class="sd">    A ladder of smaller duties finds the highest one that runs; a bisection</span>
+</span><span data-line="585"><span class="sd">    between it and the rung above closes on the boundary. Returns ``None``</span>
+</span><span data-line="586"><span class="sd">    when no rung runs. The discharge temperature is not monotone in the duty</span>
+</span><span data-line="587"><span class="sd">    (at low speed the efficiency falls), so this is the boundary nearest the</span>
+</span><span data-line="588"><span class="sd">    request, not a global search.</span>
+</span><span data-line="589"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="590">    <span class="n">hi</span> <span class="o">=</span> <span class="n">request</span>
+</span><span data-line="591">    <span class="n">lo_q</span><span class="p">,</span> <span class="n">lo_r</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span>
+</span><span data-line="592">    <span class="k">for</span> <span class="n">fraction</span> <span class="ow">in</span> <span class="n">_REDUCTION_LADDER</span><span class="p">:</span>
+</span><span data-line="593">        <span class="n">q</span> <span class="o">=</span> <span class="n">fraction</span> <span class="o">*</span> <span class="n">request</span>
+</span><span data-line="594">        <span class="n">r</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span data-line="595">        <span class="k">if</span> <span class="n">_running</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+</span><span data-line="596">            <span class="n">lo_q</span><span class="p">,</span> <span class="n">lo_r</span> <span class="o">=</span> <span class="n">q</span><span class="p">,</span> <span class="n">r</span>
+</span><span data-line="597">            <span class="k">break</span>
+</span><span data-line="598">        <span class="n">hi</span> <span class="o">=</span> <span class="n">q</span>
+</span><span data-line="599">    <span class="k">if</span> <span class="n">lo_r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="600">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="601">    <span class="k">while</span> <span class="n">hi</span> <span class="o">-</span> <span class="n">lo_q</span> <span class="o">&gt;</span> <span class="n">_REDUCTION_REL_TOL</span> <span class="o">*</span> <span class="n">request</span><span class="p">:</span>
+</span><span data-line="602">        <span class="n">mid</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">lo_q</span> <span class="o">+</span> <span class="n">hi</span><span class="p">)</span>
+</span><span data-line="603">        <span class="n">r</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
+</span><span data-line="604">        <span class="k">if</span> <span class="n">_running</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+</span><span data-line="605">            <span class="n">lo_q</span><span class="p">,</span> <span class="n">lo_r</span> <span class="o">=</span> <span class="n">mid</span><span class="p">,</span> <span class="n">r</span>
+</span><span data-line="606">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="607">            <span class="n">hi</span> <span class="o">=</span> <span class="n">mid</span>
+</span><span data-line="608">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">_delivered</span><span class="p">(</span><span class="n">lo_r</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">)</span>
+</span><span data-line="609">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">delivered</span><span class="p">)</span> <span class="ow">and</span> <span class="n">delivered</span> <span class="o">&lt;</span> <span class="n">request</span><span class="p">):</span>
+</span><span data-line="610">        <span class="k">return</span> <span class="kc">None</span>
+</span><span data-line="611">    <span class="k">return</span> <span class="n">lo_r</span>
+</span><span data-line="612">
+</span><span data-line="613">
+<div class="viewcode-block" id="reduce_duty_within_envelope">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.reduce_duty_within_envelope">[docs]</a>
+</span><span data-line="614"><span class="k">def</span><span class="w"> </span><span class="nf">reduce_duty_within_envelope</span><span class="p">(</span>
+</span><span data-line="615">    <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="616">    <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="617">    <span class="n">solve</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="618">    <span class="n">request</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="619">    <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">,</span>
+</span><span data-line="620"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="621"><span class="w">    </span><span class="sd">&quot;&quot;&quot;The largest duty inside the discharge limit when ``result`` is refused for it.</span>
+</span><span data-line="622">
+</span><span data-line="623"><span class="sd">    ``result`` is the solve at ``request``; ``solve(q)`` solves the same</span>
+</span><span data-line="624"><span class="sd">    point at duty ``q``. When ``result`` failed with</span>
+</span><span data-line="625"><span class="sd">    :data:`DISCHARGE_TEMP_ABOVE_MAX` (even under the discharge-temperature</span>
+</span><span data-line="626"><span class="sd">    control), smaller duties are tried (:func:`_reduce_to_envelope`) and the</span>
+</span><span data-line="627"><span class="sd">    largest that runs is returned with ``capacity_clamped=&#39;max&#39;``,</span>
+</span><span data-line="628"><span class="sd">    ``capacity_binding=&#39;discharge_temperature&#39;``, ``Q_max [W]`` and</span>
+</span><span data-line="629"><span class="sd">    ``Q_request [W]``; otherwise ``result`` is returned. The boilers use it</span>
+</span><span data-line="630"><span class="sd">    for ``analyze_steady`` (:func:`steady_envelope`) and for each dynamic</span>
+</span><span data-line="631"><span class="sd">    step&#39;s cycle, so a step runs at the same reduced duty as the steady</span>
+</span><span data-line="632"><span class="sd">    solve -- its run time and step-average heat follow from that duty. The</span>
+</span><span data-line="633"><span class="sd">    trial solves run silently.</span>
+</span><span data-line="634"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="635">    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">request</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">DISCHARGE_TEMP_ABOVE_MAX</span><span class="p">):</span>
+</span><span data-line="636">        <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="637">
+</span><span data-line="638">    <span class="k">def</span><span class="w"> </span><span class="nf">quiet</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="639">        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(),</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">redirect_stdout</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()):</span>
+</span><span data-line="640">            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+</span><span data-line="641">            <span class="n">out</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+</span><span data-line="642">        <span class="k">return</span> <span class="n">out</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="p">{}</span>
+</span><span data-line="643">
+</span><span data-line="644">    <span class="n">reduced</span> <span class="o">=</span> <span class="n">_reduce_to_envelope</span><span class="p">(</span><span class="n">quiet</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">)</span>
+</span><span data-line="645">    <span class="k">if</span> <span class="n">reduced</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="646">        <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="647">    <span class="n">reduced</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+</span><span data-line="648">        <span class="p">{</span>
+</span><span data-line="649">            <span class="s2">&quot;capacity_clamped&quot;</span><span class="p">:</span> <span class="s2">&quot;max&quot;</span><span class="p">,</span>
+</span><span data-line="650">            <span class="s2">&quot;capacity_binding&quot;</span><span class="p">:</span> <span class="n">BINDING_DISCHARGE</span><span class="p">,</span>
+</span><span data-line="651">            <span class="s2">&quot;Q_max [W]&quot;</span><span class="p">:</span> <span class="n">_delivered</span><span class="p">(</span><span class="n">reduced</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">),</span>
+</span><span data-line="652">            <span class="s2">&quot;Q_request [W]&quot;</span><span class="p">:</span> <span class="n">request</span><span class="p">,</span>
+</span><span data-line="653">        <span class="p">}</span>
+</span><span data-line="654">    <span class="p">)</span>
+</span><span data-line="655">    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_REQUEST_KEYS</span><span class="p">:</span>
+</span><span data-line="656">        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reduced</span><span class="p">:</span>
+</span><span data-line="657">            <span class="n">reduced</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span>
+</span><span data-line="658">    <span class="k">if</span> <span class="s2">&quot;PLR_request [-]&quot;</span> <span class="ow">in</span> <span class="n">reduced</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;hp_capacity&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+</span><span data-line="659">        <span class="n">reduced</span><span class="p">[</span><span class="s2">&quot;PLR_request [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">request</span> <span class="o">/</span> <span class="n">model</span><span class="o">.</span><span class="n">hp_capacity</span>
+</span><span data-line="660">    <span class="k">return</span> <span class="n">reduced</span></div>
+
+</span><span data-line="661">
+</span><span data-line="662">
+<div class="viewcode-block" id="steady_envelope">
+<a class="viewcode-back" href="../../api/support/refrigerant-thermo.html#tmhp.compressor_envelope.steady_envelope">[docs]</a>
+</span><span data-line="663"><span class="k">def</span><span class="w"> </span><span class="nf">steady_envelope</span><span class="p">(</span><span class="n">duty_arg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Q_ref_tank [W]&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">_F</span><span class="p">],</span> <span class="n">_F</span><span class="p">]:</span>
+</span><span data-line="664"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorate an ``analyze_steady`` with the envelope&#39;s steady-state reporting.</span>
+</span><span data-line="665">
+</span><span data-line="666"><span class="sd">    Every result gains ``efficiency_extrapolated``. With ``duty_arg`` (the</span>
+</span><span data-line="667"><span class="sd">    boilers, whose requested duty is fixed), a request rejected with</span>
+</span><span data-line="668"><span class="sd">    :data:`DISCHARGE_TEMP_ABOVE_MAX` is retried at smaller duties; the largest</span>
+</span><span data-line="669"><span class="sd">    one inside the limit is returned with ``capacity_clamped=&#39;max&#39;``,</span>
+</span><span data-line="670"><span class="sd">    ``capacity_binding=&#39;discharge_temperature&#39;``, ``Q_max [W]`` and</span>
+</span><span data-line="671"><span class="sd">    ``Q_request [W]`` (the request keys of the family hold the caller&#39;s</span>
+</span><span data-line="672"><span class="sd">    request). If no smaller duty runs, the original off-state result stands.</span>
+</span><span data-line="673"><span class="sd">    The trial solves run silently.</span>
+</span><span data-line="674"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="675">
+</span><span data-line="676">    <span class="k">def</span><span class="w"> </span><span class="nf">decorate</span><span class="p">(</span><span class="n">function</span><span class="p">:</span> <span class="n">_F</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_F</span><span class="p">:</span>
+</span><span data-line="677">        <span class="n">signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="678">
+</span><span data-line="679">        <span class="nd">@wraps</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+</span><span data-line="680">        <span class="k">def</span><span class="w"> </span><span class="nf">wrapped</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="681">            <span class="n">bound</span> <span class="o">=</span> <span class="n">signature</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="682">            <span class="n">bound</span><span class="o">.</span><span class="n">apply_defaults</span><span class="p">()</span>
+</span><span data-line="683">            <span class="n">want_dict</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;return_dict&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+</span><span data-line="684">            <span class="k">if</span> <span class="s2">&quot;return_dict&quot;</span> <span class="ow">in</span> <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">:</span>
+</span><span data-line="685">                <span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span data-line="686">            <span class="n">result</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">bound</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">bound</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="687">            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+</span><span data-line="688">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="689">            <span class="n">request</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">])</span> <span class="k">if</span> <span class="n">duty_arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="690">            <span class="k">if</span> <span class="p">(</span>
+</span><span data-line="691">                <span class="n">duty_arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span data-line="692">                <span class="ow">and</span> <span class="n">request</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</span><span data-line="693">                <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+</span><span data-line="694">                <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;failure_reason&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">DISCHARGE_TEMP_ABOVE_MAX</span>
+</span><span data-line="695">            <span class="p">):</span>
+</span><span data-line="696">
+</span><span data-line="697">                <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span data-line="698">                    <span class="n">arguments</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">bound</span><span class="o">.</span><span class="n">arguments</span><span class="p">)</span>
+</span><span data-line="699">                    <span class="n">arguments</span><span class="p">[</span><span class="n">duty_arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span>
+</span><span data-line="700">                    <span class="n">trial</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">BoundArguments</span><span class="p">(</span><span class="n">signature</span><span class="p">,</span> <span class="n">arguments</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+</span><span data-line="701">                    <span class="k">return</span> <span class="n">function</span><span class="p">(</span><span class="o">*</span><span class="n">trial</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">trial</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="702">
+</span><span data-line="703">                <span class="n">result</span> <span class="o">=</span> <span class="n">reduce_duty_within_envelope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="n">solve</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">delivered_key</span><span class="p">)</span>
+</span><span data-line="704">            <span class="n">_annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+</span><span data-line="705">            <span class="k">if</span> <span class="n">want_dict</span><span class="p">:</span>
+</span><span data-line="706">                <span class="k">return</span> <span class="n">result</span>
+</span><span data-line="707">            <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="708">
+</span><span data-line="709">            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result</span><span class="p">])</span>
+</span><span data-line="710">
+</span><span data-line="711">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">_F</span><span class="p">,</span> <span class="n">wrapped</span><span class="p">)</span>
+</span><span data-line="712">
+</span><span data-line="713">    <span class="k">return</span> <span class="n">decorate</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

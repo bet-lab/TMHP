@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="A physics-based model is only useful if its first-principles answers land close to the real machines it is meant to describe. This page is that check. The harder question is whether it keeps landin..." />
 
-    <meta property="article:modified_time" content="2026-11-13T05:10:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -201,7 +201,10 @@ nameplate: specification, not tuning. Where the evidence for a default came
 from is a separate page, <a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>.</p>
 <p><strong>Points the model could not evaluate are reported, not dropped.</strong> The
 counts below distinguish points attempted from points evaluated, and the
-interactive table shows each unevaluated point with its reason.</p>
+interactive table shows each unevaluated point with its reason. A point at
+which the model runs but delivers more than 1 % less than the published
+duty (a capacity ceiling) is not scored either, with the reason
+<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>: its COP belongs to a different operating point.</p>
 </div>
 <div class="toctree-wrapper compound">
 </div>
@@ -243,7 +246,7 @@ cluster on the diagonal and the rest scattered.</span><a class="headerlink" href
 <td><p>Panasonic, Samsung, Daikin, Fujitsu</p></td>
 </tr>
 <tr class="row-even"><td><p>Points</p></td>
-<td><p>757 attempted, 757 evaluated</p></td>
+<td><p>757 attempted, 740 evaluated</p></td>
 </tr>
 <tr class="row-odd"><td><p>Modes</p></td>
 <td><p>Heating and cooling</p></td>
@@ -271,10 +274,21 @@ cluster on the diagonal and the rest scattered.</span><a class="headerlink" href
 questions, and the set mixes rating standards (EN 14511 and AHRI 210/240) that
 define COP differently, so each family is reported on its own and nothing is
 pooled across standards. The two held catalogues are run and written but never
-enter a headline. Every point attempted was evaluated. The compressor
-efficiencies are the shipped <code class="docutils literal notranslate"><span class="pre">BITZER-three-C3-absolute-N-2026-10-06</span></code> fits
-with their range and validity-domain guards (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), applied here
-unchanged.</p>
+enter a headline. The compressor efficiencies are the shipped
+<code class="docutils literal notranslate"><span class="pre">BITZER-three-C3-absolute-N-2026-10-06</span></code> fits with their range and
+validity-domain guards (<a class="reference internal" href="defaults.html"><span class="doc">Where the defaults come from</span></a>), applied here unchanged, inside the
+compressor operating envelope (<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>).</p>
+<p><strong>17 air-to-water points are not evaluated, all of them R32 at a high
+pressure ratio</strong> (outdoor −15 to −7 °C, leaving water 45 to 65 °C). With the
+default efficiency map the isentropic efficiency is 0.37–0.42 above PR 7.15,
+which puts the single-stage discharge temperature at 243–293 °C. Ten of the
+points stay above the R32 limit of 150 °C even with the discharge-temperature
+control: holding it would take a suction quality of 0.79–0.86, wetter than
+the 0.9 the model allows (<code class="docutils literal notranslate"><span class="pre">discharge_temp_above_max</span></code>). The other seven run,
+but only at 42–98 % of the published duty; their COP belongs to a smaller
+operating point and is not compared with the catalogue’s full-load COP
+(<code class="docutils literal notranslate"><span class="pre">capacity_short</span></code>). Twenty-three more air-to-water points are evaluated
+under the control (21 with wet suction, 2 with reduced superheat).</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -294,9 +308,9 @@ unchanged.</p>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>Air-to-water, 10 units</p></td>
-<td><p>10.3 %</p></td>
-<td><p>+5.6 %</p></td>
-<td><p>153 / 153</p></td>
+<td><p>10.5 %</p></td>
+<td><p>+5.9 %</p></td>
+<td><p>136 / 153</p></td>
 <td><p>Optimistic on average; the bias sits at +2 °C outdoor</p></td>
 </tr>
 <tr class="row-odd"><td><p>Air-to-air, Daikin, 5 units</p></td>
@@ -485,9 +499,9 @@ pair-application range is entirely R-32. Without the Fujitsu R-410A units that
 panel would say nothing about whether the physics carries across working
 fluids. It is worth being explicit that the offset above is <em>not</em> a refrigerant
 effect: the three R-410A air-to-water units sit at 9.6 to 12.3 % MAPE,
-inside the 7.0 to 17.1 % spread of the air-to-water set.</p>
+inside the 6.1 to 18.6 % spread of the air-to-water set.</p>
 <p><strong>The one air-to-water outlier turns out to be the same story.</strong> The 16 kW R32
-unit runs +17.1 % optimistic. Neither of its published inputs explains it:
+unit runs +18.6 % optimistic. Neither of its published inputs explains it:
 substituting its 12 kW sibling’s rated air flow moves the bias by 1.5 points,
 and dropping its published displacement for the library default by 3.0.
 What explains it is the catalogue itself. At every one of the fifteen

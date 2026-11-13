@@ -264,6 +264,8 @@ data-aria-dark="Switch to auto color mode">
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.beta_pv">beta_pv (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.BINDING_DISCHARGE">BINDING_DISCHARGE (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/demand-weather.html#tmhp.dhw.build_dhw_usage_ratio">build_dhw_usage_ratio() (in module tmhp.dhw)</a>
 </li>
   </ul></td>
@@ -426,6 +428,10 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/demand-weather.html#tmhp.weather.decompose_ghi_to_poa">decompose_ghi_to_poa() (in module tmhp.weather)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.default_discharge_temp_max">default_discharge_temp_max() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.default_rps_max">default_rps_max() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="models/gshpb.html#tmhp.gshpb_stc_routed.default_solar_router">default_solar_router() (in module tmhp.gshpb_stc_routed)</a>
 </li>
       <li><a href="api/support/integrations.html#tmhp.integrations.energyplus_plugin.delivered_heat_and_power">delivered_heat_and_power() (in module tmhp.integrations.energyplus_plugin)</a>
@@ -442,6 +448,22 @@ data-aria-dark="Switch to auto color mode">
       </ul></li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.discharge">discharge() (tmhp.subsystems.EnergyStorageSystem method)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_controlled">discharge_controlled() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.DISCHARGE_TEMP_ABOVE_MAX">DISCHARGE_TEMP_ABOVE_MAX (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_temp_exceeded">discharge_temp_exceeded() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_C">DISCHARGE_TEMP_MAX_C (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.DISCHARGE_TEMP_MAX_DEFAULT_C">DISCHARGE_TEMP_MAX_DEFAULT_C (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.DISCHARGE_TOL_K">DISCHARGE_TOL_K (in module tmhp.compressor_envelope)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.discharge_violation">discharge_violation() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/integrations.html#tmhp.integrations.fmu.TmhpAshpbSlave.do_step">do_step() (tmhp.integrations.fmu.TmhpAshpbSlave method)</a>
 
       <ul>
@@ -452,8 +474,6 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/integrations.html#tmhp.integrations.TmhpAshpbSlave.do_step">(tmhp.integrations.TmhpAshpbSlave method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.dP_iu_fan_design">dP_iu_fan_design (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.dP_iu_fan_rated">dP_iu_fan_rated (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
@@ -508,9 +528,17 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.E_stc_pump">E_stc_pump (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.efficiency_below_floor">efficiency_below_floor() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.efficiency_extrapolated_at">efficiency_extrapolated_at() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem">EnergyStorageSystem (class in tmhp.subsystems)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.g_function.GFunction.ensure_horizon">ensure_horizon() (tmhp.g_function.GFunction method)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.envelope_excess">envelope_excess() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.envelope_violation">envelope_violation() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.cop.EquationFitRangeError">EquationFitRangeError</a>
 </li>
@@ -541,6 +569,10 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.eta_ess_chg">eta_ess_chg (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.eta_ess_dis">eta_ess_dis (tmhp.subsystems.EnergyStorageSystem attribute)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.ETA_ISEN_BELOW_MIN">ETA_ISEN_BELOW_MIN (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.ETA_ISEN_MIN">ETA_ISEN_MIN (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.eta_iu_fan_design">eta_iu_fan_design (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
@@ -937,6 +969,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.PR_cycle_max">PR_cycle_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.PR_CYCLE_MAX_SINGLE_STAGE">PR_CYCLE_MAX_SINGLE_STAGE (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.PR_cycle_min">PR_cycle_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/heat-transfer.html#tmhp.g_function.precompute_gfunction">precompute_gfunction() (in module tmhp.g_function)</a>
@@ -997,6 +1031,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.r_out">r_out (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RATED_SPEED_SEARCH_MAX">RATED_SPEED_SEARCH_MAX (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.rating_condition">rating_condition() (in module tmhp.reference_state)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RATING_STANDARDS">RATING_STANDARDS (in module tmhp.reference_state)</a>
@@ -1004,6 +1040,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.RatingCondition">RatingCondition (class in tmhp.reference_state)</a>
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateError.reason">reason (tmhp.reference_state.ReferenceStateError attribute)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.reduce_duty_within_envelope">reduce_duty_within_envelope() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.ref">ref (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 
@@ -1019,8 +1057,6 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin">ReferenceStateMixin (class in tmhp.reference_state)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.AggregateGFunctionCoupler.reset">reset() (tmhp.ground_coupling.AggregateGFunctionCoupler method)</a>
 
       <ul>
@@ -1033,7 +1069,13 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.reset">(tmhp.subsystems.EnergyStorageSystem method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/heat-transfer.html#tmhp.ground_coupling.reset_ground_coupler">reset_ground_coupler() (in module tmhp.ground_coupling)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_discharge_temp_max">resolve_discharge_temp_max() (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.resolve_x_suction_min">resolve_x_suction_min() (in module tmhp.compressor_envelope)</a>
 </li>
       <li><a href="models/gshp.html#tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical.rho_g">rho_g (tmhp.gshp_empirical.GroundSourceHeatPumpEmpirical attribute)</a>
 </li>
@@ -1043,6 +1085,12 @@ data-aria-dark="Switch to auto color mode">
         <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateMixin.rps_max">(tmhp.reference_state.ReferenceStateMixin attribute)</a>
 </li>
       </ul></li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_ABSOLUTE">RPS_MAX_ABSOLUTE (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_MIN_PER_RATED">RPS_MAX_MIN_PER_RATED (in module tmhp.compressor_envelope)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.RPS_MAX_PER_RATED">RPS_MAX_PER_RATED (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.rps_min">rps_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 
       <ul>
@@ -1099,6 +1147,8 @@ data-aria-dark="Switch to auto color mode">
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.stc_tilt">stc_tilt (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.steady_envelope">steady_envelope() (in module tmhp.compressor_envelope)</a>
+</li>
       <li><a href="models/ashpb.html#tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler.step">step() (tmhp.air_source_heat_pump_boiler.AirSourceHeatPumpBoiler method)</a>
 
       <ul>
@@ -1152,6 +1202,8 @@ data-aria-dark="Switch to auto color mode">
       <li><a href="api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceState.T_cond_sat_C">T_cond_sat_C (tmhp.reference_state.ReferenceState attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.PhotovoltaicSystem.T_ctrl_K">T_ctrl_K (tmhp.subsystems.PhotovoltaicSystem attribute)</a>
+</li>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.T_dis_max">T_dis_max (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
 </li>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.EnergyStorageSystem.T_ess_K">T_ess_K (tmhp.subsystems.EnergyStorageSystem attribute)</a>
 </li>
@@ -1539,9 +1591,13 @@ data-aria-dark="Switch to auto color mode">
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_air_stc">x_air_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
 </li>
+      <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_ins_stc">x_ins_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector.x_ins_stc">x_ins_stc (tmhp.subsystems.SolarThermalCollector attribute)</a>
+      <li><a href="models/ashp.html#tmhp.air_source_heat_pump.AirSourceHeatPump.x_suction_min">x_suction_min (tmhp.air_source_heat_pump.AirSourceHeatPump attribute)</a>
+</li>
+      <li><a href="api/support/refrigerant-thermo.html#tmhp.compressor_envelope.X_SUCTION_MIN_DEFAULT">X_SUCTION_MIN_DEFAULT (in module tmhp.compressor_envelope)</a>
 </li>
   </ul></td>
 </tr></table>

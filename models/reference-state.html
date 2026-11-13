@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Every compressor-based model – tmhp.AirSourceHeatPump, tmhp.GroundSourceHeatPump, tmhp.AirSourceHeatPumpBoiler, tmhp.GroundSourceHeatPumpBoiler, tmhp.WaterSourceHeatPumpBoiler and the composed vari..." />
 
-    <meta property="article:modified_time" content="2026-10-08T14:29:14+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -248,7 +248,10 @@ the model’s standard/reference rating condition.</p>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rps_min</span></code> / <code class="docutils literal notranslate"><span class="pre">rps_max</span></code></p></td>
 <td><p>Hardware/control speed limits. <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> is generally <em>not</em>
-<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>: rated capacity is not maximum capacity.</p></td>
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code>: rated capacity is not maximum capacity. An omitted
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> is <code class="docutils literal notranslate"><span class="pre">max(min(2</span> <span class="pre">×</span> <span class="pre">rps_rated,</span> <span class="pre">120),</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code>
+rev/s, set once the rated speed is solved; the rated speed itself is
+searched up to 150 rev/s.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code></p></td>
 <td><p>Refrigerant mass flow of the same reference state.</p></td>
@@ -365,7 +368,8 @@ definition, not a numerical event. The constructor raises
 <a class="reference internal" href="../api/support/refrigerant-thermo.html#tmhp.reference_state.ReferenceStateError" title="tmhp.reference_state.ReferenceStateError"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.reference_state.ReferenceStateError</span></code></a> (a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>) whose
 message starts with <code class="docutils literal notranslate"><span class="pre">reference_capacity_inconsistent</span></code> when</p>
 <ul class="simple">
-<li><p>the speed needed is outside <code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">rps_max]</span></code> – typically a
+<li><p>the speed needed is outside <code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">rps_max]</span></code> (<code class="docutils literal notranslate"><span class="pre">[rps_min,</span> <span class="pre">150]</span></code>
+when <code class="docutils literal notranslate"><span class="pre">rps_max</span></code> is omitted) – typically a
 displacement that does not match the capacity, e.g. a low-pressure fluid
 such as R600a with the R32-based default displacement;</p></li>
 <li><p>the rating point requires a supercritical condenser – e.g. R744 at a
@@ -378,14 +382,15 @@ capacity and silently redefine the machine. Supply <code class="docutils literal
 <code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> an unreachable rating point only leaves <code class="docutils literal notranslate"><span class="pre">m_dot_ref_rated</span></code>
 unset (with a <code class="docutils literal notranslate"><span class="pre">RuntimeWarning</span></code>), which matters only if
 <code class="docutils literal notranslate"><span class="pre">variable_ground_hx_UA=True</span></code>.</p>
-<p>The pressure-ratio envelope (<code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> / <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>) is an
-operating limit and is not imposed on the rating point;
-<code class="docutils literal notranslate"><span class="pre">reference_state.pressure_ratio</span></code> reports it.</p>
+<p>The pressure-ratio envelope (<code class="docutils literal notranslate"><span class="pre">PR_cycle_min</span></code> / <code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>) and the
+discharge-temperature limit <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> are operating limits and are not
+imposed on the rating point; <code class="docutils literal notranslate"><span class="pre">reference_state.pressure_ratio</span></code> reports the
+ratio.</p>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Oct 08, 2026
+  Last updated Nov 13, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

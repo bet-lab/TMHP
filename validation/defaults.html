@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="TMHP decides a lot on your behalf. Hand it a capacity and a refrigerant and it produces heat-exchanger conductances, a compressor displacement, a rated air flow and three efficiency correlations. T..." />
 
-    <meta property="article:modified_time" content="2026-11-13T05:10:19+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T17:18:12+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -292,12 +292,14 @@ that lowers the efficiency</p></td>
 <td><p><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_efficiency</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p>Pressure-ratio limit</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> 11 (air-to-air), 20 (air-to-water)</p></td>
-<td><p>Operating points above it are rejected. 11 is the air-conditioning
+<td><p><code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code> 11 (air-to-air), 11 (air-to-water)</p></td>
+<td><p>Operating points above it are rejected. 11 is the single-stage
 scroll self-unload limit, above the ratio near 7 a split unit reaches
-lifting from −15 °C outdoor air; air-to-water keeps 20 for
-high-temperature hot water</p></td>
-<td><p>—</p></td>
+lifting from −15 °C outdoor air. Higher ratios are two-stage or
+injection machines; the discharge-temperature limit (R32 150 °C,
+other refrigerants 135 °C, held first by suction control) binds
+before it almost everywhere</p></td>
+<td><p><a class="reference internal" href="../api/support/refrigerant-thermo.html#module-tmhp.compressor_envelope" title="tmhp.compressor_envelope"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.compressor_envelope</span></code></a></p></td>
 </tr>
 <tr class="row-even"><td><p>Rated outdoor air flow</p></td>
 <td><p>720 m³/h per kW (air-to-air), 540 (air-to-water)</p></td>
@@ -796,26 +798,26 @@ application. <strong>(c)</strong> Both requirements at once.</span><a class="hea
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ideal</span></code></p></td>
 <td><p>all three efficiencies pinned at 1.0 — what ASHP did before this work</p></td>
-<td><p>48.2 %</p></td>
-<td><p>+48.2 %</p></td>
+<td><p>48.0 %</p></td>
+<td><p>+48.0 %</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">constant</span></code></p></td>
 <td><p>the <code class="docutils literal notranslate"><span class="pre">v2026-09-24</span></code> correlations frozen at their rated point, no speed
 dependence</p></td>
 <td><p>16.1 %</p></td>
-<td><p>+13.4 %</p></td>
+<td><p>+13.5 %</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">legacy-v1</span></code></p></td>
 <td><p>the pre-refit defaults: <code class="docutils literal notranslate"><span class="pre">0.90</span> <span class="pre">−</span> <span class="pre">0.02</span> <span class="pre">PR</span></code>, the one-machine leakage term,
 the Guth speed shape at 0.80 (<code class="docutils literal notranslate"><span class="pre">validation/coefficients/v1-legacy/</span></code>)</p></td>
-<td><p>7.3 %</p></td>
+<td><p>7.5 %</p></td>
 <td><p>−1.6 %</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>``defaults``</strong></p></td>
 <td><p><strong>what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
 with their guards</strong></p></td>
-<td><p><strong>10.3 %</strong></p></td>
-<td><p><strong>+5.6 %</strong></p></td>
+<td><p><strong>10.5 %</strong></p></td>
+<td><p><strong>+5.9 %</strong></p></td>
 </tr>
 </tbody>
 </table>
@@ -825,9 +827,10 @@ catalogues are excluded from every headline. The <code class="docutils literal n
 air-to-water row of <a class="reference internal" href="index.html"><span class="doc">Validation</span></a>.</p>
 <p>Three things to read off it.</p>
 <p><strong>The compressor description carries most of the model.</strong> An ideal compressor
-is 48.2 % out on the catalogues and a speed-independent one 16.1 %. The shipped
-fits come to 10.3 % with a +5.6 % bias, three points behind the pre-refit
-<code class="docutils literal notranslate"><span class="pre">legacy-v1</span></code> set on this comparison.</p>
+is 48.0 % out on the catalogues and a speed-independent one 16.1 %. The shipped
+fits come to 10.5 % with a +5.9 % bias over the 136 points the compressor
+envelope admits, three points behind the pre-refit <code class="docutils literal notranslate"><span class="pre">legacy-v1</span></code> set on this
+comparison.</p>
 <p><strong>The shape passes, at every configuration.</strong> Across fifteen combinations of
 capacity, refrigerant and sizing ratio the modelled COP rises at every step
 A → D in all fifteen runs of each application (96.9 % of the 9,062 certified

@@ -47,7 +47,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import ignore_minpack_progress_warning
+from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -1370,11 +1370,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         sub_states,
         dV_tank_w_out_prev,
     ):
-        """Legacy single-node tank: implicit fsolve over (T_tank, level)."""
-        from typing import cast
+        """Single-node tank: implicit solve of the energy balance over the step.
 
-        from scipy.optimize import fsolve
-
+        A solve that does not return a root is recovered by
+        :func:`tmhp._tank_solve.recover_tank_temperature` with the same
+        residual, so the heat pump, the draw-off, the loss and the subsystem
+        heat stay in the balance, and a step that cannot be solved is named in
+        a warning instead of being replaced silently.
+        """
         res_fn = self._build_residual_fn(
             ctx=ctx,
             ctrl=ctrl,
@@ -1384,22 +1387,17 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
             tank_level=tank_level_solve,
             sub_states=sub_states,
         )
-
-        T_guess_K = ctx.T_tank_w_K
-        try:
-            with ignore_minpack_progress_warning():
-                T_solved_K_arr = cast(np.ndarray, fsolve(res_fn, x0=[T_guess_K]))
-            T_solved_K = float(T_solved_K_arr[0])
-        except Exception:
-            # explicit Euler fallback
-            Q_hp_val = ctrl.Q_heat_source
-            Q_flow_curr = c_w * rho_w * dV_tank_w_out_prev * (T_sup_w_K_n - ctx.T_tank_w_K)
-            Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
-            Q_tot = Q_hp_val + Q_flow_curr - Q_loss_curr
-            T_solved_K = ctx.T_tank_w_K + dt_s * Q_tot / (self.C_tank * tank_level_solve)
-
-        if T_solved_K <= T_sup_w_K_n:
-            T_solved_K = T_sup_w_K_n
+        T_solved_K = solve_lumped_tank(
+            res_fn,
+            ctx.T_tank_w_K,
+            T_start_K=ctx.T_tank_w_K,
+            dt=dt_s,
+            C_curr=self.C_tank * max(0.001, ctx.tank_level),
+            C_next=self.C_tank * max(0.001, tank_level_solve),
+            C_tank=self.C_tank,
+            who=type(self).__name__,
+            step=ctx.n,
+        )
 
         # Flow state evaluated at solved temperature
         flow_state_final = self._calc_tank_flow_context(

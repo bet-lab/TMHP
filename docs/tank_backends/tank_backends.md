@@ -22,8 +22,8 @@
 | 백엔드 | 모델 | 상태 | 성격 | 역할 |
 |---|---|---|---|---|
 | **lumped** | 단일노드 완전혼합 | T 하나 | 최저충실·경량 | GSHPB 기본값(`tank_model="lumped"`). 성층 백엔드 코드를 거치지 않는다 |
-| **stratified** (`StratifiedTank`) | Cadau 2019 1-D 다노드 유한체적 + 부력 혼합 | T[N] | 상태에 대해 매끄러움(implicit tridiagonal) | MPC 내부모델. GSHPB `tank_model="stratified"` |
-| **hybrid** (`HybridStratifiedTank`) | Cruz-Loredo 2023 hybrid thermocline(보존형) | T[N] + 전선 위치·전선 양쪽 온도 | 비매끄러움(전선 생성·소멸) | 선명한 전선이 필요한 해석. **GSHPB 에는 아직 연결돼 있지 않다**(§4) |
+| **stratified** (`StratifiedTank`) | Cadau 2019 1-D 다노드 유한체적 + 부력 혼합 | T[N] | 상태에 대해 매끄러움(implicit tridiagonal) | MPC 내부모델. GSHPB `tank_model="stratified"`(§4) |
+| **hybrid** (`HybridStratifiedTank`) | Cruz-Loredo 2023 hybrid thermocline(보존형) | T[N] + 전선 위치·전선 양쪽 온도 | 비매끄러움(전선 생성·소멸) | 선명한 전선이 필요한 해석. GSHPB `tank_model="hybrid"`(§4) |
 
 ### 1.1 표준 다노드 (Cadau)
 
@@ -108,6 +108,13 @@ implicit tridiagonal**로 적분 → 무조건 안정·smooth(MPC 적합). N=1�
   `T_charge_out` 이 실제로 나간 물의 유량 평균 온도다. (처음 구현은 겹치는 유량을 포트끼리 바로
   통과시켜, 충·방출 유량이 같으면 상단이 충전수보다 차가워도 탱크가 전혀 데워지지 않았다 — 리뷰에서
   잡아 고쳤다.)
+- **열 입력과 유량의 분할.** 이류(정확한 피스톤 이동)와 암시 풀이(전도·손실·열 입력)는 번갈아
+  적용하는 연산자 분할이다. 열 입력(`q_source` 또는 잠긴 열교환기, §1.3)이 없으면 한 스텝의 이류를
+  모두 한 뒤 암시 풀이를 한 번 한다(예전 그대로, 결과 동일). 열 입력이 있으면 가열과 유량이 동시에
+  작용하므로 **노드 한 부피 이하 조각으로 번갈아** 적용한다. 그러지 않으면 한 스텝에 탱크 부피만큼
+  방출할 때 그 스텝의 열이 들어가기 전에 가열되지 않은 보충수가 먼저 밀려 나간다 — 6 kW 균등 가열,
+  200 L 탱크, 12 L/min 방출, dt 1,000 s 두 스텝에서 평균 방출 온도 18.6 °C·끝 평균 22.2 °C 였다
+  (dt 10 s 기준 20.3 °C·18.6 °C; 지금 20.2 °C·18.9 °C).
 - **남은 한계.** 전선은 하나만 추적한다. 전선이 이미 있을 때 생긴 두 번째 경계(예: 충전 온도가
   바뀜)와 전선 주변에 전도로 생긴 완만한 기울기는 노드 재배치로 표준 모델처럼 번진다. 노드 안의
   물리적 전도 퍼짐(`√(2αt)`, 1 h 에 약 2 cm)은 두 구역 사이 전도로만 표현되므로, 노드가
@@ -122,13 +129,27 @@ implicit tridiagonal**로 적분 → 무조건 안정·smooth(MPC 적합). N=1�
 | 열손실 | 측벽 `UA/N` 를 노드마다 `UA_i·(T_i − T_amb)`. 상·하판 손실은 따로 없다(측벽 UA 에 넣어 준다) | 같음(전선 노드는 두 구역에 부피 비로 나눔) |
 | 충전 포트 | `charge_flow` [m³/s] 가 `T_charge` 로 상단 유입, 하단 유출(HP 환수) | 같음 |
 | 급탕 포트 | `draw_flow` 가 상단에서 나가고 `T_makeup` 이 하단으로 유입 | 같음 |
-| 열원 | `q_source` [W]: 스칼라 = 상단 노드, 길이 N 배열 = 노드별 | 같음(수정으로 추가) |
-| 반환 | `T`, `T_top`, `T_outlet`(노드 값), `T_draw_out`, `T_charge_out`(실제 유출수의 유량 평균), `Q_loss` [W], `T_max`, `overheat`, `mixed`, `substeps` | 왼쪽에서 `substeps` 대신 `y_th`(전선 높이 [m] 또는 `None`) |
-| 에너지 수지 | `ΔE = dt·[ρc(V̇_c·T_charge + V̇_d·T_makeup − V̇_d·T_draw_out − V̇_c·T_charge_out) + Σq − Q_loss]` 가 반올림 오차로 닫힌다 | 같음 |
+| 열원 | `q_source` [W]: 스칼라 = 상단 노드, 길이 N 배열 = 노드별. 노드 온도와 무관하게 들어간다 | 같음(수정으로 추가) |
+| 잠긴 열교환기 | `hx_ua` [W/K](스칼라 = 균등 분배, 길이 N 배열 = 노드별), `T_hx` [°C], `q_hx` [W]. 노드 i 는 `k·UA_i·(T_hx − T_i)⁺` 를 받는다(`T_i` 는 (하위) 스텝 끝 온도). `T_hx` 만: `k = 1`. `T_hx` + `q_hx`: 합이 `q_hx` 가 되게 `k` 를 푼다. `q_hx` 만: `k = 1` 로 `q_hx` 를 넘기는 `T_hx` 를 푼다 | 같음(전선 노드는 두 구역이 각자 온도로 받는다) |
+| 미리 보기 | `preview(dt, …)`: `step` 과 같은 결과를 돌려주되 탱크를 진행시키지 않고 경고도 내지 않는다 | 같음 |
+| 반환 | `T`, `T_top`, `T_outlet`(노드 값), `T_draw_out`, `T_charge_out`(실제 유출수의 유량 평균), `Q_loss` [W], `T_max`, `overheat`, `mixed`, `substeps`, 열교환기의 `q_hx`(노드별 [W]), `Q_hx`(합), `hx_scale`(`k`), `T_hx`, `T_hx_heated_max`(열교환기가 데운 물 가운데 가장 뜨거운 것), `hx_limited` | 왼쪽에서 `substeps` 대신 `y_th`(전선 높이 [m] 또는 `None`) |
+| 에너지 수지 | `ΔE = dt·[ρc(V̇_c·T_charge + V̇_d·T_makeup − V̇_d·T_draw_out − V̇_c·T_charge_out) + Σq + Q_hx − Q_loss]` 가 반올림 오차로 닫힌다 | 같음 |
 
 `StratifiedTank` 에서 혼합·하위 스텝이 없으면 `T_draw_out == T_top`, `T_charge_out == T_outlet`
 이다(예전 계약 그대로). 혼합이 상단·하단 노드를 바꾸면 수지를 닫는 값은 `T_draw_out`/
 `T_charge_out` 쪽이다.
+
+**잠긴 열교환기**(응축 코일처럼 한 온도로 유지되는 교환기). `q_source` 는 정해 준 열을 노드 온도와
+무관하게 넣지만, 코일은 자기보다 찬 물만 데운다. 그래서
+
+- `T_hx` 이상인 노드는 열을 받지 않고(식지도 않는다), 데워진 노드는 그 풀이의 끝에 `T_hx` 를 넘지
+  않는다(`T_hx_heated_max ≤ T_hx`). 한쪽 방향 항이 구간별 선형이라 활성 집합 반복(M 행렬의
+  반평활 뉴턴법, 유한 번에 끝남)으로 푼다.
+- `q_hx` 를 주면 노드 사이 분배는 `UA_i·(T_hx − T_i)⁺` 에 비례한 채 합만 맞춘다. 노드를 `T_hx` 까지
+  올려도 그 열을 못 받으면 받을 수 있는 만큼만 넣고 `hx_limited=True`, `Q_hx` 에 실제 값을 싣는다.
+- 탱크 아래쪽 코일은 데운 물이 부력으로 올라가야 열을 계속 넘길 수 있다. 열교환기 스텝에서 역전
+  혼합이 일어나면 그 스텝을 `C_node/UA_i` 의 절반 이하 하위 스텝(최대 48)으로 다시 풀어, 넘길 수
+  있는 열이 dt 에 좌우되지 않게 한다(하단 노드 코일 3 kW·1 h 가 dt 60 s 와 3,600 s 에서 같은 결과).
 
 ---
 
@@ -284,6 +305,7 @@ dt 10 s·N 60 하이브리드의 이른 돌파(0.948)는 전선 앞의 전도 �
 | MPC 내부예측모델(매끄러움·미분가능 필요) | **stratified**, `max_courant` 끔, dt 는 `Co ≤ 1` 이 되게 |
 | 성층을 보는 플랜트 계산, dt 를 줄일 수 없음 | **stratified** + `max_courant=1.0`, 또는 **hybrid** |
 | 선명한 충·방전 전선(급탕 공급온도 유지, 저장 효율) | **hybrid**(`front` 는 탱크의 유입구 혼합에 맞게) |
+| GSHPB 동적 해석에서 성층 탱크 | `tank_model="stratified"`(하위 스텝 켬) 또는 `"hybrid"`. 응축 코일이 찬 하부 물을 만나는 효과(응축온도 하강)는 코일 접근 온도차가 작을수록, 전선이 선명할수록(hybrid) 크게 나타난다(§4) |
 
 geolink×tmhp 결합 MPC 연구(G3)가 의도한 "hybrid 를 plant, stratified 를 MPC 내부모델"
 구성은 이제 에너지 보존 면에서는 쓸 수 있다. 다만 plant 를 실측 대신 쓸 때는 맨 위 상태 상자의
@@ -293,24 +315,86 @@ geolink×tmhp 결합 MPC 연구(G3)가 의도한 "hybrid 를 plant, stratified �
 
 ## 4. 보일러와의 연결
 
-- `GroundSourceHeatPumpBoiler(tank_model="stratified", n_tank_nodes=…, condenser_node=…)` 가
-  `StratifiedTank(n_nodes, volume=V_tank_full, height=H, ua=UA_tank_wall)` 를 만들고(생성자
-  기본값 — 역전 혼합 켬, 하위 스텝 끔), 매 스텝 `step(dt, draw_flow, T_makeup, q_source, T_amb)`
-  를 부른다. 응축열은 기본 균등 분배, `condenser_node` 를 주면 그 노드에 모은다. 사이클 싱크·
-  제어 온도는 노드 평균, 급탕은 상단 노드(스텝 전 값)다.
-- 이번 변경 뒤 GSHPB 성층 결과는 기본(균등 분배)과 상단 응축 노드에서 **비트 단위로 같다**
-  (역전이 생기지 않는다). 하단 응축 노드(`condenser_node=N-1`)만 달라진다: 24 h 시험 시나리오에서
-  예전에는 하단 104 °C·상단 54 °C 역전, 지금은 전체 62.9 °C, `Q_ref_tank` 합 −4.0 %, `E_cmp` 합
-  −3.7 %.
-- 새 과열 경고가 기존 경로의 문제를 드러낸다: `condenser_node=0`(상단 집중)이면 노드 평균으로
-  제어하는 동안 상단 노드가 364 °C 까지 오르고, 균등 분배에서도 상단 92 °C 가 된다. 응축열 분배가
-  냉매 응축온도·노드 온도를 보지 않는 것(#96 T4)과 같은 뿌리로, 보일러 쪽에서 고칠 일이다.
-- **하이브리드는 보일러에 연결돼 있지 않다.** 연결하려면 `ground_source_heat_pump_boiler.py` 의
-  백엔드 선택(`tank_model` 검사와 `StratifiedTank(...)` 생성)에 `"hybrid"` 를 더하고
-  `HybridStratifiedTank` 를 만들면 된다 — `step` 의 인자·`q_source`·반환 키가 같으므로
-  `_solve_stratified_tank` 는 그대로 쓸 수 있다. 다만 GSHPB 는 응축기를 탱크 안의 열원
-  (`q_source`)으로 넣고 탱크 사이 유동(충전 루프)이 없어서, 하이브리드의 전선은 급탕 방출로 생긴
-  하단 방전 전선만 쓰인다.
+`GroundSourceHeatPumpBoiler(tank_model=…, n_tank_nodes=…, condenser_node=…)` 의 `tank_model` 은
+`"lumped"`(기본) · `"stratified"` · `"hybrid"` 를 받는다. 다노드 두 모드는 항상 만수 탱크만
+다루고 서브시스템(`stc`/`pv`/`uv`)을 받지 않는다.
+
+- `"stratified"` 는 `StratifiedTank(n, V_tank_full, H, ua=UA_tank_wall, max_courant=1.0)` 를 만든다
+  (플랜트 계산이므로 하위 스텝을 켠다 — §2.3 지침 3). `"hybrid"` 는
+  `HybridStratifiedTank(n, V_tank_full, H, ua=UA_tank_wall)`(`front="both"`)다.
+- **응축기는 탱크에 잠긴 코일이다.** `UA_tank_hx` 를 노드에 균등하게 나누거나
+  (`condenser_node=None`) 한 노드에 모은다(0 = 상단). 매 스텝 탱크에
+  `step(dt, draw_flow, T_makeup, T_amb, hx_ua=UA_i, T_hx=T_cond, q_hx=Q_ref_tank)` 를 한 번 부른다.
+  `T_cond` 는 그 스텝 사이클의 응축 포화온도, `Q_ref_tank` 는 스텝 평균 응축열이다. 노드 i 는
+  `k·UA_i·(T_cond − T_i)⁺` 를 받는다 — 냉매만큼 뜨거운 노드는 받지 않고, 데워진 노드는 `T_cond` 를
+  넘지 않는다(§1.3).
+- **사이클이 보는 탱크 온도.** 사이클 모델은 탱크 온도 `T` 하나를 받아 `T + Q/UA_tank_hx` 에서
+  응축한다. 다노드 탱크에서 코일이 `Q` 를 넘기는 데 필요한 응축온도는 `Σ UA_i·(L − T_i)⁺ = Q` 를
+  만족하는 수위 `L` 이므로, 사이클에는 `L − Q/UA_tank_hx` 를 준다(사이클이 정확히 `L` 에서 응축).
+  찬 물이 아래에 있고 위쪽이 냉매보다 뜨거우면 찬 노드만 열을 받으므로 `L` 은 평균온도 기준
+  (`T_평균 + Q/UA`)보다 낮다. 완전 혼합이면 둘이 같다. `L` 은 두 조건으로 정한다:
+  1. 가동 구간의 평균 — 가동 시간의 절반을 미리 돌려 본 노드 분포의 `L` 을, 서모스탯 모델이 주는
+     가동 중 평균온도에 맞춰 쓴다(lumped 와 같은 중점 규칙).
+  2. 스텝 끝 — 코일 전열을 2배로 쳐도 스텝 끝 노드 분포에 그 스텝의 열을 넘길 수 있어야 한다
+     (`NODAL_END_CONDUCTANCE`). 한 스텝에 탱크가 코일 접근 온도차만큼 넘게 데워질 때(`UA_tank_hx` 가
+     크거나, 긴 스텝을 꽉 채워 가동)만 걸리고, 그때 응축온도는 스텝 끝 기준의 보수적인 값이 된다.
+     이 조건이 없으면 중점 기준 응축온도가 스텝 끝 물 온도보다 낮아져, 열을 넘길 수 없다는
+     가짜 차단이 매 스텝 생긴다.
+- **코일 주변 물이 열을 못 받으면 압축기가 멈춘다.** `T_cond` 아래에서 그 스텝의 열을 다 받을 수
+  없으면(상단 노드에만 있는 코일) 그 물이 `T_cond` 에 닿은 때 압축기가 멈춘 것으로 보고, 그 행의
+  `runtime_fraction`·열·전력을 실제로 들어간 만큼으로 줄인다. 서모스탯 호출은 유지된다.
+- **제어 온도는 노드 평균이다**(`T_tank_w [°C]`). lumped 와 같은 스텝 내 서모스탯 풀이를 그대로
+  쓰므로 가동·정지 시각과 공급 열량이 lumped 와 맞는다(아래 표). 평균으로 제어하므로 코일이
+  상단까지 닿으면 상단 노드가 상한 설정보다 높을 수 있다(아래 표의 +9 K). 상단 노드 기준 제어는
+  검토했으나 채택하지 않았다 — 스텝 내 서모스탯 풀이가 단일 노드 에너지 모델이어서 상단 노드가
+  하한에 닿는 시각(전선 도착)을 풀 수 없고, 평균과의 차이를 상수로 두는 근사는 성층이 풀리는
+  가열 중에 탱크를 덜 채운 채 멈춘다.
+- **급탕.** 혼합 밸브는 스텝 동안 상단에서 실제로 나간 물의 온도(`T_draw_out`)에 맞춘다(유량을
+  1 mK 수렴까지, 최대 6회 반복). 결과의 `T_tank_w_out`·`T_mix_w_out`·`Q_tank_w_out`·`X_tank_w_out`
+  이 그 온도를 쓰고, `Q_tank_loss` 는 탱크 스텝의 벽 손실이다. 그래서
+  `Σ Q_ref_tank·dt = C_tank·ΔT_tank_w + Σ ρc·dV_tank_w_out·(T_tank_w_out − T_tank_w_in)·dt + Σ Q_tank_loss·dt`
+  가 결과 표만으로 닫힌다(아래 표의 잔차).
+- **한 노드.** `"stratified"` 의 `n_tank_nodes=1` 은 완전 혼합 탱크라 lumped 와 같은 사이클·같은
+  궤적을 준다(급탕만 하위 스텝으로 풀려 0.05 K 이내). `"hybrid"` 의 한 노드는 피스톤 유동이다.
+
+**24 h 시험 시나리오**(R32, 2×1 보어홀 100 m, 100 L 탱크, 8 kW, `UA_tank_hx` 500 W/K, 시작 56 °C,
+3.6 L/min 급탕 6 h). 재현: `.venv/bin/python docs/tank_backends/gshpb_tank_backends.py`.
+
+| 구성 | dt [s] | Q_ref_tank [kWh] | E_cmp [kWh] | 평균온도 범위 [°C] | 최고 노드 [°C] | 급탕 최저 [°C] | 수지 잔차 |
+|---|---|---|---|---|---|---|---|
+| lumped | 3600 | 39.29 | 18.55 | 55.2–64.7 | 64.7 | 40.0 | 4e-16 |
+| stratified, N=1 | 3600 | 39.29 | 18.55 | 55.2–64.7 | 64.7 | 40.0 | 7e-18 |
+| stratified, N=10 | 3600 | 39.30 | 18.56 | 55.2–64.7 | 73.7 | 40.0 | 1e-15 |
+| hybrid, N=10 | 3600 | 39.30 | 18.56 | 55.2–64.7 | 73.7 | 40.0 | 2e-15 |
+| stratified, N=8, 상단 코일 | 3600 | 18.82 | 7.10 | 15.0–55.7 | 76.8 | 18.6 | 8e-10 |
+| stratified, N=8, 하단 코일 | 3600 | 39.29 | 18.55 | 55.2–64.7 | 64.7 | 40.0 | 2e-14 |
+| hybrid, N=8, 하단 코일 | 3600 | 39.29 | 18.55 | 55.2–64.7 | 64.7 | 40.0 | 4e-14 |
+| lumped | 600 | 39.30 | 18.28 | 53.2–65.0 | 65.0 | 40.0 | 2e-16 |
+| stratified, N=1 | 600 | 39.30 | 18.28 | 53.2–65.0 | 65.0 | 40.0 | 7e-16 |
+| stratified, N=10 | 600 | 39.30 | 18.28 | 53.2–65.0 | 73.8 | 40.0 | 1e-14 |
+| hybrid, N=10 | 600 | 39.30 | 18.28 | 53.2–65.0 | 73.4 | 40.0 | 5e-15 |
+| stratified, N=8, 상단 코일 | 600 | 31.00 | 11.94 | 15.9–56.0 | 77.9 | 30.0 | 4e-11 |
+| stratified, N=8, 하단 코일 | 600 | 39.30 | 17.51 | 53.2–65.0 | 65.0 | 40.0 | 1e-14 |
+| hybrid, N=8, 하단 코일 | 600 | 39.30 | 16.16 | 53.2–65.0 | 65.0 | 40.0 | 4e-16 |
+
+수정 전(응축열을 노드 온도와 무관하게 `q_source` 로 넣음)에는 같은 시나리오에서 균등 분배의
+최고 노드가 97.9 °C(그때 사이클 응축온도 76.9 °C — 냉매보다 21 K 뜨거운 물을 데웠다), 상단 코일
+(`condenser_node=0`)은 370 °C 였다.
+
+- 균등 코일은 모든 노드가 `L` 아래에 있는 동안 `L = T_평균 + Q/UA` 라 사이클이 lumped 와 같다. 기본
+  접근 온도차가 16 K 라서 이 시나리오에서는 줄곧 그렇다. 성층의 이득(응축온도 하강)은 접근
+  온도차가 작고 전선이 선명할 때 나타난다 — `UA_tank_hx` 3,000 W/K, 6 L/min 방출, dt 300 s 에서
+  hybrid 의 응축온도는 46.7 °C 로 평균온도 기준(55.3 °C)보다 8.6 K 낮았다.
+- 상단 코일은 자기 아래 물을 데울 수 없다. 상단 노드가 응축온도까지 오르면 압축기가 멈추고,
+  그 뒤에는 사이클이 운전점을 찾지 못해 사유(`failure_reason`)와 함께 꺼진 행이 된다. 탱크 평균은
+  급탕에 따라 급수 온도까지 내려간다.
+- 하단 코일은 데운 물이 부력으로 올라가 탱크 전체를 데운다(역전 혼합 + 열교환기 하위 스텝).
+  급탕으로 들어온 찬 물이 코일 주변에 있는 동안에는 낮은 온도에서 응축하므로, dt 600 s 에서
+  `E_cmp` 가 lumped 보다 4 %(stratified)·12 %(hybrid, 전선이 선명) 적다. dt 3,600 s 에서는 한 스텝이
+  급탕 한 시간을 통째로 덮어 그 차이가 평균돼 사라진다 — 성층 효과를 보려면 `Co ≤ 1` 수준의 dt 를 쓴다.
+- **남은 한계.** 저장 엑서지 `Xst_tank` 는 아직 평균온도로 계산한다(성층 탱크의 저장 엑서지는
+  그보다 크다). 서브시스템과 부분 충수는 다노드 모드에서 지원하지 않는다. WSHPB·ASHPB 에는
+  `tank_model` 선택자가 없다.
 
 ---
 
@@ -321,8 +405,9 @@ geolink×tmhp 결합 MPC 연구(G3)가 의도한 "hybrid 를 plant, stratified �
 | `tmhp.stratified_tank.StratifiedTank` | Cadau smooth 다노드(charge+draw+q_source, 역전 혼합, 선택적 하위 스텝) |
 | `tmhp.stratified_tank.mix_inversions` | 에너지 보존 순간 역전 혼합(두 백엔드 공통) |
 | `tmhp.hybrid_tank.HybridStratifiedTank` | Cruz-Loredo hybrid thermocline(보존형) |
-| `GroundSourceHeatPumpBoiler(tank_model=...)` | lumped/stratified 선택자 |
-| `tests/test_stratified_tank.py`·`test_hybrid_tank.py`·`test_tank_backend.py` | 격리·통합 검증(89개) |
+| `GroundSourceHeatPumpBoiler(tank_model=...)` | lumped/stratified/hybrid 선택자(응축 코일, §4) |
+| `tests/test_stratified_tank.py`·`test_hybrid_tank.py`·`test_tank_heat_exchanger.py`·`test_tank_backend.py` | 격리·통합 검증(154개) |
+| `tests/invariants/test_known_defects.py` T4 | 응축온도보다 뜨거운 노드를 데우지 않음 |
 | `tests/invariants/test_known_defects.py` T5 | 하이브리드 충전 저장률(0.95–1.01) |
 | `docs/tank_backends/compare_tank_backends.py` | 그림 1·2 와 §2.1–2.3 수치 재현 |
 | `docs/tank_backends/physics_checks.py` | §2.4 해석해 대조·시나리오 표 재현 |

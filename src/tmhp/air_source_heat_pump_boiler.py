@@ -50,9 +50,11 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
+from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
+    CYCLE_KEY,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     X_SUCTION_MIN_DEFAULT,
@@ -68,16 +70,20 @@ from .compressor_envelope import (
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     DynamicState,
     StepContext,
+    TankStepFlows,
     check_hp_schedule_active,
+    collect_subsystem_state,
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -90,8 +96,8 @@ from .heat_exchanger import resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
-from .refrigerant import calc_ref_state, reportable_state
-from .subsystems import PhotovoltaicSystem, SolarThermalCollector
+from .refrigerant import calc_ref_state, props_si, reportable_state
+from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
 
 #: Objective tiers above the specific-energy scale of
@@ -110,6 +116,11 @@ _OBJ_UNPHYSICAL = 3.0 * PENALTY  # solved cycle, not an operating point
 _OBJ_SPEED_UNSOLVED = 3.5 * PENALTY  # compressor speed root did not settle
 _OBJ_COIL_UNMATCHED = 4.0 * PENALTY  # outdoor coil cannot carry the duty (+ deficit [W])
 _OBJ_NO_CYCLE = 5.0 * PENALTY  # no refrigerant cycle at this approach
+
+#: ``capacity_binding`` of a duty reduced to what the outdoor coil absorbs
+#: (the family's name for the shared ``"source_heat_exchanger"``).
+BINDING_OUTDOOR_COIL = "outdoor_coil"
+_CAPACITY_BINDINGS = {"hx_not_converged": BINDING_OUTDOOR_COIL}
 
 OUTDOOR_COIL_SHORT = "outdoor_coil_short_at_max_airflow"
 OUTDOOR_COIL_EXCESS = "outdoor_coil_excess_at_min_airflow"
@@ -147,6 +158,8 @@ class _OutdoorSearch:
         self.storable = math.inf if T_tank_w < model.T_tank_w_upper_bound - 0.5 else 0.0
         #: approach -> (objective, max-flow margin [W], min-flow margin [W])
         self.rows: dict[float, tuple[float, float, float]] = {}
+        #: approach -> (cycle state, pressure-ratio event, cycle failure reason) as evaluated
+        self.states: dict[float, tuple[dict | None, tuple[str, float, float] | None, str | None]] = {}
 
     def entry(self, x: float) -> tuple[float, float, float]:
         x = float(x)
@@ -154,8 +167,9 @@ class _OutdoorSearch:
         if hit is not None:
             return hit
         diag: dict = {}
+        model = self.model
         try:
-            perf = self.model._calc_state(
+            perf = model._calc_state(
                 dT_ref_ou=x,
                 T_tank_w=self.T_tank_w,
                 Q_ref_tank=self.Q_ref_tank,
@@ -166,6 +180,7 @@ class _OutdoorSearch:
             )
         except (ValueError, ArithmeticError):
             perf = None
+        self.states[x] = (perf, model._last_pr_event, model._last_cycle_failure_reason)
         m_max = float(diag.get("max_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
         m_min = float(diag.get("min_flow_capacity_margin_W", math.nan)) if perf is not None else math.nan
         row = (self._rank(perf, m_max, m_min), m_max, m_min)
@@ -218,6 +233,17 @@ class _OutdoorSearch:
         """``(objective, approach)`` of the best candidate evaluated so far."""
         value, x = min((row[0], x) for x, row in self.rows.items())
         return value, x
+
+    def all_at_speed_floor(self) -> bool:
+        """Every approach with a cycle has the compressor on its speed floor.
+
+        The request is then below what the machine delivers at ``rps_min`` at
+        every approach, and a smaller request is the same set of cycles: the
+        speed stays on the floor and the tank-side approach follows the heat
+        delivered there, not the request.
+        """
+        clamps = [state.get("capacity_clamped") for state, _, _ in self.states.values() if isinstance(state, dict)]
+        return bool(clamps) and all(clamp == "min" for clamp in clamps)
 
     def coil_failure(self) -> str | None:
         """Why the outdoor coil carries the duty at no evaluated approach, if it does not."""
@@ -403,6 +429,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # Records an active-cycle infeasibility that must survive the HP-off
         # fallback long enough for analyze_steady() to expose it to adapters.
         self._last_cycle_failure_reason: str | None = None
+        # Whether the last outdoor-approach search found every cycle on the speed floor.
+        self._solve_bound_at_speed_floor: bool = False
         self.hp_capacity: float = hp_capacity
 
         # --- 2. Heat exchanger UA ---
@@ -744,11 +772,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 return None
             if pr_event == "pr_below_min":
                 self._last_pr_event = ("pr_below_min", ratio, self.PR_cycle_min)
-                import CoolProp.CoolProp as CP
-
                 P_evap_clamp = cs_i["P_ref_cmp_in [Pa]"]
                 P_cond_clamp = self.PR_cycle_min * P_evap_clamp
-                T_cond_K = CP.PropsSI("T", "P", P_cond_clamp, "Q", 0, self.ref)
+                T_cond_K = props_si("T", "P", P_cond_clamp, "Q", 0, self.ref)
                 cs_i = calc_ref_state(
                     T_evap_K=T_ou_sat_K,
                     T_cond_K=T_cond_K,
@@ -780,9 +806,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
             # Compute isentropic enthalpy once before loop
             try:
-                import CoolProp.CoolProp as CP
-
-                h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+                h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
             except ValueError:
                 h_ref_cmp_out_isen = h_cmp_in
 
@@ -969,6 +993,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             return {
                 "converged": False,
                 "_hx_diag": HX_perf_ou,
+                # The cycle exists; only the coil does not carry it. The
+                # discharge-temperature control acts on it, so the coil margins
+                # the search reads are those of the controlled cycle.
+                CYCLE_KEY: reportable_state(cs),
                 "converged_rps": bool(converged_rps),
                 "capacity_clamped": capacity_clamped,
                 "pr_clamped": pr_clamped,
@@ -1177,13 +1205,49 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         search = _OutdoorSearch(self, T_tank_w, Q_ref_tank, T0, flow_state, m_dot_w)
         self._search_outdoor(search)
         value, x = search.best()
+        # Read by the duty reduction (`reduce_duty_within_envelope`): below
+        # this request every approach is the same machine state.
+        self._solve_bound_at_speed_floor = search.all_at_speed_floor()
         return OptimizeResult(
             x=x,
             fun=value,
             success=True,
             nfev=len(search.rows),
             failure_detail=search.coil_failure() if value >= _OBJ_OUTSIDE_ENVELOPE else None,
+            # The cycle state the search evaluated at ``x`` (:meth:`_state_at_optimum`).
+            solved=search.states[x],
         )
+
+    def _state_at_optimum(
+        self,
+        opt: object,
+        T_tank_w: float,
+        Q_ref_tank: float,
+        T0: float,
+        *,
+        flow_state: dict,
+        m_dot_w: float | None = None,
+    ) -> dict | None:
+        """Cycle state at the best approach of :meth:`_optimize_operation`.
+
+        The search has already evaluated that approach, so its state is taken
+        from the search (with the pressure-ratio event and the cycle failure
+        reason of that evaluation restored) instead of being solved a second
+        time. A result without it (a substituted search) is evaluated here.
+        """
+        solved = getattr(opt, "solved", None)
+        if solved is None:
+            self._solve_bound_at_speed_floor = False
+            return self._calc_state(
+                dT_ref_ou=safe_float_attr(opt, "x", 5.0),
+                T_tank_w=T_tank_w,
+                Q_ref_tank=Q_ref_tank,
+                T0=T0,
+                flow_state=flow_state,
+                m_dot_w=m_dot_w,
+            )
+        state, self._last_pr_event, self._last_cycle_failure_reason = solved
+        return state if isinstance(state, dict) else None
 
     def _cycle_cell(self, search: "_OutdoorSearch", a: float, b: float) -> tuple[float, float] | None:
         """Shrink ``[a, b]`` to its part where a cycle exists (one end must have one)."""
@@ -1388,7 +1452,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
-    @steady_envelope(duty_arg="Q_ref_tank")
+    @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
     def analyze_steady(
         self,
         T_tank_w: float,
@@ -1452,9 +1516,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               a real inverter unit answers by running at its limit and cycling.
               Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
               to recover the shortfall or excess. A ``"max"`` point carries
-              ``"capacity_binding"``: ``"compressor"`` (``rps_max``) or
-              ``"discharge_temperature"`` (the request exceeded ``T_dis_max``
-              and the largest duty inside it is returned, with ``"Q_max [W]"``).
+              ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
+              operating limit the request ran into when a smaller duty runs --
+              ``"discharge_temperature"`` (``T_dis_max``),
+              ``"pressure_ratio"`` (``PR_cycle_max``), ``"outdoor_coil"`` (the
+              coil is short at the fan's largest airflow) or
+              ``"compressor_efficiency"`` (the shipped fit's floor). The
+              largest duty that runs is then returned, with ``"Q_max [W]"``
+              and ``"Q_request [W]"``; see
+              :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
             - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
               is evaluated outside its data at this point.
             - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
@@ -1463,12 +1533,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               (superheat reduced first, then wet suction down to
               ``x_suction_min``); see :mod:`tmhp.compressor_envelope`.
 
-            An infeasible cycle, or a solved cycle that is not an operating
-            point, falls back to an off-mode state (``E_cmp = 0``,
-            ``Q_ref_tank = 0``). ``"hx_not_converged"`` (the outdoor coil
-            did not converge) returns only the coil diagnostics, without
-            duty or power keys. ``"optimizer_failed"`` returns the cycle
-            numbers at the optimiser's best point with ``converged=False``.
+            Every failure -- an infeasible cycle, a solved cycle that is not
+            an operating point, an outdoor coil that cannot carry the duty,
+            a search that did not settle -- returns the same off-mode state:
+            ``hp_is_on = False``, ``converged = False``, ``E_cmp = 0``,
+            ``Q_ref_tank = 0``, NaN COP, with ``failure_reason`` (and
+            ``failure_detail`` where there is one). A request that fails on a
+            limit a smaller duty cures is not a failure when such a duty
+            runs (``capacity_clamped = "max"`` above); ``"cycle_invalid"``
+            with no cycle at all (a condensing temperature at or above the
+            critical point) is not reduced.
         """
         validate_steady(locals())
         import warnings
@@ -1501,13 +1575,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             )
             result = None
             with contextlib.suppress(Exception):
-                result = self._calc_state(
-                    dT_ref_ou=safe_float_attr(opt_result, "x", 5.0),
-                    T_tank_w=T_tank_w,
-                    T0=T0,
-                    Q_ref_tank=Q_ref_tank,
-                    flow_state=flow_state,
-                    m_dot_w=m_dot_w,
+                result = self._state_at_optimum(
+                    opt_result, T_tank_w, Q_ref_tank, T0, flow_state=flow_state, m_dot_w=m_dot_w
                 )
 
             # A solved cycle that is not an operating point (undefined
@@ -1559,13 +1628,21 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 else:
                     failure_reason = "cycle_invalid"
             elif not result.get("converged", False):
-                failure_reason = "hx_not_converged"
+                # `_hx_diag` marks the outdoor-coil branch; otherwise the speed
+                # root find inside the cycle failed numerically.
+                failure_reason = "hx_not_converged" if "_hx_diag" in result else "optimizer_failed"
             elif not opt_success:
                 failure_reason = "optimizer_failed"
             else:
                 failure_reason = "none"
 
-            if result is None or not isinstance(result, dict):
+            if failure_reason != "none":
+                # No operating point: every failure reports the same off-mode
+                # row (no heat, no power, NaN COP) with the reason, never a
+                # half-filled active one.
+                if failure_reason == "hx_not_converged":
+                    # Which fan limit the outdoor coil fails at every approach.
+                    invalid_detail = getattr(opt_result, "failure_detail", None)
                 warnings.warn(
                     f"analyze_steady: fell back to HP-off state "
                     f"(reason={failure_reason!r}, "
@@ -1610,15 +1687,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                     if invalid_detail is not None:
                         result["failure_detail"] = invalid_detail
             else:
-                # `result` is a valid dict — keep it, but tag the diagnostic
-                # so callers can branch on `failure_reason` even when the
-                # cycle / HX returned a usable answer.
-                result["converged"] = opt_success and result.get("converged", True)
+                assert isinstance(result, dict)
                 result["failure_reason"] = failure_reason
-                coil_detail = getattr(opt_result, "failure_detail", None)
-                if failure_reason == "hx_not_converged" and coil_detail is not None:
-                    # Which fan limit the outdoor coil fails at every approach.
-                    result["failure_detail"] = coil_detail
 
         if result is None or not isinstance(result, dict):
             raise RuntimeError("Simulation failed to produce a valid result dictionary.")
@@ -1718,12 +1788,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         A running result (``failure_reason='none'``), or an off-mode row (no
         heat, no power, NaN COP) carrying the reason the call could not run.
-        Outside the discharge limit the step runs at the largest duty inside
-        it, as ``analyze_steady`` does (:func:`reduce_duty_within_envelope`).
+        When an operating limit refuses the nameplate duty and a smaller duty
+        runs, the step runs at the largest such duty, as ``analyze_steady``
+        does (:func:`reduce_duty_within_envelope`).
         """
         result = self._solve_cycle_at_duty(ctx, T_tank_w, self.hp_capacity)
         return reduce_duty_within_envelope(
-            self, result, lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q), self.hp_capacity
+            self,
+            result,
+            lambda q: self._solve_cycle_at_duty(ctx, T_tank_w, q),
+            self.hp_capacity,
+            bindings=_CAPACITY_BINDINGS,
         )
 
     def _solve_cycle_at_duty(self, ctx: StepContext, T_tank_w: float, Q_ref_tank: float) -> dict:
@@ -1735,13 +1810,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             ctx.T0,
             flow_state=flow_state,
         )
-        solved = self._calc_state(
-            float(getattr(opt, "x", 5.0)),
-            T_tank_w,
-            Q_ref_tank,
-            ctx.T0,
-            flow_state=flow_state,
-        )
+        solved = self._state_at_optimum(opt, T_tank_w, Q_ref_tank, ctx.T0, flow_state=flow_state)
         reason = self._active_step_failure(opt, solved)
         if reason is None:
             assert solved is not None
@@ -1754,6 +1823,15 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         off_result = self._calc_state(5.0, T_tank_w, 0.0, ctx.T0, flow_state=flow_state)
         hp_result = off_result if off_result is not None else {"hp_is_on": False}
         hp_result.update({"converged": False, "failure_reason": reason})
+        # The detail `analyze_steady` reports for the same failure; the duty
+        # reduction reads it, so a step reduces exactly where the steady solve does.
+        detail: str | None = None
+        if reason == "hx_not_converged":
+            detail = getattr(opt, "failure_detail", None)
+        elif reason == "cycle_invalid" and solved is not None:
+            detail = unphysical_cycle_detail(solved, self.hp_capacity)
+        if detail is not None:
+            hp_result["failure_detail"] = detail
         return hp_result
 
     def _active_step_failure(self, opt: object, solved: dict | None) -> str | None:
@@ -1787,11 +1865,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         T_solved_K: float,
         level_solved: float,
         ier: int,
+        flows: TankStepFlows | None = None,
     ) -> dict:
         """Build HP-core result dict at solved state.
 
         Subsystem results are appended separately by
-        each subsystem's ``assemble_results()``.
+        each subsystem's ``assemble_results()``. ``flows`` are the tank flows
+        the solved balance of a level-varying tank carried
+        (:func:`tmhp.dynamic_context.tank_step_flows`): its draw, make-up and
+        the mixed water it delivered (less than the demand when the draw
+        stopped at the lowest level, ``dV_mix_w_out_unmet [m3/s]``).
         """
         den: float = max(
             1e-6,
@@ -1806,11 +1889,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         dV_tank_w_out: float = alp * ctx.dV_mix_w_out
         dV_tank_w_in: float = dV_tank_w_out if ctrl.dV_tank_w_in_ctrl is None else ctrl.dV_tank_w_in_ctrl
+        dV_mix_w_out: float = ctx.dV_mix_w_out
+        if flows is not None:
+            dV_tank_w_out, dV_tank_w_in, dV_mix_w_out = flows.dV_tank_w_out, flows.dV_tank_w_in, flows.dV_mix_w_out
 
         self.dV_tank_w_out = dV_tank_w_out
         self.dV_tank_w_in = dV_tank_w_in
-        self.dV_mix_w_out = ctx.dV_mix_w_out
-        self.dV_mix_sup_w_in = (1 - alp) * ctx.dV_mix_w_out
+        self.dV_mix_w_out = dV_mix_w_out
+        self.dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
 
         T_mix_w_out_val: float = (
             calc_mixing_valve_temp(
@@ -1818,7 +1904,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 self.T_sup_w_K,
                 self.T_mix_w_out_K,
             )["T_mix_w_out"]
-            if ctx.dV_mix_w_out > 0
+            if dV_mix_w_out > 0
             else np.nan
         )
 
@@ -1839,23 +1925,24 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # temperature its cycle was solved at (the run's mean, or the step
         # start on an off step), which T_tank_w and the tank exergy do not use.
         rc = c_w * rho_w
-        T_mix_K = cu.C2K(T_mix_w_out_val) if ctx.dV_mix_w_out > 0 else np.nan
-        dV_mix_sup_w_in = (1 - alp) * ctx.dV_mix_w_out
+        T_mix_K = cu.C2K(T_mix_w_out_val) if dV_mix_w_out > 0 else np.nan
+        dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
         r.update(
             {
-                "dV_mix_w_out [m3/s]": ctx.dV_mix_w_out if ctx.dV_mix_w_out > 0 else np.nan,
+                "dV_mix_w_out [m3/s]": dV_mix_w_out if dV_mix_w_out > 0 else np.nan,
                 "dV_tank_w_out [m3/s]": dV_tank_w_out if dV_tank_w_out > 0 else np.nan,
                 "dV_tank_w_in [m3/s]": dV_tank_w_in if dV_tank_w_in > 0 else np.nan,
                 "dV_mix_sup_w_in [m3/s]": dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan,
                 "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
                 "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
                 "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
-                "Q_mix_w_out [W]": calc_energy_flow(G=rc * ctx.dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
+                "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
             }
         )
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flows.dV_mix_w_out_unmet if flows is not None else 0.0
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -2006,6 +2093,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """
         for name, sub in self._subsystems.items():
             r.update(sub.assemble_results(ctx, ctrl, sub_states[name], T_solved_K))
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the outdoor fan (the cycle assembled E_tot before
+        # the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: "pd.DataFrame") -> "pd.DataFrame":
@@ -2022,8 +2114,20 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # =============================================================
 
     def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:
-        """Build the initial carried state for a ``step()``-driven run."""
+        """Build the initial carried state for a ``step()``-driven run.
+
+        A tank whose level varies (``tank_always_full=False`` or
+        ``prevent_simultaneous_flow``) starts with at least
+        :data:`~tmhp.dynamic_context.TANK_LEVEL_MIN` of water: an empty tank
+        has no temperature to start from.
+        """
         validate_initial_state(locals())
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         return DynamicState(
             T_tank_w_K=cu.C2K(T_tank_w_init_C),
             tank_level=tank_level_init,
@@ -2113,10 +2217,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         call_start: bool = self._thermostat_call(ctx, state.hp_is_on_prev)
         T_start_C: float = cu.K2C(ctx.T_tank_w_K)
 
+        # Draw expected over this step (mixing valve at the start temperature):
+        # the refill decision looks at the level this step's draw leaves, not
+        # the previous step's draw (the tank balance then limits both flows).
+        alp_prev: float = min(
+            1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
+        )
+        dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
         dV_tank_w_in_ctrl, is_refilling = determine_tank_refill_flow(
             dt=dt_s,
             tank_level=ctx.tank_level,
-            dV_tank_w_out=state.dV_tank_w_out_prev,
+            dV_tank_w_out=dV_tank_w_out_prev,
             V_tank_full=self.V_tank_full,
             tank_always_full=self.tank_always_full,
             prevent_simultaneous_flow=self.prevent_simultaneous_flow,
@@ -2131,6 +2242,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         ctrl_free: ControlState = ControlState(is_on=False, Q_heat_source=0.0, dV_tank_w_in_ctrl=dV_tank_w_in_ctrl)
 
         # --- Phase A-2: subsystem step (via Hook) ---
+        # Subsystem state of the previous step, read by the hooks (never
+        # written: the next state is gathered from sub_states below).
+        self._subsystem_state_in = state.subsystem_state
         sub_states: dict[str, dict] = self._run_subsystems(
             ctx,
             ctrl_free,
@@ -2138,14 +2252,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_in_K_n,
         )
 
-        # Mass is explicit: the level the implicit energy solve uses.
-        alp_prev: float = min(
-            1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
-        )
-        dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
+        # Level estimate at the start temperature. An always-full tank keeps
+        # its level; a level-varying tank's residual computes the end level
+        # from the flows at T^{n+1} itself, and the step takes it from there.
         dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
         level_next_approx = ctx.tank_level + (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s / self.V_tank_full
-        tank_level = max(0.001, min(1.0, level_next_approx))
+        tank_level = max(TANK_LEVEL_MIN, min(1.0, level_next_approx))
 
         # --- Phase A-3: thermostat events inside the step ---
         # Bounds are reached part-way through a step: the compressor runs
@@ -2161,8 +2273,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_lower=self.T_tank_w_lower_bound,
             T_upper=self.T_tank_w_upper_bound,
             dt=dt_s,
-            C_curr=self.C_tank * max(0.001, ctx.tank_level),
-            C_next=self.C_tank * max(0.001, tank_level),
+            C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+            C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level),
             C_tank=self.C_tank,
             residual_free=self._build_residual_fn(
                 ctx, ctrl_free, dt_s, T_tank_w_in_K_n, T_sup_w_K_n, tank_level, sub_states
@@ -2203,27 +2315,33 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         try:
             res = root_scalar(residual_1d, bracket=[cu.C2K(0.0), cu.C2K(100.0)], method="brentq")
-            converged = getattr(res, "converged", False)
-            root_val = getattr(res, "root", np.nan)
-            if converged and not np.isnan(root_val):
-                T_tank_w_K = float(root_val)
-                ier = 1
-            else:
-                raise ValueError(f"Not converged or NaN: {res}")
-        except Exception:  # Fallback to explicit step if anything fails
-            # Exception ignored; explicit Euler fallback will correctly handle the state
-            # Explicit Euler step for energy:
-            # r_energy = C_curr * T_next - C_curr * T_curr - dt * (Q_total - UA*(T_curr - T0)) = 0
-            Q_hp_val = ctrl.Q_heat_source
-            alp_curr = min(1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n)))
-            dV_out_curr = alp_curr * ctx.dV_mix_w_out
-            Q_flow_curr = c_w * rho_w * dV_out_curr * (T_sup_w_K_n - ctx.T_tank_w_K)
-            Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
-            Q_tot = Q_hp_val + Q_flow_curr - Q_loss_curr  # Assumes sub_total = 0 explicitly for fallback
-
-            T_tank_w_K = ctx.T_tank_w_K + dt_s * Q_tot / self.C_tank
+            solved = bool(res.converged) and math.isfinite(res.root)
+        except (ValueError, RuntimeError):
+            solved = False  # no root between 0 and 100 °C, or the search did not settle
+        if solved:
+            T_tank_w_K = float(res.root)
+            ier = 1
+        else:
+            # Same residual, wider range (tmhp._tank_solve): heat pump, draw-off,
+            # loss and subsystem heat stay in the balance, and a step that
+            # cannot be solved is named in a warning.
+            T_tank_w_K = recover_tank_temperature(
+                residual_1d,
+                T_start_K=ctx.T_tank_w_K,
+                dt=dt_s,
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level),
+                C_tank=self.C_tank,
+                who=type(self).__name__,
+                step=n,
+            )
             ier = 0
         warn_if_tank_boiling(T_tank_w_K)
+        flows = None
+        if dV_tank_w_in_ctrl is not None:
+            # Level-varying tank: the flows and level the solved balance carried.
+            flows = tank_step_flows(T_tank_w_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+            tank_level = flows.level_next
 
         # --- Phase C: core + subsystem results (via Hook) ---
         r: dict = self._assemble_core_results(
@@ -2232,6 +2350,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_K,
             tank_level,
             ier,
+            flows=flows,
         )
         r = self._augment_results(r, ctx, ctrl, sub_states, T_tank_w_K)
 
@@ -2243,6 +2362,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_out_prev=self.dV_tank_w_out,
             hp_running_prev=run.running_end,
             hp_phase_age_s=run.phase_age_end_s,
+            subsystem_state=collect_subsystem_state(state.subsystem_state, sub_states),
         )
         return new_state, r
 

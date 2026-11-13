@@ -26,7 +26,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from . import calc_util as cu
-from ._opt_utils import ignore_minpack_progress_warning, safe_float_attr
+from ._opt_utils import safe_float_attr
+from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -64,7 +65,8 @@ from .enex_functions import (
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin, _evaluable_bracket
-from .refrigerant import calc_ref_state, reportable_state
+from .refrigerant import calc_ref_state, props_si, reportable_state
+from .subsystems import add_uv_power_to_e_tot
 from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
@@ -541,7 +543,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         try:
             s_cmp_in = cycle_states["s_ref_cmp_in [J/(kg·K)]"]
-            h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+            h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
             h_ref_cmp_out_isen = h_ref_cmp_in
 
@@ -646,10 +648,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp_vol [-]": val_eta_vol,
                 "eta_cmp_isen [-]": val_eta_isen,
                 "eta_cmp [-]": val_eta_electro_mech,
-                "h_ref_evap_sat [J/kg]": CP.PropsSI(
+                "h_ref_evap_sat [J/kg]": props_si(
                     "H", "P", cycle_states.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref
                 ),
-                "h_ref_cond_sat_v [J/kg]": CP.PropsSI(
+                "h_ref_cond_sat_v [J/kg]": props_si(
                     "H", "P", cycle_states.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref
                 ),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,
@@ -877,6 +879,11 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                     T_solved_K,
                 )
                 r.update(sub_record)
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the source-loop pump (the cycle assembled E_tot
+        # before the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -935,7 +942,6 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         T_sur_schedule=None,
     ) -> pd.DataFrame:
         validate_dynamic(locals())
-        from scipy.optimize import fsolve
 
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
@@ -1135,24 +1141,22 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 sub_states=sub_states,
             )
 
-            from typing import cast
-
-            T_guess_K = ctx.T_tank_w_K
-            try:
-                with ignore_minpack_progress_warning():
-                    T_solved_K_arr = cast(np.ndarray, fsolve(res_fn, x0=[T_guess_K]))
-                T_solved_K = float(T_solved_K_arr[0])
-            except Exception:
-                # explicit Euler fallback
-                Q_hp_val = ctrl.Q_heat_source
-                Q_flow_curr = c_w * rho_w * dV_tank_w_out_prev * (T_sup_w_K_n - ctx.T_tank_w_K)
-                Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
-                Q_tot = Q_hp_val + Q_flow_curr - Q_loss_curr
-                T_solved_K = ctx.T_tank_w_K + dt_s * Q_tot / (self.C_tank * tank_level_solve)
+            # A solve that does not return a root is recovered with the same
+            # residual (tmhp._tank_solve): heat pump, draw-off, loss and
+            # subsystem heat stay in the balance, and a step that cannot be
+            # solved is named in a warning.
+            T_solved_K = solve_lumped_tank(
+                res_fn,
+                ctx.T_tank_w_K,
+                T_start_K=ctx.T_tank_w_K,
+                dt=dt_s,
+                C_curr=self.C_tank * max(0.001, ctx.tank_level),
+                C_next=self.C_tank * max(0.001, tank_level_solve),
+                C_tank=self.C_tank,
+                who=type(self).__name__,
+                step=n,
+            )
             warn_if_tank_boiling(T_solved_K)
-
-            if T_solved_K <= T_sup_w_K_n:
-                T_solved_K = T_sup_w_K_n
 
             # Flow state evaluated at solved temperature
             flow_state_final = self._calc_tank_flow_context(

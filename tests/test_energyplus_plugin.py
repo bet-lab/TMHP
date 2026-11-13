@@ -503,11 +503,11 @@ def _real_surrogate(t_in, t0, load, mdot=3.0):
 
 
 def test_surrogate_with_real_model_at_the_discharge_temperature_ceiling():
-    """R32 at A0 with a 60 degC loop: the discharge-temperature control holds 150 degC
+    """R32 at A-2 with a 60 degC loop: the discharge-temperature control holds 150 degC
     only at a reduced duty (``capacity_clamped='max'``). The loop gets that duty,
     not the request, and the machine is metered for all of it."""
-    plant = _real_surrogate(60.0, 0.0, 15000.0)
-    full = plant.hp.analyze_steady(T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0, m_dot_w=3.0)
+    plant = _real_surrogate(60.0, -2.0, 15000.0)
+    full = plant.hp.analyze_steady(T_tank_w=60.0, T0=-2.0, Q_ref_tank=15000.0, m_dot_w=3.0)
     # scenario precondition
     assert full["capacity_clamped"] == "max" and full["capacity_binding"] == "discharge_temperature"
     assert full["discharge_control"] is True and full["Q_ref_tank [W]"] < 15000.0

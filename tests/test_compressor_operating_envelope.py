@@ -19,9 +19,13 @@ import pytest
 import tmhp
 from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
+    BINDING_EFFICIENCY,
+    BINDING_HEAT_EXCHANGER,
+    BINDING_PRESSURE_RATIO,
     DISCHARGE_TEMP_ABOVE_MAX,
     DISCHARGE_TOL_K,
     ETA_ISEN_BELOW_MIN,
+    ETA_ISEN_MIN,
     PR_CYCLE_MAX_SINGLE_STAGE,
     RATED_SPEED_SEARCH_MAX,
     RPS_MAX_ABSOLUTE,
@@ -157,10 +161,13 @@ def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():
     uncontrolled = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, x_suction_min=None)
     _off(_quiet(uncontrolled.analyze_steady, **case), DISCHARGE_TEMP_ABOVE_MAX)
     # With the discharge limit off, the 357 degC point (eta_is 0.23 at 25 rev/s,
-    # the guard's low-speed continuation) is still refused, by the efficiency floor.
+    # the guard's low-speed continuation) is still refused, by the efficiency
+    # floor: the largest duty that keeps the fit above it is returned instead.
     legacy = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R32", hp_capacity=8000.0, T_dis_max=None)
     old = _quiet(legacy.analyze_steady, **case)
-    assert old["failure_reason"] == ETA_ISEN_BELOW_MIN and not old["hp_is_on"]
+    assert _running(old) and old["capacity_clamped"] == "max"
+    assert old["capacity_binding"] == BINDING_EFFICIENCY
+    assert old["Q_ref_tank [W]"] < 8000.0 and old["eta_cmp_isen [-]"] >= ETA_ISEN_MIN
 
 
 def test_ashpb_r32_a_minus7_w55_is_refused_even_with_control():
@@ -386,6 +393,99 @@ def test_control_then_uses_wet_suction_with_a_closed_cycle_balance():
     assert r["Q_ref_tank [W]"] == pytest.approx(15000.0, rel=1e-6)
 
 
+_NO_FLOW = {
+    "dV_mix_w_out [m3/s]": 0.0,
+    "dV_tank_w_out [m3/s]": 0.0,
+    "dV_tank_w_in [m3/s]": 0.0,
+    "dV_mix_sup_w_in [m3/s]": 0.0,
+    "alp": 0.0,
+}
+
+
+def _count_cycle_evaluations(monkeypatch) -> list:
+    """Count the full cycle evaluations of the ASHPB (one outdoor-coil solve each)."""
+    import tmhp.air_source_heat_pump_boiler as ashpb
+
+    calls: list = []
+    coil = ashpb.calc_HX_perf_for_target_heat
+
+    def counted(*args, **kwargs):
+        calls.append(kwargs.get("T_ref_evap_sat_K"))
+        return coil(*args, **kwargs)
+
+    monkeypatch.setattr(ashpb, "calc_HX_perf_for_target_heat", counted)
+    return calls
+
+
+@pytest.mark.parametrize(
+    ("T_tank_w", "T0", "approach", "stage"),
+    [(65.0, 7.0, 6.0, "wet"), (55.0, 2.0, 6.5, "superheat")],
+)
+def test_control_closes_on_the_limit_in_a_few_cycle_evaluations(monkeypatch, T_tank_w, T0, approach, stage):
+    """The control at one candidate: the uncontrolled state plus at most three more.
+
+    The suction state at the limit is predicted from the fluid properties; root
+    finding on full cycle evaluations took eight to nine of them per candidate
+    and left 1e-3 K of noise in the objective the outdoor search minimises.
+    """
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    calls = _count_cycle_evaluations(monkeypatch)
+    state = hp._calc_state(approach, T_tank_w, 15000.0, T0, flow_state=_NO_FLOW)
+    assert state["discharge_control"] is True
+    assert state["T_ref_cmp_out [°C]"] == pytest.approx(hp.T_dis_max, abs=1e-4)
+    assert (state["x_ref_cmp_in [-]"] < 1.0) is (stage == "wet")
+    assert len(calls) <= 4
+
+
+def test_predicted_and_bracketed_control_agree(monkeypatch):
+    """Both closures find the same suction state; the bracketing one is the fallback."""
+    from tmhp import compressor_envelope as envelope
+
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    predicted = hp._calc_state(6.0, 65.0, 15000.0, 7.0, flow_state=_NO_FLOW)
+    control = envelope._control
+    # Without a fluid for the property estimate the bracketing closure runs.
+    monkeypatch.setattr(envelope, "_control", lambda at, sh, T, x, ref, base: control(at, sh, T, x, None, base))
+    bracketed = hp._calc_state(6.0, 65.0, 15000.0, 7.0, flow_state=_NO_FLOW)
+    assert bracketed["discharge_control"] is True
+    assert bracketed["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
+    assert predicted["x_ref_cmp_in [-]"] == pytest.approx(bracketed["x_ref_cmp_in [-]"], abs=2e-5)
+    assert predicted["E_tot [W]"] == pytest.approx(bracketed["E_tot [W]"], rel=1e-5)
+
+
+def test_control_out_of_reach_costs_two_cycle_evaluations(monkeypatch):
+    """A-7/W55 R32: still far above the limit at x_suction_min -- decided at once, not searched.
+
+    The state returned is the control's last stage (the suction at
+    ``x_suction_min``), the one closest to the envelope, not the uncontrolled one.
+    """
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    calls = _count_cycle_evaluations(monkeypatch)
+    state = hp._calc_state(8.0, 55.0, 15000.0, -7.0, flow_state=_NO_FLOW)
+    assert state["T_ref_cmp_out [°C]"] > hp.T_dis_max + 20.0
+    assert state["discharge_control"] is True and state["x_ref_cmp_in [-]"] == pytest.approx(hp.x_suction_min)
+    assert len(calls) == 2
+    free = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, x_suction_min=None)
+    dry = free._calc_state(8.0, 55.0, 15000.0, -7.0, flow_state=_NO_FLOW)
+    assert dry["T_ref_cmp_out [°C]"] > state["T_ref_cmp_out [°C]"] + 20.0
+
+
+def test_steady_solve_evaluates_each_outdoor_approach_once(monkeypatch):
+    """The operating point the search found is reported from the search, not solved again."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    approaches: list[float] = []
+    calc_state = hp._calc_state
+
+    def counted(*args, **kwargs):
+        approaches.append(float(kwargs["dT_ref_ou"] if "dT_ref_ou" in kwargs else args[0]))
+        return calc_state(*args, **kwargs)
+
+    monkeypatch.setattr(hp, "_calc_state", counted)
+    r = _quiet(hp.analyze_steady, T_tank_w=65.0, T0=7.0, Q_ref_tank=15000.0)
+    assert _running(r) and r["discharge_control"] is True
+    assert len(approaches) == len(set(approaches))
+
+
 @pytest.mark.parametrize("cls", FAMILIES)
 def test_control_arguments_on_every_family(cls):
     hp = _quiet(cls, ref="R32")
@@ -465,3 +565,178 @@ def test_dynamic_step_is_off_with_the_reason_when_no_duty_fits():
     assert row["failure_reason"] == DISCHARGE_TEMP_ABOVE_MAX
     assert row["Q_ref_tank [W]"] == 0.0 and row["E_cmp [W]"] == 0.0 and row["runtime_fraction [-]"] == 0.0
     assert row["T_tank_w [°C]"] < 58.0  # standing loss only
+
+
+# ---------------------------------------------------------------------------
+# a request no limit lets through runs at the largest duty that fits (any limit)
+# ---------------------------------------------------------------------------
+
+
+def _steady_ashpb(hp, T_tank_w, T0, Q):
+    return _quiet(hp.analyze_steady, T_tank_w=T_tank_w, T0=T0, Q_ref_tank=Q)
+
+
+def _reduced(r: dict, request: float, binding: str) -> None:
+    assert _running(r), (r.get("failure_reason"), r.get("failure_detail"))
+    assert r["capacity_clamped"] == "max" and r["capacity_binding"] == binding
+    assert r["Q_request [W]"] == request and r["Q_ref_tank_request [W]"] == request
+    assert 0.0 < r["Q_ref_tank [W]"] < request
+    assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
+
+
+@pytest.fixture(scope="module")
+def r134a_15kw():
+    return _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R134a", hp_capacity=15000.0)
+
+
+def test_request_the_outdoor_coil_cannot_carry_runs_at_the_duty_it_can(r134a_15kw):
+    """A-12/W58 R134a 15 kW: 8 kW ran, 15 kW used to be off (``hx_not_converged``).
+
+    The failed result had no ``hp_is_on`` key at all (#96 A-2). The coil needs
+    a larger approach than the pressure-ratio ceiling leaves it: the point
+    returned sits on the ceiling, and one percent of the request above it the
+    coil is short at full airflow at every approach the cycle reaches.
+    """
+    r = _steady_ashpb(r134a_15kw, 58.0, -12.0, 15000.0)
+    _reduced(r, 15000.0, BINDING_PRESSURE_RATIO)
+    assert r["Q_ref_tank [W]"] > 8000.0
+    assert r["T_ref_cmp_out [°C]"] <= r134a_15kw.T_dis_max + DISCHARGE_TOL_K
+    assert r["pr_cmp [-]"] == pytest.approx(r134a_15kw.PR_cycle_max, rel=1e-3)
+    with pytest.warns(RuntimeWarning, match="hx_not_converged"):
+        above = tmhp.AirSourceHeatPumpBoiler.analyze_steady.__wrapped__(
+            r134a_15kw, T_tank_w=58.0, T0=-12.0, Q_ref_tank=r["Q_ref_tank [W]"] + 0.0101 * 15000.0
+        )
+    _off(above, "hx_not_converged")
+    assert above["failure_detail"] == "outdoor_coil_short_at_max_airflow"
+
+
+def test_request_above_the_pressure_ratio_ceiling_runs_on_the_ceiling(r134a_15kw):
+    """A-25/W40 R134a: 12 kW has no approach inside PR 11; the unit runs where the ratio is 11."""
+    r = _steady_ashpb(r134a_15kw, 40.0, -25.0, 12000.0)
+    _reduced(r, 12000.0, BINDING_PRESSURE_RATIO)
+    assert r["pr_cmp [-]"] == pytest.approx(r134a_15kw.PR_cycle_max, rel=1e-3)
+    assert r["pr_cmp [-]"] <= r134a_15kw.PR_cycle_max * (1 + 1e-9)
+
+
+def test_pressure_ratio_above_the_ceiling_at_every_duty_is_decided_in_two_solves(r134a_15kw, monkeypatch):
+    """A-25/W60: even a tenth of the request is above PR 11, so nothing in between runs."""
+    solves = []
+    search = r134a_15kw._optimize_operation
+
+    def counted(*args, **kwargs):
+        solves.append(kwargs.get("Q_ref_tank", args[1] if len(args) > 1 else None))
+        return search(*args, **kwargs)
+
+    monkeypatch.setattr(r134a_15kw, "_optimize_operation", counted)
+    r = _steady_ashpb(r134a_15kw, 60.0, -25.0, 15000.0)
+    _off(r, "pr_above_max")
+    assert solves == [15000.0, pytest.approx(1500.0)]
+
+
+def test_duties_that_run_between_two_limits_are_found():
+    """A-15/W65 R1234yf 15 kW: above ~5.7 kW the pressure ratio refuses the duty, below
+    ~4 kW the discharge temperature does (low speed). No rung of the ladder runs."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R1234yf", hp_capacity=15000.0)
+    for rung in (0.8, 0.6, 0.4, 0.25, 0.1):
+        assert not _running(tmhp.AirSourceHeatPumpBoiler.analyze_steady.__wrapped__(hp, 65.0, -15.0, rung * 15000.0))
+    r = _steady_ashpb(hp, 65.0, -15.0, 15000.0)
+    _reduced(r, 15000.0, BINDING_PRESSURE_RATIO)
+    assert 0.25 * 15000.0 < r["Q_ref_tank [W]"] < 0.4 * 15000.0
+
+
+def test_condensing_above_the_critical_point_is_not_reduced_onto_it():
+    """W75 R32: 15 kW needs a 5 K condenser approach, 80 degC against a 78.1 degC critical
+    point. 7.5 kW (77.5 degC) solves, but the largest such duty would sit on the critical
+    point itself: the request stays a failure."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    assert _running(_steady_ashpb(hp, 75.0, 15.0, 7500.0))
+    _off(_steady_ashpb(hp, 75.0, 15.0, 15000.0), "cycle_invalid")
+
+
+def test_coil_that_absorbs_too_much_at_minimum_airflow_is_not_reduced():
+    """A smaller duty makes this worse: no trial solves."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", dV_fan_a_rated=10.0, dV_fan_a_min=9.0, UA_ou_rated=3.0e4)
+    r = _steady_ashpb(hp, 30.0, 15.0, 3000.0)
+    _off(r, "hx_not_converged")
+    assert r["failure_detail"] == "outdoor_coil_excess_at_min_airflow"
+
+
+@pytest.mark.parametrize(
+    ("ref", "T_tank_w", "T0", "Q", "reason"),
+    [
+        ("R32", 60.0, -3.0, 15000.0, "discharge_temp_above_max"),
+        ("R134a", 60.0, -25.0, 15000.0, "pr_above_max"),
+        ("R32", 75.0, 15.0, 15000.0, "cycle_invalid"),
+    ],
+)
+def test_every_failure_is_the_same_off_state_row(ref, T_tank_w, T0, Q, reason):
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref=ref, hp_capacity=15000.0)
+    r = _steady_ashpb(hp, T_tank_w, T0, Q)
+    _off(r, reason)
+    assert r["converged"] is False
+    for key in ("Q_ref_ou [W]", "E_ou_fan [W]", "E_tot [W]", "m_dot_ref [kg/s]", "cmp_rpm [rpm]"):
+        assert r[key] == 0.0, key
+    assert math.isnan(r["cop_ref [-]"]) and math.isnan(r["cop_sys [-]"])
+    assert r["capacity_clamped"] is None and "capacity_binding" not in r
+
+
+def test_discharge_control_does_not_narrow_the_search_to_the_uncontrolled_coil_band():
+    """A-6/W50 R32 15 kW runs at the request. Wet suction adds ~100 W to the evaporator
+    duty, so the controlled cycle's coil band starts above the uncontrolled one; reading
+    the band from the uncontrolled margins left a window the scan stepped over, and the
+    request was 'reduced' to 14.7 kW (and a step earlier to 8.4 kW)."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    for T_tank_w, T0 in ((50.0, -6.0), (54.0, -3.0)):
+        r = _steady_ashpb(hp, T_tank_w, T0, 15000.0)
+        assert _running(r) and r["capacity_clamped"] is None
+        assert r["Q_ref_tank [W]"] == pytest.approx(15000.0, rel=1e-6)
+        assert r["discharge_control"] is True and hp.x_suction_min <= r["x_ref_cmp_in [-]"] < 1.0
+        assert r["T_ref_cmp_out [°C]"] <= hp.T_dis_max + DISCHARGE_TOL_K
+
+
+def test_dynamic_step_reduces_like_the_steady_solve_for_another_limit(r134a_15kw, monkeypatch):
+    """A-12, tank at 58 degC: the step's cycle is the one analyze_steady returns for the
+    tank temperature the step solves at -- the same reduced duty and the same binding."""
+    solved_at: list[float] = []
+    solve = r134a_15kw._solve_cycle_at
+
+    def recorded(ctx, T_tank_w):
+        solved_at.append(T_tank_w)
+        return solve(ctx, T_tank_w)
+
+    monkeypatch.setattr(r134a_15kw, "_solve_cycle_at", recorded)
+    df = _quiet(r134a_15kw.analyze_dynamic, 60, 60, 58.0, np.zeros(1), np.full(1, -12.0))
+    row = df.iloc[0]
+    steady = _steady_ashpb(r134a_15kw, solved_at[-1], -12.0, 15000.0)
+    assert bool(row["hp_is_on"]) and row["failure_reason"] == "none"
+    assert row["capacity_binding"] == steady["capacity_binding"] == BINDING_PRESSURE_RATIO
+    assert row["Q_request [W]"] == 15000.0
+    assert row["Q_max [W]"] == pytest.approx(steady["Q_ref_tank [W]"], rel=1e-6)
+
+
+def test_called_step_reads_the_failure_detail_like_the_steady_solve(monkeypatch):
+    """A step whose coil absorbs too much at minimum airflow is off after one solve: the
+    step's cycle carries the detail analyze_steady reports, and that detail says a smaller
+    duty cannot help (without it the step would try the whole ladder)."""
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", dV_fan_a_rated=10.0, dV_fan_a_min=9.0, UA_ou_rated=3.0e4)
+    hp.hp_capacity = 3000.0  # the request of a called step
+    cycles: list[dict] = []
+    searches: list[float] = []
+    solve, search = hp._solve_cycle_at, hp._optimize_operation
+    monkeypatch.setattr(hp, "_solve_cycle_at", lambda ctx, T: cycles.append(solve(ctx, T)) or cycles[-1])
+    monkeypatch.setattr(hp, "_optimize_operation", lambda *a, **k: searches.append(a[1]) or search(*a, **k))
+    df = _quiet(hp.analyze_dynamic, 60, 60, 30.0, np.zeros(1), np.full(1, 15.0))
+    row = df.iloc[0]
+    assert not bool(row["hp_is_on"]) and row["Q_ref_tank [W]"] == 0.0
+    assert row["failure_reason"] == "hx_not_converged"
+    assert cycles and all(c["failure_detail"] == "outdoor_coil_excess_at_min_airflow" for c in cycles)
+    assert len(searches) == len(cycles)
+
+
+def test_ground_source_boiler_reduces_onto_its_source_heat_exchanger():
+    """The shared reduction serves the other boilers unchanged: B20/W30 R290 at 1.5 x nameplate."""
+    hp = _quiet(tmhp.GroundSourceHeatPumpBoiler, ref="R290")
+    r = _quiet(hp.analyze_steady, T_tank_w=30.0, T_source=20.0, Q_ref_tank=1.5 * hp.hp_capacity)
+    assert _running(r) and r["capacity_clamped"] == "max"
+    assert r["capacity_binding"] == BINDING_HEAT_EXCHANGER
+    assert hp.hp_capacity < r["Q_ref_tank [W]"] < 1.5 * hp.hp_capacity

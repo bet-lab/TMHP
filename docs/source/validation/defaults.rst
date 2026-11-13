@@ -588,8 +588,8 @@ current model code:
     * - **``defaults``**
       - **what TMHP ships — coefficients ``BITZER-three-C3-absolute-N-2026-10-06``
         with their guards**
-      - **10.5 %**
-      - **+5.9 %**
+      - **10.3 %**
+      - **+5.8 %**
 
 Parity figures are the ten adopted air-to-water units; the held Fujitsu
 catalogues are excluded from every headline. The ``defaults`` row is the
@@ -599,7 +599,7 @@ Three things to read off it.
 
 **The compressor description carries most of the model.** An ideal compressor
 is 48.0 % out on the catalogues and a speed-independent one 16.1 %. The shipped
-fits come to 10.5 % with a +5.9 % bias over the 136 points the compressor
+fits come to 10.3 % with a +5.8 % bias over the 139 points the compressor
 envelope admits, three points behind the pre-refit ``legacy-v1`` set on this
 comparison.
 

@@ -27,8 +27,9 @@ was stored). This module keeps the same states but closes the books:
 - advection is an exact plug-flow shift of that piecewise-constant column by the
   step volume ``V̇·Δt`` (any number of nodes per step), remapped onto the nodes
   conservatively; only the barrier is kept as a sub-node discontinuity;
-- conduction (zone-aware), side-wall loss and ``q_source`` are then integrated
-  implicitly (backward Euler) over the nodes plus the two zones;
+- conduction (zone-aware), side-wall loss, ``q_source`` and the immersed
+  exchanger (``hx_ua`` / ``T_hx`` / ``q_hx``, as in ``StratifiedTank``) are
+  then integrated implicitly (backward Euler) over the nodes plus the two zones;
 - buoyancy inversions are mixed instantly
   (:func:`~tmhp.stratified_tank.mix_inversions`).
 
@@ -76,7 +77,18 @@ from scipy.linalg import solve_banded
 
 from ._validation import validate_ctor, validate_tank_step
 from .constants import c_w, k_w, rho_w
-from .stratified_tank import T_BOIL_ATM_C, _flag_overheat, _heat_source_array, mix_inversions
+from .stratified_tank import (
+    OVERHEAT_TOL_K,
+    T_BOIL_ATM_C,
+    _flag_overheat,
+    _heat_source_array,
+    _hx_conductance,
+    _hx_substeps,
+    mix_inversions,
+    solve_hx_scale,
+    solve_hx_temperature,
+    solve_one_sided_hx,
+)
 
 #: A barrier closer than this fraction of a node volume to a node boundary is
 #: snapped onto the boundary, so an exact landing (e.g. one node volume per
@@ -203,51 +215,147 @@ class HybridStratifiedTank:
         T_makeup: float = 10.0,
         q_source=None,
         T_amb: float = 20.0,
+        hx_ua=None,
+        T_hx: float | None = None,
+        q_hx: float | None = None,
     ) -> dict:
         """Advance one timestep; arguments and result as ``StratifiedTank.step``.
 
-        The result also carries ``y_th`` (barrier height [m] or ``None``).
+        The result carries ``y_th`` (barrier height [m] or ``None``) instead
+        of ``substeps``.
         """
-        validate_tank_step(locals())
-        q_arr = _heat_source_array(q_source, self.n)
-        net = (charge_flow - draw_flow) * dt  # net downward volume [m³]
+        return self._advance(locals(), commit=True)
 
-        # 1. Barrier life cycle for this flow direction (paper §3.3).
-        if self._x_front is not None and (
-            (net < 0.0 and self.front == "charge") or (net > 0.0 and self.front == "discharge")
-        ):
-            self._x_front = None  # node mean already holds both zones
+    def preview(
+        self,
+        dt: float,
+        *,
+        charge_flow: float = 0.0,
+        T_charge: float = 0.0,
+        draw_flow: float = 0.0,
+        T_makeup: float = 10.0,
+        q_source=None,
+        T_amb: float = 20.0,
+        hx_ua=None,
+        T_hx: float | None = None,
+        q_hx: float | None = None,
+    ) -> dict:
+        """Result :meth:`step` would give, without advancing the tank (and without warning)."""
+        return self._advance(locals(), commit=False)
+
+    def _state(self) -> tuple[np.ndarray, float | None, float, float]:
+        return self.T.copy(), self._x_front, self._T_above, self._T_below
+
+    def _restore(self, state: tuple[np.ndarray, float | None, float, float]) -> None:
+        self.T = state[0].copy()
+        self._x_front, self._T_above, self._T_below = state[1], state[2], state[3]
+
+    def _advance(self, args: dict, *, commit: bool) -> dict:
+        validate_tank_step(args)
+        dt, charge_flow, draw_flow = args["dt"], args["charge_flow"], args["draw_flow"]
+        T_charge, T_makeup, T_amb, T_hx = args["T_charge"], args["T_makeup"], args["T_amb"], args["T_hx"]
+        q_arr = _heat_source_array(args["q_source"], self.n)
+        ua_hx = _hx_conductance(args["hx_ua"], T_hx, args["q_hx"], self.n)
+        before = self._state()
+        net = (charge_flow - draw_flow) * dt  # net downward volume [m³]
+        through = min(charge_flow, draw_flow) * dt  # [m³]
         may_form = (net > 0.0 and self.front != "discharge") or (net < 0.0 and self.front != "charge")
 
-        # 2. Exact plug-flow advection of the piecewise-constant column by the
-        #    net flow, then the overlapping through-flow mixes with the inlet nodes.
-        #    Each is exact for any volume, but alternating them is an operator split
-        #    whose error scales with the slice volume / node volume; slicing to
-        #    _SLICE_FRACTION of a node keeps the result independent of dt.
-        through = min(charge_flow, draw_flow) * dt  # [m³]
+        # Slices. Advection (an exact plug-flow shift) and the implicit part
+        # (conduction, loss, heat input) are applied one after the other, an
+        # operator split. Without a heat input the implicit part runs once, after
+        # the whole shift. With one (``q_source`` or the exchanger) heating and
+        # flow act together, so the two alternate in slices of at most one node
+        # volume: otherwise a draw of a tank volume in one step would push out
+        # unheated make-up water before any of the step's heat went in.
+        # Overlapping port flows are sliced to _SLICE_FRACTION of a node (their
+        # exchange with the inlet node is itself a split).
+        heated = ua_hx is not None or bool(np.any(q_arr != 0.0))
         k = 1
         if through > 0.0:
-            k = max(1, math.ceil((through + abs(net)) / (_SLICE_FRACTION * self.v_node) - _SLICE_SLACK))
-        draw_vt = charge_vt = 0.0
-        formed = False
-        for _ in range(k):
-            form = may_form and self._x_front is None
-            d_vt, c_vt = self._advect(net / k, T_charge, T_makeup, form, mixing_inlet=through > 0.0)
-            formed = formed or (form and self._x_front is not None)
-            draw_vt += d_vt
-            charge_vt += c_vt
-            if through > 0.0:
-                d_vt, c_vt = self._port_exchange(through / k, T_charge, T_makeup)
+            k = max(k, math.ceil((through + abs(net)) / (_SLICE_FRACTION * self.v_node) - _SLICE_SLACK))
+        if heated:
+            k = max(k, math.ceil(abs(net) / self.v_node - _SLICE_SLACK))
+
+        def run(scale: float, T_hx: float | None, m: int) -> tuple[float, float, float, bool, np.ndarray, float]:
+            """One pass from the start state: exchanger ``scale`` and temperature, ``m`` implicit sub-steps per slice."""
+            self._restore(before)
+            # 1. Barrier life cycle for this flow direction (paper §3.3).
+            if self._x_front is not None and (
+                (net < 0.0 and self.front == "charge") or (net > 0.0 and self.front == "discharge")
+            ):
+                self._x_front = None  # node mean already holds both zones
+            hx = None if ua_hx is None else scale * ua_hx
+            draw_vt = charge_vt = loss = 0.0
+            mixed = formed = False
+            heat = np.zeros(self.n)
+            heated_max = -math.inf
+
+            def implicit(h: float, pieces: int) -> None:
+                nonlocal loss, mixed, heat, heated_max
+                # A barrier just formed below a mixing inlet separates the mixed
+                # node's outflow history from the old water; in its first step
+                # both sides are still old water, so it is not dropped as
+                # "equalised" yet (otherwise it would form one step late and its
+                # position would depend on dt).
+                keep_new = formed and through > 0.0 and self._x_front is not None
+                for _ in range(pieces):
+                    l_j, did, q_n, hot = self._diffuse(
+                        h / pieces, q_arr, T_amb, allow_merge=not keep_new, hx=hx, T_hx=T_hx
+                    )
+                    heated_max = max(heated_max, hot)
+                    loss += l_j
+                    mixed = mixed or did
+                    heat += h / pieces * q_n
+
+            # 2. Exact plug-flow advection of the piecewise-constant column by the
+            #    net flow, then the overlapping through-flow mixes with the inlet
+            #    nodes; 3. conduction, side-wall loss, heat source and exchanger
+            #    (implicit), then buoyancy.
+            for _ in range(k):
+                form = may_form and self._x_front is None
+                d_vt, c_vt = self._advect(net / k, T_charge, T_makeup, form, mixing_inlet=through > 0.0)
+                formed = formed or (form and self._x_front is not None)
                 draw_vt += d_vt
                 charge_vt += c_vt
+                if through > 0.0:
+                    d_vt, c_vt = self._port_exchange(through / k, T_charge, T_makeup)
+                    draw_vt += d_vt
+                    charge_vt += c_vt
+                if heated:
+                    implicit(dt / k, m)
+            if not heated:
+                implicit(dt, 1)
+            return draw_vt, charge_vt, loss, mixed, heat, heated_max
 
-        # 3. Conduction, side-wall loss and heat source (implicit), then buoyancy.
-        #    A barrier just formed below a mixing inlet separates the mixed node's
-        #    outflow history from the old water; in its first step both sides are
-        #    still old water, so it is not dropped as "equalised" yet (otherwise
-        #    it would form one step late and its position would depend on dt).
-        keep_new = formed and through > 0.0 and self._x_front is not None
-        loss_j, mixed = self._diffuse(dt, q_arr, T_amb, allow_merge=not keep_new)
+        Pass = tuple[float, float, float, bool, np.ndarray, float]
+
+        def solve(m: int) -> tuple[Pass, float, float | None, bool]:
+            if ua_hx is None:
+                return run(0.0, None, m), 0.0, None, False
+            if args["q_hx"] is None:
+                return run(1.0, T_hx, m), 1.0, T_hx, False
+            if T_hx is None:
+                # No water the step can reach is colder than this: nothing is delivered there.
+                zones = [t for t in before[2:] if before[1] is not None and math.isfinite(t)]
+                coldest = min(float(np.min(before[0])), *zones, T_makeup, T_amb)
+                T_low = (min(coldest, T_charge) if charge_flow > 0.0 else coldest) - 1.0
+                T_solved = solve_hx_temperature(
+                    lambda v: float(run(1.0, v, m)[4].sum()) / dt,
+                    args["q_hx"],
+                    T_low,
+                    float(np.max(before[0])) - T_low + args["q_hx"] / float(ua_hx.sum()),
+                )
+                return run(1.0, T_solved, m), 1.0, T_solved, False
+            x, lim = solve_hx_scale(lambda v: float(run(v, T_hx, m)[4].sum()) / dt, args["q_hx"])
+            return run(x, T_hx, m), x, T_hx, lim
+
+        (draw_vt, charge_vt, loss_j, mixed, hx_j, heated_max), scale, T_hx_used, limited = solve(1)
+        if ua_hx is not None and mixed:
+            # Heated water rose out of the coil's nodes: resolve that in time.
+            m_hx = math.ceil(_hx_substeps(dt, ua_hx, self.m_node * self.cp) / k)
+            if m_hx > 1:
+                (draw_vt, charge_vt, loss_j, mixed, hx_j, heated_max), scale, T_hx_used, limited = solve(m_hx)
 
         # The node holding the barrier reports the mean of its two zones, which can
         # hide an overheated zone (a thin 101 °C layer over 15 °C water averages
@@ -255,8 +363,12 @@ class HybridStratifiedTank:
         checked = self.T
         if self._front_node()[1] is not None:
             checked = np.append(self.T, (self._T_above, self._T_below))
-        t_max, over = _flag_overheat(checked, self.T_boil, "HybridStratifiedTank")
-        return {
+        if commit:
+            t_max, over = _flag_overheat(checked, self.T_boil, "HybridStratifiedTank")
+        else:
+            t_max = float(np.max(checked))
+            over = t_max > self.T_boil + OVERHEAT_TOL_K
+        out = {
             "T": self.T.copy(),
             "T_top": float(self.T[0]),
             "T_outlet": float(self.T[-1]),
@@ -267,7 +379,16 @@ class HybridStratifiedTank:
             "overheat": over,
             "mixed": mixed,
             "y_th": self.y_th,
+            "q_hx": hx_j / dt,
+            "Q_hx": float(hx_j.sum()) / dt,
+            "hx_scale": scale,
+            "T_hx": T_hx_used,
+            "T_hx_heated_max": heated_max if math.isfinite(heated_max) else None,
+            "hx_limited": limited,
         }
+        if not commit:
+            self._restore(before)
+        return out
 
     # ------------------------------------------------------------------
     def _column(self) -> tuple[list[float], list[float]]:
@@ -395,8 +516,23 @@ class HybridStratifiedTank:
                 self.T[end] = t_new
         return out[0], out[1]
 
-    def _diffuse(self, dt: float, q_arr: np.ndarray, T_amb: float, *, allow_merge: bool = True) -> tuple[float, bool]:
-        """Implicit conduction/loss/source over nodes + barrier zones, then mixing."""
+    def _diffuse(
+        self,
+        dt: float,
+        q_arr: np.ndarray,
+        T_amb: float,
+        *,
+        allow_merge: bool = True,
+        hx: np.ndarray | None = None,
+        T_hx: float | None = None,
+    ) -> tuple[float, bool, np.ndarray, float]:
+        """Implicit conduction/loss/source/exchanger over nodes + barrier zones, then mixing.
+
+        ``hx`` is the exchanger conductance per node [W/K] at ``T_hx`` (a zone
+        of the barrier node carries its volume share). Returns the loss [J],
+        whether an inversion was mixed, the exchanger heat per node [W] and
+        the hottest control volume the exchanger heated [°C] (``-inf`` if none).
+        """
         f, phi = self._front_node()
         # Control volumes, top first: volume fraction of a node, node index, temperature.
         frac: list[float] = []
@@ -426,7 +562,16 @@ class HybridStratifiedTank:
         ab[1] = diag
         ab[2, :-1] = -g
         rhs = cap / dt * np.asarray(temps) + ua * T_amb + q
-        Tcv = solve_banded((1, 1), ab, rhs)
+        q_hx_nodes = np.zeros(self.n)
+        heated_max = -math.inf
+        if hx is None or T_hx is None:
+            Tcv = solve_banded((1, 1), ab, rhs)
+        else:
+            idx = np.asarray(node)
+            Tcv, q_cv = solve_one_sided_hx(ab, rhs, fr * hx[idx], T_hx, np.asarray(temps))
+            np.add.at(q_hx_nodes, idx, q_cv)
+            if np.any(q_cv > 0.0):
+                heated_max = float(np.max(Tcv[q_cv > 0.0]))
         loss_j = dt * float(np.sum(ua * (Tcv - T_amb)))
 
         Tcv, mixed = mix_inversions(Tcv, cap)
@@ -447,4 +592,4 @@ class HybridStratifiedTank:
             self._x_front = None
         if self._x_front is None:
             self._T_above = self._T_below = math.nan
-        return loss_j, mixed
+        return loss_j, mixed, q_hx_nodes, heated_max

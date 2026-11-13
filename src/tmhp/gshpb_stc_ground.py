@@ -56,7 +56,9 @@ class GSHPB_STC_ground(STCScenario, GroundSourceHeatPumpBoilerRun):
     The loop runs inside the ``preheat_start_hour``–``preheat_end_hour``
     window under the collector-loop controller of :mod:`tmhp._stc_scenarios`
     (outlet at least ``dT_stc_off`` above the ground, gain above the pump
-    power, below boiling).
+    power, below boiling, not drained by the freeze protection and not locked
+    out after stagnation: ``stc_freeze_protected [-]``,
+    ``stc_stagnation_lockout [-]``).
     """
 
     def __init__(self, *, stc: SolarThermalCollector, **kwargs) -> None:
@@ -83,21 +85,11 @@ class GSHPB_STC_ground(STCScenario, GroundSourceHeatPumpBoilerRun):
         previous step (not the much colder HP evaporator fluid ``T_bhe_f``).
         """
         T_in_K = cu.C2K(self.T_bhe)
-        state: dict[str, Any]
-        if ctx.activation_flags.get("stc", False):
-            state = self._ground_loop_state(ctx, dt, T_in_K)
-        else:
-            plane = self._stc_plane(ctx, dt)
-            state = {
-                "stc_active": False,
-                "stc_result": self._stc_eval(ctx, plane, T_in_K, active=False),
-                "plane": plane,
-                "T_tank_w_in_override_K": None,
-                "E_subsystem": 0.0,
-                "Q_contribution": 0.0,
-                "E_stc_pump": 0.0,
-                "Q_solar_ground": 0.0,
-            }
+        # Outside the clock window the loop is held off (enabled=False); the
+        # controller still tracks its protections (freeze, stagnation lock-out).
+        state: dict[str, Any] = self._ground_loop_state(
+            ctx, dt, T_in_K, enabled=bool(ctx.activation_flags.get("stc", False))
+        )
         self._q_solar_ground_W = float(state["Q_solar_ground"])
         return {"stc": state}
 
@@ -112,7 +104,7 @@ class GSHPB_STC_ground(STCScenario, GroundSourceHeatPumpBoilerRun):
         e_pump = float(state.get("E_stc_pump", 0.0))
         # The collector-loop pump is electricity the system draws.
         r["E_tot [W]"] = float(r.get("E_tot [W]", 0.0)) + e_pump
-        r.update(self._solar_columns(ctx, active, e_pump))
+        r.update(self._solar_columns(ctx, state, active, e_pump))
         r["Q_solar_ground [W]"] = float(state.get("Q_solar_ground", 0.0))
         r.update(
             stc_result_columns(

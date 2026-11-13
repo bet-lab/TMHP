@@ -22,8 +22,9 @@ Exclusivity is structural: the router returns a single destination, so ground an
 tank are never charged on the same step. The chosen destination is still gated by
 the collector-loop controller (outlet at least `dT_stc_off` above that sink, gain
 above the pump power, below boiling, and on the tank route below the storage high
-limit `T_stc_tank_max`, 85 °C, at which charging stops within the step), falling
-back to `off` if the loop would not run.
+limit `T_stc_tank_max`, 85 °C, at which charging stops within the step; freeze
+protection; lock-out of a collector that stagnated above `T_stc_lockout`, 130 °C),
+falling back to `off` if the loop would not run.
 
 ```python
 from tmhp import GSHPB_STC_routed, default_solar_router
@@ -53,11 +54,13 @@ plane, with the sun position of each hour.
 | policy        | solar→ground [kWh] | solar→tank [kWh] | T_bhe mean [°C] | T_bhe min [°C] | T_bhe end [°C] |
 | ------------- | ------------------ | ---------------- | --------------- | -------------- | -------------- |
 | always-ground | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
-| always-tank   | 0.0                | 19.9             | 15.6            | 15.1           | 15.4           |
+| always-tank   | 0.0                | 18.4             | 15.6            | 15.1           | 15.4           |
 | greedy        | 216.1              | 0.0              | 16.7            | 15.3           | 16.4           |
 
 (Model of 2026-11-13: collector on its own plane with the ISO 9806 efficiency and
-the 85 °C storage limit, #96 T3/T9. The table in the first version of this note
+the 85 °C storage limit, #96 T3/T9, and the controller's 2 K restart band below
+that limit, which takes always-tank from 19.9 to 18.4 kWh; the stagnation lock-out
+holds the loop on 28 of the 168 hours without changing that sum. The table in the first version of this note
 showed a borehole wall of −50 °C for the tank and greedy policies (ground and
 brine far below freezing, outside any real operating range). That was an earlier
 state of the model: the same script on main before the solar fixes (`f9a5828`)
@@ -72,7 +75,7 @@ Findings:
 - **The tank is a small sink for a 6 m² collector.** The 100 L tank, kept at
   60–65 °C by the heat pump, reaches the 85 °C storage limit within about two
   sunny hours; after that the loop stops (the collector stagnates) and
-  `always-tank` collects only 19.9 kWh in 7 days against 216 kWh for
+  `always-tank` collects only 18.4 kWh in 7 days against 216 kWh for
   `always-ground`.
 - **The ground stays warm in this short run.** With the heat pump's extraction
   over a week, the 2×100 m field moves by about 1 K (15.1–16.7 °C wall

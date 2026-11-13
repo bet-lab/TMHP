@@ -97,9 +97,10 @@ and in the tuple constants of the module. The design notes are in
    fitted isentropic efficiency is 0.37–0.45, which drives the computed
    discharge temperature of R32 to 200–290 °C. The discharge-temperature
    control holds ``T_dis_max`` by lowering the suction superheat and then
-   letting the suction go wet down to ``x_suction_min`` (0.9); points it
-   cannot hold -- R32 above roughly 220 °C dry -- are refused (see
-   :doc:`/developer/reference-operating-limits`).
+   letting the suction go wet down to ``x_suction_min`` (0.9); a request it
+   cannot hold -- R32 above roughly 220 °C dry -- runs at the largest smaller
+   duty that it can hold (``capacity_clamped == "max"``), or is refused when
+   there is none (see :doc:`/developer/reference-operating-limits`).
 
 An explicitly supplied float or callable for the corresponding constructor
 argument overrides these defaults. The earlier linear correlations
@@ -122,6 +123,28 @@ The sink is a single-node DHW tank (with optional stratification on
 the ``_STC_tank`` variant). The tank energy balance is solved
 implicitly per step with ``fsolve``, jointly with the refrigerant
 cycle.
+
+By default the tank stays full: mains water replaces each litre drawn.
+With ``tank_always_full=False`` the level varies instead. The draw lowers
+it, and a make-up valve opens when the level reaches
+``tank_level_lower_bound`` (0.5) and admits ``dV_tank_w_in_refill``
+(1 L/s) until the level is back at ``tank_level_upper_bound`` (1.0). The
+valve is followed inside each step, so a step can refill part of its
+length. ``prevent_simultaneous_flow`` admits make-up only while nothing
+is drawn. Either way the step balances the water and its energy
+together,
+
+.. math::
+
+   C_\mathrm{full}\,(L_1 T_1 - L_0 T_0) = \Delta t\,\bigl(Q + \rho c\,(\dot V_\mathrm{in} T_\mathrm{in} - \dot V_\mathrm{out} T_1) - UA\,(T_1 - T_\mathrm{sur})\bigr),
+   \qquad L_1 = L_0 + (\dot V_\mathrm{in} - \dot V_\mathrm{out})\,\Delta t / V,
+
+with the draw at the end-of-step temperature. The envelope loss
+``UA_tank_wall`` does not depend on the level. The tank never drains
+below ``TANK_LEVEL_MIN`` (0.1 % of its volume): a draw beyond what it
+holds plus its make-up is cut, and the cut is reported as
+``dV_mix_w_out_unmet [m3/s]``. A run of a level-varying tank starts with
+``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
 
 Composed variants
 =================
@@ -222,15 +245,46 @@ loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
 ``dV_stc_w`` is set. The former construction parameters (``A_stc_pipe``,
 ``alpha_stc``, ``h_o_stc`` …) are accepted with a ``DeprecationWarning``.
 
-**Loop control.** A pumped loop runs when the idle collector is
-``dT_stc_on`` (6 K) and the running outlet ``dT_stc_off`` (2 K) above the
-sink, its gain exceeds the pump power and its outlet stays below
-``T_stc_boil`` (100 °C). Charging the tank stops at ``T_stc_tank_max``
-(85 °C) within the step, and so does circulation once the outlet reaches
-``T_stc_boil`` as the tank warms: ``stc_runtime_fraction [-]`` is the share of
-the step the loop ran, and the flow, pump power and delivered heat are step
-averages. Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) +
-Q_l_stc`` with ``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
+**Loop control.** A pumped loop is run by a differential controller. A
+stopped pump starts when the idle collector is ``dT_stc_on`` (6 K) above the
+sink, provided the run would hold; a running pump runs on while its outlet
+stays ``dT_stc_off`` (2 K) above the sink. The gain must exceed the pump
+power and the outlet stay below ``T_stc_boil`` (100 °C). Charging the tank
+stops at ``T_stc_tank_max`` (85 °C) within the step, and so does circulation
+once the outlet reaches ``T_stc_boil`` as the tank warms:
+``stc_runtime_fraction [-]`` is the share of the step the loop ran, and the
+flow, pump power and delivered heat are step averages. After the tank has
+reached its limit the loop starts again only once the tank is 2 K below it.
+Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) + Q_l_stc`` with
+``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
+
+With the default flow (the ISO test flow) the running outlet is only a few
+kelvin above the inlet, so the 2 K stop threshold decides in both directions;
+the start threshold matters for low-flow loops (``dV_stc_w``).
+
+**Freeze protection.** The collector carries water (tank water or mains
+water), so the system is a drain-back one: while the idle collector is below
+``T_stc_freeze`` (4 °C) the loop does not run and the collector is drained.
+``stc_freeze_protected [-]`` marks those steps (winter nights, and dull
+winter days). ``T_stc_freeze=None`` declares a loop filled with antifreeze
+and switches the protection off; a separate antifreeze loop with a heat
+exchanger is not modelled.
+
+**Stagnation lock-out.** When the tank is at its limit the loop stops and the
+collector idles at its stagnation temperature (``T_stc_stag [°C]``, 130–160 °C
+on a clear day). Pumping tank water into an absorber that hot makes steam,
+so a loop that a protection holds off while its idle collector is at or above
+``T_stc_lockout`` (130 °C) is locked out: it is not started again, even if a
+draw cools the tank, until the collector has cooled 10 K below the lock-out
+temperature. ``stc_stagnation_lockout [-]`` marks those steps. On a clear
+day that fills the tank before noon the loop therefore collects nothing in
+the afternoon; ``T_stc_lockout=None`` switches the lock-out off. The
+collector has no heat capacity in the model, so its idle temperature is the
+equilibrium one of the step.
+
+The pump latch, the limit hold and the lock-out are state of the run: they
+travel in ``DynamicState.subsystem_state`` between ``step()`` calls, and a
+run starts with all of them cleared.
 
 STC preheat
 -----------
@@ -244,7 +298,12 @@ inflow is the reported ``T_tank_w_in [°C]``. The collector is bypassed
 outside the ``preheat_start_hour``–``preheat_end_hour`` window, without a
 draw and when it would cool the feed; when its outlet reaches
 ``T_stc_tank_max`` at the flow the end-of-step tank draws, it is bypassed for
-the rest of the step. The mains pressure drives it: no pump power.
+the rest of the step. The mains pressure drives it: no pump power. The
+freeze protection applies (bypassed and drained below ``T_stc_freeze``); the
+stagnation lock-out does not, there being no pump to hold off. Between draws
+the collector has no flow, so on a clear day it idles far above 100 °C
+(``T_stc_stag [°C]``) and the next draw passes through it: check that column
+before relying on this placement where draws are rare.
 
 .. code-block:: python
 
@@ -341,9 +400,11 @@ assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
 all end in the water) and its ballast (about 90 % efficient) in the control
 box outside; set 1.0 when both are inside the tank boundary.
 
-The PV + ESS variants add ``E_uv`` to ``E_tot``; the base boilers report it
-in its own column but do not yet include it in ``E_tot`` (#96) — add it when
-totalling electricity.
+``E_tot [W]`` includes the lamp: ``E_tot = E_cmp + E_ou_fan + E_uv`` on the
+base boiler (``E_pmp`` in place of the fan on the ground- and water-source
+boilers). The PV + ESS variants route that ``E_tot``, so the lamp is counted
+once. COP columns (``cop_ref``, ``cop_sys``) describe the heat-pump cycle and
+do not include the lamp.
 
 PV + ESS
 --------

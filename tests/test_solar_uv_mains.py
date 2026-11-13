@@ -525,6 +525,7 @@ def test_boiling_protection_holds_within_the_step(name):
         activation_flags={"stc": True}, T_tank_w_K=cu.C2K(80.0), tank_level=1.0, dV_mix_w_out=0.0,
         I_DN=850.0, I_dH=110.0, T_sup_w_K=cu.C2K(T_SUP),
     )  # fmt: skip
+    m._subsystem_state_in = {}  # a fresh controller: the run above ended with the loop held off
     state = m._tank_loop_state(ctx, dt)
     assert state["stc_active"]
     outlet = {T: cu.K2C(m._tank_loop_heat(ctx, state, cu.C2K(T))[2]["T_stc_pump_w_out_K"]) for T in (81.0, 84.0)}

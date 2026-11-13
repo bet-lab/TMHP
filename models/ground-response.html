@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="How the ground-source models ( Ground-source heat pump boiler (GSHPB), Ground-source heat pump (GSHP — space conditioning)) turn the heat they take from the ground into the temperature of the fluid..." />
 
-    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:14:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -1234,7 +1234,11 @@ With that solver the load shares are per group of similar boreholes;
 <p>Groundwater flow, and responses pygfunction does not compute, come from the
 optional <code class="docutils literal notranslate"><span class="pre">geolink</span></code> package through
 <a class="reference internal" href="../api/support/integrations.html#tmhp.integrations.geolink.geolink_gfunction" title="tmhp.integrations.geolink.geolink_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.integrations.geolink.geolink_gfunction()</span></code></a>, which returns a
-g-function for the same chain. tmhp does not depend on it.</p>
+g-function for the same chain. tmhp does not depend on it. geolink’s own
+backend, <code class="docutils literal notranslate"><span class="pre">geolink.coupling.NetworkGroundCoupler</span></code>, can be given to the
+boiler as <code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code> instead (geolink main <code class="docutils literal notranslate"><span class="pre">5cff1aa1</span></code> or later);
+<a class="reference internal" href="../api/support/integrations.html#module-tmhp.integrations.geolink" title="tmhp.integrations.geolink"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.integrations.geolink</span></code></a> says when to use which, and that the total
+borehole length must be the same on both sides.</p>
 </section>
 <section id="references">
 <h2><a class="toc-backref" href="#id18" role="doc-backlink">References</a><a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>

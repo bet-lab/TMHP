@@ -221,7 +221,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#ground-response-from-geolink">Ground response from geolink</a><ul>
-<li><a class="reference internal" href="#why-not-geolink-coupling-networkgroundcoupler">Why not <code class="docutils literal notranslate">coupling.NetworkGroundCoupler</span></code></a></li>
+<li><a class="reference internal" href="#two-routes-from-geolink-to-a-tmhp-model">Two routes from geolink to a tmhp model</a></li>
 <li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction.ensure_horizon"><code class="docutils literal notranslate">ensure_horizon()</span></code></a></li>
@@ -934,13 +934,58 @@ chain (step-mean superposition, borehole resistance,
 <p><code class="docutils literal notranslate"><span class="pre">geolink</span></code> is not a dependency of tmhp and is imported only by
 <a class="reference internal" href="#tmhp.integrations.geolink.geolink_gfunction" title="tmhp.integrations.geolink.geolink_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">geolink_gfunction()</span></code></a>; <a class="reference internal" href="#tmhp.integrations.geolink.ResponseMatrixGFunction" title="tmhp.integrations.geolink.ResponseMatrixGFunction"><code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixGFunction</span></code></a> itself needs
 nothing but the method above.</p>
-<section id="why-not-geolink-coupling-networkgroundcoupler">
-<h3>Why not <code class="docutils literal notranslate"><span class="pre">geolink.coupling.NetworkGroundCoupler</span></code><a class="headerlink" href="#why-not-geolink-coupling-networkgroundcoupler" title="Link to this heading">¶</a></h3>
-<p>That coupler was written against an earlier tmhp. It divides the load by the
-number of boreholes (tmhp now passes the load per metre of <em>total</em> borehole
-length, so the rise would be <code class="docutils literal notranslate"><span class="pre">1/N</span></code> of the right value for <code class="docutils literal notranslate"><span class="pre">N</span> <span class="pre">&gt;</span> <span class="pre">1</span></code>) and
-evaluates the response at the start of each step instead of its mean. Use
-the g-function route above.</p>
+<section id="two-routes-from-geolink-to-a-tmhp-model">
+<h3>Two routes from geolink to a tmhp model<a class="headerlink" href="#two-routes-from-geolink-to-a-tmhp-model" title="Link to this heading">¶</a></h3>
+<p><strong>The g-function route</strong> (this module) reduces the response matrix to one
+field g-function and leaves the superposition to tmhp. It is the default
+choice. Every borehole carries the same load per metre; the first hour is
+tabulated as in tmhp’s own g-functions (a line from <code class="docutils literal notranslate"><span class="pre">g(0)</span> <span class="pre">=</span> <span class="pre">0</span></code> to
+<code class="docutils literal notranslate"><span class="pre">g(1</span> <span class="pre">h)</span></code>); the table extends itself when a run outlasts <code class="docutils literal notranslate"><span class="pre">t_max_s</span></code>; and
+the g-function can be wrapped by
+<a class="reference internal" href="heat-transfer.html#tmhp.borehole_capacity.with_borehole_capacity" title="tmhp.borehole_capacity.with_borehole_capacity"><code class="xref py py-func docutils literal notranslate"><span class="pre">with_borehole_capacity()</span></code></a> before it is given to
+the coupler.</p>
+<p><strong>The coupler route</strong> gives the model geolink’s own backend as
+<code class="docutils literal notranslate"><span class="pre">ground_coupler</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">geolink.coupling</span><span class="w"> </span><span class="kn">import</span> <span class="n">NetworkGroundCoupler</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">coupler</span> <span class="o">=</span> <span class="n">NetworkGroundCoupler</span><span class="o">.</span><span class="n">from_rectangular</span><span class="p">(</span>
+</span><span data-line="4">    <span class="n">N_1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span> <span class="n">D_b</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">r_b</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span> <span class="n">k_s</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">alpha_s</span><span class="o">=</span><span class="mf">1.25e-6</span><span class="p">)</span>
+</span><span data-line="5"><span class="n">model</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">N_1</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">N_2</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">H_b</span><span class="o">=</span><span class="mf">150.0</span><span class="p">,</span> <span class="n">ground_coupler</span><span class="o">=</span><span class="n">coupler</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>Use it when the boreholes do not share the heat in proportion to their
+length (its <code class="docutils literal notranslate"><span class="pre">weights</span></code>), or when the response model itself should be
+evaluated below one hour. It has no g-function to wrap, so the borehole is
+the steady one (a resistance without heat capacity).</p>
+<p>The coupler route needs geolink main <code class="docutils literal notranslate"><span class="pre">5cff1aa1</span></code> (2026-11-13,
+bet-lab/geolink#578) or later. From that commit <code class="docutils literal notranslate"><span class="pre">NetworkGroundCoupler</span></code>
+follows the contract of <a class="reference internal" href="heat-transfer.html#module-tmhp.ground_coupling" title="tmhp.ground_coupling"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp.ground_coupling</span></code></a>: the load is per metre
+of total borehole length (<code class="docutils literal notranslate"><span class="pre">q_unit</span> <span class="pre">=</span> <span class="pre">Q</span> <span class="pre">/</span> <span class="pre">(N</span> <span class="pre">H)</span></code>), the returned rise is the
+mean over <code class="docutils literal notranslate"><span class="pre">[t_n,</span> <span class="pre">t_n</span> <span class="pre">+</span> <span class="pre">dt]</span></code>, <code class="docutils literal notranslate"><span class="pre">reset</span></code> takes <code class="docutils literal notranslate"><span class="pre">dt_s</span></code> and
+<code class="docutils literal notranslate"><span class="pre">preview_wall_temperature_rise</span></code> exists. Earlier versions divided the load
+by the number of boreholes a second time and evaluated the response at the
+start of each step: an <code class="docutils literal notranslate"><span class="pre">N</span></code>-borehole field returned <code class="docutils literal notranslate"><span class="pre">1/N</span></code> of the rise and
+the first loaded step returned zero.</p>
+<p>On either route the total borehole length must be the same on both sides.
+The model divides the field load by its own <code class="docutils literal notranslate"><span class="pre">N_1</span> <span class="pre">*</span> <span class="pre">N_2</span> <span class="pre">*</span> <span class="pre">H_b</span></code>; geolink
+cannot see that number. A field of another total length
+(<code class="docutils literal notranslate"><span class="pre">NetworkGroundCoupler.total_length</span></code>, or the <code class="docutils literal notranslate"><span class="pre">H</span></code> given to
+<a class="reference internal" href="#tmhp.integrations.geolink.geolink_gfunction" title="tmhp.integrations.geolink.geolink_gfunction"><code class="xref py py-func docutils literal notranslate"><span class="pre">geolink_gfunction()</span></code></a>) is not detected and scales every rise by the
+ratio of the two lengths: a 4 x 4 coupler under a 2 x 2 model returns four
+times the rise the same heat causes in the 4 x 4 field. For boreholes of
+different lengths <code class="docutils literal notranslate"><span class="pre">H_b</span></code> is their mean.</p>
+<p>Checked with geolink <code class="docutils literal notranslate"><span class="pre">5cff1aa1</span></code> (2026-11-14). For 1 x 1, 2 x 2 and 4 x 4
+fields (200 m, 6 m spacing, 20 W/m for a year, hourly and daily steps) the
+coupler route gives 1.0001 to 1.0002 times the rise of tmhp’s <code class="docutils literal notranslate"><span class="pre">'UHTR'</span></code>
+g-function, and no step after the first differs by more than 0.002 K (of 7
+to 11 K). A 24 h run of the boiler on a 2 x 2 field of 100 m boreholes
+stays within 0.013 K of the <code class="docutils literal notranslate"><span class="pre">'UHTR'</span></code> run on the coupler route and within
+0.0003 K on the g-function route, for a swing of 0.65 K.</p>
+<p>What remains different is the first hour. geolink evaluates the response
+model there; a tmhp table draws the line from zero. With hourly steps the
+first loaded step rises by 0.218 K on the coupler route and by 0.252 K on
+the g-function route (20 W/m, <code class="docutils literal notranslate"><span class="pre">k_s</span></code> = 2 W/(m K), <code class="docutils literal notranslate"><span class="pre">alpha_s</span></code> = 1e-6 m2/s,
+<code class="docutils literal notranslate"><span class="pre">r_b</span></code> = 0.08 m); with daily steps by 1.998 and 1.999 K.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.integrations.geolink.ResponseMatrixGFunction">

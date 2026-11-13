@@ -222,6 +222,57 @@ def calc_ref_state(
             "mode": mode,
         }
 
+    state, h2_isen = calc_ref_state_without_discharge(
+        T_evap_K,
+        T_cond_K,
+        refrigerant,
+        mode=mode,
+        dT_superheat=dT_superheat,
+        dT_subcool=dT_subcool,
+        x_suction=x_suction,
+    )
+
+    if callable(eta_cmp_isen):
+        import inspect
+
+        P_evap, P_cond = state["P_ref_cmp_in [Pa]"], state["P_ref_cmp_out [Pa]"]
+        sig = inspect.signature(eta_cmp_isen)
+        if len(sig.parameters) == 2 and rps is not None:
+            val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap, rps)
+        else:
+            val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap)
+    else:
+        val_eta_cmp_isen = eta_cmp_isen
+
+    return _set_discharge_state(state, h2_isen, val_eta_cmp_isen, refrigerant)
+
+
+def calc_ref_state_without_discharge(
+    T_evap_K: float,
+    T_cond_K: float,
+    refrigerant: str,
+    *,
+    mode: str = "heating",
+    dT_superheat: float = 0.0,
+    dT_subcool: float = 0.0,
+    x_suction: float = 1.0,
+) -> tuple[dict[str, Any], float]:
+    """The cycle state of :func:`calc_ref_state` before the compressor's efficiency is known.
+
+    A cycle solver first needs the pressures, the suction state and the
+    isentropic discharge enthalpy to find the compressor speed, and only then
+    knows the isentropic efficiency that fixes the discharge state. Everything
+    but that discharge state is independent of the efficiency, so it is
+    evaluated once here and :func:`with_discharge_state` adds the discharge
+    state -- instead of two full :func:`calc_ref_state` calls, which repeat
+    every flash (the isentropic one and the discharge one are the two
+    expensive ones of the eight).
+
+    Returns ``(state, h_isen)``: the dict of :func:`calc_ref_state` with the
+    three discharge entries (``h_ref_cmp_out``, ``T_ref_cmp_out``,
+    ``s_ref_cmp_out``) still NaN, and the isentropic discharge enthalpy
+    [J/kg]. Raises ``ValueError`` where :func:`calc_ref_state` does.
+    """
     # Step 1: saturation temperatures and pressures, with the saturation-state
     # enthalpy / entropy at the evaporator and condenser.
     T_ref_evap_sat_K = T_evap_K
@@ -249,29 +300,10 @@ def calc_ref_state(
     else:
         h_ref_cmp_in, s_ref_cmp_in, rho_ref_cmp_in = _props("HSD", "T", T_ref_cmp_in_K, "P", P_evap, refrigerant)
 
-    # Step 3: State 2 — high-pressure superheated vapour at the compressor outlet.
+    # Step 3: State 2 — high-pressure superheated vapour at the compressor
+    # outlet. Only its isentropic enthalpy here; `_set_discharge_state` adds
+    # the state once the isentropic efficiency is known.
     (h2_isen,) = _props("H", "P", P_cond, "S", s_ref_cmp_in, refrigerant)
-
-    if callable(eta_cmp_isen):
-        import inspect
-
-        sig = inspect.signature(eta_cmp_isen)
-        if len(sig.parameters) == 2 and rps is not None:
-            val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap, rps)
-        else:
-            val_eta_cmp_isen = eta_cmp_isen(P_cond / P_evap)
-    else:
-        val_eta_cmp_isen = eta_cmp_isen
-
-    h_ref_cmp_out = h_ref_cmp_in + (h2_isen - h_ref_cmp_in) / val_eta_cmp_isen
-    try:
-        T_ref_cmp_out_K, s_ref_cmp_out = _props("TS", "P", P_cond, "H", h_ref_cmp_out, refrigerant)
-    except ValueError:
-        # H is too high — it exceeds CoolProp's Tmax for this fluid
-        # (e.g. 435 K for R32). Do NOT clip h_ref_cmp_out, since that would
-        # silently break the energy balance; just record T and s as NaN.
-        T_ref_cmp_out_K = np.nan
-        s_ref_cmp_out = np.nan
 
     # Step 3.5: State 2* — point where the high-pressure stream first reaches
     # the condenser saturation vapour line.
@@ -293,6 +325,8 @@ def calc_ref_state(
     h_ref_exp_out = h_ref_exp_in
     T_ref_exp_out_K, s_ref_exp_out = _props("TS", "P", P_evap, "H", h_ref_exp_out, refrigerant)
 
+    # The discharge entries keep their place in the key order (it is the
+    # column order of every result frame).
     result = {
         "P_ref_cmp_in [Pa]": P_evap,
         "P_ref_cmp_out [Pa]": P_cond,
@@ -302,28 +336,28 @@ def calc_ref_state(
         "P_ref_cond_sat_l [Pa]": P_cond,
         "P_ref_cond_sat_v [Pa]": P_ref_cond_sat_v,
         "T_ref_cmp_in_K": T_ref_cmp_in_K,
-        "T_ref_cmp_out_K": T_ref_cmp_out_K,
+        "T_ref_cmp_out_K": np.nan,
         "T_ref_exp_in_K": T_ref_exp_in_K,
         "T_ref_exp_out_K": T_ref_exp_out_K,
         "T_ref_evap_sat_K": T_ref_evap_sat_K,
         "T_ref_cond_sat_v_K": T_ref_cond_sat_v_K,
         "T_ref_cond_sat_l_K": T_ref_cond_sat_l_K,
         "T_ref_cmp_in [°C]": cu.K2C(T_ref_cmp_in_K),
-        "T_ref_cmp_out [°C]": cu.K2C(T_ref_cmp_out_K),
+        "T_ref_cmp_out [°C]": np.nan,
         "T_ref_exp_in [°C]": cu.K2C(T_ref_exp_in_K),
         "T_ref_exp_out [°C]": cu.K2C(T_ref_exp_out_K),
         "T_ref_evap_sat [°C]": cu.K2C(T_ref_evap_sat_K),
         "T_ref_cond_sat_l [°C]": cu.K2C(T_ref_cond_sat_l_K),
         "T_ref_cond_sat_v [°C]": cu.K2C(T_ref_cond_sat_v_K),
         "h_ref_cmp_in [J/kg]": h_ref_cmp_in,
-        "h_ref_cmp_out [J/kg]": h_ref_cmp_out,
+        "h_ref_cmp_out [J/kg]": np.nan,
         "h_ref_cond_sat_v [J/kg]": h_ref_cond_sat_v,
         "h_ref_exp_in [J/kg]": h_ref_exp_in,
         "h_ref_exp_out [J/kg]": h_ref_exp_out,
         "h_ref_evap_sat [J/kg]": h_ref_evap_sat,
         "h_ref_cond_sat_l [J/kg]": h_ref_cond_sat_l,
         "s_ref_cmp_in [J/(kg·K)]": s_ref_cmp_in,
-        "s_ref_cmp_out [J/(kg·K)]": s_ref_cmp_out,
+        "s_ref_cmp_out [J/(kg·K)]": np.nan,
         "s_ref_cond_sat_v [J/(kg·K)]": s_ref_cond_sat_v,
         "s_ref_exp_in [J/(kg·K)]": s_ref_exp_in,
         "s_ref_exp_out [J/(kg·K)]": s_ref_exp_out,
@@ -333,7 +367,40 @@ def calc_ref_state(
         "mode": mode,
     }
 
-    return result
+    return result, h2_isen
+
+
+def _set_discharge_state(state: dict[str, Any], h_isen: float, eta_cmp_isen: float, refrigerant: str) -> dict[str, Any]:
+    """Fill the discharge state (State 2) of ``state`` in place and return it."""
+    h_ref_cmp_in = state["h_ref_cmp_in [J/kg]"]
+    h_ref_cmp_out = h_ref_cmp_in + (h_isen - h_ref_cmp_in) / eta_cmp_isen
+    try:
+        T_ref_cmp_out_K, s_ref_cmp_out = _props("TS", "P", state["P_ref_cmp_out [Pa]"], "H", h_ref_cmp_out, refrigerant)
+    except ValueError:
+        # H is too high — it exceeds CoolProp's Tmax for this fluid
+        # (e.g. 435 K for R32). Do NOT clip h_ref_cmp_out, since that would
+        # silently break the energy balance; just record T and s as NaN.
+        T_ref_cmp_out_K = np.nan
+        s_ref_cmp_out = np.nan
+    state["T_ref_cmp_out_K"] = T_ref_cmp_out_K
+    state["T_ref_cmp_out [°C]"] = cu.K2C(T_ref_cmp_out_K)
+    state["h_ref_cmp_out [J/kg]"] = h_ref_cmp_out
+    state["s_ref_cmp_out [J/(kg·K)]"] = s_ref_cmp_out
+    return state
+
+
+def with_discharge_state(
+    state: Mapping[str, Any], h_isen: float, eta_cmp_isen: float, refrigerant: str
+) -> dict[str, Any]:
+    """The cycle state :func:`calc_ref_state` returns for ``eta_cmp_isen``, from its efficiency-free part.
+
+    ``state`` and ``h_isen`` are the pair of
+    :func:`calc_ref_state_without_discharge`. The result equals
+    ``calc_ref_state(..., eta_cmp_isen=eta_cmp_isen)`` for the same arguments
+    (same values, same key order); ``state`` is left as it is, so several
+    efficiencies can be tried on one.
+    """
+    return _set_discharge_state(dict(state), h_isen, eta_cmp_isen, refrigerant)
 
 
 #: Solver-internal absolute-temperature entries of a cycle-state dict.

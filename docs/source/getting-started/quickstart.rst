@@ -71,4 +71,8 @@ Next steps
 
    :doc:`Run a 24-hour dynamic simulation <first-dynamic-simulation>` — step ``analyze_dynamic`` through outdoor and demand schedules over a full day.
 
+   :doc:`See what each family needs from you <minimal-input>` — capacity, refrigerant and source/sink type; every other default follows.
+
+   :doc:`Look up a result key <../concepts/result-keys>` — meaning, unit and sign of every key a result carries.
+
    :doc:`Browse the full API <../api/index>` — every model class, subsystem, and helper module documented in one place.

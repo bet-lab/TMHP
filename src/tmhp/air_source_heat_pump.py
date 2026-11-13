@@ -28,10 +28,10 @@ from tqdm import tqdm
 
 from . import _opt_utils
 from . import calc_util as cu
-from ._opt_utils import safe_float_attr, specific_energy_objective
+from ._opt_utils import efficiency_evaluator, safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
-from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
+from .compressor_efficiency import reject_invalid_efficiency
 from .compressor_envelope import (
     BINDING_CONDENSING,
     BINDING_CYCLE,
@@ -87,8 +87,10 @@ from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_gener
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
+    calc_ref_state_without_discharge,
     props_si,
     reportable_state,
+    with_discharge_state,
 )
 
 # Objective bands for the operating-point search in ``_optimize_operation``.
@@ -815,17 +817,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Same name (`cs`) is annotated up in the inactive branch (~L206);
         # re-annotating here triggers mypy [no-redef] even though the
         # inactive branch returns unconditionally. Use plain assignment.
+        #
+        # The cycle without its discharge state: pressures, suction state and
+        # isentropic discharge enthalpy are what the speed solve needs, and
+        # the discharge state follows from the efficiency at the solved speed.
         try:
-            cs = calc_ref_state(
-                T_evap_K=T_evap_sat_K,
-                T_cond_K=T_cond_sat_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=1.0,  # Temporary
+            cs, h_ref_cmp_out_isen = calc_ref_state_without_discharge(
+                T_evap_sat_K,
+                T_cond_sat_K,
+                self.ref,
                 mode=mode,
                 dT_superheat=actual_dT_superheat,
                 x_suction=self._x_suction,
                 dT_subcool=actual_dT_subcool,
-                is_active=True,
             )
         except ValueError:
             # The fluid has no state at this candidate (a flash CoolProp cannot
@@ -862,16 +866,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
             P_cond = self.PR_cycle_min * P_evap
             try:
                 T_cond_sat_K = props_si("T", "P", P_cond, "Q", 0, self.ref)
-                cs = calc_ref_state(
-                    T_evap_K=T_evap_sat_K,
-                    T_cond_K=T_cond_sat_K,
-                    refrigerant=self.ref,
-                    eta_cmp_isen=1.0,  # Temporary
+                cs, h_ref_cmp_out_isen = calc_ref_state_without_discharge(
+                    T_evap_sat_K,
+                    T_cond_sat_K,
+                    self.ref,
                     mode=mode,
                     dT_superheat=actual_dT_superheat,
                     x_suction=self._x_suction,
                     dT_subcool=actual_dT_subcool,
-                    is_active=True,
                 )
             except ValueError:
                 # The floor pressure has no saturation state (above the
@@ -885,15 +887,15 @@ class AirSourceHeatPump(ReferenceStateMixin):
             P_cond = cs["P_ref_cmp_out [Pa]"]
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
-        try:
-            s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
-            h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
-        except ValueError:
-            h_ref_cmp_out_isen = h_cmp_in
+        # The three efficiencies as functions of (PR, rps): `_eval_eff` with the
+        # call form of each model decided once, not on every speed candidate.
+        eta_vol_at = efficiency_evaluator(self.eta_cmp_vol)
+        eta_isen_at = efficiency_evaluator(self.eta_cmp_isen)
+        eta_em_at = efficiency_evaluator(self.eta_cmp)
 
         def _residual_rps(rps):
-            val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, rps)
-            val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, rps)
+            val_eta_vol = eta_vol_at(ratio_P_cmp, rps)
+            val_eta_isen = eta_isen_at(ratio_P_cmp, rps)
             h_cmp_out_local = h_cmp_in + (h_ref_cmp_out_isen - h_cmp_in) / val_eta_isen
 
             dh_cond_local = h_cmp_out_local - h_exp_in
@@ -907,21 +909,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         cmp_rps, converged_rps, capacity_clamped = solve_compressor_speed(_residual_rps, self.rps_min, self.rps_max)
 
-        val_eta_vol = _eval_eff(self.eta_cmp_vol, ratio_P_cmp, cmp_rps)
-        val_eta_isen = _eval_eff(self.eta_cmp_isen, ratio_P_cmp, cmp_rps)
-        val_eta_electro_mech = _eval_eff(self.eta_cmp, ratio_P_cmp, cmp_rps)
+        val_eta_vol = eta_vol_at(ratio_P_cmp, cmp_rps)
+        val_eta_isen = eta_isen_at(ratio_P_cmp, cmp_rps)
+        val_eta_electro_mech = eta_em_at(ratio_P_cmp, cmp_rps)
 
-        cs = calc_ref_state(
-            T_evap_K=T_evap_sat_K,
-            T_cond_K=T_cond_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=val_eta_isen,
-            mode=mode,
-            dT_superheat=actual_dT_superheat,
-            x_suction=self._x_suction,
-            dT_subcool=actual_dT_subcool,
-            is_active=True,
-        )
+        cs = with_discharge_state(cs, h_ref_cmp_out_isen, val_eta_isen, self.ref)
 
         h_cmp_out_final = cs["h_ref_cmp_out [J/kg]"]
         m_dot_ref = self.V_cmp_ref * rho_in * val_eta_vol * cmp_rps

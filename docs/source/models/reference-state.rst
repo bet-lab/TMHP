@@ -127,8 +127,9 @@ Secondary flows are each model's own reference flows (``dV_*_fan_a_ref``,
 rated UA. The ground-loop points of GSHP (heating) and GSHPB are brine points:
 the liquid enters at 0 °C and leaves below it. The reference state is a sizing
 calculation and is solved there whatever ``source_fluid`` is (with the heat
-capacity of water for the source stream), but *running* the model at such a
-point needs an antifreeze mixture; with the default water it is refused
+capacity of water for the source stream). *Running* the model at such a
+point needs an antifreeze, which the default loop liquid of both models is
+(25 % ethylene glycol); a loop declared as water is refused there
 (:ref:`source-fluid`). A manufacturer or user rating point replaces the
 standard one:
 

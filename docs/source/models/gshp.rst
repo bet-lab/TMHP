@@ -55,7 +55,7 @@ capacity, so the rating-point COP is the same from 1 to 100 kW:
        changes the loop temperature by 3 K (about 4.8 K in cooling, where
        the loop carries 1.2 × the capacity). Parallel boreholes share it
        equally.
-     - 14.3 / 107.5 L/min
+     - 15.4 / 115.3 L/min (25 % ethylene glycol; 14.3 / 107.5 of water)
    * - ``E_pmp``
      - ASHRAE pumping grade B, 75 W per ton (21.3 W per kW) of capacity.
        Used when the hydraulic pump model is off.
@@ -118,28 +118,38 @@ dynamic by default (heat capacity of fluid, pipe and grout, fluid transit;
 heat pump is 2.0 K warmer in heating and 3.4 K cooler in cooling than the
 steady borehole gives, and ``T_bhe [°C]`` is the physical borehole wall.
 
-``source_fluid`` names the ground-loop liquid: ``"water"`` (default) or an
-antifreeze mixture such as ``"MPG-25%"`` (:ref:`source-fluid`). The loop liquid
-is never colder than its freezing point plus 3 K -- 3 °C for water. A heating
-duty that would chill it further is reduced to the largest one that does not
-(``capacity_clamped == "max"``, ``capacity_binding ==
-"source_fluid_freezing"``), and when none does the unit is off with
-``failure_reason == "source_fluid_freezing"``. Cooling warms the loop and is
-not affected unless the ground itself is below the limit. The ISO 13256-1
-ground-loop heating point (liquid entering at 0 °C, leaving near -3 °C) and a
-0 °C borehole wall are antifreeze conditions:
+``source_fluid`` names the ground-loop liquid (:ref:`source-fluid`): 25 %
+ethylene glycol by default (``"MEG-25%"``, freezing at -11.0 °C), or
+``"water"``, or another mixture such as ``"MPG-30%"``. The loop liquid is
+never colder than its freezing point plus 3 K -- -8.0 °C for the default,
+3 °C for water. A heating duty that would chill it further is reduced to the
+largest one that does not (``capacity_clamped == "max"``,
+``capacity_binding == "source_fluid_freezing"``), and when none does -- also
+when the compressor is already on its speed floor, switching on and off --
+the unit is off with ``failure_reason == "source_fluid_freezing"``. Cooling
+warms the loop and is not affected unless the ground itself is below the
+limit. The ISO 13256-1 ground-loop heating point (liquid entering at 0 °C,
+leaving near -3 °C) and a 0 °C borehole wall are antifreeze conditions, which
+the default runs:
 
 .. code-block:: python
 
-   gshp = GroundSourceHeatPump(source_fluid="MPG-30%")   # freezes at -12.8 °C, limit -9.8 °C
-   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)
+   gshp = GroundSourceHeatPump()                                        # 4 kW, 25 % ethylene glycol
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)   # leaves at -6.3 °C, system COP 3.51
+   GroundSourceHeatPump(source_fluid="water").analyze_steady(
+       Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0
+   )                                                                    # off: source_fluid_freezing
 
-With a mixture the default flow keeps the 3 K loop difference (it grows by
-the ratio of the heat capacities) and the borehole resistance is evaluated
-with the mixture's viscosity. In the default 26 mm U-tube 25-30 % propylene
-glycol at the default flow is at the laminar limit for a borehole serving
-about 4 kW or less; the constructor then warns and ``R_b`` is about half as
-large again, so give a larger ``ground_flow_ref_lpm`` for such a loop.
+The default flow keeps the 3 K loop difference with the loop liquid's heat
+capacity (15.4 L/min of the default glycol for 4 kW, 14.3 of water) and the
+borehole resistance is evaluated with its viscosity (0.168 m K/W against
+0.162 for water at 4 kW). In the default 26 mm U-tube the default glycol is
+turbulent down to about 2.6 kW per borehole; a smaller machine, or 25-30 %
+propylene glycol below about 4 kW per borehole, is laminar: the constructor
+then warns and ``R_b`` is about half as large again, so give a larger
+``ground_flow_ref_lpm`` for such a loop. What does not follow the loop liquid
+(the hydraulic pump model, the coupled ground-flow solver, the dynamic
+borehole response) is listed in :ref:`source-fluid`.
 
 In ``analyze_dynamic`` the ground fluid is closed inside each step: the
 borehole wall of step ``n`` is the step mean of its response to every load

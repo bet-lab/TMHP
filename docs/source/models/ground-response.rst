@@ -388,6 +388,165 @@ Limits
   surface wave and no geothermal gradient.
 
 
+Bore fields and pipe configurations
+===================================
+
+The models take a rectangular ``N_1 × N_2`` field of equal single-U
+boreholes. Anything else is set up with :mod:`tmhp.borefield` and handed to
+the model; the physics is pygfunction's (Cimmino's g-functions and network
+model), already a dependency.
+
+.. code-block:: python
+
+   from tmhp import GroundSourceHeatPumpBoiler
+   from tmhp.borefield import BoreField, FieldGroundResponse
+   from tmhp.borehole import BoreholePipe
+
+   field = BoreField.from_coordinates(
+       [(0, 0), (6, 0), (3, 5)], H=[150.0, 200.0, 100.0])    # any positions, any depths
+   response = FieldGroundResponse(
+       field, BoreholePipe(kind="double_u_parallel", D_s=0.04),
+       k_s=2.0, alpha_s=1.25e-6,
+       m_flow_total=1.2,                  # kg/s through the whole field
+       t_max_s=10 * 8760 * 3600)
+
+   model = GroundSourceHeatPumpBoiler(**response.model_kwargs(), hp_capacity=12000.0)
+   response.attach(model, borehole_dynamics=True)
+
+``model_kwargs()`` gives the model the borehole count, the mean depth (so that
+its total length is the field's), the field resistance and the flow;
+``attach`` replaces the model's rectangular g-function and checks that the
+two describe the same field.
+
+:class:`~tmhp.borefield.BoreField`
+    Positions, per-borehole depth and buried depth: ``from_coordinates``,
+    ``rectangle``, and pygfunction's ``l_shape``, ``u_shape``, ``box``,
+    ``circle``.
+
+:class:`~tmhp.borehole.BoreholePipe`
+    ``single_u`` (default, the models' pipe), ``double_u_parallel``,
+    ``double_u_series`` and ``coaxial``.
+
+``connectivity``
+    Which boreholes are in series, in pygfunction's convention: ``-1`` is fed
+    from the header, ``j`` is fed by the outlet of borehole ``j``. Every
+    circuit receives an equal share of the flow.
+
+Boundary condition
+    ``'auto'`` keeps the uniform wall temperature (``UBWT``) of the default
+    path when all boreholes are in parallel and equally deep, and otherwise
+    uses mixed inlet fluid temperature (``MIFT``, Cimmino 2015): the boreholes
+    share one inlet temperature and are coupled through the fluid. Its
+    g-function is defined with the *effective* wall temperature that makes
+    :math:`(T_{in} + T_{out})/2 = T_b^* - q' R_{field}` hold with the
+    network's field resistance, which is the relation the models use.
+
+Load shares
+    ``response.borehole_load_shares(t)`` is the fraction of the field load
+    each borehole carries after a load step. The models still see one field
+    temperature; the shares say how unevenly the ground is used.
+
+.. list-table:: Borehole resistance by pipe configuration (24 L/min per borehole, 200 m, r_b 80 mm) [m·K/W]
+    :header-rows: 1
+    :widths: 46 27 27
+
+    * - Pipe
+      - Local :math:`R_b`
+      - Effective :math:`R_b^*`
+    * - Single U-tube DN32, legs 25 mm off axis (default)
+      - 0.1529
+      - 0.1644
+    * - Double U-tube DN32 in parallel, legs 40 mm off axis
+      - 0.0826
+      - 0.1007
+    * - Double U-tube DN32 in series, legs 40 mm off axis
+      - 0.0817
+      - 0.1042
+    * - Coaxial, 110 mm outer pipe, flow down the annulus
+      - 0.1017
+      - 0.1641
+
+Each value equals a direct pygfunction calculation
+(``tests/test_borefield.py``). The coaxial pipe loses its low local resistance
+over 200 m: the inner pipe is not insulated from the annulus.
+
+.. list-table:: Field response, :math:`g` [m·K/W] and field resistance (k_s 2.0, α 1.25e-6, 6 m spacing)
+    :header-rows: 1
+    :widths: 40 12 12 12 12 12
+
+    * - Field
+      - 1 h
+      - 1 d
+      - 1 y
+      - 30 y
+      - :math:`R`
+    * - 2 × 2, 200 m, 96 L/min, ``UBWT`` (default path)
+      - 0.0311
+      - 0.1450
+      - 0.4817
+      - 0.8850
+      - 0.1644
+    * - same, ``MIFT``
+      - 0.0312
+      - 0.1450
+      - 0.4826
+      - 0.8950
+      - 0.1644
+    * - 3 boreholes of 150 / 200 / 100 m, 72 L/min (``MIFT``)
+      - 0.0313
+      - 0.1454
+      - 0.4405
+      - 0.6946
+      - 0.1630
+    * - 2 boreholes of 200 m in parallel, 48 L/min
+      - 0.0311
+      - 0.1450
+      - 0.4164
+      - 0.6302
+      - 0.1644
+    * - same two in series, 24 L/min
+      - 0.0277
+      - 0.1346
+      - 0.4024
+      - 0.6194
+      - 0.1861
+    * - same two in series, 48 L/min
+      - 0.0302
+      - 0.1421
+      - 0.4130
+      - 0.6304
+      - 0.1607
+
+For a rectangle the field route reproduces the default path to
+:math:`10^{-12}`, and a boiler built either way gives the same run. ``MIFT``
+differs from ``UBWT`` by 1 % after 30 years for the 2 × 2 field. In the
+three-borehole field the 200 m borehole carries 45 % of the load after 30
+years against 44 % of the length, and the 100 m one 22.0 % against 22.2 %; in
+a 3 × 3 field a corner borehole carries 13.2 %, the centre one 6.8 %. Two
+boreholes in series at half the flow have a higher resistance (0.186 against
+0.164) and the first borehole takes 56 % of the load.
+
+Three things to know:
+
+- **Flow is per field.** ``m_flow_total`` is shared by the circuits, and the
+  resistance depends on it strongly: four boreholes sharing the single-bore
+  default of 24 L/min run laminar and have :math:`R = 0.306` instead of
+  0.164 m·K/W at 96 L/min. The rectangular arguments of the models behave the
+  same way.
+- **One flow.** The field resistance and a ``MIFT`` g-function hold for the
+  flow they were built with, so ``attach`` requires constant ground flow.
+- **pygfunction's solver.** Boreholes are passed to pygfunction sorted by
+  depth: its default ``'equivalent'`` solver assigns interleaved depths to the
+  wrong clusters (depths 100/200/100/200/100 m on a line come out 5 % off).
+  With that solver the load shares are per group of similar boreholes;
+  ``method='similarities'`` resolves every borehole.
+
+Groundwater flow, and responses pygfunction does not compute, come from the
+optional ``geolink`` package through
+:func:`tmhp.integrations.geolink.geolink_gfunction`, which returns a
+g-function for the same chain. tmhp does not depend on it.
+
+
 References
 ==========
 

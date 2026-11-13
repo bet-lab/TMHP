@@ -99,6 +99,13 @@ time step. The columns are the same units-bracketed keys you get from
   reports ``dV_mix_w_out_unmet [m3/s]``: hot-water demand it could not
   supply because it had drained to its lowest level
   (``dV_mix_w_out [m3/s]`` is then the water delivered).
+- **Hot-water service** — ``Q_dhw_request [W]``, the heat the draw
+  schedule asks for (the scheduled flow at the service set point
+  ``T_mix_w_out``, counted from the mains temperature), and
+  ``Q_dhw_unmet [W]``, the part of it that was not delivered: the water
+  left the mixing valve below the set point because the tank was colder
+  than it, or a level-varying tank could not supply the flow. Both are 0
+  on a step without a draw. See :ref:`hot-water-service`.
 - **Figures of merit** — ``cop_ref [-]``, ``cop_sys [-]`` of the running
   cycle (``NaN`` on steps it did not run); equal to the step-average heat
   over the step-average compressor (and fan / source pump) power.
@@ -121,6 +128,37 @@ You can pull any of these out by name once the run finishes:
 
 For the full column list, ``df.columns.tolist()`` after a short run is
 the fastest reference.
+
+.. _hot-water-service:
+
+Was the hot water delivered?
+----------------------------
+
+A draw schedule is a request, not a guarantee. The mixing valve blends tank
+water with mains water to the service set point (``T_mix_w_out``, 40 °C);
+once the tank is colder than the set point the valve passes tank water
+unmixed and the water arrives cold. Every boiler model and combination
+reports this per step (``Q_dhw_request [W]``, ``Q_dhw_unmet [W]``), and
+``analyze_dynamic`` ends with one ``tmhp.dhw.DHWUnmetWarning`` when a run
+left demand unmet. The totals of a run:
+
+.. code-block:: python
+
+   from tmhp.dhw import summarize_dhw_service
+
+   service = summarize_dhw_service(df, dt_s)
+   print(f"unmet: {service['Q_dhw_unmet [kWh]']:.2f} kWh "
+         f"of {service['Q_dhw_request [kWh]']:.2f} kWh "
+         f"on {service['dhw_unmet_steps [-]']} steps")
+
+``summarize_dhw_service`` returns the requested, delivered and unmet heat
+[kWh], the unmet fraction, the number of draw steps and of steps left
+short, and the coldest delivery;
+``tmhp.simulation_summary.print_dhw_service_summary(df, dt_s)`` prints
+them. A shortfall within 0.01 K of the set point counts as met. Unmet hot
+water means the machine or the tank is too small for the draw profile, or
+the thermostat band lets the tank fall too far before the compressor starts
+— it is a result about the system, not a solver failure.
 
 Common next moves
 =================

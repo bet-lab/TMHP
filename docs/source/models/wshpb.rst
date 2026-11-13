@@ -95,6 +95,22 @@ Sink-side mechanics
 
 Shared DHW tank sink with an implicit per-step energy balance.
 
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
+A tank whose level varies (``tank_always_full=False`` or
+``prevent_simultaneous_flow``) follows the rules of the air-source boiler
+(:doc:`ashpb`, Sink-side mechanics): the draw stops at ``TANK_LEVEL_MIN``,
+the make-up at full, the reported level and tank flows are the ones the
+step's energy balance was solved with, and the demand the tank could not
+supply is ``dV_mix_w_out_unmet [m3/s]``. Such a run starts with
+``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
+
 API reference
 =============
 

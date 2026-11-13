@@ -18,9 +18,11 @@ class _FiniteLineSource:
 
     def __init__(self) -> None:
         self.calls = 0
+        self.widest = 1.0  # largest last/first time ratio of one call
 
     def response_matrix(self, field, soil, times):
         self.calls += 1
+        self.widest = max(self.widest, float(times[-1] / times[0]))
         k_s, alpha_s = soil
         boreholes = [gt.boreholes.Borehole(H=h, D=d, r_b=R_B, x=x, y=y) for x, y, h, d in field]
         n = len(boreholes)
@@ -64,8 +66,9 @@ def test_horizon_extends_and_step_mean_is_exact():
     assert float(g.step_mean(7200.0, 3600.0)) == pytest.approx(step_mean_quad(g, 7200.0, 3600.0), rel=1e-10)
     far = 3 * 365 * 86400.0
     assert g.t_end < far
+    calls = provider.calls
     g.step_mean(far, 3600.0)
-    assert g.n_builds == 2 and provider.calls == 2 and g.t_end >= far
+    assert g.n_builds == 2 and provider.calls > calls and g.t_end >= far
     # It drives the default coupler like any g-function.
     coupler = AggregateGFunctionCoupler(g)
     time_arr = np.arange(48) * 3600.0
@@ -73,6 +76,33 @@ def test_horizon_extends_and_step_mean_is_exact():
     rise = [coupler.wall_temperature_rise(i, time_arr, 20.0) for i in range(48)]
     assert rise[0] == pytest.approx(20.0 * float(g.step_mean(0.0, 3600.0)))
     assert np.all(np.diff(rise) > 0)
+
+
+class _SpanSensitive(_FiniteLineSource):
+    """A provider whose accuracy degrades with the time span of one call (as geolink's ``MFLSResponse``)."""
+
+    def response_matrix(self, field, soil, times):
+        exact = super().response_matrix(field, soil, times)
+        return exact * (1.0 + 1e-3 * np.log10(times[-1] / times[0]))
+
+
+def test_provider_is_called_one_decade_at_a_time():
+    depths = [150.0] * 4
+    t_max = 20 * 8760 * 3600.0
+    provider = _SpanSensitive()
+    g = ResponseMatrixGFunction(provider, _field(depths), (K_S, ALPHA_S), depths, t_max)
+    decades = np.log10(g.t_end / g.t_min)
+    assert provider.calls == int(np.ceil(decades)) and provider.widest <= 10.0
+    # Every node was computed, in order, and none twice.
+    assert len(g.x) == int(np.ceil(24 * decades)) + 2 and np.all(np.diff(g.x) > 0)
+    exact = ResponseMatrixGFunction(_FiniteLineSource(), _field(depths), (K_S, ALPHA_S), depths, t_max)
+    np.testing.assert_array_equal(g.x, exact.x)
+    # One call for the whole grid would be 5.4e-3 off with this provider; a decade is at most 1e-3.
+    np.testing.assert_allclose(g.y[1:], exact.y[1:], rtol=1.0e-3)
+    # A horizon shorter than one decade is still one call.
+    short = _SpanSensitive()
+    ResponseMatrixGFunction(short, _field(depths), (K_S, ALPHA_S), depths, 4 * 3600.0)
+    assert short.calls == 1
 
 
 def test_rejects_bad_providers_and_inputs():
@@ -92,6 +122,13 @@ def test_rejects_bad_providers_and_inputs():
 
     with pytest.raises(ValueError, match="shape"):
         ResponseMatrixGFunction(_Wrong(), None, None, [150.0], 1e6)
+
+    class _Changing(_FiniteLineSource):
+        def response_matrix(self, field, soil, times):
+            return super().response_matrix(field[: 4 - min(self.calls, 1)], soil, times)
+
+    with pytest.raises(ValueError, match="boreholes after"):
+        ResponseMatrixGFunction(_Changing(), _field(depths), (K_S, ALPHA_S), depths, 1e8)
     g = ResponseMatrixGFunction(_FiniteLineSource(), _field(depths), (K_S, ALPHA_S), depths, 1e6)
     with pytest.raises(ValueError, match="non-finite"):
         g.ensure_horizon(np.inf)
@@ -154,3 +191,29 @@ def test_geolink_network_coupler_follows_the_host_contract():
             assert coupler.preview_wall_temperature_rise(0, time_arr, q_unit) > 0.0  # the step answers its own load
             rises.append(np.array([coupler.wall_temperature_rise(k, time_arr, q_unit) for k in range(n_steps)]))
         np.testing.assert_allclose(rises[0], rises[1], rtol=1e-3)
+
+
+def test_geolink_groundwater_response_does_not_depend_on_the_horizon():
+    """With geolink installed: ``MFLSResponse`` is asked one decade at a time (bet-lab/geolink#581).
+
+    Its quadrature follows the time span of a call. Asked for a whole
+    20-year table at once, the 5 x 5 field below is 3.1e-4 m.K/W off calls
+    for one time each (2.8e-5 with decade calls), and ``g`` at one year
+    changes by 3.7e-5 m.K/W when the table is built for 100 years instead of
+    2 (1e-6 with decade calls).
+    """
+    mfls = pytest.importorskip("geolink.response.mfls")
+    base = pytest.importorskip("geolink.response.base")
+    xs, ys = np.meshgrid(np.arange(5) * 6.0, np.arange(5) * 6.0, indexing="ij")
+    kwargs = dict(r_b=R_B, k_s=K_S, alpha_s=ALPHA_S, D=1.0, groundwater_velocity=1e-6, rho_s=2000.0, c_s=800.0)
+    year = 8760 * 3600.0
+    g = geolink_gfunction(xs.ravel(), ys.ravel(), 150.0, t_max_s=20 * year, **kwargs)
+    model = mfls.MFLSResponse(v_gw=1e-6, theta_gw=0.0, alpha_L=0.0, rho_s=2000.0, c_s=800.0)
+    field = base.BoreField(x=xs.ravel(), y=ys.ravel(), depth=150.0, burial=1.0, radius=R_B)
+    soil = base.Soil(conductivity=K_S, diffusivity=ALPHA_S)
+    nodes = g.x[1::8]
+    single = np.array([model.response_matrix(field, soil, np.array([t])).sum(axis=1).mean() for t in nodes])
+    np.testing.assert_allclose(g.y[1::8], single, rtol=0, atol=6e-5)
+    short = geolink_gfunction(xs.ravel(), ys.ravel(), 150.0, t_max_s=2 * year, **kwargs)
+    long = geolink_gfunction(xs.ravel(), ys.ravel(), 150.0, t_max_s=100 * year, **kwargs)
+    assert float(short(year)) == pytest.approx(float(long(year)), abs=5e-6)

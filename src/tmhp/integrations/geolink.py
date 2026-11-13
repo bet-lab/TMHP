@@ -112,6 +112,17 @@ class ResponseMatrixGFunction:
     interpolated linearly, and are recomputed when a later time is
     requested, like :class:`tmhp.g_function.GFunction`.
 
+    The provider is called once per decade of time, never with the whole
+    grid. geolink's groundwater model (``MFLSResponse``) sets its quadrature
+    from the time span of one call (bet-lab/geolink#581): asked for the four
+    to six decades of a table at once, its field response is up to 4e-5
+    m.K/W off for a 2 x 2 field and 2.5e-3 m.K/W (0.7 %) for a 10 x 10 field
+    at a Darcy velocity of 1e-6 m/s; with decade calls 2e-5 and 1.3e-4
+    (150 m boreholes, 6 m spacing, against the same integral on a grid 500
+    times finer). The table then takes five to seven calls instead of one,
+    0.7 s -> 4 s for the 10 x 10 field. Conduction-only responses are the
+    same either way to round-off.
+
     Parameters
     ----------
     response
@@ -158,9 +169,20 @@ class ResponseMatrixGFunction:
         t_end = max(t_end, self.t_min * 1.01)
         num = max(2, int(math.ceil(self._ppd * math.log10(t_end / self.t_min))) + 1)
         times = np.geomspace(self.t_min, t_end, num)
-        h = np.asarray(self._response.response_matrix(self._field, self._soil, times), dtype=float)
-        if h.ndim != 3 or h.shape[0] != h.shape[1] or h.shape[2] != len(times):
-            raise ValueError(f"response_matrix must return h[n, n, {len(times)}], got shape {h.shape}")
+        # One call per decade of time. A provider may build its quadrature
+        # from the time span of a call and lose accuracy when the span is wide
+        # (geolink's MFLSResponse, bet-lab/geolink#581).
+        parts: list[np.ndarray] = []
+        for chunk in np.array_split(times, max(1, math.ceil(math.log10(t_end / self.t_min)))):
+            part = np.asarray(self._response.response_matrix(self._field, self._soil, chunk), dtype=float)
+            if part.ndim != 3 or part.shape[0] != part.shape[1] or part.shape[2] != len(chunk):
+                raise ValueError(f"response_matrix must return h[n, n, {len(chunk)}], got shape {part.shape}")
+            if parts and part.shape[0] != parts[0].shape[0]:
+                raise ValueError(
+                    f"response_matrix returned {part.shape[0]} boreholes after {parts[0].shape[0]} for the same field"
+                )
+            parts.append(part)
+        h = np.concatenate(parts, axis=2)
         if len(self._depths) not in (1, h.shape[0]):
             raise ValueError(f"depths has {len(self._depths)} entries for {h.shape[0]} boreholes")
         weights = np.broadcast_to(self._depths, (h.shape[0],))

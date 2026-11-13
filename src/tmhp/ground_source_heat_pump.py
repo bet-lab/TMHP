@@ -1800,6 +1800,31 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     # BHE g-function superposition
     # =============================================================
 
+    # Step-mean responses of the run in progress, set by analyze_dynamic:
+    # (time grid, g-function, step length, ḡ for every lag in reverse order).
+    _bhe_step_mean: tuple[np.ndarray, Any, float, np.ndarray] | None = None
+
+    def _bhe_history_rise(self, n: int, time_arr: np.ndarray, pulses: np.ndarray, upto: int) -> float:
+        """``Σ_{i<upto} p_i · ḡ(t_n − t_i)`` [K]: wall response at step ``n`` to the first ``upto`` pulses.
+
+        Inside :meth:`analyze_dynamic` the step-mean response of every lag is
+        tabulated once and this is one contiguous dot product (as in
+        :class:`~tmhp.ground_coupling.AggregateGFunctionCoupler`). Called on
+        its own, with another time grid, step or g-function, it evaluates the
+        g-function for the recorded pulses.
+        """
+        if upto <= 0:
+            return 0.0
+        table = self._bhe_step_mean
+        if table is not None and table[0] is time_arr and table[1] is self._gfunc_interp and table[2] == self.dt:
+            rev = table[3]
+            start = len(rev) - 1 - n  # ḡ[n-i] for i = 0..upto-1 is rev[start + i]
+            return float(np.dot(pulses[:upto], rev[start : start + upto]))
+        idx = np.flatnonzero(pulses[:upto])
+        if len(idx) == 0:
+            return 0.0
+        return float(np.dot(pulses[idx], g_step_mean(self._gfunc_interp, time_arr[n] - time_arr[idx], self.dt)))
+
     def _compute_bhe_superposition(
         self,
         n: int,
@@ -1818,14 +1843,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             Q_bhe_unit_pulse[n] = Q_bhe_unit - Q_bhe_unit_old
             Q_bhe_unit_old = Q_bhe_unit
 
-        pulses_idx = np.flatnonzero(Q_bhe_unit_pulse[: n + 1])
-        if len(pulses_idx) > 0:
-            dQ = Q_bhe_unit_pulse[pulses_idx]
-            # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
-            g_n_array = g_step_mean(self._gfunc_interp, time_arr[n] - time_arr[pulses_idx], self.dt)
-            dT_bhe = float(np.dot(dQ, g_n_array))
-        else:
-            dT_bhe = 0.0
+        # Step-mean response over [t_n, t_n + dt], own pulse included (#96 G4).
+        dT_bhe = self._bhe_history_rise(n, time_arr, Q_bhe_unit_pulse, n + 1)
 
         self.T_bhe = self.Ts - dT_bhe
         T_bhe_K = cu.C2K(self.T_bhe)
@@ -2043,8 +2062,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         Q_bhe_unit_pulse = np.zeros(tN)
         Q_bhe_unit_old = 0.0
-        # Step-mean response of the borehole wall to a step's own load [m K/W].
-        g_own = float(g_step_mean(self._gfunc_interp, np.array([0.0]), dt_s)[0])
+        # Step-mean response for every lag of the run, once (the grid is uniform):
+        # each step's superposition is then a dot product, not a g-function evaluation per pulse.
+        gbar = np.asarray(g_step_mean(self._gfunc_interp, time - time[0], dt_s), dtype=float) if tN else np.zeros(0)
+        self._bhe_step_mean = (time, self._gfunc_interp, dt_s, np.ascontiguousarray(gbar[::-1]))
+        g_own_step = float(gbar[0]) if tN else 0.0
 
         results_data: list[dict] = []
 
@@ -2065,18 +2087,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 # load: the response to the earlier pulses is fixed, and a
                 # candidate load adds its own step-mean response. Evaluating
                 # it never records a pulse.
-                idx = np.flatnonzero(Q_bhe_unit_pulse[:n])
-                history_rise = (
-                    float(np.dot(Q_bhe_unit_pulse[idx], g_step_mean(self._gfunc_interp, time[n] - time[idx], dt_s)))
-                    if len(idx)
-                    else 0.0
-                )
+                # The history does not depend on the candidate: one dot
+                # product with the tabulated step-mean response per step.
+                history_rise = self._bhe_history_rise(n, time, Q_bhe_unit_pulse, n)
 
                 def wall_response(q_total, history=history_rise, previous_q=Q_bhe_unit_old):
                     rise = history
                     delta = q_total / self.total_borehole_length - previous_q
                     if abs(delta) > 1e-6:
-                        rise += float(delta * g_own)
+                        rise += delta * g_own_step
                     return self.Ts_K - rise
 
                 if self._ground_settings["active"]:
@@ -2116,6 +2135,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             hp_result["time [h]"] = hr
             results_data.append(hp_result)
 
+        self._bhe_step_mean = None
         results_df = pd.DataFrame(results_data)
         results_df = self.postprocess_exergy(results_df)
         if result_save_csv_path:

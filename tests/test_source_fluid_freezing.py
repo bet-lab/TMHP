@@ -103,13 +103,14 @@ def test_default_constructors_are_quiet():
 def test_default_machines_run_their_brine_rating_points(machines):
     """EN 14511 B0/W35 and B0/W55 (GSHPB) and a 0 °C borehole wall (GSHP) with nothing but the defaults."""
     gshpb = machines["GSHPB", "default"]
-    for T_tank, cop_sys in ((35.0, 3.847), (55.0, 2.404)):
+    assert gshpb.ref == "R290"  # (R410A, the default before: 3.847 and 2.404, with glycol as with water)
+    for T_tank, cop_sys in ((35.0, 3.870), (55.0, 2.651)):
         with warnings.catch_warnings():
             warnings.simplefilter("error", RuntimeWarning)
             r = gshpb.analyze_steady(T_tank_w=T_tank, T_source=0.0, Q_ref_tank=8000.0)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["Q_ref_tank [W]"] == pytest.approx(8000.0)
-        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.3, abs=0.1)
+        assert r["T_bhe_f_in [°C]"] == pytest.approx(-3.0 if T_tank == 35.0 else -2.5, abs=0.1)
         assert r["cop_sys [-]"] == pytest.approx(cop_sys, rel=2e-3)
     gshp = machines["GSHP", "default"]
     # 3.520 and 3.921 with a water loop before it had a freezing point: the glycol's
@@ -345,6 +346,37 @@ def test_wall_coupled_boiler_runs_the_duty_its_borehole_allows():
     assert 0.3 * 8000.0 < r["Q_ref_tank [W]"] < 0.7 * 8000.0
 
 
+def test_steady_limits_apply_in_order_cycling_mean_then_freezing_then_envelope(machines):
+    """``analyze_steady``: on/off mean > source-fluid limit > compressor envelope (condensing limit included)."""
+    water = machines["GSHPB", "water"]
+    limit, T_cond_max = FREEZE_MARGIN_K, water.T_cond_max
+    assert (water.ref, T_cond_max) == ("R290", 75.0)
+    # Tank at 72 °C: the condensing limit allows 4.8 kW (3 K of approach), less
+    # than the freezing limit would (about 5.5 kW from a 5 °C source). The
+    # envelope reduces, and the point it returns is inside the freezing limit.
+    r = _quiet(water.analyze_steady, T_tank_w=72.0, T_source=5.0, Q_ref_tank=8000.0)
+    assert r["failure_reason"] == "none" and r["capacity_binding"] == "condensing_temperature"
+    assert r["T_ref_cond_sat_l [°C]"] == pytest.approx(T_cond_max, abs=0.05)
+    assert r["T_bhe_f_in [°C]"] > limit + 0.5
+    # Tank at 68 °C: the condensing limit would allow the full 8 kW; the
+    # freezing limit binds, and the reduced point is inside the envelope.
+    r = _quiet(water.analyze_steady, T_tank_w=68.0, T_source=5.0, Q_ref_tank=8000.0)
+    assert r["failure_reason"] == "none" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert limit - TOL_K <= r["T_bhe_f_in [°C]"] <= limit + 0.05
+    assert r["T_ref_cond_sat_l [°C]"] < T_cond_max - 1.0 and r["Q_ref_tank [W]"] < 8000.0
+    # A request below the minimum-speed duty is the mean of on/off operation of
+    # a machine whose running loop is above the limit ...
+    r = _quiet(water.analyze_steady, T_tank_w=45.0, T_source=5.0, Q_ref_tank=400.0)
+    assert r["failure_reason"] == "none" and r["capacity_clamped"] == "min"
+    assert r["Q_ref_tank [W]"] == pytest.approx(400.0) and r["Q_min [W]"] > 1500.0
+    assert 0.0 < r["runtime_fraction [-]"] < 1.0 and r["T_bhe_f_in [°C]"] >= limit - TOL_K
+    # ... and off when the running machine, already on its speed floor, would
+    # chill the loop below it: switching on and off does not warm the liquid.
+    r = _quiet(water.analyze_steady, T_tank_w=45.0, T_source=3.5, Q_ref_tank=400.0)
+    assert r["failure_reason"] == SOURCE_FLUID_FREEZING and r["hp_is_on"] is False
+    assert r["Q_ref_tank [W]"] == 0.0 and r["runtime_fraction [-]"] == 0.0
+
+
 # ---------------------------------------------------------------------------
 # 4. antifreeze
 # ---------------------------------------------------------------------------
@@ -464,25 +496,56 @@ def test_gshpb_dynamic_ground_near_freezing(borehole_dynamics):
     assert (df.loc[~reduced, "Q_ref_tank [W]"] == free.loc[~reduced, "Q_ref_tank [W]"]).all()
 
 
-def test_default_glycol_rows_report_the_fluid_the_limit_was_checked_with():
-    """Ground at -3 °C on the default glycol (limit -8.0 °C), steady borehole: the steps turn down.
+@pytest.mark.parametrize("borehole_dynamics", [None, False], ids=["dynamic-borehole", "steady-borehole"])
+def test_default_glycol_rows_report_the_fluid_the_limit_was_checked_with(borehole_dynamics):
+    """Cold ground on the default glycol (limit -8.0 °C): the steps turn down onto the limit.
+
+    (-3 °C for the steady borehole, whose fluid drops by ``q' R_b`` at once;
+    -4.5 °C for the dynamic one, whose fluid cools over the first steps.)
 
     The reported running fluid is the one the step's cycle was solved and the
-    limit was checked with, and its loop temperature difference carries the
-    row's ground heat with the glycol's own heat capacity.
+    limit was checked with: the reduced steps report the limit itself (they
+    used to report it 0.08 K off, the loop difference being split with the
+    heat capacity of water), the loop temperature difference carries the row's
+    ground heat with the glycol's own heat capacity, and the evaporator
+    balance closes on the reported entering fluid.
     """
-    model = _quiet(GroundSourceHeatPumpBoiler, Ts=-3.0, borehole_dynamics=False, **SHORT)
-    fluid, n = model.source_fluid, 3
+    Ts = -3.0 if borehole_dynamics is False else -4.5
+    model = _quiet(GroundSourceHeatPumpBoiler, Ts=Ts, borehole_dynamics=borehole_dynamics, **SHORT)
+    fluid, n = model.source_fluid, 4
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         df = model.analyze_dynamic(n * 600.0, 600.0, 30.0, np.zeros(n), np.full(n, 5.0))
     assert len(_freezing_warnings(caught)) == 1 and "MEG-25%" in _freezing_warnings(caught)[0]
-    reduced = df["capacity_binding"] == SOURCE_FLUID_FREEZING
-    assert df["hp_is_on"].all() and reduced.iloc[:2].all()
-    leaving, entering = df["T_bhe_f_in_running [°C]"], df["T_bhe_f_out_running [°C]"]
-    assert (leaving >= fluid.T_min_C - TOL_K).all() and (leaving[reduced] <= fluid.T_min_C + 0.05).all()
-    carried = (entering - leaving) * df["dV_bhe_f [m3/s]"] * fluid.rho * fluid.cp
-    np.testing.assert_allclose(carried, df["Q_bhe [W]"] / df["runtime_fraction [-]"], rtol=1e-6)
+    reduced = (df["capacity_binding"] == SOURCE_FLUID_FREEZING).to_numpy()
+    assert df["hp_is_on"].all() and reduced.sum() >= 2
+    leaving, entering = df["T_bhe_f_in_running [°C]"].to_numpy(), df["T_bhe_f_out_running [°C]"].to_numpy()
+    # Decision value = reported value: the limit the search closed on, within its own band.
+    assert (leaving >= fluid.T_min_C - TOL_K).all()
+    assert (leaving[reduced] <= fluid.T_min_C + 0.035).all()
+    m_cp = df["dV_bhe_f [m3/s]"].to_numpy() * fluid.rho * fluid.cp
+    q_run = (df["Q_bhe [W]"] / df["runtime_fraction [-]"]).to_numpy()
+    np.testing.assert_allclose((entering - leaving) * m_cp, q_run, rtol=1e-6)
+    # The cycle of the row was solved on that entering fluid (pump heat included).
+    eps = -np.expm1(-model.UA_ground / m_cp)
+    pump = (df["E_pmp [W]"] / df["runtime_fraction [-]"]).to_numpy()
+    q_hx = eps * m_cp * (entering + pump / m_cp - df["T_ref_evap_sat [°C]"].to_numpy())
+    np.testing.assert_allclose(q_hx, q_run + pump, rtol=2e-3)
+
+
+def test_gshp_default_glycol_rows_report_the_fluid_of_their_cycle():
+    """GSHP on the default glycol: reported loop difference and ground-side saturation belong to one fluid."""
+    gshp = _quiet(GroundSourceHeatPump, t_max_s=7200.0, dt_s=600.0)
+    fluid, n = gshp.source_fluid, 3
+    df = _quiet(gshp.analyze_dynamic, n * 600, 600, np.full(n, -4000.0), np.zeros(n), np.full(n, 20.0))
+    assert df["hp_is_on"].all() and (df["failure_reason"] == "none").all()
+    m_cp = df["dV_bhe_f [m3/s]"] * fluid.rho * fluid.cp
+    np.testing.assert_allclose((df["T_bhe_f_out [°C]"] - df["T_bhe_f_in [°C]"]) * m_cp, df["Q_bhe [W]"], rtol=1e-6)
+    source = df["T_bhe_f_out [°C]"] + df["E_pmp [W]"] / m_cp
+    np.testing.assert_allclose(df["T_ref_evap_sat [°C]"], source - df["ground_approach [K]"], atol=1e-3)
+    # Water's heat capacity would put the leaving liquid 0.2 K off (7 % of the 3 K loop difference).
+    off = (df["T_bhe_f_out [°C]"] - df["Q_bhe [W]"] / (df["dV_bhe_f [m3/s]"] * rho_w * c_w)) - df["T_bhe_f_in [°C]"]
+    assert (off.abs() > 0.1).all()
 
 
 def test_gshp_dynamic_reports_the_limit_once():

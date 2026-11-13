@@ -335,10 +335,18 @@ def test_default_machine_charges_to_its_default_upper_set_point(default_runs, fa
     # The thermostat stops the compressor at the upper bound inside a step.
     assert df["T_tank_w [°C]"].max() == pytest.approx(m.T_tank_w_upper_bound, abs=0.1)
     ran = df["hp_is_on"].astype(bool)
-    # It condenses at most 5 K above the 65 °C set point, at the nameplate duty all the way.
+    # It condenses at most 5 K above the 65 °C set point; the envelope never reduces the duty.
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() <= m.T_tank_w_upper_bound + 5.0 + 1e-6
     assert df.loc[ran, "T_ref_cond_sat_l [°C]"].max() < m.T_cond_max - 4.0
-    assert "capacity_binding" not in df.columns or df["capacity_binding"].isna().all()
+    bindings = set(df["capacity_binding"].dropna()) if "capacity_binding" in df.columns else set()
+    # The ground loop (glycol) runs at the nameplate duty all the way. The
+    # water-source loop is water: on the 6 °C source-water steps the duty is
+    # turned down to keep the loop at its 3 °C limit (the source-fluid limit).
+    assert bindings == (set() if family == "GSHPB" else {"source_fluid_freezing"})
+    if family == "WSHPB":
+        limited = df["capacity_binding"] == "source_fluid_freezing"
+        assert (df.loc[limited, "Ts [°C]"] == 6.0).all()
+        assert (df.loc[ran, "T_bhe_f_in_running [°C]"] >= 3.0 - 0.02).all()
     assert df.loc[ran, "T_ref_cmp_out [°C]"].max() <= m.T_dis_max + 0.02
 
 

@@ -42,10 +42,14 @@ def test_analyze_steady_without_loop_flow_preserves_fixed_ua_baseline(hp):
     # The optimiser result is not bit-reproducible across platforms: macOS /
     # Python 3.14 differs from Linux by a relative 4.3e-8, so the golden values
     # are compared at rel=1e-6 (still far tighter than any physical change).
+    # Re-baselined (E_cmp -0.06 %) when the outdoor coil took the density of
+    # the air it draws in instead of 15 °C standard air: at 7 °C the same fan
+    # volume carries 2.9 % more air, so the evaporating temperature is 0.03 K
+    # higher (E_cmp 3460.8733 -> 3458.7151, cop_ref 2.889444 -> 2.891247).
     baseline = {
         "Q_ref_tank [W]": 10000.0,
-        "E_cmp [W]": 3460.8732881861606,
-        "cop_ref [-]": 2.889444127912868,
+        "E_cmp [W]": 3458.7151133389,
+        "cop_ref [-]": 2.891247088097,
     }
     assert omitted["converged"] is True
     assert omitted["failure_reason"] == "none"

@@ -165,9 +165,12 @@ also appear).
 A request above a limit (boilers)
 ---------------------------------
 
-A boiler is asked for a fixed duty. An inverter unit asked for more than an
+An inverter unit asked for more than an
 operating limit allows does not stop: its controller lowers the compressor
-frequency until the limit holds. So when the requested duty has no operating
+frequency until the limit holds. This applies to the boilers (asked for a
+fixed duty) and to ``AirSourceHeatPump``, which reports the same
+``capacity_binding`` names plus ``"cycle"`` for a coil at its largest airflow
+and the widest approach the search admits. So when the requested duty has no operating
 point for one of the reasons below and a smaller duty has one,
 ``analyze_steady`` and each dynamic step return the **largest duty that runs**
 (found to 1 % of the request), not a failure:

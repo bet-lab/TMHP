@@ -904,8 +904,10 @@ def resolve_step_operation(
 
 
 TANK_BOILING_WARNING = (
-    "tank water above 100 °C: the heat pump stops at its upper set point (at the latest at 100 °C), "
-    "so this heat comes from another source (e.g. a solar collector loop without a high limit, #96 T9). "
+    "tank water above 100 °C: the heat pump stops at its upper set point (at the latest at 100 °C) and "
+    "the solar collector loops at their storage limit (T_stc_tank_max, 85 °C by default), so this heat "
+    "comes from another source: a subsystem that heats the tank without a limit of its own (e.g. a UV "
+    "lamp), or a collector storage limit set at 100 °C. "
     "The lumped tank model has no boiling or relief valve; temperatures above 100 °C are not physical."
 )
 

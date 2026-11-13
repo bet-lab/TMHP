@@ -46,8 +46,10 @@ ON_MIN, OFF_MIN = 10, 20
 def _models(**kwargs) -> tuple[GroundSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler]:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        steady = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, borehole_dynamics=False, **kwargs)
-        dynamic = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, borehole_dynamics=True, **kwargs)
+        # A water loop, as the figures were made (the models' default loop liquid is 25 % ethylene glycol).
+        common = dict(ground_flow_ref_lpm=FLOW_LPM, source_fluid="water", **kwargs)
+        steady = GroundSourceHeatPumpBoiler(borehole_dynamics=False, **common)
+        dynamic = GroundSourceHeatPumpBoiler(borehole_dynamics=True, **common)
     return steady, dynamic
 
 

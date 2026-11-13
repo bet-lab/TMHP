@@ -53,8 +53,9 @@ def _run(cls, dt: float, load: np.ndarray, **kw) -> np.ndarray:
 def test_tabulated_superposition_gives_the_pulse_by_pulse_numbers(dt):
     load = np.where((np.arange(18) // 3) % 2 == 0, 4000.0, 0.0)
     load[9:] *= -1.0  # cooling, then heating
-    fast = _run(GroundSourceHeatPump, dt, load)
-    slow = _run(_PulseByPulse, dt, load)
+    # A water loop: the 1e-9 K agreement was established for it (1.1e-9 K with the default glycol).
+    fast = _run(GroundSourceHeatPump, dt, load, source_fluid="water")
+    slow = _run(_PulseByPulse, dt, load, source_fluid="water")
     assert np.any(fast[:, 4] > 0) and np.any(fast[:, 4] < 0)  # the ground was loaded both ways
     np.testing.assert_allclose(fast, slow, rtol=0.0, atol=1e-9)
 

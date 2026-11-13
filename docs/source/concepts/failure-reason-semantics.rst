@@ -120,6 +120,31 @@ Common to all families
         efficiencies.
       - No — only off-mode placeholders.
 
+Liquid-source families (GSHP, GSHPB, WSHPB)
+-------------------------------------------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 25 35 40
+
+    * - Value
+      - Means
+      - Result dict carries cycle numbers?
+    * - ``source_fluid_freezing``
+      - The source-loop liquid would run below its
+        operating limit -- its freezing point plus 3 K: -8.0 °C for the
+        default 25 % ethylene glycol of GSHP and GSHPB, 3 °C for the default
+        water of WSHPB -- at every duty the model tried: it already reaches
+        the heat pump below the limit (``failure_detail ==
+        "source_inlet_below_limit"``), or it leaves below it even at the
+        compressor's lowest speed (``"source_outlet_below_limit"``). A request
+        that a *smaller* duty keeps on the limit is not a failure: it returns
+        that duty with ``capacity_clamped == "max"`` and ``capacity_binding ==
+        "source_fluid_freezing"``, in ``analyze_steady`` and in every dynamic
+        step. Fill the loop with an antifreeze mixture, or a stronger one
+        (``source_fluid="MEG-30%"``; see :ref:`source-fluid`).
+      - No — only off-mode placeholders.
+
 ASHPB only
 ----------
 

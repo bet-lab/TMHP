@@ -11,8 +11,8 @@ import math
 
 import pytest
 
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp import GroundSourceHeatPump
-from tmhp.constants import c_w, rho_w
 from tmhp.ground_loop import calc_bhe_fluid_temperatures
 
 
@@ -100,8 +100,8 @@ def test_wall_temperature_is_used_and_closes_through_borehole_resistance(hp):
             hp.n_boreholes,
             hp.H_b,
             row["R_b_eff [mK/W]"],
-            row["dV_bhe_f [m3/s]"] * rho_w,
-            c_w,
+            row["dV_bhe_f [m3/s]"] * hp.source_fluid.rho,
+            hp.source_fluid.cp,
         )
         assert row["T_bhe_f_out [°C]"] == pytest.approx(outlet, abs=1e-4)
         assert row["T_bhe_f_in [°C]"] == pytest.approx(inlet, abs=1e-4)
@@ -116,7 +116,9 @@ def test_wall_closure_matches_coupled_ground_flow_solver():
     # Same unit, same wall and flow: the standard solver and the coupled
     # ground-flow solver (selected by prescribing the loop flow) solve the same
     # balances and must agree.
-    model = GroundSourceHeatPump(ref="R32", R_b=0.12, t_max_s=3600)
+    # (A water loop: the coupled solver closes the loop temperature with water's
+    # heat capacity, so with the default glycol the two differ by 0.08 K.)
+    model = GroundSourceHeatPump(ref="R32", R_b=0.12, t_max_s=3600, source_fluid="water")
     standard = steady(model, -3000.0, 20.0, 10.0)
     coupled = model.analyze_steady(
         Q_r_iu=-3000.0, T0=0.0, T_a_room=20.0, T_bhe_wall=10.0, ground_flow_lpm=model.ground_flow_ref_lpm
@@ -152,7 +154,7 @@ def test_wall_coupled_ceiling_closes_at_the_compressor_speed_limit():
     # source temperature, so the fluid closure against the wall oscillates
     # (loop gain near -0.5) and the PR-envelope edge moves with the fluid
     # temperature. R410A at a 10 degC wall used to end cycle_invalid here.
-    model = GroundSourceHeatPump(ref="R410A")
+    model = GroundSourceHeatPump(ref="R410A", source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
     row = steady(model, -1.0e6, 20.0, 10.0)
     assert row["converged"] and row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "max"

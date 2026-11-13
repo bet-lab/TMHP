@@ -225,6 +225,7 @@ def _historical_efficiency_plant():
     return GroundSourceHeatPumpBoiler(
         ref="R410A",  # the default refrigerant when the plant was recorded (now R290)
         borehole_dynamics=False,
+        source_fluid="water",  # the archived loop liquid (the default is now 25 % ethylene glycol)
         t_max_s=200 * 3600,
         eta_cmp_isen=0.80,
         eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,

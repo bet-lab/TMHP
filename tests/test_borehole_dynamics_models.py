@@ -50,6 +50,17 @@ def test_rejects_models_it_cannot_serve():
         enable_borehole_dynamics(object())
 
 
+def test_rejects_flow_dependent_models():
+    """One flow, one resistance: the kernel cancels the model's steady terms only for those."""
+    with pytest.raises(ValueError, match="variable_Rb"):
+        enable_borehole_dynamics(_boiler(variable_Rb=True))
+    variable = _boiler(ground_flow_control="optimal_power")
+    with pytest.raises(ValueError, match="one loop flow"):
+        enable_borehole_dynamics(variable)
+    # A lumped fluid does not depend on the flow: allowed.
+    assert enable_borehole_dynamics(variable, transit=False).transit_time is None
+
+
 def test_space_conditioning_model_takes_it_too():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")

@@ -57,11 +57,13 @@ the dynamic mean fluid temperature, exact for piecewise-constant loads.
 Limits
 ------
 One-dimensional cross-section (the pipe layout enters only through ``R_b``):
-against a 2-D finite-element reference the correction is within about 5 % of
-``R_b`` between 0.5 h and 2 h and 1.6 % after 4 h for common DN32 sections
-(geolink technical note, see below). The fluid is one node: the transit time
-of the fluid through the U-tube (minutes) and the fluid outside the borehole
-are not resolved.
+against a 2-D finite-element reference the correction is, for most DN32
+sections, within 5 % of ``R_b`` between 0.5 h and 2 h and about 2 % after 4 h
+(geolink technical note, see below; that comparison mapped the section to the
+local resistance, not to the effective ``R_b*`` used here). In the section
+model the fluid is one node; its transit through the U-tube is added
+separately (:func:`loop_outlet_response`) for one constant flow and a loop
+that keeps circulating. The fluid outside the borehole is not modelled.
 
 Provenance
 ----------
@@ -96,6 +98,7 @@ of Technology (grout heat capacity, Table 4.2).
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from typing import Any
@@ -813,10 +816,24 @@ class DynamicGFunction:
         if H is not None or m_cp is not None:
             if H is None or m_cp is None:
                 raise ValueError("give both H and m_cp to resolve the fluid transit, or neither")
-            self._transit = _transit_kernel(section, _positive(H, "H"), _positive(m_cp, "m_cp"))
+            _positive(H, "H")
+            _positive(m_cp, "m_cp")
+            self._transit = _transit_kernel(section, float(H), float(m_cp)) if section.C_f > 0.0 else None
             if self._transit is not None:
                 self.half_loop = float(H) / (2.0 * float(m_cp))
                 self.transit_time = self._transit[2]
+            else:
+                reason = (
+                    "the section has no fluid heat capacity"
+                    if section.C_f <= 0.0
+                    else f"the loop temperature difference alone, H / (2 m c_p) = {float(H) / (2.0 * float(m_cp)):.3g} "
+                    f"m.K/W, is not below R_b = {self.R_b:.3g} m.K/W (very low flow)"
+                )
+                warnings.warn(
+                    f"fluid transit is not resolved, the fluid is one node: {reason}",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
         self._managed = all(hasattr(g_field, name) for name in ("x", "y", "ensure_horizon", "n_builds"))
         if not self._managed:
             if t_max_s is None or not (math.isfinite(t_max_s) and t_max_s > self.T_JOIN):
@@ -1061,6 +1078,16 @@ def enable_borehole_dynamics(
     To go back, construct the model again. A model given its own
     ``ground_coupler`` is left to that coupler and raises here.
 
+    The response is built for one flow. The models subtract the steady
+    ``q' R_b`` and add ``Q / (2 m c_p)`` at the flow of each step, and the
+    kernel cancels exactly those two terms at the first instant. It therefore
+    raises for ``variable_Rb`` and, with the transit resolved, for variable
+    ground flow (pass ``transit=False`` to keep variable flow with a lumped
+    fluid). A model whose field was set up with
+    :meth:`tmhp.borefield.FieldGroundResponse.attach` must get its dynamics
+    from ``attach(..., borehole_dynamics=True)``, which knows the pipes and
+    circuits; calling this function on it raises.
+
     Parameters
     ----------
     model
@@ -1088,6 +1115,21 @@ def enable_borehole_dynamics(
         raise ValueError("the model uses an injected ground_coupler; wrap that coupler's g-function instead")
     if isinstance(g_field, DynamicGFunction):
         g_field = g_field.field
+    if getattr(g_field, "bore_field", None) is not None:
+        raise ValueError(
+            "this model uses a field set up with FieldGroundResponse.attach; its pipes and circuits are not "
+            "the model's single U-tube rectangle. Use attach(model, borehole_dynamics=True) instead"
+        )
+    if settings["variable_Rb"]:
+        raise ValueError(
+            "the dynamic response is built for one borehole resistance; variable_Rb changes it every step. "
+            "Construct the model without variable_Rb"
+        )
+    if transit and settings["control"] != "constant":
+        raise ValueError(
+            "the transit-resolved response is built for one loop flow; with variable ground flow pass "
+            "transit=False (lumped fluid), which does not depend on the flow"
+        )
     geometry = settings["geometry"]
     n_boreholes = int(settings["n_boreholes"])
     dynamic = with_borehole_capacity(

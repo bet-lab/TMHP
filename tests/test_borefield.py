@@ -48,8 +48,8 @@ def _pyg_grid(t_max_s: float, num: int = 100) -> np.ndarray:
 # precompute_gfunction(n, n, 6, 100, 0, 0.08, ALPHA, 2, YEAR, 3600, bc) at grid
 # nodes 1, 25, 60, 100, taken from origin/main 315f8a8 on macOS arm64. The
 # direct-call comparison below is exact; these literals pin the values across
-# pygfunction/numpy upgrades, at 1e-9 because Linux and macOS differ at that
-# level (BLAS, quadrature).
+# pygfunction/numpy upgrades, at 1e-7: Linux and macOS differ at the 1e-9
+# level (BLAS, quadrature), and a pinned literal must not sit on that edge.
 _LEGACY_X = [3600.0, 35871.526807084934, 1025224.3925581449, 47304000.0]
 _LEGACY_Y = {
     (1, "UBWT"): [0.03113470997530641, 0.11085024900896275, 0.24142326897609273, 0.38206211996517553],
@@ -63,7 +63,7 @@ def test_legacy_grid_is_unchanged(n, bc):
     g = precompute_gfunction(n, n, 6.0, 100.0, 0.0, R_B, ALPHA, K_S, YEAR, 3600.0, boundary_condition=bc)
     idx = [1, 25, 60, 100]
     np.testing.assert_allclose(g.x[idx], _LEGACY_X, rtol=1e-12)
-    np.testing.assert_allclose(g.y[idx], _LEGACY_Y[(n, bc)], rtol=1e-9)
+    np.testing.assert_allclose(g.y[idx], _LEGACY_Y[(n, bc)], rtol=1e-7)
     # Bit for bit what pygfunction gives for the same call.
     times = _pyg_grid(YEAR)
     field = gt.borefield.Borefield.rectangle_field(N_1=n, N_2=n, B_1=6.0, B_2=6.0, H=100.0, D=0.0, r_b=R_B)

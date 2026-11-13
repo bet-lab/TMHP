@@ -10,7 +10,7 @@ import pytest
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler
 from tmhp.borefield import BoreField, FieldGroundResponse
 from tmhp.borehole import BoreholePipe
-from tmhp.borehole_capacity import DynamicGFunction
+from tmhp.borehole_capacity import DynamicGFunction, enable_borehole_dynamics
 from tmhp.constants import rho_w
 from tmhp.ground_coupling import AggregateGFunctionCoupler
 
@@ -92,6 +92,18 @@ def test_attach_with_borehole_dynamics(irregular):
     on = out_s["hp_is_on"].astype(bool).to_numpy()
     first = int(np.flatnonzero(on)[0])
     assert out_d["T_bhe_f_out [°C]"].iloc[first] - out_s["T_bhe_f_out [°C]"].iloc[first] > 0.3
+
+
+def test_enable_borehole_dynamics_does_not_override_an_attached_field():
+    """The model-level switch assumes the model's single U-tube rectangle; an attached field is not that."""
+    pair = BoreField.rectangle(2, 1, 6.0, 150.0)
+    response = _response(pair, 24.0, BoreholePipe(kind="double_u_parallel", D_s=0.04), connectivity=[-1, 0])
+    for dynamics in (False, True):
+        model = _boiler(**response.model_kwargs())
+        g = response.attach(model, borehole_dynamics=dynamics)
+        with pytest.raises(ValueError, match="attach\\(model, borehole_dynamics=True\\)"):
+            enable_borehole_dynamics(model)
+        assert model._gfunc_interp is g
 
 
 def test_attach_refuses_a_model_of_another_field(irregular):

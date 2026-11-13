@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from scipy.special import kve
 
-from tests._borehole_oracle import plug_flow_outlet
+from tests._borehole_oracle import cycled_loop_outlet, plug_flow_outlet
 from tests._ground_oracle import step_mean_quad
 from tmhp.borehole import calc_effective_borehole_thermal_resistance, calc_local_borehole_thermal_resistance
 from tmhp.borehole_capacity import (
@@ -260,8 +260,15 @@ def test_transit_keeps_the_outlet_still_for_one_pass(section, g_field):
 def test_transit_needs_both_depth_and_flow(section, g_field):
     with pytest.raises(ValueError, match="both H and m_cp"):
         DynamicGFunction(g_field, section, H=H)
-    slow = DynamicGFunction(g_field, section, H=H, m_cp=M_CP / 20.0)  # no calibration -> lumped fluid
+    # Very low flow: no calibrated section exists. The fluid stays one node, and it says so.
+    with pytest.warns(RuntimeWarning, match="fluid transit is not resolved"):
+        slow = DynamicGFunction(g_field, section, H=H, m_cp=M_CP / 20.0)
     assert slow.transit_time is None and slow.half_loop == 0.0
+    with pytest.warns(RuntimeWarning, match="no fluid heat capacity"):
+        dry = DynamicGFunction(g_field, section.without_capacity(), H=H, m_cp=M_CP)
+    assert dry.transit_time is None
+    with pytest.raises(ValueError, match="m_cp"):
+        DynamicGFunction(g_field, section, H=H, m_cp=0.0)
 
 
 @pytest.mark.parametrize("transit", [False, True])
@@ -438,6 +445,42 @@ def test_hourly_means_do_not_depend_on_the_step(section, g_field, transit):
         means[dt] = rise.reshape(-1, per_hour).mean(axis=1)
     np.testing.assert_allclose(means[60.0], means[3600.0], atol=1e-10)
     np.testing.assert_allclose(means[600.0], means[3600.0], atol=1e-10)
+
+
+def test_cycling_matches_a_time_domain_loop_and_bounds_the_stopped_pump(section, g_field):
+    """10 min on / 20 min off through the kernel and the host formula, against a time-marched loop.
+
+    The kernel is linear, so it describes a loop that keeps circulating while
+    the load is off; that it reproduces to 1 % of R_b. A pump that stops
+    leaves the fluid standing: the outlet then moves less (the model is on the
+    cold side for extraction), by a few percent of R_b on average over a run
+    and about 12 % in the first minute after a restart.
+    """
+    calibrated = _transit_section(section, H, M_CP)
+    on_s, off_s, cycles, dt = 600.0, 1200.0, 6, 60.0
+    r_b = section.steady_resistance
+    g_dyn = DynamicGFunction(g_field, section, H=H, m_cp=M_CP)
+    n = int(cycles * (on_s + off_s) / dt)
+    time_arr = np.arange(n) * dt
+    load = np.where(time_arr % (on_s + off_s) < on_s, 1.0, 0.0)
+    coupler = AggregateGFunctionCoupler(g_dyn)
+    coupler.reset(n, time_arr, dt_s=dt)
+    # Outlet rise for an injection: K + R_b - H / (2 m c_p) while loaded, K alone otherwise.
+    kernel = np.array(
+        [coupler.wall_temperature_rise(i, time_arr, load[i]) + load[i] * (r_b - g_dyn.half_loop) for i in range(n)]
+    )
+
+    def binned(stop_pump: bool) -> np.ndarray:
+        times, outlet, _ = cycled_loop_outlet(calibrated, H, M_CP, on_s, off_s, cycles, stop_pump=stop_pump)
+        return np.array([outlet[(times > a) & (times <= a + dt)].mean() for a in time_arr])
+
+    circulating, stopped = binned(False), binned(True)
+    on = load > 0
+    assert np.abs(circulating[on] - kernel[on]).max() < 0.012 * r_b
+    per_run = (stopped - circulating)[on].reshape(cycles, -1).mean(axis=1) / r_b
+    assert per_run[0] == pytest.approx(0.0, abs=1e-12)  # the first run has no history
+    assert np.all(per_run[1:] < 0) and np.all(per_run[1:] > -0.06)
+    assert np.abs(stopped[on] - circulating[on]).max() < 0.15 * r_b
 
 
 def test_plain_g_function_reports_the_same_wall(g_field):

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="ε-NTU heat exchanger calculations, the air-side fan + heat-exchanger model used by ASHP/ASHPB, and the borehole g-function and coupling abstractions used by GSHP/GSHPB. ε-NTU heat exchanger: Heat t..." />
 
-    <meta property="article:modified_time" content="2026-11-14T06:33:37+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -78,6 +78,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../getting-started/installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/minimal-input.html">Minimal input</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../concepts/index.html">Concepts</a><ul>
@@ -85,6 +86,8 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../concepts/scope-and-limits.html">Scope and limits</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../../models/index.html">Models</a><ul>
@@ -162,6 +165,11 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_ashrae_fan_power_ratio"><code class="docutils literal notranslate"><span class="pre">calc_ashrae_fan_power_ratio()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_operating_point"><code class="docutils literal notranslate"><span class="pre">calc_fan_operating_point()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.hx_fan.calc_fan_power_from_dV_fan"><code class="docutils literal notranslate"><span class="pre">calc_fan_power_from_dV_fan()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-tmhp.air_properties">Air properties</a><ul>
+<li><a class="reference internal" href="#tmhp.air_properties.air_density"><code class="docutils literal notranslate"><span class="pre">air_density()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.air_properties.air_heat_capacity_rate"><code class="docutils literal notranslate"><span class="pre">air_heat_capacity_rate()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.g_function">Borehole g-function</a><ul>
@@ -764,6 +772,88 @@ custom settings may explicitly supply an independent <code class="docutils liter
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-tmhp.air_properties">
+<span id="air-properties"></span><h2>Air properties<a class="headerlink" href="#module-tmhp.air_properties" title="Link to this heading">¶</a></h2>
+<p>Air properties at the state an air coil draws its air.</p>
+<p>A fan moves a volume of air, a coil exchanges heat with a mass of it. The two
+are tied by the density of the air the fan draws, and that density follows the
+air temperature: at a fixed volume flow, air at -25 degC carries 16 % more mass
+(and heat capacity) than the 15 degC standard air of <code class="docutils literal notranslate"><span class="pre">constants.rho_a</span></code>, air
+at 35 degC 6.5 % less.</p>
+<p><code class="docutils literal notranslate"><span class="pre">air_density</span></code> is the ideal-gas density of dry air,
+<code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">=</span> <span class="pre">P</span> <span class="pre">/</span> <span class="pre">(R_a</span> <span class="pre">T)</span></code>, with <code class="docutils literal notranslate"><span class="pre">R_a</span> <span class="pre">=</span> <span class="pre">287.055</span> <span class="pre">J/(kg</span> <span class="pre">K)</span></code> (<code class="docutils literal notranslate"><span class="pre">constants.R_a</span></code>).
+At 15 degC and 101 325 Pa it gives 1.2250 kg/m3, the value of
+<code class="docutils literal notranslate"><span class="pre">constants.rho_a</span></code>, so the two agree at the standard state.</p>
+<p>What is left out, and how much it is:</p>
+<ul class="simple">
+<li><p><strong>Humidity.</strong> Water vapour makes moist air lighter and its specific heat
+larger; per cubic metre the two nearly cancel. At 20 degC and 50 % relative
+humidity the sensible heat capacity of a cubic metre is 0.2 % above the
+dry-air figure, at 35 degC and 40 % it is 0.3 % above. The coils of the
+cycle models are dry (sensible heat only), so dry air is used.</p></li>
+<li><p><strong>Specific heat.</strong> <code class="docutils literal notranslate"><span class="pre">constants.c_a</span></code> (1005 J/(kg K)) is kept constant: the
+specific heat of dry air changes by 0.1 % between -25 and 40 degC.</p></li>
+<li><p><strong>Altitude.</strong> The pressure argument defaults to one standard atmosphere.
+The models use that default; at 1 600 m the density is 18 % lower.</p></li>
+<li><p><strong>Fan power.</strong> The fan curves stay functions of the volume flow at the rated
+static pressure. By the fan laws the pressure rise, and so the power, is
+proportional to the density at a fixed volume flow; the models do not apply
+that (outdoor fan at -25 degC: +16 % of its power, 0.5 to 0.7 % of the total
+electrical input).</p></li>
+</ul>
+<p>The volume flows of the air-source models (<code class="docutils literal notranslate"><span class="pre">dV_ou_a</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_iu_a</span></code>, the fan
+references and limits) are volumes at the coil inlet state, so the air mass
+flow of a coil is <code class="docutils literal notranslate"><span class="pre">air_density(T_in)</span> <span class="pre">*</span> <span class="pre">dV</span></code> and is the same before and after
+the coil and the fan.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.air_properties.air_density">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_properties.</span></span><span class="sig-name descname"><span class="pre">air_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/air_properties.html#air_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_properties.air_density" title="Link to this definition">¶</a></dt>
+<dd><p>Density of dry air [kg/m3] at temperature <code class="docutils literal notranslate"><span class="pre">T_C</span></code> [degC] and pressure <code class="docutils literal notranslate"><span class="pre">P</span></code> [Pa].</p>
+<p>Ideal gas, <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">=</span> <span class="pre">P</span> <span class="pre">/</span> <span class="pre">(R_a</span> <span class="pre">(T_C</span> <span class="pre">+</span> <span class="pre">273.15))</span></code>. <code class="docutils literal notranslate"><span class="pre">T_C</span></code> may be a scalar or
+an array-like (NumPy array, pandas Series); the result has the same shape.
+A scalar at or below absolute zero, or a non-positive pressure, raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">air_density</span><span class="p">(</span><span class="mf">15.0</span><span class="p">),</span> <span class="mi">4</span><span class="p">)</span>
+</span><span data-line="2"><span class="go">1.225</span>
+</span><span data-line="3"><span class="gp">&gt;&gt;&gt; </span><span class="nb">round</span><span class="p">(</span><span class="n">air_density</span><span class="p">(</span><span class="o">-</span><span class="mf">25.0</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">air_density</span><span class="p">(</span><span class="mf">35.0</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+</span><span data-line="4"><span class="go">(1.422, 1.145)</span>
+</span></pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.air_properties.air_heat_capacity_rate">
+<span class="sig-prename descclassname"><span class="pre">tmhp.air_properties.</span></span><span class="sig-name descname"><span class="pre">air_heat_capacity_rate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_C</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">101325.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/air_properties.html#air_heat_capacity_rate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.air_properties.air_heat_capacity_rate" title="Link to this definition">¶</a></dt>
+<dd><p>Heat capacity rate of an air stream [W/K]: <code class="docutils literal notranslate"><span class="pre">c_a</span> <span class="pre">*</span> <span class="pre">air_density(T_C,</span> <span class="pre">P)</span> <span class="pre">*</span> <span class="pre">dV</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dV</span></code> [m3/s] is the volume flow at the state (<code class="docutils literal notranslate"><span class="pre">T_C</span></code> [degC], <code class="docutils literal notranslate"><span class="pre">P</span></code> [Pa])
+the density is taken at – for a coil, its inlet air.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dV</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>T_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span>)</p></li>
+<li><p><strong>P</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="This page walks through a single steady-state evaluation of the AirSourceHeatPumpBoiler model — the cheapest call you can make against the library, and the fastest way to confirm your install works..." />
 
-    <meta property="article:modified_time" content="2026-11-12T22:54:03+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -78,6 +78,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Quick start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="minimal-input.html">Minimal input</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
@@ -85,6 +86,8 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/scope-and-limits.html">Scope and limits</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
@@ -244,13 +247,15 @@ user-defined <code class="docutils literal notranslate"><span class="pre">HEOS::
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading">¶</a></h2>
 <div class="next-steps docutils container">
 <p><a class="reference internal" href="first-dynamic-simulation.html"><span class="doc">Run a 24-hour dynamic simulation</span></a> — step <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> through outdoor and demand schedules over a full day.</p>
+<p><a class="reference internal" href="minimal-input.html"><span class="doc">See what each family needs from you</span></a> — capacity, refrigerant and source/sink type; every other default follows.</p>
+<p><a class="reference internal" href="../concepts/result-keys.html"><span class="doc">Look up a result key</span></a> — meaning, unit and sign of every key a result carries.</p>
 <p><a class="reference internal" href="../api/index.html"><span class="doc">Browse the full API</span></a> — every model class, subsystem, and helper module documented in one place.</p>
 </div>
 </section>
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

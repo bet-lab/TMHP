@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -79,6 +79,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/minimal-input.html">Minimal input</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
@@ -86,6 +87,8 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/scope-and-limits.html">Scope and limits</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Models</a><ul class="current">
@@ -422,6 +425,17 @@ argument overrides these defaults. The earlier linear correlations
 ε-NTU heat exchanger. Fan electrical power follows an ASHRAE
 90.1-style cubic-with-speed curve; coil ε is recomputed each step
 from the resolved refrigerant mass flow.</p>
+<p>The coil exchanges heat with the mass of air the fan moves:
+<code class="docutils literal notranslate"><span class="pre">dV_ou_a</span></code> is a volume at the outdoor temperature <code class="docutils literal notranslate"><span class="pre">T0</span></code>, and the air mass
+flow is <code class="docutils literal notranslate"><span class="pre">air_density(T0)</span> <span class="pre">*</span> <span class="pre">dV_ou_a</span></code> with the density of dry air at one
+standard atmosphere (<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.air_properties.air_density" title="tmhp.air_properties.air_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.air_properties.air_density()</span></code></a>; 1.42 kg/m³ at
+−25 °C, 1.26 at 7 °C, 1.15 at 35 °C). <code class="docutils literal notranslate"><span class="pre">NTU_ou</span> <span class="pre">[-]</span></code>, the outlet temperature
+<code class="docutils literal notranslate"><span class="pre">T_ou_a_out</span></code> (fan heat included) and the air exergy flows use that one mass
+flow, so <code class="docutils literal notranslate"><span class="pre">c_a</span> <span class="pre">*</span> <span class="pre">rho(T0)</span> <span class="pre">*</span> <span class="pre">dV_ou_a</span> <span class="pre">*</span> <span class="pre">(T_ou_a_out</span> <span class="pre">-</span> <span class="pre">T0)</span> <span class="pre">=</span> <span class="pre">E_ou_fan</span> <span class="pre">-</span> <span class="pre">Q_ref_ou</span></code>
+within a row. Against the 15 °C standard air of earlier releases the COP at
+nameplate capacity is 0.2 % higher at A7/W35 and 0.2 to 0.7 % higher at −7 °C;
+from 25 to 45 °C outdoors it is typically 0.2 to 0.5 % lower. See <a class="reference internal" href="ashp.html#ashp-air-density"><span class="std std-ref">Air density</span></a> for what is left on
+the volume flow and what is left out.</p>
 </section>
 <section id="sink-side-mechanics">
 <h2>Sink-side mechanics<a class="headerlink" href="#sink-side-mechanics" title="Link to this heading">¶</a></h2>

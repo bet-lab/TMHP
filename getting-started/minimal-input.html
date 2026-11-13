@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en" data-accent-color="iris" data-content_root="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Minimal input - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Concepts" href="../concepts/index.html" /><link rel="prev" title="Your first dynamic simulation" href="first-dynamic-simulation.html" />
+      <link rel="canonical" href="https://bet-lab.github.io/TMHP/getting-started/minimal-input.html" /><script>
+    function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
+    setColorMode(localStorage._theme||"auto");
+  </script><link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=e1a1ceaf" />
+    <link rel="stylesheet" type="text/css" href="../_static/shibuya.css?v=44020203" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=9c3e77be" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link media="print" rel="stylesheet" type="text/css" href="../_static/print.css?v=20ff2c19" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=4ea1e3a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/integration-diagrams.css?v=b297bf1e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sy-f-text: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+  --sy-f-heading: "Inter", var(--sy-f-sys), var(--sy-f-cjk), sans-serif;
+}
+</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:title" content="Minimal input" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://bet-lab.github.io/TMHP/getting-started/minimal-input.html" />
+<meta property="og:site_name" content="Thermodynamic Models for Heat Pumps" />
+<meta property="og:description" content="TMHP is meant to run from a nameplate, not from a component datasheet. For every released family three statements describe a machine: which family — the class says what the heat comes from and wher..." />
+<meta property="og:image" content="https://bet-lab.github.io/TMHP/_static/source_sink_matrix.svg" />
+<meta property="og:image:alt" content="TMHP source and sink family matrix" />
+<meta name="description" content="TMHP is meant to run from a nameplate, not from a component datasheet. For every released family three statements describe a machine: which family — the class says what the heat comes from and wher..." />
+
+    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
+  </head>
+<body><div class="sy-head">
+  <div class="sy-head-blur"></div>
+  <div class="sy-head-inner sy-container mx-auto">
+    <a class="sy-head-brand" href="../index.html">
+      
+      
+      <strong>TMHP</strong>
+    </a>
+    <div class="sy-head-nav" id="head-nav">
+      <nav class="sy-head-links"><ul><li class="link"><a href="index.html">Start</a></li><li class="link"><a href="../concepts/index.html">Concepts</a></li><li class="link"><a href="../models/index.html">Models</a></li><li class="link"><a href="../tutorials/index.html">Tutorials</a></li><li class="link"><a href="../integrations/index.html">Integrations</a></li><li class="link"><a href="../api/index.html">API</a></li><li class="link"><a href="../validation/index.html">Validation</a></li></ul></nav>
+      <div class="sy-head-extra flex items-center print:hidden"><form class="searchbox flex items-center" action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <kbd>/</kbd>
+</form><div class="sy-head-socials">
+  <a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+    <iconify-icon icon="simple-icons:github"></iconify-icon>
+  </a></div></div>
+    </div>
+    <div class="sy-head-actions flex items-center shrink-0 print:hidden"><button class="js-theme theme-switch flex items-center"
+data-aria-auto="Switch to light color mode"
+data-aria-light="Switch to dark color mode"
+data-aria-dark="Switch to auto color mode">
+<i class="i-lucide theme-icon"></i>
+</button><button class="md:hidden flex items-center js-menu" aria-label="Menu" type="button" aria-controls="head-nav" aria-expanded="false">
+        <div class="hamburger">
+          <span class="hamburger_1"></span>
+          <span class="hamburger_2"></span>
+          <span class="hamburger_3"></span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+<div class="sy-page sy-container flex mx-auto">
+  <aside id="lside" class="sy-lside md:w-72 md:shrink-0 print:hidden">
+    <div class="sy-lside-inner md:sticky">
+      <div class="sy-scrollbar p-6">
+        <div class="globaltoc" data-expand-depth="1"><p class="caption" role="heading" aria-level="3"><span class="caption-text">Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Getting Started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Minimal input</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/why-physics-based.html">Why physics-based?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/scope-and-limits.html">Scope and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashpb.html">Air-source heat pump boiler (ASHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshpb.html">Ground-source heat pump boiler (GSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/wshpb.html">Water-source heat pump boiler (WSHPB)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ashp.html">Air-source heat pump (ASHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/gshp.html">Ground-source heat pump (GSHP &#8212; space conditioning)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ground-response.html">Ground response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/ground-flow.html">Coupled ground-loop flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../models/reference-state.html">Compressor reference state</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../tutorials/index.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/swap-refrigerant.html">Swap refrigerants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/realistic-dynamic-simulation.html">Realistic dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tutorials/visualize-the-cycle.html">Visualize thermodynamic cycle</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../integrations/index.html">Integrations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/energyplus-python.html">EnergyPlus Python Plugin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../integrations/fmu.html">FMI FMU export</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/support/index.html">Support modules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/refrigerant-thermo.html">Refrigerant &amp; thermodynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/heat-transfer.html">Heat transfer &amp; exchangers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/demand-weather.html">Demand &amp; weather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/subsystems.html">Subsystems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/simulation.html">Simulation helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/integrations.html">Integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/support/utilities.html">Utilities &amp; constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../validation/index.html">Validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../validation/defaults.html">Where the defaults come from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/part-load.html">Part-load behaviour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../validation/adding-a-catalogue.html">Adding a catalogue</a></li>
+</ul>
+</li>
+<li class="toctree-l1 _expand"><a class="reference internal" href="../developer/reference-operating-limits.html">Reference points and operating limits</a></li>
+</ul>
+<p class="caption" role="heading" aria-level="3"><span class="caption-text">Project Links</span></p>
+<ul>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/TMHP">GitHub Repository</a></li>
+<li class="toctree-l1 _expand"><a class="reference external" href="https://github.com/bet-lab/enex-analysis-engine">Sister project &#8212; Energy-Exergy Analysis Engine</a></li>
+</ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="lside-overlay js-menu" role="button" aria-label="Close left sidebar" aria-controls="lside" aria-expanded="false"></div>
+  <aside id="rside" class="sy-rside pb-3 w-64 shrink-0 order-last">
+    <button class="rside-close js-menu xl:hidden" aria-label="Close Table of Contents" type="button" aria-controls="rside" aria-expanded="false">
+      <i class="i-lucide close"></i>
+    </button>
+    <div class="sy-scrollbar sy-rside-inner px-6 xl:top-16 xl:sticky xl:pl-0 pt-6 pb-4"><div class="localtoc"><h3>On this page</h3><ul>
+<li><a class="reference internal" href="#what-you-give">What you give</a></li>
+<li><a class="reference internal" href="#what-follows-the-capacity">What follows the capacity</a></li>
+<li><a class="reference internal" href="#what-follows-the-refrigerant">What follows the refrigerant</a></li>
+<li><a class="reference internal" href="#what-is-on-by-default">What is on by default</a></li>
+<li><a class="reference internal" href="#what-does-not-follow-the-capacity">What does not follow the capacity</a></li>
+<li><a class="reference internal" href="#when-you-know-more">When you know more</a></li>
+</ul>
+</div><div id="ethical-ad-placement" data-ea-publisher="readthedocs"></div></div>
+  </aside>
+  <div class="rside-overlay js-menu" role="button" aria-label="Close Table of Contents" aria-controls="rside" aria-expanded="false"></div>
+  <main class="sy-main w-full max-sm:max-w-full print:pt-6">
+<div class="sy-breadcrumbs" role="navigation">
+  <div class="sy-breadcrumbs-inner flex items-center">
+    <div class="md:hidden mr-3">
+      <button class="js-menu" aria-label="Menu" type="button" aria-controls="lside" aria-expanded="false">
+        <i class="i-lucide menu"></i>
+      </button>
+    </div>
+    <ol class="flex-1" itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="../index.html"><span itemprop="name">TMHP</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="1" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <a itemprop="item" href="index.html"><span itemprop="name">Getting Started</span></a>
+        <span>/</span>
+        <meta itemprop="position" content="2" />
+      </li><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+        <strong itemprop="name">Minimal input</strong>
+        <meta itemprop="position" content="3" />
+      </li></ol>
+    <div class="xl:hidden ml-1">
+      <button class="js-menu" aria-label="Show table of contents" type="button" aria-controls="rside"
+        aria-expanded="false">
+        <i class="i-lucide outdent"></i>
+      </button>
+    </div>
+  </div>
+</div><div class="flex flex-col break-words justify-between">
+      <div class="relative min-w-0 max-w-6xl px-6 pb-6 pt-8 xl:px-12">
+  <article class="yue" role="main">
+          <section id="minimal-input">
+<h1>Minimal input<a class="headerlink" href="#minimal-input" title="Link to this heading">¶</a></h1>
+<p>TMHP is meant to run from a nameplate, not from a component datasheet. For
+every released family three statements describe a machine:</p>
+<ol class="arabic simple">
+<li><p><strong>which family</strong> — the class says what the heat comes from and where it
+goes (and, for a ground loop, that it is filled with antifreeze);</p></li>
+<li><p><strong>the capacity</strong> — <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> [W], the nameplate duty at the family’s
+rating point;</p></li>
+<li><p><strong>the refrigerant</strong> — <code class="docutils literal notranslate"><span class="pre">ref</span></code>, a CoolProp fluid name.</p></li>
+</ol>
+<p>Everything else has a default, and the defaults that describe the <em>size</em> of
+the machine follow the capacity, so a 3 kW and a 30 kW unit of one family are
+the same machine at two scales. This page says what each family needs from
+you, what it fills in, and where each rule comes from.</p>
+<section id="what-you-give">
+<h2>What you give<a class="headerlink" href="#what-you-give" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.0%" />
+<col style="width: 20.0%" />
+<col style="width: 22.0%" />
+<col style="width: 44.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Family</p></th>
+<th class="head"><p>Class (defaults)</p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> is the duty at</p></th>
+<th class="head"><p>An operating point needs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>ASHP — air to air, heating and cooling</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPump</span></code> (4 kW, R32)</p></td>
+<td><p>ISO 5151 T1 cooling: outdoor 35 °C, indoor 27 °C</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code> (load: negative heating, positive cooling), <code class="docutils literal notranslate"><span class="pre">T0</span></code>
+(outdoor air), <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>GSHP — ground to air, heating and cooling</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPump</span></code> (4 kW, R32)</p></td>
+<td><p>ISO 13256-1 ground-loop cooling: liquid entering 25 °C, indoor 27 °C</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Q_r_iu</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code>, <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code>; the ground is <code class="docutils literal notranslate"><span class="pre">Ts</span></code> (16 °C) unless
+<code class="docutils literal notranslate"><span class="pre">T_bhe_wall</span></code> is given</p></td>
+</tr>
+<tr class="row-even"><td><p>ASHPB — air to hot-water tank</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">AirSourceHeatPumpBoiler</span></code> (15 kW, R134a)</p></td>
+<td><p>EN 14511 A7/W55</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>, <code class="docutils literal notranslate"><span class="pre">T0</span></code> (outdoor air), <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code> (heat to the tank)</p></td>
+</tr>
+<tr class="row-odd"><td><p>GSHPB — ground to hot-water tank</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code> (8 kW, R290)</p></td>
+<td><p>EN 14511 B0/W55</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>, <code class="docutils literal notranslate"><span class="pre">T_source</span></code> (loop fluid entering the heat pump),
+<code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>WSHPB — water loop to hot-water tank</p></td>
+<td><p><code class="xref py py-class docutils literal notranslate"><span class="pre">WaterSourceHeatPumpBoiler</span></code> (8 kW, R290)</p></td>
+<td><p>EN 14511 W10/W55</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_tank_w</span></code>, <code class="docutils literal notranslate"><span class="pre">T_source</span></code> (source water entering), <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The rating points are those of <a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>: at
+construction the compressor’s rated speed is solved so that the machine
+delivers exactly <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> there, whatever the refrigerant.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="2">    <span class="n">AirSourceHeatPump</span><span class="p">,</span>
+</span><span data-line="3">    <span class="n">AirSourceHeatPumpBoiler</span><span class="p">,</span>
+</span><span data-line="4">    <span class="n">GroundSourceHeatPump</span><span class="p">,</span>
+</span><span data-line="5">    <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">,</span>
+</span><span data-line="6">    <span class="n">WaterSourceHeatPumpBoiler</span><span class="p">,</span>
+</span><span data-line="7"><span class="p">)</span>
+</span><span data-line="8">
+</span><span data-line="9"><span class="c1"># Space conditioning: the load is signed (negative = heating).</span>
+</span><span data-line="10"><span class="n">ashp</span> <span class="o">=</span> <span class="n">AirSourceHeatPump</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">5_000</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="11"><span class="n">a2a</span> <span class="o">=</span> <span class="n">ashp</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">Q_r_iu</span><span class="o">=-</span><span class="mi">5_000</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">7.0</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+</span><span data-line="12">
+</span><span data-line="13"><span class="n">gshp</span> <span class="o">=</span> <span class="n">GroundSourceHeatPump</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">5_000</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R32&quot;</span><span class="p">)</span>
+</span><span data-line="14"><span class="n">g2a</span> <span class="o">=</span> <span class="n">gshp</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">Q_r_iu</span><span class="o">=-</span><span class="mi">5_000</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">T_a_room</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
+</span><span data-line="15">
+</span><span data-line="16"><span class="c1"># Water heating: the load is the heat the tank receives.</span>
+</span><span data-line="17"><span class="n">ashpb</span> <span class="o">=</span> <span class="n">AirSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">9_000</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>
+</span><span data-line="18"><span class="n">a2w</span> <span class="o">=</span> <span class="n">ashpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">T0</span><span class="o">=</span><span class="mf">7.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mi">9_000</span><span class="p">)</span>
+</span><span data-line="19">
+</span><span data-line="20"><span class="n">gshpb</span> <span class="o">=</span> <span class="n">GroundSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">9_000</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>
+</span><span data-line="21"><span class="n">g2w</span> <span class="o">=</span> <span class="n">gshpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">T_source</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mi">9_000</span><span class="p">)</span>
+</span><span data-line="22">
+</span><span data-line="23"><span class="n">wshpb</span> <span class="o">=</span> <span class="n">WaterSourceHeatPumpBoiler</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">9_000</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="s2">&quot;R290&quot;</span><span class="p">)</span>
+</span><span data-line="24"><span class="n">w2w</span> <span class="o">=</span> <span class="n">wshpb</span><span class="o">.</span><span class="n">analyze_steady</span><span class="p">(</span><span class="n">T_tank_w</span><span class="o">=</span><span class="mf">50.0</span><span class="p">,</span> <span class="n">T_source</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">Q_ref_tank</span><span class="o">=</span><span class="mi">9_000</span><span class="p">)</span>
+</span><span data-line="25">
+</span><span data-line="26"><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;ASHP&quot;</span><span class="p">,</span> <span class="n">a2a</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GSHP&quot;</span><span class="p">,</span> <span class="n">g2a</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;ASHPB&quot;</span><span class="p">,</span> <span class="n">a2w</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;GSHPB&quot;</span><span class="p">,</span> <span class="n">g2w</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;WSHPB&quot;</span><span class="p">,</span> <span class="n">w2w</span><span class="p">)]:</span>
+</span><span data-line="27">    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s2">6s</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;failure_reason&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">5s</span><span class="si">}</span><span class="s2"> COP </span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;cop_sys [-]&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+<p>Each call returns a running point (<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;none&quot;</span></code>) with a system
+COP of 4.74, 4.88, 3.44, 3.66 and 3.72 respectively. The keys of the result
+are listed in <a class="reference internal" href="../concepts/result-keys.html"><span class="doc">Result keys</span></a>. A time series needs the same
+quantities as schedules; see <a class="reference internal" href="first-dynamic-simulation.html"><span class="doc">Your first dynamic simulation</span></a>.</p>
+</section>
+<section id="what-follows-the-capacity">
+<h2>What follows the capacity<a class="headerlink" href="#what-follows-the-capacity" title="Link to this heading">¶</a></h2>
+<p>Leave these out and they scale with <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code>; pass a value and it is
+used as given. The constructed model carries the result under the same name
+(<code class="docutils literal notranslate"><span class="pre">ashp.UA_ou_rated</span></code>, <code class="docutils literal notranslate"><span class="pre">gshp.ground_flow_ref_lpm</span></code>, …), so a default can
+always be read back.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 34.0%" />
+<col style="width: 16.0%" />
+<col style="width: 28.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p>Default rule</p></th>
+<th class="head"><p>Families</p></th>
+<th class="head"><p>Where it comes from</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Compressor displacement <code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></p></td>
+<td><p>42 cm³/rev per 9 kW of nameplate (4.67 cm³/rev per kW), any
+refrigerant</p></td>
+<td><p>all</p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Compressor displacement</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Compressor speed range</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rps_rated</span></code> solved at the rating point; <code class="docutils literal notranslate"><span class="pre">rps_min</span></code> 15 rev/s;
+<code class="docutils literal notranslate"><span class="pre">rps_max</span></code> = <code class="docutils literal notranslate"><span class="pre">max(min(2</span> <span class="pre">×</span> <span class="pre">rps_rated,</span> <span class="pre">120),</span> <span class="pre">1.5</span> <span class="pre">×</span> <span class="pre">rps_rated)</span></code></p></td>
+<td><p>all</p></td>
+<td><p><a class="reference internal" href="../models/reference-state.html"><span class="doc">Compressor reference state</span></a>,
+<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Outdoor-coil conductance</p></td>
+<td><p>ASHP: <code class="docutils literal notranslate"><span class="pre">UA_ou_rated</span> <span class="pre">=</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">5</span></code> [W/K]. ASHPB:
+<code class="docutils literal notranslate"><span class="pre">0.7</span> <span class="pre">×</span> <span class="pre">UA_tank_hx</span></code> = <code class="docutils literal notranslate"><span class="pre">0.14</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code></p></td>
+<td><p>ASHP, ASHPB</p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Heat-exchanger conductance</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Indoor-coil conductance</p></td>
+<td><p>ASHP: <code class="docutils literal notranslate"><span class="pre">UA_iu_rated</span> <span class="pre">=</span> <span class="pre">0.8</span> <span class="pre">×</span> <span class="pre">UA_ou_rated</span></code> = <code class="docutils literal notranslate"><span class="pre">0.16</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code>.
+GSHP: <code class="docutils literal notranslate"><span class="pre">0.08</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code></p></td>
+<td><p>ASHP, GSHP</p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>; <a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Tank heat exchanger <code class="docutils literal notranslate"><span class="pre">UA_tank_hx</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">5</span></code> [W/K]: a 5 K condensing approach at the nameplate
+duty</p></td>
+<td><p>ASHPB, GSHPB, WSHPB</p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>; <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Source-side heat exchanger (liquid to refrigerant)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.18</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code> [W/K] (<code class="docutils literal notranslate"><span class="pre">UA_ground_rated</span></code>, <code class="docutils literal notranslate"><span class="pre">UA_ground</span></code>,
+<code class="docutils literal notranslate"><span class="pre">UA_water</span></code>)</p></td>
+<td><p>GSHP, GSHPB, WSHPB</p></td>
+<td><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>, <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <a class="reference internal" href="../models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rated outdoor airflow</p></td>
+<td><p>ASHP: 720 m³/h per kW. ASHPB: 540 m³/h per kW. The fan modulates down
+to 15 % of it</p></td>
+<td><p>ASHP, ASHPB</p></td>
+<td><p><a class="reference internal" href="../validation/defaults.html"><span class="doc">Where the defaults come from</span></a>, <em>Summary</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rated indoor airflow</p></td>
+<td><p>193 m³/h per kW (400 cfm per ton), modulating down to 15 %</p></td>
+<td><p>ASHP, GSHP</p></td>
+<td><p><a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <em>Indoor airflow</em></p></td>
+</tr>
+<tr class="row-even"><td><p>Fan power</p></td>
+<td><p>From the airflow at 60 Pa and 60 % fan efficiency: outdoor fan 2.0 %
+(ASHP) or 1.5 % (ASHPB) of the nameplate at rated flow, indoor fan
+0.5 %</p></td>
+<td><p>ASHP, GSHP, ASHPB</p></td>
+<td><p><a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <em>Indoor airflow</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Source-loop flow</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.75</span> <span class="pre">×</span> <span class="pre">hp_capacity</span> <span class="pre">/</span> <span class="pre">(ρ</span> <span class="pre">c</span> <span class="pre">·</span> <span class="pre">3</span> <span class="pre">K)</span></code>: a 3 K loop temperature
+difference at the rated source-side heat, with <code class="docutils literal notranslate"><span class="pre">ρ</span> <span class="pre">c</span></code> of the loop
+liquid — 3.84 L/min per kW of the default glycol (GSHP, GSHPB), 3.58
+of water (WSHPB)</p></td>
+<td><p>GSHP, GSHPB, WSHPB</p></td>
+<td><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>, <em>Defaults that follow the capacity</em></p></td>
+</tr>
+<tr class="row-even"><td><p>Source-loop pump <code class="docutils literal notranslate"><span class="pre">E_pmp</span></code></p></td>
+<td><p>21.3 W per kW (75 W per ton, ASHRAE pumping grade B)</p></td>
+<td><p>GSHP, GSHPB, WSHPB</p></td>
+<td><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>; <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Borefield <code class="docutils literal notranslate"><span class="pre">N_1</span></code>, <code class="docutils literal notranslate"><span class="pre">N_2</span></code>, <code class="docutils literal notranslate"><span class="pre">H_b</span></code></p></td>
+<td><p>Smallest near-square field that keeps the rated source-side heat
+(<code class="docutils literal notranslate"><span class="pre">0.75</span> <span class="pre">×</span> <span class="pre">hp_capacity</span></code>) within 50 W per metre: 100 m boreholes for
+GSHP, 200 m for GSHPB</p></td>
+<td><p>GSHP, GSHPB</p></td>
+<td><p><a class="reference internal" href="../models/gshp.html"><span class="doc">Ground-source heat pump (GSHP — space conditioning)</span></a>; <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
+</tr>
+<tr class="row-even"><td><p>Source-water coil length <code class="docutils literal notranslate"><span class="pre">H_b</span></code></p></td>
+<td><p>200 m, or as long as 50 W per metre needs</p></td>
+<td><p>WSHPB</p></td>
+<td><p><a class="reference internal" href="../models/wshpb.html"><span class="doc">Water-source heat pump boiler (WSHPB)</span></a>, <em>Default sizing</em></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The size that the rules give for a machine can be checked in one line:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">from</span><span class="w"> </span><span class="nn">tmhp</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPump</span>
+</span><span data-line="2">
+</span><span data-line="3"><span class="n">gshp</span> <span class="o">=</span> <span class="n">GroundSourceHeatPump</span><span class="p">(</span><span class="n">hp_capacity</span><span class="o">=</span><span class="mi">30_000</span><span class="p">)</span>
+</span><span data-line="4">
+</span><span data-line="5"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">N_1</span><span class="p">,</span> <span class="n">gshp</span><span class="o">.</span><span class="n">N_2</span><span class="p">,</span> <span class="n">gshp</span><span class="o">.</span><span class="n">H_b</span><span class="p">)</span>   <span class="c1"># 3 2 100.0  -&gt; six 100 m boreholes</span>
+</span><span data-line="6"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">ground_flow_ref_lpm</span><span class="p">)</span>       <span class="c1"># 115.3 L/min of 25 % ethylene glycol</span>
+</span><span data-line="7"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">E_pmp</span><span class="p">)</span>                     <span class="c1"># 640 W</span>
+</span><span data-line="8"><span class="nb">print</span><span class="p">(</span><span class="n">gshp</span><span class="o">.</span><span class="n">UA_ground_rated</span><span class="p">)</span>           <span class="c1"># 5400 W/K</span>
+</span></pre></div>
+</div>
+<p>The constructor warns (<code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>) when a size you give contradicts the
+rest — a borefield above 80 W/m, a loop flow that is laminar in the U-tubes, a
+tank set point the refrigerant cannot reach — instead of solving it silently.</p>
+</section>
+<section id="what-follows-the-refrigerant">
+<h2>What follows the refrigerant<a class="headerlink" href="#what-follows-the-refrigerant" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 46.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p>Default rule</p></th>
+<th class="head"><p>Where it comes from</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Rated compressor speed</p></td>
+<td><p>Solved for the fluid at the rating point, so the nameplate capacity
+is kept when the refrigerant is swapped. A fluid of low volumetric
+capacity (R134a, R1234yf, R600a) then runs fast and may need a larger
+<code class="docutils literal notranslate"><span class="pre">V_cmp_ref</span></code></p></td>
+<td><p><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html"><span class="doc">Refrigerants and CoolProp</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Discharge-temperature limit <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code></p></td>
+<td><p>150 °C for R32, 135 °C for every other refrigerant</p></td>
+<td><p><a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Condensing limit <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code></p></td>
+<td><p>R410A, R32, R407C 65 °C; R290, R1234yf 75 °C; R134a 80 °C; R717
+70 °C; otherwise the dew point at 0.9 of the critical pressure</p></td>
+<td><p><a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>, <em>Condensing limit</em></p></td>
+</tr>
+<tr class="row-odd"><td><p>Highest tank set point (boilers)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> less the 5 K condenser approach: a
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> above it is capped with a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code>
+(about 60 °C for R410A and R32, 70 °C for R290)</p></td>
+<td><p><a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>, <em>Default sizing</em></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The default refrigerants are chosen so the default machine runs inside these
+limits: R32 for the space-conditioning families, R134a for ASHPB (60–65 °C
+tank) and R290 for GSHPB and WSHPB (55–65 °C tank).</p>
+</section>
+<section id="what-is-on-by-default">
+<h2>What is on by default<a class="headerlink" href="#what-is-on-by-default" title="Link to this heading">¶</a></h2>
+<p>These defaults describe how a real unit behaves at the edges of its range.
+Each can be switched off to see the bare cycle.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 46.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Behaviour</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Switch</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Compressor envelope</p></td>
+<td><p>A point outside it is not returned as running: pressure ratio above
+11, discharge above <code class="docutils literal notranslate"><span class="pre">T_dis_max</span></code> (after suction control down to
+quality 0.9), condensing above <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code>, isentropic fit below
+0.30. A request that a smaller duty meets runs at that duty</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PR_cycle_max</span></code>, <code class="docutils literal notranslate"><span class="pre">T_dis_max=None</span></code>, <code class="docutils literal notranslate"><span class="pre">x_suction_min</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code>
+(<a class="reference internal" href="../developer/reference-operating-limits.html"><span class="doc">Reference points and operating limits</span></a>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>On/off operation below the minimum speed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">analyze_steady</span></code> returns the mean of on/off cycling with the
+EN 14825 degradation: <code class="docutils literal notranslate"><span class="pre">Cd</span></code> 0.25 for the units delivering to air
+(ASHP, GSHP), <code class="docutils literal notranslate"><span class="pre">Cc</span></code> 0.9 for the boilers</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code> (<code class="docutils literal notranslate"><span class="pre">None</span></code>: continuous minimum-speed point)
+(<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>, <a class="reference internal" href="../models/gshpb.html"><span class="doc">Ground-source heat pump boiler (GSHPB)</span></a>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Frost and defrost</p></td>
+<td><p>ASHP heating below 5 °C outdoor carries the EnergyPlus frost
+adjustment at 84 % relative humidity</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">defrost=None</span></code>; <code class="docutils literal notranslate"><span class="pre">RH_out</span></code> per call (<a class="reference internal" href="../models/ashp.html"><span class="doc">Air-source heat pump (ASHP — space conditioning)</span></a>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dynamic borehole</p></td>
+<td><p>GSHP and GSHPB resolve the heat capacity of fluid, pipe and grout
+and the fluid transit</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">borehole_dynamics=False</span></code> (<a class="reference internal" href="../models/ground-response.html"><span class="doc">Ground response</span></a>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Source-loop liquid and its freezing limit</p></td>
+<td><p>GSHP and GSHPB run on 25 % ethylene glycol (<code class="docutils literal notranslate"><span class="pre">&quot;MEG-25%&quot;</span></code>), WSHPB on
+water. The loop liquid is never colder than its freezing point plus
+3 K (−8.0 °C for the glycol, 3 °C for water): a duty that would chill
+it further is reduced, and when none fits the unit is off with
+<code class="docutils literal notranslate"><span class="pre">failure_reason</span> <span class="pre">==</span> <span class="pre">&quot;source_fluid_freezing&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source_fluid</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;water&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;MPG-30%&quot;</span></code>, …)
+(<a class="reference internal" href="../models/gshpb.html#source-fluid"><span class="std std-ref">Ground-loop liquid and its freezing limit</span></a>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tank thermostat (boilers, dynamic)</p></td>
+<td><p>Heats between <code class="docutils literal notranslate"><span class="pre">T_tank_w_lower_bound</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code>,
+switching inside a step; no minimum run or rest time</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">min_on_time_s</span></code>, <code class="docutils literal notranslate"><span class="pre">min_off_time_s</span></code>, <code class="docutils literal notranslate"><span class="pre">hp_on_schedule</span></code>
+(<a class="reference internal" href="first-dynamic-simulation.html#time-step-and-thermostat"><span class="std std-ref">Time step and the thermostat</span></a>)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="what-does-not-follow-the-capacity">
+<h2>What does not follow the capacity<a class="headerlink" href="#what-does-not-follow-the-capacity" title="Link to this heading">¶</a></h2>
+<p>A few defaults describe an installation rather than a machine and stay where
+they are when <code class="docutils literal notranslate"><span class="pre">hp_capacity</span></code> changes. Check them when your case is far from
+the default size.</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 40.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Families</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Tank volume (<code class="docutils literal notranslate"><span class="pre">r0</span></code>, <code class="docutils literal notranslate"><span class="pre">H</span></code>)</p></td>
+<td><p>151 L (ASHPB), 101 L (GSHPB, WSHPB)</p></td>
+<td><p>boilers</p></td>
+</tr>
+<tr class="row-odd"><td><p>Thermostat band</p></td>
+<td><p>60–65 °C (ASHPB), 55–65 °C (GSHPB, WSHPB)</p></td>
+<td><p>boilers</p></td>
+</tr>
+<tr class="row-even"><td><p>Hot-water set point and mains temperature</p></td>
+<td><p>40 °C at the tap, 15 °C mains</p></td>
+<td><p>boilers</p></td>
+</tr>
+<tr class="row-odd"><td><p>Ground</p></td>
+<td><p>16 °C undisturbed, conductivity 2.0 W/(m K), 6 m borehole spacing,
+single U-tube in a 160 mm borehole</p></td>
+<td><p>GSHP, GSHPB</p></td>
+</tr>
+<tr class="row-even"><td><p>Superheat and subcooling</p></td>
+<td><p>3 K / 3 K (ASHP, GSHPB), 5 K / 5 K (GSHP, ASHPB, WSHPB)</p></td>
+<td><p>all</p></td>
+</tr>
+<tr class="row-odd"><td><p>Room temperature when none is given</p></td>
+<td><p>27 °C (the cooling rating condition) — pass <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> for heating</p></td>
+<td><p>ASHP, GSHP</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="when-you-know-more">
+<h2>When you know more<a class="headerlink" href="#when-you-know-more" title="Link to this heading">¶</a></h2>
+<p>Any default can be replaced one at a time: a measured <code class="docutils literal notranslate"><span class="pre">UA</span></code>, a catalogue
+airflow, a tested <code class="docutils literal notranslate"><span class="pre">Cd_cycling</span></code>, a compressor map as <code class="docutils literal notranslate"><span class="pre">eta_cmp_isen</span></code>. The
+validation harness does exactly that with what manufacturers publish
+(<a class="reference internal" href="../validation/index.html"><span class="doc">Validation</span></a>), and <a class="reference internal" href="../validation/adding-a-catalogue.html"><span class="doc">Adding a catalogue</span></a> shows
+the pattern. What the models leave out altogether is listed in
+<a class="reference internal" href="../concepts/scope-and-limits.html"><span class="doc">Scope and limits</span></a>.</p>
+</section>
+</section>
+
+<div class="git-last-updated" role="contentinfo">
+  Last updated Nov 14, 2026
+</div>
+        </article><button class="back-to-top" type="button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+    <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+  </svg>
+  <span>Back to top</span>
+</button><div class="navigation flex print:hidden"><div class="navigation-prev">
+    <a href="first-dynamic-simulation.html">
+      <i class="i-lucide chevron-left"></i>
+      <div class="page-info">
+        <span>Previous</span><div class="title">Your first dynamic simulation</div></div>
+    </a>
+  </div><div class="navigation-next">
+    <a href="../concepts/index.html">
+      <div class="page-info">
+        <span>Next</span>
+        <div class="title">Concepts</div>
+      </div>
+      <i class="i-lucide chevron-right"></i>
+    </a>
+  </div></div></div>
+    </div>
+  </main>
+</div>
+<footer class="sy-foot">
+  <div class="sy-foot-inner sy-container mx-auto">
+    <div class="sy-foot-reserved md:flex justify-between items-center">
+      <div class="sy-foot-copyright"><p>2025, betlab</p>
+  
+  <p>
+    Made with
+    
+    <a href="https://www.sphinx-doc.org/">Sphinx</a> and
+    
+    <a href="https://shibuya.lepture.com">Shibuya theme</a>.
+  </p>
+</div>
+      <div class="sy-foot-socials">
+<a href="https://github.com/bet-lab/TMHP" aria-label="GitHub">
+  <iconify-icon icon="simple-icons:github"></iconify-icon>
+</a></div>
+    </div>
+  </div>
+</footer>
+      <script src="../_static/documentation_options.js?v=2caa9db7"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script>let toggleHintShow = 'Click to show';</script>
+      <script>let toggleHintHide = 'Click to hide';</script>
+      <script>let toggleOpenOnPrint = 'true';</script>
+      <script src="../_static/togglebutton.js?v=b8b12719"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+      <script src="../_static/shibuya.js?v=cac61aee"></script>
+      <script defer="defer" src="../_static/js/core/glossary.js?v=a0048c4a"></script>
+      <script defer="defer" src="../_static/js/core/cmdk.js?v=907986a4"></script>
+      <script defer="defer" src="../_static/js/core/reading-progress.js?v=a7c29779"></script>
+      <script defer="defer" src="../_static/js/core/scroll-spy.js?v=9facbef8"></script>
+      <script defer="defer" src="../_static/js/core/global.js?v=4865e9a9"></script>
+      <script defer="defer" src="../_static/js/widgets/integration-diagrams.js?v=425f5777"></script></body>
+</html>

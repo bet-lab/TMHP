@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="conditions a building zone (heating + cooling) rather than charging a DHW tank. The refrigerant cycle and outdoor-coil source side are shared with the air-source boiler family; what differs is the ..." />
 
-    <meta property="article:modified_time" content="2026-11-14T00:32:01+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:02:31+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -78,6 +78,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/minimal-input.html">Minimal input</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../concepts/index.html">Concepts</a><ul>
@@ -85,6 +86,8 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../concepts/cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../concepts/refrigerant-and-coolprop.html">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../concepts/scope-and-limits.html">Scope and limits</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Models</a><ul class="current">
@@ -149,6 +152,7 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#base-usage">Base usage</a></li>
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
+<li><a class="reference internal" href="#air-density">Air density</a></li>
 <li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
 <li><a class="reference internal" href="#indoor-airflow">Indoor airflow</a></li>
 <li><a class="reference internal" href="#part-load-cycling-and-unmet-load">Part load: cycling and unmet load</a></li>
@@ -260,6 +264,94 @@ pump’s job is space conditioning rather than DHW production.</p>
 <h2>Source-side mechanics<a class="headerlink" href="#source-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>Outdoor coil with variable-speed fan and an ε-NTU air-side heat
 exchanger — the shared air-source environmental-side model.</p>
+</section>
+<section id="air-density">
+<span id="ashp-air-density"></span><h2>Air density<a class="headerlink" href="#air-density" title="Link to this heading">¶</a></h2>
+<p>A fan moves a volume of air and a coil exchanges heat with a mass of it. Both
+coils take the density of the air they draw in — outdoor air at <code class="docutils literal notranslate"><span class="pre">T0</span></code> for the
+outdoor coil, room air at <code class="docutils literal notranslate"><span class="pre">T_a_room</span></code> for the indoor coil — as dry air at one
+standard atmosphere (<a class="reference internal" href="../api/support/heat-transfer.html#tmhp.air_properties.air_density" title="tmhp.air_properties.air_density"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.air_properties.air_density()</span></code></a>):</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+<col style="width: 14.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Inlet air [°C]</p></th>
+<th class="head"><p>−25</p></th>
+<th class="head"><p>−7</p></th>
+<th class="head"><p>15</p></th>
+<th class="head"><p>27</p></th>
+<th class="head"><p>35</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Density [kg/m³]</p></td>
+<td><p>1.422</p></td>
+<td><p>1.326</p></td>
+<td><p>1.225</p></td>
+<td><p>1.176</p></td>
+<td><p>1.145</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The airflows the model reports and accepts (<code class="docutils literal notranslate"><span class="pre">dV_ou_a</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_iu_a</span></code>, the fan
+references and limits) are volumes at the coil inlet, so the air mass flow of a
+coil is <code class="docutils literal notranslate"><span class="pre">air_density(T_in)</span> <span class="pre">*</span> <span class="pre">dV</span></code> and its heat capacity rate
+<code class="docutils literal notranslate"><span class="pre">c_a</span> <span class="pre">*</span> <span class="pre">air_density(T_in)</span> <span class="pre">*</span> <span class="pre">dV</span></code>. That one mass flow carries the coil’s NTU,
+the outlet temperature and the fan heat, so within a row</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span><span data-line="1">c_a * rho(T_in) * dV * (T_out - T_in) = heat from the refrigerant + fan power
+</span></pre></div>
+</div>
+<p>holds on each coil (<code class="docutils literal notranslate"><span class="pre">Q_ref_ou</span></code>, <code class="docutils literal notranslate"><span class="pre">E_ou_fan</span></code> on the outdoor side;
+<code class="docutils literal notranslate"><span class="pre">Q_ref_iu</span></code>, <code class="docutils literal notranslate"><span class="pre">E_iu_fan</span></code> on the indoor side; the refrigerant heat is negative
+where the coil is the evaporator). <code class="docutils literal notranslate"><span class="pre">Q_a_iu_in</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_a_iu_out</span></code> and the air
+exergy flows use the same mass flow. A row averaged over on/off cycling or
+frost keeps the identity on the indoor side; on the outdoor side the fan power
+is averaged with the runtime fraction and the airflow with the capacity ratio,
+so the two sides differ by that share of the fan power.</p>
+<p>At a fixed fan volume flow, cold outdoor air therefore carries more heat
+capacity than the 15 °C standard air earlier releases assumed at every
+temperature (1.225 kg/m³): 16 % more at −25 °C, 6.5 % less at 35 °C. Room air
+is 2 to 5 % lighter than that standard air (20 to 30 °C). For the default unit
+against those releases:</p>
+<ul class="simple">
+<li><p><strong>Heating.</strong> The outdoor coil gains air mass in the cold (the evaporating
+temperature is 0.1 K higher below 0 °C) and the indoor coil loses 1.7 % at a
+20 °C room (the condensing temperature is 0.1 to 0.2 K higher). The two
+nearly cancel: the COP is 0.3 % lower at 7 °C / 20 °C at nameplate capacity
+and within 0.2 % at half load down to −15 °C.</p></li>
+<li><p><strong>Cooling.</strong> Both coils move warm, lighter air. At 35 °C outdoors and a
+27 °C room the evaporating temperature at nameplate capacity is 0.5 K lower
+and the COP 1.9 % lower (1.3 % at half load); at a 30 °C room the COP at
+nameplate capacity is up to 4 % lower.</p></li>
+<li><p><strong>Ceiling.</strong> The largest duty the indoor coil carries inside the approach
+bounds (<code class="docutils literal notranslate"><span class="pre">dT_approach_bounds</span></code>) falls with the room-air density, by 1.3 % at
+a 20 °C room. Where that ceiling is close to the request it now binds: at
+−7 °C / 20 °C the frosted unit delivers 98.8 % of its nameplate
+(<code class="docutils literal notranslate"><span class="pre">capacity_clamped</span> <span class="pre">==</span> <span class="pre">&quot;max&quot;</span></code>) where it delivered 100 %.</p></li>
+</ul>
+<p>The volume flows are the fan’s actual flows at the coil inlet. Rating airflows
+are commonly quoted as standard air (1.204 kg/m³, the mass flow divided by that
+density); at 20 °C the two are the same number, at a 27 °C room the actual flow
+is 2.4 % larger and at 35 °C outdoors 5 % larger. Pass the actual flow when the
+difference matters.</p>
+<p>What stays on the volume flow: the coil conductance follows the fan’s volume
+flow (<code class="docutils literal notranslate"><span class="pre">UA_rated</span> <span class="pre">*</span> <span class="pre">(dV</span> <span class="pre">/</span> <span class="pre">dV_ref)</span> <span class="pre">**</span> <span class="pre">n</span></code>), and the fan power follows its curve
+in the volume flow at the rated static pressure. The fan laws give a pressure
+rise, and so a fan power, proportional to the air density at a fixed volume
+flow; that is not applied. Applied, it would add 16 % to the outdoor fan’s
+power at −25 °C, which is 0.5 to 0.7 % of the total input (1.2 % at most), and
+take 0.3 to 0.4 % off the total input at 35 °C. Humidity is left out — per cubic metre moist air
+carries 0.2 to 0.4 % more sensible heat capacity than dry air at room and
+summer conditions — and so is altitude (one standard atmosphere; 18 % less
+density at 1 600 m).</p>
 </section>
 <section id="sink-side-mechanics">
 <h2>Sink-side mechanics<a class="headerlink" href="#sink-side-mechanics" title="Link to this heading">¶</a></h2>

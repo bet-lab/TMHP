@@ -2,7 +2,7 @@
 <html lang="en" data-accent-color="iris" data-content_root="../">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerants and CoolProp - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Models" href="../models/index.html" /><link rel="prev" title="failure_reason semantics" href="failure-reason-semantics.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Refrigerants and CoolProp - TMHP</title><link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Result keys" href="result-keys.html" /><link rel="prev" title="failure_reason semantics" href="failure-reason-semantics.html" />
       <link rel="canonical" href="https://bet-lab.github.io/TMHP/concepts/refrigerant-and-coolprop.html" /><script>
     function setColorMode(t){let e=document.documentElement;e.setAttribute("data-color-mode",t);let a=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches,s=t;"auto"===t&&(s=a?"dark":"light"),"light"===s?(e.classList.remove("dark"),e.classList.add("light")):(e.classList.remove("light"),e.classList.add("dark"))}
     setColorMode(localStorage._theme||"auto");
@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="“Refrigerant-agnostic” is one of the headline properties of TMHP — and this is the page that makes it concrete. The refrigerant is a constructor argument on every released cycle-resolved model fami..." />
 
-    <meta property="article:modified_time" content="2026-11-12T23:39:30+09:00" />
+    <meta property="article:modified_time" content="2026-11-14T07:20:48+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -78,6 +78,7 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/installation.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/first-dynamic-simulation.html">Your first dynamic simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/minimal-input.html">Minimal input</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Concepts</a><ul class="current">
@@ -85,6 +86,8 @@ data-aria-dark="Switch to auto color mode">
 <li class="toctree-l2"><a class="reference internal" href="cycle-architecture.html">Thermodynamic cycle architecture</a></li>
 <li class="toctree-l2"><a class="reference internal" href="failure-reason-semantics.html"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Refrigerants and CoolProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="result-keys.html">Result keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scope-and-limits.html">Scope and limits</a></li>
 </ul>
 </li>
 <li class="toctree-l1 _expand"><a class="reference internal" href="../models/index.html">Models</a><ul>
@@ -237,8 +240,9 @@ the supported set:</p>
 <ul class="simple">
 <li><p>Refrigerants that become supercritical at DHW temperatures, notably R744
 (see below).</p></li>
-<li><p>User-defined <code class="docutils literal notranslate"><span class="pre">HEOS::</span></code> mixtures; the constructor does not return for
-them.</p></li>
+<li><p>User-defined <code class="docutils literal notranslate"><span class="pre">HEOS::</span></code> mixtures: the constructor raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+(the default <code class="docutils literal notranslate"><span class="pre">T_cond_max</span></code> is not defined for a mixture), and with
+<code class="docutils literal notranslate"><span class="pre">T_cond_max=None</span></code> it does not return.</p></li>
 </ul>
 <p>CoolProp returns REFPROP-grade equation-of-state values, so the same
 first-principles cycle calculation can be rerun with a different
@@ -320,7 +324,7 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
 </section>
 
 <div class="git-last-updated" role="contentinfo">
-  Last updated Nov 12, 2026
+  Last updated Nov 14, 2026
 </div>
         </article><button class="back-to-top" type="button">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -334,10 +338,10 @@ adds, see <a class="reference internal" href="../api/support/refrigerant-thermo.
         <span>Previous</span><div class="title"><code class="docutils literal notranslate"><span class="pre">failure_reason</span></code> semantics</div></div>
     </a>
   </div><div class="navigation-next">
-    <a href="../models/index.html">
+    <a href="result-keys.html">
       <div class="page-info">
         <span>Next</span>
-        <div class="title">Models</div>
+        <div class="title">Result keys</div>
       </div>
       <i class="i-lucide chevron-right"></i>
     </a>

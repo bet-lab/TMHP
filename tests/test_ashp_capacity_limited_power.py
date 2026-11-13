@@ -42,3 +42,25 @@ def test_a_compressor_that_is_flat_out_stays_at_its_ceiling(hp):
     assert limited["capacity_clamped"] == "max"
     assert limited["cmp_rpm [rpm]"] == pytest.approx(hp.rps_max * 60.0, rel=1e-6)
     assert limited["Q_ref_iu [W]"] < 6000.0
+
+
+def test_a_candidate_without_a_fluid_state_is_infeasible_not_an_exception():
+    """A flash CoolProp cannot solve at one search candidate does not abort the solve.
+
+    R407C cooling at 30 °C room / 20 °C outdoor used to raise ``ValueError``
+    (a single-phase flash below the fluid's entropy range at one candidate of
+    the approach search); the candidate is now skipped and the point solves.
+    A floor pressure above the critical pressure (R744, room 18 °C, outdoor
+    15 °C) is a failed point with a reason, not an exception.
+    """
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        r = AirSourceHeatPump(ref="R407C").analyze_steady(Q_r_iu=4000.0, T0=20.0, T_a_room=30.0, verbose=False)
+        assert r["failure_reason"] == "none"
+        assert r["Q_ref_iu [W]"] == pytest.approx(4000.0, rel=1e-6)
+        co2 = AirSourceHeatPump(ref="R744", rps_rated=40.0)
+        off = co2.analyze_steady(Q_r_iu=-2000.0, T0=15.0, T_a_room=18.0, verbose=False)
+        assert off["hp_is_on"] is False and off["failure_reason"] != "none"
+        assert off["Q_ref_iu [W]"] == 0.0 and off["E_tot [W]"] == 0.0

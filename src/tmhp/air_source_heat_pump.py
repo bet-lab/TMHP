@@ -797,17 +797,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Same name (`cs`) is annotated up in the inactive branch (~L206);
         # re-annotating here triggers mypy [no-redef] even though the
         # inactive branch returns unconditionally. Use plain assignment.
-        cs = calc_ref_state(
-            T_evap_K=T_evap_sat_K,
-            T_cond_K=T_cond_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=1.0,  # Temporary
-            mode=mode,
-            dT_superheat=actual_dT_superheat,
-            x_suction=self._x_suction,
-            dT_subcool=actual_dT_subcool,
-            is_active=True,
-        )
+        try:
+            cs = calc_ref_state(
+                T_evap_K=T_evap_sat_K,
+                T_cond_K=T_cond_sat_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=1.0,  # Temporary
+                mode=mode,
+                dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
+                dT_subcool=actual_dT_subcool,
+                is_active=True,
+            )
+        except ValueError:
+            # The fluid has no state at this candidate (a flash CoolProp cannot
+            # solve): no cycle here. The search treats it as infeasible instead
+            # of the whole solve raising.
+            return None
 
         h_cmp_in: float = cs["h_ref_cmp_in [J/kg]"]
         h_exp_in: float = cs["h_ref_exp_in [J/kg]"]
@@ -835,21 +841,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # Clamp: hold P_evap, project P_cond = PR_cycle_min * P_evap, invert
             # the saturation curve for the constrained condensing temperature,
             # then refresh the cycle state at the clamped condition.
-            import CoolProp.CoolProp as CP
-
             P_cond = self.PR_cycle_min * P_evap
-            T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
-            cs = calc_ref_state(
-                T_evap_K=T_evap_sat_K,
-                T_cond_K=T_cond_sat_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=1.0,  # Temporary
-                mode=mode,
-                dT_superheat=actual_dT_superheat,
-                x_suction=self._x_suction,
-                dT_subcool=actual_dT_subcool,
-                is_active=True,
-            )
+            try:
+                T_cond_sat_K = props_si("T", "P", P_cond, "Q", 0, self.ref)
+                cs = calc_ref_state(
+                    T_evap_K=T_evap_sat_K,
+                    T_cond_K=T_cond_sat_K,
+                    refrigerant=self.ref,
+                    eta_cmp_isen=1.0,  # Temporary
+                    mode=mode,
+                    dT_superheat=actual_dT_superheat,
+                    x_suction=self._x_suction,
+                    dT_subcool=actual_dT_subcool,
+                    is_active=True,
+                )
+            except ValueError:
+                # The floor pressure has no saturation state (above the
+                # critical pressure): no cycle at this candidate.
+                return None
             h_cmp_in = cs["h_ref_cmp_in [J/kg]"]
             h_exp_in = cs["h_ref_exp_in [J/kg]"]
             h_exp_out = cs["h_ref_exp_out [J/kg]"]
@@ -859,8 +868,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
         try:
-            import CoolProp.CoolProp as CP
-
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:

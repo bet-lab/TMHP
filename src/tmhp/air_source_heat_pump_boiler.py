@@ -72,6 +72,7 @@ from .dynamic_context import (
     DynamicState,
     StepContext,
     check_hp_schedule_active,
+    collect_subsystem_state,
     delivered_tank_heat,
     determine_heat_source_on_off,
     determine_tank_refill_flow,
@@ -2131,6 +2132,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         ctrl_free: ControlState = ControlState(is_on=False, Q_heat_source=0.0, dV_tank_w_in_ctrl=dV_tank_w_in_ctrl)
 
         # --- Phase A-2: subsystem step (via Hook) ---
+        # Subsystem state of the previous step, read by the hooks (never
+        # written: the next state is gathered from sub_states below).
+        self._subsystem_state_in = state.subsystem_state
         sub_states: dict[str, dict] = self._run_subsystems(
             ctx,
             ctrl_free,
@@ -2243,6 +2247,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             dV_tank_w_out_prev=self.dV_tank_w_out,
             hp_running_prev=run.running_end,
             hp_phase_age_s=run.phase_age_end_s,
+            subsystem_state=collect_subsystem_state(state.subsystem_state, sub_states),
         )
         return new_state, r
 

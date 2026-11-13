@@ -29,7 +29,9 @@ __all__ = [
     "bound_tolerance",
     "Subsystem",
     "SubsystemExergy",
+    "SUBSYSTEM_STATE_KEY",
     "check_hp_schedule_active",
+    "collect_subsystem_state",
     "delivered_tank_heat",
     "determine_heat_source_on_off",
     "determine_tank_refill_flow",
@@ -176,6 +178,15 @@ class DynamicState:
         Time the compressor has been in its current running state (on or
         off) at the end of the previous step [s]; ``inf`` at the start of a
         run. Read by the minimum on/off time rules.
+    subsystem_state : dict[str, dict]
+        State the subsystems carry from one step to the next, keyed by
+        subsystem name (e.g. ``{"stc": {"pump_on": True, ...}}`` for the
+        collector-loop controller: pump latch, storage-limit hold,
+        stagnation lock-out). Empty at the start of a run. Each value is a
+        plain dict of bools and numbers, replaced (never mutated) every
+        step, so a ``DynamicState`` can be kept, copied or pickled and a step
+        re-run from it gives the same result. See :class:`Subsystem` for how
+        a subsystem reads and writes its entry.
     """
 
     T_tank_w_K: float
@@ -185,6 +196,7 @@ class DynamicState:
     dV_tank_w_out_prev: float
     hp_running_prev: bool = False
     hp_phase_age_s: float = math.inf
+    subsystem_state: dict = field(default_factory=dict)  # dict[str, dict]
 
 
 # ------------------------------------------------------------------
@@ -226,6 +238,25 @@ class SubsystemExergy:
 # ------------------------------------------------------------------
 
 
+#: Key under which a subsystem's step dict carries its next-step state.
+SUBSYSTEM_STATE_KEY: str = "carried_state"
+
+
+def collect_subsystem_state(previous: Mapping[str, dict], sub_states: Mapping[str, Any]) -> dict[str, dict]:
+    """Next ``DynamicState.subsystem_state`` from this step's subsystem dicts.
+
+    Each subsystem whose step dict has a :data:`SUBSYSTEM_STATE_KEY` entry
+    contributes a copy of it; a subsystem that reported none keeps its
+    previous entry. A new dict is returned and ``previous`` is not modified,
+    so the state a step was given can be stepped from again.
+    """
+    carried: dict[str, dict] = {name: dict(value) for name, value in previous.items()}
+    for name, step_state in sub_states.items():
+        if isinstance(step_state, Mapping) and step_state.get(SUBSYSTEM_STATE_KEY) is not None:
+            carried[name] = dict(step_state[SUBSYSTEM_STATE_KEY])
+    return carried
+
+
 class Subsystem(Protocol):
     """Pluggable subsystem interface.
 
@@ -233,6 +264,27 @@ class Subsystem(Protocol):
     timestep and assembles result columns for the output
     DataFrame.  New subsystems (PV, battery, …) implement
     this protocol and register with the boiler model.
+
+    Carried state
+    -------------
+    A subsystem with memory between steps (a controller latch, a lock-out)
+    does not keep it on its own instance: it is part of the run and travels
+    in ``DynamicState.subsystem_state[name]``.
+
+    - *Read*: during a step the host model holds the previous step's states
+      in ``host._subsystem_state_in`` (``{}`` at the start of a run); the
+      subsystem's entry is ``host._subsystem_state_in.get(name, {})``. It
+      must not be modified.
+    - *Write*: the subsystem puts its next state, a new plain dict, under
+      :data:`SUBSYSTEM_STATE_KEY` (``"carried_state"``) of the dict its
+      ``step()`` returned, at the latest in ``assemble_results()`` (the
+      state may depend on the solved tank temperature). The host gathers
+      these with :func:`collect_subsystem_state`.
+
+    A ``step()``-driven host (ASHPB) threads the states through the
+    ``DynamicState`` it returns; a host that only offers ``analyze_dynamic``
+    (GSHPB) keeps them for the run and clears them when a run starts. Either
+    way a second run with the same inputs starts from empty state.
     """
 
     def step(

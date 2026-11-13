@@ -58,7 +58,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import CAPACITY_CLAMPED_MAX, default_displacement, solve_compressor_speed
-from .constants import c_a, rho_a
+from .air_properties import air_heat_capacity_rate
 from .cycling import (
     CAPACITY_RATIO_KEY,
     CD_AIR_DEFAULT,
@@ -101,6 +101,7 @@ from .ground_loop import (
     resolve_ground_flow_rates,
 )
 from .heat_exchanger import (
+    AirCoilSide,
     calc_ground_hx_UA_from_capacity,
     calc_phase_change_hx_effectiveness,
     resolve_fan_flow_limits,
@@ -113,6 +114,7 @@ from .refrigerant import (
     reportable_state,
 )
 from .source_fluid import (
+    GROUND_LOOP_DESIGN_INLET_C,
     GROUND_LOOP_FLUID_DEFAULT,
     SOURCE_FLUID_FREEZING,
     SourceFluid,
@@ -747,10 +749,15 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             if borefield_defaulted
             else warn_if_borefield_undersized(hp_capacity, self.n_boreholes, H_b, stacklevel=3)
         )
+        #: Loop-liquid viscosity of the source-side Reynolds number [Pa s]: at
+        #: the design liquid temperature (heating rating inlet, 0 °C, or the
+        #: fluid's operating limit if warmer; ``SourceFluid.design_viscosity``).
+        self.mu_bhe_f_design: float = fluid.design_viscosity(GROUND_LOOP_DESIGN_INLET_C)
+        mu_design = self.mu_bhe_f_design
         #: U-tube Reynolds number at the reference flow (laminar below 2300: warned).
         pipe_diameter = pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in
         self.Re_bhe_ref: float = warn_if_laminar_ground_flow(
-            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=fluid.rho, mu=fluid.mu, stacklevel=3
+            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=fluid.rho, mu=mu_design, stacklevel=3
         )
         if self.ground_flow_constant_lpm != self.ground_flow_ref_lpm:
             warn_if_laminar_ground_flow(
@@ -758,7 +765,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 self.n_boreholes,
                 pipe_diameter,
                 rho=fluid.rho,
-                mu=fluid.mu,
+                mu=mu_design,
                 label="constant setpoint",
                 stacklevel=3,
             )
@@ -787,7 +794,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 D_s=D_s,
                 m_flow_pipe=m_flow_pipe,
                 rho_f=fluid.rho,
-                mu_f=fluid.mu,
+                mu_f=mu_design,
                 cp_f=fluid.cp,
                 k_f=fluid.k,
             )
@@ -866,7 +873,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 r_in=r_in,
                 D_s=D_s,
                 rho_f=fluid.rho,
-                mu_f=fluid.mu,
+                mu_f=mu_design,
                 k_f=fluid.k,
             ),
         )
@@ -1141,6 +1148,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 dV_fan_max=self.dV_iu_fan_a_max,
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
+                rho_air="inlet",
             )
         elif mode == "heating":
             iu_hx = calc_HX_perf_for_target_heat(
@@ -1154,6 +1162,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 dV_fan_max=self.dV_iu_fan_a_max,
                 custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs_iu),
                 is_active=is_active,
+                rho_air="inlet",
             )
         else:
             iu_hx = {
@@ -1174,7 +1183,10 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         )
         if not is_active:
             E_iu_fan = 0.0
-        T_iu_a_out = T_iu_a_mid + E_iu_fan / (c_a * rho_a * dV_iu_a) if is_active and dV_iu_a > 0 else T_a_room
+        # The fan heat warms the air mass the coil exchanged heat with: the
+        # fan's volume flow at the density of the room air it draws in.
+        C_iu_a: float = float(air_heat_capacity_rate(dV_iu_a, T_a_room))
+        T_iu_a_out = T_iu_a_mid + E_iu_fan / C_iu_a if is_active and dV_iu_a > 0 else T_a_room
         v_iu_a = dV_iu_a / self.A_cross_iu if is_active else 0.0
 
         UA_ground_actual = ground_hx_UA(self._ground_settings, UA_ground_rated, ground_flow_ratio, m_dot_ref)
@@ -1200,7 +1212,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         E_tot = E_cmp + E_pmp_active + E_iu_fan
         # Air-stream energy uses the actual flow and final fan-heated outlet.
         # It does not replace the coil duty used by the compressor/load solver.
-        G_iu_a = c_a * rho_a * dV_iu_a
+        G_iu_a = C_iu_a
         T0_K = cu.C2K(T0)
         Q_a_iu_in = calc_energy_flow(G_iu_a, T_a_room_K, T0_K)
         Q_a_iu_out = calc_energy_flow(G_iu_a, cu.C2K(T_iu_a_out), T0_K)
@@ -1301,7 +1313,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         UA_ground, UA_iu = self._rated_hx_UAs(mode)
         if role == "source":
             return HXSide("water", T_in_C, UA_ground, self.dV_b_f_m3s)
-        return HXSide("air", T_in_C, UA_iu, self.dV_iu_fan_a_ref)
+        return AirCoilSide("air", T_in_C, UA_iu, self.dV_iu_fan_a_ref)
 
     def _rated_hx_UAs(self, mode: str) -> tuple[float, float]:
         """Return ground/IU physical UA; old explicit role inputs use an adapter.
@@ -2649,7 +2661,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         # ── 3a. Indoor unit air exergy ──
         if "dV_iu_a [m3/s]" in df.columns and "T_iu_a_in [°C]" in df.columns:
-            G_a_iu = c_a * rho_a * df["dV_iu_a [m3/s]"].fillna(0)
+            # Same air mass as the cycle solve: density at the coil inlet.
+            G_a_iu = air_heat_capacity_rate(df["dV_iu_a [m3/s]"].fillna(0), df["T_iu_a_in [°C]"])
             Tin_iu = cu.C2K(df["T_iu_a_in [°C]"])
             Tmid_iu = cu.C2K(df["T_iu_a_mid [°C]"])
             Tout_iu = cu.C2K(df["T_iu_a_out [°C]"]) if "T_iu_a_out [°C]" in df.columns else Tin_iu

@@ -48,13 +48,13 @@ dynamic only; ``all`` is all five families in both. The families are ASHP
 
    from tmhp import AirSourceHeatPump
 
-   row = AirSourceHeatPump().analyze_steady(Q_r_iu=-9_000, T0=-10.0, T_a_room=20.0)
+   row = AirSourceHeatPump().analyze_steady(Q_r_iu=-9_000, T0=-15.0, T_a_room=20.0)
 
    row["failure_reason"]      # "none": the unit runs
    row["capacity_clamped"]    # "max": it delivers less than the 9 kW asked for
    row["capacity_binding"]    # "compressor": the speed ceiling stops it
-   row["Q_ref_iu [W]"]        # heat delivered, about 4.0 kW
-   row["Q_unmet [W]"]         # the rest of the request, about 5.0 kW
+   row["Q_ref_iu [W]"]        # heat delivered, about 3.8 kW
+   row["Q_unmet [W]"]         # the rest of the request, about 5.2 kW
 
 Status and flags
 ================
@@ -420,10 +420,10 @@ Air side
       - Supply air, fan heat included.
     * - ``dV_ou_a [m3/s]``
       - ASHP, ASHPB
-      - Outdoor airflow (a mean on a cycling row).
+      - Outdoor airflow, a volume at the coil inlet temperature (a mean on a cycling row).
     * - ``dV_iu_a [m3/s]``
       - ASHP, GSHP
-      - Indoor airflow (a mean on a cycling row).
+      - Indoor airflow, a volume at the coil inlet temperature (a mean on a cycling row).
     * - ``v_ou_a [m/s]``
       - ASHP, ASHPB
       - Face velocity at the outdoor coil.

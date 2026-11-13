@@ -156,11 +156,17 @@ Air side
     * - Simplification
       - What it means
       - How it shows
-    * - Dry air with constant properties
-      - Density 1.225 kg/m³ and specific heat 1005 J/(kg K) at every
-        temperature and altitude
-      - Not flagged. Air-side temperatures (``T_ou_a_*``, ``T_iu_a_*``)
-        follow from volume flow with this density
+    * - Dry air at one standard atmosphere
+      - ASHP (both coils) and ASHPB take the density of the air a coil draws
+        in — outdoor air at ``T0``, room air at ``T_a_room`` — as dry
+        ideal-gas air at 101 325 Pa
+        (:func:`tmhp.air_properties.air_density`). The specific heat is
+        constant (1005 J/(kg K)); humidity and altitude are left out, and fan
+        power does not follow the density. The indoor coil of GSHP keeps
+        15 °C standard air (1.225 kg/m³)
+      - Not flagged. ``dV_ou_a [m3/s]`` and ``dV_iu_a [m3/s]`` are volumes at
+        the coil inlet; at 1 600 m the real density is 18 % lower
+        (:ref:`ashp-air-density`)
     * - Sensible cooling only
       - The indoor coil is dry: no dehumidification, so the cooling duty is
         the sensible one
@@ -179,11 +185,6 @@ Air side
       - ASHPB solves the frost-free cycle at every outdoor temperature
       - Not flagged. Below about 5 °C outdoor its COP and capacity are those
         of a coil that never frosts
-
-..
-   R4F-PENDING (fix/air-density-and-air-side-balance): if air density becomes
-   temperature dependent on main, rewrite the "Dry air with constant
-   properties" row.
 
 Ground and source water
 -----------------------

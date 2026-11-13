@@ -42,7 +42,6 @@ from .subsystems import (
     pv_ess_postprocess,
     pv_ess_result_columns,
     route_pv_ess,
-    single_count_uv_heat,
 )
 
 
@@ -119,7 +118,7 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         # PV is called after the HP load is known; only attached subsystems
         # (e.g. a UV lamp) are stepped here.
         self._current_dt = dt
-        return single_count_uv_heat(super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K))
+        return super()._run_subsystems(ctx, ctrl, dt, T_tank_w_in_K)
 
     def _augment_results(
         self,
@@ -139,7 +138,8 @@ class ASHPB_PV_ESS(AirSourceHeatPumpBoiler):
         # 3. PV generation (pure physics)
         dt = getattr(self, "_current_dt", 3600.0)
         T0_K = ctx.T0_K
-        pv_r = self._pv.calc_performance(ctx.I_DN, ctx.I_dH, T0_K)
+        plane = self._pv.plane_irradiance(ctx.I_DN, ctx.I_dH, ctx.current_time_s, dt)
+        pv_r = self._pv.calc_performance(ctx.I_DN, ctx.I_dH, T0_K, plane=plane)
 
         # 4. Route the DC power and settle the AC side
         route = route_pv_ess(pv_r, self._ess, E_load, self._eta_inv, dt, T0_K)

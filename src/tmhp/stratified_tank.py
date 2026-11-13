@@ -9,16 +9,27 @@ uniform temperature ``T_i``. The per-node energy balance combines
 - **advection** — port inflow/outflow and inter-node vertical flow, upwinded by
   the flow direction (Cadau Eq. 4-6);
 - **pseudo-conduction** — ``k·(T_{i-1}-T_i) - k·(T_i-T_{i+1})`` between
-  neighbouring nodes, lumping conductive + convective exchange; and
-- **ambient loss** — ``UA_i·(T_i - T_amb)`` through the side wall.
+  neighbouring nodes, lumping conductive + convective exchange;
+- **ambient loss** — ``UA_i·(T_i - T_amb)`` through the side wall; and
+- **buoyancy (inversion) mixing** — a node warmer than the node above it rises
+  and mixes instantly with it (TRNSYS Type 4/60 style), so the profile after a
+  step is never inverted. See :func:`mix_inversions`.
 
 It is integrated **implicitly** (backward Euler) as a tridiagonal solve, so the
 update is unconditionally stable and smooth in the state — a property the legacy
 single-node lumped tank lacks and that an MPC-internal model needs. The lumped
 fully-mixed tank is exactly the ``N=1`` limit of this model.
 
-This is a standalone, testable component; wiring it into
-``GroundSourceHeatPumpBoiler`` as a swappable tank backend is a separate step.
+Numerical diffusion
+-------------------
+First-order implicit upwinding smears a sharp thermocline like a physical axial
+diffusivity ``D_num = (v·Δz/2)·(1 + Co)`` with ``v = V̇/A`` and the Courant number
+``Co = V̇·Δt/V_node``. After the front has travelled a distance ``L`` its spread
+is ``σ² ≈ L·(Δz + v·Δt)``: the time step acts like an extra node thickness
+``v·Δt``, which is why refining the nodes alone stops helping once ``Co > 1``.
+``max_courant`` (opt-in) splits a step into equal implicit sub-steps with
+``Co ≤ max_courant`` and bounds the spread at ``σ² ≈ L·Δz·(1 + max_courant)``.
+``docs/tank_backends/tank_backends.md`` tabulates the effect.
 
 Conventions
 -----------
@@ -33,15 +44,125 @@ Conventions
   advection is upwinded by its direction (Cadau Eq. 4-6).
 - Temperatures in °C; energy balances are temperature-difference based so the
   reference cancels.
+- The model is single-phase liquid water. A node pushed above ``T_boil``
+  (default 100 °C, atmospheric boiling) by ``q_source`` is outside the model's
+  validity: the step flags it (``overheat`` in the result) and warns with
+  :class:`TankOverheatWarning`; the state is not clipped (clipping would destroy
+  energy). The tank does not know its heat source — the caller must limit it.
 """
 
 from __future__ import annotations
+
+import math
+import warnings
 
 import numpy as np
 from scipy.linalg import solve_banded
 
 from ._validation import validate_ctor, validate_tank_step
 from .constants import c_w, k_w, rho_w
+
+#: Temperature tolerance [K] of the buoyancy check: a node counts as inverted
+#: only when it is warmer than the node above by more than this. 0.1 mK is far
+#: below any measurable (or buoyancy-relevant) difference and far above float
+#: round-off at tank temperatures (~1e-14 K), so a uniform or exactly layered
+#: profile is never "mixed" on one platform and not on another.
+INVERSION_TOL_K = 1.0e-4
+
+#: Atmospheric boiling point [°C]: upper validity limit of the liquid model.
+T_BOIL_ATM_C = 100.0
+
+#: Tolerance [K] above ``T_boil`` before a node is flagged as overheated, so a
+#: heater sized to land exactly on the limit is not flagged by round-off on one
+#: platform only.
+OVERHEAT_TOL_K = 1.0e-6
+
+#: Relative slack when rounding ``Co / max_courant`` up to a sub-step count, so
+#: a Courant number that is an exact multiple of the limit (up to round-off)
+#: gives the same count on every platform.
+_SUBSTEP_SLACK = 1.0e-9
+
+
+class TankOverheatWarning(RuntimeWarning):
+    """A tank node exceeded the liquid-water validity limit ``T_boil``."""
+
+
+def mix_inversions(T, cap, tol: float = INVERSION_TOL_K) -> tuple[np.ndarray, bool]:
+    """Energy-conserving instantaneous buoyancy mixing of a top→bottom profile.
+
+    Whenever a layer is warmer than the layer above it (by more than ``tol``)
+    the two are fully mixed at their capacity-weighted mean, and the check is
+    repeated against the layer above — the classic instantaneous inversion
+    mixing of TRNSYS Type 4/60 (EnergyPlus ``WaterHeater:Stratified`` resolves
+    the same physics with a large inversion-mixing conductance). Implemented as
+    pool-adjacent-violators, so the result is the capacity-weighted isotonic
+    (non-increasing) profile: every mixed block holds its block-mean, energy
+    ``Σ cap·T`` is conserved, and the output satisfies
+    ``T[i+1] <= T[i] + tol``.
+
+    Parameters
+    ----------
+    T : array-like
+        Layer temperatures, top first [°C].
+    cap : array-like
+        Layer heat capacities (any consistent unit, e.g. J/K or m³).
+    tol : float
+        Inversion tolerance [K] (see :data:`INVERSION_TOL_K`).
+
+    Returns
+    -------
+    (T_mixed, mixed)
+        ``T_mixed`` is the input array itself when nothing was inverted (so an
+        already stable profile is returned bit-for-bit), else a new array.
+    """
+    T = np.asarray(T, dtype=float)
+    cap = np.asarray(cap, dtype=float)
+    if T.size < 2 or not np.any(T[1:] > T[:-1] + tol):
+        return T, False
+    vals: list[float] = []
+    caps: list[float] = []
+    counts: list[int] = []
+    for t, c in zip(T.tolist(), cap.tolist(), strict=True):
+        vals.append(t)
+        caps.append(c)
+        counts.append(1)
+        while len(vals) > 1 and vals[-1] > vals[-2] + tol:
+            v2, c2, k2 = vals.pop(), caps.pop(), counts.pop()
+            c1 = caps[-1]
+            vals[-1] = (c1 * vals[-1] + c2 * v2) / (c1 + c2)
+            caps[-1] = c1 + c2
+            counts[-1] += k2
+    return np.repeat(np.asarray(vals), counts), True
+
+
+def _flag_overheat(T: np.ndarray, T_boil: float, who: str) -> tuple[float, bool]:
+    t_max = float(np.max(T))
+    over = t_max > T_boil + OVERHEAT_TOL_K
+    if over:
+        warnings.warn(
+            f"{who}: node temperature {t_max:.2f} °C exceeds T_boil = {T_boil:.1f} °C — the liquid-water "
+            "tank model is outside its validity range; limit the heat source (q_source) in the caller",
+            TankOverheatWarning,
+            stacklevel=3,
+        )
+    return t_max, over
+
+
+def _heat_source_array(q_source, n: int) -> np.ndarray:
+    """Per-node heat input [W]: scalar → top node; length-``n`` array → per node."""
+    q_arr = np.zeros(n)
+    if q_source is None:
+        return q_arr
+    qs = np.asarray(q_source, dtype=float)
+    if qs.ndim == 0:
+        q_arr[0] = float(qs)
+    elif qs.shape == (n,):
+        q_arr = qs.copy()
+    else:
+        raise ValueError(f"q_source must be scalar or shape ({n},) — got {qs.shape}")
+    if not np.all(np.isfinite(q_arr)):
+        raise ValueError(f"q_source must be finite — got {q_source!r}")
+    return q_arr
 
 
 class StratifiedTank:
@@ -61,10 +182,25 @@ class StratifiedTank:
         turbulent-mixing enhancement). Defaults to water (``k_w``).
     ua : float, optional
         Total tank-to-ambient loss coefficient ``UA`` [W/K], split uniformly
-        across nodes. Defaults to 0 (adiabatic).
+        across nodes (side wall; no separate top/bottom plates). Defaults to 0
+        (adiabatic).
     rho, cp : float, optional
         Water density [kg/m³] and specific heat [J/kg/K]; default to the project
         constants. Assumed constant (Cadau: density assumed constant per node).
+    inversion_mixing : bool, optional
+        Mix temperature inversions after every (sub-)step (default ``True``).
+        ``False`` restores the pre-#96 behaviour, in which a bottom heater can
+        leave the bottom hotter than the top indefinitely.
+    max_courant : float or None, optional
+        Opt-in sub-stepping: split each step into ``m = ceil(Co/max_courant)``
+        equal implicit sub-steps, ``Co = max(charge_flow, draw_flow)·dt/V_node``.
+        ``None`` (default) keeps one implicit step per call. Sub-stepping
+        bounds the numerical diffusion independently of ``dt`` but makes the
+        update piecewise in the flow (the sub-step count jumps at integer
+        Courant numbers), so leave it off for gradient-based MPC.
+    T_boil : float, optional
+        Liquid-water validity limit [°C] for the overheat flag (default 100 °C;
+        raise it for a pressurised tank).
     """
 
     def __init__(
@@ -77,12 +213,19 @@ class StratifiedTank:
         ua: float = 0.0,
         rho: float = rho_w,
         cp: float = c_w,
+        inversion_mixing: bool = True,
+        max_courant: float | None = None,
+        T_boil: float = T_BOIL_ATM_C,
     ) -> None:
         validate_ctor("TANK", locals())
         if int(n_nodes) < 1:
             raise ValueError(f"n_nodes must be >= 1 — got {n_nodes}")
         if volume <= 0.0 or height <= 0.0:
             raise ValueError(f"volume and height must be > 0 — got {volume}, {height}")
+        if max_courant is not None and not (math.isfinite(max_courant) and max_courant > 0.0):
+            raise ValueError(f"max_courant must be None or a finite value > 0 — got {max_courant}")
+        if not math.isfinite(T_boil):
+            raise ValueError(f"T_boil must be finite — got {T_boil}")
 
         self.n = int(n_nodes)
         self.volume = float(volume)
@@ -91,6 +234,9 @@ class StratifiedTank:
         self.cp = float(cp)
         self.k_eff = float(k_eff)
         self.ua_total = float(ua)
+        self.inversion_mixing = bool(inversion_mixing)
+        self.max_courant = None if max_courant is None else float(max_courant)
+        self.T_boil = float(T_boil)
 
         # Geometry / lumped node properties.
         self.area_cross = self.volume / self.height  # [m²]
@@ -118,6 +264,13 @@ class StratifiedTank:
     def stored_energy(self) -> float:
         """Sensible energy relative to 0 °C [J] (``Σ m_node·cp·T_i``)."""
         return float(self.m_node * self.cp * self.T.sum())
+
+    def substeps(self, dt: float, charge_flow: float = 0.0, draw_flow: float = 0.0) -> int:
+        """Number of implicit sub-steps ``step`` uses for these flows."""
+        if self.max_courant is None:
+            return 1
+        co = max(charge_flow, draw_flow) * dt / self.v_node
+        return max(1, math.ceil(co / self.max_courant - _SUBSTEP_SLACK))
 
     # ------------------------------------------------------------------
     def step(
@@ -154,10 +307,54 @@ class StratifiedTank:
         Returns
         -------
         dict
-            ``T`` (new node temperatures), ``T_top`` (= hot draw outlet),
-            ``T_outlet`` (bottom = cold HP return).
+            ``T`` (new node temperatures), ``T_top`` (top node), ``T_outlet``
+            (bottom node), ``T_draw_out`` / ``T_charge_out`` (flow-weighted mean
+            temperature of the water that left through the top draw port / the
+            bottom charge-return port during the step [°C]; equal to the node
+            temperature when that flow is zero), ``Q_loss`` (mean ambient loss
+            [W]), ``T_max`` [°C], ``overheat`` (``T_max > T_boil``), ``mixed``
+            (an inversion was mixed) and ``substeps``. The step closes
+            ``ΔE = dt·[ρc·(V̇_c·T_charge + V̇_d·T_makeup − V̇_d·T_draw_out −
+            V̇_c·T_charge_out) + Σq − Q_loss]`` to round-off. Without mixing
+            and sub-steps ``T_draw_out == T_top`` and ``T_charge_out ==
+            T_outlet``.
         """
         validate_tank_step(locals())
+        q_arr = _heat_source_array(q_source, self.n)
+        m = self.substeps(dt, charge_flow, draw_flow)
+        h = dt / m
+        cap = np.full(self.n, self.m_node * self.cp)
+        draw_vt = charge_vt = loss_j = 0.0
+        mixed = False
+        T = self.T
+        for _ in range(m):
+            T = self._implicit_step(T, h, charge_flow, T_charge, draw_flow, T_makeup, q_arr, T_amb)
+            # Outflows and losses are evaluated at the implicit end-of-step state
+            # (before mixing), which is what the solve balanced.
+            draw_vt += draw_flow * h * T[0]
+            charge_vt += charge_flow * h * T[-1]
+            loss_j += h * self.ua_node * float(np.sum(T - T_amb))
+            if self.inversion_mixing:
+                T, did = mix_inversions(T, cap)
+                mixed = mixed or did
+        self.T = T
+
+        t_max, over = _flag_overheat(self.T, self.T_boil, "StratifiedTank")
+        return {
+            "T": self.T.copy(),
+            "T_top": float(self.T[0]),
+            "T_outlet": float(self.T[-1]),
+            "T_draw_out": draw_vt / (draw_flow * dt) if draw_flow > 0.0 else float(self.T[0]),
+            "T_charge_out": charge_vt / (charge_flow * dt) if charge_flow > 0.0 else float(self.T[-1]),
+            "Q_loss": loss_j / dt,
+            "T_max": t_max,
+            "overheat": over,
+            "mixed": mixed,
+            "substeps": m,
+        }
+
+    def _implicit_step(self, T_old, dt, charge_flow, T_charge, draw_flow, T_makeup, q_arr, T_amb) -> np.ndarray:
+        """One backward-Euler tridiagonal solve (the pre-#96 single-step update)."""
         n = self.n
         mc_dt = self.m_node * self.cp / dt  # capacitance/dt [W/K]
         G = self.G
@@ -169,17 +366,6 @@ class StratifiedTank:
         mc_int = rc * abs(v_net)  # internal advective conductance [W/K]
         down = v_net >= 0.0
 
-        # Heat source [W per node]: scalar -> top node; array -> per node.
-        q_arr = np.zeros(n)
-        if q_source is not None:
-            qs = np.asarray(q_source, dtype=float)
-            if qs.ndim == 0:
-                q_arr[0] = float(qs)
-            elif qs.shape == (n,):
-                q_arr = qs
-            else:
-                raise ValueError(f"q_source must be scalar or shape ({n},) — got {qs.shape}")
-
         lower = np.zeros(n)  # coupling of row i to T_{i-1}
         diag = np.zeros(n)
         upper = np.zeros(n)  # coupling of row i to T_{i+1}
@@ -187,7 +373,7 @@ class StratifiedTank:
 
         for i in range(n):
             diag[i] = mc_dt + ua
-            rhs[i] = mc_dt * self.T[i] + ua * T_amb + q_arr[i]
+            rhs[i] = mc_dt * T_old[i] + ua * T_amb + q_arr[i]
 
             # Boundary ports.
             if i == 0:
@@ -224,6 +410,4 @@ class StratifiedTank:
         ab[0, 1:] = upper[:-1]
         ab[1, :] = diag
         ab[2, :-1] = lower[1:]
-        self.T = solve_banded((1, 1), ab, rhs)
-
-        return {"T": self.T.copy(), "T_top": float(self.T[0]), "T_outlet": float(self.T[-1])}
+        return np.asarray(solve_banded((1, 1), ab, rhs), dtype=float)

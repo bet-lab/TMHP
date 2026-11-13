@@ -13,8 +13,8 @@ result table reports must add up, step by step:
   carried away = delivered to the tank + delivered to the ground);
 - running the same model twice with the same inputs gives the same table.
 
-Tank-side defects tracked in ``tests/invariants/test_known_defects.py`` (T2, T3,
-T8, T9) are not asserted here.
+The collector, UV lamp and storage-limit physics themselves are tested in
+``tests/test_solar_uv_mains.py``.
 """
 
 from __future__ import annotations
@@ -339,7 +339,7 @@ def test_e_tot_is_the_sum_of_every_electric_draw(runs, name):
     np.testing.assert_allclose(col(df, "E_tot [W]"), expected, rtol=1e-12, atol=1e-9)
 
 
-@pytest.mark.parametrize("name", [n for n in STC_NAMES if n != "ASHPB_STC_preheat"])
+@pytest.mark.parametrize("name", [n for n in STC_NAMES if not n.endswith("_preheat")])
 def test_collector_pump_power_is_reported_and_counted(runs, name):
     """Precondition for the E_tot test above: the pump runs and its power is in E_tot."""
     _, df, _ = runs[name]
@@ -350,10 +350,11 @@ def test_collector_pump_power_is_reported_and_counted(runs, name):
     np.testing.assert_allclose(col(df, "E_tot [W]") - without_pump, pump, rtol=1e-12, atol=1e-9)
 
 
-def test_ashpb_stc_preheat_pump_is_excluded_by_assumption():
+@pytest.mark.parametrize("name", ["ASHPB_STC_preheat", "GSHPB_STC_preheat"])
+def test_stc_preheat_pump_is_excluded_by_assumption(name):
     """Mains pressure drives the preheat loop: no pump power, and the caller's collector is untouched."""
     stc = _stc()
-    model = tmhp.ASHPB_STC_preheat(stc=stc)
+    model = getattr(tmhp, name)(stc=stc, **({} if name.startswith("ASHPB") else _GROUND))
     assert model._stc.E_stc_pump == 0.0
     assert stc.E_stc_pump == 60.0
     assert model.stc is model._stc
@@ -415,8 +416,9 @@ def test_ground_and_routed_report_the_collector_columns_of_the_tank_variant(runs
     assert set(_TANK_COLLECTOR_COLUMNS) <= tank_cols
 
 
-@pytest.mark.parametrize("name", ["GSHPB_STC_tank", "GSHPB_STC_ground", "GSHPB_STC_routed"])
+@pytest.mark.parametrize("name", STC_NAMES)
 def test_collector_absorbed_heat_equals_carried_plus_lost(runs, name):
+    """Absorbed = carried away + lost, and carried away = to the tank + to the ground."""
     _, df, _ = runs[name]
     active = df["stc_active [-]"].astype(bool).to_numpy()
     assert active.any(), "collector never active"
@@ -424,6 +426,8 @@ def test_collector_absorbed_heat_equals_carried_plus_lost(runs, name):
     np.testing.assert_allclose(
         (carried + col(df, "Q_l_stc [W]"))[active], col(df, "Q_sol_stc [W]")[active], rtol=1e-9, atol=1e-6
     )
+    to_sinks = col(df, "Q_solar_tank [W]") + col(df, "Q_solar_ground [W]")
+    np.testing.assert_allclose(to_sinks, np.where(active, carried, 0.0), rtol=1e-9, atol=1e-6)
 
 
 def _forced_router(**state) -> str:
@@ -459,14 +463,17 @@ def test_routed_tank_route_reports_the_collector_at_the_solved_tank_temperature(
     model, df, _ = routed_run
     rows = df[(df["solar_route [-]"] == "tank") & df["stc_active [-]"].astype(bool)]
     assert len(rows) > 0
-    for _, row in rows.iterrows():
+    for i, row in rows.iterrows():
+        plane = model._stc.plane_irradiance(row["I_DN_stc [W/m2]"], row["I_dH_stc [W/m2]"], i * DT, DT)
         ref = model._stc.calc_performance(
             I_DN_stc=row["I_DN_stc [W/m2]"],
             I_dH_stc=row["I_dH_stc [W/m2]"],
             T_stc_w_in_K=cu.C2K(row["T_tank_w [°C]"]),
             T0_K=cu.C2K(row["T0 [°C]"]),
+            plane=plane,
         )
-        assert row["Q_solar_tank [W]"] == pytest.approx(ref["Q_stc_w_out"] - ref["Q_stc_w_in"], rel=1e-9)
+        share = row["stc_runtime_fraction [-]"]
+        assert row["Q_solar_tank [W]"] == pytest.approx(share * (ref["Q_stc_w_out"] - ref["Q_stc_w_in"]), rel=1e-9)
         assert row["T_stc_w_in [°C]"] == pytest.approx(row["T_tank_w [°C]"])
 
 
@@ -474,7 +481,10 @@ def test_routed_and_ground_pump_runs_only_when_the_collector_is_active(routed_ru
     _, df, _ = routed_run
     pump = col(df, "E_stc_pump [W]")
     active = df["stc_active [-]"].astype(bool).to_numpy()
-    assert (pump[active] == 60.0).all() and (pump[~active] == 0.0).all()
+    # step average: the rated 60 W times the share of the step the loop ran
+    share = col(df, "stc_runtime_fraction [-]")
+    np.testing.assert_allclose(pump[active], 60.0 * share[active], rtol=1e-12)
+    assert (share[active] > 0).all() and (pump[~active] == 0.0).all()
 
 
 def test_routed_repeats_with_forced_router(routed_run):
@@ -521,7 +531,7 @@ def test_pv_ess_battery_starts_every_run_at_its_initial_state(runs):
 
 @pytest.mark.parametrize("name", PV_ESS_NAMES)
 def test_pv_ess_uv_lamp_heat_enters_the_tank_once(name):
-    """With the heat pump off the tank gains exactly the lamp energy (not twice)."""
+    """With the heat pump off the tank gains the lamp's heat to the water once (not twice)."""
     dt, n = 600, 18  # one full 3 h lamp period
     kw = {"uv": UVLamp(lamp_watts=1000.0, exposure_sec=600.0, num_switching=1, period_sec=3 * 3600)}
     if name == "ASHPB_PV_ESS":
@@ -546,4 +556,5 @@ def test_pv_ess_uv_lamp_heat_enters_the_tank_once(name):
     lamp_J = float(col(df, "E_uv [W]").sum() * dt)
     assert lamp_J == pytest.approx(1000.0 * 600.0, rel=1e-6)
     gain_J = model.C_tank * (df["T_tank_w [°C]"].iloc[-1] - 50.0) + float(col(df, "Q_tank_loss [W]").sum() * dt)
-    assert gain_J == pytest.approx(lamp_J, rel=0.02)
+    fraction = kw["uv"].heat_to_water_fraction
+    assert gain_J == pytest.approx(fraction * lamp_J, rel=0.02)

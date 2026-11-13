@@ -20,8 +20,8 @@ variants extend it with subsystems:
 
 - :class:`tmhp.ASHPB_STC_preheat` — STC heats the mains feed before it
   reaches the tank.
-- :class:`tmhp.ASHPB_STC_tank` — STC charges a separate top node of a
-  stratified tank.
+- :class:`tmhp.ASHPB_STC_tank` — a pumped collector loop charges the
+  tank, with a storage high limit.
 - :class:`tmhp.ASHPB_PV_ESS` — PV generation + battery storage routes
   electricity to the compressor and auxiliaries before drawing grid.
 
@@ -158,10 +158,11 @@ Composed variants
          stc = SolarThermalCollector(A_stc=4.0, stc_tilt=35.0, stc_azimuth=180.0)
          model = ASHPB_STC_preheat(stc=stc, ref="R32")
 
-   .. tab-item:: + STC stratified
+   .. tab-item:: + STC tank loop
 
-      STC charges a separate top node of a stratified tank; the heat
-      pump charges the bottom. Top-of-tank water is drawn first.
+      A pumped collector loop draws tank water, heats it and returns it,
+      under a differential controller with a storage high limit
+      (``T_stc_tank_max``, 85 °C).
 
       .. code-block:: python
 
@@ -187,16 +188,69 @@ Composed variants
              ref="R32",
          )
 
+Solar inputs and the collector model
+------------------------------------
+
+**Irradiance inputs.** ``I_DN_schedule`` is the **direct-normal**
+irradiance (beam on a surface facing the sun) and ``I_dH_schedule`` the
+**diffuse-horizontal** irradiance, step averages in W/m². They are not
+added: the collector (and the PV array) transposes them to its own plane —
+beam ``I_DN·cos θ``, sky diffuse (Perez by default) and ground reflection
+(``albedo`` 0.2) — with the sun position of the step. For measured
+global-horizontal data (e.g. KMA hourly GHI) split it first with
+:func:`tmhp.weather.decompose_ghi_to_poa`, whose ``dni`` / ``dhi`` columns
+are these two schedules.
+
+**Site and clock.** The sun position needs where and when:
+``latitude`` / ``longitude`` (default Seoul, 37.57 °N 126.98 °E),
+``utc_offset_h`` (default 9, KST) and ``start_time``, the local standard
+time of simulation second 0 (default 00:00 on 20 March, a year-average sun
+path). Set ``start_time`` to the first timestamp of your weather data,
+at local midnight so that the boiler's clock schedules agree. A beam given
+while the sun is below the horizon for a whole step is dropped with a
+warning: it means the site or the clock does not match the data.
+
+**Collector.** :class:`~tmhp.subsystems.SolarThermalCollector` uses the
+ISO 9806 / EN 12975 quasi-steady efficiency on the mean fluid temperature,
+``Q_u = A·[η0·(K_b·G_b + K_d·G_d) − a1·ΔT_m − a2·ΔT_m²]``, with the ASHRAE
+incidence-angle modifier ``K_b = 1 − b0·(1/cos θ − 1)``. ``A_stc`` is the
+area the coefficients refer to. The defaults are a representative
+single-glazed flat plate (``eta0_stc`` 0.78, ``a1_stc`` 3.6 W/(m²·K),
+``a2_stc`` 0.015 W/(m²·K²), ``b0_stc`` 0.10; stagnation about 170 °C at
+1000 W/m²); take them from a datasheet for a given product. The pumped
+loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
+``dV_stc_w`` is set. The former construction parameters (``A_stc_pipe``,
+``alpha_stc``, ``h_o_stc`` …) are accepted with a ``DeprecationWarning``.
+
+**Loop control.** A pumped loop runs when the idle collector is
+``dT_stc_on`` (6 K) and the running outlet ``dT_stc_off`` (2 K) above the
+sink, its gain exceeds the pump power and its outlet stays below
+``T_stc_boil`` (100 °C). Charging the tank stops at ``T_stc_tank_max``
+(85 °C) within the step, and so does circulation once the outlet reaches
+``T_stc_boil`` as the tank warms: ``stc_runtime_fraction [-]`` is the share of
+the step the loop ran, and the flow, pump power and delivered heat are step
+averages. Every step closes ``Q_sol_stc = (Q_stc_w_out − Q_stc_w_in) +
+Q_l_stc`` with ``Q_stc_w_out − Q_stc_w_in = Q_solar_tank``.
+
 STC preheat
 -----------
 
-A :class:`~tmhp.subsystems.SolarThermalCollector` heats the cold mains
-water before it reaches the DHW tank, so the heat pump sees pre-heated
-water during the preheat window.
+A :class:`~tmhp.subsystems.SolarThermalCollector` sits in the mains line
+that feeds the tank: mains → collector → tank make-up inlet, while the
+mixing valve's cold side takes mains water directly. Only the water that
+enters the tank passes the collector, so its flow is the tank's make-up
+flow; it is solved together with the tank temperature and the preheated
+inflow is the reported ``T_tank_w_in [°C]``. The collector is bypassed
+outside the ``preheat_start_hour``–``preheat_end_hour`` window, without a
+draw and when it would cool the feed; when its outlet reaches
+``T_stc_tank_max`` at the flow the end-of-step tank draws, it is bypassed for
+the rest of the step. The mains pressure drives it: no pump power.
 
 .. code-block:: python
 
    import numpy as np
+   import pandas as pd
+   import pvlib
 
    from tmhp import ASHPB_STC_preheat
    from tmhp.subsystems import SolarThermalCollector
@@ -205,24 +259,26 @@ water during the preheat window.
        A_stc=4.0,             # 4 m² collector area
        stc_tilt=35.0,
        stc_azimuth=180.0,
+       start_time="2026-03-20",   # local time of second 0 (Seoul by default)
    )
 
    model = ASHPB_STC_preheat(stc=stc, ref="R32")
 
 Drive it the same way as base ASHPB, adding irradiance schedules
-(``I_DN_schedule``, ``I_dH_schedule``) — both in W/m² per step:
+(``I_DN_schedule``, ``I_dH_schedule``) — direct-normal and
+diffuse-horizontal, both in W/m² per step:
 
 .. code-block:: python
 
    dt_s          = 60
    n_steps       = 24 * 3600 // dt_s
-   hour_of_day   = np.arange(n_steps) / 60.0
 
-   # Crude clear-sky irradiance: bell from 06:00 to 18:00.
-   day_window    = (hour_of_day >= 6.0) & (hour_of_day <= 18.0)
-   sun_shape     = np.sin(np.pi * (hour_of_day - 6.0) / 12.0)
-   I_DN          = np.where(day_window, 800.0 * sun_shape, 0.0)
-   I_dH          = np.where(day_window, 100.0 * sun_shape, 0.0)
+   # Clear-sky DNI / DHI for Seoul on the start day (step midpoints).
+   site  = pvlib.location.Location(37.57, 126.98, "Asia/Seoul")
+   times = pd.date_range("2026-03-20", periods=n_steps, freq=f"{dt_s}s", tz="Asia/Seoul")
+   sky   = site.get_clearsky(times + pd.Timedelta(seconds=dt_s / 2))
+   I_DN  = sky["dni"].to_numpy()
+   I_dH  = sky["dhi"].to_numpy()
 
    T0  = np.full(n_steps, 5.0)
    dhw = np.zeros(n_steps)
@@ -264,13 +320,30 @@ energy:
     :members:
     :show-inheritance:
 
-STC with stratified tank
-------------------------
+STC tank loop
+-------------
 
 .. autoclass:: tmhp.ASHPB_STC_tank
     :members:
     :show-inheritance:
     :no-index:
+
+UV lamp
+-------
+
+A :class:`~tmhp.subsystems.UVLamp` (``uv=`` on the base boilers and the PV +
+ESS variants) switches on ``num_switching`` times per ``period_sec`` for
+``exposure_sec`` each. Each step reports the lamp's step-average power
+``E_uv [W]`` (the schedule integrated over the step, so a 12 s exposure is
+12 s of lamp energy at any ``dt_s``) and the heat it gives the tank water,
+``Q_uv_tank = heat_to_water_fraction · E_uv``. The default fraction 0.9
+assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
+all end in the water) and its ballast (about 90 % efficient) in the control
+box outside; set 1.0 when both are inside the tank boundary.
+
+The PV + ESS variants add ``E_uv`` to ``E_tot``; the base boilers report it
+in its own column but do not yet include it in ``E_tot`` (#96) — add it when
+totalling electricity.
 
 PV + ESS
 --------

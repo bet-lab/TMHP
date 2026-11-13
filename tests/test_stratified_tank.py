@@ -6,11 +6,13 @@ model before it is wired into the heat-pump plant as a swappable backend.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 
 from tmhp.constants import c_w, rho_w
-from tmhp.stratified_tank import StratifiedTank
+from tmhp.stratified_tank import INVERSION_TOL_K, StratifiedTank, TankOverheatWarning, mix_inversions
 
 # A representative small buffer tank.
 _VOL = 0.2  # m³
@@ -200,3 +202,135 @@ def test_heat_source_array_and_validation():
     assert (t.stored_energy - e0) == pytest.approx(_DT * qarr.sum(), rel=1e-9)
     with pytest.raises(ValueError):
         t.step(_DT, q_source=np.array([1.0, 2.0]))  # wrong length
+
+
+# ---------------------------------------------------------------------------
+# Buoyancy (inversion) mixing, overheat flag, sub-stepping (#96)
+# ---------------------------------------------------------------------------
+_RC = rho_w * c_w
+
+
+def _step_balance(t, dt, **kw):
+    e0 = t.stored_energy
+    out = t.step(dt, **kw)
+    cf, df = kw.get("charge_flow", 0.0), kw.get("draw_flow", 0.0)
+    flux = (
+        _RC * cf * (kw.get("T_charge", 0.0) - out["T_charge_out"])
+        + _RC * df * (kw.get("T_makeup", 10.0) - out["T_draw_out"])
+        + float(np.sum(kw.get("q_source", 0.0)))
+        - out["Q_loss"]
+    )
+    return t.stored_energy - e0, dt * flux, out
+
+
+def test_mix_inversions_conserves_energy_and_orders_profile():
+    rng = np.random.default_rng(7)
+    for _ in range(50):
+        T = rng.uniform(10.0, 90.0, 12)
+        cap = rng.uniform(0.5, 2.0, 12)
+        out, mixed = mix_inversions(T, cap)
+        assert mixed
+        assert np.dot(cap, out) == pytest.approx(np.dot(cap, T), rel=1e-12)
+        assert np.all(np.diff(out) <= INVERSION_TOL_K)
+        again, mixed_again = mix_inversions(out, cap)
+        assert not mixed_again and again is out  # idempotent
+
+
+def test_mix_inversions_leaves_stable_or_uniform_profile_bit_identical():
+    for T in (np.linspace(60.0, 20.0, 8), np.full(8, 45.0), np.full(8, 45.0) + 1e-13 * np.arange(8)):
+        out, mixed = mix_inversions(T, np.ones(8))
+        assert not mixed and out is T
+
+
+@pytest.mark.parametrize("n", [4, 10, 30])
+@pytest.mark.parametrize("dt", [60.0, 600.0])
+def test_bottom_heater_mixes_instead_of_inverting(n, dt):
+    """#96: 3 kW at the bottom node for 1 h used to leave 166 °C below 40 °C.
+
+    Buoyancy mixes the warm bottom upward: energy is conserved every step, the
+    profile stays monotone, and (no loss) the tank ends at the energy-mean
+    temperature regardless of dt and node count."""
+    t = StratifiedTank(n, _VOL, _H, ua=0.0)
+    t.reset(40.0)
+    q = np.zeros(n)
+    q[-1] = 3000.0
+    for _ in range(int(3600 / dt)):
+        de, flux, out = _step_balance(t, dt, q_source=q)
+        assert de == pytest.approx(flux, rel=1e-9, abs=1e-6)
+        assert np.all(np.diff(t.T) <= INVERSION_TOL_K)
+        assert out["mixed"]
+    np.testing.assert_allclose(t.T, 40.0 + 3000.0 * 3600.0 / (_RC * _VOL), atol=1e-6)
+
+
+def test_inversion_mixing_can_be_disabled():
+    t = StratifiedTank(10, _VOL, _H, inversion_mixing=False)
+    t.reset(40.0)
+    q = np.zeros(10)
+    q[-1] = 3000.0
+    t.step(600.0, q_source=q)
+    assert t.T[-1] > t.T[0] + 5.0
+
+
+def test_mixing_with_draw_keeps_balance_on_reported_outflow():
+    """Mixing after the solve: the outflow that closes the balance is the
+    reported ``T_draw_out``/``T_charge_out``, not the post-mixing node value."""
+    t = StratifiedTank(8, _VOL, _H, ua=5.0)
+    t.reset(np.linspace(50.0, 30.0, 8))
+    q = np.zeros(8)
+    q[-1] = 8000.0
+    de, flux, out = _step_balance(
+        t, 600.0, q_source=q, draw_flow=5e-5, T_makeup=12.0, charge_flow=3e-5, T_charge=55.0, T_amb=15.0
+    )
+    assert out["mixed"]
+    assert de == pytest.approx(flux, rel=1e-9, abs=1e-6)
+
+
+def test_overheat_flag_and_warning():
+    t = StratifiedTank(4, _VOL, _H, ua=0.0)
+    t.reset(90.0)
+    with pytest.warns(TankOverheatWarning, match="T_boil"):
+        out = t.step(600.0, q_source=40_000.0)
+    assert out["overheat"] and out["T_max"] > 100.0
+    t.reset(90.0)
+    t.T_boil = 300.0  # pressurised tank: no flag
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert not t.step(600.0, q_source=40_000.0)["overheat"]
+
+
+def test_heat_source_must_be_finite():
+    t = StratifiedTank(4, _VOL, _H)
+    t.reset(40.0)
+    with pytest.raises(ValueError, match="finite"):
+        t.step(_DT, q_source=np.array([1.0, np.nan, 0.0, 0.0]))
+
+
+def test_default_is_one_implicit_step_with_reported_outflows_equal_to_nodes():
+    t = StratifiedTank(8, _VOL, _H, ua=3.0)
+    t.reset(np.linspace(58.0, 38.0, 8))
+    out = t.step(600.0, charge_flow=1e-4, T_charge=60.0, draw_flow=5e-5, T_makeup=12.0)
+    assert out["substeps"] == 1
+    assert out["T_draw_out"] == out["T_top"] and out["T_charge_out"] == out["T_outlet"]
+
+
+def test_max_courant_substeps_conserve_energy_and_reduce_diffusion():
+    n, q, dt = 20, 1.2e-4, 600.0
+    widths = {}
+    for mc in (None, 1.0):
+        t = StratifiedTank(n, _VOL, _H, k_eff=0.606, ua=2.0, max_courant=mc)
+        t.reset(15.0)
+        for _ in range(2):
+            de, flux, out = _step_balance(t, dt, charge_flow=q, T_charge=60.0, T_amb=20.0)
+            assert de == pytest.approx(flux, rel=1e-9, abs=1e-6)
+        assert out["substeps"] == (1 if mc is None else 8)  # Co = 7.2
+        widths[mc] = np.sum((t.T > 26.25) & (t.T < 48.75))
+    assert widths[1.0] < widths[None]
+
+
+def test_substep_count_is_robust_at_integer_courant():
+    t = StratifiedTank(10, _VOL, _H, max_courant=1.0)
+    q = 3.0 * t.v_node / 600.0  # Co = 3 exactly (up to round-off)
+    assert t.substeps(600.0, charge_flow=q * (1 + 1e-14)) == 3
+    assert t.substeps(600.0, charge_flow=q * (1 - 1e-14)) == 3
+    with pytest.raises(ValueError):
+        StratifiedTank(4, _VOL, _H, max_courant=0.0)

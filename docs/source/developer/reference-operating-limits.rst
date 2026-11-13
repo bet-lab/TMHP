@@ -88,6 +88,40 @@ or explicit ``curve_type="custom"`` marks a custom model whose validity and
 limits are the caller's responsibility; that model may allow max > ref.
 Reference and hardware maximum remain independent inputs.
 
+Constant-speed fans
+~~~~~~~~~~~~~~~~~~~
+
+A single-speed (or single-stage) fan is ``min == max``: pass
+``dV_*_fan_a_min=dV_*_fan_a_max=<flow>`` and set the reference
+``dV_*_fan_a_rated`` (or ``_ref``) to the same flow, so the coil UA and the fan
+power are normalised at the flow the fan actually runs at. Equal limits are
+accepted by ``resolve_fan_flow_limits`` for every fan; ``min > max`` and a zero
+maximum remain input errors, and the generic ASHRAE curve still requires the
+flow to lie inside 0.15--1.0 of the reference. The coil cannot change its
+airflow, so a duty is carried only through the approach temperature: ASHPB and
+GSHP solve that single approach (the band of approaches the fan can serve
+collapses to a point) and report the duty exactly. A request the coil cannot
+carry fails with ``failure_reason == "hx_not_converged"`` as for a variable fan.
+
+A constant-speed fan sits at both limits, so both ``fan_flow_min_limit`` and
+``fan_flow_max_limit`` (``iu_*`` / ``ou_*``) are true; the direction in which a
+coil duty misses is in ``capacity_margin_W`` of the coil solve. Fan power is the
+power curve evaluated at the flow ratio, so at the reference flow it is
+``curve(1)`` times the reference power: 0.998262 for the default single-zone
+VAV surrogate and 0.9991 for the ASHRAE correlation. Pass
+``vsd_coeffs={"c1": 1, "c2": 0, "c3": 0, "c4": 0, "c5": 0, "curve_type": "custom"}``
+for a power that is exactly the rated value at every flow.
+
+.. note::
+
+   ``AirSourceHeatPump`` accepts constant-speed fans at construction, but its
+   two-dimensional Nelder--Mead search over the evaporator and condenser
+   approaches cannot find them: with one fixed coil the feasible approaches lie
+   on a curve, with two on a single point, and the objective is infeasible
+   everywhere else. It returns ``failure_reason == "hx_not_converged"``, and a
+   narrow range does not help reliably (ranges of ±2 % still fail at some
+   conditions) until that search is reworked.
+
 The unchanged empirical equation is
 
 .. math::

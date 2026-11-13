@@ -2,11 +2,12 @@
 
 - lumped         : single-node fully-mixed  (StratifiedTank n=1)
 - stratified     : Cadau 2019 multi-node smooth (StratifiedTank, MPC-internal)
-- hybrid         : Cruz-Loredo 2023 hybrid thermocline (HybridStratifiedTank, plant)
+- hybrid         : Cruz-Loredo 2023 hybrid thermocline (HybridStratifiedTank, conservative)
 
-Two experiments:
+Three experiments:
   A. Charging a cold tank — thermocline sharpness (numerical diffusion).
   B. Drawing hot water — supply-temperature hold time (stratification flexibility).
+  C. Stratified front width vs dt, N and flow, against sigma^2 = L*(dz + v*dt).
 
 Run::
 
@@ -98,6 +99,54 @@ def _hold_time(t_min, sup, threshold=45.0):
     return float(t_min[above][-1]) if above.any() else 0.0
 
 
+# --- C. Numerical diffusion of the stratified backend vs dt, N, flow ---------
+def _front_width_10_90(T, n):
+    """10-90 % width of a charging front [fraction of H], interpolated between node
+    centres; ``nan`` when the 10 % or 90 % level lies outside the tank."""
+    theta = (T - T_COLD) / (T_HOT - T_COLD)  # 1 at the top, decreasing downward
+    depth = (np.arange(n) + 0.5) / n
+
+    def cross(level):
+        k = np.nonzero(theta < level)[0]
+        if k.size == 0 or k[0] == 0:
+            return np.nan
+        i = k[0]
+        return depth[i - 1] + (theta[i - 1] - level) / (theta[i - 1] - theta[i]) * (depth[i] - depth[i - 1])
+
+    return cross(0.1) - cross(0.9)
+
+
+def diffusion_table():
+    """Front width when the front reaches mid-height, measured and predicted.
+
+    Prediction for implicit first-order upwinding: the front spreads like
+    ``σ² = L·(Δz + v·h) + 2·α·t`` (``L`` travel, ``h`` the (sub-)step, ``α`` the
+    conduction diffusivity), and the 10-90 % width is ``2.563·σ``.
+    """
+    from tmhp.constants import c_w, rho_w
+
+    alpha = K_EFF / (rho_w * c_w)
+    area = VOL / H
+    rows = []
+    # Two flows whose half-tank time is a multiple of every dt below.
+    for q, t_half in ((VOL / 2 / 1800.0, 1800.0), (VOL / 2 / 600.0, 600.0)):
+        v = q / area
+        for dt in (10.0, 60.0, 300.0, 600.0):
+            for n in (10, 20, 60):
+                w = {}
+                for label, kw in (("default", {}), ("co1", {"max_courant": 1.0})):
+                    tank = StratifiedTank(n, VOL, H, k_eff=K_EFF, ua=0.0, **kw)
+                    tank.reset(T_COLD)
+                    for _ in range(round(t_half / dt)):
+                        tank.step(dt, charge_flow=q, T_charge=T_HOT)
+                    w[label] = _front_width_10_90(tank.T, n)
+                co = q * dt / (VOL / n)
+                h_sub = dt / max(1, int(np.ceil(co - 1e-9)))
+                pred = [2.563 * np.sqrt((H / 2) * (H / n + v * h) + 2 * alpha * t_half) / H for h in (dt, h_sub)]
+                rows.append((q * 6e4, dt, n, co, w["default"], pred[0], w["co1"], pred[1]))
+    return rows
+
+
 # --- Plotting ----------------------------------------------------------------
 def _plot(prof, ns, w_cad, w_hyb, t_min, sup):
     import dartwork_mpl as dm
@@ -166,6 +215,16 @@ def main():
     print("\n=== B. Draw supply hold (>45°C) ===")
     for k in ("lumped", "stratified", "hybrid"):
         print(f"  {k:>11}: {_hold_time(t_min, sup[k]):5.1f} min above 45°C")
+
+    print("\n=== C. Stratified front width (10-90 %, % of height) at mid-tank ===")
+    print("| flow [L/min] | dt [s] | N | Co | width | predicted | width, max_courant=1 | predicted |")
+    print("|---|---|---|---|---|---|---|---|")
+    for qlpm, dt, n, co, w0, p0, w1, p1 in diffusion_table():
+
+        def pct(x):
+            return "> 100" if not np.isfinite(x) or x > 1.0 else f"{x * 100:.0f}"
+
+        print(f"| {qlpm:.2f} | {dt:.0f} | {n} | {co:.2f} | {pct(w0)} | {pct(p0)} | {pct(w1)} | {pct(p1)} |")
 
     _plot(prof, ns, w_cad, w_hyb, t_min, sup)
     print(f"\nFigures written to {HERE}")

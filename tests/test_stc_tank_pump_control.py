@@ -6,7 +6,7 @@ from tmhp.dynamic_context import ControlState, StepContext
 from tmhp.subsystems import SolarThermalCollector
 
 
-def _ctx() -> StepContext:
+def _ctx(T_tank_C: float = 60.0) -> StepContext:
     return StepContext(
         n=0,
         current_time_s=12 * 3600.0,
@@ -15,10 +15,10 @@ def _ctx() -> StepContext:
         T0=5.0,
         T0_K=C2K(5.0),
         activation_flags={"stc": True},
-        T_tank_w_K=C2K(60.0),
+        T_tank_w_K=C2K(T_tank_C),
         tank_level=1.0,
         dV_mix_w_out=0.0,
-        I_DN=400.0,
+        I_DN=800.0,
         I_dH=0.0,
         T_sup_w_K=C2K(10.0),
     )
@@ -33,13 +33,11 @@ def _ctrl(e_tot_w: float = 0.0) -> ControlState:
     )
 
 
-def _stc(e_pump_w: float) -> SolarThermalCollector:
-    return SolarThermalCollector(
-        A_stc=4.0,
-        A_stc_pipe=4.0,
-        dV_stc_w=1.0e-4,
-        E_stc_pump=e_pump_w,
-    )
+def _stc(e_pump_w: float, **kw) -> SolarThermalCollector:
+    return SolarThermalCollector(A_stc=4.0, dV_stc_w=1.0e-4, E_stc_pump=e_pump_w, **kw)
+
+
+DT = 60.0
 
 
 def test_ashpb_stc_tank_preserves_collector_pump_power():
@@ -50,15 +48,16 @@ def test_ashpb_stc_tank_preserves_collector_pump_power():
 
 
 def test_ashpb_stc_tank_does_not_circulate_when_gain_does_not_beat_pump():
-    stc = _stc(1000.0)
+    stc = _stc(2500.0)
     model = ASHPB_STC_tank(stc=stc)
     ctx = _ctx()
 
-    probe = stc.calc_performance(ctx.I_DN, ctx.I_dH, ctx.T_tank_w_K, ctx.T0_K, is_active=True)
+    plane = model._stc_plane(ctx, DT)
+    probe = stc.calc_performance(ctx.I_DN, ctx.I_dH, ctx.T_tank_w_K, ctx.T0_K, is_active=True, plane=plane)
     assert probe["T_stc_w_out_K"] > ctx.T_tank_w_K
     assert (probe["Q_stc_w_out"] - probe["Q_stc_w_in"]) < stc.E_stc_pump
 
-    state = model._run_subsystems(ctx, _ctrl(), dt=60.0, T_tank_w_in_K=ctx.T_sup_w_K)
+    state = model._run_subsystems(ctx, _ctrl(), dt=DT, T_tank_w_in_K=ctx.T_sup_w_K)
 
     assert state["stc"]["stc_active"] is False
     assert state["stc"]["E_subsystem"] == pytest.approx(0.0)
@@ -70,7 +69,7 @@ def test_ashpb_stc_tank_adds_active_pump_power_to_total_electricity():
     ctx = _ctx()
     ctrl = _ctrl(e_tot_w=123.0)
 
-    state = model._run_subsystems(ctx, ctrl, dt=60.0, T_tank_w_in_K=ctx.T_sup_w_K)
+    state = model._run_subsystems(ctx, ctrl, dt=DT, T_tank_w_in_K=ctx.T_sup_w_K)
     assert state["stc"]["stc_active"] is True
 
     row = model._augment_results(dict(ctrl.result), ctx, ctrl, state, T_solved_K=ctx.T_tank_w_K)
@@ -80,11 +79,36 @@ def test_ashpb_stc_tank_adds_active_pump_power_to_total_electricity():
 
 
 def test_gshpb_stc_tank_uses_same_pump_threshold_for_circulation():
-    stc = _stc(1000.0)
+    stc = _stc(2500.0)
     model = GSHPB_STC_tank(stc=stc)
     ctx = _ctx()
 
-    state = model._run_subsystems(ctx, _ctrl(), dt=60.0, T_tank_w_in_K=ctx.T_sup_w_K)
+    state = model._run_subsystems(ctx, _ctrl(), dt=DT, T_tank_w_in_K=ctx.T_sup_w_K)
 
     assert state["stc"]["stc_active"] is False
     assert state["stc"]["E_subsystem"] == pytest.approx(0.0)
+
+
+@pytest.mark.parametrize("cls", [ASHPB_STC_tank, GSHPB_STC_tank])
+def test_loop_does_not_start_at_the_storage_high_limit(cls):
+    """At or within 0.1 K of T_stc_tank_max the loop stays off (#96 T9)."""
+    model = cls(stc=_stc(40.0, T_stc_tank_max=70.0))
+    for T_tank, expected in ((69.85, True), (69.95, False), (70.0, False)):
+        state = model._run_subsystems(_ctx(T_tank), _ctrl(), dt=DT, T_tank_w_in_K=C2K(10.0))
+        assert state["stc"]["stc_active"] is expected, T_tank
+
+
+@pytest.mark.parametrize("cls", [ASHPB_STC_tank, GSHPB_STC_tank])
+def test_loop_runs_only_with_the_differential_above_dT_off(cls):
+    """A collector outlet less than dT_stc_off above the tank does not run the pump."""
+    weak = cls(stc=_stc(0.0, dT_stc_off=5.0, dT_stc_on=8.0))
+    ctx = _ctx()
+    probe = weak._stc.calc_performance(
+        ctx.I_DN, ctx.I_dH, ctx.T_tank_w_K, ctx.T0_K, plane=weak._stc_plane(ctx, DT), is_active=True
+    )
+    rise = probe["T_stc_w_out_K"] - ctx.T_tank_w_K
+    assert 0.0 < rise < 5.0
+    state = weak._run_subsystems(ctx, _ctrl(), dt=DT, T_tank_w_in_K=C2K(10.0))
+    assert state["stc"]["stc_active"] is False
+    strong = cls(stc=_stc(0.0, dT_stc_off=0.5 * rise, dT_stc_on=8.0))
+    assert strong._run_subsystems(ctx, _ctrl(), dt=DT, T_tank_w_in_K=C2K(10.0))["stc"]["stc_active"] is True

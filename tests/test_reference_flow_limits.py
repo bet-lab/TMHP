@@ -204,11 +204,17 @@ def test_each_air_side_model_exposes_independent_reference_and_max(cls, unit, mo
 
 
 @pytest.mark.parametrize(
-    "ref,low,high", [(0, 0.05, 1), (1, 1, 1), (1, -1, 2), (1, 0.05, math.inf), (math.nan, 0.05, 1)]
+    "ref,low,high", [(0, 0.05, 1), (1, 1.1, 1), (1, 0, 0), (1, -1, 2), (1, 0.05, math.inf), (math.nan, 0.05, 1)]
 )
 def test_invalid_fan_bounds_are_input_errors(ref, low, high):
     with pytest.raises(ValueError):
         resolve_fan_flow_limits(ref, low, high)
+
+
+def test_equal_fan_bounds_describe_a_constant_speed_fan():
+    # min == max is a single-speed fan, not an input error (see test_fixed_speed_fan.py).
+    assert resolve_fan_flow_limits(1, 1, 1) == (1, 1)
+    assert resolve_fan_flow_limits(1, 0.5, 0.5, custom_curve=True) == (0.5, 0.5)
 
 
 def test_legacy_fan_solver_matches_explicit_reference_and_compatibility_bounds():

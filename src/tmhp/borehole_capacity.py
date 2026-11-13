@@ -106,6 +106,7 @@ __all__ = [
     "DynamicGFunction",
     "EquivalentCylinderBorehole",
     "cylinder_source_wall",
+    "enable_borehole_dynamics",
     "fluid_to_pipe_resistance",
     "line_source_wall",
     "with_borehole_capacity",
@@ -1019,3 +1020,76 @@ def with_borehole_capacity(
     if transit and H is not None and m_flow_borehole is not None:
         return DynamicGFunction(g_field, section, t_max_s=t_max_s, H=H, m_cp=m_flow_borehole * cp_f)
     return DynamicGFunction(g_field, section, t_max_s=t_max_s)
+
+
+def enable_borehole_dynamics(
+    model: Any,
+    *,
+    rhoc_g: float = RHOC_GROUT_DEFAULT,
+    rhoc_p: float = RHOC_PIPE_DEFAULT,
+    n_pipes: int = 2,
+    transit: bool = True,
+) -> DynamicGFunction:
+    """Switch a ground-source model to the dynamic borehole response, in place.
+
+    Works on :class:`~tmhp.GroundSourceHeatPumpBoiler` (and its solar
+    variants) and :class:`~tmhp.GroundSourceHeatPump`. Everything is derived
+    from what the model already holds: borehole and pipe radii, pipe
+    conductivity, ground properties, the borehole resistance it uses, the
+    depth and the loop flow. Call it right after constructing the model::
+
+        model = GroundSourceHeatPumpBoiler(H_b=150.0)
+        enable_borehole_dynamics(model)
+
+    To go back, construct the model again. A model given its own
+    ``ground_coupler`` is left to that coupler and raises here.
+
+    Parameters
+    ----------
+    model
+        A ground-source model built with the default g-function backend.
+    rhoc_g, rhoc_p : float, optional
+        Volumetric heat capacity of grout and pipe wall [J/(m3 K)].
+    n_pipes : int, optional
+        Pipes per borehole (2 for the single U-tube the models assume).
+    transit : bool, optional
+        Resolve the fluid transit through the U-tube (default).
+
+    Returns
+    -------
+    DynamicGFunction
+        The response now used by ``model``.
+    """
+    from .ground_coupling import AggregateGFunctionCoupler
+
+    settings = getattr(model, "_ground_settings", None)
+    g_field = getattr(model, "_gfunc_interp", None)
+    if settings is None or g_field is None or "geometry" not in settings:
+        raise TypeError(f"{type(model).__name__} does not expose a borehole field (no ground settings / g-function)")
+    coupler = getattr(model, "_ground_coupler", None)
+    if coupler is not None and not (isinstance(coupler, AggregateGFunctionCoupler) and coupler._g is g_field):
+        raise ValueError("the model uses an injected ground_coupler; wrap that coupler's g-function instead")
+    if isinstance(g_field, DynamicGFunction):
+        g_field = g_field.field
+    geometry = settings["geometry"]
+    n_boreholes = int(settings["n_boreholes"])
+    dynamic = with_borehole_capacity(
+        g_field,
+        r_b=float(geometry["r_b"]),
+        k_s=float(geometry["k_s"]),
+        rhoc_s=float(model.rho_s) * float(model.c_s),
+        R_b=float(settings["R_b"]),
+        r_out=float(geometry["r_out"]),
+        r_in=float(geometry["r_in"]),
+        n_pipes=n_pipes,
+        k_p=float(geometry["k_p"]),
+        m_flow_borehole=float(settings["volume_flow_constant"]) * rho_w / n_boreholes,
+        rhoc_g=rhoc_g,
+        rhoc_p=rhoc_p,
+        H=float(settings["H_b"]),
+        transit=transit,
+    )
+    model._gfunc_interp = dynamic
+    if coupler is not None:
+        model._ground_coupler = AggregateGFunctionCoupler(dynamic, pulse_tol=coupler._pulse_tol, dt_s=coupler._dt_fixed)
+    return dynamic

@@ -230,5 +230,77 @@
     },
     "nas_path": "energy-systems/highly-web-th-20261025-source/files/extracted/HIGHLY-TH-20261025-web-snapshot.pdf",
     "archive87_dataset_id": "highly-web-th-20261025-source"
+  },
+  {
+    "source_id": "SCI-ROTARY-2026",
+    "title": "Mitsubishi Electric Siam Compressor Industry (ME-SCI) rotary compressor catalogue, English (created 2025-08-31, modified 2026-04-10)",
+    "role": "observations",
+    "url": "https://technic.me-sci.com/siamcompressor/assets/file/ME-SCI%20rotary%20catalogue%20English.pdf",
+    "landing_page": "https://technic.me-sci.com/siamcompressor/en/documentation (\"ME-SCI's rotary compressor catalogue\")",
+    "evidence_path": "validation/evidence/default_inputs/SCI-ROTARY-2026.pdf",
+    "sha256": "8e0374741f819464b2c243905eeb7c33542adece006d94a5ac57e2d1faeec6d0",
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "curl from the manufacturer's documentation page (link found through the Chrome bridge); HTTP Last-Modified 2026-04-23, 146,140,346 bytes",
+    "accessed_at": "2026-11-14",
+    "pages": 24,
+    "notes": "Tables are images (no text layer); values read from page renders. p12 R32 inverter rotary table (footer 'ARI Condition'), p14 R410A table (row marks (a) A/C Condition, (b) ASRE-T Condition), p13/p15 types (KVB/KNB single, SVB/TVB/SNB/TNB twin rotary DC inverter). Single-rotary KVB/KNB rows and (a) A/C-condition rows are not transcribed: no basis in scope / the A/C condition is not defined in any SCI document found.",
+    "displacement_decoding": {
+      "sci_model_token": {
+        "factor_to_cm3_rev": 0.1,
+        "rule_pdf_page": 5,
+        "rule": "Stroke volume (displacement) in cc./rev is shown x0.1 for K, S & T series; example SVB220FTDM1T is 22 (p5)"
+      }
+    },
+    "row_defaults": {
+      "ARI_60Hz_variable_twin": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "SCI ARI definition, SCI-ROTARY-2016 p4",
+        "conditions_source_id": "SCI-ROTARY-2016",
+        "conditions_pdf_page": 4,
+        "frequency_confirmation": "table heading 'Performance at 60 rps' p12",
+        "assumption": "SCI 2026 tables print only the labels 'ARI Condition' (R32 table) and '(b) ASRE-T Condition' (R410A table); the numeric definitions are SCI's own, printed in SCI-ROTARY-2016 p4 (ASRE-T: Te7.2/return gas35/Tc54.4/liquid46(115F)/ambient35; ARI: Te7.2/return gas18.3/Tc54.4/liquid46(115F)/ambient35) and identically for ASRE-T in the 2011 edition p2."
+      },
+      "ASHRAE_T_60rps_variable_twin": {
+        "T_ambient_C": 35.0,
+        "ambient_basis": "SCI ASRE-T definition, SCI-ROTARY-2016 p4",
+        "conditions_source_id": "SCI-ROTARY-2016",
+        "conditions_pdf_page": 4,
+        "frequency_confirmation": "table heading 'Performance at 60 rps' p14",
+        "assumption": "SCI 2026 tables print only the labels 'ARI Condition' (R32 table) and '(b) ASRE-T Condition' (R410A table); the numeric definitions are SCI's own, printed in SCI-ROTARY-2016 p4 (ASRE-T: Te7.2/return gas35/Tc54.4/liquid46(115F)/ambient35; ARI: Te7.2/return gas18.3/Tc54.4/liquid46(115F)/ambient35) and identically for ASRE-T in the 2011 edition p2."
+      }
+    },
+    "nas_path": "energy-systems/me-sci-rotary-catalogue-2026-source/files/source/SCI-ROTARY-2026.pdf",
+    "archive87_dataset_id": null,
+    "nas_note": "Added 2026-11-14 for #86 (not in the #87 ledger)"
+  },
+  {
+    "source_id": "SCI-ROTARY-2016",
+    "title": "SCI rotary compressor catalogue (printing date Jan 2016; held copy)",
+    "role": "conditions",
+    "url": "https://mitsubishicompressors.com/products/reference/Mitsubishi-Rotary-Catalogue.pdf",
+    "evidence_path": "validation/evidence/default_inputs/SCI-ROTARY-2016.pdf",
+    "sha256": "85e2c806fac5bd1b3310ebc87c5e47125d19b2e085eddf9da44fd5adc7d20992",
+    "evidence_type": "manufacturer_document_distributor_hosted",
+    "access_method": "#87 NAS held copy; byte-identical to the file at the URL (re-downloaded 2026-11-14)",
+    "accessed_at": "2026-11-14",
+    "pages": 28,
+    "notes": "Used only for SCI's numeric definitions of the 'ARI' and 'ASRE-T' labels (p4); no values transcribed. The URL host is a Dubai distributor, not the manufacturer: the 2016 edition is no longer on the manufacturer domain. Its 60 rps values differ from the 2026 official edition for some models (e.g. TNB220FLHMT 7,130 vs 6,710 W), so observations come only from SCI-ROTARY-2026.",
+    "nas_path": "energy-systems/mitsubishi-sci-rotary-local-85e2c806/files/source/Mitsubishi_SCI_rotary_catalogue.pdf",
+    "archive87_dataset_id": "mitsubishi-sci-rotary-local-85e2c806"
+  },
+  {
+    "source_id": "GMCC-ROTARY-2026",
+    "title": "GMCC rotary compressor catalogue 2026",
+    "role": "reviewed_not_used",
+    "url": "https://www.gmcc-welling.com/ (catalogue PDF from #87 NAS; exact download URL not recorded)",
+    "evidence_path": "validation/evidence/default_inputs/GMCC-ROTARY-2026.pdf",
+    "sha256": "84605f78a83a218bd76a2af21c3d62e961a01a7f6a90c5761b5853be68e2ea40",
+    "evidence_type": "manufacturer_original_pdf",
+    "access_method": "#87 NAS copy",
+    "accessed_at": "2026-11-14",
+    "pages": 13,
+    "notes": "Reviewed for the 60 rps inverter twin basis and not used: the DC inverter tables (p7-p9) are headed 'R32/R410A' and the refrigerant code K in the naming rules (p4) means 'R32/R410A', so the refrigerant of each printed capacity is unknown and rho_1 * dh cannot be evaluated. Fixed-speed tables use GMCC's own GX condition (p13).",
+    "nas_path": "energy-systems/gmcc-rotary-catalogue-2026-v1/files/source/GMCC_Rotary_2026.pdf",
+    "archive87_dataset_id": "gmcc-rotary-catalogue-2026-v1"
   }
 ]

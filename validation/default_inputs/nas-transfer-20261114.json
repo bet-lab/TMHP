@@ -1,0 +1,20 @@
+{
+ "verified_at": "2026-11-13T15:19:49.654838+00:00",
+ "transport": "rclone receipt-nas SMB",
+ "files": 1,
+ "smb_readback_sha256": "1/1 matched",
+ "nfs_read_sha256": "1/1 matched",
+ "nas_payload_root": "/mnt/datasets",
+ "smb_payload_root": "receipt-nas:datasets",
+ "destination_preflight": "dataset folder absent before upload",
+ "shared_nas_metadata_written": false,
+ "files_detail": [
+  {
+   "path": "energy-systems/me-sci-rotary-catalogue-2026-source/files/source/SCI-ROTARY-2026.pdf",
+   "bytes": 146140346,
+   "sha256": "8e0374741f819464b2c243905eeb7c33542adece006d94a5ac57e2d1faeec6d0",
+   "smb_readback": true,
+   "nfs_read": true
+  }
+ ]
+}

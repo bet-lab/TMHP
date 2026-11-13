@@ -126,7 +126,10 @@ def summary(regression: dict) -> dict:
             "nested_family_RMSE": fit["nested_family_cv"]["RMSE"],
             "nested_family_MAPE_pct": fit["nested_family_cv"]["MAPE_pct"],
         }
-        for key, fit in regression["fits"].items()
+        for key, fit in {
+            **regression["fits"],
+            **{f"normalized|{k}": v for k, v in regression.get("normalized_fits", {}).items()},
+        }.items()
     }
 
 

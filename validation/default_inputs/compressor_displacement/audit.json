@@ -1,12 +1,36 @@
 {
-  "records": 137,
-  "eligible": 136,
+  "records": 155,
+  "eligible": 150,
   "excluded": [
     {
       "record_id": "lg:ARI60:DAT134MC",
       "model_id": "DAT134MC",
       "source_pdf_page": 6,
       "exclusion_reason": "manufacturer_W_and_Btu_h_capacity_columns_differ_over_2pct"
+    },
+    {
+      "record_id": "sci:ARI60:SVB220FBAMT",
+      "model_id": "SVB220FBAMT",
+      "source_pdf_page": 12,
+      "exclusion_reason": "400 V variant: SVB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ARI60:TVB306FPNMT",
+      "model_id": "TVB306FPNMT",
+      "source_pdf_page": 12,
+      "exclusion_reason": "400 V variant: TVB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ASRET60:SNB220FBAMT",
+      "model_id": "SNB220FBAMT",
+      "source_pdf_page": 14,
+      "exclusion_reason": "400 V variant: SNB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
+    },
+    {
+      "record_id": "sci:ASRET60:TNB306FPNMT",
+      "model_id": "TNB306FPNMT",
+      "source_pdf_page": 14,
+      "exclusion_reason": "400 V variant: TNB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept"
     }
   ],
   "errata_applied": [
@@ -18,23 +42,83 @@
       "evidence": "PANASONIC-CGZ-2025 PDF p16 (printed p30), R290 220-240V 50Hz table, row 7VS355EA*",
       "reason": "Transcription slip: 35.5 belongs to the R454C row GVS355EAA41 on the same page",
       "date": "2026-10-26"
+    },
+    {
+      "record_id": "sci:ARI60:SVB220FBAMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: SVB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ARI60:TVB306FPNMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: TVB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ASRET60:SNB220FBAMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: SNB220FBGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
+    },
+    {
+      "record_id": "sci:ASRET60:TNB306FPNMT",
+      "field": "exclude",
+      "from_value": "",
+      "to_value": "400 V variant: TNB306FPGMT (200 V) prints the same 60 rps capacity and displacement; one kept",
+      "evidence": "SCI-ROTARY-2026 p12/p14 400 V block",
+      "reason": "Voltage variants are not independent observations (README: same model voltage variants are kept apart)",
+      "date": "2026-11-14"
     }
   ],
-  "group_count": 6,
+  "group_count": 7,
+  "normalized_bases": {
+    "rotary_single_fixed_50Hz": {
+      "n": 109,
+      "manufacturers": [
+        "Highly",
+        "LG",
+        "Panasonic"
+      ],
+      "eta_vol_rps_per_f": 0.8575625124785291,
+      "meets_shipping_gate": true
+    },
+    "rotary_twin_inverter_60rps": {
+      "n": 41,
+      "manufacturers": [
+        "LG",
+        "Mitsubishi Electric SCI"
+      ],
+      "eta_vol_rps_per_f": 0.8870095871327589,
+      "meets_shipping_gate": true
+    }
+  },
   "evidence_type_counts": {
     "explicit_numeric_geometry": 97,
-    "manufacturer_nomenclature_decoded": 40
+    "manufacturer_nomenclature_decoded": 58
   },
-  "source_count": 9,
-  "data_sha256": "1efb2a4107f9991ada5ee5ec0e18ce50e7ba6ecd93ec09f11ccfbb02a5ac7ad1",
+  "source_count": 12,
+  "data_sha256": "a7d446c139f67644139828242b4ac3e290f75ac488de51d9cd47e7e1f2f36756",
   "is_latest_release": true,
-  "latest_release": "displacement-v2026-10-26",
+  "latest_release": "displacement-v2026-11-14",
   "all_checks_passed": true,
   "limitations": [
     "LG ambient temperature unspecified; refrigerant-side temperature boundaries and frequency/type are matched, not every environmental variable.",
     "Variable-speed 60Hz means published test/drive-frequency basis, not a measured shaft speed.",
     "LG variable-speed frequency is a cross-document manufacturer default from the current product page, not directly printed on each 2024 capacity row.",
-    "ASHRAE fixed50 and ARI variable60 are distinct protocols and never pooled into a single refrigerant law.",
+    "Per-protocol fits are diagnostic. The shipped relation pools refrigerants and rating points within one compressor basis by dividing out rho_1*dh (CoolProp); fixed-speed 50 Hz and 60 rps inverter bases are never pooled.",
+    "eta_vol*rps assumes the volumetric efficiency of a basis does not depend on refrigerant or rating point; refrigerant hold-out error measures how far that holds.",
+    "SCI's numeric definitions of 'ARI' and 'ASRE-T' come from its 2016 edition (distributor-hosted, byte-identical held copy); the 2026 official edition prints only the labels.",
+    "GMCC 2026 was reviewed and not used: its inverter tables do not state which of R32/R410A the printed capacity refers to.",
     "Only LG provides the near-15 kW matched R32/R410A comparison; multi-manufacturer coverage is strongest in the lower-capacity fixed50 protocol.",
     "Highly web snapshots are browser-generated evidence of official HTML, not original manufacturer PDFs."
   ]

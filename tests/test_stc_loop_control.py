@@ -350,6 +350,28 @@ def test_after_the_storage_limit_the_loop_waits_for_the_restart_band(name):
     assert T.max() <= 62.0 + TANK_LIMIT_RAMP_K + 1e-9
 
 
+@pytest.mark.parametrize(("T_tank", "held"), [(84.0, True), (82.5, False)])
+def test_a_ground_route_step_keeps_the_tank_limit_hold(T_tank, held):
+    """Routing the heat to the ground does not release a tank held at its storage limit.
+
+    The ground loop's own decision has no storage limit, so it used to carry
+    ``limit_hold=False`` into the next step: a router going tank -> ground ->
+    tank restarted the tank loop at 84 °C against the 85 °C limit instead of
+    waiting for the restart band (below 83 °C).
+    """
+    stc = SolarThermalCollector(A_stc=4.0, start_time="2026-06-21 00:00", T_stc_lockout=None)  # _ctx: noon
+    m = _model("GSHPB_STC_routed", stc)
+    m._subsystem_state_in = {"stc": {"pump_on": False, "limit_hold": True, "lockout": False}}
+    ctx = _ctx(T0=28.0, T_tank=T_tank, I_DN=850.0, I_dH=110.0)
+    state = m._ground_loop_state(ctx, float(DT), cu.C2K(16.0))
+    assert state["stc_active"], "the ground loop itself must still run"
+    assert state[SUBSYSTEM_STATE_KEY]["limit_hold"] is held
+    # the next tank-route decision starts from the carried state
+    back = m._tank_loop_state(_ctx(T0=28.0, T_tank=T_tank, I_DN=850.0, I_dH=110.0), float(DT))
+    assert back["limit_hold"] is held
+    assert back["stc_active"] is (not held)
+
+
 def test_preheat_placement_has_no_lockout_and_reports_its_idle_temperature():
     stc = SolarThermalCollector(A_stc=4.0, start_time="2026-06-21 08:00", preheat_start_hour=0.0)
     m = _model("ASHPB_STC_preheat", stc)

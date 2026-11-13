@@ -184,18 +184,19 @@ class STCScenario:
         previous = getattr(self, "_subsystem_state_in", None) or {}
         return {**STC_CONTROLLER_STATE0, **previous.get("stc", {})}
 
-    def _commit_controller(self, state: dict, pump_on: bool) -> None:
+    def _commit_controller(self, state: dict, pump_on: bool, *, limit_hold: bool | None = None) -> None:
         """Write the controller state the next step starts from into ``state``.
 
         ``state`` is this step's subsystem dict; the flags are those of the
         step-start decision and ``pump_on`` says whether the pump was running
-        at the end of the step. Hosts with a ``DynamicState`` gather the
-        entry from the dict; the others read it back from
-        ``_subsystem_state_in``, which is replaced, not modified.
+        at the end of the step. ``limit_hold`` overrides the carried storage-limit
+        hold when the step's own flag is not about the tank (a ground-route step).
+        Hosts with a ``DynamicState`` gather the entry from the dict; the others
+        read it back from ``_subsystem_state_in``, which is replaced, not modified.
         """
         carried = {
             "pump_on": bool(pump_on),
-            "limit_hold": bool(state.get("limit_hold", False)),
+            "limit_hold": bool(state.get("limit_hold", False) if limit_hold is None else limit_hold),
             "lockout": bool(state.get("lockout", False)),
         }
         state[SUBSYSTEM_STATE_KEY] = carried
@@ -394,9 +395,15 @@ class STCScenario:
         """Step state of a pumped loop charging the borehole field from ``T_ground_K``.
 
         The loop has no in-step limit, so the controller state is committed
-        here: the pump ends the step as it ran it.
+        here: the pump ends the step as it ran it. The ground is not the tank:
+        a tank held at its storage limit stays held while the heat is routed
+        to the ground, until it has cooled into the restart band.
         """
         plane = self._stc_plane(ctx, dt) if plane is None else plane
+        tank_hold = bool(
+            self._controller_in()["limit_hold"]
+            and cu.K2C(ctx.T_tank_w_K) >= self._stc.T_stc_tank_max - TANK_LIMIT_RESTART_K
+        )
         runs, probe, flags = self._loop_decision(ctx, plane, T_ground_K, enabled=enabled)
         result = probe if runs else self._stc_eval(ctx, plane, T_ground_K, active=False)
         state = {
@@ -410,7 +417,7 @@ class STCScenario:
             "Q_solar_ground": (probe["Q_stc_w_out"] - probe["Q_stc_w_in"]) if runs else 0.0,
             **flags,
         }
-        self._commit_controller(state, pump_on=runs)
+        self._commit_controller(state, pump_on=runs, limit_hold=tank_hold)
         return state
 
     # ------------------------------------------------------------------

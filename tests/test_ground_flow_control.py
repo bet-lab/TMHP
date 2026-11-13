@@ -120,11 +120,15 @@ def test_fan_power_changes_both_search_and_final_flow_selection():
     "cls,expected",
     [
         (GroundSourceHeatPump, (261.6148755000496, 91.50563034769912, 387.1576112468979)),
-        (GroundSourceHeatPumpBoiler, (655.3080480718354, 91.50563034769912, 746.8136784195345)),
+        # GSHPB: 655.308 W / 746.814 W at commit 4197de8, with a 3 K suction
+        # superheat on a 2.37 K evaporator approach (suction 0.6 K above the
+        # entering ground fluid, #96 C11). The superheat is now capped at the
+        # approach less dT_hx_min (1.87 K), which lowers the compressor power.
+        (GroundSourceHeatPumpBoiler, (654.6375361045748, 91.50563034769912, 746.1431664522739)),
     ],
 )
 def test_constant_flow_regression_before_total_power_policy(cls, expected):
-    # Recorded from commit 4197de8 with this fixture's unchanged component physics.
+    # GSHP: recorded from commit 4197de8 with this fixture's unchanged component physics.
     legacy = (
         {"eta_cmp_isen": 0.8}
         if cls is GroundSourceHeatPump

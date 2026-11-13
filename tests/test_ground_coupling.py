@@ -215,8 +215,18 @@ _ARCHIVED_BHE_LOAD_W = {4: 6723.479372235796, 5: 5922.149254862031, 10: 5341.249
 
 
 def _historical_efficiency_plant():
+    # The archived plant was recorded with the former capacity-independent
+    # defaults (UA 500 W/K, 24 L/min, 200 W pump); they are now capacity-scaled,
+    # so the recorded machine is spelled out.
     return GroundSourceHeatPumpBoiler(
-        t_max_s=200 * 3600, eta_cmp_isen=0.80, eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr, eta_cmp=0.855
+        t_max_s=200 * 3600,
+        eta_cmp_isen=0.80,
+        eta_cmp_vol=lambda pr: 0.95 - 0.05 * pr,
+        eta_cmp=0.855,
+        UA_tank_hx=500.0,
+        UA_ground=500.0,
+        ground_flow_ref_lpm=24.0,
+        E_pmp=200.0,
     )
 
 
@@ -263,7 +273,8 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
     def record_state(ctx, T_tank_w, runtime_fraction=1.0, **kwargs):
         result = solve(ctx, T_tank_w, runtime_fraction, **kwargs)
         if result.get("hp_is_on", False):
-            accepted.append((ctx.n, gshpb.T_bhe_f_out_K - 273.15, result.copy()))
+            # The fluid temperature the accepted cycle's evaporator was solved with.
+            accepted.append((ctx.n, result["T_bhe_f_out [°C]"], result.copy()))
         return result
 
     # Observe the actual solver return without replacing any physical result.
@@ -289,9 +300,11 @@ def test_analyze_dynamic_bhe_closes_source_cycle_and_ground_feedback(monkeypatch
         assert state["converged"] and state["converged_rps"]
         C = state["dV_bhe_f [m3/s]"] * rho_w * c_w
         source_inlet_C = source_outlet_C + state["E_pmp [W]"] / C
-        # The HX sees the previous step's BHE outlet, before this step commits
-        # its new ground response. Pump input warms that inlet stream.
-        assert source_outlet_C == pytest.approx(df["T_bhe_f_out [°C]"].iloc[n - 1], abs=1e-12, rel=0)
+        # The HX sees the fluid the borefield returns while it carries this
+        # same cycle's extraction (#96 G1: closed inside the step, not the
+        # previous step's outlet). Pump input warms that inlet stream.
+        assert source_outlet_C == pytest.approx(df["T_bhe_f_out_running [°C]"].iloc[n], abs=1e-3, rel=0)
+        assert state["T_ref_evap_sat [°C]"] < df["T_bhe_f_out [°C]"].iloc[n]
         Q_hx = -np.expm1(-gshpb.UA_ground / C) * C * (source_inlet_C - state["T_ref_evap_sat [°C]"])
         Q_source = state["m_dot_ref [kg/s]"] * (state["h_ref_cmp_in [J/kg]"] - state["h_ref_exp_out [J/kg]"])
         assert abs(Q_source - Q_hx) <= max(0.01, 1e-5 * Q_source)

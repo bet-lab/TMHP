@@ -44,10 +44,20 @@ from .compressor_envelope import (
 )
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
+    CAPACITY_CLAMPED_MIN,
     default_displacement,
     solve_compressor_speed,
 )
 from .constants import c_a, rho_a
+from .cycling import (
+    CD_AIR_DEFAULT,
+    CONTINUOUS,
+    OFF,
+    CyclingDegradation,
+    apply_cycling,
+    continuous_keys,
+    resolve_cycling,
+)
 from .enex_functions import (
     calc_energy_flow,
     calc_fan_power_from_dV_fan,
@@ -172,7 +182,7 @@ class _NarrowFanSearch:
                     float(perf.get("Q_ref_iu [W]", math.nan)),
                     self.Q_r_iu,
                     perf.get("capacity_clamped"),
-                )
+                ) * model._cycling_cost_factor(perf, self.Q_r_iu)
             self.rows[key] = (value, perf, model._coil_margins(perf))
             if self.accept is not None and perf is not None and self.accept(perf):
                 self.accepted = (self.approaches(*key), perf)
@@ -283,8 +293,30 @@ class AirSourceHeatPump(ReferenceStateMixin):
     ``rps_max``, the search switches to maximising delivered capacity — see
     :meth:`_optimize_operation`. Such an hour is reported with
     ``capacity_clamped == "max"`` and a ``Q_ref_iu [W]`` below the request;
-    the difference is unmet load, not a solver failure.
+    the difference is unmet load (``Q_unmet [W]``), not a solver failure.
+
+    When the request is below what the unit delivers at its minimum compressor
+    speed, the compressor cycles on and off. Such an hour is reported with
+    ``capacity_clamped == "min"`` as the mean over the cycling period: the
+    delivered heat equals the request, the electrical input carries the EN
+    14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
+    share of the time the compressor runs (:mod:`tmhp.cycling`).
     """
+
+    #: Heat and flow rates averaged with the capacity ratio while cycling.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ou [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_ou_a [m3/s]",
+    )
+    #: Electrical powers averaged with the runtime fraction while cycling. The
+    #: indoor fan is not among them: it moves the delivered heat and is
+    #: averaged with it (``E_iu_fan [W]`` times the capacity ratio).
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
 
     _RATING_FAMILY = "ASHP"
     _RATING_DEFAULT_MODE = "cooling"
@@ -365,6 +397,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_ref: float | None = None,
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
+        # On/off cycling below the minimum continuous capacity: EN 14825
+        # degradation coefficient Cd (None: no cycling, the unit over-delivers).
+        Cd_cycling: CyclingDegradation | float | None = CD_AIR_DEFAULT,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
@@ -579,6 +614,10 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
+
+        # --- 5b. Part load below the minimum continuous capacity ---
+        #: EN 14825 cycling degradation (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
 
         # --- 6. Compressor reference state (rated speed, rated mass flow) ---
         efficiencies = self._initialize_reference_state(
@@ -1087,13 +1126,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # the lattice fallback and the warm-start guard still fire. Leaving
             # the helper's own default here would return 1e6 for an unreachable
             # point, which both guards would read as a perfectly good solution.
+            #
+            # A minimum-speed candidate is met by cycling, so its cost is the
+            # mean input for the *requested* heat: the specific energy divided
+            # by the part-load factor at this candidate's capacity ratio.
             return specific_energy_objective(
                 E_tot,
                 delivered,
                 abs(Q_r_iu),
                 math.inf,
                 penalty=OBJ_INFEASIBLE,
-            )
+            ) * self._cycling_cost_factor(perf, Q_r_iu)
 
         # Phase 0: a constant-speed fan. The approaches it can serve are a
         # single point, which no grid or simplex lands on, so the point is
@@ -1185,6 +1228,65 @@ class AirSourceHeatPump(ReferenceStateMixin):
             method="Nelder-Mead",
             options={"maxiter": 200, "xatol": 1e-3, "fatol": 1e-1},
         )
+
+    # =============================================================
+    # Part load: cycling below the minimum capacity, unmet load above the maximum
+    # =============================================================
+
+    def _cycling_cost_factor(self, perf: dict, Q_r_iu: float) -> float:
+        """Mean electrical input of a candidate relative to its continuous input (>= 1).
+
+        1.0 unless the candidate sits on the compressor's speed floor and
+        cycling is modelled; there ``1 / PLF`` at the candidate's capacity
+        ratio (:class:`~tmhp.cycling.CyclingDegradation`).
+        """
+        if self.cycling is None or perf.get("capacity_clamped") != CAPACITY_CLAMPED_MIN:
+            return 1.0
+        delivered = abs(float(perf.get("Q_ref_iu [W]", math.nan)))
+        if not (math.isfinite(delivered) and delivered > 0.0):
+            return 1.0
+        return 1.0 / self.cycling.part_load_factor(min(1.0, abs(Q_r_iu) / delivered))
+
+    def _report_part_load(self, result: dict, Q_r_iu: float) -> None:
+        """Write the part-load keys of a solved row and average a cycling one (in place).
+
+        Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
+        (how far the delivered heat falls short of the request, >= 0) and the
+        cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
+        floor is averaged over the cycling period; one at its ceiling gains
+        ``Q_max [W]`` and ``capacity_binding`` when the search did not already
+        set them.
+        """
+        request = abs(float(Q_r_iu))
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0))) if running else 0.0
+        clamp = result.get("capacity_clamped") if running else None
+        if clamp == CAPACITY_CLAMPED_MIN and self.cycling is not None and 0.0 < request < delivered:
+            state = self.cycling.state(request, delivered)
+            apply_cycling(
+                result,
+                state,
+                delivered_key="Q_ref_iu [W]",
+                rate_keys=self._CYCLING_RATE_KEYS,
+                power_keys=self._CYCLING_POWER_KEYS,
+                delivery_power_keys=("E_iu_fan [W]",),
+            )
+            result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"]
+            if math.isfinite(float(result["cop_sys [-]"])):
+                result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+            delivered = abs(float(result["Q_ref_iu [W]"]))
+        else:
+            continuous_keys(
+                result,
+                CONTINUOUS if running else OFF,
+                delivered if clamp == CAPACITY_CLAMPED_MIN else math.nan,
+            )
+        result["Q_request [W]"] = float(Q_r_iu)
+        unmet = max(request - delivered, 0.0)
+        result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+        if clamp == CAPACITY_CLAMPED_MAX:
+            result.setdefault("Q_max [W]", delivered)
+            result.setdefault("capacity_binding", "compressor")
 
     # =============================================================
     # Fans with little or no flow range
@@ -1572,6 +1674,22 @@ class AirSourceHeatPump(ReferenceStateMixin):
             reasons — ``E_cmp [W]`` will be 0 and the COP keys will be NaN
             in that case. Treat ``failure_reason != "none"`` as "do not
             trust the numbers".
+
+            Part load is reported on every row: ``Q_request [W]`` (signed,
+            as asked), ``Q_unmet [W]`` (request not delivered, >= 0),
+            ``runtime_fraction [-]``, ``capacity_ratio [-]``,
+            ``part_load_factor [-]``, ``Q_min [W]`` and
+            ``E_cycling_loss [W]``. A request below the minimum continuous
+            capacity (``capacity_clamped == "min"``) is the mean over an
+            on/off cycling period: ``Q_ref_iu [W]`` equals the request,
+            heat and flow rates are the running values times
+            ``capacity_ratio [-]`` (the indoor fan's power with them),
+            compressor and outdoor-fan power the running values times
+            ``runtime_fraction [-]``, and the COP keys carry the EN 14825
+            degradation; temperatures, pressures and speed are those of
+            the running machine (:mod:`tmhp.cycling`). A request above
+            the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
+            and ``capacity_binding``.
         """
         validate_steady(locals())
         import warnings
@@ -1689,6 +1807,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         if result is None:
             result = {}
+
+        if result:
+            self._report_part_load(result, Q_r_iu)
 
         if postprocess and result:
             df_temp = pd.DataFrame([result])

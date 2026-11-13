@@ -22,6 +22,14 @@ Energy & exergy helpers
     :undoc-members:
     :show-inheritance:
 
+On/off cycling below the minimum capacity
+=========================================
+
+.. automodule:: tmhp.cycling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Simulation summary tables
 =========================
 

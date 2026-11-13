@@ -43,6 +43,95 @@ caller supplies indoor-unit load as ``Q_r_iu``: positive values
 select cooling, negative values select heating, and zero values
 represent off operation. There is no tank energy balance.
 
+Part load: cycling and unmet load
+=================================
+
+The compressor modulates between ``rps_min`` and ``rps_max``. A request outside
+what the unit delivers over that range is still answered, and the row says how.
+
+**Below the minimum capacity** the compressor cycles on and off, and the row is
+the mean over the cycling period (``capacity_clamped == "min"``):
+
+- ``Q_ref_iu [W]`` equals the request. ``Q_min [W]`` is what the unit delivers
+  running continuously at its minimum speed, and ``capacity_ratio [-]`` is the
+  request divided by it (the *CR* of EN 14825).
+- The electrical input carries the EN 14825 degradation for a unit delivering
+  to air: ``COP = COP_min · (1 − Cd · (1 − CR))`` with ``Cd = 0.25``, the value
+  the standard prescribes when a unit has not been tested for it.
+  ``part_load_factor [-]`` is that bracket. It applies to the refrigeration
+  machine — compressor and outdoor fan — so ``cop_ref [-]`` is the continuous
+  value times it, and ``cop_sys [-]`` falls slightly less (about one percent)
+  because the indoor fan is not degraded.
+- ``runtime_fraction [-]`` is the share of the time the compressor runs,
+  ``CR / part_load_factor``. Compressor and outdoor-fan power (``E_cmp``,
+  ``E_ou_fan``) are the running values times that fraction. Heat and flow
+  rates (``Q_ref_iu``, ``Q_ref_ou``, ``Q_a_iu_in``, ``Q_a_iu_out``,
+  ``m_dot_ref``, ``dV_iu_a``, ``dV_ou_a``) are the running values times *CR*,
+  and so is the indoor fan's power (``E_iu_fan``): it runs while heat is
+  delivered. The refrigerant cycle and both air streams thus stay in balance
+  with the delivered heat, and the room still receives the coil duty plus the
+  indoor fan's heat. Temperatures, pressures, compressor speed and
+  efficiencies are those of the running machine.
+- ``E_cycling_loss [W]`` is the mean electrical power the compressor and the
+  outdoor fan draw beyond *CR* times their continuous power — the cost of the
+  starts.
+
+.. list-table:: EN 14825 degradation with ``Cd = 0.25``
+   :header-rows: 1
+   :widths: 22 24 26 28
+
+   * - ``capacity_ratio``
+     - ``part_load_factor``
+     - ``runtime_fraction``
+     - Cycling loss / continuous power
+   * - 0.1
+     - 0.775
+     - 0.129
+     - 0.029
+   * - 0.2
+     - 0.800
+     - 0.250
+     - 0.050
+   * - 0.4
+     - 0.850
+     - 0.471
+     - 0.071
+   * - 0.6
+     - 0.900
+     - 0.667
+     - 0.067
+   * - 0.8
+     - 0.950
+     - 0.842
+     - 0.042
+   * - 1.0
+     - 1.000
+     - 1.000
+     - 0.000
+
+A request of a tenth of the minimum capacity is thus met at 77.5 % of the
+continuous minimum-speed COP, with the compressor running 12.9 % of the time.
+Without this model every request below the floor was answered with the minimum
+capacity itself — about half the nameplate for the default unit in mild
+weather — whatever was asked for. ``Cd_cycling`` sets the coefficient: a number
+replaces 0.25, ``0`` is loss-free cycling, and ``None`` restores the earlier
+behaviour (continuous operation at the minimum speed, ``Q_ref_iu [W]`` above
+the request, ``runtime_fraction [-]`` of 1). The operating-point search weighs
+the degradation, so the minimum-speed point may sit a few watts from the one
+found with ``Cd_cycling=None``.
+
+**Above the maximum capacity** the unit runs flat out
+(``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,
+``Q_max [W]`` repeats it, ``capacity_binding`` names what set it and
+``Q_unmet [W]`` is the part of the request that is not delivered.
+``Q_request [W]`` (signed, as asked) and ``Q_unmet [W]`` are on every row, so a
+schedule's unmet energy is the sum of ``Q_unmet [W]`` times the time step.
+
+What the cycling model does not contain: the indoor fan is taken to run only
+while heat is delivered, no standby or crankcase power is added while the unit is off,
+and a start is not resolved in time — the degradation is the standard's
+seasonal-average figure, not a transient simulation.
+
 COP boundary
 ============
 

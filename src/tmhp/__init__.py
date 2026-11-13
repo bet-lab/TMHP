@@ -18,6 +18,7 @@ from .ashpb_stc_tank import ASHPB_STC_tank
 from .calc_util import *  # noqa: F401, F403
 from .compressor_envelope import check_pr_envelope
 from .constants import *  # noqa: F401, F403
+from .cycling import CyclingDegradation
 from .dhw import *  # noqa: F401, F403
 from .dynamic_context import *  # noqa: F401, F403
 from .enex_functions import *  # noqa: F401, F403
@@ -44,6 +45,7 @@ __all__ = [
     "ASHPB_PV_ESS",
     "ASHPB_STC_preheat",
     "ASHPB_STC_tank",
+    "CyclingDegradation",
     "GroundSourceHeatPump",
     "GroundSourceHeatPumpBoiler",
     "GroundSourceHeatPumpEmpirical",

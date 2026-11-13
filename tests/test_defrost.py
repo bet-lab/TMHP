@@ -15,7 +15,8 @@ import numpy as np
 import pytest
 
 from tmhp import AirSourceHeatPump, DefrostModel
-from tmhp.constants import c_a, rho_a
+from tmhp.air_properties import air_density
+from tmhp.constants import c_a
 from tmhp.defrost import (
     DEFROST_FRACTION_KEY,
     DEFROST_LOAD_KEY,
@@ -273,7 +274,8 @@ def test_the_frosted_row_keeps_the_cycle_in_balance(frosted):
     assert r["cop_sys [-]"] == pytest.approx(delivery / r["E_tot [W]"], rel=1e-12)
     # The room receives the coil duty plus the indoor fan's heat.
     assert delivery == pytest.approx(r["Q_ref_iu [W]"] + r["E_iu_fan [W]"], abs=1e-6)
-    sensible = c_a * rho_a * r["dV_iu_a [m3/s]"] * (r["T_iu_a_out [°C]"] - r["T_iu_a_in [°C]"])
+    rho_iu = air_density(r["T_iu_a_in [°C]"])  # the room air the indoor fan moves
+    sensible = c_a * rho_iu * r["dV_iu_a [m3/s]"] * (r["T_iu_a_out [°C]"] - r["T_iu_a_in [°C]"])
     assert delivery == pytest.approx(sensible, abs=1e-6)
 
 

@@ -52,6 +52,7 @@ from . import calc_util as cu
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
 from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
+from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     CYCLE_KEY,
@@ -68,7 +69,7 @@ from .compressor_envelope import (
     steady_envelope,
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
-from .constants import c_a, c_w, rho_a, rho_w
+from .constants import c_w, rho_w
 from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
@@ -94,7 +95,7 @@ from .enex_functions import (
     calc_mixing_valve_flows,
     calc_mixing_valve_temp,
 )
-from .heat_exchanger import resolve_fan_flow_limits
+from .heat_exchanger import AirCoilSide, resolve_fan_flow_limits
 from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
@@ -595,7 +596,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Outdoor-air evaporator (source) and tank-immersed condenser (load)."""
         if role == "source":
-            return HXSide("air", T_in_C, self.UA_ou_rated, self.dV_fan_a_ref)
+            return AirCoilSide("air", T_in_C, self.UA_ou_rated, self.dV_fan_a_ref)
         return HXSide("tank", T_in_C, self.UA_tank_hx)
 
     # =============================================================
@@ -1018,6 +1019,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             custom_fan_curve=not is_generic_fan_curve(self.vsd_coeffs),
             is_active=True,
             exponent=self.n_ou,
+            rho_air="inlet",
         )
         if hx_diag is not None:
             hx_diag.update(HX_perf_ou)
@@ -1055,7 +1057,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             is_active=True,
         )
 
-        T_ou_a_out: float = T_ou_a_mid + E_ou_fan / (c_a * rho_a * dV_ou_a)
+        # The fan heat warms the same air mass the coil exchanged heat with
+        # (density of the outdoor air drawn in, `air_properties`).
+        C_ou_a: float = air_heat_capacity_rate(dV_ou_a, T0)
+        T_ou_a_out: float = T_ou_a_mid + E_ou_fan / C_ou_a
 
         # --- Flow state (explicit parameter, no side-effect reads) ---
         # No type annotations here on purpose: the inactive branch above
@@ -1104,7 +1109,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "epsilon_tank_hx [-]": eps_tank_hx,
                 "tank_hx_residual [W]": tank_hx_residual,
                 "UA_ou [W/K]": HX_perf_ou.get("UA", np.nan),
-                "NTU_ou [-]": (HX_perf_ou.get("UA", np.nan) / (c_a * rho_a * dV_ou_a) if dV_ou_a > 0 else np.nan),
+                "NTU_ou [-]": (HX_perf_ou.get("UA", np.nan) / C_ou_a if dV_ou_a > 0 else np.nan),
                 "epsilon_ou [-]": HX_perf_ou.get("epsilon", np.nan),
                 "PLR_request [-]": (Q_ref_tank / self.hp_capacity if self.hp_capacity > 0 else np.nan),
                 "PLR_delivered [-]": (Q_ref_tank_calc / self.hp_capacity if self.hp_capacity > 0 else np.nan),
@@ -2634,7 +2639,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # ── 3. Air exergy (outdoor unit) ───────────────────
         if "dV_ou_a [m3/s]" in df.columns and "T_ou_a_in [°C]" in df.columns:
-            G_a = c_a * rho_a * df["dV_ou_a [m3/s]"]
+            # Same air mass as the cycle solve: density at the coil inlet.
+            G_a = air_heat_capacity_rate(df["dV_ou_a [m3/s]"], df["T_ou_a_in [°C]"])
             Tin = cu.C2K(df["T_ou_a_in [°C]"])
             Tmid = cu.C2K(df["T_ou_a_mid [°C]"])
             Tout = cu.C2K(df["T_ou_a_out [°C]"]) if "T_ou_a_out [°C]" in df.columns else Tin

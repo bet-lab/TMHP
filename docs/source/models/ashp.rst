@@ -35,6 +35,89 @@ Source-side mechanics
 Outdoor coil with variable-speed fan and an ε-NTU air-side heat
 exchanger — the shared air-source environmental-side model.
 
+.. _ashp-air-density:
+
+Air density
+===========
+
+A fan moves a volume of air and a coil exchanges heat with a mass of it. Both
+coils take the density of the air they draw in — outdoor air at ``T0`` for the
+outdoor coil, room air at ``T_a_room`` for the indoor coil — as dry air at one
+standard atmosphere (:func:`tmhp.air_properties.air_density`):
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 14 14 14 14 14
+
+   * - Inlet air [°C]
+     - −25
+     - −7
+     - 15
+     - 27
+     - 35
+   * - Density [kg/m³]
+     - 1.422
+     - 1.326
+     - 1.225
+     - 1.176
+     - 1.145
+
+The airflows the model reports and accepts (``dV_ou_a``, ``dV_iu_a``, the fan
+references and limits) are volumes at the coil inlet, so the air mass flow of a
+coil is ``air_density(T_in) * dV`` and its heat capacity rate
+``c_a * air_density(T_in) * dV``. That one mass flow carries the coil's NTU,
+the outlet temperature and the fan heat, so within a row
+
+.. code-block:: text
+
+   c_a * rho(T_in) * dV * (T_out - T_in) = heat from the refrigerant + fan power
+
+holds on each coil (``Q_ref_ou``, ``E_ou_fan`` on the outdoor side;
+``Q_ref_iu``, ``E_iu_fan`` on the indoor side; the refrigerant heat is negative
+where the coil is the evaporator). ``Q_a_iu_in`` / ``Q_a_iu_out`` and the air
+exergy flows use the same mass flow. A row averaged over on/off cycling or
+frost keeps the identity on the indoor side; on the outdoor side the fan power
+is averaged with the runtime fraction and the airflow with the capacity ratio,
+so the two sides differ by that share of the fan power.
+
+At a fixed fan volume flow, cold outdoor air therefore carries more heat
+capacity than the 15 °C standard air earlier releases assumed at every
+temperature (1.225 kg/m³): 16 % more at −25 °C, 6.5 % less at 35 °C. Room air
+is 2 to 5 % lighter than that standard air (20 to 30 °C). For the default unit
+against those releases:
+
+- **Heating.** The outdoor coil gains air mass in the cold (the evaporating
+  temperature is 0.1 K higher below 0 °C) and the indoor coil loses 1.7 % at a
+  20 °C room (the condensing temperature is 0.1 to 0.2 K higher). The two
+  nearly cancel: the COP is 0.3 % lower at 7 °C / 20 °C at nameplate capacity
+  and within 0.2 % at half load down to −15 °C.
+- **Cooling.** Both coils move warm, lighter air. At 35 °C outdoors and a
+  27 °C room the evaporating temperature at nameplate capacity is 0.5 K lower
+  and the COP 1.9 % lower (1.3 % at half load); at a 30 °C room the COP at
+  nameplate capacity is up to 4 % lower.
+- **Ceiling.** The largest duty the indoor coil carries inside the approach
+  bounds (``dT_approach_bounds``) falls with the room-air density, by 1.3 % at
+  a 20 °C room. Where that ceiling is close to the request it now binds: at
+  −7 °C / 20 °C the frosted unit delivers 98.8 % of its nameplate
+  (``capacity_clamped == "max"``) where it delivered 100 %.
+
+The volume flows are the fan's actual flows at the coil inlet. Rating airflows
+are commonly quoted as standard air (1.204 kg/m³, the mass flow divided by that
+density); at 20 °C the two are the same number, at a 27 °C room the actual flow
+is 2.4 % larger and at 35 °C outdoors 5 % larger. Pass the actual flow when the
+difference matters.
+
+What stays on the volume flow: the coil conductance follows the fan's volume
+flow (``UA_rated * (dV / dV_ref) ** n``), and the fan power follows its curve
+in the volume flow at the rated static pressure. The fan laws give a pressure
+rise, and so a fan power, proportional to the air density at a fixed volume
+flow; that is not applied. Applied, it would add 16 % to the outdoor fan's
+power at −25 °C, which is 0.5 to 0.7 % of the total input (1.2 % at most), and
+take 0.3 to 0.4 % off the total input at 35 °C. Humidity is left out — per cubic metre moist air
+carries 0.2 to 0.4 % more sensible heat capacity than dry air at room and
+summer conditions — and so is altitude (one standard atmosphere; 18 % less
+density at 1 600 m).
+
 Sink-side mechanics
 ===================
 

@@ -22,6 +22,12 @@ Air-side fan & heat exchanger
     :undoc-members:
     :show-inheritance:
 
+Air properties
+==============
+
+.. automodule:: tmhp.air_properties
+    :members:
+
 Borehole g-function
 ===================
 

@@ -158,6 +158,18 @@ ASHPB models its outdoor coil as a variable-speed fan coupled to an
 90.1-style cubic-with-speed curve; coil ε is recomputed each step
 from the resolved refrigerant mass flow.
 
+The coil exchanges heat with the mass of air the fan moves:
+``dV_ou_a`` is a volume at the outdoor temperature ``T0``, and the air mass
+flow is ``air_density(T0) * dV_ou_a`` with the density of dry air at one
+standard atmosphere (:func:`tmhp.air_properties.air_density`; 1.42 kg/m³ at
+−25 °C, 1.26 at 7 °C, 1.15 at 35 °C). ``NTU_ou [-]``, the outlet temperature
+``T_ou_a_out`` (fan heat included) and the air exergy flows use that one mass
+flow, so ``c_a * rho(T0) * dV_ou_a * (T_ou_a_out - T0) = E_ou_fan - Q_ref_ou``
+within a row. Against the 15 °C standard air of earlier releases the COP at
+nameplate capacity is 0.2 % higher at A7/W35 and 0.2 to 0.7 % higher at −7 °C;
+from 25 to 45 °C outdoors it is typically 0.2 to 0.5 % lower. See :ref:`ashp-air-density` for what is left on
+the volume flow and what is left out.
+
 Sink-side mechanics
 ===================
 

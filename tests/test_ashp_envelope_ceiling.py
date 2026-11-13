@@ -215,12 +215,16 @@ def test_the_search_is_not_left_on_the_flat_stretch_under_discharge_control():
 
 def test_ordinary_duties_are_where_they_were(r32):
     """The least-lift start is a second start: it replaces the result only for a material gain."""
+    # Re-baselined when both coils took the density of the air they draw in
+    # (360.9873 and 669.6156 W with 15 °C standard air). In cooling both
+    # coils move warm, lighter air -- 6.5 % less mass outdoors at 35 °C, 4 %
+    # less indoors at 27 °C -- so the lift and the input rise by 1.9 %.
     out = _solve(r32, -2000.0, T0=7.0, T_a_room=20.0)
     assert out["capacity_clamped"] is None
-    assert out["E_tot [W]"] == pytest.approx(360.9873001, rel=1e-6)
+    assert out["E_tot [W]"] == pytest.approx(361.5507559, rel=1e-6)
     cooling = _solve(r32, 3000.0, T0=35.0, T_a_room=27.0)
     assert cooling["capacity_clamped"] is None
-    assert cooling["E_tot [W]"] == pytest.approx(669.6156, rel=1e-5)
+    assert cooling["E_tot [W]"] == pytest.approx(682.1120745, rel=1e-5)
 
 
 def test_cooling_ceiling_is_flat_out_too(r32):

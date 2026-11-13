@@ -11,6 +11,7 @@ import math
 
 import pytest
 
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp import GroundSourceHeatPump
 from tmhp.constants import c_w, rho_w
 from tmhp.ground_loop import calc_bhe_fluid_temperatures
@@ -18,7 +19,9 @@ from tmhp.ground_loop import calc_bhe_fluid_temperatures
 
 @pytest.fixture(scope="module")
 def hp():
-    return GroundSourceHeatPump(ref="R32")
+    # The near-rating points include a 0 °C borehole wall: an antifreeze loop
+    # (properties of water, so the numbers are those of the default machine).
+    return GroundSourceHeatPump(ref="R32", source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
 
 
 def steady(model, load, room, wall=None):
@@ -149,7 +152,7 @@ def test_wall_coupled_ceiling_closes_at_the_compressor_speed_limit():
     # source temperature, so the fluid closure against the wall oscillates
     # (loop gain near -0.5) and the PR-envelope edge moves with the fluid
     # temperature. R410A at a 10 degC wall used to end cycle_invalid here.
-    model = GroundSourceHeatPump(ref="R410A")
+    model = GroundSourceHeatPump(ref="R410A", source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
     row = steady(model, -1.0e6, 20.0, 10.0)
     assert row["converged"] and row["failure_reason"] == "none"
     assert row["capacity_clamped"] == "max"

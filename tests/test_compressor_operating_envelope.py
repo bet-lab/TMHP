@@ -17,6 +17,7 @@ import pandas as pd
 import pytest
 
 import tmhp
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp.compressor_envelope import (
     BINDING_DISCHARGE,
     BINDING_EFFICIENCY,
@@ -151,7 +152,16 @@ def test_speed_ceiling_caps_air_to_air_capacity_in_the_cold():
 # capacity-independent heat exchangers (500 W/K, 24 L/min, 200 W pump: a 16 K
 # condensing approach at 8 kW). The defaults now scale with capacity, so that
 # machine is spelled out.
-_GSHPB_UNDERSIZED_HX = dict(UA_tank_hx=500.0, UA_ground=500.0, ground_flow_ref_lpm=24.0, E_pmp=200.0)
+# B0 is a brine point (the liquid leaves at about -4 degC): the loop runs on an
+# antifreeze with the properties of water, so the freezing limit of the default
+# water does not come into it and the numbers stay those of the reproductions.
+_GSHPB_UNDERSIZED_HX = dict(
+    UA_tank_hx=500.0,
+    UA_ground=500.0,
+    ground_flow_ref_lpm=24.0,
+    E_pmp=200.0,
+    source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES,
+)
 
 
 def test_gshpb_r32_b0_w55_discharge_357C_is_not_an_operating_point():

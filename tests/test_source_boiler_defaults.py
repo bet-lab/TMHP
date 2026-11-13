@@ -20,6 +20,7 @@ import warnings
 import numpy as np
 import pytest
 
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp import GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
 from tmhp._source_boiler import (
     PUMP_POWER_PER_CAPACITY,
@@ -45,6 +46,22 @@ def _quiet(fn, *args, **kwargs):
 def machines() -> dict[tuple[str, float], object]:
     """Default R410A machines, built once per capacity."""
     return {(fam, cap): _quiet(cls, hp_capacity=cap) for fam, cls in FAMILIES.items() for cap in (3e3, 8e3, 3e4)}
+
+
+#: Loop liquid of the points at or below 0 °C (B0 and colder): an antifreeze
+#: with the properties of water, so the machine and its numbers are the default
+#: ones while the freezing limit of water (3 °C) does not refuse the point.
+COLD_LOOP = dict(source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)
+
+
+@pytest.fixture(scope="module")
+def brine_machines() -> dict[tuple[str, float], object]:
+    """The machines of :func:`machines` on :data:`COLD_LOOP`, for the brine rating point B0."""
+    return {
+        (fam, cap): _quiet(cls, hp_capacity=cap, **COLD_LOOP)
+        for fam, cls in FAMILIES.items()
+        for cap in (3e3, 8e3, 3e4)
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -81,13 +98,12 @@ def test_default_8kw_machine_keeps_one_borehole_and_larger_ones_stay_below_50_w_
 
 
 @pytest.mark.parametrize("family", list(FAMILIES))
-def test_rated_cop_does_not_depend_on_capacity(machines, family):
+def test_rated_cop_does_not_depend_on_capacity(machines, brine_machines, family):
     """B0/W35 (GSHPB) and W10/W35 (WSHPB) at the rated duty: the same cycle at every capacity."""
     cops = []
     for cap in (3e3, 8e3, 3e4):
-        r = _quiet(
-            machines[family, cap].analyze_steady, T_tank_w=35.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap
-        )
+        machine = (brine_machines if RATING_SOURCE_C[family] < 5.0 else machines)[family, cap]
+        r = _quiet(machine.analyze_steady, T_tank_w=35.0, T_source=RATING_SOURCE_C[family], Q_ref_tank=cap)
         assert r["failure_reason"] == "none" and r["capacity_clamped"] is None
         assert r["T_ref_cond_sat_l [°C]"] - 35.0 == pytest.approx(5.0, abs=1e-6)
         cops.append((r["cop_ref [-]"], r["cop_sys [-]"]))
@@ -187,7 +203,7 @@ def test_request_below_the_speed_floor_runs_at_the_floor_capacity(family, ref, T
     1e-4 K, which left about 0.1 W of the source balance open and failed the
     0.01 W check that follows (``hx_not_converged``).
     """
-    m = _quiet(FAMILIES[family], ref=ref)
+    m = _quiet(FAMILIES[family], ref=ref, **(COLD_LOOP if T_source < 5.0 else {}))
     r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=400.0, T0=10.0)
     assert r["failure_reason"] == "none" and r["hp_is_on"] and r["capacity_clamped"] == "min"
     assert r["Q_ref_tank [W]"] > 400.0
@@ -227,7 +243,7 @@ def test_modulating_point_keeps_the_requested_approach(machines, family):
 @pytest.mark.parametrize("ref", ["R290", "R134a"])
 def test_suction_is_not_hotter_than_the_entering_source(family, ref):
     """C11: at low load the evaporator approach is below the nominal superheat."""
-    m = _quiet(FAMILIES[family], ref=ref)
+    m = _quiet(FAMILIES[family], ref=ref, **COLD_LOOP)
     for T_source, T_tank, load in ((0.0, 50.0, 2000.0), (10.0, 55.0, 400.0)):
         r = _quiet(m.analyze_steady, T_tank_w=T_tank, T_source=T_source, Q_ref_tank=load, T0=10.0)
         assert r["failure_reason"] == "none"
@@ -238,8 +254,8 @@ def test_suction_is_not_hotter_than_the_entering_source(family, ref):
         assert r["T_ref_cmp_in [°C]"] >= r["T_ref_evap_sat [°C]"] - 1e-9
 
 
-def test_superheat_is_untouched_where_the_approach_allows_it(machines):
-    m = machines["GSHPB", 8e3]
+def test_superheat_is_untouched_where_the_approach_allows_it(brine_machines):
+    m = brine_machines["GSHPB", 8e3]
     r = _quiet(m.analyze_steady, T_tank_w=35.0, T_source=0.0, Q_ref_tank=8000.0)
     assert r["T_ref_cmp_in [°C]"] - r["T_ref_evap_sat [°C]"] == pytest.approx(m.dT_superheat, abs=1e-6)
 
@@ -250,7 +266,7 @@ def test_low_speed_balance_below_1_K_approach_is_solved():
     The approach search started at 1 K, reported ``hx_not_converged`` and took
     its 1024-point scan to say so.
     """
-    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0)
+    m = _quiet(GroundSourceHeatPumpBoiler, ref="R134a", t_max_s=86400.0, **COLD_LOOP)
     r = _quiet(m.analyze_steady, T_tank_w=55.0, T_source=-5.0, Q_ref_tank=2000.0)
     assert r["failure_reason"] == "none"
     approach = r["T_bhe_f_out [°C]"] + r["E_pmp [W]"] / (m.dV_b_f_m3s * 4.186e6) - r["T_ref_evap_sat [°C]"]

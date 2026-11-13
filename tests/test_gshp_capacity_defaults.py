@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 import pytest
 
+from tests._fluids import ANTIFREEZE_WITH_WATER_PROPERTIES
 from tmhp import GroundSourceHeatPump
 from tmhp.constants import c_w, rho_w
 from tmhp.ground_defaults import (
@@ -39,8 +40,13 @@ def build(**kwargs):
 
 @pytest.fixture(scope="module")
 def by_capacity():
-    """Liquid entering at 0 °C (``Ts = 0``): the ISO 13256-1 heating point."""
-    return {cap: build(hp_capacity=cap, Ts=0.0) for cap in CAPACITIES}
+    """Liquid entering at 0 °C (``Ts = 0``): the ISO 13256-1 heating point.
+
+    A brine point (the liquid leaves near -3 °C): the loop runs on an
+    antifreeze with the properties of water, which leaves every default and
+    every number of the default (water) machine as it is.
+    """
+    return {cap: build(hp_capacity=cap, Ts=0.0, source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES) for cap in CAPACITIES}
 
 
 # ── policy functions (tmhp.ground_defaults) ───────────────────────────────
@@ -193,7 +199,8 @@ def test_borehole_wall_rating_no_longer_collapses_with_the_capacity():
     # 50 W/m, which leaves a few percent between sizes.
     cops = {}
     for cap in (4000.0, 30000.0):
-        row = build(hp_capacity=cap).analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
+        model = build(hp_capacity=cap, source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES)  # a 0 °C wall: antifreeze
+        row = model.analyze_steady(Q_r_iu=-cap, T0=0.0, T_a_room=20.0, T_bhe_wall=0.0)
         assert row["failure_reason"] == "none" and row["capacity_clamped"] is None, cap
         cops[cap] = row["cop_sys [-]"]
     assert cops[30000.0] == pytest.approx(cops[4000.0], rel=0.05)
@@ -252,7 +259,15 @@ def cold_ground_run():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", UserWarning)  # 100 W/m on purpose: a large own-step response
         model = GroundSourceHeatPump(
-            dt_s=dt, t_max_s=86400.0, UA_iu_rated=2000.0, Ts=10.0, H_b=60.0, N_1=1, N_2=1, hp_capacity=8000.0
+            dt_s=dt,
+            t_max_s=86400.0,
+            UA_iu_rated=2000.0,
+            Ts=10.0,
+            H_b=60.0,
+            N_1=1,
+            N_2=1,
+            hp_capacity=8000.0,
+            source_fluid=ANTIFREEZE_WITH_WATER_PROPERTIES,  # the loop runs at -6 °C
         )
     heating = model.analyze_dynamic(2 * dt, dt, np.full(2, -8000.0), np.zeros(2), np.full(2, 20.0))
     cooling = model.analyze_dynamic(2 * dt, dt, np.full(2, 8000.0), np.full(2, 30.0), np.full(2, 27.0))

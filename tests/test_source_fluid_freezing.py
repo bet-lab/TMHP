@@ -1,0 +1,413 @@
+"""Source-loop fluid and its freezing limit (GSHP, GSHPB, WSHPB).
+
+Before this limit the models returned running cycles whose loop *water* left
+the evaporator below 0 °C (GSHPB at ``T_source = -10 °C``: ``T_bhe_f_in =
+-11.7 °C``, COP 2.5). The tests cover
+
+1. the fluid table (freezing point, operating limit, properties, parsing);
+2. the default fluid: water, with unchanged properties and unchanged results
+   wherever the loop stays above its limit;
+3. the limit in ``analyze_steady``: off below it, the largest duty on it;
+4. an antifreeze mixture: sub-zero operation down to its own limit;
+5. the limit in ``analyze_dynamic``: reduced or off steps, one warning per run.
+"""
+
+from __future__ import annotations
+
+import math
+import warnings
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler, WaterSourceHeatPumpBoiler
+from tmhp.constants import c_w, k_w, mu_w, rho_w
+from tmhp.source_fluid import (
+    FREEZE_MARGIN_K,
+    SOURCE_FLUID_FREEZING,
+    SOURCE_FLUID_PRESETS,
+    SourceFluid,
+    freeze_violation,
+    resolve_source_fluid,
+    source_fluid_table,
+)
+
+SHORT = dict(t_max_s=86400.0, dt_s=600.0)
+BOILERS = {"GSHPB": GroundSourceHeatPumpBoiler, "WSHPB": WaterSourceHeatPumpBoiler}
+#: Water with no freezing limit to speak of: the model as it was before the limit.
+UNLIMITED_WATER = SourceFluid("water without a limit", -60.0, rho_w, c_w, mu_w, k_w)
+#: Tolerance on a temperature compared with the limit [K] (the limit's own is 0.01 K).
+TOL_K = 0.02
+
+
+def _quiet(fn, *args, **kwargs):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return fn(*args, **kwargs)
+
+
+def _freezing_warnings(caught) -> list[str]:
+    return [str(w.message) for w in caught if "source-loop liquid" in str(w.message)]
+
+
+@pytest.fixture(scope="module")
+def machines() -> dict[tuple[str, str], object]:
+    """One default machine per family and fluid, built once."""
+    built: dict[tuple[str, str], object] = {}
+    for family, cls in BOILERS.items():
+        built[family, "water"] = _quiet(cls, **SHORT)
+        built[family, "MPG-25%"] = _quiet(cls, source_fluid="MPG-25%", **SHORT)
+        built[family, "unlimited"] = _quiet(cls, source_fluid=UNLIMITED_WATER, **SHORT)
+    built["GSHP", "water"] = _quiet(GroundSourceHeatPump, t_max_s=3600.0)
+    built["GSHP", "MPG-30%"] = _quiet(GroundSourceHeatPump, source_fluid="MPG-30%", t_max_s=3600.0)
+    return built
+
+
+# ---------------------------------------------------------------------------
+# 1. the fluid table
+# ---------------------------------------------------------------------------
+
+
+def test_water_is_the_default_and_keeps_the_model_constants(machines):
+    water = resolve_source_fluid("water")
+    assert (water.T_freeze_C, water.T_min_C) == (0.0, FREEZE_MARGIN_K)
+    assert (water.rho, water.cp, water.mu, water.k) == (rho_w, c_w, mu_w, k_w)
+    assert water.is_water and resolve_source_fluid(None) is water and resolve_source_fluid(" Water ") is water
+    for family in ("GSHPB", "WSHPB", "GSHP"):
+        assert machines[family, "water"].source_fluid is water
+
+
+@pytest.mark.parametrize(
+    ("name", "T_freeze"),
+    # CoolProp incompressible mixtures by mass (Melinder 2010 fits): freezing points to 0.2 K.
+    [("MPG-25%", -9.8), ("MPG-30%", -12.8), ("MEG-25%", -11.0), ("ethanol-20%", -11.1)],
+)
+def test_mixture_freezing_point_limit_and_properties(name, T_freeze):
+    fluid = resolve_source_fluid(name)
+    assert fluid.T_freeze_C == pytest.approx(T_freeze, abs=0.2)
+    assert fluid.T_min_C == pytest.approx(fluid.T_freeze_C + FREEZE_MARGIN_K)
+    assert not fluid.is_water
+    # Less heat per litre and several times the viscosity of water at 0 °C.
+    assert 0.90 < fluid.rho * fluid.cp / (rho_w * c_w) < 1.03
+    assert 3.0 < fluid.mu / mu_w < 8.0
+    assert fluid.k < k_w
+
+
+def test_fluid_names_are_parsed_and_bad_ones_rejected():
+    assert resolve_source_fluid("mpg-25%") is resolve_source_fluid("MPG-25%")
+    assert resolve_source_fluid("MPG 25") == resolve_source_fluid("MPG-25%")
+    stronger, weaker = resolve_source_fluid("MEG-35%"), resolve_source_fluid("MEG-20%")
+    assert stronger.T_freeze_C < weaker.T_freeze_C < 0.0
+    for bad in ("brine", "MPG", "MPG-2%", "MPG-80%", "R410A-25%", 25, ""):
+        with pytest.raises(ValueError, match="source_fluid"):
+            resolve_source_fluid(bad)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="source_fluid"):
+        _quiet(GroundSourceHeatPumpBoiler, source_fluid="antifreeze", **SHORT)
+
+
+def test_custom_fluid_carries_its_own_limit():
+    brine = SourceFluid("site brine", -15.0, 1040.0, 3700.0, 0.006, 0.43, T_min_C=-10.0)
+    assert brine.T_min_C == -10.0 and resolve_source_fluid(brine) is brine
+    assert SourceFluid("x", -15.0, 1040.0, 3700.0, 0.006, 0.43).T_min_C == pytest.approx(-12.0)
+    with pytest.raises(ValueError, match="T_min_C"):
+        SourceFluid("x", -15.0, 1040.0, 3700.0, 0.006, 0.43, T_min_C=-16.0)
+    with pytest.raises(ValueError, match="mu"):
+        SourceFluid("x", -15.0, 1040.0, 3700.0, 0.0, 0.43)
+
+
+def test_documented_table_lists_every_preset():
+    rows = source_fluid_table()
+    assert [row["source_fluid"] for row in rows] == list(SOURCE_FLUID_PRESETS)
+    assert all(row["T_min [°C]"] == pytest.approx(row["T_freeze [°C]"] + FREEZE_MARGIN_K) for row in rows)
+
+
+def test_model_page_table_states_the_values_of_the_code():
+    """docs/source/models/gshpb.rst lists freezing point and limit to 0.1 K."""
+    from pathlib import Path
+
+    page = (Path(__file__).resolve().parents[1] / "docs/source/models/gshpb.rst").read_text(encoding="utf-8")
+    for row in source_fluid_table(("MPG-20%", "MPG-25%", "MPG-30%", "MEG-25%", "MEG-30%", "ethanol-20%")):
+        listed = (
+            f'    * - ``"{row["source_fluid"]}"``\n'
+            f"      - {row['T_freeze [°C]']:.1f} °C\n"
+            f"      - {row['T_min [°C]']:.1f} °C\n"
+        )
+        assert listed in page, row["source_fluid"]
+    assert '    * - ``"water"`` (default)\n      - 0.0 °C\n      - 3.0 °C\n' in page
+
+
+# ---------------------------------------------------------------------------
+# 2. default fluid: nothing changes while the loop stays above its limit
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("family", list(BOILERS))
+def test_points_above_the_limit_are_unchanged(machines, family):
+    """A warm loop never meets the limit: the result is that of the model without one."""
+    case = dict(T_tank_w=45.0, T_source=10.0, Q_ref_tank=8000.0, T0=10.0)
+    limited = _quiet(machines[family, "water"].analyze_steady, **case)
+    free = _quiet(machines[family, "unlimited"].analyze_steady, **case)
+    assert limited["failure_reason"] == "none" and limited["capacity_clamped"] is None
+    assert limited["T_bhe_f_in [°C]"] > FREEZE_MARGIN_K
+    for key in ("Q_ref_tank [W]", "E_cmp [W]", "cop_ref [-]", "T_ref_evap_sat [°C]", "T_bhe_f_in [°C]"):
+        assert limited[key] == free[key], key
+
+
+# ---------------------------------------------------------------------------
+# 3. the limit in analyze_steady
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("family", list(BOILERS))
+@pytest.mark.parametrize("T_source", [-10.0, 0.0, 2.0])
+def test_water_entering_below_its_limit_does_not_run(machines, family, T_source):
+    """The defect: sub-zero water circulating through a running evaporator."""
+    case = dict(T_tank_w=45.0, T_source=T_source, Q_ref_tank=6000.0)
+    was = _quiet(machines[family, "unlimited"].analyze_steady, **case)
+    assert was["hp_is_on"] and was["T_bhe_f_in [°C]"] < T_source  # what the model used to return
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        r = machines[family, "water"].analyze_steady(**case)
+    assert r["failure_reason"] == SOURCE_FLUID_FREEZING and r["failure_detail"] == "source_inlet_below_limit"
+    assert r["hp_is_on"] is False and r["converged"] is False
+    assert r["Q_ref_tank [W]"] == 0.0 and r["E_cmp [W]"] == 0.0 and math.isnan(r["cop_ref [-]"])
+    # The keys every steady result carries are there, in their off values.
+    assert r["efficiency_extrapolated"] is False and r["discharge_control"] is False
+    assert math.isnan(r["x_ref_cmp_in [-]"]) and math.isnan(r["dT_ref_superheat [K]"])
+    (message,) = _freezing_warnings(caught)
+    assert "3.0 °C" in message and "MPG-25%" in message
+
+
+@pytest.mark.parametrize("family", list(BOILERS))
+def test_duty_is_reduced_onto_the_limit(machines, family):
+    """Water entering at 5 °C leaves at 2 °C at full duty: the unit turns down instead."""
+    machine = machines[family, "water"]
+    case = dict(T_tank_w=45.0, T_source=5.0, Q_ref_tank=8000.0)
+    free = _quiet(machines[family, "unlimited"].analyze_steady, **case)
+    assert free["T_bhe_f_in [°C]"] < FREEZE_MARGIN_K - 0.5
+    r = _quiet(machine.analyze_steady, **case)
+    assert r["failure_reason"] == "none" and r["hp_is_on"]
+    assert r["capacity_clamped"] == "max" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
+    # On the limit, within the band the reduction closes to.
+    assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
+    assert r["Q_request [W]"] == 8000.0 and r["Q_tank_load [W]"] == 8000.0
+    assert r["Q_max [W]"] == pytest.approx(r["Q_ref_tank [W]"])
+    # 2 K of the 3 K loop difference is left: about two thirds of the duty.
+    assert 0.55 * 8000.0 < r["Q_ref_tank [W]"] < 0.80 * 8000.0
+    assert freeze_violation(r, machine.source_fluid) is None
+    # A request the limit already allows is met exactly.
+    below = _quiet(machine.analyze_steady, **{**case, "Q_ref_tank": 0.9 * r["Q_ref_tank [W]"]})
+    assert below["capacity_clamped"] is None and below["Q_ref_tank [W]"] == pytest.approx(0.9 * r["Q_ref_tank [W]"])
+    # The one-row frame carries the same reduced point.
+    frame = _quiet(machine.analyze_steady, **case, return_dict=False)
+    assert isinstance(frame, pd.DataFrame) and frame.loc[0, "capacity_binding"] == SOURCE_FLUID_FREEZING
+
+
+def test_gshp_heating_stops_on_a_freezing_borehole_and_cooling_is_untouched(machines):
+    gshp = machines["GSHP", "water"]
+    cold = _quiet(gshp.analyze_steady, Q_r_iu=-4000.0, T0=0.0, T_a_room=21.0, T_bhe_wall=0.0)
+    assert cold["failure_reason"] == SOURCE_FLUID_FREEZING and cold["hp_is_on"] is False
+    assert cold["Q_ref_iu [W]"] == 0.0 and math.isnan(cold["cop_sys [-]"])
+    mild = _quiet(gshp.analyze_steady, Q_r_iu=-4000.0, T0=0.0, T_a_room=21.0, T_bhe_wall=10.0)
+    assert mild["failure_reason"] == "none" and mild["T_bhe_f_in [°C]"] >= FREEZE_MARGIN_K - TOL_K
+    cooling = _quiet(gshp.analyze_steady, Q_r_iu=4000.0, T0=30.0, T_a_room=27.0, T_bhe_wall=15.0)
+    assert cooling["failure_reason"] == "none" and cooling["capacity_clamped"] is None
+    assert cooling["T_bhe_f_in [°C]"] > cooling["T_bhe_f_out [°C]"] > FREEZE_MARGIN_K
+
+
+def test_gshp_duty_is_reduced_onto_the_limit(machines):
+    gshp = machines["GSHP", "water"]
+    r = _quiet(gshp.analyze_steady, Q_r_iu=-4000.0, T0=0.0, T_a_room=21.0, T_bhe_wall=8.0)
+    assert r["failure_reason"] == "none" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert r["capacity_clamped"] == "max" and r["Q_request [W]"] == -4000.0
+    assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
+    assert 0.3 * 4000.0 < r["Q_ref_iu [W]"] < 4000.0
+    assert r["Q_max [W]"] == pytest.approx(r["Q_ref_iu [W]"])
+
+
+class _Loop:
+    """A source loop reduced to its temperatures: enough to drive the duty search.
+
+    The liquid enters at ``T_unloaded - drop * q`` and leaves ``rise * q``
+    colder; below ``q_floor`` the machine has no operating point (speed floor).
+    """
+
+    source_fluid = resolve_source_fluid("water")
+
+    def __init__(self, T_unloaded, drop=0.0, rise=3.0 / 8000.0, q_floor=0.0):
+        self.T_unloaded, self.drop, self.rise, self.q_floor = T_unloaded, drop, rise, q_floor
+        self.solves = 0
+
+    def solve(self, q):
+        self.solves += 1
+        if q < self.q_floor:
+            return {"hp_is_on": False, "failure_reason": "cycle_invalid"}
+        entering = self.T_unloaded - self.drop * q
+        return {
+            "hp_is_on": True,
+            "failure_reason": "none",
+            "capacity_clamped": None,
+            "Q_ref_tank [W]": q,
+            "T_bhe_f_out [°C]": entering,
+            "T_bhe_f_in [°C]": entering - self.rise * q,
+        }
+
+    def limited(self, request=8000.0):
+        from tmhp.source_fluid import limit_duty_to_source_freeze
+
+        first = self.solve(request)
+        self.solves = 0
+        off = lambda detail: {"hp_is_on": False, "failure_reason": SOURCE_FLUID_FREEZING, "Q_ref_tank [W]": 0.0}  # noqa: E731
+        return _quiet(limit_duty_to_source_freeze, self, first, self.solve, request, off)
+
+
+def test_duty_search_closes_in_a_few_solves_and_knows_when_to_stop():
+    # Entering at 5 °C whatever the duty: the limit is met at 2 K of the 3 K rise.
+    loop = _Loop(5.0)
+    r = loop.limited()
+    assert r["capacity_binding"] == SOURCE_FLUID_FREEZING and loop.solves <= 2
+    assert r["Q_ref_tank [W]"] == pytest.approx(8000.0 * 2.0 / 3.0, rel=0.02)
+    # A borehole behind the loop: it arrives at 2 °C at full duty, warmer at a smaller one.
+    loop = _Loop(6.0, drop=4.0 / 8000.0)
+    r = loop.limited()
+    assert r["capacity_binding"] == SOURCE_FLUID_FREEZING and loop.solves <= 4
+    assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
+    assert r["Q_ref_tank [W]"] == pytest.approx(8000.0 * 3.0 / 7.0, rel=0.02)
+    # A duty the speed floor refuses bounds the search from below; duties above it still run.
+    loop = _Loop(6.0, drop=4.0 / 8000.0, q_floor=3000.0)
+    r = loop.limited()
+    assert r["capacity_binding"] == SOURCE_FLUID_FREEZING and r["Q_ref_tank [W]"] >= 3000.0
+    # ... and when the limit needs less than the floor, nothing runs.
+    loop = _Loop(6.0, drop=4.0 / 8000.0, q_floor=4000.0)
+    assert loop.limited()["failure_reason"] == SOURCE_FLUID_FREEZING and loop.solves <= 12
+    # The liquid arrives below the limit whatever the duty: one solve settles it.
+    loop = _Loop(2.0)
+    assert loop.limited()["failure_reason"] == SOURCE_FLUID_FREEZING and loop.solves == 1
+    # Heat rejected to the loop cannot be cured by rejecting less: no solve at all.
+    loop = _Loop(2.0, rise=-3.0 / 8000.0)
+    assert loop.limited()["failure_reason"] == SOURCE_FLUID_FREEZING and loop.solves == 0
+    # Above the limit nothing is touched.
+    loop = _Loop(12.0)
+    assert loop.limited()["capacity_clamped"] is None and loop.solves == 0
+
+
+def test_wall_coupled_boiler_runs_the_duty_its_borehole_allows():
+    """Coupled ground-flow path: a 6 °C wall returns 2.7 °C liquid at 8 kW, 4.4 °C at half the duty."""
+    gshpb = _quiet(GroundSourceHeatPumpBoiler, hydraulic_pump=True, **SHORT)
+    r = _quiet(gshpb.analyze_steady, T_tank_w=45.0, T_source=6.0, Q_ref_tank=8000.0, T_bhe_wall=6.0)
+    assert r["failure_reason"] == "none" and r["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert FREEZE_MARGIN_K - TOL_K <= r["T_bhe_f_in [°C]"] <= FREEZE_MARGIN_K + 0.05
+    assert 0.3 * 8000.0 < r["Q_ref_tank [W]"] < 0.7 * 8000.0
+
+
+# ---------------------------------------------------------------------------
+# 4. antifreeze
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("family", list(BOILERS))
+def test_antifreeze_runs_the_brine_point_and_stops_at_its_own_limit(machines, family):
+    brine = machines[family, "MPG-25%"]
+    fluid = brine.source_fluid
+    # Default flow keeps the 3 K loop difference with the mixture's heat capacity.
+    water = machines[family, "water"]
+    assert brine.dV_b_f_m3s / water.dV_b_f_m3s == pytest.approx(rho_w * c_w / (fluid.rho * fluid.cp))
+    # B0/W35: liquid in at 0 °C, out at -3 °C, full duty.
+    rated = _quiet(brine.analyze_steady, T_tank_w=35.0, T_source=0.0, Q_ref_tank=8000.0)
+    assert rated["failure_reason"] == "none" and rated["capacity_clamped"] is None
+    assert rated["T_bhe_f_in [°C]"] == pytest.approx(-3.0, abs=0.3)
+    assert 3.5 < rated["cop_ref [-]"] < 5.0
+    # Reduced once the liquid would leave below freezing point + 3 K ...
+    reduced = _quiet(brine.analyze_steady, T_tank_w=35.0, T_source=-5.0, Q_ref_tank=8000.0)
+    assert reduced["capacity_binding"] == SOURCE_FLUID_FREEZING
+    assert fluid.T_min_C - TOL_K <= reduced["T_bhe_f_in [°C]"] <= fluid.T_min_C + 0.05
+    # ... and off when it already arrives below it.
+    off = _quiet(brine.analyze_steady, T_tank_w=35.0, T_source=-10.0, Q_ref_tank=8000.0)
+    assert off["failure_reason"] == SOURCE_FLUID_FREEZING and off["hp_is_on"] is False
+
+
+def test_gshp_antifreeze_runs_against_a_freezing_borehole_wall(machines):
+    brine = machines["GSHP", "MPG-30%"]
+    r = _quiet(brine.analyze_steady, Q_r_iu=-4000.0, T0=0.0, T_a_room=21.0, T_bhe_wall=0.0)
+    assert r["failure_reason"] == "none" and r["hp_is_on"]
+    assert brine.source_fluid.T_min_C - TOL_K <= r["T_bhe_f_in [°C]"] < 0.0
+
+
+def test_ground_loop_options_that_assume_water_are_named():
+    with pytest.warns(UserWarning, match="viscosity of water"):
+        GroundSourceHeatPumpBoiler(source_fluid="MPG-25%", hydraulic_pump=True, **SHORT)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        GroundSourceHeatPumpBoiler(source_fluid="MPG-25%", **SHORT)  # nothing to report without them
+
+
+# ---------------------------------------------------------------------------
+# 5. the limit in analyze_dynamic
+# ---------------------------------------------------------------------------
+
+
+def _run_wshpb(machine, T_source_w):
+    n = len(T_source_w)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        # 300 s steps from a 30 °C tank: the thermostat calls for heat on every step.
+        df = machine.analyze_dynamic(
+            n * 300.0, 300.0, 30.0, np.zeros(n), np.full(n, 5.0), T_source_w_schedule=np.asarray(T_source_w)
+        )
+    return df, _freezing_warnings(caught)
+
+
+def test_dynamic_steps_are_reduced_or_off_and_warn_once(machines):
+    machine = machines["WSHPB", "water"]
+    # Source water: mild, then 5 °C (the coil returns the loop colder still), then freezing.
+    df, messages = _run_wshpb(machine, [12.0, 12.0, 5.0, 5.0, 1.0, 1.0])
+    reasons = df["failure_reason"].tolist()
+    assert reasons[:2] == ["none", "none"] and bool(df["hp_is_on"].iloc[0])
+    assert reasons[4:] == [SOURCE_FLUID_FREEZING] * 2 and not df["hp_is_on"].iloc[4:].any()
+    assert (df["Q_ref_tank [W]"].iloc[4:] == 0.0).all() and (df["E_cmp [W]"].iloc[4:] == 0.0).all()
+    # Every running step keeps the loop on or above the limit while the compressor runs.
+    running = df[df["hp_is_on"]]
+    assert (running["T_bhe_f_in_running [°C]"] >= FREEZE_MARGIN_K - TOL_K).all()
+    cold = df.iloc[2:4]
+    assert cold["hp_is_on"].all() and (cold["capacity_binding"] == SOURCE_FLUID_FREEZING).all()
+    assert (cold["Q_ref_tank [W]"] < 0.9 * df["Q_ref_tank [W]"].iloc[0]).all()
+    assert len(messages) == 1 and "analyze_dynamic" in messages[0]
+    # A second run reports again, once.
+    _, again = _run_wshpb(machine, [1.0, 1.0])
+    assert len(again) == 1
+
+
+def test_dynamic_run_above_the_limit_is_unchanged(machines):
+    limited, messages = _run_wshpb(machines["WSHPB", "water"], [12.0] * 4)
+    free, _ = _run_wshpb(machines["WSHPB", "unlimited"], [12.0] * 4)
+    assert messages == []
+    pd.testing.assert_frame_equal(limited, free)
+
+
+def test_gshpb_dynamic_ground_near_freezing():
+    """Ground at 6.5 °C: full extraction would chill the water to about 1.5 °C, the steps turn down."""
+    kwargs = dict(Ts=6.5, **SHORT)
+    n = 3
+    args = (n * 600.0, 600.0, 30.0, np.zeros(n), np.full(n, 5.0))
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        df = _quiet(GroundSourceHeatPumpBoiler, **kwargs).analyze_dynamic(*args)
+        messages = _freezing_warnings(caught)
+    free = _quiet(_quiet(GroundSourceHeatPumpBoiler, source_fluid=UNLIMITED_WATER, **kwargs).analyze_dynamic, *args)
+    assert free["hp_is_on"].all() and (free["T_bhe_f_in_running [°C]"] < 2.0).all()  # the defect
+    assert len(messages) == 1
+    assert df["hp_is_on"].all() and (df["capacity_binding"] == SOURCE_FLUID_FREEZING).all()
+    assert (df["T_bhe_f_in_running [°C]"] >= FREEZE_MARGIN_K - TOL_K).all()
+    assert (df["Q_ref_tank [W]"] < 0.9 * free["Q_ref_tank [W]"]).all()
+
+
+def test_gshp_dynamic_reports_the_limit_once():
+    gshp = _quiet(GroundSourceHeatPump, Ts=2.0, t_max_s=7200.0, dt_s=600.0)
+    n = 3
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        df = gshp.analyze_dynamic(n * 600, 600, np.full(n, -3000.0), np.full(n, 0.0), np.full(n, 20.0))
+    assert (df["failure_reason"] == SOURCE_FLUID_FREEZING).all() and not df["hp_is_on"].any()
+    assert (df["Q_ref_iu [W]"] == 0.0).all()
+    assert len(_freezing_warnings(caught)) == 1

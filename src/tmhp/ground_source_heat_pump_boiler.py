@@ -302,7 +302,6 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         # (e.g. geolink's resolved multi-borehole network) to replace the lumped
         # g-function with full borehole-to-borehole superposition.
         ground_coupler: GroundCoupler | None = None,
-        borehole_dynamics: bool | None = None,
         T_sur: float = 20.0,
         dT_hx_min: float = 0.5,
         # Compressor pressure-ratio envelope (PR = P_cond / P_evap); the
@@ -316,6 +315,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        # Borehole heat capacity and fluid transit: None = on where the model
+        # can use them, True = required, False = steady borehole. Keyword-only:
+        # the positional order of the arguments above is unchanged.
+        borehole_dynamics: bool | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,

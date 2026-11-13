@@ -73,6 +73,34 @@ def test_default_is_the_dynamic_borehole_derived_from_the_model():
     assert _space().borehole_dynamics == "transit"
 
 
+def test_argument_is_keyword_only_and_moves_no_positional_argument():
+    """Positional calls written before the argument existed keep their meaning."""
+    import inspect
+
+    for cls in (GroundSourceHeatPumpBoiler, GroundSourceHeatPump, GSHPB_STC_ground):
+        parameter = inspect.signature(cls).parameters.get("borehole_dynamics")
+        if parameter is not None:  # the solar variants pass it on through **kwargs
+            assert parameter.kind is inspect.Parameter.KEYWORD_ONLY and parameter.default is None
+    positional = [
+        p.name
+        for p in inspect.signature(GroundSourceHeatPumpBoiler).parameters.values()
+        if p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+    ]
+    # The tail of the positional list as it was before (main f1394dd).
+    assert positional[-8:] == [
+        "boundary_condition",
+        "ground_coupler",
+        "T_sur",
+        "dT_hx_min",
+        "PR_cycle_min",
+        "PR_cycle_max",
+        "rps_min",
+        "rps_max",
+    ]
+    assert "borehole_dynamics" in inspect.signature(GroundSourceHeatPump).parameters
+    assert GSHPB_STC_ground(stc=SolarThermalCollector(), borehole_dynamics=False).borehole_dynamics == "off"
+
+
 def test_false_is_the_steady_borehole():
     """``borehole_dynamics=False`` is the model before the dynamic default (values recorded on main f1394dd)."""
     n, dt = 12, 600.0

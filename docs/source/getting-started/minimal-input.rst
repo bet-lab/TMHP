@@ -252,9 +252,10 @@ Each can be switched off to see the bare cycle.
       - ``Cd_cycling`` (``None``: continuous minimum-speed point)
         (:doc:`/models/ashp`, :doc:`/models/gshpb`)
     * - Frost and defrost
-      - ASHP heating below 5 °C outdoor carries the EnergyPlus frost
-        adjustment at 84 % relative humidity
-      - ``defrost=None``; ``RH_out`` per call (:doc:`/models/ashp`)
+      - ASHP heating and ASHPB below 5 °C outdoor carry the EnergyPlus
+        frost adjustment at 84 % relative humidity
+      - ``defrost=None``; ``RH_out`` per call, ``RH_out_schedule`` in a
+        dynamic run (:doc:`/models/ashp`, :doc:`/models/ashpb`)
     * - Dynamic borehole
       - GSHP and GSHPB resolve the heat capacity of fluid, pipe and grout
         and the fluid transit

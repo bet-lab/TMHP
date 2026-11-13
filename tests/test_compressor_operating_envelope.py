@@ -197,7 +197,7 @@ def test_ashpb_r32_a_minus7_w55_is_refused_even_with_control():
 def test_ashpb_r32_a0_w60_needs_wet_suction(x_min):
     """201.6 degC dry; superheat alone (x_suction_min=1) is not enough, and the
     load reduction does not help (eta_is falls at low speed)."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, x_suction_min=x_min)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, x_suction_min=x_min, defrost=False)
     _off(_quiet(hp.analyze_steady, T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0), DISCHARGE_TEMP_ABOVE_MAX)
 
 
@@ -395,7 +395,7 @@ def _balance(r: dict, q_cond: str, q_evap: str) -> float:
 
 def test_control_reduces_superheat_first():
     """A2/W55 R32 15 kW: 155.7 degC dry at 5 K superheat; ~1.3 K holds 150 degC."""
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, defrost=False)
     r = _quiet(hp.analyze_steady, T_tank_w=55.0, T0=2.0, Q_ref_tank=15000.0)
     assert _running(r) and r["discharge_control"] is True
     assert r["x_ref_cmp_in [-]"] == 1.0
@@ -408,7 +408,7 @@ def test_control_then_uses_wet_suction_with_a_closed_cycle_balance():
     """A0/W60 R32 15 kW (#96 C6): 201.6 degC dry; wet suction x ~0.92 holds 150 degC."""
     import CoolProp.CoolProp as CP
 
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R32", hp_capacity=15000.0, defrost=False)
     r = _quiet(hp.analyze_steady, T_tank_w=60.0, T0=0.0, Q_ref_tank=15000.0)
     assert _running(r) and r["discharge_control"] is True
     x = r["x_ref_cmp_in [-]"]
@@ -619,7 +619,9 @@ def _reduced(r: dict, request: float, binding: str) -> None:
 
 @pytest.fixture(scope="module")
 def r134a_15kw():
-    return _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R134a", hp_capacity=15000.0)
+    # The frost-free cycle: these tests pin envelope limits at the cycle's own
+    # duty (frost solves it at a larger one, tests/test_ashpb_defrost.py).
+    return _quiet(tmhp.AirSourceHeatPumpBoiler, ref="R134a", hp_capacity=15000.0, defrost=False)
 
 
 def test_request_the_outdoor_coil_cannot_carry_runs_at_the_duty_it_can(r134a_15kw):
@@ -705,7 +707,7 @@ def test_coil_that_absorbs_too_much_at_minimum_airflow_is_not_reduced():
     ],
 )
 def test_every_failure_is_the_same_off_state_row(ref, T_tank_w, T0, Q, reason):
-    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref=ref, hp_capacity=15000.0)
+    hp = _quiet(tmhp.AirSourceHeatPumpBoiler, ref=ref, hp_capacity=15000.0, defrost=False)
     r = _steady_ashpb(hp, T_tank_w, T0, Q)
     _off(r, reason)
     assert r["converged"] is False

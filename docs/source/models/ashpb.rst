@@ -127,6 +127,103 @@ A dynamic run is not affected: the tank thermostat already switches the
 compressor, which runs at ``hp_capacity`` for ``runtime_fraction [-]`` of a
 step.
 
+.. _ashpb-frost:
+
+Frost and defrost
+=================
+
+Below 5 °C outdoor the coil frosts and the unit stops heating from time to
+time to melt it; a catalogue figure at A2 or A−7 is the mean over both. The
+boiler applies the adjustment :doc:`ashp` applies (:mod:`tmhp.defrost`: the
+EnergyPlus DX heating-coil model with on-demand reverse-cycle defrost, its
+constants unchanged, growing from nothing at 5 °C to its full size at 2 °C),
+on by default, in ``analyze_steady`` and in the cycle of every dynamic step:
+
+- The request is met by the mean, so the frost-free cycle is solved at the
+  larger duty ``(Q_ref_tank + Q_defrost) / frost_capacity_factor`` and the row
+  is then averaged. ``Q_ref_tank [W]`` is the mean heat that reaches the tank:
+  the request, unless that larger duty runs into the compressor's speed
+  ceiling or the operating envelope (``capacity_clamped == "max"``).
+- ``E_cmp [W]`` is the frost-free compressor power times
+  ``frost_power_factor + defrost_fraction`` (heating, then defrosting — the
+  compressor is taken to draw the same power while it defrosts);
+  ``E_defrost [W]`` is the defrosting part. ``E_ou_fan [W]`` is multiplied by
+  ``frost_power_factor [-]``.
+- ``Q_defrost [W]`` is the heat a reverse-cycle defrost takes back from the
+  tank water. A unit cycling below its minimum capacity defrosts only while
+  it runs, so that heat is ``runtime_fraction [-]`` of the continuous figure.
+- Heat and flow rates (``Q_ref_ou``, ``Q_ou_a``, ``m_dot_ref``, ``dV_ou_a``)
+  are scaled with the delivered heat; temperatures, pressures, speed and
+  efficiencies are those of the frost-free cycle, whose duty and input are
+  ``Q_ref_tank_frost_free [W]`` and ``E_tot_frost_free [W]``. ``Q_min [W]``
+  of a cycling row is the frost-free duty at the minimum speed.
+- In a dynamic step the thermostat asks for ``hp_capacity`` and the running
+  cycle is that mean; ``E_defrost [W]`` and ``Q_defrost [W]`` are step
+  averages like the other rates.
+
+.. code-block:: python
+
+   from tmhp import AirSourceHeatPumpBoiler
+   from tmhp.defrost import DefrostModel
+
+   AirSourceHeatPumpBoiler()                                   # frost and defrost, 84 % RH
+   AirSourceHeatPumpBoiler(defrost=False)                      # the frost-free steady state
+   AirSourceHeatPumpBoiler(defrost=DefrostModel(RH_out=0.70))  # another default humidity
+
+   # Humidity per call, per step, or as a schedule (fraction, 0-1):
+   # model.analyze_steady(T_tank_w=45.0, T0=0.0, Q_ref_tank=8000.0, RH_out=0.9)
+   # model.analyze_dynamic(..., RH_out_schedule=rh)      # one value per step
+   # model.step(state, {..., "RH_out": 0.9}, dt_s)
+
+The default 15 kW unit delivering 8 kW to a 45 °C tank, system COP with and
+without the adjustment (``defrost=False`` is what every version before
+returned):
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 13 13 13 13 13 13
+
+    * - Outdoor air
+      - 7 °C
+      - 4 °C
+      - 2 °C
+      - 0 °C
+      - −7 °C
+      - −15 °C
+    * - Frost-free
+      - 4.22
+      - 3.94
+      - 3.74
+      - 3.52
+      - 2.67
+      - 2.08
+    * - With frost and defrost
+      - 4.22
+      - 3.67
+      - 2.91
+      - 2.76
+      - 2.18
+      - 1.84
+    * - ``defrost_fraction [-]``
+      - 0
+      - 0.037
+      - 0.098
+      - 0.086
+      - 0.044
+      - 0.018
+
+Frost also lowers what the unit can deliver: at A2 against a 35 °C tank the
+default unit reaches its speed ceiling at a frost-free 18.6 kW, a mean of
+14.6 kW for a 15 kW request.
+
+.. note::
+
+   The multipliers come from air-to-air DX coils and depend on the outdoor
+   temperature and humidity only, not on the coil the model solves; the
+   condenser approach, the discharge temperature and the envelope checks are
+   those of the frost-free cycle at the larger duty, not of a coil with
+   frost on it. See :doc:`/concepts/scope-and-limits`.
+
 Default compressor efficiencies
 ===============================
 

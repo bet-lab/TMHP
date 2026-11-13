@@ -95,13 +95,26 @@ that frost-free row into the mean:
 * compressor power is multiplied by ``power multiplier + t_frac`` (heating,
   then defrosting) and outdoor-fan power by the power multiplier;
 * temperatures, pressures, speed and efficiencies keep the frost-free values.
+
+The air-to-air model does this inside its ``analyze_steady``; a boiler's
+``analyze_steady`` is decorated with :func:`steady_defrost`, which solves the
+frost-free row through the model's own part-load and envelope handling and
+hands it to the model for averaging. For a boiler the heat a reverse-cycle
+defrost takes comes out of the water it heats.
 """
 
 from __future__ import annotations
 
+import inspect
 import math
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from functools import wraps
+from typing import Any, TypeVar, cast
+
+from ._validation import validate_steady
+
+_F = TypeVar("_F", bound=Callable[..., Any])
 
 __all__ = [
     "T_OUT_MAX_DEFROST_C",
@@ -119,6 +132,7 @@ __all__ = [
     "resolve_defrost",
     "frost_free_keys",
     "apply_defrost",
+    "steady_defrost",
     "saturation_humidity_ratio",
     "humidity_ratio",
 ]
@@ -380,3 +394,61 @@ def apply_defrost(
     result[DEFROST_LOAD_KEY] = float(Q_defrost)
     result[RH_OUT_KEY] = frost.RH_out
     return result
+
+
+def steady_defrost(duty_arg: str, outdoor_arg: str = "T0", humidity_arg: str = "RH_out") -> Callable[[_F], _F]:
+    """Decorate a boiler's ``analyze_steady`` with the frost correction.
+
+    The decorated method is the frost-free solve (with its part-load report
+    and its duty reduction). A request with a frosting outdoor coil is handed
+    to the model's ``_steady_over_frost(frost, solve, request, T_out)``, where
+    ``solve(duty)`` is that frost-free solve at another duty; every other row
+    is solved as before and gets the frost keys of a row that was not
+    corrected (``_write_frost_free``). The model supplies
+    ``_frost_state(request, T_out, RH_out)``, which is
+    :data:`NO_FROST` when its frost model is off. It sits outermost: the
+    trial solves of the duty reduction and the cycling mean must see
+    frost-free rows.
+    """
+
+    def decorate(function: _F) -> _F:
+        signature = inspect.signature(function)
+
+        @wraps(function)
+        def wrapped(self: Any, *args: Any, **kwargs: Any) -> Any:
+            bound = signature.bind(self, *args, **kwargs)
+            bound.apply_defaults()
+            want_dict = bool(bound.arguments.get("return_dict", True))
+            if "return_dict" in bound.arguments:
+                bound.arguments["return_dict"] = True
+            # The method's own input checks come first, with their messages
+            # (an outdoor temperature out of range would otherwise fail inside
+            # the humid-air properties).
+            validate_steady(bound.arguments)
+            request, T_out = float(bound.arguments[duty_arg]), float(bound.arguments[outdoor_arg])
+            frost = self._frost_state(request, T_out, bound.arguments.get(humidity_arg))
+            if frost.active:
+
+                def solve(duty: float) -> Any:
+                    arguments = dict(bound.arguments)
+                    arguments[duty_arg] = duty
+                    trial = inspect.BoundArguments(signature, arguments)  # type: ignore[arg-type]
+                    return function(*trial.args, **trial.kwargs)
+
+                result = self._steady_over_frost(frost, solve, request, T_out)
+            else:
+                result = function(*bound.args, **bound.kwargs)
+                if isinstance(result, dict):
+                    self._write_frost_free(result, frost)
+            if want_dict or not isinstance(result, dict):
+                return result
+            import pandas as pd
+
+            return pd.DataFrame([result])
+
+        # ``analyze_steady.__wrapped__`` stays the undecorated solve, as under
+        # the cycling and envelope decorators.
+        wrapped.__wrapped__ = getattr(function, "__wrapped__", function)  # type: ignore[attr-defined]
+        return cast(_F, wrapped)
+
+    return decorate

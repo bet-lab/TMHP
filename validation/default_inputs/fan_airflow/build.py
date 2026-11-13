@@ -1,8 +1,9 @@
 """Build the fan-airflow archive: observations -> measurements -> fits -> release record.
 
-Maximum published fan airflow [m3/s] against rated capacity, per mode, side and indoor type
-(wall-mounted, floor-standing; outdoor units of those 1:1 single splits). Ducted and cassette units
-are out of scope. Hand-edited inputs, as in ../compressor_displacement:
+Maximum published fan airflow [m3/s] against rated capacity, per mode, side and product class:
+wall-mounted and floor-standing indoor units of 1:1 single splits and their outdoor units (ASHP),
+water-to-air packaged heat pumps (GSHP indoor side) and air-to-water outdoor units (ASHPB).
+Ducted and cassette split indoor units are out of scope. Hand-edited inputs, as in ../compressor_displacement:
   sources.json  observations/<source_id>.csv  errata.csv
 
   uv run python -m validation.default_inputs.fan_airflow.build
@@ -42,12 +43,22 @@ OBSERVATION_COLUMNS = [
     "note",
 ]
 ERRATA_FIELDS = set(OBSERVATION_COLUMNS) - {"record_id", "note"}
-INDOOR_TYPES = ("wall_mounted", "floor_standing")
+INDOOR_TYPES = ("wall_mounted", "floor_standing", "water_to_air")
+# Outdoor rows carry the type of the indoor unit they are paired with; an air-to-water unit has none,
+# so its outdoor rows carry the product class instead.
+OUTDOOR_ONLY_TYPES = ("air_to_water",)
+INDOOR_ONLY_TYPES = ("water_to_air",)
+# A printed rated or nominal airflow of an indoor blower is the test airflow, not its largest setting.
+RATED_STEP_LABELS = ("rated", "nominal", "nom", "standard")
 # Recorded but not fitted: the same unit can be ceiling-mounted, so its type is ambiguous.
 RECORDED_ONLY_TYPES = ("floor_ceiling_convertible",)
 CAPACITY_TO_W = {"W": 1.0, "kW": 1000.0, "Btu/h": 0.29307107}
 AIRFLOW_TO_M3_S = {"m3/s": 1.0, "m3/min": 1 / 60, "m3/h": 1 / 3600, "l/s": 1e-3, "CFM": 0.0283168466 / 60}
-SCOPE = "Maximum published fan airflow of 1:1 single splits (wall-mounted, floor-standing, their outdoor units)"
+SCOPE = (
+    "Maximum published fan airflow: 1:1 single splits (wall-mounted, floor-standing, their outdoor units), "
+    "water-to-air packaged heat pumps and air-to-water outdoor units"
+)
+SHIPPING_GATE = {"families": 3, "manufacturers": 2}
 
 
 def load_json(name: str):
@@ -55,15 +66,22 @@ def load_json(name: str):
 
 
 def stratum(row: dict) -> str:
-    equipment = row["indoor_type"] if row["side"] == "indoor" else "single_split"
+    if row["side"] == "indoor":
+        equipment = row["indoor_type"]
+    else:
+        equipment = row["indoor_type"] if row["indoor_type"] in OUTDOOR_ONLY_TYPES else "single_split"
     return f"airflow|{row['mode']}|{row['side']}|{equipment}"
 
 
 def normalize(obs: dict, source: dict) -> dict:
     if obs["side"] not in ("indoor", "outdoor") or obs["mode"] not in ("cooling", "heating"):
         raise ValueError(f"{obs['record_id']}: side/mode must be indoor|outdoor and cooling|heating")
-    if obs["indoor_type"] not in INDOOR_TYPES + RECORDED_ONLY_TYPES:
+    if obs["indoor_type"] not in INDOOR_TYPES + RECORDED_ONLY_TYPES + OUTDOOR_ONLY_TYPES:
         raise ValueError(f"{obs['record_id']}: indoor_type {obs['indoor_type']!r} is out of scope")
+    if (obs["indoor_type"] in OUTDOOR_ONLY_TYPES and obs["side"] != "outdoor") or (
+        obs["indoor_type"] in INDOOR_ONLY_TYPES and obs["side"] != "indoor"
+    ):
+        raise ValueError(f"{obs['record_id']}: air_to_water rows are outdoor rows, water_to_air rows are indoor rows")
     for unit, table in ((obs["capacity_unit"], CAPACITY_TO_W), (obs["airflow_unit"], AIRFLOW_TO_M3_S)):
         if unit not in table:
             raise ValueError(f"{obs['record_id']}: unknown unit {unit!r}")
@@ -96,6 +114,8 @@ def normalize(obs: dict, source: dict) -> dict:
     # usually print one airflow per mode; that single value is the outdoor fan's rated maximum.
     if obs["side"] == "indoor" and not obs["fan_step"]:
         row.update(eligible=False, exclusion_reason="indoor airflow without a printed fan step is not a maximum")
+    elif obs["side"] == "indoor" and obs["fan_step"].strip().lower() in RATED_STEP_LABELS:
+        row.update(eligible=False, exclusion_reason="indoor rated/nominal airflow is the test airflow, not a maximum")
     if obs["indoor_type"] in RECORDED_ONLY_TYPES:
         row.update(eligible=False, exclusion_reason=f"{obs['indoor_type']}: indoor type ambiguous, not fitted")
     if row["capacity_W"] is None:
@@ -126,7 +146,13 @@ def fit_groups(rows: list[dict]) -> dict:
     for row in rows:
         if row["eligible"]:
             groups[row["stratum"]].append(row)
-    return {key: {"stratum": key, **archive.fit_group(group)} for key, group in sorted(groups.items())}
+    fits = {key: {"stratum": key, **archive.fit_group(group)} for key, group in sorted(groups.items())}
+    for fit in fits.values():
+        fit["meets_shipping_gate"] = (
+            len(fit["families"]) >= SHIPPING_GATE["families"]
+            and len(fit["manufacturers"]) >= SHIPPING_GATE["manufacturers"]
+        )
+    return fits
 
 
 def run(release: str | None = None, note: str = "") -> dict:
@@ -142,6 +168,7 @@ def run(release: str | None = None, note: str = "") -> dict:
             "errata_applied": sum(len(r["errata_applied"]) for r in rows),
         },
         "fits": fit_groups(rows),
+        "shipping_gate": SHIPPING_GATE,
         "data_sha256": data_sha,
     }
     (HERE / "regression.json").write_text(json.dumps(regression, ensure_ascii=False, indent=2) + "\n")

@@ -1,5 +1,5 @@
 {
-  "scope": "Maximum published fan airflow of 1:1 single splits (wall-mounted, floor-standing, their outdoor units)",
+  "scope": "Maximum published fan airflow: 1:1 single splits (wall-mounted, floor-standing, their outdoor units), water-to-air packaged heat pumps and air-to-water outdoor units",
   "units": {
     "x": "rated capacity [kW]",
     "y": "largest published fan step [m3/s]"
@@ -1921,7 +1921,8 @@
         "FUJITSU-EU-2018",
         "MEUK-5330",
         "MEUK-5331"
-      ]
+      ],
+      "meets_shipping_gate": true
     },
     "airflow|cooling|indoor|wall_mounted": {
       "stratum": "airflow|cooling|indoor|wall_mounted",
@@ -26393,7 +26394,8 @@
         "MEUK-5330",
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
-      ]
+      ],
+      "meets_shipping_gate": true
     },
     "airflow|cooling|outdoor|single_split": {
       "stratum": "airflow|cooling|outdoor|single_split",
@@ -46386,7 +46388,8 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
-      ]
+      ],
+      "meets_shipping_gate": true
     },
     "airflow|heating|indoor|floor_standing": {
       "stratum": "airflow|heating|indoor|floor_standing",
@@ -48299,7 +48302,8 @@
         "FUJITSU-EU-2018",
         "MEUK-5330",
         "MEUK-5331"
-      ]
+      ],
+      "meets_shipping_gate": true
     },
     "airflow|heating|indoor|wall_mounted": {
       "stratum": "airflow|heating|indoor|wall_mounted",
@@ -72571,7 +72575,8 @@
         "MEUK-5330",
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT"
-      ]
+      ],
+      "meets_shipping_gate": true
     },
     "airflow|heating|outdoor|single_split": {
       "stratum": "airflow|heating|outdoor|single_split",
@@ -91602,8 +91607,13 @@
         "MEUK-5331",
         "PANASONIC-BIGRAC-GEN26-LT",
         "PANASONIC-EU-WEB-FLOOR"
-      ]
+      ],
+      "meets_shipping_gate": true
     }
+  },
+  "shipping_gate": {
+    "families": 3,
+    "manufacturers": 2
   },
   "data_sha256": "4131d328002f77c2d654359d0c5bed2ddab79c7e8a038f6d8c44aa0f8a2349a2"
 }

@@ -39,9 +39,19 @@ def export() -> dict:
         "shipping_gate": report["shipping_gate"],
         "bases": {},
     }
+    rows = json.loads((HERE / "measurements.json").read_text())
     for basis, fit in sorted(report["normalized_fits"].items()):
         law = fit["selected_law"]
+        # Option A (2026-11-14): a product's rho_1 * dh is evaluated at the catalogue rating point of its basis,
+        # i.e. the protocol most rows of the basis were printed at.
+        counts = {p: sum(r["eligible"] and r["protocol"] == p for r in rows) for p in fit["protocols"]}
+        reference = max(sorted(counts), key=counts.get)
         output["bases"][basis] = {
+            "reference_protocol": reference,
+            "reference_condition": {
+                k: report["protocols"][reference][k]
+                for k in ("T_evap_C", "T_cond_C", "T_suction_C", "T_liquid_C", "superheat_K", "subcooling_K")
+            },
             "eta_vol_rps_per_f": law["eta_vol_rps_per_f"],
             "frequency_Hz": law["frequency_Hz"],
             "eta_vol_rps": law["eta_vol_rps"],

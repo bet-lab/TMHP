@@ -17,6 +17,15 @@
   },
   "bases": {
     "rotary_single_fixed_50Hz": {
+      "reference_protocol": "ASHRAE_50Hz_fixed_single",
+      "reference_condition": {
+        "T_evap_C": 7.2,
+        "T_cond_C": 54.4,
+        "T_suction_C": 35.0,
+        "T_liquid_C": 46.1,
+        "superheat_K": 27.8,
+        "subcooling_K": 8.3
+      },
       "eta_vol_rps_per_f": 0.8575625124785291,
       "frequency_Hz": 50,
       "eta_vol_rps": 42.87812562392646,
@@ -83,6 +92,15 @@
       ]
     },
     "rotary_twin_inverter_60rps": {
+      "reference_protocol": "ARI_60Hz_variable_twin",
+      "reference_condition": {
+        "T_evap_C": 7.2,
+        "T_cond_C": 54.4,
+        "T_suction_C": 18.3,
+        "T_liquid_C": 46.1,
+        "superheat_K": 11.1,
+        "subcooling_K": 8.3
+      },
       "eta_vol_rps_per_f": 0.8870095871327589,
       "frequency_Hz": 60,
       "eta_vol_rps": 53.22057522796553,

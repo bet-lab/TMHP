@@ -276,6 +276,7 @@ boundary and demand boundary. ASHPB also exposes the current dynamic
 | `hx_fan.py`             | Air-side fan & heat-exchanger model                            |
 | `g_function.py`         | Borehole g-function (pygfunction)                              |
 | `ground_coupling.py`    | Borehole load-history coupling abstraction                     |
+| `ground_superposition.py` | Exact fast temporal superposition for long runs (opt-in)     |
 | `borehole.py`           | Borehole resistance; single/double U-tube and coaxial pipes    |
 | `borefield.py`          | Bore fields at any coordinates and depths, series connections  |
 | `borehole_capacity.py`  | Borehole heat capacity, short-time response, fluid transit     |
@@ -361,6 +362,7 @@ tmhp/
 │   ├── hx_fan.py                  # Air-side fan & heat-exchanger model
 │   ├── g_function.py              # Borehole g-function
 │   ├── ground_coupling.py         # Borehole load-history coupling
+│   ├── ground_superposition.py    # Exact fast superposition for long runs
 │   ├── weather.py
 │   ├── dhw.py
 │   ├── cop.py

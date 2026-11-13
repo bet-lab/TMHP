@@ -1,7 +1,7 @@
 {
  "slug": "daikin_rxm50a",
  "coefficient_version": "BITZER-three-C3-absolute-N-2026-10-06",
- "git_head": "dac1155200303a7f4bb6b66a158f85758479513b",
+ "git_head": "53c3abf37b70b85a44d269d2472ad9e64dab9bfc",
  "dirty": false,
  "dirty_digest": null,
  "dirty_scope": [
@@ -11,11 +11,11 @@
   "pyproject.toml",
   "uv.lock"
  ],
- "src_tmhp_tree": "4c4289a5983a9d3eb8b0d80af1880eb09962626d",
+ "src_tmhp_tree": "db376bd0a682b5edbecdba85df63881b6298e04d",
  "validation_parity_tree": "48c2af04b997296b74c5ea938c20816450c804b7",
  "python": "3.14.7",
  "coolprop": "7.2.0",
  "platform": "Darwin-arm64",
  "catalog_blob": "38e9beac928df947d4baa163a6aeaea55be146d9",
- "run_at": "2026-11-13T10:11:00+00:00"
+ "run_at": "2026-11-13T12:48:01+00:00"
 }

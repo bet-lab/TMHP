@@ -23,6 +23,17 @@ SINGLE_ZONE_VAV_COEFFICIENTS: dict = dict(
     power_min_ratio=0.10,
 )
 
+#: Default indoor-unit airflow per watt of nameplate capacity [m3/s per W].
+#:
+#: 400 cfm per ton of refrigeration (0.18878 m3/s per 3516.85 W), the nominal
+#: airflow at which unitary air conditioners and heat pumps are rated (AHRI
+#: 210/240 uses it as the airflow when none is specified, and caps the rated
+#: airflow at 450 cfm/ton). In SI it is 193 m3/h per kW. The air-to-air units
+#: this library is validated against publish 168 to 309 m3/h per kW at their
+#: high fan speed (Daikin FTXM-A, 2.0 to 5.0 kW: 0.1717 to 0.2333 m3/s), so the
+#: figure sits at the lower end of what split systems run.
+INDOOR_AIRFLOW_PER_W = 5.37e-5
+
 
 def is_generic_fan_curve(vsd_coeffs: dict | None) -> bool:
     """Identify the unmodified ASHRAE Appendix G Method 2 correlation."""

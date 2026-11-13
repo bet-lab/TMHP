@@ -3,8 +3,8 @@
 With the airflow fixed, a coil can no longer modulate its flow to meet a duty.
 The coil solve then clamps to that one flow and the cycle search closes the
 duty through the approach temperature instead (the band of approaches the fan
-can serve collapses to a point). ``AirSourceHeatPump`` accepts the setting but
-its 2-D Nelder--Mead search cannot find that point; see the last test.
+can serve collapses to a point). ``AirSourceHeatPump`` solves that point too;
+its tests are in ``test_ashp_narrow_fan_range.py``.
 """
 
 import math

@@ -23,9 +23,10 @@ from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, brentq, minimize, minimize_scalar
 from tqdm import tqdm
 
+from . import _opt_utils
 from . import calc_util as cu
 from ._opt_utils import safe_float_attr, specific_energy_objective
 from ._validation import validate_ctor, validate_dynamic, validate_steady
@@ -43,17 +44,36 @@ from .compressor_envelope import (
 )
 from .compressor_speed import (
     CAPACITY_CLAMPED_MAX,
+    CAPACITY_CLAMPED_MIN,
     default_displacement,
     solve_compressor_speed,
 )
 from .constants import c_a, rho_a
+from .cycling import (
+    CD_AIR_DEFAULT,
+    CONTINUOUS,
+    MIN_CAPACITY_KEY,
+    OFF,
+    CyclingDegradation,
+    apply_cycling,
+    continuous_keys,
+    resolve_cycling,
+)
+from .defrost import (
+    NO_FROST,
+    DefrostModel,
+    FrostState,
+    apply_defrost,
+    frost_free_keys,
+    resolve_defrost,
+)
 from .enex_functions import (
     calc_energy_flow,
     calc_fan_power_from_dV_fan,
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import resolve_fan_flow_limits
-from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -80,6 +100,195 @@ OBJ_CAPACITY_LIMITED = 1.0e9
 #: Objective value for an operating point the cycle cannot reach (invalid).
 OBJ_INFEASIBLE = 1.0e12
 
+#: A fan whose largest flow is at most this multiple of its smallest is
+#: searched by :class:`_NarrowFanSearch`. At a fixed approach temperature a
+#: coil's capacity grows roughly as flow^0.7, so a flow ratio of 2 leaves a band
+#: of approach temperatures about +/-25 % wide -- at a 3 K approach that is
+#: narrower than the spacing of the finest lattice the grid search falls back
+#: on (1.3 K), and a constant-speed fan leaves a single point.
+NARROW_FAN_FLOW_RATIO = 2.0
+
+
+class _NarrowFanSearch:
+    """Operating-point search for a fan with little or no flow range.
+
+    A coil whose fan can modulate carries a given duty over a band of approach
+    temperatures: a small approach at the largest airflow, a large one at the
+    smallest. With a constant-speed fan the band is one point, and the unit
+    meets a duty only where the refrigerant side and that one airflow agree.
+    A grid or a simplex over the two approach temperatures cannot land on a set
+    of zero width, so the band is solved instead, from the signed capacity
+    margins of the coil at its two flow limits
+    (:func:`~tmhp._opt_utils.margin_feasible_interval`) -- the way the
+    ground-source and the water-heating models treat their fans.
+
+    The two approaches are nested. The coil with the narrower fan is the
+    *inner* one: for every outer approach its own approach is solved as the
+    middle of its band (a single point for a constant-speed fan). The other
+    coil's approach is the *outer* one: its band is solved from that coil's
+    margins at the inner solution, and candidates inside it are ranked on the
+    same three-band objective as the grid search
+    (:func:`~tmhp._opt_utils.operating_point_objective`).
+
+    With ``accept`` the search stops at the first candidate state it accepts
+    and keeps it in ``accepted`` (:meth:`AirSourceHeatPump._duty_is_deliverable`
+    asks only whether some approach pair meets a duty exactly).
+    """
+
+    class _Accepted(Exception):
+        """Raised from :meth:`entry` to leave the root finders at an accepted state."""
+
+    #: Root tolerance on a band edge [K]. A constant-speed coil is converged
+    #: only within 1e-5 of its duty, i.e. a few 1e-5 K of approach.
+    _EDGE_XTOL_K = 1e-7
+    #: Root tolerance on the outer band of a fan that can still modulate [K]:
+    #: the interior is minimised afterwards, the edge only bounds it.
+    _OUTER_BAND_XTOL_K = 1e-3
+    #: Inward step from a solved band edge before the interior is minimised [K].
+    _EDGE_STEP_K = 1e-4
+
+    def __init__(
+        self,
+        model: "AirSourceHeatPump",
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        accept: Callable[[dict | None], bool] | None = None,
+    ) -> None:
+        self.model = model
+        self.Q_r_iu, self.T0, self.T_a_room = Q_r_iu, T0, T_a_room
+        self.accept = accept
+        #: ``((dT_ref_evap, dT_ref_cond), state)`` of the accepted candidate.
+        self.accepted: tuple[tuple[float, float], dict] | None = None
+        self.heating = Q_r_iu < 0
+        ratio_iu, ratio_ou = model._fan_flow_ratios()
+        #: The narrower fan is solved, the other searched.
+        self.inner_is_iu = ratio_iu <= ratio_ou
+        self.inner_fixed = min(ratio_iu, ratio_ou) == 1.0
+        self.outer_fixed = max(ratio_iu, ratio_ou) == 1.0
+        #: (indoor approach, outdoor approach) -> (objective, state, coil margins)
+        self.rows: dict[tuple[float, float], tuple[float, dict | None, tuple[float, float, float, float] | None]] = {}
+        self._inner_points: dict[float, float | None] = {}
+        self._inner_hint: float | None = None
+
+    # -- candidates ---------------------------------------------------------
+
+    def approaches(self, x_iu: float, x_ou: float) -> tuple[float, float]:
+        """``(dT_ref_evap, dT_ref_cond)`` for an indoor/outdoor approach pair."""
+        return (x_ou, x_iu) if self.heating else (x_iu, x_ou)
+
+    def entry(self, x_iu: float, x_ou: float) -> tuple[float, dict | None, tuple[float, float, float, float] | None]:
+        key = (float(x_iu), float(x_ou))
+        if key not in self.rows:
+            model = self.model
+            de, dc = self.approaches(*key)
+            perf = model._calc_state(
+                dT_ref_evap=de, dT_ref_cond=dc, Q_r_iu=self.Q_r_iu, T0=self.T0, T_a_room=self.T_a_room
+            )
+            value = OBJ_INFEASIBLE
+            if perf is not None and perf.get("converged", False):
+                value = _opt_utils.operating_point_objective(
+                    float(perf.get("E_tot [W]", math.nan)),
+                    float(perf.get("Q_ref_iu [W]", math.nan)),
+                    self.Q_r_iu,
+                    perf.get("capacity_clamped"),
+                ) * model._cycling_cost_factor(perf, self.Q_r_iu)
+            self.rows[key] = (value, perf, model._coil_margins(perf))
+            if self.accept is not None and perf is not None and self.accept(perf):
+                self.accepted = (self.approaches(*key), perf)
+                raise self._Accepted
+        return self.rows[key]
+
+    def _pair(self, outer: float, inner: float) -> tuple[float, float]:
+        return (outer, inner) if not self.inner_is_iu else (inner, outer)
+
+    def _side_margins(self, outer: float, inner: float, indoor: bool) -> tuple[float, float] | None:
+        """(margin at the largest flow, margin at the smallest flow) of one coil [W]."""
+        margins = self.entry(*self._pair(outer, inner))[2]
+        if margins is None:
+            return None
+        iu_min, iu_max, ou_min, ou_max = margins
+        return (iu_max, iu_min) if indoor else (ou_max, ou_min)
+
+    # -- inner coil: solved -------------------------------------------------
+
+    def inner(self, outer: float) -> float | None:
+        """Inner approach at which the inner fan carries its duty, or ``None``."""
+        outer = float(outer)
+        if outer not in self._inner_points:
+            lo, hi = self.model.dT_approach_bounds
+            band = _opt_utils.margin_band_on_valid_range(
+                lambda x: self._side_margins(outer, x, self.inner_is_iu),
+                lo,
+                hi,
+                xtol=self._EDGE_XTOL_K,
+                hint=self._inner_hint,
+            )
+            point = None
+            if band is not None:
+                # The middle of the band: the one point of a constant-speed
+                # fan, mid-range airflow of a fan that can still modulate.
+                point = 0.5 * (band[0] + band[1])
+                self._inner_hint = point
+            self._inner_points[outer] = point
+        return self._inner_points[outer]
+
+    def _outer_margins(self, outer: float) -> tuple[float, float] | None:
+        inner = self.inner(outer)
+        if inner is None:
+            return None
+        return self._side_margins(outer, inner, not self.inner_is_iu)
+
+    def value(self, outer: float) -> float:
+        inner = self.inner(outer)
+        if inner is None:
+            return OBJ_INFEASIBLE
+        return self.entry(*self._pair(float(outer), inner))[0]
+
+    # -- outer coil: band, then minimum -------------------------------------
+
+    def run(self) -> None:
+        with contextlib.suppress(self._Accepted):
+            self._run()
+
+    def _run(self) -> None:
+        lo, hi = self.model.dT_approach_bounds
+        band = _opt_utils.margin_band_on_valid_range(
+            self._outer_margins,
+            lo,
+            hi,
+            xtol=self._EDGE_XTOL_K if self.outer_fixed else self._OUTER_BAND_XTOL_K,
+        )
+        if band is None:
+            return
+        a, b = band
+        step = self._EDGE_STEP_K
+        if self.outer_fixed or b - a <= 2.0 * step:
+            for x in (0.5 * (a + b), a, b):
+                if self.value(x) < OBJ_INFEASIBLE:
+                    return
+            return
+        a, b = a + step, b - step
+        points = sorted({a, b, *(x for x in self._inner_points if a < x < b)})
+        values = [self.value(x) for x in points]
+        k = min(range(len(points)), key=values.__getitem__)
+        left, right = points[max(k - 1, 0)], points[min(k + 1, len(points) - 1)]
+        if values[k] < OBJ_INFEASIBLE and right > left:
+            minimize_scalar(
+                self.value,
+                bounds=(left, right),
+                method="bounded",
+                options={"xatol": min(1e-2, (right - left) / 20.0), "maxiter": 25},
+            )
+
+    def best(self) -> tuple[float, tuple[float, float] | None, dict | None]:
+        """Least objective found: ``(value, (dT_ref_evap, dT_ref_cond), state)``."""
+        if not self.rows:
+            return OBJ_INFEASIBLE, None, None
+        key = min(self.rows, key=lambda k: self.rows[k][0])
+        value, perf, _ = self.rows[key]
+        return value, self.approaches(*key), perf
+
 
 class AirSourceHeatPump(ReferenceStateMixin):
     """Air source heat pump with indoor-unit air heat exchange.
@@ -94,8 +303,47 @@ class AirSourceHeatPump(ReferenceStateMixin):
     ``rps_max``, the search switches to maximising delivered capacity — see
     :meth:`_optimize_operation`. Such an hour is reported with
     ``capacity_clamped == "max"`` and a ``Q_ref_iu [W]`` below the request;
-    the difference is unmet load, not a solver failure.
+    the difference is unmet load (``Q_unmet [W]``), not a solver failure.
+
+    When the request is below what the unit delivers at its minimum compressor
+    speed, the compressor cycles on and off. Such an hour is reported with
+    ``capacity_clamped == "min"`` as the mean over the cycling period: the
+    delivered heat equals the request, the electrical input carries the EN
+    14825 degradation (``Cd_cycling``), and ``runtime_fraction [-]`` is the
+    share of the time the compressor runs (:mod:`tmhp.cycling`).
     """
+
+    #: Heat and flow rates averaged with the capacity ratio while cycling.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ou [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_ou_a [m3/s]",
+    )
+    #: Electrical powers averaged with the runtime fraction while cycling. The
+    #: indoor fan is not among them: it moves the delivered heat and is
+    #: averaged with it (``E_iu_fan [W]`` times the capacity ratio).
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
+
+    #: Heat and flow rates averaged with the delivered-heat factor under frost.
+    _FROST_RATE_KEYS: tuple[str, ...] = (
+        "Q_ref_iu [W]",
+        "Q_ref_ou [W]",
+        "Q_a_iu_in [W]",
+        "Q_a_iu_out [W]",
+        "m_dot_ref [kg/s]",
+        "dV_iu_a [m3/s]",
+        "dV_ou_a [m3/s]",
+    )
+    #: Delivered heat and electrical input of the frost-free cycle a row was solved at [W].
+    _FROST_FREE_HEAT_KEY = "Q_ref_iu_frost_free [W]"
+    _FROST_FREE_POWER_KEY = "E_tot_frost_free [W]"
+    #: EnergyPlus / DOE-2.1E frost adjustment in heating (None: frost-free
+    #: steady state). Set by the constructor.
+    defrost: DefrostModel | None = None
 
     _RATING_FAMILY = "ASHP"
     _RATING_DEFAULT_MODE = "cooling"
@@ -176,6 +424,11 @@ class AirSourceHeatPump(ReferenceStateMixin):
         dV_iu_fan_a_ref: float | None = None,
         dV_iu_fan_a_min: float | None = None,
         dV_iu_fan_a_max: float | None = None,
+        # On/off cycling below the minimum continuous capacity: EN 14825
+        # degradation coefficient Cd (None: no cycling, the unit over-delivers).
+        Cd_cycling: CyclingDegradation | float | None = CD_AIR_DEFAULT,
+        # Frost on the outdoor coil and its defrost, heating only (None / False: off).
+        defrost: DefrostModel | bool | None = True,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
@@ -357,8 +610,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         }
 
         # --- 4. Indoor unit fan ---
+        # The indoor airflow sets the condensing (heating) and evaporating
+        # (cooling) temperatures through the coil's approach, so it decides
+        # the supply-air temperature and most of the lift. 400 cfm/ton is the
+        # airflow unitary equipment is rated at; see ``INDOOR_AIRFLOW_PER_W``.
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * 0.0002
+            self.dV_iu_fan_a_rated = hp_capacity * INDOOR_AIRFLOW_PER_W
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -390,6 +647,13 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
         # --- 5. Room temperature ---
         self.T_a_room: float = T_a_room
+
+        # --- 5b. Part load below the minimum continuous capacity ---
+        #: EN 14825 cycling degradation (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "air")
+
+        # --- 5c. Frost on the outdoor coil and its defrost (heating) ---
+        self.defrost = resolve_defrost(defrost)
 
         # --- 6. Compressor reference state (rated speed, rated mass flow) ---
         efficiencies = self._initialize_reference_state(
@@ -534,17 +798,23 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # Same name (`cs`) is annotated up in the inactive branch (~L206);
         # re-annotating here triggers mypy [no-redef] even though the
         # inactive branch returns unconditionally. Use plain assignment.
-        cs = calc_ref_state(
-            T_evap_K=T_evap_sat_K,
-            T_cond_K=T_cond_sat_K,
-            refrigerant=self.ref,
-            eta_cmp_isen=1.0,  # Temporary
-            mode=mode,
-            dT_superheat=actual_dT_superheat,
-            x_suction=self._x_suction,
-            dT_subcool=actual_dT_subcool,
-            is_active=True,
-        )
+        try:
+            cs = calc_ref_state(
+                T_evap_K=T_evap_sat_K,
+                T_cond_K=T_cond_sat_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=1.0,  # Temporary
+                mode=mode,
+                dT_superheat=actual_dT_superheat,
+                x_suction=self._x_suction,
+                dT_subcool=actual_dT_subcool,
+                is_active=True,
+            )
+        except ValueError:
+            # The fluid has no state at this candidate (a flash CoolProp cannot
+            # solve): no cycle here. The search treats it as infeasible instead
+            # of the whole solve raising.
+            return None
 
         h_cmp_in: float = cs["h_ref_cmp_in [J/kg]"]
         h_exp_in: float = cs["h_ref_exp_in [J/kg]"]
@@ -572,21 +842,24 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # Clamp: hold P_evap, project P_cond = PR_cycle_min * P_evap, invert
             # the saturation curve for the constrained condensing temperature,
             # then refresh the cycle state at the clamped condition.
-            import CoolProp.CoolProp as CP
-
             P_cond = self.PR_cycle_min * P_evap
-            T_cond_sat_K = CP.PropsSI("T", "P", P_cond, "Q", 0, self.ref)
-            cs = calc_ref_state(
-                T_evap_K=T_evap_sat_K,
-                T_cond_K=T_cond_sat_K,
-                refrigerant=self.ref,
-                eta_cmp_isen=1.0,  # Temporary
-                mode=mode,
-                dT_superheat=actual_dT_superheat,
-                x_suction=self._x_suction,
-                dT_subcool=actual_dT_subcool,
-                is_active=True,
-            )
+            try:
+                T_cond_sat_K = props_si("T", "P", P_cond, "Q", 0, self.ref)
+                cs = calc_ref_state(
+                    T_evap_K=T_evap_sat_K,
+                    T_cond_K=T_cond_sat_K,
+                    refrigerant=self.ref,
+                    eta_cmp_isen=1.0,  # Temporary
+                    mode=mode,
+                    dT_superheat=actual_dT_superheat,
+                    x_suction=self._x_suction,
+                    dT_subcool=actual_dT_subcool,
+                    is_active=True,
+                )
+            except ValueError:
+                # The floor pressure has no saturation state (above the
+                # critical pressure): no cycle at this candidate.
+                return None
             h_cmp_in = cs["h_ref_cmp_in [J/kg]"]
             h_exp_in = cs["h_ref_exp_in [J/kg]"]
             h_exp_out = cs["h_ref_exp_out [J/kg]"]
@@ -596,8 +869,6 @@ class AirSourceHeatPump(ReferenceStateMixin):
             ratio_P_cmp = P_cond / P_evap if P_evap > 0 else self.PR_cycle_min
 
         try:
-            import CoolProp.CoolProp as CP
-
             s_cmp_in = cs["s_ref_cmp_in [J/(kg·K)]"]
             h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
@@ -898,12 +1169,33 @@ class AirSourceHeatPump(ReferenceStateMixin):
             # the lattice fallback and the warm-start guard still fire. Leaving
             # the helper's own default here would return 1e6 for an unreachable
             # point, which both guards would read as a perfectly good solution.
+            #
+            # A minimum-speed candidate is met by cycling, so its cost is the
+            # mean input for the *requested* heat: the specific energy divided
+            # by the part-load factor at this candidate's capacity ratio.
             return specific_energy_objective(
                 E_tot,
                 delivered,
                 abs(Q_r_iu),
                 math.inf,
                 penalty=OBJ_INFEASIBLE,
+            ) * self._cycling_cost_factor(perf, Q_r_iu)
+
+        # Phase 0: a constant-speed fan. The approaches it can serve are a
+        # single point, which no grid or simplex lands on, so the point is
+        # solved from the coil capacity margins (:class:`_NarrowFanSearch`).
+        # Nothing is left for the phases below to find or to refine.
+        if self._has_constant_speed_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room)
+            search.run()
+            value, x, _ = search.best()
+            lo_b, hi_b = self.dT_approach_bounds
+            middle = 0.5 * (lo_b + hi_b)
+            return OptimizeResult(
+                x=np.array(x if x is not None else (middle, middle), dtype=float),
+                fun=value,
+                success=value < OBJ_INFEASIBLE,
+                nfev=len(search.rows),
             )
 
         # Phase 1: coarse grid pre-scan to find a converging starting point.
@@ -930,6 +1222,17 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if val < best_val:
                 best_val = val
                 best_x0 = list(cand)
+
+        # Phase 1a: a fan with a narrow flow range, paid only when the pre-scan
+        # found nothing. The band of approaches it can serve may be thinner
+        # than the spacing of the lattices below, so it is solved rather than
+        # sampled; the point found seeds Phase 2.
+        if best_val >= OBJ_INFEASIBLE and self._has_narrow_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room)
+            search.run()
+            value, x, _ = search.best()
+            if value < OBJ_INFEASIBLE and x is not None:
+                best_val, best_x0 = value, list(x)
 
         # Phase 1b: fallback lattice, paid only when Phase 1a found nothing.
         #
@@ -970,8 +1273,326 @@ class AirSourceHeatPump(ReferenceStateMixin):
         )
 
     # =============================================================
+    # Part load: cycling below the minimum capacity, unmet load above the maximum
+    # =============================================================
+
+    def _cycling_cost_factor(self, perf: dict, Q_r_iu: float) -> float:
+        """Mean electrical input of a candidate relative to its continuous input (>= 1).
+
+        1.0 unless the candidate sits on the compressor's speed floor and
+        cycling is modelled; there ``1 / PLF`` at the candidate's capacity
+        ratio (:class:`~tmhp.cycling.CyclingDegradation`).
+        """
+        if self.cycling is None or perf.get("capacity_clamped") != CAPACITY_CLAMPED_MIN:
+            return 1.0
+        delivered = abs(float(perf.get("Q_ref_iu [W]", math.nan)))
+        if not (math.isfinite(delivered) and delivered > 0.0):
+            return 1.0
+        return 1.0 / self.cycling.part_load_factor(min(1.0, abs(Q_r_iu) / delivered))
+
+    def _report_part_load(self, result: dict, Q_r_iu: float) -> None:
+        """Write the part-load keys of a solved row and average a cycling one (in place).
+
+        Every row gets ``Q_request [W]`` (signed, as asked), ``Q_unmet [W]``
+        (how far the delivered heat falls short of the request, >= 0) and the
+        cycling keys of :mod:`tmhp.cycling`. A row on the compressor's speed
+        floor is averaged over the cycling period; one at its ceiling gains
+        ``Q_max [W]`` and ``capacity_binding`` when the search did not already
+        set them.
+        """
+        request = abs(float(Q_r_iu))
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0))) if running else 0.0
+        clamp = result.get("capacity_clamped") if running else None
+        if clamp == CAPACITY_CLAMPED_MIN and self.cycling is not None and 0.0 < request < delivered:
+            state = self.cycling.state(request, delivered)
+            apply_cycling(
+                result,
+                state,
+                delivered_key="Q_ref_iu [W]",
+                rate_keys=self._CYCLING_RATE_KEYS,
+                power_keys=self._CYCLING_POWER_KEYS,
+                delivery_power_keys=("E_iu_fan [W]",),
+            )
+            result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"]
+            if math.isfinite(float(result["cop_sys [-]"])):
+                result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+            delivered = abs(float(result["Q_ref_iu [W]"]))
+        else:
+            continuous_keys(
+                result,
+                CONTINUOUS if running else OFF,
+                delivered if clamp == CAPACITY_CLAMPED_MIN else math.nan,
+            )
+        result["Q_request [W]"] = float(Q_r_iu)
+        unmet = max(request - delivered, 0.0)
+        result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+        if clamp == CAPACITY_CLAMPED_MAX:
+            result.setdefault("Q_max [W]", delivered)
+            result.setdefault("capacity_binding", "compressor")
+
+    # =============================================================
+    # Fans with little or no flow range
+    # =============================================================
+
+    def _fan_flow_ratios(self) -> tuple[float, float]:
+        """Largest over smallest airflow of the indoor and the outdoor fan (1.0: constant speed)."""
+
+        def ratio(low: float, high: float) -> float:
+            return high / low if low > 0 else math.inf
+
+        return (
+            ratio(self.dV_iu_fan_a_min, self.dV_iu_fan_a_max),
+            ratio(self.dV_ou_fan_a_min, self.dV_ou_fan_a_max),
+        )
+
+    def _has_narrow_fan(self) -> bool:
+        """Whether either fan's flow range can be too narrow for the grid search."""
+        return min(self._fan_flow_ratios()) <= NARROW_FAN_FLOW_RATIO
+
+    def _has_constant_speed_fan(self) -> bool:
+        """Whether either fan runs at one airflow only (``min == max``)."""
+        return min(self._fan_flow_ratios()) == 1.0
+
+    def _coil_margins(self, perf: dict | None) -> tuple[float, float, float, float] | None:
+        """Signed capacity margins of both coils at their fan flow limits [W].
+
+        ``(indoor at smallest flow, indoor at largest flow, outdoor at smallest
+        flow, outdoor at largest flow)`` for a state of :meth:`_calc_state`:
+        coil capacity at that airflow minus the refrigerant-side duty the
+        cycle asks of it. A coil carries its duty at some airflow within the
+        limits when the first of its pair is ``<= 0`` and the second ``>= 0``.
+        ``None`` when the cycle itself does not exist.
+        """
+        if perf is None:
+            return None
+        if "_iu_diag" in perf:
+            # A coil did not close: the coil solver reports the margins.
+            values = tuple(
+                float(perf[diag].get(key, math.nan))
+                for diag in ("_iu_diag", "_ou_diag")
+                for key in ("min_flow_capacity_margin_W", "max_flow_capacity_margin_W")
+            )
+        else:
+            # Both coils closed, so each temperature difference follows from
+            # the duty and the solved airflow.
+            def limits(duty: float, flow: float, UA_rated: float, reference: float, n: float, low: float, high: float):
+                def per_kelvin(dV: float) -> float:
+                    C_air = c_a * rho_a * dV
+                    return C_air * (1.0 - math.exp(-UA_rated * (dV / reference) ** n / C_air))
+
+                if not (duty > 0.0 and flow > 0.0):
+                    return math.nan, math.nan
+                dT = duty / per_kelvin(flow)
+                return per_kelvin(low) * dT - duty, per_kelvin(high) * dT - duty
+
+            values = (
+                *limits(
+                    abs(float(perf.get("Q_ref_iu [W]", math.nan))),
+                    float(perf.get("dV_iu_a [m3/s]", math.nan)),
+                    self.UA_iu_rated,
+                    self.dV_iu_fan_a_ref,
+                    self.n_iu,
+                    self.dV_iu_fan_a_min,
+                    self.dV_iu_fan_a_max,
+                ),
+                *limits(
+                    abs(float(perf.get("Q_ref_ou [W]", math.nan))),
+                    float(perf.get("dV_ou_a [m3/s]", math.nan)),
+                    self.UA_ou_rated,
+                    self.dV_ou_fan_a_ref,
+                    self.n_ou,
+                    self.dV_ou_fan_a_min,
+                    self.dV_ou_fan_a_max,
+                ),
+            )
+        if not all(math.isfinite(v) for v in values):
+            return None
+        return values  # type: ignore[return-value]
+
+    # =============================================================
+    # Frost on the outdoor coil and its defrost
+    # =============================================================
+
+    def _frost_state(self, Q_r_iu: float, T0: float, RH_out: float | None) -> FrostState:
+        """Frost correction for this request (:data:`~tmhp.defrost.NO_FROST` outside heating)."""
+        if self.defrost is None or not Q_r_iu < 0:
+            return NO_FROST
+        return self.defrost.frost_state(T0, RH_out)
+
+    def _write_frost_free(self, result: dict, frost: FrostState) -> None:
+        """Frost keys of a row the correction left alone (in place)."""
+        frost_free_keys(result, frost)
+        result[self._FROST_FREE_HEAT_KEY] = float(result.get("Q_ref_iu [W]", 0.0))
+        result[self._FROST_FREE_POWER_KEY] = float(result.get("E_tot [W]", 0.0))
+
+    def _average_over_frost(self, result: dict, frost: FrostState, T0: float, runtime_share: float = 1.0) -> float:
+        """Turn a running frost-free row into the mean over frosting and defrost (in place).
+
+        Returns the mean delivered heat [W]: the frost-free heat times the
+        capacity multiplier, less what a reverse-cycle defrost takes from the
+        room. The indoor fan moves the delivered heat and is averaged with it.
+        ``runtime_share`` is the fraction of the time the compressor runs: a
+        cycling unit defrosts only while it runs, so the heat its defrosts
+        take from the room is that share of the continuous-operation figure.
+        """
+        model = self.defrost
+        assert model is not None
+        q_defrost = runtime_share * model.defrost_load(frost, T0, self.hp_capacity)
+        heat_frost_free = abs(float(result["Q_ref_iu [W]"]))
+        power_frost_free = float(result["E_tot [W]"])
+        delivered = max(frost.capacity_multiplier * heat_frost_free - q_defrost, 0.0)
+        apply_defrost(
+            result,
+            frost,
+            heat_factor=delivered / heat_frost_free,
+            Q_defrost=q_defrost,
+            rate_keys=self._FROST_RATE_KEYS,
+            outdoor_power_keys=("E_ou_fan [W]",),
+            delivery_power_keys=("E_iu_fan [W]",),
+        )
+        result[self._FROST_FREE_HEAT_KEY] = heat_frost_free
+        result[self._FROST_FREE_POWER_KEY] = power_frost_free
+        result["cop_ref [-]"] = result["Q_ref_iu [W]"] / result["E_cmp [W]"] if result["E_cmp [W]"] > 0 else np.nan
+        if math.isfinite(float(result.get("cop_sys [-]", np.nan))) and result["E_tot [W]"] > 0:
+            result["cop_sys [-]"] = abs(result["Q_a_iu_out [W]"] - result["Q_a_iu_in [W]"]) / result["E_tot [W]"]
+        return delivered
+
+    def _analyze_steady_frosted(
+        self,
+        frost: FrostState,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        *,
+        postprocess: bool,
+        verbose: bool,
+    ) -> dict:
+        """Heating with a frosting outdoor coil: the mean over frosting and defrost.
+
+        The frost-free cycle is solved at the duty whose mean is the request,
+        ``(|Q_r_iu| + Q_defrost) / capacity multiplier``, with everything that
+        applies to a frost-free solve (speed limits, cycling, the capacity
+        ceiling), and the row is then averaged (:func:`~tmhp.defrost.apply_defrost`).
+        """
+        model = self.defrost
+        assert model is not None
+        q_defrost = model.defrost_load(frost, T0, self.hp_capacity)
+        gross = model.gross_duty(frost, Q_r_iu, q_defrost)
+
+        def frost_free(duty: float) -> dict:
+            self.defrost = None
+            try:
+                solved = self.analyze_steady(
+                    Q_r_iu=-duty, T0=T0, T_a_room=T_a_room, return_dict=True, postprocess=False, verbose=verbose
+                )
+            finally:
+                self.defrost = model
+            assert isinstance(solved, dict)
+            return solved
+
+        result = frost_free(gross)
+        request = abs(float(Q_r_iu))
+        running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+
+        # Below the minimum continuous capacity the unit cycles, and it
+        # defrosts only while it runs: the defrost heat loss is the runtime
+        # fraction of the continuous-operation figure, not all of it. The
+        # frost-free duty g then satisfies
+        #     capacity multiplier * g - Q_defrost * runtime(g / Q_min) = request,
+        # a scalar balance (no cycle solve) once Q_min is known. Without it a
+        # vanishing request would still pay the whole defrost loss.
+        runtime_share = 1.0
+        cycling = self.cycling
+        if (
+            running
+            and cycling is not None
+            and q_defrost > 0.0
+            and result.get("capacity_clamped") == CAPACITY_CLAMPED_MIN
+        ):
+            multiplier = frost.capacity_multiplier
+            low = request / multiplier
+            q_min_used = math.nan
+            # Q_min moves a little with the duty (the fans' optimum follows the
+            # cycling cost), so the balance is re-solved with the Q_min of the
+            # row it produced until the two agree; two passes settle it.
+            for _ in range(4):
+                q_min = float(result.get(MIN_CAPACITY_KEY, math.nan))
+                if not (running and math.isfinite(q_min) and q_min > 0.0):
+                    break
+                if math.isfinite(q_min_used) and abs(q_min - q_min_used) <= 1e-9 * q_min:
+                    break
+
+                def balance(duty: float, q_min: float = q_min) -> float:
+                    return multiplier * duty - q_defrost * cycling.runtime_fraction(duty / q_min) - request
+
+                if not (low < gross and balance(low) < 0.0 < balance(gross)):
+                    break
+                duty = float(brentq(balance, low, gross, xtol=1e-12 * max(gross, 1.0), rtol=1e-13))
+                q_min_used = q_min
+                runtime_share = cycling.runtime_fraction(duty / q_min)
+                result = frost_free(duty)
+                running = bool(result.get("hp_is_on", False)) and result.get("failure_reason", "none") == "none"
+
+        delivered = 0.0
+        if running:
+            delivered = self._average_over_frost(result, frost, T0, runtime_share)
+            if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX and "Q_max [W]" in result:
+                result["Q_max [W]"] = delivered
+        else:
+            self._write_frost_free(result, frost)
+        # The request and its shortfall are the caller's, not the frost-free solve's.
+        if "Q_request [W]" in result:
+            result["Q_request [W]"] = float(Q_r_iu)
+        if "Q_unmet [W]" in result:
+            unmet = max(request - delivered, 0.0)
+            result["Q_unmet [W]"] = unmet if unmet > 1e-9 * request else 0.0
+
+        if postprocess:
+            result = self.postprocess_exergy(pd.DataFrame([result])).iloc[0].to_dict()
+        return result
+
+    # =============================================================
     # Capacity envelope
     # =============================================================
+
+    def _indoor_approach_band_for_duty(self, Q_r_iu: float, T0: float, T_a_room: float) -> tuple[float, float]:
+        """Indoor approaches [K] at which the indoor coil can carry exactly ``|Q_r_iu|``.
+
+        The coil carries a duty at a temperature difference between
+        ``duty / (C eps)`` at its largest airflow and the same at its smallest;
+        outside that band no airflow within the fan limits closes it. The band
+        is widened by 0.1 % so that the coil solver's own tolerance decides at
+        the edges. It only screens candidates for
+        :meth:`_duty_is_deliverable`, where the compressor meets the duty
+        exactly, and never admits a point the full evaluation would refuse.
+
+        In heating the pressure-ratio floor can lift the condensing temperature
+        above ``T_a_room + dT_ref_cond``; when that could bring a smaller
+        approach into the band, the lower edge is dropped to zero.
+        """
+        duty = abs(Q_r_iu)
+
+        def per_kelvin(dV: float) -> float:
+            C_air = c_a * rho_a * dV
+            return C_air * (1.0 - math.exp(-self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu / C_air))
+
+        low = duty / per_kelvin(self.dV_iu_fan_a_max) * (1.0 - 1e-3)
+        # A fan that can stop (minimum airflow 0) puts no finite upper bound on the approach.
+        high = duty / per_kelvin(self.dV_iu_fan_a_min) * (1.0 + 1e-3) if self.dV_iu_fan_a_min > 0.0 else math.inf
+        if Q_r_iu < 0:
+            import CoolProp.CoolProp as CP
+
+            try:
+                # Highest evaporating pressure the search can propose, and the
+                # condensing temperature the pressure-ratio floor would force.
+                P_evap = CP.PropsSI("P", "T", cu.C2K(T0) - self.dT_approach_bounds[0], "Q", 1, self.ref)
+                T_cond_floor = CP.PropsSI("T", "P", self.PR_cycle_min * P_evap, "Q", 1, self.ref)
+                if T_cond_floor - cu.C2K(T_a_room) + 0.5 >= low:
+                    low = 0.0
+            except ValueError:
+                low = 0.0
+        return low, high
 
     def _duty_is_deliverable(
         self,
@@ -998,13 +1619,41 @@ class AirSourceHeatPump(ReferenceStateMixin):
         both came from the search rather than from the physics. ``seed`` is
         tried first so that a duty known to be deliverable usually costs one
         evaluation instead of a sweep.
+
+        A fan with a narrow flow range leaves a feasible set thinner than the
+        grid spacing, so there the band search (:class:`_NarrowFanSearch`) is
+        asked first; for a constant-speed fan its answer is final.
         """
+
+        def meets(perf: dict | None) -> bool:
+            # Clamped at either bound means the delivered duty is not the one
+            # asked for, so this point does not demonstrate the duty.
+            return (
+                perf is not None
+                and bool(perf.get("converged", False))
+                and perf.get("capacity_clamped") is None
+                and abs(float(perf.get("Q_ref_iu [W]", 0.0))) >= 0.99 * abs(Q_r_iu)
+            )
+
+        if self._has_narrow_fan():
+            search = _NarrowFanSearch(self, Q_r_iu, T0, T_a_room, accept=meets)
+            search.run()
+            if search.accepted is not None:
+                return search.accepted
+            if self._has_constant_speed_fan():
+                return None, None
+
         candidates: list[tuple[float, float]] = []
         if seed is not None:
             candidates.append(seed)
         candidates.extend((float(de), float(dc)) for de in grid for dc in grid)
 
+        # Only an indoor approach at which the indoor coil carries exactly this
+        # duty can be the answer, so the rest of the grid is not evaluated.
+        iu_low, iu_high = self._indoor_approach_band_for_duty(Q_r_iu, T0, T_a_room)
         for de, dc in candidates:
+            if not iu_low <= (dc if Q_r_iu < 0 else de) <= iu_high:
+                continue
             perf = self._calc_state(
                 dT_ref_evap=de,
                 dT_ref_cond=dc,
@@ -1012,15 +1661,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 T0=T0,
                 T_a_room=T_a_room,
             )
-            if perf is None or not perf.get("converged", False):
-                continue
-            # Clamped at either bound means the delivered duty is not the one
-            # asked for, so this point does not demonstrate the duty.
-            if perf.get("capacity_clamped") is not None:
-                continue
-            if abs(float(perf.get("Q_ref_iu [W]", 0.0))) < 0.99 * abs(Q_r_iu):
-                continue
-            return (de, dc), perf
+            if meets(perf):
+                assert perf is not None
+                return (de, dc), perf
         return None, None
 
     def max_capacity(
@@ -1031,6 +1674,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         mode: str = "heating",
         grid_points: int = 13,
         rel_tol: float = 5e-3,
+        RH_out: float | None = None,
     ) -> dict:
         """Largest duty the unit can actually deliver at this condition.
 
@@ -1070,6 +1714,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
         rel_tol : float
             Bisection stops once the bracket is this narrow relative to the
             ceiling.
+        RH_out : float | None
+            Outdoor relative humidity as a fraction (0-1) for the frost
+            correction in heating. None: the frost model's default.
 
         Returns
         -------
@@ -1080,6 +1727,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
             when the speed range ran out, ``"cycle"`` when the pressure-ratio
             envelope or the air side did, and ``"unbounded"`` when the ladder
             never ran out, which makes the figure a lower bound.
+
+            In heating with a frosting outdoor coil the ceiling, the input and
+            the COP are the mean over frosting and defrost -- what
+            :meth:`analyze_steady` delivers there -- and
+            ``Q_max_frost_free [W]`` is the frost-free ceiling they come from
+            (``defrost_fraction [-]`` > 0). Otherwise the two are equal.
         """
         if mode not in ("heating", "cooling"):
             raise ValueError(f"mode must be 'heating' or 'cooling', got {mode!r}")
@@ -1096,6 +1749,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "mode": mode,
             "T0 [°C]": T0,
             "T_a_room [°C]": T_a_room,
+            "Q_max_frost_free [W]": 0.0,
+            "defrost_fraction [-]": 0.0,
         }
 
         sign = 1.0 if mode == "cooling" else -1.0
@@ -1145,7 +1800,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
             if binding == "cycle" and self._discharge_limit_binds(sign * hi_q, T0, T_a_room, grid):
                 binding = BINDING_DISCHARGE
 
-        return {
+        ceiling = {
             "Q_max [W]": lo_q,
             "dT_ref_evap [K]": lo_x[0],
             "dT_ref_cond [K]": lo_x[1],
@@ -1155,7 +1810,71 @@ class AirSourceHeatPump(ReferenceStateMixin):
             "mode": mode,
             "T0 [°C]": T0,
             "T_a_room [°C]": T_a_room,
+            "Q_max_frost_free [W]": lo_q,
+            "defrost_fraction [-]": 0.0,
         }
+        frost = self._frost_state(sign, T0, RH_out)
+        if frost.active:
+            # The ceiling analyze_steady delivers: the mean over frosting and defrost.
+            mean = dict(lo_perf)
+            ceiling["Q_max [W]"] = self._average_over_frost(mean, frost, T0)
+            ceiling["E_tot [W]"] = float(mean["E_tot [W]"])
+            ceiling["cop_sys [-]"] = float(mean["cop_sys [-]"])
+            ceiling["defrost_fraction [-]"] = frost.defrost_fraction
+        return ceiling
+
+    #: A capacity-limited point gives way to one delivering this fraction of its
+    #: heat below the speed ceiling ...
+    _CEILING_BACKOFF = 0.995
+    #: ... when that one needs at least this much less electricity per unit of heat
+    #: (backing off a compressor that really is flat out gains 1 to 2 %) ...
+    _CEILING_POWER_GAIN = 0.03
+    #: ... and runs below this fraction of the speed ceiling.
+    _CEILING_SPEED_MARGIN = 0.98
+
+    def _least_power_at_ceiling(self, result: dict, Q_r_iu: float, T0: float, T_a_room: float) -> dict:
+        """Capacity-limited point, or a far cheaper one delivering practically the same heat.
+
+        Capacity-limited candidates are ranked by delivered heat alone, and a
+        ceiling found by the duty ladder is the first grid point that meets
+        it. Neither looks at power. Where the limit is the air side or the
+        approach-temperature search domain rather than the compressor, that
+        can return a state that reaches the speed ceiling only because a coil
+        is starved of air -- same heat, a quarter more electricity (default
+        4 kW unit, 5.1 kW asked at 2 degC: 1,460 W against 1,178 W). The duty
+        just below the ceiling is therefore solved in the ordinary way, and
+        its least-power point is taken when it runs clear of the speed ceiling
+        and is materially cheaper per unit of heat. A compressor that really
+        is flat out has no such point, and the result stands.
+        """
+        delivered = abs(float(result.get("Q_ref_iu [W]", 0.0)))
+        power = float(result.get("E_tot [W]", math.nan))
+        if not (delivered > 0.0 and math.isfinite(power) and power > 0.0):
+            return result
+        duty = math.copysign(self._CEILING_BACKOFF * delivered, Q_r_iu)
+        with contextlib.suppress(Exception):
+            opt = self._optimize_operation(Q_r_iu=duty, T0=T0, T_a_room=T_a_room)
+            if not (bool(getattr(opt, "success", False)) and float(opt.fun) < OBJ_CAPACITY_LIMITED):
+                return result
+            state = self._calc_state(dT_ref_evap=opt.x[0], dT_ref_cond=opt.x[1], Q_r_iu=duty, T0=T0, T_a_room=T_a_room)
+            if state is None or not state.get("converged", False) or state.get("capacity_clamped") is not None:
+                return result
+            heat, input_power = abs(float(state["Q_ref_iu [W]"])), float(state["E_tot [W]"])
+            cheaper = input_power / heat < (1.0 - self._CEILING_POWER_GAIN) * power / delivered
+            below_ceiling = float(state["cmp_rpm [rpm]"]) < self._CEILING_SPEED_MARGIN * self.rps_max * 60.0
+            if cheaper and below_ceiling:
+                state.update(
+                    {
+                        "capacity_clamped": CAPACITY_CLAMPED_MAX,
+                        "Q_request [W]": Q_r_iu,
+                        "Q_max [W]": heat,
+                        # Clear of the speed ceiling: the air side, the search
+                        # domain or (as the ladder found) the envelope binds.
+                        "capacity_binding": result.get("capacity_binding", "cycle"),
+                    }
+                )
+                return state
+        return result
 
     def _discharge_limit_binds(self, Q_r_iu: float, T0: float, T_a_room: float, grid) -> bool:
         """Whether this duty, refused under ``T_dis_max``, is deliverable without it."""
@@ -1175,7 +1894,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         # An unbounded ladder result is only a lower bound, not a ceiling.
         if ceiling.get("binding") not in {"compressor", "cycle", BINDING_DISCHARGE}:
             return None
-        q_ceiling = float(ceiling["Q_max [W]"])
+        # The frost-free ceiling: this state is a cycle state, averaged later.
+        q_ceiling = float(ceiling.get("Q_max_frost_free [W]", ceiling["Q_max [W]"]))
         if not math.isfinite(q_ceiling) or not 0 < q_ceiling < abs(Q_r_iu):
             return None
         state = self._calc_state(
@@ -1218,6 +1938,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         return_dict: bool = True,
         postprocess: bool = True,
         verbose: bool = True,
+        RH_out: float | None = None,
     ) -> dict | pd.DataFrame:
         """Run a steady-state performance snapshot.
 
@@ -1235,6 +1956,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             If True, apply postprocess_exergy to the output.
         verbose : bool
             If True, print warnings upon convergence failure.
+        RH_out : float | None
+            Outdoor relative humidity as a fraction (0-1), used by the frost
+            correction in heating. None: the frost model's default (0.84).
 
         Returns
         -------
@@ -1259,12 +1983,45 @@ class AirSourceHeatPump(ReferenceStateMixin):
             reasons — ``E_cmp [W]`` will be 0 and the COP keys will be NaN
             in that case. Treat ``failure_reason != "none"`` as "do not
             trust the numbers".
+
+            Part load is reported on every row: ``Q_request [W]`` (signed,
+            as asked), ``Q_unmet [W]`` (request not delivered, >= 0),
+            ``runtime_fraction [-]``, ``capacity_ratio [-]``,
+            ``part_load_factor [-]``, ``Q_min [W]`` and
+            ``E_cycling_loss [W]``. A request below the minimum continuous
+            capacity (``capacity_clamped == "min"``) is the mean over an
+            on/off cycling period: ``Q_ref_iu [W]`` equals the request,
+            heat and flow rates are the running values times
+            ``capacity_ratio [-]`` (the indoor fan's power with them),
+            compressor and outdoor-fan power the running values times
+            ``runtime_fraction [-]``, and the COP keys carry the EN 14825
+            degradation; temperatures, pressures and speed are those of
+            the running machine (:mod:`tmhp.cycling`). A request above
+            the ceiling (``capacity_clamped == "max"``) adds ``Q_max [W]``
+            and ``capacity_binding``.
+
+            Heating at or below the frost model's outdoor limit (5 degC) is
+            the mean over frosting and defrost (:mod:`tmhp.defrost`):
+            ``defrost_fraction [-]`` is the share of the runtime spent
+            defrosting, ``frost_capacity_factor [-]`` and
+            ``frost_power_factor [-]`` the multipliers of the frosted coil,
+            ``E_defrost [W]`` and ``Q_defrost [W]`` the mean power and room
+            heat the defrost takes, and ``Q_ref_iu_frost_free [W]`` /
+            ``E_tot_frost_free [W]`` the frost-free cycle the row was solved
+            at. Without frost those two repeat ``Q_ref_iu [W]`` and
+            ``E_tot [W]``.
         """
         validate_steady(locals())
         import warnings
 
         if T_a_room is None:
             T_a_room = self.T_a_room
+
+        # Heating with a frosting outdoor coil is the mean over frosting and
+        # defrost: solved frost-free at a larger duty, then averaged.
+        frost = self._frost_state(Q_r_iu, T0, RH_out)
+        if frost.active:
+            return self._analyze_steady_frosted(frost, Q_r_iu, T0, T_a_room, postprocess=postprocess, verbose=verbose)
 
         if Q_r_iu == 0:
             result: dict | None = self._calc_state(
@@ -1371,11 +2128,19 @@ class AirSourceHeatPump(ReferenceStateMixin):
             else:
                 # By construction (failure_reason == "none") result is a dict.
                 assert result is not None
+                if result.get("capacity_clamped") == CAPACITY_CLAMPED_MAX:
+                    result = self._least_power_at_ceiling(result, Q_r_iu, T0, T_a_room)
                 result["converged"] = True
                 result["failure_reason"] = "none"
 
         if result is None:
             result = {}
+
+        if result:
+            self._report_part_load(result, Q_r_iu)
+
+        if result:
+            self._write_frost_free(result, frost)
 
         if postprocess and result:
             df_temp = pd.DataFrame([result])
@@ -1398,6 +2163,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         T0_schedule,
         T_a_room_schedule=None,
         result_save_csv_path: str | None = None,
+        RH_out_schedule=None,
     ) -> pd.DataFrame:
         """Run a time-stepping dynamic simulation.
 
@@ -1416,6 +2182,9 @@ class AirSourceHeatPump(ReferenceStateMixin):
             If None, uses constructor default.
         result_save_csv_path : str | None
             Optional CSV output path.
+        RH_out_schedule : array-like | None
+            Outdoor relative humidity per step, as a fraction (0-1), for the
+            frost correction in heating. If None, the frost model's default.
 
         Returns
         -------
@@ -1441,6 +2210,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         else:
             T_a_room_arr = np.full(tN, self.T_a_room)
 
+        RH_out_arr = None
+        if RH_out_schedule is not None:
+            RH_out_arr = np.array(RH_out_schedule, dtype=float)
+            if len(RH_out_arr) != tN:
+                raise ValueError(f"RH_out_schedule length ({len(RH_out_arr)}) != tN ({tN})")
+
         self.time = time
         self.dt = dt_s
 
@@ -1462,6 +2237,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
                 return_dict=True,
                 postprocess=False,  # Exergy postprocessing applied in bulk at the end
                 verbose=False,  # Suppress warnings during long dynamic loops
+                RH_out=None if RH_out_arr is None else float(RH_out_arr[n]),
             )
 
             # Add time columns

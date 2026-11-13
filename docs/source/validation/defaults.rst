@@ -97,6 +97,12 @@ Summary
       - 720 m³/h per kW (air-to-air), 540 (air-to-water)
       - Manufacturer specifications for the respective product classes
       - —
+    * - Rated indoor air flow (air-to-air)
+      - 193 m³/h per kW (``5.37e-5`` m³/s per W)
+      - 400 cfm per ton, the airflow at which unitary equipment is rated. The
+        validation units publish 168–309 m³/h per kW and are run at their own
+        figure, so this default does not enter the parity results
+      - —
 
 Every ``Reproduce`` entry is a module under ``validation/extraction/`` or
 ``validation/compressor_maps/``::

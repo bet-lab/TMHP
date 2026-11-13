@@ -140,7 +140,7 @@ below its peak, the compressor speed equals ``rps_min``.
     outdoor fan now stays above 45 % of rated flow over the whole sweep and the
     air-side temperature drop stays within 4.1 K; the air-to-air sweep stays
     above 31 % and 4.8 K. A real machine below its modulation floor cycles, and
-    TMHP still computes no cycling loss (see below), so the sub-floor rows are a
+    the air-to-water model still computes no cycling loss (see below), so the sub-floor rows are a
     continuous-operation figure at the minimum capacity, not a part-load COP.
     They are drawn hollow in the figures and excluded from every trend verdict.
 
@@ -213,16 +213,24 @@ stands; no coefficient is adjusted to move it.
 What is not modelled
 ====================
 
-.. admonition:: TMHP's low-load COP is a continuous-operation figure
+.. admonition:: The air-to-water low-load COP is a continuous-operation figure
     :class: warning
 
     Below its modulation floor a real machine cycles on and off. Every start
     pushes the refrigerant pressures away from equilibrium and re-warms the heat
     exchangers, and the standard accounts for that loss with a degradation
-    coefficient applied during seasonal integration. TMHP simulates continuous
-    operation and computes no such loss, so **at light load it is optimistic
-    against a machine that cycles**, and the size of that optimism is not
-    estimated here.
+    coefficient applied during seasonal integration. The air-to-water model
+    (``AirSourceHeatPumpBoiler``), which every figure on this page comes from,
+    simulates continuous operation and computes no such loss, so **at light
+    load it is optimistic against a machine that cycles**, and the size of that
+    optimism is not estimated here.
+
+    The air-to-air model (``AirSourceHeatPump``) does apply the standard's own
+    default below its floor — EN 14825 ``C_d = 0.25`` in the form written for
+    units delivering to air — and reports the mean over the cycling period
+    (:doc:`/models/ashp`, :mod:`tmhp.cycling`). That is the coefficient the
+    standard prescribes for an untested unit, taken unchanged; it is not fitted
+    to anything here, and ``Cd_cycling=None`` restores continuous operation.
 
 This is not an oversight to be patched with a fitted penalty. Cuevas & Lebrun
 make the same point from the hardware side: they observe the low-speed

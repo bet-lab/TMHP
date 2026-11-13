@@ -26,6 +26,10 @@ UNIT = dict(
     UA_iu_rated=2500.0,
     dV_ou_fan_a_rated=150.0 / 60.0,
     dV_iu_fan_a_rated=150.0 / 60.0,
+    # This module is about the frost-free envelope: what the compressor, the
+    # pressure ratio and the coils allow. Frost lowers the +2 degC ceiling
+    # below nameplate (tests/test_defrost.py covers that mean ceiling).
+    defrost=None,
 )
 
 T_ROOM_HEAT = 21.0

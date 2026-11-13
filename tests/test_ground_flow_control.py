@@ -29,7 +29,17 @@ def _model(cls, **overrides):
         rps_rated=60 if cls is GroundSourceHeatPump else 40,
     )
     kw.update(
-        dict(UA_cond=2000, UA_evap=2000, eta_v=1, eta_em=1, PR_cycle_max=8)
+        # The indoor airflow (0.0002 m3/s per W) and approach range are the
+        # defaults the regressions were recorded with.
+        dict(
+            UA_cond=2000,
+            UA_evap=2000,
+            eta_v=1,
+            eta_em=1,
+            PR_cycle_max=8,
+            dV_iu_fan_a_rated=1.6,
+            indoor_approach_max_K=20.0,
+        )
         if cls is GroundSourceHeatPump
         else dict(UA_tank_hx=2000, UA_ground=2000)
     )

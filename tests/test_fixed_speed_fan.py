@@ -45,12 +45,24 @@ def test_inverted_zero_or_nonfinite_limits_stay_input_errors(low, high):
 
 
 def test_issue_104_example_constructs_and_solves():
-    # ``min == max`` equal to the default reference (hp_capacity * 0.0002 = 0.8).
-    hp = GroundSourceHeatPump(ref="R32", dV_iu_fan_a_min=0.80, dV_iu_fan_a_max=0.80, R_b=0.2, t_max_s=3600)
+    # ``min == max`` on a 0.8 m3/s reference (the issue's numbers; 0.8 was the
+    # default reference of a 4 kW unit when it was filed).
+    fixed = dict(dV_iu_fan_a_rated=0.80, dV_iu_fan_a_min=0.80, dV_iu_fan_a_max=0.80)
+    hp = GroundSourceHeatPump(ref="R32", R_b=0.2, t_max_s=3600, **fixed)
     assert hp.dV_iu_fan_a_min == hp.dV_iu_fan_a_max == 0.80
     out = hp.analyze_steady(Q_r_iu=-2500, T0=7, T_a_room=20)
     assert out["converged"] and out["failure_reason"] == "none"
     assert out["dV_iu_a [m3/s]"] == pytest.approx(0.80)
+
+
+def test_fixed_fan_at_the_default_reference_airflow_constructs_and_solves():
+    # ``min == max`` equal to the default reference (400 cfm/ton of capacity).
+    flow = GroundSourceHeatPump(ref="R32", R_b=0.2, t_max_s=3600).dV_iu_fan_a_ref
+    assert flow == pytest.approx(4000 * 5.37e-5)
+    hp = GroundSourceHeatPump(ref="R32", dV_iu_fan_a_min=flow, dV_iu_fan_a_max=flow, R_b=0.2, t_max_s=3600)
+    out = hp.analyze_steady(Q_r_iu=-3000, T0=7, T_a_room=20)
+    assert out["converged"] and out["failure_reason"] == "none" and out["capacity_clamped"] is None
+    assert out["dV_iu_a [m3/s]"] == pytest.approx(flow)
 
 
 # ── coil solve ────────────────────────────────────────────────────────────
@@ -216,7 +228,8 @@ def test_fixed_fan_cannot_turn_down_but_the_approach_absorbs_a_small_duty():
 
 @pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_fixed_fan_with_an_undersized_coil_fails_like_a_variable_fan():
-    kw = dict(dV_iu_fan_a_rated=FLOW_GSHP, UA_iu_rated=150.0)
+    # 100 W/K carries 2.3 kW at the largest indoor approach searched (25 K).
+    kw = dict(dV_iu_fan_a_rated=FLOW_GSHP, UA_iu_rated=100.0)
     fixed = _gshp(dV_iu_fan_a_min=FLOW_GSHP, dV_iu_fan_a_max=FLOW_GSHP, **kw)
     variable = _gshp(**kw)
     for model in (fixed, variable):

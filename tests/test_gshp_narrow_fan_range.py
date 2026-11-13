@@ -12,7 +12,10 @@ import pytest
 
 from tmhp import GroundSourceHeatPump
 
-GROUND = dict(ref="R32", R_b=0.12, t_max_s=3600)
+# The cases are built around an indoor unit with a 0.8 m3/s reference airflow
+# (the default before the 400 cfm/ton rule), so the fan range is given
+# explicitly: at the present default the 4 kW coil runs at its largest airflow.
+GROUND = dict(ref="R32", R_b=0.12, t_max_s=3600, dV_iu_fan_a_rated=0.8)
 # (load, room, wall): a heating and a cooling point whose default-range
 # optimum has the fan strictly inside its range.
 LOADS = {"heating": (-3000.0, 20.0, None), "cooling": (3000.0, 27.0, 16.0)}
@@ -42,9 +45,9 @@ def default_rows():
 
 @pytest.mark.parametrize("load", [-3000.0, -2600.0])
 def test_review_case_fan_range_0p79_to_0p80_delivers_heating(load):
-    # Default 0.8 m3/s and UA 320 W/K: 3 kW needs an indoor approach of about
+    # Reference 0.8 m3/s and UA 320 W/K: 3 kW needs an indoor approach of about
     # 11.0-11.1 K at this fan range, between every coarse sample.
-    model = GroundSourceHeatPump(ref="R32", dV_iu_fan_a_min=0.79, dV_iu_fan_a_max=0.80)
+    model = GroundSourceHeatPump(ref="R32", dV_iu_fan_a_rated=0.8, dV_iu_fan_a_min=0.79, dV_iu_fan_a_max=0.80)
     row = model.analyze_steady(Q_r_iu=load, T0=0.0, T_a_room=20.0)
     assert_delivers(row, load)
     assert 0.79 - 1e-9 <= row["dV_iu_a [m3/s]"] <= 0.80 + 1e-9

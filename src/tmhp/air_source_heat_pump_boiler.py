@@ -158,9 +158,6 @@ class _OutdoorSearch:
         self.T0 = T0
         self.flow_state = flow_state
         self.m_dot_w = m_dot_w
-        # Surplus is credited only while the tank has thermal headroom to
-        # store it (see `_opt_utils.specific_energy_objective`).
-        self.storable = math.inf if T_tank_w < model.T_tank_w_upper_bound - 0.5 else 0.0
         #: approach -> (objective, max-flow margin [W], min-flow margin [W])
         self.rows: dict[float, tuple[float, float, float]] = {}
         #: approach -> (cycle state, pressure-ratio event, cycle failure reason) as evaluated
@@ -205,11 +202,23 @@ class _OutdoorSearch:
         outside = envelope_excess(perf, self.model)
         if outside > 0.0:
             return _OBJ_OUTSIDE_ENVELOPE + min(outside, 0.45 * PENALTY)
+        # Cost of the requested heat. Where the compressor modulates, every
+        # candidate delivers the request and this is ``E_tot``. On the speed
+        # floor the candidates deliver different amounts, all above the
+        # request, and the whole delivery is credited whatever the tank
+        # temperature: the row is the most efficient machine the floor offers.
+        # With the credit capped at the request the ranking is ``E_tot``
+        # again, which there is nearly flat in the approach and has a second
+        # minimum at the starved coil (R290 A45/W65: 8.7 K and 16.1 K within
+        # 3 W of each other, system COP 5.1 and 4.3), so 3 W decided a fifth
+        # of the COP. The surplus is not lost on a full tank either: a request
+        # below the floor is met by running part of the time, and
+        # `analyze_steady` reports the on/off mean of this machine.
         return specific_energy_objective(
             float(perf.get("E_tot [W]", math.nan)),
             float(perf.get("Q_ref_tank [W]", 0.0)),
             self.Q_ref_tank,
-            self.storable,
+            math.inf,
         )
 
     def __call__(self, x: float) -> float:
@@ -289,7 +298,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     (0.9: while the compressor is off the unit draws a tenth of its running
     input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
     ``Cd_cycling=None`` returns the continuous minimum-speed point, which
-    delivers more than the request. Dynamic runs are not affected: there the
+    delivers more than the request. Of the machines the speed floor offers
+    (the outdoor fan still has a range there) the row is the most efficient
+    one, whatever the tank temperature. Dynamic runs are not affected: there the
     tank thermostat switches the compressor, which runs at ``hp_capacity`` for
     ``runtime_fraction [-]`` of a step.
     """

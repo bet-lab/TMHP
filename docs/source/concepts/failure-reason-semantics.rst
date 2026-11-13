@@ -94,6 +94,23 @@ Common to all families
         below).
       - No — only off-mode placeholders (``E_cmp = 0``,
         ``Q_ref_tank = 0``).
+    * - ``condensing_temp_above_max``
+      - The condensing pressure exceeds the dew pressure at ``T_cond_max``,
+        the top of the compressor envelope (default by refrigerant: R410A,
+        R32, R407C 65 °C; R290, R1234yf 75 °C; R134a 80 °C; R717 70 °C; never
+        above 0.9 of the critical pressure; ``T_cond_max=None`` switches
+        the check off), at every duty the model tried. The condensing
+        temperature is the demand-side temperature plus the condenser
+        approach, so a smaller duty lowers it: a boiler request that a
+        *smaller* duty meets is not a failure, it returns the duty that
+        condenses on the limit with ``capacity_clamped == "max"`` and
+        ``capacity_binding == "condensing_temperature"`` (steady and
+        dynamic). The reason is reported when no duty fits — the tank, room
+        or ground is itself at the limit — and for a boiler request whose
+        condensing temperature would be above the critical point (formerly
+        ``cycle_invalid``) when a tenth of it is still above the limit.
+      - No — only off-mode placeholders (``E_cmp = 0``,
+        ``Q_ref_tank = 0``).
 
     * - ``eta_isen_below_min``
       - The shipped isentropic-efficiency fit, read outside its data (the
@@ -140,8 +157,9 @@ also appear).
     * - ``pressure_ratio_limit``
       - The cycle was invalid and the last pressure-ratio check hit
         ``PR_cycle_min`` or ``PR_cycle_max``. It replaces ``cycle_invalid``
-        in this path. (A discharge-temperature rejection keeps
-        ``discharge_temp_above_max``.)
+        in this path. (An envelope rejection keeps its own reason:
+        ``discharge_temp_above_max``, ``condensing_temp_above_max`` or
+        ``eta_isen_below_min``.)
     * - ``compressor_min_speed``
       - The requested duty is below what the compressor delivers at
         ``rps_min`` (``capacity_clamped == "min"``), so the exact duty cannot
@@ -182,6 +200,13 @@ point for one of the reasons below and a smaller duty has one,
     * - The request fails with
       - ``capacity_binding``
       - Why a smaller duty helps
+    * - ``condensing_temp_above_max``, or ``cycle_invalid`` without a
+        ``failure_detail`` (no cycle: condensing at or above the critical
+        point) when the duties that run end on the condensing limit
+      - ``"condensing_temperature"``
+      - A smaller condenser approach lowers the condensing pressure. The
+        duty that condenses on the limit is found by a secant on the
+        condensing temperature (three cycle solves), not by the ladder.
     * - ``discharge_temp_above_max``, or ``cycle_invalid`` with
         ``failure_detail == "discharge_state_undefined"``
       - ``"discharge_temperature"``
@@ -210,12 +235,15 @@ When no smaller duty runs, the result is the off state with the request's own
 ``failure_reason``.
 
 Not reduced: ``cycle_invalid`` for any other cause, ``t_cond_below_t_in`` and
-``optimizer_failed``. In particular a request with no cycle at all stays a
-failure. With the boilers that is a condensing temperature -- the tank
-temperature plus the condenser approach the duty needs -- at or above the
-critical point; the largest smaller duty would sit on the critical point
-itself, a state no machine runs at, and the envelope has no
-condensing-pressure ceiling below it to reduce onto.
+``optimizer_failed``. A request with no cycle at all is, with the boilers, a
+condensing temperature -- the tank temperature plus the condenser approach
+the duty needs -- at or above the critical point. With the condensing limit
+it is treated as beyond that limit: reduced onto it when a smaller duty runs
+and the duties that run end on the limit, reported as
+``condensing_temp_above_max`` when a tenth of the request is still above the
+limit, and otherwise left as it is. With ``T_cond_max=None`` it stays a
+failure: the largest smaller duty would sit on the critical point itself, a
+state no machine runs at.
 
 ``failure_detail``
 ------------------
@@ -430,6 +458,34 @@ the recommended lever to pull when you hit each one.
     (the efficiency floor stays); a different protection setting is ``T_dis_max=<°C>``, a wetter
     allowed suction ``x_suction_min=<x>`` (``None`` switches the control off).
 
+.. dropdown:: ``condensing_temp_above_max`` — condensing pressure above the envelope
+    :icon: x-circle
+    :color: danger
+
+    The compressor would have to discharge at a pressure above the top of
+    its envelope (``T_cond_max``, stated as the saturation temperature of
+    that pressure). For a boiler this is a tank too hot for the refrigerant:
+    the cycle condenses at the tank temperature plus the tank heat
+    exchanger's approach, and the unit reduces its duty as the tank
+    approaches the limit (``capacity_binding == "condensing_temperature"``)
+    until even the minimum-speed duty condenses above it. In a dynamic run
+    the thermostat normally stops the heat pump before that: an upper set
+    point above the tank temperature the envelope allows at the nameplate
+    duty is capped there at construction (``UserWarning``,
+    ``T_tank_w_setpoints_requested``). A called step past that cut-out -- a
+    stratified tank whose coil-side water is hotter than the sensor, a
+    minimum run time -- runs at the reduced duty or is an off row with this
+    reason.
+
+    **What to do.** Choose an upper set point the refrigerant reaches
+    (``T_cond_max`` less the condenser approach at the nameplate duty,
+    ``hp_capacity / UA_tank_hx``), or a refrigerant with a higher limit (R290, R134a). For a
+    compressor with a different high-pressure rating give its own
+    ``T_cond_max=<°C>``; ``None`` removes the limit for a sensitivity
+    study. A zeotropic blend is judged at its dew point: R407C reaches the
+    65 °C limit when the cycle's own (bubble-point) condensing temperature
+    is 61.2 °C.
+
 .. dropdown:: ``t_cond_below_t_in`` — condensing below the water inlet (ASHPB)
     :icon: x-circle
     :color: danger
@@ -463,7 +519,8 @@ Off-mode fallback
 =================
 
 When ``failure_reason`` is ``"cycle_invalid"``, ``"pr_above_max"``,
-``"discharge_temp_above_max"``, ``"eta_isen_below_min"`` or
+``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``,
+``"eta_isen_below_min"`` or
 ``"t_cond_below_t_in"`` — and, for WSHPB and for GSHPB outside the
 ground-coupled path, for every reason other than ``"none"`` — the
 steady-state path

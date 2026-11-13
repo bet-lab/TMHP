@@ -190,4 +190,9 @@ unset (with a ``RuntimeWarning``), which matters only if
 The pressure-ratio envelope (``PR_cycle_min`` / ``PR_cycle_max``) and the
 discharge-temperature limit ``T_dis_max`` are operating limits and are not
 imposed on the rating point; ``reference_state.pressure_ratio`` reports the
-ratio.
+ratio. The condensing limit ``T_cond_max`` is imposed: a rating point that
+condenses above it (an undersized condenser, e.g. a 16 K tank-coil approach
+with R410A at W55) raises ``ReferenceStateError`` with the condensing
+temperature and the limit, because the nameplate capacity cannot be defined
+at a pressure the compressor is not built for. Enlarge the condenser, give
+the ``T_cond_max`` of the actual compressor, or pass ``T_cond_max=None``.

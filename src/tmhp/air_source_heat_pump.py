@@ -33,10 +33,12 @@ from ._validation import validate_ctor, validate_dynamic, validate_steady
 from .air_properties import air_heat_capacity_rate
 from .compressor_efficiency import _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
+    BINDING_CONDENSING,
     BINDING_CYCLE,
     BINDING_DISCHARGE,
     BINDING_EFFICIENCY,
     BINDING_PRESSURE_RATIO,
+    CONDENSING_TEMP_ABOVE_MAX,
     CYCLE_KEY,
     DISCHARGE_TEMP_ABOVE_MAX,
     ETA_ISEN_BELOW_MIN,
@@ -46,6 +48,7 @@ from .compressor_envelope import (
     X_SUCTION_MIN_DEFAULT,
     check_pr_envelope,
     discharge_controlled,
+    resolve_condensing_temp_max,
     resolve_discharge_temp_max,
     resolve_x_suction_min,
     steady_envelope,
@@ -442,6 +445,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
         defrost: DefrostModel | bool | None = True,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        T_cond_max: float | Literal["auto"] | None = "auto",
     ):
         validate_ctor("ASHP", locals())
         import warnings
@@ -523,6 +527,8 @@ class AirSourceHeatPump(ReferenceStateMixin):
         self.rps_max: float = RATED_SPEED_SEARCH_MAX if rps_max is None else rps_max
         # Discharge-temperature limit [degC] ("auto": refrigerant default; None: off)
         self.T_dis_max: float | None = resolve_discharge_temp_max(T_dis_max, ref)
+        # Maximum condensing temperature [degC] ("auto": refrigerant default; None: off)
+        self.T_cond_max: float | None = resolve_condensing_temp_max(T_cond_max, ref)
         # Discharge-temperature control: lowest suction quality (None: no control)
         self.x_suction_min: float | None = resolve_x_suction_min(x_suction_min)
         #: Suction quality of the cycle being evaluated (< 1 only inside the control).
@@ -1663,6 +1669,7 @@ class AirSourceHeatPump(ReferenceStateMixin):
     #: (the names the water-heating models use).
     _ENVELOPE_BINDING: Mapping[str, str] = {
         PR_ABOVE_MAX: BINDING_PRESSURE_RATIO,
+        CONDENSING_TEMP_ABOVE_MAX: BINDING_CONDENSING,
         DISCHARGE_TEMP_ABOVE_MAX: BINDING_DISCHARGE,
         ETA_ISEN_BELOW_MIN: BINDING_EFFICIENCY,
     }
@@ -2133,7 +2140,14 @@ class AirSourceHeatPump(ReferenceStateMixin):
 
     #: ``binding`` values of :meth:`max_capacity` that name a ceiling.
     _CEILING_BINDINGS = frozenset(
-        {"compressor", BINDING_CYCLE, BINDING_DISCHARGE, BINDING_PRESSURE_RATIO, BINDING_EFFICIENCY}
+        {
+            "compressor",
+            BINDING_CYCLE,
+            BINDING_CONDENSING,
+            BINDING_DISCHARGE,
+            BINDING_PRESSURE_RATIO,
+            BINDING_EFFICIENCY,
+        }
     )
 
     def _capacity_limited_operating_point(self, Q_r_iu: float, T0: float, T_a_room: float) -> dict | None:
@@ -2247,13 +2261,16 @@ class AirSourceHeatPump(ReferenceStateMixin):
               and the SciPy optimiser both succeeded.
             - ``"failure_reason"`` (str) — one of ``"none"``, ``"cycle_invalid"``
               (the refrigerant cycle itself was infeasible), ``"pr_above_max"``,
-              ``"discharge_temp_above_max"``, ``"eta_isen_below_min"`` (the
+              ``"discharge_temp_above_max"``, ``"condensing_temp_above_max"``,
+              ``"eta_isen_below_min"`` (the
               compressor envelope refuses the request where it is easiest to
               meet -- at its least-lift point -- and no smaller duty runs
               either; a request that a smaller duty meets returns that duty
               with ``capacity_clamped="max"`` and ``capacity_binding`` naming
-              the limit), ``"hx_not_converged"`` (cycle OK but a coil cannot
-              carry the duty inside the approach bounds), or
+              the limit: ``"discharge_temperature"``,
+              ``"condensing_temperature"`` for ``T_cond_max``,
+              ``"compressor_efficiency"``), ``"hx_not_converged"`` (cycle OK
+              but a coil cannot carry the duty inside the approach bounds), or
               ``"optimizer_failed"`` (SciPy reported ``success=False``).
 
             ASHP triggers an off-mode fallback for any of the non-``"none"``

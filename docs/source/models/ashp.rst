@@ -268,6 +268,9 @@ water-heating models use (:doc:`/concepts/failure-reason-semantics`):
    * - ``"discharge_temperature"``
      - ``T_dis_max``, with the suction already as wet as the
        discharge-temperature control allows.
+   * - ``"condensing_temperature"``
+     - ``T_cond_max``, the highest condensing pressure of the compressor
+       envelope (:doc:`/developer/reference-operating-limits`).
    * - ``"pressure_ratio"``
      - ``PR_cycle_max``.
    * - ``"compressor_efficiency"``

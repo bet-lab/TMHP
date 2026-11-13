@@ -40,14 +40,19 @@ As for :doc:`gshpb`, ``hp_capacity`` (default 8 kW) and the refrigerant are
 enough: ``UA_tank_hx = hp_capacity / 5``, ``UA_water = 0.18 × hp_capacity``,
 source-loop flow ``dV_b_f_lpm = 0.75 × hp_capacity / (ρ c · 3 K)`` (3.58 L/min
 per kW) and ``E_pmp = 75 W/ton × hp_capacity`` (21.3 W per kW). The rated cycle
-is then the same at every capacity (W10/W35: COP of the cycle 5.3 with R410A
-and the default efficiency map). The submerged source-water coil is ``H_b``
+is then the same at every capacity (W10/W35: COP of the cycle 5.5 with the
+default refrigerant, R290, and the default efficiency map). The submerged source-water coil is ``H_b``
 metres long: with none of ``N_1``, ``N_2``, ``H_b`` given it is 200 m, or as
 long as the rated source-side heat (``0.75 × hp_capacity``) needs at 50 W/m.
 Values you pass are used as given; the constructor warns (``UserWarning``) for
 a coil above 80 W/m, a laminar default flow, and a ``T_tank_w_upper_bound``
 whose condensing temperature (set point + ``hp_capacity / UA_tank_hx``) is at
-or above the refrigerant's critical temperature.
+or above the refrigerant's critical temperature. The condensing limit of the
+compressor envelope (``T_cond_max``) acts as in :doc:`gshpb`: an upper set
+point above the tank temperature it allows at the nameplate duty is capped
+there with a ``UserWarning``, and ``analyze_steady`` against a hotter tank
+returns a reduced duty (``capacity_binding == "condensing_temperature"``) or
+the off state with ``failure_reason == "condensing_temp_above_max"``.
 
 The cycle closures are those of :doc:`gshpb`: the suction superheat is capped
 at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound
@@ -61,8 +66,8 @@ of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
 the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
 standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
 minimum-speed point). The default machine at 10 °C source water and a 35 °C
-tank delivers 4.0 kW at its minimum speed; a 400 W request returns 400 W at
-177 W of input (system COP 2.26 against 4.29 for the running machine).
+tank delivers 2.4 kW at its minimum speed; a 400 W request returns 400 W at
+147 W of input (system COP 2.73 against 4.08 for the running machine).
 Dynamic runs are not affected.
 
 Dynamic operation

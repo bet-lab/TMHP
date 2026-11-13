@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:55:34+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -394,7 +394,7 @@ cycle that closes both heat exchangers and passes
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">DynamicState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystem_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#DynamicState"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Carried state threaded across <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls (#165 P0).</p>
 <p>This is exactly the state that <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> used to hold in
@@ -488,6 +488,24 @@ run. Read by the minimum on/off time rules.</p>
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">subsystem_state</span></span></dt>
+<dd><p>State the subsystems carry from one step to the next, keyed by
+subsystem name (e.g. <code class="docutils literal notranslate"><span class="pre">{&quot;stc&quot;:</span> <span class="pre">{&quot;pump_on&quot;:</span> <span class="pre">True,</span> <span class="pre">...}}</span></code> for the
+collector-loop controller: pump latch, storage-limit hold,
+stagnation lock-out). Empty at the start of a run. Each value is a
+plain dict of bools and numbers, replaced (never mutated) every
+step, so a <code class="docutils literal notranslate"><span class="pre">DynamicState</span></code> can be kept, copied or pickled and a step
+re-run from it gives the same result. See <code class="xref py py-class docutils literal notranslate"><span class="pre">Subsystem</span></code> for how
+a subsystem reads and writes its entry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -498,6 +516,7 @@ run. Read by the minimum on/off time rules.</p>
 <li><p><strong>dV_tank_w_out_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>hp_running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>hp_phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>subsystem_state</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -536,9 +555,14 @@ run. Read by the minimum on/off time rules.</p>
 <span class="sig-name descname"><span class="pre">hp_phase_age_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">inf</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">subsystem_state</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em><span class="sig-paren">)</span></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_tank_w_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_refilling</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_is_on_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out_prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_running_prev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_phase_age_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsystem_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -549,6 +573,7 @@ run. Read by the minimum on/off time rules.</p>
 <li><p><strong>dV_tank_w_out_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
 <li><p><strong>hp_running_prev</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>)</p></li>
 <li><p><strong>hp_phase_age_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>subsystem_state</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -1061,6 +1086,29 @@ upper bound and the compressor would run past it. A degenerate band
 timestep and assembles result columns for the output
 DataFrame.  New subsystems (PV, battery, …) implement
 this protocol and register with the boiler model.</p>
+<section id="carried-state">
+<h3>Carried state<a class="headerlink" href="#carried-state" title="Link to this heading">¶</a></h3>
+<p>A subsystem with memory between steps (a controller latch, a lock-out)
+does not keep it on its own instance: it is part of the run and travels
+in <code class="docutils literal notranslate"><span class="pre">DynamicState.subsystem_state[name]</span></code>.</p>
+<ul class="simple">
+<li><p><em>Read</em>: during a step the host model holds the previous step’s states
+in <code class="docutils literal notranslate"><span class="pre">host._subsystem_state_in</span></code> (<code class="docutils literal notranslate"><span class="pre">{}</span></code> at the start of a run); the
+subsystem’s entry is <code class="docutils literal notranslate"><span class="pre">host._subsystem_state_in.get(name,</span> <span class="pre">{})</span></code>. It
+must not be modified. The host’s hooks (<code class="docutils literal notranslate"><span class="pre">_run_subsystems</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_augment_results</span></code>) read it there; a subsystem object stepped
+through this protocol has no reference to its host, so the hook that
+calls it hands the entry over.</p></li>
+<li><p><em>Write</em>: the subsystem puts its next state, a new plain dict, under
+<code class="xref py py-data docutils literal notranslate"><span class="pre">SUBSYSTEM_STATE_KEY</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;carried_state&quot;</span></code>) of the dict its
+<code class="docutils literal notranslate"><span class="pre">step()</span></code> returned, at the latest in <code class="docutils literal notranslate"><span class="pre">assemble_results()</span></code> (the
+state may depend on the solved tank temperature). The host gathers
+these with <code class="xref py py-func docutils literal notranslate"><span class="pre">collect_subsystem_state()</span></code>.</p></li>
+</ul>
+<p>A <code class="docutils literal notranslate"><span class="pre">step()</span></code>-driven host (ASHPB) threads the states through the
+<code class="docutils literal notranslate"><span class="pre">DynamicState</span></code> it returns; a host that only offers <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>
+(GSHPB) keeps them for the run and clears them when a run starts. Either
+way a second run with the same inputs starts from empty state.</p>
 <dl class="py method">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#Subsystem.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -1147,6 +1195,7 @@ preheat); <code class="docutils literal notranslate"><span class="pre">None</spa
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span></dt>
 <dd></dd></dl>
 
+</section>
 </dd></dl>
 
 <dl class="py class">
@@ -1251,6 +1300,12 @@ the result DataFrame and adjust system-level totals.</p>
 
 </dd></dl>
 
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">SUBSYSTEM_STATE_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'carried_state'</span></span></dt>
+<dd><p>Key under which a subsystem’s step dict carries its next-step state.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">check_hp_schedule_active</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#check_hp_schedule_active"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -1264,6 +1319,27 @@ the result DataFrame and adjust system-level totals.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dynamic_context.</span></span><span class="sig-name descname"><span class="pre">collect_subsystem_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#collect_subsystem_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Next <code class="docutils literal notranslate"><span class="pre">DynamicState.subsystem_state</span></code> from this step’s subsystem dicts.</p>
+<p>Each subsystem whose step dict has a <code class="xref py py-data docutils literal notranslate"><span class="pre">SUBSYSTEM_STATE_KEY</span></code> entry
+contributes a copy of it; a subsystem that reported none keeps its
+previous entry. A new dict is returned and <code class="docutils literal notranslate"><span class="pre">previous</span></code> is not modified,
+so the state a step was given can be stepped from again.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span>)</p></li>
+<li><p><strong>sub_states</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mapping</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>]</span></p>
 </dd>
 </dl>
 </dd></dl>

@@ -197,208 +197,206 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="27"><span class="sd">irradiance on the collector plane and the collector schedule on); the chosen</span>
 </span><span data-line="28"><span class="sd">destination is still gated by the collector-loop controller of</span>
 </span><span data-line="29"><span class="sd">:mod:`tmhp._stc_scenarios` (outlet at least ``dT_stc_off`` above that sink, gain</span>
-</span><span data-line="30"><span class="sd">above the pump power, below the tank&#39;s ``T_stc_tank_max`` on the tank route),</span>
-</span><span data-line="31"><span class="sd">falling back to ``off`` if it would not run.</span>
-</span><span data-line="32">
-</span><span data-line="33"><span class="sd">With zero irradiance the collector is inactive and results reduce to the base</span>
-</span><span data-line="34"><span class="sd">GSHPB exactly (only extra reporting columns are added).</span>
-</span><span data-line="35">
-</span><span data-line="36"><span class="sd">Energy accounting</span>
-</span><span data-line="37"><span class="sd">-----------------</span>
-</span><span data-line="38"><span class="sd">The result carries the collector columns of :class:`~tmhp.GSHPB_STC_tank`</span>
-</span><span data-line="39"><span class="sd">(``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,</span>
-</span><span data-line="40"><span class="sd">``Q_l_stc``, ``T_stc_*`` …).  While the collector is active every step closes::</span>
-</span><span data-line="41">
-</span><span data-line="42"><span class="sd">    Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc</span>
-</span><span data-line="43"><span class="sd">    Q_stc_w_out - Q_stc_w_in = Q_solar_tank + Q_solar_ground</span>
-</span><span data-line="44">
-</span><span data-line="45"><span class="sd">(exclusive routing: one of the two terms is zero).  On the tank route the</span>
-</span><span data-line="46"><span class="sd">collector is reported at the *solved* tank temperature, i.e. the heat that</span>
-</span><span data-line="47"><span class="sd">actually entered the tank balance.  ``E_tot [W]`` includes the collector-loop</span>
-</span><span data-line="48"><span class="sd">pump ``E_stc_pump [W]``.</span>
-</span><span data-line="49"><span class="sd">&quot;&quot;&quot;</span>
-</span><span data-line="50">
-</span><span data-line="51"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
-</span><span data-line="52">
-</span><span data-line="53"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
-</span><span data-line="54"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
-</span><span data-line="55">
-</span><span data-line="56"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
-</span><span data-line="57"><span class="kn">from</span><span class="w"> </span><span class="nn">._run_reset</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoilerRun</span>
-</span><span data-line="58"><span class="kn">from</span><span class="w"> </span><span class="nn">._stc_scenarios</span><span class="w"> </span><span class="kn">import</span> <span class="n">STCScenario</span>
-</span><span data-line="59"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">stc_result_columns</span>
-</span><span data-line="60">
-</span><span data-line="61"><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
-</span><span data-line="62">    <span class="kn">from</span><span class="w"> </span><span class="nn">.dynamic_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">ControlState</span><span class="p">,</span> <span class="n">StepContext</span>
-</span><span data-line="63">
-</span><span data-line="64"><span class="n">_ROUTES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;ground&quot;</span><span class="p">,</span> <span class="s2">&quot;tank&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
-</span><span data-line="65">
+</span><span data-line="30"><span class="sd">above the pump power, below the tank&#39;s ``T_stc_tank_max`` on the tank route,</span>
+</span><span data-line="31"><span class="sd">freeze protection, stagnation lock-out), falling back to ``off`` if it would</span>
+</span><span data-line="32"><span class="sd">not run.</span>
+</span><span data-line="33">
+</span><span data-line="34"><span class="sd">With zero irradiance the collector is inactive and results reduce to the base</span>
+</span><span data-line="35"><span class="sd">GSHPB exactly (only extra reporting columns are added).</span>
+</span><span data-line="36">
+</span><span data-line="37"><span class="sd">Energy accounting</span>
+</span><span data-line="38"><span class="sd">-----------------</span>
+</span><span data-line="39"><span class="sd">The result carries the collector columns of :class:`~tmhp.GSHPB_STC_tank`</span>
+</span><span data-line="40"><span class="sd">(``Q_sol_stc``, ``Q_stc_w_in``, ``Q_stc_w_out``, ``Q_stc_pump_w_out``,</span>
+</span><span data-line="41"><span class="sd">``Q_l_stc``, ``T_stc_*`` …).  While the collector is active every step closes::</span>
+</span><span data-line="42">
+</span><span data-line="43"><span class="sd">    Q_sol_stc = (Q_stc_w_out - Q_stc_w_in) + Q_l_stc</span>
+</span><span data-line="44"><span class="sd">    Q_stc_w_out - Q_stc_w_in = Q_solar_tank + Q_solar_ground</span>
+</span><span data-line="45">
+</span><span data-line="46"><span class="sd">(exclusive routing: one of the two terms is zero).  On the tank route the</span>
+</span><span data-line="47"><span class="sd">collector is reported at the *solved* tank temperature, i.e. the heat that</span>
+</span><span data-line="48"><span class="sd">actually entered the tank balance.  ``E_tot [W]`` includes the collector-loop</span>
+</span><span data-line="49"><span class="sd">pump ``E_stc_pump [W]``.</span>
+</span><span data-line="50"><span class="sd">&quot;&quot;&quot;</span>
+</span><span data-line="51">
+</span><span data-line="52"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+</span><span data-line="53">
+</span><span data-line="54"><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+</span><span data-line="55"><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cast</span>
+</span><span data-line="56">
+</span><span data-line="57"><span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">calc_util</span> <span class="k">as</span> <span class="n">cu</span>
+</span><span data-line="58"><span class="kn">from</span><span class="w"> </span><span class="nn">._run_reset</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoilerRun</span>
+</span><span data-line="59"><span class="kn">from</span><span class="w"> </span><span class="nn">._stc_scenarios</span><span class="w"> </span><span class="kn">import</span> <span class="n">STCScenario</span>
+</span><span data-line="60"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolarThermalCollector</span><span class="p">,</span> <span class="n">stc_result_columns</span>
+</span><span data-line="61">
+</span><span data-line="62"><span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+</span><span data-line="63">    <span class="kn">from</span><span class="w"> </span><span class="nn">.dynamic_context</span><span class="w"> </span><span class="kn">import</span> <span class="n">ControlState</span><span class="p">,</span> <span class="n">StepContext</span>
+</span><span data-line="64">
+</span><span data-line="65"><span class="n">_ROUTES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;ground&quot;</span><span class="p">,</span> <span class="s2">&quot;tank&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
 </span><span data-line="66">
+</span><span data-line="67">
 <div class="viewcode-block" id="default_solar_router">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.default_solar_router">[docs]</a>
-</span><span data-line="67"><span class="k">def</span><span class="w"> </span><span class="nf">default_solar_router</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_tank_lower</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span data-line="68"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Greedy exclusive policy: serve the tank when cold, else charge the ground.</span>
-</span><span data-line="69">
-</span><span data-line="70"><span class="sd">    Called only when solar is available. Returns ``&quot;tank&quot;`` while the tank is</span>
-</span><span data-line="71"><span class="sd">    below its lower setpoint (immediate DHW need has priority), otherwise</span>
-</span><span data-line="72"><span class="sd">    ``&quot;ground&quot;`` to bank surplus solar in the borehole field for later COP gain.</span>
-</span><span data-line="73"><span class="sd">    Extra keyword state (``hour_of_day``, ``T_bhe``, ``T0``) is accepted and</span>
-</span><span data-line="74"><span class="sd">    ignored so a custom router can use it without changing this signature.</span>
-</span><span data-line="75"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="76">    <span class="k">return</span> <span class="s2">&quot;tank&quot;</span> <span class="k">if</span> <span class="n">T_tank_w</span> <span class="o">&lt;</span> <span class="n">T_tank_lower</span> <span class="k">else</span> <span class="s2">&quot;ground&quot;</span></div>
+</span><span data-line="68"><span class="k">def</span><span class="w"> </span><span class="nf">default_solar_router</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">T_tank_w</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">T_tank_lower</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span data-line="69"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Greedy exclusive policy: serve the tank when cold, else charge the ground.</span>
+</span><span data-line="70">
+</span><span data-line="71"><span class="sd">    Called only when solar is available. Returns ``&quot;tank&quot;`` while the tank is</span>
+</span><span data-line="72"><span class="sd">    below its lower setpoint (immediate DHW need has priority), otherwise</span>
+</span><span data-line="73"><span class="sd">    ``&quot;ground&quot;`` to bank surplus solar in the borehole field for later COP gain.</span>
+</span><span data-line="74"><span class="sd">    Extra keyword state (``hour_of_day``, ``T_bhe``, ``T0``) is accepted and</span>
+</span><span data-line="75"><span class="sd">    ignored so a custom router can use it without changing this signature.</span>
+</span><span data-line="76"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="77">    <span class="k">return</span> <span class="s2">&quot;tank&quot;</span> <span class="k">if</span> <span class="n">T_tank_w</span> <span class="o">&lt;</span> <span class="n">T_tank_lower</span> <span class="k">else</span> <span class="s2">&quot;ground&quot;</span></div>
 
-</span><span data-line="77">
 </span><span data-line="78">
+</span><span data-line="79">
 <div class="viewcode-block" id="GSHPB_STC_routed">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_STC_routed">[docs]</a>
-</span><span data-line="79"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_STC_routed</span><span class="p">(</span><span class="n">STCScenario</span><span class="p">,</span> <span class="n">GroundSourceHeatPumpBoilerRun</span><span class="p">):</span>
-</span><span data-line="80"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB + SolarThermalCollector with a per-timestep ground/tank router.&quot;&quot;&quot;</span>
-</span><span data-line="81">
+</span><span data-line="80"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_STC_routed</span><span class="p">(</span><span class="n">STCScenario</span><span class="p">,</span> <span class="n">GroundSourceHeatPumpBoilerRun</span><span class="p">):</span>
+</span><span data-line="81"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB + SolarThermalCollector with a per-timestep ground/tank router.&quot;&quot;&quot;</span>
+</span><span data-line="82">
 <div class="viewcode-block" id="GSHPB_STC_routed.__init__">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_STC_routed.__init__">[docs]</a>
-</span><span data-line="82">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span data-line="83">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="84">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="85">        <span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span><span class="p">,</span>
-</span><span data-line="86">        <span class="n">solar_router</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="87">        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
-</span><span data-line="88">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="89">        <span class="bp">self</span><span class="o">.</span><span class="n">_check_stc</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span>
-</span><span data-line="90">        <span class="c1"># Do NOT pass stc to super().__init__ — keeps self._subsystems empty; the</span>
-</span><span data-line="91">        <span class="c1"># solar coupling is applied explicitly by the per-route hooks below.</span>
-</span><span data-line="92">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="93">        <span class="bp">self</span><span class="o">.</span><span class="n">_init_stc</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span>
-</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">_router</span> <span class="o">=</span> <span class="n">solar_router</span> <span class="k">if</span> <span class="n">solar_router</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_solar_router</span>
-</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+</span><span data-line="83">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="84">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="85">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="86">        <span class="n">stc</span><span class="p">:</span> <span class="n">SolarThermalCollector</span><span class="p">,</span>
+</span><span data-line="87">        <span class="n">solar_router</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="88">        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+</span><span data-line="89">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="90">        <span class="bp">self</span><span class="o">.</span><span class="n">_check_stc</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span>
+</span><span data-line="91">        <span class="c1"># Do NOT pass stc to super().__init__ — keeps self._subsystems empty; the</span>
+</span><span data-line="92">        <span class="c1"># solar coupling is applied explicitly by the per-route hooks below.</span>
+</span><span data-line="93">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="94">        <span class="bp">self</span><span class="o">.</span><span class="n">_init_stc</span><span class="p">(</span><span class="n">stc</span><span class="p">)</span>
+</span><span data-line="95">        <span class="bp">self</span><span class="o">.</span><span class="n">_router</span> <span class="o">=</span> <span class="n">solar_router</span> <span class="k">if</span> <span class="n">solar_router</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_solar_router</span>
+</span><span data-line="96">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
 
-</span><span data-line="96">
-</span><span data-line="97">    <span class="k">def</span><span class="w"> </span><span class="nf">_reset_run_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="98">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_reset_run_state</span><span class="p">()</span>
-</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="100">
-</span><span data-line="101">    <span class="c1"># ------------------------------------------------------------------</span>
-</span><span data-line="102">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-</span><span data-line="103">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">is_preheat_on</span><span class="p">(</span><span class="n">hour_of_day</span><span class="p">)}</span>
-</span><span data-line="104">
-</span><span data-line="105">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
-</span><span data-line="106">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="107">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="108">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="109">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="110">        <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="111">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-</span><span data-line="112"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Decide the route, then run the chosen loop&#39;s controller at its sink.&quot;&quot;&quot;</span>
-</span><span data-line="113">        <span class="n">plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc_plane</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-</span><span data-line="114">        <span class="n">available</span> <span class="o">=</span> <span class="n">plane</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">ctx</span><span class="o">.</span><span class="n">activation_flags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-</span><span data-line="115">
-</span><span data-line="116">        <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
-</span><span data-line="117">        <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
-</span><span data-line="118">            <span class="n">route</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_router</span><span class="p">(</span>
-</span><span data-line="119">                <span class="n">hour_of_day</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">hour_of_day</span><span class="p">,</span>
-</span><span data-line="120">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">),</span>
-</span><span data-line="121">                <span class="n">T_tank_lower</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_lower_bound</span><span class="p">,</span>
-</span><span data-line="122">                <span class="n">T_bhe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">,</span>
-</span><span data-line="123">                <span class="n">T0</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">),</span>
-</span><span data-line="124">            <span class="p">)</span>
-</span><span data-line="125">            <span class="k">if</span> <span class="n">route</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ROUTES</span><span class="p">:</span>
-</span><span data-line="126">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;solar_router returned </span><span class="si">{</span><span class="n">route</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="n">_ROUTES</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span data-line="127">
-</span><span data-line="128">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="129">        <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
-</span><span data-line="130">            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_state</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
-</span><span data-line="131">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">]</span>
-</span><span data-line="132">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="133">        <span class="k">elif</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;ground&quot;</span><span class="p">:</span>
-</span><span data-line="134">            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ground_loop_state</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">),</span> <span class="n">plane</span><span class="p">)</span>
-</span><span data-line="135">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">]</span>
-</span><span data-line="136">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="137">            <span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
-</span><span data-line="138">                <span class="s2">&quot;stc_active&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-</span><span data-line="139">                <span class="s2">&quot;stc_result&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc_eval</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-</span><span data-line="140">                <span class="s2">&quot;plane&quot;</span><span class="p">:</span> <span class="n">plane</span><span class="p">,</span>
-</span><span data-line="141">                <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="142">                <span class="s2">&quot;E_subsystem&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="143">                <span class="s2">&quot;Q_contribution&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="144">                <span class="s2">&quot;E_stc_pump&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="145">                <span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-</span><span data-line="146">            <span class="p">}</span>
-</span><span data-line="147">        <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;stc_active&quot;</span><span class="p">]:</span>
-</span><span data-line="148">            <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>  <span class="c1"># infeasible at this sink — do not auto-switch destination</span>
-</span><span data-line="149">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="150">        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route</span>
-</span><span data-line="151">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">}</span>
-</span><span data-line="152">
-</span><span data-line="153">    <span class="k">def</span><span class="w"> </span><span class="nf">_build_residual_fn</span><span class="p">(</span>
-</span><span data-line="154">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="155">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="156">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="157">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="158">        <span class="n">T_tank_w_in_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="159">        <span class="n">T_sup_w_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="160">        <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="161">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-</span><span data-line="162">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="163"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Inject the collector heat into the tank balance only on the tank route.&quot;&quot;&quot;</span>
-</span><span data-line="164">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span>
-</span><span data-line="165">        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
-</span><span data-line="166">            <span class="c1"># ground / off: solar does not enter the tank balance — base residual.</span>
-</span><span data-line="167">            <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
-</span><span data-line="168">                <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
-</span><span data-line="169">                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_build_residual_fn</span><span class="p">(</span>
-</span><span data-line="170">                    <span class="n">ctx</span><span class="p">,</span>
-</span><span data-line="171">                    <span class="n">ctrl</span><span class="p">,</span>
-</span><span data-line="172">                    <span class="n">dt_s</span><span class="p">,</span>
-</span><span data-line="173">                    <span class="n">T_tank_w_in_K_n</span><span class="p">,</span>
-</span><span data-line="174">                    <span class="n">T_sup_w_K_n</span><span class="p">,</span>
-</span><span data-line="175">                    <span class="n">tank_level</span><span class="p">,</span>
-</span><span data-line="176">                    <span class="n">sub_states</span><span class="p">,</span>
-</span><span data-line="177">                <span class="p">),</span>
-</span><span data-line="178">            <span class="p">)</span>
-</span><span data-line="179">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
-</span><span data-line="180">            <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
-</span><span data-line="181">            <span class="bp">self</span><span class="o">.</span><span class="n">_tank_residual</span><span class="p">(</span>
-</span><span data-line="182">                <span class="n">ctx</span><span class="p">,</span>
-</span><span data-line="183">                <span class="n">ctrl</span><span class="p">,</span>
-</span><span data-line="184">                <span class="n">dt_s</span><span class="p">,</span>
-</span><span data-line="185">                <span class="n">T_tank_w_in_K_n</span><span class="p">,</span>
-</span><span data-line="186">                <span class="n">T_sup_w_K_n</span><span class="p">,</span>
-</span><span data-line="187">                <span class="n">tank_level</span><span class="p">,</span>
-</span><span data-line="188">                <span class="k">lambda</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_heat</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">T</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-</span><span data-line="189">            <span class="p">),</span>
-</span><span data-line="190">        <span class="p">)</span>
+</span><span data-line="97">
+</span><span data-line="98">    <span class="k">def</span><span class="w"> </span><span class="nf">_reset_run_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="99">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_reset_run_state</span><span class="p">()</span>
+</span><span data-line="100">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="101">
+</span><span data-line="102">    <span class="c1"># ------------------------------------------------------------------</span>
+</span><span data-line="103">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+</span><span data-line="104">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">is_preheat_on</span><span class="p">(</span><span class="n">hour_of_day</span><span class="p">)}</span>
+</span><span data-line="105">
+</span><span data-line="106">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
+</span><span data-line="107">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="108">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="109">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="110">        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="111">        <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="112">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+</span><span data-line="113"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Decide the route, then run the chosen loop&#39;s controller at its sink.&quot;&quot;&quot;</span>
+</span><span data-line="114">        <span class="n">plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc_plane</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+</span><span data-line="115">        <span class="n">available</span> <span class="o">=</span> <span class="n">plane</span><span class="p">[</span><span class="s2">&quot;total&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">ctx</span><span class="o">.</span><span class="n">activation_flags</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span data-line="116">
+</span><span data-line="117">        <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>
+</span><span data-line="118">        <span class="k">if</span> <span class="n">available</span><span class="p">:</span>
+</span><span data-line="119">            <span class="n">route</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_router</span><span class="p">(</span>
+</span><span data-line="120">                <span class="n">hour_of_day</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">hour_of_day</span><span class="p">,</span>
+</span><span data-line="121">                <span class="n">T_tank_w</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">),</span>
+</span><span data-line="122">                <span class="n">T_tank_lower</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_tank_w_lower_bound</span><span class="p">,</span>
+</span><span data-line="123">                <span class="n">T_bhe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">,</span>
+</span><span data-line="124">                <span class="n">T0</span><span class="o">=</span><span class="n">cu</span><span class="o">.</span><span class="n">K2C</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span><span class="p">),</span>
+</span><span data-line="125">            <span class="p">)</span>
+</span><span data-line="126">            <span class="k">if</span> <span class="n">route</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ROUTES</span><span class="p">:</span>
+</span><span data-line="127">                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;solar_router returned </span><span class="si">{</span><span class="n">route</span><span class="si">!r}</span><span class="s2">; expected one of </span><span class="si">{</span><span class="n">_ROUTES</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span data-line="128">
+</span><span data-line="129">        <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="130">        <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
+</span><span data-line="131">            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_state</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+</span><span data-line="132">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">]</span>
+</span><span data-line="133">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="134">        <span class="k">elif</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;ground&quot;</span><span class="p">:</span>
+</span><span data-line="135">            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ground_loop_state</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">cu</span><span class="o">.</span><span class="n">C2K</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_bhe</span><span class="p">),</span> <span class="n">plane</span><span class="p">)</span>
+</span><span data-line="136">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">]</span>
+</span><span data-line="137">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="138">            <span class="c1"># Held off (window closed, no sun, or the router said &quot;off&quot;): the</span>
+</span><span data-line="139">            <span class="c1"># controller still tracks freeze protection and stagnation lock-out.</span>
+</span><span data-line="140">            <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_state</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="141">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="142">            <span class="n">state</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="143">        <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;stc_active&quot;</span><span class="p">]:</span>
+</span><span data-line="144">            <span class="n">route</span> <span class="o">=</span> <span class="s2">&quot;off&quot;</span>  <span class="c1"># infeasible at this sink — do not auto-switch destination</span>
+</span><span data-line="145">            <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="146">        <span class="n">state</span><span class="p">[</span><span class="s2">&quot;route&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route</span>
+</span><span data-line="147">        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;stc&quot;</span><span class="p">:</span> <span class="n">state</span><span class="p">}</span>
+</span><span data-line="148">
+</span><span data-line="149">    <span class="k">def</span><span class="w"> </span><span class="nf">_build_residual_fn</span><span class="p">(</span>
+</span><span data-line="150">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="151">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="152">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="153">        <span class="n">dt_s</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="154">        <span class="n">T_tank_w_in_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="155">        <span class="n">T_sup_w_K_n</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="156">        <span class="n">tank_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="157">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="158">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="159"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Inject the collector heat into the tank balance only on the tank route.&quot;&quot;&quot;</span>
+</span><span data-line="160">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="161">        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
+</span><span data-line="162">            <span class="c1"># ground / off: solar does not enter the tank balance — base residual.</span>
+</span><span data-line="163">            <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+</span><span data-line="164">                <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
+</span><span data-line="165">                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_build_residual_fn</span><span class="p">(</span>
+</span><span data-line="166">                    <span class="n">ctx</span><span class="p">,</span>
+</span><span data-line="167">                    <span class="n">ctrl</span><span class="p">,</span>
+</span><span data-line="168">                    <span class="n">dt_s</span><span class="p">,</span>
+</span><span data-line="169">                    <span class="n">T_tank_w_in_K_n</span><span class="p">,</span>
+</span><span data-line="170">                    <span class="n">T_sup_w_K_n</span><span class="p">,</span>
+</span><span data-line="171">                    <span class="n">tank_level</span><span class="p">,</span>
+</span><span data-line="172">                    <span class="n">sub_states</span><span class="p">,</span>
+</span><span data-line="173">                <span class="p">),</span>
+</span><span data-line="174">            <span class="p">)</span>
+</span><span data-line="175">        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span>
+</span><span data-line="176">            <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span>
+</span><span data-line="177">            <span class="bp">self</span><span class="o">.</span><span class="n">_tank_residual</span><span class="p">(</span>
+</span><span data-line="178">                <span class="n">ctx</span><span class="p">,</span>
+</span><span data-line="179">                <span class="n">ctrl</span><span class="p">,</span>
+</span><span data-line="180">                <span class="n">dt_s</span><span class="p">,</span>
+</span><span data-line="181">                <span class="n">T_tank_w_in_K_n</span><span class="p">,</span>
+</span><span data-line="182">                <span class="n">T_sup_w_K_n</span><span class="p">,</span>
+</span><span data-line="183">                <span class="n">tank_level</span><span class="p">,</span>
+</span><span data-line="184">                <span class="k">lambda</span> <span class="n">T</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_heat</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">T</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+</span><span data-line="185">            <span class="p">),</span>
+</span><span data-line="186">        <span class="p">)</span>
+</span><span data-line="187">
+</span><span data-line="188">    <span class="k">def</span><span class="w"> </span><span class="nf">_ground_injection_W</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span data-line="189"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Solar heat the collector loop injects into the borehole field this step [W].&quot;&quot;&quot;</span>
+</span><span data-line="190">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span>
 </span><span data-line="191">
-</span><span data-line="192">    <span class="k">def</span><span class="w"> </span><span class="nf">_ground_injection_W</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span data-line="193"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Solar heat the collector loop injects into the borehole field this step [W].&quot;&quot;&quot;</span>
-</span><span data-line="194">        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_q_solar_ground_W</span>
-</span><span data-line="195">
-</span><span data-line="196">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
-</span><span data-line="197">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="198">        <span class="n">r</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-</span><span data-line="199">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="200">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="201">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-</span><span data-line="202">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="203">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span data-line="204">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span>
-</span><span data-line="205">        <span class="n">route</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
-</span><span data-line="206">        <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
-</span><span data-line="207">            <span class="c1"># The tank balance evaluated the collector at the solved tank</span>
-</span><span data-line="208">            <span class="c1"># temperature; report that evaluation, not the start-of-step probe.</span>
-</span><span data-line="209">            <span class="n">cols</span><span class="p">,</span> <span class="n">e_pump</span><span class="p">,</span> <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_columns</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">T_solved_K</span><span class="p">)</span>
-</span><span data-line="210">        <span class="k">else</span><span class="p">:</span>
-</span><span data-line="211">            <span class="n">sr</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_result&quot;</span><span class="p">,</span> <span class="p">{})</span>
-</span><span data-line="212">            <span class="n">active</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
-</span><span data-line="213">            <span class="n">e_pump</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
-</span><span data-line="214">            <span class="n">inlet</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">)</span>
-</span><span data-line="215">            <span class="n">cols</span> <span class="o">=</span> <span class="n">stc_result_columns</span><span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">inlet</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">loop_flow</span><span class="p">,</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">active</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="216">            <span class="n">cols</span><span class="p">[</span><span class="s2">&quot;Q_solar_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="217">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;solar_route [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route</span>
-</span><span data-line="218">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
-</span><span data-line="219">        <span class="c1"># The collector-loop pump is electricity the system draws.</span>
-</span><span data-line="220">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">+</span> <span class="n">e_pump</span>
-</span><span data-line="221">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_solar_columns</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">e_pump</span><span class="p">))</span>
-</span><span data-line="222">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
-</span><span data-line="223">        <span class="k">return</span> <span class="n">r</span></div>
+</span><span data-line="192">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
+</span><span data-line="193">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="194">        <span class="n">r</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+</span><span data-line="195">        <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="196">        <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="197">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+</span><span data-line="198">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="199">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span data-line="200">        <span class="n">state</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="201">        <span class="n">route</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;route&quot;</span><span class="p">,</span> <span class="s2">&quot;off&quot;</span><span class="p">)</span>
+</span><span data-line="202">        <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;tank&quot;</span><span class="p">:</span>
+</span><span data-line="203">            <span class="c1"># The tank balance evaluated the collector at the solved tank</span>
+</span><span data-line="204">            <span class="c1"># temperature; report that evaluation, not the start-of-step probe.</span>
+</span><span data-line="205">            <span class="n">cols</span><span class="p">,</span> <span class="n">e_pump</span><span class="p">,</span> <span class="n">active</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tank_loop_columns</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">T_solved_K</span><span class="p">)</span>
+</span><span data-line="206">        <span class="k">else</span><span class="p">:</span>
+</span><span data-line="207">            <span class="n">sr</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_result&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="208">            <span class="n">active</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;stc_active&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+</span><span data-line="209">            <span class="n">e_pump</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_stc_pump&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="210">            <span class="n">inlet</span> <span class="o">=</span> <span class="n">sr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;T_stc_w_in_K&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span><span class="p">)</span>
+</span><span data-line="211">            <span class="n">cols</span> <span class="o">=</span> <span class="n">stc_result_columns</span><span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">inlet</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stc</span><span class="o">.</span><span class="n">loop_flow</span><span class="p">,</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">active</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="212">            <span class="n">cols</span><span class="p">[</span><span class="s2">&quot;Q_solar_tank [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="213">            <span class="k">if</span> <span class="n">route</span> <span class="o">==</span> <span class="s2">&quot;off&quot;</span><span class="p">:</span>
+</span><span data-line="214">                <span class="bp">self</span><span class="o">.</span><span class="n">_commit_controller</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">pump_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span data-line="215">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;solar_route [-]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">route</span>
+</span><span data-line="216">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;Q_solar_ground [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_solar_ground&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+</span><span data-line="217">        <span class="c1"># The collector-loop pump is electricity the system draws.</span>
+</span><span data-line="218">        <span class="n">r</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span> <span class="o">+</span> <span class="n">e_pump</span>
+</span><span data-line="219">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_solar_columns</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">e_pump</span><span class="p">))</span>
+</span><span data-line="220">        <span class="n">r</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+</span><span data-line="221">        <span class="k">return</span> <span class="n">r</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

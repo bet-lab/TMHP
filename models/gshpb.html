@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:57:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -149,7 +149,10 @@ data-aria-dark="Switch to auto color mode">
 <li><a class="reference internal" href="#base-usage">Base usage</a></li>
 <li><a class="reference internal" href="#dynamic-operation">Dynamic operation</a></li>
 <li><a class="reference internal" href="#source-side-mechanics">Source-side mechanics</a></li>
-<li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a></li>
+<li><a class="reference internal" href="#sink-side-mechanics">Sink-side mechanics</a><ul>
+<li><a class="reference internal" href="#tank-backends">Tank backends</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#composed-variants">Composed variants</a><ul>
 <li><a class="reference internal" href="#stc-preheat">STC preheat</a></li>
 <li><a class="reference internal" href="#stc-tank-loop">STC tank loop</a></li>
@@ -159,8 +162,31 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.ground_source_heat_pump_boiler">API reference</a><ul>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_TANK_MODELS"><code class="docutils literal notranslate"><span class="pre">NODAL_TANK_MODELS</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K"><code class="docutils literal notranslate"><span class="pre">NODAL_DRAW_TOL_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE"><code class="docutils literal notranslate"><span class="pre">NODAL_END_CONDUCTANCE</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE"><code class="docutils literal notranslate"><span class="pre">NODAL_MIN_RUN_SHARE</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler"><code class="docutils literal notranslate"><span class="pre">GroundSourceHeatPumpBoiler</span></code></a><ul>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.__init__"><code class="docutils literal notranslate">__init__()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.V_tank_full"><code class="docutils literal notranslate">V_tank_full</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_on_time_s"><code class="docutils literal notranslate">min_on_time_s</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_off_time_s"><code class="docutils literal notranslate">min_off_time_s</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dT_hx_min"><code class="docutils literal notranslate">dT_hx_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_min"><code class="docutils literal notranslate">PR_cycle_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_max"><code class="docutils literal notranslate">PR_cycle_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_min"><code class="docutils literal notranslate">rps_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_max"><code class="docutils literal notranslate">rps_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_dis_max"><code class="docutils literal notranslate">T_dis_max</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.x_suction_min"><code class="docutils literal notranslate">x_suction_min</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL"><code class="docutils literal notranslate">Q_tank_LOAD_OFF_TOL</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt_s"><code class="docutils literal notranslate">dt_s</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.time"><code class="docutils literal notranslate">time</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt"><code class="docutils literal notranslate">dt</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f"><code class="docutils literal notranslate">T_bhe_f</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe"><code class="docutils literal notranslate">T_bhe</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out"><code class="docutils literal notranslate">T_bhe_f_out</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out_K"><code class="docutils literal notranslate">T_bhe_f_out_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_bhe"><code class="docutils literal notranslate">Q_bhe</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step"><code class="docutils literal notranslate">step()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_dynamic"><code class="docutils literal notranslate">analyze_dynamic()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.analyze_steady"><code class="docutils literal notranslate">analyze_steady()</span></code></a></li>
@@ -242,11 +268,13 @@ extend it the same way ASHPB’s do:</p>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_STC_routed</span></code></p></li>
 <li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.GSHPB_PV_ESS</span></code></p></li>
 </ul>
-<p>All variants report <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code> as the whole electric draw: compressor
-<code class="docutils literal notranslate"><span class="pre">E_cmp</span></code> + source-loop pump <code class="docutils literal notranslate"><span class="pre">E_pmp</span></code> + the collector-loop pump <code class="docutils literal notranslate"><span class="pre">E_stc_pump</span></code>
-(tank, ground, routed; the mains-driven preheat has none) + the UV lamp <code class="docutils literal notranslate"><span class="pre">E_uv</span></code>
-(<code class="docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code>; the STC variants do not simulate a <code class="docutils literal notranslate"><span class="pre">uv=</span></code> lamp and warn if
-one is passed). A model run twice with the same inputs gives the same result.</p>
+<p>The base class and all variants report <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code> as the whole electric
+draw: compressor <code class="docutils literal notranslate"><span class="pre">E_cmp</span></code> + source-loop pump <code class="docutils literal notranslate"><span class="pre">E_pmp</span></code> + the collector-loop
+pump <code class="docutils literal notranslate"><span class="pre">E_stc_pump</span></code> (tank, ground, routed; the mains-driven preheat has none)
++ the UV lamp <code class="docutils literal notranslate"><span class="pre">E_uv</span></code> (the base class and <code class="docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code> with <code class="docutils literal notranslate"><span class="pre">uv=</span></code>; the
+STC variants do not simulate a <code class="docutils literal notranslate"><span class="pre">uv=</span></code> lamp and warn if one is passed). The
+lamp is counted once: <code class="docutils literal notranslate"><span class="pre">GSHPB_PV_ESS</span></code> routes the base class’s <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>.
+A model run twice with the same inputs gives the same result.</p>
 <p>The collector, its irradiance inputs (direct-normal <code class="docutils literal notranslate"><span class="pre">I_DN</span></code> and
 diffuse-horizontal <code class="docutils literal notranslate"><span class="pre">I_dH</span></code>, transposed to the collector plane with the sun
 position from <code class="docutils literal notranslate"><span class="pre">latitude</span></code>/<code class="docutils literal notranslate"><span class="pre">longitude</span></code>/<code class="docutils literal notranslate"><span class="pre">utc_offset_h</span></code>/<code class="docutils literal notranslate"><span class="pre">start_time</span></code>), the
@@ -335,7 +363,77 @@ by <code class="docutils literal notranslate"><span class="pre">scripts/visualiz
 <section id="sink-side-mechanics">
 <h2>Sink-side mechanics<a class="headerlink" href="#sink-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>Single-node DHW tank, implicit per-step solve — the same demand-side
-sink used by the air-source and water-source boiler families.</p>
+sink used by the air-source and water-source boiler families. A step whose
+implicit solve returns no root is solved again with the same energy balance
+by bracketing over 0-200 °C; if the balance has no solution there the step is
+taken explicitly with the whole heat rate (heat pump, draw-off, loss,
+subsystems) and a <code class="docutils literal notranslate"><span class="pre">tmhp._tank_solve.TankSolveWarning</span></code> names it. The tank
+temperature is not held at the mains temperature: a tank in a cold room cools
+below it.</p>
+<section id="tank-backends">
+<h3>Tank backends<a class="headerlink" href="#tank-backends" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">tank_model</span></code> selects how the tank itself is resolved (always-full tank,
+no <code class="docutils literal notranslate"><span class="pre">stc</span></code>/<code class="docutils literal notranslate"><span class="pre">pv</span></code>/<code class="docutils literal notranslate"><span class="pre">uv</span></code> subsystem in the multi-node modes):</p>
+<div class="table-wrapper colwidths-given docutils container">
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">tank_model</span></code></p></th>
+<th class="head"><p>Tank</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;lumped&quot;</span></code> (default)</p></td>
+<td><p>One fully mixed node.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">n_tank_nodes</span></code> nodes (<a class="reference internal" href="../api/support/subsystems.html#tmhp.stratified_tank.StratifiedTank" title="tmhp.stratified_tank.StratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.stratified_tank.StratifiedTank</span></code></a>,
+sub-stepped to a Courant number of 1): smooth, numerically diffusive.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code></p></td>
+<td><p>The same nodes with a tracked thermocline
+(<a class="reference internal" href="../api/support/subsystems.html#tmhp.hybrid_tank.HybridStratifiedTank" title="tmhp.hybrid_tank.HybridStratifiedTank"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmhp.hybrid_tank.HybridStratifiedTank</span></code></a>): a sharp front
+between drawn and stored water.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In the multi-node modes the condenser is a coil immersed in the tank:
+<code class="docutils literal notranslate"><span class="pre">UA_tank_hx</span></code> spread evenly over the nodes, or all of it at
+<code class="docutils literal notranslate"><span class="pre">condenser_node</span></code> (0 = top). Heat flows only into water colder than the
+refrigerant:</p>
+<ul class="simple">
+<li><p>Node <code class="docutils literal notranslate"><span class="pre">i</span></code> receives <code class="docutils literal notranslate"><span class="pre">k·UA_i·(T_cond</span> <span class="pre">−</span> <span class="pre">T_i)⁺</span></code>, with <code class="docutils literal notranslate"><span class="pre">T_cond</span></code> the
+condensing temperature of the step’s cycle (<code class="docutils literal notranslate"><span class="pre">T_ref_cond_sat_l</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">T_i</span></code> the node’s end-of-step temperature; <code class="docutils literal notranslate"><span class="pre">k</span></code> is set so that the nodes
+receive the step’s condenser heat <code class="docutils literal notranslate"><span class="pre">Q_ref_tank</span></code>. A node as hot as the
+refrigerant receives nothing and no node is heated past <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>.</p></li>
+<li><p>The cycle condenses at the temperature that coil needs. With cold water
+at the bottom and hot water above the refrigerant temperature, only the
+cold nodes take heat and the cycle condenses near them, below what the
+mean tank temperature would give; in a mixed tank the two agree, and a
+one-node <code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code> tank reproduces <code class="docutils literal notranslate"><span class="pre">&quot;lumped&quot;</span></code>.</p></li>
+<li><p>If the water around the coil cannot take the step’s heat below <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>
+(a coil in the top node only), the compressor stops when that water
+reaches <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>: the row’s <code class="docutils literal notranslate"><span class="pre">runtime_fraction</span></code>, heat and power are cut
+to what was delivered and the thermostat call stands.</p></li>
+</ul>
+<p>The thermostat reads the volume-average temperature <code class="docutils literal notranslate"><span class="pre">T_tank_w</span> <span class="pre">[°C]</span></code>, so
+on/off timing and delivered heat follow the lumped tank; with a coil that
+reaches the top, the top node can sit several kelvin above
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_upper_bound</span></code> while staying below <code class="docutils literal notranslate"><span class="pre">T_cond</span></code>. Hot water leaves
+from the top: the mixing valve, <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code>, <code class="docutils literal notranslate"><span class="pre">Q_tank_w_out</span></code> and
+<code class="docutils literal notranslate"><span class="pre">X_tank_w_out</span></code> use <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span> <span class="pre">[°C]</span></code>, the temperature of the water that
+left during the step. The multi-node modes add <code class="docutils literal notranslate"><span class="pre">T_tank_w_out</span></code>,
+<code class="docutils literal notranslate"><span class="pre">T_tank_w_top</span></code> and <code class="docutils literal notranslate"><span class="pre">T_tank_w_bottom</span></code> to the result, and <code class="docutils literal notranslate"><span class="pre">Q_tank_loss</span></code>
+is the wall loss of the node profile. Each run closes
+<code class="docutils literal notranslate"><span class="pre">Σ</span> <span class="pre">Q_ref_tank·dt</span> <span class="pre">=</span> <span class="pre">C_tank·ΔT_tank_w</span> <span class="pre">+</span> <span class="pre">Σ</span> <span class="pre">ρc·dV_tank_w_out·(T_tank_w_out</span> <span class="pre">−</span>
+<span class="pre">T_tank_w_in)·dt</span> <span class="pre">+</span> <span class="pre">Σ</span> <span class="pre">Q_tank_loss·dt</span></code>. The storage exergy <code class="docutils literal notranslate"><span class="pre">Xst_tank</span></code> is still
+evaluated at the mean temperature.</p>
+</section>
 </section>
 <section id="composed-variants">
 <h2>Composed variants<a class="headerlink" href="#composed-variants" title="Link to this heading">¶</a></h2>
@@ -497,7 +595,13 @@ variant (<code class="docutils literal notranslate"><span class="pre">Q_sol_stc<
 <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_ground</span></code> can be checked step by step.
 The loop runs inside the <code class="docutils literal notranslate"><span class="pre">preheat_start_hour</span></code>–<code class="docutils literal notranslate"><span class="pre">preheat_end_hour</span></code> window
 when the collector controller allows it (outlet at least <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> above
-the borehole wall, gain above the pump power).</p>
+the borehole wall, gain above the pump power). The freeze protection and the
+stagnation lock-out described in <a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a> apply
+(<code class="docutils literal notranslate"><span class="pre">stc_freeze_protected</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">stc_stagnation_lockout</span> <span class="pre">[-]</span></code>): the loop does
+not run while the idle collector is below <code class="docutils literal notranslate"><span class="pre">T_stc_freeze</span></code> or the borehole
+wall is below 0 °C (the loop carries water; <code class="docutils literal notranslate"><span class="pre">T_stc_freeze=None</span></code> for an
+antifreeze loop), and a collector that idled above <code class="docutils literal notranslate"><span class="pre">T_stc_lockout</span></code> while
+the clock window was closed is not started until it has cooled.</p>
 <dl class="py class">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_ground</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_ground.html#GSHPB_STC_ground"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -513,7 +617,9 @@ collector is active).  Every step the collector balance closes:</p>
 <p>The loop runs inside the <code class="docutils literal notranslate"><span class="pre">preheat_start_hour</span></code>–<code class="docutils literal notranslate"><span class="pre">preheat_end_hour</span></code>
 window under the collector-loop controller of <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._stc_scenarios</span></code>
 (outlet at least <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> above the ground, gain above the pump
-power, below boiling).</p>
+power, below boiling, not drained by the freeze protection and not locked
+out after stagnation: <code class="docutils literal notranslate"><span class="pre">stc_freeze_protected</span> <span class="pre">[-]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">stc_stagnation_lockout</span> <span class="pre">[-]</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
@@ -540,7 +646,11 @@ While the collector is active, every step closes
 <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">-</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span> <span class="pre">+</span> <span class="pre">Q_solar_ground</span></code> (one of the two is
 zero). On the tank route the collector is reported at the solved tank
 temperature, i.e. the heat that entered the tank balance, and charging stops
-at <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> within the step as in <code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code>.</p>
+at <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> within the step as in <code class="xref py py-class docutils literal notranslate"><span class="pre">GSHPB_STC_tank</span></code>.
+A router that returns <code class="docutils literal notranslate"><span class="pre">&quot;off&quot;</span></code> in strong sun leaves the collector idle: at
+or above <code class="docutils literal notranslate"><span class="pre">T_stc_lockout</span></code> the loop is then locked out
+(<code class="docutils literal notranslate"><span class="pre">stc_stagnation_lockout</span> <span class="pre">[-]</span></code>) and neither route runs until the collector
+has cooled.</p>
 <dl class="py class">
 <dt class="sig sig-object py">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.</span></span><span class="sig-name descname"><span class="pre">GSHPB_STC_routed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solar_router</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/gshpb_stc_routed.html#GSHPB_STC_routed"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
@@ -646,7 +756,11 @@ a secondary heat exchanger to absorb heat from the circulating ground fluid.</p>
 </ul>
 </li>
 <li><p><strong>Thermal Storage Tank:</strong>
-Modeled with lumped-capacitance and DHW mixing logic.</p></li>
+Modeled with lumped-capacitance and DHW mixing logic by default
+(<code class="docutils literal notranslate"><span class="pre">tank_model=&quot;lumped&quot;</span></code>). <code class="docutils literal notranslate"><span class="pre">&quot;stratified&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;hybrid&quot;</span></code> resolve the
+tank in nodes; the condenser is then a coil that heats only the nodes
+colder than the refrigerant, and the cycle condenses at the temperature
+that coil needs.</p></li>
 <li><p><strong>Ground Source Heat Exchanger (Borefield):</strong>
 A dynamic multi-borehole simulation using pygfunction-based g-functions. It tracks
 the transient thermal response of the ground, enabling robust modeling of long-term
@@ -660,6 +774,36 @@ condenser temperature is solved analytically.</p>
 <p>See the project paper for the underlying refrigerant-cycle theory and the
 pygfunction-based borehole heat-exchanger model used here.</p>
 </div>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_TANK_MODELS">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_TANK_MODELS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('stratified',</span> <span class="pre">'hybrid')</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_TANK_MODELS" title="Link to this definition">¶</a></dt>
+<dd><p>Multi-node tank backends of <code class="docutils literal notranslate"><span class="pre">tank_model</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;lumped&quot;</span></code> is the single node).</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_DRAW_TOL_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.001</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_DRAW_TOL_K" title="Link to this definition">¶</a></dt>
+<dd><p>The mixing valve of a multi-node tank is set on the water that leaves the
+top during the step; the draw flow is iterated until that temperature moves
+by less than this [K], at most <code class="xref py py-data docutils literal notranslate"><span class="pre">NODAL_DRAW_ITERATIONS</span></code> times.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_END_CONDUCTANCE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2.0</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_END_CONDUCTANCE" title="Link to this definition">¶</a></dt>
+<dd><p>The condensing temperature of a multi-node tank step is at least the one at
+which the coil, with this multiple of its conductance, passes the step’s
+heat to the nodes as they are at the end of the step. 2: the end-of-step
+approach is at least half the nominal <code class="docutils literal notranslate"><span class="pre">Q</span> <span class="pre">/</span> <span class="pre">UA_tank_hx</span></code>.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE">
+<span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">NODAL_MIN_RUN_SHARE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1e-06</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.NODAL_MIN_RUN_SHARE" title="Link to this definition">¶</a></dt>
+<dd><p>Share of the step’s condenser heat below which a multi-node tank that could
+not take it counts as having taken none (the compressor did not run).</p>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.ground_source_heat_pump_boiler.</span></span><span class="sig-name descname"><span class="pre">GroundSourceHeatPumpBoiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'R410A'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_cmp_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_isen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_vol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank_hx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_ground</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">65.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">55.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_mix_w_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">40.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_tank_w_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_capacity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_shell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_ins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">h_o</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lumped'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_tank_nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">condenser_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N_2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">H_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R_b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.016</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_in</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.013</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.025</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_b_f_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">E_pmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_superheat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_subcool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_always_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prevent_simultaneous_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tank_level_upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in_refill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hp_on_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_on_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_off_time_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_max_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">31536000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3600</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'uniform_temperature'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_coupler</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sur</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT_hx_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">PR_cycle_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">rps_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_dis_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_suction_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refrigerant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V_disp_cmp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eta_cmp_mech</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_tank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_cond_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">UA_evap_design</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_ref_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_constant_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_min_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_max_lpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_control</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'constant'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_ground_flow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_ground_hx_UA</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variable_Rb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hydraulic_pump</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pump_efficiency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pump_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pipe_inner_diameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pipe_roughness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dp_common</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dp_aux_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dp_aux_exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_min_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_flow_max_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_dot_ref_rated</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rated_condition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_hx_fluid_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_hx_refrigerant_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_hx_constant_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_hx_fluid_exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ground_hx_refrigerant_exponent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmhp/ground_source_heat_pump_boiler.html#GroundSourceHeatPumpBoiler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler" title="Link to this definition">¶</a></dt>
@@ -879,6 +1023,103 @@ analytical condenser temperature relations.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.V_tank_full">
+<span class="sig-name descname"><span class="pre">V_tank_full</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.V_tank_full" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_on_time_s">
+<span class="sig-name descname"><span class="pre">min_on_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_on_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_off_time_s">
+<span class="sig-name descname"><span class="pre">min_off_time_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.min_off_time_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dT_hx_min">
+<span class="sig-name descname"><span class="pre">dT_hx_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dT_hx_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_min">
+<span class="sig-name descname"><span class="pre">PR_cycle_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_max">
+<span class="sig-name descname"><span class="pre">PR_cycle_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.PR_cycle_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_min">
+<span class="sig-name descname"><span class="pre">rps_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_max">
+<span class="sig-name descname"><span class="pre">rps_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.rps_max" title="Link to this definition">¶</a></dt>
+<dd><p>The rated-speed search bound until <code class="xref py py-meth docutils literal notranslate"><span class="pre">_initialize_reference_state()</span></code>
+replaces it with <code class="docutils literal notranslate"><span class="pre">default_rps_max(rps_rated)</span></code> (when <code class="docutils literal notranslate"><span class="pre">_rps_max_derived</span></code>).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_dis_max">
+<span class="sig-name descname"><span class="pre">T_dis_max</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_dis_max" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.x_suction_min">
+<span class="sig-name descname"><span class="pre">x_suction_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.x_suction_min" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL">
+<span class="sig-name descname"><span class="pre">Q_tank_LOAD_OFF_TOL</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_tank_LOAD_OFF_TOL" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt_s">
+<span class="sig-name descname"><span class="pre">dt_s</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt_s" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.time">
+<span class="sig-name descname"><span class="pre">time</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ndarray</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.time" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt">
+<span class="sig-name descname"><span class="pre">dt</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.dt" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f">
+<span class="sig-name descname"><span class="pre">T_bhe_f</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe">
+<span class="sig-name descname"><span class="pre">T_bhe</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out">
+<span class="sig-name descname"><span class="pre">T_bhe_f_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out_K">
+<span class="sig-name descname"><span class="pre">T_bhe_f_out_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.T_bhe_f_out_K" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_bhe">
+<span class="sig-name descname"><span class="pre">Q_bhe</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.Q_bhe" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="tmhp.ground_source_heat_pump_boiler.GroundSourceHeatPumpBoiler.step">
@@ -1107,7 +1348,9 @@ collector is active).  Every step the collector balance closes:</p>
 <p>The loop runs inside the <code class="docutils literal notranslate"><span class="pre">preheat_start_hour</span></code>–<code class="docutils literal notranslate"><span class="pre">preheat_end_hour</span></code>
 window under the collector-loop controller of <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._stc_scenarios</span></code>
 (outlet at least <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> above the ground, gain above the pump
-power, below boiling).</p>
+power, below boiling, not drained by the freeze protection and not locked
+out after stagnation: <code class="docutils literal notranslate"><span class="pre">stc_freeze_protected</span> <span class="pre">[-]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">stc_stagnation_lockout</span> <span class="pre">[-]</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>stc</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="../api/support/subsystems.html#tmhp.subsystems.SolarThermalCollector" title="tmhp.subsystems.SolarThermalCollector"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolarThermalCollector</span></code></a></span>)</p>
@@ -1158,8 +1401,9 @@ The router is only consulted when solar is actually available (positive
 irradiance on the collector plane and the collector schedule on); the chosen
 destination is still gated by the collector-loop controller of
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">tmhp._stc_scenarios</span></code> (outlet at least <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> above that sink, gain
-above the pump power, below the tank’s <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> on the tank route),
-falling back to <code class="docutils literal notranslate"><span class="pre">off</span></code> if it would not run.</p>
+above the pump power, below the tank’s <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> on the tank route,
+freeze protection, stagnation lock-out), falling back to <code class="docutils literal notranslate"><span class="pre">off</span></code> if it would
+not run.</p>
 <p>With zero irradiance the collector is inactive and results reduce to the base
 GSHPB exactly (only extra reporting columns are added).</p>
 </section>

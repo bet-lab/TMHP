@@ -200,134 +200,138 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="30">
 </span><span data-line="31"><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 </span><span data-line="32">
-</span><span data-line="33"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="33"><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 </span><span data-line="34">
-</span><span data-line="35"><span class="kn">from</span><span class="w"> </span><span class="nn">._run_reset</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoilerRun</span>
-</span><span data-line="36"><span class="kn">from</span><span class="w"> </span><span class="nn">._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_ctor</span>
-</span><span data-line="37"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span data-line="38">    <span class="n">EnergyStorageSystem</span><span class="p">,</span>
-</span><span data-line="39">    <span class="n">PhotovoltaicSystem</span><span class="p">,</span>
-</span><span data-line="40">    <span class="n">add_uv_power_to_e_tot</span><span class="p">,</span>
-</span><span data-line="41">    <span class="n">pv_ess_postprocess</span><span class="p">,</span>
-</span><span data-line="42">    <span class="n">pv_ess_result_columns</span><span class="p">,</span>
-</span><span data-line="43">    <span class="n">route_pv_ess</span><span class="p">,</span>
-</span><span data-line="44"><span class="p">)</span>
-</span><span data-line="45">
+</span><span data-line="35"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+</span><span data-line="36">
+</span><span data-line="37"><span class="kn">from</span><span class="w"> </span><span class="nn">._run_reset</span><span class="w"> </span><span class="kn">import</span> <span class="n">GroundSourceHeatPumpBoilerRun</span>
+</span><span data-line="38"><span class="kn">from</span><span class="w"> </span><span class="nn">._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_ctor</span>
+</span><span data-line="39"><span class="kn">from</span><span class="w"> </span><span class="nn">.subsystems</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span data-line="40">    <span class="n">EnergyStorageSystem</span><span class="p">,</span>
+</span><span data-line="41">    <span class="n">PhotovoltaicSystem</span><span class="p">,</span>
+</span><span data-line="42">    <span class="n">pv_ess_postprocess</span><span class="p">,</span>
+</span><span data-line="43">    <span class="n">pv_ess_result_columns</span><span class="p">,</span>
+</span><span data-line="44">    <span class="n">route_pv_ess</span><span class="p">,</span>
+</span><span data-line="45"><span class="p">)</span>
 </span><span data-line="46">
+</span><span data-line="47">
 <div class="viewcode-block" id="GSHPB_PV_ESS">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_PV_ESS">[docs]</a>
-</span><span data-line="47"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_PV_ESS</span><span class="p">(</span><span class="n">GroundSourceHeatPumpBoilerRun</span><span class="p">):</span>
-</span><span data-line="48"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB scenario where the heat pump is supplied by PV + ESS + Grid.</span>
-</span><span data-line="49">
-</span><span data-line="50"><span class="sd">    The PV/ESS routing is resolved **synchronously** inside</span>
-</span><span data-line="51"><span class="sd">    ``_augment_results`` after the HP electrical load is known.</span>
-</span><span data-line="52"><span class="sd">    No 1-step lag: the PV energy is allocated to the exact</span>
-</span><span data-line="53"><span class="sd">    HP load produced in the same timestep.</span>
-</span><span data-line="54">
-</span><span data-line="55"><span class="sd">    The battery state of charge belongs to a run: it is restored to</span>
-</span><span data-line="56"><span class="sd">    ``ess.SOC_init`` when ``analyze_dynamic`` starts, so repeating a run on the</span>
-</span><span data-line="57"><span class="sd">    same model reproduces it.</span>
-</span><span data-line="58">
-</span><span data-line="59"><span class="sd">    Parameters</span>
-</span><span data-line="60"><span class="sd">    ----------</span>
-</span><span data-line="61"><span class="sd">    pv : PhotovoltaicSystem</span>
-</span><span data-line="62"><span class="sd">        Pure-physics PV + charge-controller model.</span>
-</span><span data-line="63"><span class="sd">    ess : EnergyStorageSystem</span>
-</span><span data-line="64"><span class="sd">        Pure-physics battery model with ``charge()`` / ``discharge()``.</span>
-</span><span data-line="65"><span class="sd">    eta_inv : float</span>
-</span><span data-line="66"><span class="sd">        Inverter DC→AC efficiency [–], ``0 &lt; eta_inv &lt;= 1``.</span>
-</span><span data-line="67"><span class="sd">    T_inv_K : float</span>
-</span><span data-line="68"><span class="sd">        Inverter temperature for entropy calculation [K].</span>
-</span><span data-line="69"><span class="sd">    **kwargs</span>
-</span><span data-line="70"><span class="sd">        Forwarded to :class:`GroundSourceHeatPumpBoiler`.</span>
-</span><span data-line="71"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="72">
+</span><span data-line="48"><span class="k">class</span><span class="w"> </span><span class="nc">GSHPB_PV_ESS</span><span class="p">(</span><span class="n">GroundSourceHeatPumpBoilerRun</span><span class="p">):</span>
+</span><span data-line="49"><span class="w">    </span><span class="sd">&quot;&quot;&quot;GSHPB scenario where the heat pump is supplied by PV + ESS + Grid.</span>
+</span><span data-line="50">
+</span><span data-line="51"><span class="sd">    The PV/ESS routing is resolved **synchronously** inside</span>
+</span><span data-line="52"><span class="sd">    ``_augment_results`` after the HP electrical load is known.</span>
+</span><span data-line="53"><span class="sd">    No 1-step lag: the PV energy is allocated to the exact</span>
+</span><span data-line="54"><span class="sd">    HP load produced in the same timestep.</span>
+</span><span data-line="55">
+</span><span data-line="56"><span class="sd">    The battery state of charge belongs to a run: it is restored to</span>
+</span><span data-line="57"><span class="sd">    ``ess.SOC_init`` when ``analyze_dynamic`` starts, so repeating a run on the</span>
+</span><span data-line="58"><span class="sd">    same model reproduces it.</span>
+</span><span data-line="59">
+</span><span data-line="60"><span class="sd">    Parameters</span>
+</span><span data-line="61"><span class="sd">    ----------</span>
+</span><span data-line="62"><span class="sd">    pv : PhotovoltaicSystem</span>
+</span><span data-line="63"><span class="sd">        Pure-physics PV + charge-controller model.</span>
+</span><span data-line="64"><span class="sd">    ess : EnergyStorageSystem</span>
+</span><span data-line="65"><span class="sd">        Pure-physics battery model with ``charge()`` / ``discharge()``.</span>
+</span><span data-line="66"><span class="sd">    eta_inv : float</span>
+</span><span data-line="67"><span class="sd">        Inverter DC→AC efficiency [–], ``0 &lt; eta_inv &lt;= 1``.</span>
+</span><span data-line="68"><span class="sd">    T_inv_K : float</span>
+</span><span data-line="69"><span class="sd">        Inverter temperature for entropy calculation [K].</span>
+</span><span data-line="70"><span class="sd">    **kwargs</span>
+</span><span data-line="71"><span class="sd">        Forwarded to :class:`GroundSourceHeatPumpBoiler`.</span>
+</span><span data-line="72"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="73">
 <div class="viewcode-block" id="GSHPB_PV_ESS.__init__">
 <a class="viewcode-back" href="../../models/gshpb.html#tmhp.GSHPB_PV_ESS.__init__">[docs]</a>
-</span><span data-line="73">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-</span><span data-line="74">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="75">        <span class="o">*</span><span class="p">,</span>
-</span><span data-line="76">        <span class="n">pv</span><span class="p">:</span> <span class="n">PhotovoltaicSystem</span><span class="p">,</span>
-</span><span data-line="77">        <span class="n">ess</span><span class="p">:</span> <span class="n">EnergyStorageSystem</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="78">        <span class="n">eta_inv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span>
-</span><span data-line="79">        <span class="n">T_inv_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">313.15</span><span class="p">,</span>
-</span><span data-line="80">        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-</span><span data-line="81">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="82">        <span class="n">validate_ctor</span><span class="p">(</span><span class="s2">&quot;PV_ESS&quot;</span><span class="p">,</span> <span class="nb">locals</span><span class="p">())</span>
-</span><span data-line="83">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">PhotovoltaicSystem</span><span class="p">):</span>
-</span><span data-line="84">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;pv must be a PhotovoltaicSystem instance&quot;</span><span class="p">)</span>
-</span><span data-line="85">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-</span><span data-line="86">        <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span> <span class="o">=</span> <span class="n">pv</span>
-</span><span data-line="87">        <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span> <span class="o">=</span> <span class="n">ess</span> <span class="k">if</span> <span class="n">ess</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">EnergyStorageSystem</span><span class="p">()</span>
-</span><span data-line="88">        <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span> <span class="o">=</span> <span class="n">eta_inv</span>
-</span><span data-line="89">        <span class="bp">self</span><span class="o">.</span><span class="n">_T_inv_K</span> <span class="o">=</span> <span class="n">T_inv_K</span>
-</span><span data-line="90">        <span class="c1"># expose pv so analyze_dynamic supplies I_DN / I_dH context</span>
-</span><span data-line="91">        <span class="bp">self</span><span class="o">.</span><span class="n">pv</span> <span class="o">=</span> <span class="n">pv</span></div>
+</span><span data-line="74">    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span data-line="75">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="76">        <span class="o">*</span><span class="p">,</span>
+</span><span data-line="77">        <span class="n">pv</span><span class="p">:</span> <span class="n">PhotovoltaicSystem</span><span class="p">,</span>
+</span><span data-line="78">        <span class="n">ess</span><span class="p">:</span> <span class="n">EnergyStorageSystem</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="79">        <span class="n">eta_inv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span>
+</span><span data-line="80">        <span class="n">T_inv_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">313.15</span><span class="p">,</span>
+</span><span data-line="81">        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+</span><span data-line="82">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="83">        <span class="n">validate_ctor</span><span class="p">(</span><span class="s2">&quot;PV_ESS&quot;</span><span class="p">,</span> <span class="nb">locals</span><span class="p">())</span>
+</span><span data-line="84">        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span> <span class="n">PhotovoltaicSystem</span><span class="p">):</span>
+</span><span data-line="85">            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;pv must be a PhotovoltaicSystem instance&quot;</span><span class="p">)</span>
+</span><span data-line="86">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span data-line="87">        <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span> <span class="o">=</span> <span class="n">pv</span>
+</span><span data-line="88">        <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span> <span class="o">=</span> <span class="n">ess</span> <span class="k">if</span> <span class="n">ess</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">EnergyStorageSystem</span><span class="p">()</span>
+</span><span data-line="89">        <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span> <span class="o">=</span> <span class="n">eta_inv</span>
+</span><span data-line="90">        <span class="bp">self</span><span class="o">.</span><span class="n">_T_inv_K</span> <span class="o">=</span> <span class="n">T_inv_K</span>
+</span><span data-line="91">        <span class="c1"># expose pv so analyze_dynamic supplies I_DN / I_dH context</span>
+</span><span data-line="92">        <span class="bp">self</span><span class="o">.</span><span class="n">pv</span> <span class="o">=</span> <span class="n">pv</span></div>
 
-</span><span data-line="92">
-</span><span data-line="93">    <span class="c1"># ── per-run state ─────────────────────────────────────────────</span>
-</span><span data-line="94">
-</span><span data-line="95">    <span class="k">def</span><span class="w"> </span><span class="nf">_reset_run_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="96"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Start of a run: borehole state as the base class, battery back at ``SOC_init``.&quot;&quot;&quot;</span>
-</span><span data-line="97">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_reset_run_state</span><span class="p">()</span>
-</span><span data-line="98">        <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-</span><span data-line="99">
-</span><span data-line="100">    <span class="c1"># ── hook overrides ────────────────────────────────────────────</span>
-</span><span data-line="101">
-</span><span data-line="102">    <span class="k">def</span><span class="w"> </span><span class="nf">_needs_solar_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span data-line="103">        <span class="k">return</span> <span class="kc">True</span>
-</span><span data-line="104">
-</span><span data-line="105">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-</span><span data-line="106">        <span class="c1"># PV is passive — no schedule activation needed.</span>
-</span><span data-line="107">        <span class="k">return</span> <span class="p">{}</span>
-</span><span data-line="108">
-</span><span data-line="109">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
-</span><span data-line="110">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="111">        <span class="n">ctx</span><span class="p">,</span>
-</span><span data-line="112">        <span class="n">ctrl</span><span class="p">,</span>
-</span><span data-line="113">        <span class="n">dt</span><span class="p">,</span>
-</span><span data-line="114">        <span class="n">T_tank_w_in_K</span><span class="p">,</span>
-</span><span data-line="115">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
-</span><span data-line="116">        <span class="c1"># Let base class run STC/UV. PV is called after HP load is known.</span>
-</span><span data-line="117">        <span class="bp">self</span><span class="o">.</span><span class="n">_current_dt</span> <span class="o">=</span> <span class="n">dt</span>
-</span><span data-line="118">        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_run_subsystems</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span>
-</span><span data-line="119">
-</span><span data-line="120">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
-</span><span data-line="121">        <span class="bp">self</span><span class="p">,</span>
-</span><span data-line="122">        <span class="n">base_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="123">        <span class="n">ctx</span><span class="p">,</span>
-</span><span data-line="124">        <span class="n">ctrl</span><span class="p">,</span>
-</span><span data-line="125">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-</span><span data-line="126">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="127">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span data-line="128"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve PV/ESS/Grid routing after HP load is known.&quot;&quot;&quot;</span>
-</span><span data-line="129">        <span class="c1"># 1. Base HP results (+ attached subsystems such as UV)</span>
-</span><span data-line="130">        <span class="n">hp_res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_augment_results</span><span class="p">(</span><span class="n">base_result</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">sub_states</span><span class="p">,</span> <span class="n">T_solved_K</span><span class="p">)</span>
-</span><span data-line="131">
-</span><span data-line="132">        <span class="c1"># 2. Electric load this step [W]: compressor + source-loop pump + UV lamp (NaN-safe)</span>
-</span><span data-line="133">        <span class="n">E_load</span> <span class="o">=</span> <span class="n">add_uv_power_to_e_tot</span><span class="p">(</span><span class="n">hp_res</span><span class="p">)</span>
-</span><span data-line="134">
-</span><span data-line="135">        <span class="c1"># 3. PV generation (pure physics)</span>
-</span><span data-line="136">        <span class="n">dt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_current_dt&quot;</span><span class="p">,</span> <span class="mf">3600.0</span><span class="p">)</span>
-</span><span data-line="137">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span>
-</span><span data-line="138">        <span class="n">plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span><span class="o">.</span><span class="n">plane_irradiance</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">current_time_s</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-</span><span data-line="139">        <span class="n">pv_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">plane</span><span class="o">=</span><span class="n">plane</span><span class="p">)</span>
-</span><span data-line="140">
-</span><span data-line="141">        <span class="c1"># 4. Route the DC power and settle the AC side</span>
-</span><span data-line="142">        <span class="n">route</span> <span class="o">=</span> <span class="n">route_pv_ess</span><span class="p">(</span><span class="n">pv_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span><span class="p">,</span> <span class="n">E_load</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
-</span><span data-line="143">
-</span><span data-line="144">        <span class="c1"># 5. Result columns</span>
-</span><span data-line="145">        <span class="n">hp_res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pv_ess_result_columns</span><span class="p">(</span><span class="n">pv_r</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T_inv_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">))</span>
-</span><span data-line="146">        <span class="k">return</span> <span class="n">hp_res</span>
+</span><span data-line="93">
+</span><span data-line="94">    <span class="c1"># ── per-run state ─────────────────────────────────────────────</span>
+</span><span data-line="95">
+</span><span data-line="96">    <span class="k">def</span><span class="w"> </span><span class="nf">_reset_run_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="97"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Start of a run: borehole state as the base class, battery back at ``SOC_init``.&quot;&quot;&quot;</span>
+</span><span data-line="98">        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_reset_run_state</span><span class="p">()</span>
+</span><span data-line="99">        <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+</span><span data-line="100">
+</span><span data-line="101">    <span class="c1"># ── hook overrides ────────────────────────────────────────────</span>
+</span><span data-line="102">
+</span><span data-line="103">    <span class="k">def</span><span class="w"> </span><span class="nf">_needs_solar_input</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span data-line="104">        <span class="k">return</span> <span class="kc">True</span>
+</span><span data-line="105">
+</span><span data-line="106">    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation_flags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hour_of_day</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+</span><span data-line="107">        <span class="c1"># PV is passive — no schedule activation needed.</span>
+</span><span data-line="108">        <span class="k">return</span> <span class="p">{}</span>
+</span><span data-line="109">
+</span><span data-line="110">    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subsystems</span><span class="p">(</span>
+</span><span data-line="111">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="112">        <span class="n">ctx</span><span class="p">,</span>
+</span><span data-line="113">        <span class="n">ctrl</span><span class="p">,</span>
+</span><span data-line="114">        <span class="n">dt</span><span class="p">,</span>
+</span><span data-line="115">        <span class="n">T_tank_w_in_K</span><span class="p">,</span>
+</span><span data-line="116">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+</span><span data-line="117">        <span class="c1"># Let base class run STC/UV. PV is called after HP load is known.</span>
+</span><span data-line="118">        <span class="bp">self</span><span class="o">.</span><span class="n">_current_dt</span> <span class="o">=</span> <span class="n">dt</span>
+</span><span data-line="119">        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_run_subsystems</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T_tank_w_in_K</span><span class="p">)</span>
+</span><span data-line="120">
+</span><span data-line="121">    <span class="k">def</span><span class="w"> </span><span class="nf">_augment_results</span><span class="p">(</span>
+</span><span data-line="122">        <span class="bp">self</span><span class="p">,</span>
+</span><span data-line="123">        <span class="n">base_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="124">        <span class="n">ctx</span><span class="p">,</span>
+</span><span data-line="125">        <span class="n">ctrl</span><span class="p">,</span>
+</span><span data-line="126">        <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+</span><span data-line="127">        <span class="n">T_solved_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="128">    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span data-line="129"><span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve PV/ESS/Grid routing after HP load is known.&quot;&quot;&quot;</span>
+</span><span data-line="130">        <span class="c1"># 1. Base HP results (+ attached subsystems such as UV)</span>
+</span><span data-line="131">        <span class="n">hp_res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_augment_results</span><span class="p">(</span><span class="n">base_result</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">sub_states</span><span class="p">,</span> <span class="n">T_solved_K</span><span class="p">)</span>
+</span><span data-line="132">
+</span><span data-line="133">        <span class="c1"># 2. Electric load this step [W]: the base boiler&#39;s E_tot, which already</span>
+</span><span data-line="134">        <span class="c1">#    holds compressor + source-loop pump + UV lamp (NaN-safe).</span>
+</span><span data-line="135">        <span class="n">e_tot</span> <span class="o">=</span> <span class="n">hp_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">)</span>
+</span><span data-line="136">        <span class="n">E_load</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">e_tot</span><span class="p">)</span> <span class="k">if</span> <span class="n">e_tot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">math</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">e_tot</span><span class="p">)</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span data-line="137">        <span class="n">hp_res</span><span class="p">[</span><span class="s2">&quot;E_tot [W]&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">E_load</span>
+</span><span data-line="138">
+</span><span data-line="139">        <span class="c1"># 3. PV generation (pure physics)</span>
+</span><span data-line="140">        <span class="n">dt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_current_dt&quot;</span><span class="p">,</span> <span class="mf">3600.0</span><span class="p">)</span>
+</span><span data-line="141">        <span class="n">T0_K</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span>
+</span><span data-line="142">        <span class="n">plane</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span><span class="o">.</span><span class="n">plane_irradiance</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">current_time_s</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+</span><span data-line="143">        <span class="n">pv_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pv</span><span class="o">.</span><span class="n">calc_performance</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">I_DN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">I_dH</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">,</span> <span class="n">plane</span><span class="o">=</span><span class="n">plane</span><span class="p">)</span>
+</span><span data-line="144">
+</span><span data-line="145">        <span class="c1"># 4. Route the DC power and settle the AC side</span>
+</span><span data-line="146">        <span class="n">route</span> <span class="o">=</span> <span class="n">route_pv_ess</span><span class="p">(</span><span class="n">pv_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ess</span><span class="p">,</span> <span class="n">E_load</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">)</span>
 </span><span data-line="147">
-</span><span data-line="148">    <span class="c1"># ── post-processing ───────────────────────────────────────────</span>
-</span><span data-line="149">
-</span><span data-line="150">    <span class="k">def</span><span class="w"> </span><span class="nf">_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-</span><span data-line="151">        <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-</span><span data-line="152">            <span class="k">return</span> <span class="n">df</span>
+</span><span data-line="148">        <span class="c1"># 5. Result columns</span>
+</span><span data-line="149">        <span class="n">hp_res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pv_ess_result_columns</span><span class="p">(</span><span class="n">pv_r</span><span class="p">,</span> <span class="n">route</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eta_inv</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T_inv_K</span><span class="p">,</span> <span class="n">T0_K</span><span class="p">))</span>
+</span><span data-line="150">        <span class="k">return</span> <span class="n">hp_res</span>
+</span><span data-line="151">
+</span><span data-line="152">    <span class="c1"># ── post-processing ───────────────────────────────────────────</span>
 </span><span data-line="153">
-</span><span data-line="154">        <span class="n">df</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-</span><span data-line="155">        <span class="k">return</span> <span class="n">pv_ess_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></div>
+</span><span data-line="154">    <span class="k">def</span><span class="w"> </span><span class="nf">_postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span data-line="155">        <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+</span><span data-line="156">            <span class="k">return</span> <span class="n">df</span>
+</span><span data-line="157">
+</span><span data-line="158">        <span class="n">df</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+</span><span data-line="159">        <span class="k">return</span> <span class="n">pv_ess_postprocess</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

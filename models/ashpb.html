@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T19:43:20+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T19:57:02+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -489,15 +489,42 @@ single-glazed flat plate (<code class="docutils literal notranslate"><span class
 loops circulate the ISO test flow, 0.02 kg/(s·m²) of collector, unless
 <code class="docutils literal notranslate"><span class="pre">dV_stc_w</span></code> is set. The former construction parameters (<code class="docutils literal notranslate"><span class="pre">A_stc_pipe</span></code>,
 <code class="docutils literal notranslate"><span class="pre">alpha_stc</span></code>, <code class="docutils literal notranslate"><span class="pre">h_o_stc</span></code> …) are accepted with a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code>.</p>
-<p><strong>Loop control.</strong> A pumped loop runs when the idle collector is
-<code class="docutils literal notranslate"><span class="pre">dT_stc_on</span></code> (6 K) and the running outlet <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> (2 K) above the
-sink, its gain exceeds the pump power and its outlet stays below
-<code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> (100 °C). Charging the tank stops at <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code>
-(85 °C) within the step, and so does circulation once the outlet reaches
-<code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> as the tank warms: <code class="docutils literal notranslate"><span class="pre">stc_runtime_fraction</span> <span class="pre">[-]</span></code> is the share of
-the step the loop ran, and the flow, pump power and delivered heat are step
-averages. Every step closes <code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span> <span class="pre">=</span> <span class="pre">(Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in)</span> <span class="pre">+</span>
-<span class="pre">Q_l_stc</span></code> with <code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code>.</p>
+<p><strong>Loop control.</strong> A pumped loop is run by a differential controller. A
+stopped pump starts when the idle collector is <code class="docutils literal notranslate"><span class="pre">dT_stc_on</span></code> (6 K) above the
+sink, provided the run would hold; a running pump runs on while its outlet
+stays <code class="docutils literal notranslate"><span class="pre">dT_stc_off</span></code> (2 K) above the sink. The gain must exceed the pump
+power and the outlet stay below <code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> (100 °C). Charging the tank
+stops at <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> (85 °C) within the step, and so does circulation
+once the outlet reaches <code class="docutils literal notranslate"><span class="pre">T_stc_boil</span></code> as the tank warms:
+<code class="docutils literal notranslate"><span class="pre">stc_runtime_fraction</span> <span class="pre">[-]</span></code> is the share of the step the loop ran, and the
+flow, pump power and delivered heat are step averages. After the tank has
+reached its limit the loop starts again only once the tank is 2 K below it.
+Every step closes <code class="docutils literal notranslate"><span class="pre">Q_sol_stc</span> <span class="pre">=</span> <span class="pre">(Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in)</span> <span class="pre">+</span> <span class="pre">Q_l_stc</span></code> with
+<code class="docutils literal notranslate"><span class="pre">Q_stc_w_out</span> <span class="pre">−</span> <span class="pre">Q_stc_w_in</span> <span class="pre">=</span> <span class="pre">Q_solar_tank</span></code>.</p>
+<p>With the default flow (the ISO test flow) the running outlet is only a few
+kelvin above the inlet, so the 2 K stop threshold decides in both directions;
+the start threshold matters for low-flow loops (<code class="docutils literal notranslate"><span class="pre">dV_stc_w</span></code>).</p>
+<p><strong>Freeze protection.</strong> The collector carries water (tank water or mains
+water), so the system is a drain-back one: while the idle collector is below
+<code class="docutils literal notranslate"><span class="pre">T_stc_freeze</span></code> (4 °C) the loop does not run and the collector is drained.
+<code class="docutils literal notranslate"><span class="pre">stc_freeze_protected</span> <span class="pre">[-]</span></code> marks those steps (winter nights, and dull
+winter days). <code class="docutils literal notranslate"><span class="pre">T_stc_freeze=None</span></code> declares a loop filled with antifreeze
+and switches the protection off; a separate antifreeze loop with a heat
+exchanger is not modelled.</p>
+<p><strong>Stagnation lock-out.</strong> When the tank is at its limit the loop stops and the
+collector idles at its stagnation temperature (<code class="docutils literal notranslate"><span class="pre">T_stc_stag</span> <span class="pre">[°C]</span></code>, 130–160 °C
+on a clear day). Pumping tank water into an absorber that hot makes steam,
+so a loop that a protection holds off while its idle collector is at or above
+<code class="docutils literal notranslate"><span class="pre">T_stc_lockout</span></code> (130 °C) is locked out: it is not started again, even if a
+draw cools the tank, until the collector has cooled 10 K below the lock-out
+temperature. <code class="docutils literal notranslate"><span class="pre">stc_stagnation_lockout</span> <span class="pre">[-]</span></code> marks those steps. On a clear
+day that fills the tank before noon the loop therefore collects nothing in
+the afternoon; <code class="docutils literal notranslate"><span class="pre">T_stc_lockout=None</span></code> switches the lock-out off. The
+collector has no heat capacity in the model, so its idle temperature is the
+equilibrium one of the step.</p>
+<p>The pump latch, the limit hold and the lock-out are state of the run: they
+travel in <code class="docutils literal notranslate"><span class="pre">DynamicState.subsystem_state</span></code> between <code class="docutils literal notranslate"><span class="pre">step()</span></code> calls, and a
+run starts with all of them cleared.</p>
 </section>
 <section id="stc-preheat">
 <h3>STC preheat<a class="headerlink" href="#stc-preheat" title="Link to this heading">¶</a></h3>
@@ -510,7 +537,12 @@ inflow is the reported <code class="docutils literal notranslate"><span class="p
 outside the <code class="docutils literal notranslate"><span class="pre">preheat_start_hour</span></code>–<code class="docutils literal notranslate"><span class="pre">preheat_end_hour</span></code> window, without a
 draw and when it would cool the feed; when its outlet reaches
 <code class="docutils literal notranslate"><span class="pre">T_stc_tank_max</span></code> at the flow the end-of-step tank draws, it is bypassed for
-the rest of the step. The mains pressure drives it: no pump power.</p>
+the rest of the step. The mains pressure drives it: no pump power. The
+freeze protection applies (bypassed and drained below <code class="docutils literal notranslate"><span class="pre">T_stc_freeze</span></code>); the
+stagnation lock-out does not, there being no pump to hold off. Between draws
+the collector has no flow, so on a clear day it idles far above 100 °C
+(<code class="docutils literal notranslate"><span class="pre">T_stc_stag</span> <span class="pre">[°C]</span></code>) and the next draw passes through it: check that column
+before relying on this placement where draws are rare.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span data-line="1"><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span data-line="2"><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 </span><span data-line="3"><span class="kn">import</span><span class="w"> </span><span class="nn">pvlib</span>
@@ -635,9 +667,11 @@ ESS variants) switches on <code class="docutils literal notranslate"><span class
 assumes the lamp in a quartz sleeve inside the tank (its UV, light and heat
 all end in the water) and its ballast (about 90 % efficient) in the control
 box outside; set 1.0 when both are inside the tank boundary.</p>
-<p>The PV + ESS variants add <code class="docutils literal notranslate"><span class="pre">E_uv</span></code> to <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>; the base boilers report it
-in its own column but do not yet include it in <code class="docutils literal notranslate"><span class="pre">E_tot</span></code> (#96) — add it when
-totalling electricity.</p>
+<p><code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">[W]</span></code> includes the lamp: <code class="docutils literal notranslate"><span class="pre">E_tot</span> <span class="pre">=</span> <span class="pre">E_cmp</span> <span class="pre">+</span> <span class="pre">E_ou_fan</span> <span class="pre">+</span> <span class="pre">E_uv</span></code> on the
+base boiler (<code class="docutils literal notranslate"><span class="pre">E_pmp</span></code> in place of the fan on the ground- and water-source
+boilers). The PV + ESS variants route that <code class="docutils literal notranslate"><span class="pre">E_tot</span></code>, so the lamp is counted
+once. COP columns (<code class="docutils literal notranslate"><span class="pre">cop_ref</span></code>, <code class="docutils literal notranslate"><span class="pre">cop_sys</span></code>) describe the heat-pump cycle and
+do not include the lamp.</p>
 </section>
 <section id="pv-ess">
 <h3>PV + ESS<a class="headerlink" href="#pv-ess" title="Link to this heading">¶</a></h3>

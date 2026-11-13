@@ -48,6 +48,7 @@ import pandas as pd
 from scipy.optimize import brentq
 
 from tmhp import AirSourceHeatPump
+from tmhp.reference_state import ReferenceStateError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA = REPO_ROOT / "validation" / "data"
@@ -133,7 +134,16 @@ def _model(plate: Nameplate, ua_divisor: float | None = None) -> AirSourceHeatPu
 
 
 def predicted_cop(plate: Nameplate, mode: str, ua_divisor: float | None = None) -> float:
-    model = _model(plate, ua_divisor)
+    try:
+        model = _model(plate, ua_divisor)
+    except ReferenceStateError:
+        # A scanned conductance too small for the machine to exist at its
+        # nameplate (the rating point condenses above the compressor envelope
+        # or the critical temperature): no prediction, like a failed solve.
+        # The machine's own defaults (no divisor) must build.
+        if ua_divisor is None:
+            raise
+        return float("nan")
     if mode == "cooling":
         result = model.analyze_steady(
             Q_r_iu=plate.cooling_kW * 1000.0,

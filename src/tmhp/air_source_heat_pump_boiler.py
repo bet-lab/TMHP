@@ -50,6 +50,7 @@ from tqdm import tqdm
 
 from . import calc_util as cu
 from ._opt_utils import PENALTY, margin_feasible_interval, safe_float_attr, specific_energy_objective
+from ._tank_solve import recover_tank_temperature
 from ._validation import validate_ctor, validate_dynamic, validate_initial_state, validate_steady, validate_step
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
@@ -96,7 +97,7 @@ from .heat_transfer import calc_simple_tank_UA
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, calc_fan_power_from_dV_fan, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import calc_ref_state, props_si, reportable_state
-from .subsystems import PhotovoltaicSystem, SolarThermalCollector
+from .subsystems import PhotovoltaicSystem, SolarThermalCollector, add_uv_power_to_e_tot
 from .thermodynamics import calc_energy_flow
 
 #: Objective tiers above the specific-energy scale of
@@ -2092,6 +2093,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         """
         for name, sub in self._subsystems.items():
             r.update(sub.assemble_results(ctx, ctrl, sub_states[name], T_solved_K))
+        # E_tot is the whole electric draw: the lamp's step-average power joins
+        # the compressor and the outdoor fan (the cycle assembled E_tot before
+        # the subsystems reported).
+        if "uv" in self._subsystems:
+            add_uv_power_to_e_tot(r)
         return r
 
     def _postprocess(self, df: "pd.DataFrame") -> "pd.DataFrame":
@@ -2309,25 +2315,26 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
 
         try:
             res = root_scalar(residual_1d, bracket=[cu.C2K(0.0), cu.C2K(100.0)], method="brentq")
-            converged = getattr(res, "converged", False)
-            root_val = getattr(res, "root", np.nan)
-            if converged and not np.isnan(root_val):
-                T_tank_w_K = float(root_val)
-                ier = 1
-            else:
-                raise ValueError(f"Not converged or NaN: {res}")
-        except Exception:  # Fallback to explicit step if anything fails
-            # Exception ignored; explicit Euler fallback will correctly handle the state
-            # Explicit Euler step for energy:
-            # r_energy = C_curr * T_next - C_curr * T_curr - dt * (Q_total - UA*(T_curr - T0)) = 0
-            Q_hp_val = ctrl.Q_heat_source
-            alp_curr = min(1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n)))
-            dV_out_curr = alp_curr * ctx.dV_mix_w_out
-            Q_flow_curr = c_w * rho_w * dV_out_curr * (T_sup_w_K_n - ctx.T_tank_w_K)
-            Q_loss_curr = self.UA_tank_wall * (ctx.T_tank_w_K - self.T_sur_K)
-            Q_tot = Q_hp_val + Q_flow_curr - Q_loss_curr  # Assumes sub_total = 0 explicitly for fallback
-
-            T_tank_w_K = ctx.T_tank_w_K + dt_s * Q_tot / self.C_tank
+            solved = bool(res.converged) and math.isfinite(res.root)
+        except (ValueError, RuntimeError):
+            solved = False  # no root between 0 and 100 °C, or the search did not settle
+        if solved:
+            T_tank_w_K = float(res.root)
+            ier = 1
+        else:
+            # Same residual, wider range (tmhp._tank_solve): heat pump, draw-off,
+            # loss and subsystem heat stay in the balance, and a step that
+            # cannot be solved is named in a warning.
+            T_tank_w_K = recover_tank_temperature(
+                residual_1d,
+                T_start_K=ctx.T_tank_w_K,
+                dt=dt_s,
+                C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+                C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level),
+                C_tank=self.C_tank,
+                who=type(self).__name__,
+                step=n,
+            )
             ier = 0
         warn_if_tank_boiling(T_tank_w_K)
         flows = None

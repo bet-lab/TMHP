@@ -329,7 +329,11 @@ def test_t5_reference_stratified_tank_conserves_energy():
     assert _charge_storage_ratio(StratifiedTank) == pytest.approx(1.0, abs=0.01)
 
 
-@defect("T4", "stratified GSHPB spreads condenser heat over all nodes, heating nodes above T_cond_sat")
+# T4 fixed: the condenser is a coil at the cycle's condensing temperature (tank.step hx_ua /
+# T_hx / q_hx); node i receives k·UA_i·(T_cond − T_i)⁺, nothing once it is as hot as the
+# refrigerant. Was +4.1 K above T_cond here, 92 °C top node in a 24 h run, 364 °C with
+# condenser_node=0. With the default coil (16 K approach) every node of this run stays below
+# the refrigerant; tests/test_tank_backend.py covers hot nodes left unheated and the hybrid tank.
 def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature():
     dt, n = 300, 9
     m = tmhp.GroundSourceHeatPumpBoiler(dt_s=dt, t_max_s=86400.0, tank_model="stratified")
@@ -339,7 +343,9 @@ def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature()
 
     def recording_step(dt_s, **kw):
         out = original_step(dt_s, **kw)
-        q = np.asarray(kw.get("q_source", np.zeros(tank.n)), dtype=float)
+        # Heat each node received in this step: the immersed exchanger's share
+        # plus any prescribed q_source (how the condenser heat was passed before).
+        q = np.asarray(out["q_hx"], dtype=float) + np.asarray(kw.get("q_source", np.zeros(tank.n)), dtype=float)
         record.append((q, tank.T.copy()))
         return out
 
@@ -348,6 +354,12 @@ def test_t4_stratified_condenser_never_heats_node_above_condensing_temperature()
     draw[:3] = 12.0 / 60000.0  # cool the bottom so the top stays hot
     df = m.analyze_dynamic(n * dt, dt, 60.0, draw, _flat(n, 5.0))
     require(len(record) == len(df), f"{len(record)} tank steps for {len(df)} rows")
+    heat_J = sum(float(q.sum()) for q, _ in record) * dt
+    require(heat_J > 3.6e6, f"the condenser put only {heat_J / 3.6e6:.2f} kWh into the tank")
+    require(
+        heat_J == pytest.approx(float(df["Q_ref_tank [W]"].sum()) * dt, rel=1e-6),
+        "the heat the nodes received is not the cycle's condenser heat",
+    )
     bad = []
     for i, (q, T_after) in enumerate(record):
         row = df.iloc[i]

@@ -36,8 +36,9 @@ explicit interval; only floating-point endpoint rounding is tolerated.
 
 The previous ``dV_b_f_lpm`` and ratio-limit constructor inputs remain adapters,
 with ``DeprecationWarning`` on explicit use. New absolute inputs take precedence.
-Omitting all new inputs preserves historical defaults (GSHP 20.04 L/min,
-GSHPB 24 L/min; ratio interval 0.2–1.2). ``dV_b_f_m3s`` remains a reference-flow
+Omitting all new inputs gives the default reference flow (GSHP: capacity-based,
+``0.75 × hp_capacity / (ρc × 3 K)``, 14.3 L/min for 4 kW — 20.04 L/min until
+November 2026, see :doc:`../models/gshp`; GSHPB 24 L/min; ratio interval 0.2–1.2). ``dV_b_f_m3s`` remains a reference-flow
 attribute for compatibility, never the final candidate's mutable state.
 
 ``analyze_steady(..., ground_flow_lpm=24)`` forces an actual candidate; the
@@ -58,7 +59,8 @@ Indoor approach search domain
 -----------------------------
 
 GSHP exposes ``indoor_approach_min_K`` / ``indoor_approach_max_K`` separately
-from airflow limits. Defaults remain 1–20 K. An expanded water-flow interval can
+from airflow limits. Defaults are 1–25 K (1–20 K until November 2026: the rated
+duty of the default indoor coil at 400 cfm/ton needs 21.6 K). An expanded water-flow interval can
 require an indoor approach above 20 K to close the HX while respecting the
 compressor pressure-ratio floor. The current 26 °C cooling study explicitly
 uses 1–25 K (minimum evaporating temperature 1 °C). These are numerical cycle

@@ -66,15 +66,21 @@ from .ground_flow_control import (
     solve_ground_approach,
 )
 from .ground_loop import (
+    BOREHOLE_DEFAULT_DEPTH,
     calc_bhe_fluid_temperatures,
     calc_borefield_linear_load,
     calc_borehole_count,
+    calc_rated_linear_load,
     calc_total_borehole_length,
     configure_ground_flow,
+    default_borefield_layout,
+    default_ground_flow_lpm,
     ground_flow_state,
     ground_hx_UA,
     ground_result_diagnostics,
     resolve_ground_flow_rates,
+    warn_if_borefield_undersized,
+    warn_if_laminar_ground_flow,
 )
 from .heat_exchanger import (
     calc_ground_hx_UA_from_capacity,
@@ -82,6 +88,7 @@ from .heat_exchanger import (
     resolve_fan_flow_limits,
 )
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .pump import default_ground_pump_power
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -101,6 +108,11 @@ def _require_finite(**values: float | None) -> None:
         if not finite:
             raise ValueError(f"{name} must be a finite number, got {value!r}")
 
+
+#: Default rated indoor airflow per watt of capacity [m³/s per W]: 400 cfm per
+#: ton of refrigeration, the usual selection airflow of a water-to-air unit
+#: (0.215 m³/s = 773 m³/h for 4 kW).
+IU_AIRFLOW_PER_W = 5.37e-5
 
 #: Signed indoor-coil capacity margins at the fan flow limits (row keys).
 _IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
@@ -199,6 +211,34 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     ``Q_ref_iu [W]`` below the request; the difference is unmet load, not a
     solver failure. A request below the minimum-speed duty runs at that speed
     and reports ``capacity_clamped == "min"`` with the larger delivery.
+
+    **Defaults that follow the capacity.** With only ``hp_capacity`` (and
+    ``ref``) given, the ground side and the indoor airflow are sized from it,
+    so the rating-point COP is the same at every capacity:
+
+    - loop flow ``ground_flow_ref_lpm``:
+      ``0.75 * hp_capacity / (rho c * 3 K)``
+      (:func:`~tmhp.ground_loop.default_ground_flow_lpm`; 14.3 L/min for
+      4 kW), shared equally by the parallel boreholes;
+    - pump power ``E_pmp``: ASHRAE pumping grade B, 75 W per ton of capacity
+      (:func:`~tmhp.pump.default_ground_pump_power`; 85 W for 4 kW);
+    - borefield: when none of ``N_1``, ``N_2`` and ``H_b`` is given, the
+      smallest near-square field of 100 m boreholes that keeps the rated
+      source-side heat (``0.75 * hp_capacity``) within 50 W/m
+      (:func:`~tmhp.ground_loop.default_borefield_layout`; one borehole up to
+      6.67 kW, 3 x 2 for 30 kW). Giving any of the three fixes the field as
+      given (the others default to 1, 1 and 100 m);
+    - rated indoor airflow ``dV_iu_fan_a_rated``: 5.37e-5 m³/s per W
+      (400 cfm per ton; 773 m³/h for 4 kW). With the default coil
+      (``UA_iu_rated = 0.08 * hp_capacity``) the rated duty needs an indoor
+      approach of 21.6 K, which is why ``indoor_approach_max_K`` defaults to
+      25 K.
+
+    A supplied value always replaces its default. Two sizing slips are
+    reported with a ``UserWarning`` instead of being solved silently: a
+    U-tube that is laminar at the reference flow (``Re < 2300``; the model
+    attribute ``Re_bhe_ref``) and a caller-sized borefield above 80 W/m at the
+    rated source-side heat (``q_bhe_rated``).
     """
 
     _RATING_FAMILY = "GSHP"
@@ -222,11 +262,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         eta_iu_fan_rated: float | None = None,
         vsd_coeffs_iu: dict | None = None,
         # 4. BHE (Borehole Heat Exchanger) ---------------
-        N_1: int = 1,
-        N_2: int = 1,
+        N_1: int | None = None,
+        N_2: int | None = None,
         B: float = 6.0,
         D_b: float = 0,
-        H_b: float = 100,
+        H_b: float | None = None,
         r_b: float = 0.08,
         R_b: float | None = None,
         k_g: float = 1.5,
@@ -240,7 +280,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         c_s: float = 800,
         rho_s: float = 2000,
         Ts: float = 16.0,
-        E_pmp: float = 100,
+        E_pmp: float | None = None,
         # 5. System capacity / room ----------------------
         hp_capacity: float = 4000.0,
         T_a_room: float = 27.0,
@@ -265,7 +305,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ground_hx_ua_per_capacity: float = 0.18,
         UA_iu_rated: float | None = None,
         indoor_approach_min_K: float = 1.0,
-        indoor_approach_max_K: float = 20.0,
+        indoor_approach_max_K: float = 25.0,
         eta_cmp_vol: float | Callable | None = None,
         eta_cmp: float | Callable | None = None,
         rps_rated: float | None = None,
@@ -305,8 +345,20 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("GSHP", locals())
+        # Ground side sized from the capacity when the caller gives none of it
+        # (see tmhp.ground_loop): flow, pump power and the borefield.
+        borefield_defaulted = N_1 is None and N_2 is None and H_b is None
+        if H_b is None:
+            H_b = BOREHOLE_DEFAULT_DEPTH
+        if borefield_defaulted:
+            N_1, N_2 = default_borefield_layout(hp_capacity, H_b)
+        else:
+            N_1 = 1 if N_1 is None else N_1
+            N_2 = 1 if N_2 is None else N_2
+        if E_pmp is None:
+            E_pmp = default_ground_pump_power(hp_capacity)
         ground_rates = resolve_ground_flow_rates(
-            default_ref_lpm=20.04,
+            default_ref_lpm=default_ground_flow_lpm(hp_capacity),
             legacy_ref_lpm=dV_b_f_lpm,
             min_ratio=ground_flow_min_ratio,
             max_ratio=ground_flow_max_ratio,
@@ -421,7 +473,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         # --- 3. Indoor unit fan ---
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * 0.0002
+            self.dV_iu_fan_a_rated = hp_capacity * IU_AIRFLOW_PER_W
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -466,6 +518,28 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp: float = E_pmp
         self.dV_b_f_m3s: float = dV_b_f_lpm / 60000
+        #: Specific borehole load at the rated source-side heat [W/m]. A field
+        #: the caller sized is reported when it exceeds 80 W/m.
+        self.q_bhe_rated: float = (
+            calc_rated_linear_load(hp_capacity, self.n_boreholes, H_b)
+            if borefield_defaulted
+            else warn_if_borefield_undersized(hp_capacity, self.n_boreholes, H_b, stacklevel=3)
+        )
+        #: U-tube Reynolds number at the reference flow (laminar below 2300: warned).
+        pipe_diameter = pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in
+        self.Re_bhe_ref: float = warn_if_laminar_ground_flow(
+            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=rho_w, mu=mu_w, stacklevel=3
+        )
+        if self.ground_flow_constant_lpm != self.ground_flow_ref_lpm:
+            warn_if_laminar_ground_flow(
+                self.ground_flow_constant_lpm / 60000,
+                self.n_boreholes,
+                pipe_diameter,
+                rho=rho_w,
+                mu=mu_w,
+                label="constant setpoint",
+                stacklevel=3,
+            )
 
         # Effective borehole thermal resistance R_b* [mK/W].
         # Mirrors GroundSourceHeatPumpBoiler: when R_b is not given explicitly,

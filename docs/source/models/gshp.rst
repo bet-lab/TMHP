@@ -36,6 +36,77 @@ Base usage
    # See API reference below for the full constructor and
    # analyze_steady / analyze_dynamic signatures.
 
+Defaults that follow the capacity
+=================================
+
+``GroundSourceHeatPump(hp_capacity=..., ref=...)`` is a complete machine.
+Everything on the ground side and the indoor airflow is sized from the
+capacity, so the rating-point COP is the same from 1 to 100 kW:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 44 30
+
+   * - Input left out
+     - Default
+     - 4 kW / 30 kW
+   * - ``ground_flow_ref_lpm``
+     - ``0.75 × hp_capacity / (ρc × 3 K)``: the rated source-side heat
+       changes the loop temperature by 3 K (about 4.8 K in cooling, where
+       the loop carries 1.2 × the capacity). Parallel boreholes share it
+       equally.
+     - 14.3 / 107.5 L/min
+   * - ``E_pmp``
+     - ASHRAE pumping grade B, 75 W per ton (21.3 W per kW) of capacity.
+       Used when the hydraulic pump model is off.
+     - 85 / 640 W
+   * - ``N_1``, ``N_2``, ``H_b`` (all three)
+     - Smallest near-square field of 100 m boreholes that keeps the rated
+       source-side heat within 50 W/m.
+     - 1 × 1 / 3 × 2
+   * - ``dV_iu_fan_a_rated``
+     - 5.37e-5 m³/s per W (400 cfm per ton).
+     - 773 / 5 800 m³/h
+
+The helpers are :func:`tmhp.ground_loop.default_ground_flow_lpm`,
+:func:`tmhp.ground_loop.default_borefield_layout` and
+:func:`tmhp.pump.default_ground_pump_power`. A value you supply replaces its
+default. Giving any one of ``N_1``, ``N_2`` or ``H_b`` fixes the borefield as
+given (the others take 1, 1 and 100 m); the flow and the pump power still
+follow the capacity unless you give them too.
+
+Two sizing slips are reported with a ``UserWarning`` at construction instead
+of being solved silently:
+
+* a U-tube that is **laminar** at the reference flow (``Re < 2300``, for
+  example a flow that was not scaled with the number of parallel boreholes).
+  The borehole resistance is evaluated for laminar flow (film coefficient
+  ``Nu = 3.66``, interpolated to the turbulent correlation between
+  ``Re`` 2300 and 4000) and roughly doubles. The Reynolds number is the
+  model attribute ``Re_bhe_ref``.
+* a borefield you sized that carries more than **80 W/m** at the rated
+  source-side heat (attribute ``q_bhe_rated``).
+
+At the rated duty the default indoor coil (``UA_iu_rated = 0.08 ×
+hp_capacity``) at this airflow needs an indoor approach of 21.6 K: supply air
+at 35 °C and condensing at 41.6 °C in heating from a 20 °C room, supply air
+at 12 °C and evaporating at 5.4 °C in cooling from 27 °C (the coil is dry).
+``indoor_approach_max_K`` therefore defaults to 25 K.
+
+.. note::
+
+   Until November 2026 the defaults were fixed at the values of the 4 kW
+   machine (20.04 L/min, 100 W, one borehole) and the indoor airflow was
+   0.0002 m³/s per W (2 880 m³/h for 4 kW). A larger machine then ran on the
+   small loop: at 30 kW the system COP of rated heating against a 0 °C
+   borehole wall fell from 3.8 to 2.1 and some rating points had no
+   solution; 100 kW could not be constructed. To reproduce
+   results from before, pass ``ground_flow_ref_lpm=20.04, E_pmp=100, N_1=1,
+   N_2=1, dV_iu_fan_a_rated=0.0002 * hp_capacity,
+   indoor_approach_max_K=20``. Fan limits given as absolute flows
+   (``dV_iu_fan_a_min/max``) are read against the new reference airflow
+   unless ``dV_iu_fan_a_rated`` is given as well.
+
 Source-side mechanics
 =====================
 

@@ -50,13 +50,28 @@ gives the dynamic fluid temperature through that unchanged relation. It
 equals the physical wall rise once the borehole has settled (hours) and
 differs from it just after a load change, when the fluid has not yet followed.
 Such a backend reports the physical wall rise separately through the optional
-``borehole_wall_rise(n, time_arr)``.
+``borehole_wall_rise(n, time_arr)`` (:func:`physical_wall_rise`), and says so
+with a true ``fluid_referenced`` attribute.
+
+Runs that cover part of a step
+------------------------------
+The history holds one load per step. A host whose compressor runs for the
+first part of a step records the step-average load, but the fluid while it
+runs carries the running load. With a fluid-referenced response the host must
+therefore ask for the response over the run itself, under the running load
+(``preview_wall_temperature_rise(..., window_s=...)``, see
+:func:`run_window_preview`): the first-instant terms of the response then
+cancel the host's ``q' R_b`` for the same load. A backend that does not take
+``window_s`` is asked for the whole step with the step-average load, as
+before.
 """
 
 from __future__ import annotations
 
 import inspect
-from typing import Protocol, runtime_checkable
+import math
+from collections.abc import Callable
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 
@@ -165,6 +180,8 @@ class AggregateGFunctionCoupler:
         self._gwall_rev: np.ndarray | None = None
         self._online: OnlineHistory | None = None
         self._online_wall: OnlineHistory | None = None
+        # (step-mean table it belongs to, g((k+1) dt) − g(k dt)); see _window_slopes.
+        self._window_table: tuple[np.ndarray, np.ndarray] | None = None
 
     def reset(self, n_steps: int, time_arr: np.ndarray, dt_s: float | None = None) -> None:
         """Start a run of ``n_steps`` steps on the uniform grid ``time_arr`` [s].
@@ -252,16 +269,111 @@ class AggregateGFunctionCoupler:
             return float(rev[-1])
         return float(np.asarray(g_step_mean(self._g, np.array([0.0]), self._step()))[0])
 
-    def preview_wall_temperature_rise(self, n: int, time_arr: np.ndarray, q_unit: float) -> float:
+    #: Pulses younger than this are re-integrated exactly over a run window [s] ...
+    _WINDOW_EXACT_S = 6.0 * 3600.0
+    #: ... as a number of steps, kept within these bounds.
+    _WINDOW_EXACT_STEPS = (8, 512)
+    #: Pulses up to this many steps old get the linear-in-step correction; older ones none.
+    _WINDOW_LINEAR_STEPS = 4096
+
+    @property
+    def fluid_referenced(self) -> bool:
+        """Whether the returned rise is fluid-referenced (a g-function with borehole heat capacity).
+
+        See the module docstring. A host uses the run window of
+        :meth:`preview_wall_temperature_rise` with such a response.
+        """
+        return getattr(self._g, "wall_step_mean", None) is not None
+
+    def _window_mean(self, tau: np.ndarray, window_s: float) -> np.ndarray:
+        """Mean of the response over ``[tau, tau + window_s]``; the point value for a vanishing window."""
+        if window_s <= 1e-9 * self._step():
+            return np.asarray(self._g(np.maximum(tau, 0.0)), dtype=float)
+        return np.asarray(g_step_mean(self._g, tau, window_s), dtype=float)
+
+    def _window_shift(self, n: int, time_arr: np.ndarray, window_s: float) -> float:
+        """``Σ_{i<n} p_i [ḡ(τ_i; window) − ḡ(τ_i; dt)]`` [K], ``τ_i = t_n − t_i``.
+
+        What the response to the recorded pulses changes by when it is
+        averaged over the first ``window_s`` of step ``n`` instead of the
+        whole step. Pulses younger than ``_WINDOW_EXACT_S`` are integrated
+        exactly. For older ones the response is taken as linear in time
+        across one step, ``ḡ(τ; w) − ḡ(τ; dt) = −(1 − w/dt)/2 · [g(τ + dt) −
+        g(τ)]``, which a g-function satisfies to ``dt²/(48 π k_s τ²)`` per
+        unit pulse there; beyond ``_WINDOW_LINEAR_STEPS`` steps the shift is
+        dropped (at most ``q (1 − w/dt) / (8 π k_s · 4096)`` K for a load
+        ``q`` [W/m] held for ever, 3e-4 K at 50 W/m and ``k_s`` = 2).
+        """
+        if n <= 0:
+            return 0.0
+        dt = self._step()
+        rev = self._gbar_rev
+        known = self._time
+        if rev is None or known is None or not (time_arr is known or np.array_equal(time_arr, known)):
+            idx = np.flatnonzero(self._pulses[:n])
+            if len(idx) == 0:
+                return 0.0
+            tau = np.asarray(time_arr, dtype=float)[n] - np.asarray(time_arr, dtype=float)[idx]
+            change = self._window_mean(tau, window_s) - np.asarray(g_step_mean(self._g, tau, dt), dtype=float)
+            return float(np.dot(self._pulses[idx], change))
+        lo_steps, hi_steps = self._WINDOW_EXACT_STEPS
+        near = int(min(max(math.ceil(self._WINDOW_EXACT_S / dt), lo_steps), hi_steps))
+        first = max(0, n - near)
+        start = len(rev) - 1 - n  # ḡ[n-i] is rev[start + i]
+        pulses = self._pulses
+        tau = (n - np.arange(first, n)) * dt
+        shift = float(np.dot(pulses[first:n], self._window_mean(tau, window_s) - rev[start + first : start + n]))
+        if first > 0:
+            slope = self._window_slopes()
+            oldest = max(0, n - (len(slope) - 1))
+            if oldest < first:
+                # g((k+1) dt) − g(k dt) for the lags k = n − i of the pulses i = oldest .. first−1.
+                steps = slope[n - first + 1 : n - oldest + 1][::-1]
+                shift -= 0.5 * (1.0 - window_s / dt) * float(np.dot(pulses[oldest:first], steps))
+        return shift
+
+    def _window_slopes(self) -> np.ndarray:
+        """``g((k+1) dt) − g(k dt)`` for the lags ``k`` up to ``_WINDOW_LINEAR_STEPS`` (one table per run)."""
+        cached = self._window_table
+        if cached is not None and cached[0] is self._gbar_rev:
+            return cached[1]
+        assert self._gbar_rev is not None
+        count = min(len(self._gbar_rev), self._WINDOW_LINEAR_STEPS + 1)
+        points = np.asarray(self._g(np.arange(count + 1) * self._step()), dtype=float)
+        slope = np.diff(points)
+        self._window_table = (self._gbar_rev, slope)
+        return slope
+
+    def preview_wall_temperature_rise(
+        self, n: int, time_arr: np.ndarray, q_unit: float, window_s: float | None = None
+    ) -> float:
         """Evaluate an uncommitted candidate without modifying load history.
 
         Optional extension for coupled flow control; the original GroundCoupler
         protocol remains unchanged for legacy external backends.
+
+        Without ``window_s`` this is the mean rise over the whole step with
+        ``q_unit`` held over it, the value :meth:`wall_temperature_rise`
+        would return. With ``window_s`` it is the mean over the *first*
+        ``window_s`` seconds of the step, ``[t_n, t_n + window_s]``, with
+        ``q_unit`` held over that window: the rise a compressor sees that
+        runs for the first part of a step. Give the load **while it runs**,
+        not the step average. The value is continuous in the window: it
+        tends to the rise at ``t_n`` under the previous load as the window
+        vanishes, and equals the whole-step value at ``window_s = dt``.
+        Nothing is recorded; the history keeps step-average loads.
         """
         rise = self._history_rise(n, time_arr, n)
         delta = q_unit - self._q_old
+        dt = self._step()
+        if window_s is None or window_s >= dt * (1.0 - 1e-12):
+            if abs(delta) > self._pulse_tol:
+                rise += delta * self._current_response()
+            return float(rise)
+        window = max(float(window_s), 0.0)
+        rise += self._window_shift(n, time_arr, window)
         if abs(delta) > self._pulse_tol:
-            rise += delta * self._current_response()
+            rise += delta * float(self._window_mean(np.array([0.0]), window)[0])
         return float(rise)
 
     def wall_temperature_rise(self, n: int, time_arr: np.ndarray, q_unit: float) -> float:
@@ -297,6 +409,51 @@ class AggregateGFunctionCoupler:
             return 0.0
         tau = np.asarray(time_arr, dtype=float)[n] - np.asarray(time_arr, dtype=float)[idx]
         return float(np.dot(self._pulses[idx], wall_mean(tau, self._step())))
+
+
+def _accepts(method: Any, name: str) -> bool:
+    try:
+        params = list(inspect.signature(method).parameters.values())
+    except (TypeError, ValueError):  # builtins / C callables without a signature
+        return False
+    return any(p.name == name or p.kind is inspect.Parameter.VAR_KEYWORD for p in params)
+
+
+def run_window_preview(coupler: Any) -> Callable[[int, np.ndarray, float, float], float] | None:
+    """``coupler``'s run-window preview ``(n, time_arr, q_run, window_s) -> rise``, or ``None``.
+
+    A host that lets the compressor run for part of a step asks for the
+    response over that part (``window_s`` of
+    :meth:`AggregateGFunctionCoupler.preview_wall_temperature_rise`) when the
+    response is fluid-referenced: only then does it contain the first-instant
+    terms that must act on the running load. A coupler qualifies when its
+    ``fluid_referenced`` attribute is true and its
+    ``preview_wall_temperature_rise`` accepts ``window_s``. Every other
+    coupler (a plain g-function, an external backend that does not know the
+    argument) returns ``None`` and is used with the step-average load, as
+    before.
+    """
+    preview = getattr(coupler, "preview_wall_temperature_rise", None)
+    if preview is None or not getattr(coupler, "fluid_referenced", False) or not _accepts(preview, "window_s"):
+        return None
+
+    def window(n: int, time_arr: np.ndarray, q_run: float, window_s: float) -> float:
+        return float(preview(n, time_arr, q_run, window_s=window_s))
+
+    return window
+
+
+def physical_wall_rise(coupler: Any, n: int, time_arr: np.ndarray, rise: float) -> float:
+    """Physical borehole-wall rise [K] of the step just committed.
+
+    ``rise`` is what :meth:`GroundCoupler.wall_temperature_rise` returned for
+    it. That is the wall itself unless the coupler's response is
+    fluid-referenced and it reports the wall through ``borehole_wall_rise``.
+    """
+    method = getattr(coupler, "borehole_wall_rise", None)
+    if method is None or not getattr(coupler, "fluid_referenced", True):
+        return rise
+    return float(method(n, time_arr))
 
 
 def reset_ground_coupler(coupler: GroundCoupler, n_steps: int, time_arr: np.ndarray, dt_s: float) -> None:

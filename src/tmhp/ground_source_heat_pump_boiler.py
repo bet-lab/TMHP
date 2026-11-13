@@ -68,6 +68,7 @@ from ._source_boiler import (
 )
 from ._tank_solve import solve_lumped_tank
 from ._validation import validate_ctor, validate_dynamic, validate_steady
+from .borehole_capacity import configure_borehole_dynamics
 from .compressor_efficiency import InvalidCompressorEfficiency, _eval_eff, reject_invalid_efficiency
 from .compressor_envelope import (
     PR_CYCLE_MAX_SINGLE_STAGE,
@@ -104,7 +105,13 @@ from .enex_functions import (
     calc_mixing_valve_temp,
 )
 from .g_function import precompute_gfunction
-from .ground_coupling import AggregateGFunctionCoupler, GroundCoupler, reset_ground_coupler
+from .ground_coupling import (
+    AggregateGFunctionCoupler,
+    GroundCoupler,
+    physical_wall_rise,
+    reset_ground_coupler,
+    run_window_preview,
+)
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -198,6 +205,20 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     delivers more than the request. Dynamic runs are not affected: there the
     tank thermostat switches the compressor, which runs at ``hp_capacity`` for
     ``runtime_fraction [-]`` of a step.
+
+    **Borehole dynamics.** ``borehole_dynamics=None`` (default) adds the heat
+    capacity of fluid, pipe and grout and the fluid transit through the
+    U-tube to the ground response, from the geometry and properties already
+    given (:mod:`tmhp.borehole_capacity`): the fluid no longer moves by
+    ``q' R_b`` (3 to 5 K) the instant the compressor starts or stops. It is
+    used wherever the model can use it; with ``variable_Rb``, a variable
+    ground flow, a ``ground_coupler`` of the caller's or a cross-section that
+    cannot be mapped, the model keeps the steady borehole.
+    ``model.borehole_dynamics`` (``"transit"`` or ``"off"``) and
+    ``model.borehole_dynamics_note`` say which and why. ``True`` raises
+    instead of falling back; ``False`` is the steady borehole (a resistance
+    without heat capacity), with the results the model gave before this
+    default. ``T_bhe [°C]`` is the physical borehole wall in both.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -315,6 +336,10 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         rps_rated: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        # Borehole heat capacity and fluid transit: None = on where the model
+        # can use them, True = required, False = steady borehole. Keyword-only:
+        # the positional order of the arguments above is unchanged.
+        borehole_dynamics: bool | None = None,
         # Deprecated:
         refrigerant: str | None = None,
         V_disp_cmp: float | None = None,
@@ -670,6 +695,16 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         self._ground_coupler: GroundCoupler = (
             ground_coupler if ground_coupler is not None else AggregateGFunctionCoupler(self._gfunc_interp)
         )
+        # Borehole heat capacity and fluid transit (tmhp.borehole_capacity):
+        # on wherever the model can use them, see the class docstring.
+        #: ``"transit"``, ``"lumped"`` or ``"off"``: the borehole response in use.
+        self.borehole_dynamics: str = "off"
+        #: Why it is not ``"transit"`` (empty otherwise).
+        self.borehole_dynamics_note: str = ""
+        configure_borehole_dynamics(self, borehole_dynamics, injected_coupler=ground_coupler is not None)
+        # The coupler's run-window preview for the run in progress (set by
+        # analyze_dynamic; None with a steady borehole, see _running_wall_K).
+        self._run_window: Callable[[int, np.ndarray, float, float], float] | None = None
 
         # Simulation state tracking (dynamically updated in analyze_dynamic)
         self.time: np.ndarray = np.array([])
@@ -1298,11 +1333,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     ) -> dict:
         """Coupled ground-flow solve (``ground_flow_control`` active) for one request.
 
-        The borehole wall answers the step-average load (the coupler's
-        step-mean response, #108): a compressor that runs ``runtime_fraction``
-        of the step loads the ground with that fraction of its running
-        extraction. The fluid-to-wall resistance and the loop temperature
-        difference act on the running extraction inside the flow solve.
+        The fluid-to-wall resistance and the loop temperature difference act
+        on the running extraction inside the flow solve. The wall they start
+        from is that of :meth:`_running_wall_K`: with the steady borehole the
+        step mean under the step-average load (a compressor that runs
+        ``runtime_fraction`` of the step loads the ground with that fraction
+        of its running extraction, #108), with the dynamic borehole the mean
+        over the run under the running load.
         """
         preview = getattr(self._ground_coupler, "preview_wall_temperature_rise", None)
         if preview is None:
@@ -1310,7 +1347,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         fraction = min(1.0, max(0.0, float(runtime_fraction)))
 
         def wall_response(q_total):
-            return self.Ts_K - preview(ctx.n, self.time, fraction * q_total / self.total_borehole_length)
+            return self._running_wall_K(ctx.n, q_total, fraction * q_total, fraction)
 
         return self._solve_ground_flow(
             T_tank_w,
@@ -1371,16 +1408,44 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         """Fluid temperature leaving the borefield while the compressor extracts ``Q_bhe_run`` [W].
 
         The same relations :meth:`_compute_bhe_superposition` reports the
-        step with: the borehole wall answers the step-average net load (the
+        running fluid with: the wall of :meth:`_running_wall_K` (the
         coupler's uncommitted preview, a compressor running ``fraction`` of
-        the step), the fluid-to-wall resistance and the loop temperature
-        difference act on the running net extraction.
+        the step), and the fluid-to-wall resistance and the loop temperature
+        difference acting on the running net extraction.
         """
-        preview = self._ground_coupler.preview_wall_temperature_rise  # type: ignore[attr-defined]
         Q_inj = float(self._ground_injection_W())
-        q_avg = calc_borefield_linear_load(fraction * Q_bhe_run - Q_inj, self.n_boreholes, self.H_b)
-        T_wall_K = self.Ts_K - float(preview(n, self.time, q_avg))
+        T_wall_K = self._running_wall_K(n, Q_bhe_run - Q_inj, fraction * Q_bhe_run - Q_inj, fraction)
         return self._borehole_fluid_K(T_wall_K, Q_bhe_run - Q_inj, R_b, m_cp_b)[2]
+
+    def _running_wall_K(self, n: int, Q_run: float, Q_avg: float, fraction: float) -> float:
+        """Wall temperature [K] the running fluid of step ``n`` is computed from (uncommitted).
+
+        ``Q_run`` [W] is the net field load while the compressor runs,
+        ``Q_avg`` [W] its average over the step, ``fraction`` the part of the
+        step the compressor runs.
+
+        *Steady borehole* (and any coupler without a run window): the step
+        mean of the wall under ``Q_avg``. The wall of a borehole without heat
+        capacity hardly moves within a step, and the fluid follows the
+        running load at once through ``q' R_b``.
+
+        *Dynamic borehole* (a fluid-referenced response, see
+        :mod:`tmhp.ground_coupling`): the mean over the run,
+        ``[t_n, t_n + fraction·dt]``, under ``Q_run``. The response then
+        cancels the ``q' R_b`` and ``Q / (2 m c_p)`` the host applies to the
+        same ``Q_run``, so the running fluid starts from the fluid of the
+        step before and is continuous in ``fraction``. With the step-average
+        load only that share would cancel, and ``(1 − fraction)`` of the
+        steady drop would appear at once. The run is taken as one block at
+        the start of the step; the history keeps the step-average load.
+        """
+        window = self._run_window
+        if window is not None:
+            q_run = calc_borefield_linear_load(Q_run, self.n_boreholes, self.H_b)
+            return float(self.Ts_K - window(n, self.time, q_run, fraction * self.dt))
+        preview = self._ground_coupler.preview_wall_temperature_rise  # type: ignore[attr-defined]
+        q_avg = calc_borefield_linear_load(Q_avg, self.n_boreholes, self.H_b)
+        return float(self.Ts_K - float(preview(n, self.time, q_avg)))
 
     def _solve_at_step_source(
         self,
@@ -1613,7 +1678,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
           of the step before it.
         - ``T_bhe_f*_running``: the fluid while the compressor runs (its
           running extraction net of the injection); NaN when it did not run.
-          The source-side exergy of the evaporator uses these.
+          The source-side exergy of the evaporator uses these. They start
+          from the wall of :meth:`_running_wall_K`, as the cycle did.
+        - ``T_bhe``: the borehole wall, step mean. With the dynamic borehole
+          the coupler's value is fluid-referenced (the wall that gives the
+          dynamic fluid through the steady relations, which is what the
+          fluid temperatures above are computed from); the reported wall is
+          the coupler's ``borehole_wall_rise``.
         """
         Q_inj = float(self._ground_injection_W())
         ran = bool(hp_is_on)
@@ -1623,16 +1694,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         if Q_inj != 0.0:
             hp_result["Q_bhe [W]"] = Q_net_avg  # net field load, extraction-positive
         Q_bhe_unit = calc_borefield_linear_load(Q_net_avg, self.n_boreholes, self.H_b)
+        running_load = ran and fraction > 0.0
+        Q_run = Q_hp_avg / fraction - Q_inj if running_load else 0.0
+        # The run's wall is a preview: read it before this step's load is recorded.
+        T_run_wall_K = (
+            self._running_wall_K(n, Q_run, Q_net_avg, fraction)
+            if running_load and self._run_window is not None
+            else None
+        )
 
         # Ground thermal response (pulse-history temporal superposition) is
         # delegated to the swappable ground coupler; the default reproduces the
         # legacy single-g-function superposition byte-for-byte, while an injected
         # backend (e.g. geolink's network) replaces it with resolved
         # borehole-to-borehole superposition. See ground_coupling.py.
-        dT_bhe = self._ground_coupler.wall_temperature_rise(n, time_arr, Q_bhe_unit)
+        coupler = self._ground_coupler
+        dT_bhe = coupler.wall_temperature_rise(n, time_arr, Q_bhe_unit)
 
-        self.T_bhe = self.Ts - dT_bhe
-        T_bhe_K = cu.C2K(self.T_bhe)
+        # Fluid-referenced wall (the physical wall for a steady borehole).
+        T_bhe_K = cu.C2K(self.Ts - dT_bhe)
+        self.T_bhe = self.Ts - physical_wall_rise(coupler, n, time_arr, dT_bhe)
         R_b = hp_result.get("R_b_eff [mK/W]", self.R_b)
         m_cp_b = c_w * rho_w * hp_result.get("dV_bhe_f [m3/s]", self.dV_b_f_m3s)
         self.Q_bhe = Q_bhe_unit * self.total_borehole_length
@@ -1653,8 +1734,8 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         hp_result["T_bhe_f [°C]"] = self.T_bhe_f
         hp_result["T_bhe_f_in [°C]"] = self.T_bhe_f_in
         hp_result["T_bhe_f_out [°C]"] = self.T_bhe_f_out
-        if ran and fraction > 0.0:
-            run = self._borehole_fluid_K(T_bhe_K, Q_hp_avg / fraction - Q_inj, R_b, m_cp_b)
+        if running_load:
+            run = self._borehole_fluid_K(T_bhe_K if T_run_wall_K is None else T_run_wall_K, Q_run, R_b, m_cp_b)
             running = tuple(cu.K2C(x) for x in run)
         else:
             running = (np.nan, np.nan, np.nan)
@@ -1994,6 +2075,7 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         # Initialise the ground coupler's pulse-history state for this run.
         reset_ground_coupler(self._ground_coupler, tN, time, dt_s)
+        self._run_window = run_window_preview(self._ground_coupler)
 
         # Initialise the multi-node tank profile (uniform at the init temp).
         if self._tank is not None:

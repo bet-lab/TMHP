@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from tmhp import CyclingDegradation, GroundSourceHeatPump
-from tmhp.constants import c_a, rho_a
+from tmhp.constants import c_a, c_w, rho_a, rho_w
 from tmhp.cycling import (
     CAPACITY_RATIO_KEY,
     CYCLING_LOSS_KEY,
@@ -27,6 +27,7 @@ from tmhp.cycling import (
     RUNTIME_FRACTION_KEY,
 )
 from tmhp.g_function import g_step_mean
+from tmhp.ground_coupling import AggregateGFunctionCoupler, reset_ground_coupler, run_window_preview
 
 HEATING = dict(Q_r_iu=-800.0, T0=0.0, T_a_room=20.0, T_bhe_wall=5.0)
 COOLING = dict(Q_r_iu=800.0, T0=30.0, T_a_room=27.0, T_bhe_wall=20.0)
@@ -163,42 +164,119 @@ def test_gshp_off_and_failed_rows_report_no_runtime(gshp):
     assert failed[RUNTIME_FRACTION_KEY] == 0.0 and failed["Q_unmet [W]"] == 4000.0
 
 
-def test_gshp_dynamic_run_delivers_the_request_and_loads_the_ground_with_the_mean(gshp, gshp_continuous):
-    """Six 10 min steps: three below the minimum capacity, three above it."""
-    dt, steps = 600, 6
-    load = -np.array([600.0, 600.0, 1200.0, 1200.0, 3000.0, 3000.0])
-    kwargs = dict(
-        simulation_period_sec=steps * dt,
-        dt_s=dt,
-        Q_r_iu_schedule=load,
+DYNAMIC_STEP_S = 600
+DYNAMIC_LOAD = -np.array([600.0, 600.0, 1200.0, 1200.0, 3000.0, 3000.0])
+
+
+def _dynamic_run(model):
+    """Six 10 min steps: four below the minimum capacity, two above it."""
+    steps = len(DYNAMIC_LOAD)
+    return model.analyze_dynamic(
+        simulation_period_sec=steps * DYNAMIC_STEP_S,
+        dt_s=DYNAMIC_STEP_S,
+        Q_r_iu_schedule=DYNAMIC_LOAD,
         T0_schedule=np.zeros(steps),
         T_a_room_schedule=np.full(steps, 20.0),
     )
-    df = gshp.analyze_dynamic(**kwargs)
+
+
+def _running_ground_load_per_metre(row, length):
+    """Borefield load while the compressor runs [W/m], recovered from a (mean) row."""
+    cr = row[CAPACITY_RATIO_KEY]
+    power_fraction = cr / row[PART_LOAD_FACTOR_KEY]
+    return (row["Q_ref_ground [W]"] / cr - row["E_pmp [W]"] / power_fraction) / length
+
+
+@pytest.mark.parametrize("borehole_dynamics", [None, False], ids=["dynamic-borehole", "steady-borehole"])
+def test_gshp_dynamic_run_delivers_the_request_and_loads_the_ground_with_the_mean(borehole_dynamics):
+    """The mean load enters the ground history once; the running load sets the running fluid.
+
+    Checked for both borehole responses. With the steady borehole the wall
+    under the running fluid is the step mean under the mean load. With the
+    dynamic borehole (the default) the response is fluid-referenced and the
+    running fluid starts from the wall over the run -- a block of ``mean load
+    / running load`` of the step -- under the running load
+    (:func:`tmhp.ground_coupling.run_window_preview`). Both are recomputed here
+    from a coupler fed with the rows' own mean loads.
+    """
+    model = GroundSourceHeatPump(borehole_dynamics=borehole_dynamics)
+    assert model.borehole_dynamics == ("off" if borehole_dynamics is False else "transit")
+    df = _dynamic_run(model)
+    dt, length, g = DYNAMIC_STEP_S, model.total_borehole_length, model._gfunc_interp
     assert (df["failure_reason"] == "none").all()
     assert list(df["capacity_clamped"].fillna("none")) == ["min"] * 4 + ["none"] * 2
-    assert df["Q_ref_iu [W]"].to_numpy() == pytest.approx(-load, rel=1e-9)
-    assert ((df[RUNTIME_FRACTION_KEY] > 0) & (df[RUNTIME_FRACTION_KEY] <= 1)).all()
-    assert (df[RUNTIME_FRACTION_KEY].iloc[:4] < 1.0).all() and (df[RUNTIME_FRACTION_KEY].iloc[4:] == 1.0).all()
+    assert df["Q_ref_iu [W]"].to_numpy() == pytest.approx(-DYNAMIC_LOAD, rel=1e-9)
+    assert (df[RUNTIME_FRACTION_KEY].iloc[:4] < 1.0).all() and (df[RUNTIME_FRACTION_KEY].iloc[:4] > 0.0).all()
+    assert (df[RUNTIME_FRACTION_KEY].iloc[4:] == 1.0).all()
 
-    # The ground history takes the mean load of each step ...
+    # The row's ground load is the mean over the cycling period ...
     mean_load = df["Q_ref_ground [W]"] - df["E_pmp [W]"]
     assert df["Q_bhe [W]"].to_numpy() == pytest.approx(mean_load.to_numpy(), rel=1e-12)
-    # ... so the wall of the first step is the response to that mean load,
-    own_step = float(g_step_mean(gshp._gfunc_interp, np.array([0.0]), dt)[0])
-    rise = df["Q_bhe [W]"].iloc[0] / gshp.total_borehole_length * own_step
-    assert df["T_bhe [°C]"].iloc[0] == pytest.approx(gshp.Ts - rise, abs=1e-9)
-    # ... while the fluid of the row is that of the running machine: its drop
-    # below the wall belongs to the running extraction, not to the mean.
-    first = df.iloc[0]
-    running_load = first["Q_bhe [W]"] / first[CAPACITY_RATIO_KEY]  # within the pump-heat term
-    drop = first["T_bhe [°C]"] - 0.5 * (first["T_bhe_f_in [°C]"] + first["T_bhe_f_out [°C]"])
-    expected = running_load / gshp.total_borehole_length * first["R_b_eff [mK/W]"]
-    assert drop == pytest.approx(expected, rel=2e-2)
-    assert first["T_ref_evap_sat [°C]"] < first["T_bhe_f_in [°C]"] < first["T_bhe_f_out [°C]"] < first["T_bhe [°C]"]
+    # ... and that mean is what the history holds, once: the physical wall of
+    # the first two steps is the response to the mean loads and nothing else.
+    wall_mean = getattr(g, "wall_step_mean", None)
+    response = (lambda lag: wall_mean(lag, dt)) if wall_mean is not None else (lambda lag: g_step_mean(g, lag, dt))
+    w0, w1 = (float(v) for v in response(np.array([0.0, float(dt)])))
+    q = df["Q_bhe [W]"].to_numpy() / length
+    assert df["T_bhe [°C]"].iloc[0] == pytest.approx(model.Ts - q[0] * w0, abs=1e-9)
+    assert df["T_bhe [°C]"].iloc[1] == pytest.approx(model.Ts - (q[0] * w1 + (q[1] - q[0]) * w0), abs=1e-9)
 
-    # Without the cycling model the same schedule over-delivers and cools the ground more.
-    reference = gshp_continuous.analyze_dynamic(**kwargs)
+    # The fluid of a row is that of the running machine. Recompute it from a
+    # coupler that is given the mean loads only.
+    coupler = AggregateGFunctionCoupler(g)
+    reset_ground_coupler(coupler, len(df), model.time, dt)
+    window = run_window_preview(coupler)
+    assert (window is None) == (borehole_dynamics is False)
+    for n, row in df.iterrows():
+        q_run = _running_ground_load_per_metre(row, length)
+        fraction = q[n] / q_run
+        assert fraction == pytest.approx(row[CAPACITY_RATIO_KEY], rel=2e-2)  # the pump-heat term apart
+        if window is not None and fraction < 1.0 - 1e-12:
+            rise = window(n, model.time, q_run, fraction * dt)  # over the run, under the running load
+        else:
+            rise = coupler.preview_wall_temperature_rise(n, model.time, q[n])  # step mean, mean load
+        fluid = model.Ts - rise - q_run * row["R_b_eff [mK/W]"]
+        half = q_run * length / (2.0 * c_w * rho_w * row["dV_bhe_f [m3/s]"] / row[CAPACITY_RATIO_KEY])
+        assert row["T_bhe_f_in [°C]"] == pytest.approx(fluid - half, abs=1e-6), n
+        assert row["T_bhe_f_out [°C]"] == pytest.approx(fluid + half, abs=1e-6), n
+        assert row["T_ref_evap_sat [°C]"] < row["T_bhe_f_in [°C]"] < row["T_bhe_f_out [°C]"]
+        coupler.wall_temperature_rise(n, model.time, q[n])  # the mean load, once
+
+    first = df.iloc[0]
+    drop = first["T_bhe [°C]"] - 0.5 * (first["T_bhe_f_in [°C]"] + first["T_bhe_f_out [°C]"])
+    steady_drop = _running_ground_load_per_metre(first, length) * first["R_b_eff [mK/W]"]
+    if borehole_dynamics is False:
+        # No heat capacity: the fluid sits the running load's q' R_b below the wall.
+        assert drop == pytest.approx(steady_drop, abs=1e-6)
+    else:
+        # A three-minute run from rest has not pulled the fluid down that far.
+        assert 0.0 < drop < 0.6 * steady_drop
+
+
+def test_gshp_dynamic_run_is_continuous_where_cycling_ends():
+    """The fluid of a cycling step joins that of a continuous one as the request reaches the floor."""
+    model = GroundSourceHeatPump()
+
+    def second_step(request):
+        return model.analyze_dynamic(
+            simulation_period_sec=2 * DYNAMIC_STEP_S,
+            dt_s=DYNAMIC_STEP_S,
+            Q_r_iu_schedule=np.array([-2000.0, -request]),
+            T0_schedule=np.zeros(2),
+            T_a_room_schedule=np.full(2, 20.0),
+        ).iloc[1]
+
+    floor = second_step(200.0)[MIN_CAPACITY_KEY]
+    below, above = second_step(0.98 * floor), second_step(1.02 * floor)
+    assert below["capacity_clamped"] == "min" and above["capacity_clamped"] != "min"
+    assert below[RUNTIME_FRACTION_KEY] < 1.0 and above[RUNTIME_FRACTION_KEY] == 1.0
+    for key in ("T_bhe_f_in [°C]", "T_bhe_f_out [°C]", "T_bhe [°C]", "T_ref_evap_sat [°C]"):
+        assert below[key] == pytest.approx(above[key], abs=0.15), key
+    assert above["E_tot [W]"] / below["E_tot [W]"] == pytest.approx(1.02 / 0.98, rel=3e-2)
+
+
+def test_gshp_dynamic_run_without_the_cycling_model_over_delivers(gshp, gshp_continuous):
+    df, reference = _dynamic_run(gshp), _dynamic_run(gshp_continuous)
     assert reference["Q_ref_iu [W]"].iloc[:4].min() > 1500.0
     assert reference["Q_bhe [W]"].sum() > 1.3 * df["Q_bhe [W]"].sum()
     assert reference["T_bhe [°C]"].iloc[3] < df["T_bhe [°C]"].iloc[3]

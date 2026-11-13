@@ -111,7 +111,12 @@ Source-side mechanics
 =====================
 
 Same g-function-based borehole as :doc:`gshpb`. See that page for the
-detailed mechanic and the g-function figure.
+detailed mechanic and the g-function figure. As there, the borehole is
+dynamic by default (heat capacity of fluid, pipe and grout, fluid transit;
+``borehole_dynamics=False`` gives the steady borehole, see
+:doc:`ground-response`): with 20 min on / 40 min off the fluid entering the
+heat pump is 2.0 K warmer in heating and 3.4 K cooler in cooling than the
+steady borehole gives, and ``T_bhe [°C]`` is the physical borehole wall.
 
 In ``analyze_dynamic`` the ground fluid is closed inside each step: the
 borehole wall of step ``n`` is the step mean of its response to every load
@@ -211,13 +216,28 @@ degradation, so the minimum-speed point may sit a few watts from the one found
 with ``Cd_cycling=None``.
 
 **In a dynamic run** a cycling step loads the ground with its mean: the pulse
-added to the ground history is the row's ``Q_bhe [W]``, and the borehole wall
-of the step (``T_bhe [°C]``) answers that mean load. The fluid temperatures of
-the row (``T_bhe_f [°C]``, ``T_bhe_f_in [°C]``, ``T_bhe_f_out [°C]``) are
-those of the running machine against that wall — the borehole resistance and
-the loop temperature difference act on the running load — so the row's cycle
-and its fluid still belong together. Changes of the wall temperature within
-one cycling period are not resolved.
+added to the ground history is the row's ``Q_bhe [W]``, recorded once, and the
+borehole wall of the step (``T_bhe [°C]``) answers that mean load. The fluid
+temperatures of the row (``T_bhe_f [°C]``, ``T_bhe_f_in [°C]``,
+``T_bhe_f_out [°C]``) are those of the running machine — the borehole
+resistance and the loop temperature difference act on the running load — so
+the row's cycle and its fluid still belong together. Where they start from
+depends on the borehole response (:doc:`ground-response`):
+
+- with the dynamic borehole (the default), from the response over the run
+  itself under the running load. The run is taken as one block at the start
+  of the step, ``mean load / running load`` of it long, as for a boiler
+  whose compressor runs part of a step. The heat capacity of the borehole
+  then keeps the fluid from dropping by the running load's full ``q' R_b``
+  the moment a short run begins, and the fluid joins that of a continuous
+  step as the request reaches the minimum capacity;
+- with the steady borehole (``borehole_dynamics=False``), from the step-mean
+  wall under the mean load: the fluid sits the running load's ``q' R_b``
+  below it at once.
+
+The running load only sets that fluid temperature; it is never added to the
+history, so the partial run is not counted twice. The on/off pattern inside a
+step is not resolved beyond that one block.
 
 **Above the maximum capacity** the unit runs flat out
 (``capacity_clamped == "max"``): ``Q_ref_iu [W]`` is the ceiling,

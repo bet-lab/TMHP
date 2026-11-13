@@ -1133,6 +1133,13 @@ def _refill_within_step(
         rem = dt - t
         if rem <= 0.0:
             break
+        if refilling and level >= hi - LEVEL_TOL:
+            # Carried in open but already at (or above) the upper bound: the
+            # previous step latched the valve on its start-temperature draw
+            # and solved a smaller one. Close it; a closing time computed
+            # from here would be negative.
+            refilling = False
+            continue
         if refilling:
             net = dV_refill - dV_out
             t_close = (hi - level) * V_tank_full / net if net > 0.0 else math.inf
@@ -1196,6 +1203,9 @@ def limit_tank_flows(
     tuple[float, float, float]
         ``(dV_tank_w_in, dV_tank_w_out, level_next)`` [m³/s, m³/s, -].
     """
+    # Neither port runs backwards.
+    dV_tank_w_in = max(0.0, dV_tank_w_in)
+    dV_tank_w_out = max(0.0, dV_tank_w_out)
     room_out = (tank_level - level_min) * V_tank_full / dt
     dV_out = min(dV_tank_w_out, max(0.0, room_out + dV_tank_w_in))
     room_in = (level_max - tank_level) * V_tank_full / dt

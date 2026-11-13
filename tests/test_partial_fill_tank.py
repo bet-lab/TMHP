@@ -121,6 +121,24 @@ def test_refill_valve_is_followed_inside_the_step():
     assert state is refilling
 
 
+@pytest.mark.parametrize("draw", [0.0, 1e-5])
+def test_open_valve_carried_in_above_the_upper_bound_closes_without_negative_make_up(draw):
+    """A valve carried in open with the level already past the upper bound just closes.
+
+    The step latches the valve on its start-temperature draw and solves a
+    smaller one, so the level can end above the bound with the valve still
+    open; the closing time from there is negative and used to give a
+    negative make-up (-2.5e-6 m3/s for 0.91 against 0.9).
+    """
+    dV_in, refilling = _refill(0.91, 600.0, draw=draw, refilling=True, tank_level_upper_bound=0.9)
+    assert dV_in == 0.0
+    assert not refilling
+    # The limiter does not pass a negative flow on either port.
+    dV_in, dV_out, level = limit_tank_flows(0.91, -1e-5, -2e-5, 600.0, V_FULL)
+    assert (dV_in, dV_out) == (0.0, 0.0)
+    assert level == pytest.approx(0.91)
+
+
 def test_flow_limits_keep_the_level_between_the_floor_and_full():
     dt = 600.0
     # Draw 1e-4 m3/s for 600 s = 0.06 m3 from 0.03 m3 above the floor, with

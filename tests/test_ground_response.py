@@ -234,7 +234,9 @@ def test_construction_step_does_not_change_the_answer(run, ctor_dt, dt, n):
 def test_gshp_inline_superposition_uses_the_coupler_convention():
     from tmhp import GroundSourceHeatPump
 
-    model = GroundSourceHeatPump(R_b=0.2, t_max_s=86400.0)
+    # Steady borehole: the wall is the superposition itself (the dynamic default
+    # reports the physical wall, see test_borehole_dynamics_models.py).
+    model = GroundSourceHeatPump(R_b=0.2, t_max_s=86400.0, borehole_dynamics=False)
     time = np.arange(12) * 3600.0
     loads = np.array([0, 3000, 3000, 0, 0, 2500, 2500, 2500, 0, -1500, -1500, 0], dtype=float)
     model.dt = 3600.0

@@ -25,6 +25,7 @@ from tmhp.cycling import (
     RUNTIME_FRACTION_KEY,
     CyclingState,
     apply_cycling,
+    report_cycling,
     resolve_cycling,
 )
 
@@ -60,8 +61,26 @@ def test_part_load_factor_and_runtime_fraction(model, cr, plf):
     assert model.part_load_factor(cr) == pytest.approx(plf, rel=1e-12)
     state = model.state(cr * 2000.0, 2000.0)
     assert state.capacity_ratio == pytest.approx(cr, rel=1e-12)
-    assert state.runtime_fraction == pytest.approx(cr / plf, rel=1e-12)
+    # Mean electrical input over the continuous input: CR / PLF in both forms.
+    assert state.power_fraction == pytest.approx(cr / plf, rel=1e-12)
+    assert model.power_fraction(cr) == pytest.approx(cr / plf, rel=1e-12)
+    # Air: the loss is run time (CR / PLF). Water: the loss is the power drawn
+    # while the compressor is off, and the compressor runs CR of the time.
+    expected_runtime = cr if model.sink == "water" else cr / plf
+    assert state.runtime_fraction == pytest.approx(expected_runtime, rel=1e-12)
     assert state.cycling
+
+
+def test_water_form_is_the_off_state_power():
+    """``Cc`` is one minus the off-state power over the running power (EN 14825)."""
+    model = CyclingDegradation(0.9, "water")
+    for cr in (0.05, 0.3, 0.8):
+        # mean input = running input * [CR + (1 - Cc)(1 - CR)]
+        assert model.power_fraction(cr) == pytest.approx(cr + 0.1 * (1.0 - cr), rel=1e-12)
+        assert model.runtime_fraction(cr) == cr
+    # Just above zero load the unit is on standby: a tenth of the running input.
+    assert model.power_fraction(1e-9) == pytest.approx(0.1, rel=1e-6)
+    assert model.power_fraction(0.0) == 0.0  # switched off
 
 
 @pytest.mark.parametrize("model", [CyclingDegradation(0.25, "air"), CyclingDegradation(0.9, "water")])
@@ -69,9 +88,11 @@ def test_degradation_is_monotone_and_ends_at_continuous_operation(model):
     ratios = np.linspace(0.02, 1.0, 50)
     plf = np.array([model.part_load_factor(cr) for cr in ratios])
     runtime = np.array([model.runtime_fraction(cr) for cr in ratios])
-    assert np.all(np.diff(plf) > 0) and np.all(np.diff(runtime) > 0)
-    assert np.all(runtime >= ratios - 1e-12) and np.all(runtime <= 1.0)  # never less power than loss-free
-    assert plf[-1] == 1.0 and runtime[-1] == 1.0
+    power = np.array([model.power_fraction(cr) for cr in ratios])
+    assert np.all(np.diff(plf) > 0) and np.all(np.diff(runtime) > 0) and np.all(np.diff(power) > 0)
+    assert np.all(power >= ratios - 1e-12) and np.all(power <= 1.0)  # never less power than loss-free
+    assert np.all(runtime >= ratios - 1e-12) and np.all(runtime <= power + 1e-12)
+    assert plf[-1] == 1.0 and runtime[-1] == 1.0 and power[-1] == 1.0
     # At or above the minimum capacity the unit runs continuously.
     state = model.state(2500.0, 2000.0)
     assert (state.capacity_ratio, state.part_load_factor, state.runtime_fraction) == (1.0, 1.0, 1.0)
@@ -128,6 +149,39 @@ def test_apply_cycling_scales_rates_with_cr_and_powers_with_the_runtime_fraction
     assert row[RUNTIME_FRACTION_KEY] == pytest.approx(0.5 / 0.875)
     # Electricity beyond CR times the continuous power.
     assert row[CYCLING_LOSS_KEY] == pytest.approx(400.0 * (0.5 / 0.875 - 0.5))
+
+
+# ── report_cycling: which rows are averaged ───────────────────────────────
+
+
+def test_report_cycling_averages_only_a_running_row_on_the_speed_floor():
+    def row(**changes):
+        base = {"hp_is_on": True, "failure_reason": "none", "capacity_clamped": "min", "Q [W]": 2000.0}
+        return {**base, "E [W]": 400.0, "E_tot [W]": 400.0, **changes}
+
+    model = CyclingDegradation(0.25, "air")
+    keys = dict(delivered_key="Q [W]", rate_keys=("Q [W]",), power_keys=("E [W]",))
+
+    cycled = row()
+    assert report_cycling(cycled, model, 1000.0, **keys) is True
+    assert cycled["Q [W]"] == 1000.0 and cycled["E [W]"] == pytest.approx(400.0 * 0.5 / 0.875)
+    assert cycled[MIN_CAPACITY_KEY] == 2000.0 and cycled[CAPACITY_RATIO_KEY] == 0.5
+
+    untouched = [
+        (row(), None, 1000.0),  # cycling switched off
+        (row(capacity_clamped=None), model, 2000.0),  # continuous operation
+        (row(capacity_clamped="max"), model, 3000.0),  # at the ceiling
+        (row(), model, 2000.0),  # the request is the minimum capacity
+        (row(hp_is_on=False), model, 1000.0),  # off
+        (row(failure_reason="cycle_invalid"), model, 1000.0),  # failed solve
+    ]
+    for result, cycling, request in untouched:
+        before = dict(result)
+        assert report_cycling(result, cycling, request, **keys) is False
+        assert {k: result[k] for k in before} == before
+        assert result[CYCLING_LOSS_KEY] == 0.0
+        running = before["hp_is_on"] and before["failure_reason"] == "none"
+        assert result[RUNTIME_FRACTION_KEY] == (1.0 if running else 0.0)
 
 
 # ── AirSourceHeatPump ─────────────────────────────────────────────────────

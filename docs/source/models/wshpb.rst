@@ -54,6 +54,17 @@ at the evaporator approach less ``dT_hx_min``, and on a compressor speed bound
 the tank heat exchanger is solved against the heat actually delivered
 (``dT_ref_tank [K]``, ``tank_hx_residual [W]``).
 
+``analyze_steady`` reports a request below the minimum-speed duty as the mean
+of on/off cycling, exactly as :doc:`gshpb` does (:ref:`boiler-steady-cycling`):
+``Q_ref_tank [W]`` equals the request, ``runtime_fraction [-]`` is the share
+of the time the compressor runs, and ``E_cmp``, ``E_pmp`` and ``E_tot`` carry
+the EN 14825 degradation for a unit delivering to water (``Cd_cycling``, the
+standard's ``Cc``, 0.9 by default; ``None`` returns the continuous
+minimum-speed point). The default machine at 10 °C source water and a 35 °C
+tank delivers 4.0 kW at its minimum speed; a 400 W request returns 400 W at
+177 W of input (system COP 2.26 against 4.29 for the running machine).
+Dynamic runs are not affected.
+
 Dynamic operation
 =================
 
@@ -94,6 +105,22 @@ Sink-side mechanics
 ===================
 
 Shared DHW tank sink with an implicit per-step energy balance.
+
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
+A tank whose level varies (``tank_always_full=False`` or
+``prevent_simultaneous_flow``) follows the rules of the air-source boiler
+(:doc:`ashpb`, Sink-side mechanics): the draw stops at ``TANK_LEVEL_MIN``,
+the make-up at full, the reported level and tank flows are the ones the
+step's energy balance was solved with, and the demand the tank could not
+supply is ``dV_mix_w_out_unmet [m3/s]``. Such a run starts with
+``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
 
 API reference
 =============

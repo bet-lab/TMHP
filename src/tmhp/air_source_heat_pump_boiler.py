@@ -69,6 +69,8 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
+from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
+from .dhw import dhw_service_columns, warn_if_dhw_unmet
 from .dynamic_context import (
     TANK_LEVEL_MIN,
     ControlState,
@@ -274,6 +276,19 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     shared baseline correlations in :mod:`tmhp.compressor_efficiency`
     (BITZER 2026-10-06), evaluated at PR and actual shaft speed in rev/s.
     Scalar and user-supplied callable overrides remain supported.
+
+    **Below the minimum capacity.** ``analyze_steady`` reports a request below
+    what the compressor delivers at ``rps_min`` as the mean of on/off cycling
+    (``capacity_clamped == "min"``, :mod:`tmhp.cycling`): ``Q_ref_tank [W]``
+    equals the request, ``runtime_fraction [-]`` is the share of the time the
+    compressor runs, and the electrical input carries the EN 14825 degradation
+    of a unit delivering to water -- ``Cd_cycling`` is its coefficient ``Cc``
+    (0.9: while the compressor is off the unit draws a tenth of its running
+    input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
+    ``Cd_cycling=None`` returns the continuous minimum-speed point, which
+    delivers more than the request. Dynamic runs are not affected: there the
+    tank thermostat switches the compressor, which runs at ``hp_capacity`` for
+    ``runtime_fraction [-]`` of a step.
     """
 
     _RATING_FAMILY = "ASHPB"
@@ -289,6 +304,18 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         "dV_ou_a [m3/s]",
         "m_dot_ref [kg/s]",
     )
+    #: The same rates as ``analyze_steady`` averages them when the unit cycles
+    #: (:meth:`_report_part_load`): heat and flow rates with the capacity
+    #: ratio, electrical inputs with the power fraction.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = (
+        "Q_ou_a [W]",
+        "Q_ref_ou [W]",
+        "Q_ref_tank [W]",
+        "dV_ou_a [m3/s]",
+        "m_dot_ref [kg/s]",
+    )
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_ou_fan [W]")
+    _CYCLING_SOURCE_HEAT_KEY: str | None = None
     _RATING_DEFAULT_MODE = "heating"
 
     def __init__(
@@ -372,8 +399,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         dV_fan_a_max: float | None = None,
         T_dis_max: float | Literal["auto"] | None = "auto",
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
+        # On/off cycling below the minimum continuous capacity in analyze_steady:
+        # EN 14825 degradation coefficient Cc of a unit delivering to water
+        # (None: no cycling, the row over-delivers at the minimum speed).
+        Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
     ):
         validate_ctor("ASHPB", locals())
+        #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         if dV_fan_a_ref is not None:
             dV_fan_a_rated = dV_fan_a_ref
         # Resolve deprecated mapping
@@ -1452,6 +1485,26 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # Steady-state analysis
     # =============================================================
 
+    def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
+        """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
+
+        A row on the compressor's speed floor that delivers more than the
+        request becomes the mean over the on/off cycling period
+        (:func:`tmhp.cycling.report_boiler_cycling`): the rates a dynamic step
+        averages with its run time are multiplied by ``capacity_ratio [-]``,
+        the electrical inputs by ``capacity_ratio / part_load_factor``.
+        """
+        report_boiler_cycling(
+            result,
+            self.cycling,
+            Q_ref_tank,
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
+            hp_capacity=self.hp_capacity,
+        )
+
+    @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank", bindings=_CAPACITY_BINDINGS)
     def analyze_steady(
         self,
@@ -1514,8 +1567,9 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               request was met exactly. A clamped point is **converged**: the
               request simply lay outside the machine's deliverable band, which
               a real inverter unit answers by running at its limit and cycling.
-              Compare ``"Q_ref_tank [W]"`` against ``"Q_ref_tank_request [W]"``
-              to recover the shortfall or excess. A ``"max"`` point carries
+              A ``"min"`` point is reported as that cycling mean (below); at a
+              ``"max"`` point compare ``"Q_ref_tank [W]"`` against
+              ``"Q_ref_tank_request [W]"`` for the shortfall. A ``"max"`` point carries
               ``"capacity_binding"``: ``"compressor"`` (``rps_max``), or the
               operating limit the request ran into when a smaller duty runs --
               ``"discharge_temperature"`` (``T_dis_max``),
@@ -1525,6 +1579,22 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
               largest duty that runs is then returned, with ``"Q_max [W]"``
               and ``"Q_request [W]"``; see
               :func:`tmhp.compressor_envelope.reduce_duty_within_envelope`.
+            - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A request below the
+              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
+              request (``Q_min [W]`` is the continuous duty), heat and
+              refrigerant rates are the running machine's times
+              ``capacity_ratio [-]`` -- the compressor runs that share of the
+              time, ``runtime_fraction [-]`` -- and the electrical inputs
+              carry the EN 14825 degradation for a unit delivering to water
+              (``Cd_cycling``: the running values times
+              ``capacity_ratio / part_load_factor``), so both COPs are the
+              continuous ones times the part-load factor. Temperatures,
+              pressures and speed are those of the running machine. With
+              ``Cd_cycling=None`` the row is the continuous minimum-speed
+              point and ``Q_ref_tank [W]`` exceeds the request.
             - ``"efficiency_extrapolated"`` (bool) — a default efficiency fit
               is evaluated outside its data at this point.
             - ``"discharge_control"`` (bool), ``"dT_ref_superheat [K]"``,
@@ -1939,6 +2009,10 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
             }
         )
+        # Hot-water service: the heat the draw schedule asked for at the set
+        # point and the part not delivered (water below the set point, or a
+        # draw the tank could not supply).
+        r.update(dhw_service_columns(ctx.dV_mix_w_out, dV_mix_w_out, T_mix_K, self.T_mix_w_out_K, self.T_sup_w_K))
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
@@ -2510,6 +2584,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 result_save_csv_path,
                 index=False,
             )
+        warn_if_dhw_unmet(results_df, dt_s, type(self).__name__, cu.K2C(self.T_mix_w_out_K))
         return results_df
 
     # =============================================================

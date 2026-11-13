@@ -454,7 +454,12 @@ def test_surrogate_metered_power_and_loop_heat_share_one_operating_state(monkeyp
 
 
 def test_surrogate_with_real_model_at_minimum_speed_clamp(monkeypatch):
-    """Real ASHPB at a clamped point: loop heat = request, metered power includes the fan."""
+    """Real ASHPB at a clamped point: loop heat = request, metered power includes the fan.
+
+    ``analyze_steady`` reports such a point as the mean over the on/off
+    cycling period (heat = request, electrical input with the EN 14825
+    degradation), and the plugin meters that row as it is.
+    """
     from tmhp.integrations.energyplus_plugin import TmhpPlantSurrogate
 
     plant = TmhpPlantSurrogate()
@@ -464,7 +469,8 @@ def test_surrogate_with_real_model_at_minimum_speed_clamp(monkeypatch):
     plant.h = _surrogate_handles()
     plant.api = _FakeApi({1: 30.0, 2: 3.0, 3: CP_WATER, 4: 1500.0, 7: 7.0})
     full = plant.hp.analyze_steady(T_tank_w=30.0, T0=7.0, Q_ref_tank=1500.0, m_dot_w=3.0)
-    assert full["capacity_clamped"] == "min" and full["Q_ref_tank [W]"] > 1500.0  # scenario precondition
+    assert full["capacity_clamped"] == "min" and full["Q_min [W]"] > 1500.0  # scenario precondition
+    assert full["Q_ref_tank [W]"] == pytest.approx(1500.0)
     assert full["E_ou_fan [W]"] > 0.0
 
     assert plant.on_user_defined_component_model(object()) == 0
@@ -472,9 +478,12 @@ def test_surrogate_with_real_model_at_minimum_speed_clamp(monkeypatch):
     ex = plant.api.exchange
     q_loop = 3.0 * CP_WATER * (ex.actuators[5] - 30.0)
     assert q_loop == pytest.approx(1500.0)
-    duty = 1500.0 / full["Q_ref_tank [W]"]
-    assert ex.globals[9] == pytest.approx(full["E_tot [W]"] * duty)
-    assert ex.globals[9] > full["E_cmp [W]"] * duty
+    assert ex.globals[9] == pytest.approx(full["E_tot [W]"])
+    assert ex.globals[9] > full["E_cmp [W]"]
+    # More than the running machine's input for the share of the time it runs:
+    # the row carries the cycling degradation.
+    running_input = (full["E_tot [W]"] - full["E_cycling_loss [W]"]) / full["capacity_ratio [-]"]
+    assert ex.globals[9] > running_input * 1500.0 / full["Q_min [W]"]
 
 
 def test_plugin_classes_when_energyplus_available():

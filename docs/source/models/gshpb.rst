@@ -129,11 +129,94 @@ Two relations hold in every running result (``analyze_steady`` and each
   from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
   ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
   could not be bracketed, as on the pressure-ratio floor). On the speed floor
-  the result no longer depends on the request.
+  the running machine no longer depends on the request.
 
 The evaporator approach is searched between 1 and 20 K and, when the heat
 exchanger already carries the duty at 1 K (a compressor at low speed against
 an evaporator sized for the full capacity), down to 0.05 K.
+
+.. _boiler-steady-cycling:
+
+Steady state below the minimum capacity
+=======================================
+
+A request below what the compressor delivers at ``rps_min`` is met by
+switching it on and off. ``analyze_steady`` reports such a point
+(``capacity_clamped == "min"``) as the mean over the cycling period, with the
+same keys as :doc:`ashp` and :doc:`gshp` (:mod:`tmhp.cycling`):
+
+- ``Q_ref_tank [W]`` equals the request. ``Q_min [W]`` is the duty of the
+  running machine and ``capacity_ratio [-]`` the request divided by it (the
+  *CR* of EN 14825).
+- ``runtime_fraction [-]``, the share of the time the compressor runs, equals
+  *CR*: heat and refrigerant rates (``Q_ref_tank``, ``Q_ref_ground``,
+  ``m_dot_ref``) are the running values times it. This is how a dynamic step
+  reports a compressor that ran part of the step.
+- The electrical inputs (``E_cmp``, ``E_pmp``, ``E_tot``) carry the EN 14825
+  degradation for a unit delivering to water,
+  ``COP = COP_min · CR / (Cc · CR + 1 − Cc)``. The standard takes the start-up
+  loss of a hydronic unit as negligible and charges the power the unit draws
+  while its compressor is off; ``Cc`` is one minus that power over the
+  running input. The mean input is therefore the running input times
+  ``CR + (1 − Cc)(1 − CR)``, and both COPs are the continuous ones times
+  ``part_load_factor [-]``. ``E_cycling_loss [W]`` is the off-state part.
+- ``Q_bhe [W]`` is the mean ground-side heat less the mean pump power.
+- Temperatures, pressures and speed are those of the running machine; the
+  loop flow keeps its running value, as in a dynamic step.
+
+``Cd_cycling`` is that coefficient ``Cc`` (the constructor argument has the
+same name in every family). The default 0.9 is the value the standard
+prescribes for a unit that has not been tested: an off-state draw of a tenth
+of the running input. For a unit with a measured standby power use
+``Cd_cycling = 1 − P_off / P_on``; ``1.0`` is loss-free cycling; ``None``
+returns the continuous minimum-speed point, which delivers more than the
+request (the behaviour before this report existed).
+
+.. list-table:: EN 14825 degradation with ``Cc = 0.9``
+   :header-rows: 1
+   :widths: 25 25 25 25
+
+   * - ``capacity_ratio``
+     - ``part_load_factor``
+     - Mean input / running input
+     - ``runtime_fraction``
+   * - 0.1
+     - 0.526
+     - 0.190
+     - 0.1
+   * - 0.2
+     - 0.714
+     - 0.280
+     - 0.2
+   * - 0.4
+     - 0.870
+     - 0.460
+     - 0.4
+   * - 0.6
+     - 0.938
+     - 0.640
+     - 0.6
+   * - 0.8
+     - 0.976
+     - 0.820
+     - 0.8
+   * - 1.0
+     - 1.000
+     - 1.000
+     - 1.0
+
+The default machine (8 kW, R410A) at a 0 °C source and a 35 °C tank delivers
+3.05 kW at its minimum speed. A 400 W request used to return those 3.05 kW at
+896 W of input; it now returns 400 W at 195 W (system COP 2.05 against 3.40
+for the running machine), and a 2 kW request 2 kW at 619 W (COP 3.23).
+
+A dynamic run is not affected. There the tank thermostat switches the
+compressor, which runs at ``hp_capacity`` — not at its minimum speed — for
+``runtime_fraction [-]`` of a step, and the row already is the step mean
+(next section). No standby power is added to the off time of a dynamic run:
+the 10 % default belongs to the standard's part-load points, and applied to
+a storage heater whose compressor runs a fifth of the day it would add more
+than 40 % to the daily electricity.
 
 Dynamic operation
 =================
@@ -156,13 +239,18 @@ temperature difference are linear in the load, so continuous in the run
 fraction and equal to the injection-only state when the compressor does
 not run. ``T_bhe_f*_running`` are the fluid while the compressor runs (its
 running extraction net of the injection), which the evaporator's
-source-side exergy uses.
+source-side exergy uses. With the dynamic borehole (the default) they are
+the mean over the run itself, from the borehole's response to the running
+load over that part of the step, so they do not jump when the thermostat
+switches inside a step (:doc:`ground-response`); ``T_bhe`` is the physical
+borehole wall.
 
 The cycle of a step is solved against that running fluid of the *same*
-step: the borehole wall's response to the step's own load, the borehole
+step: the borehole's response to the step's own load, the borehole
 resistance and the loop temperature difference are closed together with
 the cycle (to 10\ :sup:`-4` K), so in every running row
-``T_ref_evap_sat < T_bhe_f_out_running <= T_bhe_f_out``. (Earlier releases
+``T_ref_evap_sat < T_bhe_f_out_running`` (and, with the steady borehole,
+``T_bhe_f_out_running <= T_bhe_f_out``). (Earlier releases
 fed the evaporator the previous step's outlet, which could put the
 evaporating temperature above the row's own fluid.) A ground coupler
 without ``preview_wall_temperature_rise`` cannot evaluate an uncommitted
@@ -194,13 +282,17 @@ a multi-year run gives the same ground temperatures whatever ``t_max_s`` was.
 Each step ``n`` reports the borehole-wall and fluid temperatures averaged over
 ``[t_n, t_n + dt]``, including the response to that step's own load; with an
 hourly load history the hourly means are the same for ``dt`` = 60, 600 or
-3600 s. Below one hour the g-function is the straight line from zero to its
-one-hour value and the borehole has no heat capacity, so minute-scale
-start-up transients are approximate on the default path.
-:func:`tmhp.borehole_capacity.enable_borehole_dynamics` adds the heat
-capacity of fluid, pipe and grout, the short-time wall response and the fluid
-transit through the U-tube; bore fields other than a rectangular grid are set
-up with :mod:`tmhp.borefield`. Both are described in :doc:`ground-response`.
+3600 s. Below one hour the g-function alone is the straight line from zero to
+its one-hour value and a borehole resistance has no heat capacity, which
+would move the source temperature by 3 to 5 K at every start and stop. The
+models therefore add, by default and from the inputs they already have, the
+heat capacity of fluid, pipe and grout, the short-time wall response and the
+fluid transit through the U-tube (``borehole_dynamics``; ``False`` gives the
+steady borehole, and ``model.borehole_dynamics`` says which one is in use).
+A compressor that runs for part of a step sees the fluid of its own run, so
+its source temperature is continuous through thermostat switching. Bore
+fields other than a rectangular grid are set up with :mod:`tmhp.borefield`.
+All of this is described in :doc:`ground-response`.
 
 .. figure:: ../_static/g_function_curve.svg
     :alt: g-function vs ln(t/t_s) for three rectangular borehole
@@ -225,6 +317,24 @@ taken explicitly with the whole heat rate (heat pump, draw-off, loss,
 subsystems) and a ``tmhp._tank_solve.TankSolveWarning`` names it. The tank
 temperature is not held at the mains temperature: a tank in a cold room cools
 below it.
+
+Every step reports the hot-water service: ``Q_dhw_request [W]`` is the
+scheduled draw at the set point ``T_mix_w_out`` counted from the mains
+temperature, ``Q_dhw_unmet [W]`` the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. ``analyze_dynamic`` warns once
+(``tmhp.dhw.DHWUnmetWarning``) when a run leaves demand unmet; see
+:ref:`hot-water-service` for the run totals.
+
+A tank whose level varies (``tank_always_full=False`` or
+``prevent_simultaneous_flow``) follows the rules of the air-source boiler
+(:doc:`ashpb`, Sink-side mechanics): the draw stops at ``TANK_LEVEL_MIN``
+(0.1 % of the volume), the make-up at full, and the reported
+``tank_level [-]``, ``dV_tank_w_out [m3/s]`` and ``dV_tank_w_in [m3/s]``
+are the ones the step's energy balance was solved with.
+``dV_mix_w_out [m3/s]`` is then the mixed water delivered and
+``dV_mix_w_out_unmet [m3/s]`` the demand the tank could not supply. Such a
+run starts with ``tank_level_init`` of at least ``TANK_LEVEL_MIN``.
 
 Tank backends
 -------------

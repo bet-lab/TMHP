@@ -1,18 +1,192 @@
 """
 Domestic Hot Water (DHW) load modeling.
+
+Besides the draw-schedule helpers, this module holds the hot-water service
+accounting the boiler models share: what a step was asked to deliver, what it
+did not deliver (:func:`dhw_service_columns`), the totals of a run
+(:func:`summarize_dhw_service`) and the end-of-run warning
+(:func:`warn_if_dhw_unmet`).
 """
+
+import math
+import warnings
 
 import numpy as np
 import pandas as pd
 
 from . import calc_util as cu
+from .constants import c_w, rho_w
 
 __all__ = [
+    "DHW_REQUEST_KEY",
+    "DHW_SETPOINT_TOL_K",
+    "DHW_UNMET_KEY",
+    "DHWUnmetWarning",
     "build_dhw_usage_ratio",
     "calc_cold_water_temp",
     "calc_total_water_use_from_schedule",
+    "dhw_service_columns",
     "make_dhw_schedule_from_Annex_42_profile",
+    "summarize_dhw_service",
+    "warn_if_dhw_unmet",
 ]
+
+DHW_REQUEST_KEY: str = "Q_dhw_request [W]"
+"""Result key: hot-water heat a step was asked to deliver [W]."""
+
+DHW_UNMET_KEY: str = "Q_dhw_unmet [W]"
+"""Result key: part of ``Q_dhw_request [W]`` a step did not deliver [W]."""
+
+DHW_SETPOINT_TOL_K: float = 0.01
+"""Width of the service set point [K].
+
+A delivery whose shortfall is no more than the requested flow cooled by this
+much counts as met (``Q_dhw_unmet [W]`` is 0). The mixing valve of a
+multi-node tank is set on the outlet temperature by iteration (to 1e-3 K),
+and a lumped tank sitting on the set point differs between platforms in the
+last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.
+"""
+
+
+class DHWUnmetWarning(UserWarning):
+    """A dynamic run delivered less hot water than its draw schedule asked for."""
+
+
+def dhw_service_columns(
+    dV_request: float,
+    dV_delivered: float,
+    T_delivered_K: float,
+    T_set_K: float,
+    T_sup_w_K: float,
+) -> dict[str, float]:
+    """Hot-water heat a step was asked for and the part it did not deliver.
+
+    The request is the scheduled mixed-water flow at the service set point,
+    counted from the mains temperature::
+
+        Q_dhw_request = rho·c · dV_request · (T_set − T_sup_w)
+
+    The delivery is the mixed water that actually left the valve at the
+    temperature it left at, ``rho·c · dV_delivered · (T_delivered − T_sup_w)``,
+    and ``Q_dhw_unmet = Q_dhw_request − delivery`` (never negative). Two things
+    make it positive:
+
+    - the tank is colder than the set point, so the mixing valve passes tank
+      water unmixed and the water arrives below the set point;
+    - a tank whose level varies stopped the draw at its lowest level, so less
+      water was delivered (``dV_mix_w_out_unmet [m3/s]``).
+
+    Both are step averages like every other rate in a dynamic result:
+    ``Q_dhw_unmet·dt`` is the step's shortfall in joules. A shortfall within
+    :data:`DHW_SETPOINT_TOL_K` of the set point is reported as 0.
+
+    Parameters
+    ----------
+    dV_request : float
+        Mixed-water flow the draw schedule asks for [m³/s].
+    dV_delivered : float
+        Mixed-water flow that left the mixing valve [m³/s].
+    T_delivered_K : float
+        Temperature of the delivered water [K]; unused when nothing was delivered.
+    T_set_K : float
+        Service set point of the mixing valve [K].
+    T_sup_w_K : float
+        Mains water temperature [K].
+
+    Returns
+    -------
+    dict[str, float]
+        ``{"Q_dhw_request [W]": ..., "Q_dhw_unmet [W]": ...}``. Both are 0 on a
+        step without a draw, and when the mains water is already at the set
+        point (nothing to heat).
+    """
+    rc = c_w * rho_w
+    request = max(0.0, rc * max(0.0, float(dV_request)) * (T_set_K - T_sup_w_K))
+    delivered = 0.0
+    if dV_delivered > 0.0 and math.isfinite(T_delivered_K):
+        delivered = max(0.0, rc * float(dV_delivered) * (min(T_delivered_K, T_set_K) - T_sup_w_K))
+    unmet = max(0.0, request - delivered)
+    if unmet <= rc * max(0.0, float(dV_request)) * DHW_SETPOINT_TOL_K:
+        unmet = 0.0
+    return {DHW_REQUEST_KEY: request, DHW_UNMET_KEY: unmet}
+
+
+def summarize_dhw_service(df: pd.DataFrame, dt_s: float) -> dict[str, float]:
+    """Hot-water service totals of a dynamic result.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Result of a boiler ``analyze_dynamic`` (or rows of ``step``) carrying
+        ``Q_dhw_request [W]`` and ``Q_dhw_unmet [W]``.
+    dt_s : float
+        Time step of the result [s].
+
+    Returns
+    -------
+    dict[str, float]
+        - ``Q_dhw_request [kWh]``: heat the draw schedule asked for;
+        - ``Q_dhw_delivered [kWh]``: heat delivered (request less unmet);
+        - ``Q_dhw_unmet [kWh]``: heat not delivered;
+        - ``dhw_unmet_fraction [-]``: unmet / request (0 without a request);
+        - ``dhw_draw_steps [-]``: steps with a draw request;
+        - ``dhw_unmet_steps [-]``: steps with ``Q_dhw_unmet [W] > 0``;
+        - ``T_mix_w_out_min [°C]``: lowest delivered temperature on a step
+          with a draw (NaN without a draw or without the column).
+
+    Raises
+    ------
+    KeyError
+        If ``df`` does not carry the two hot-water columns.
+    """
+    missing = [key for key in (DHW_REQUEST_KEY, DHW_UNMET_KEY) if key not in df.columns]
+    if missing:
+        raise KeyError(f"summarize_dhw_service: result has no {missing} (a boiler dynamic result is expected)")
+    request = np.nan_to_num(pd.to_numeric(df[DHW_REQUEST_KEY], errors="coerce").to_numpy(dtype=float))
+    unmet = np.nan_to_num(pd.to_numeric(df[DHW_UNMET_KEY], errors="coerce").to_numpy(dtype=float))
+    to_kwh = float(dt_s) / 3.6e6
+    request_kwh = float(request.sum()) * to_kwh
+    unmet_kwh = float(unmet.sum()) * to_kwh
+    drawing = request > 0.0
+    T_min = math.nan
+    if drawing.any() and "T_mix_w_out [°C]" in df.columns:
+        T_mix = pd.to_numeric(df["T_mix_w_out [°C]"], errors="coerce").to_numpy(dtype=float)[drawing]
+        if np.isfinite(T_mix).any():
+            T_min = float(np.nanmin(T_mix))
+    return {
+        "Q_dhw_request [kWh]": request_kwh,
+        "Q_dhw_delivered [kWh]": request_kwh - unmet_kwh,
+        "Q_dhw_unmet [kWh]": unmet_kwh,
+        "dhw_unmet_fraction [-]": unmet_kwh / request_kwh if request_kwh > 0.0 else 0.0,
+        "dhw_draw_steps [-]": int(drawing.sum()),
+        "dhw_unmet_steps [-]": int((unmet > 0.0).sum()),
+        "T_mix_w_out_min [°C]": T_min,
+    }
+
+
+def warn_if_dhw_unmet(df: pd.DataFrame, dt_s: float, who: str, T_set_C: float) -> None:
+    """Warn once (:class:`DHWUnmetWarning`) if a run left hot-water demand unmet.
+
+    Called at the end of each boiler ``analyze_dynamic``. Silent when every
+    draw was delivered at the set point, and on frames without the hot-water
+    columns.
+    """
+    if DHW_REQUEST_KEY not in df.columns or DHW_UNMET_KEY not in df.columns:
+        return
+    s = summarize_dhw_service(df, dt_s)
+    if s["dhw_unmet_steps [-]"] == 0:
+        return
+    coldest = s["T_mix_w_out_min [°C]"]
+    coldest_txt = f"; coldest delivery {coldest:.1f} °C" if math.isfinite(coldest) else ""
+    warnings.warn(
+        f"{who}: hot-water demand was not fully met on {s['dhw_unmet_steps [-]']} of "
+        f"{s['dhw_draw_steps [-]']} draw steps: {s['Q_dhw_unmet [kWh]']:.2f} kWh of "
+        f"{s['Q_dhw_request [kWh]']:.2f} kWh requested ({100.0 * s['dhw_unmet_fraction [-]']:.1f} %) "
+        f"was not delivered at the {T_set_C:.0f} °C set point{coldest_txt}. "
+        "See 'Q_dhw_unmet [W]' per step and tmhp.dhw.summarize_dhw_service(df, dt_s).",
+        DHWUnmetWarning,
+        stacklevel=3,
+    )
 
 
 def make_dhw_schedule_from_Annex_42_profile(

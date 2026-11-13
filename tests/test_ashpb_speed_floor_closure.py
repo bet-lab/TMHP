@@ -7,7 +7,11 @@ request that keeps falling keeps pulling the condensing temperature down, and
 the on-cycle COP rises for a machine whose operating point has not moved.
 
 These tests pin the closure, the invariance it implies, and the untouched
-continuous-modulation band.
+continuous-modulation band. They look at the machine while it runs, so the
+model is built with ``Cd_cycling=None``: ``analyze_steady`` then returns the
+continuous minimum-speed point instead of the mean over the on/off cycling
+period (``tests/test_boiler_steady_cycling.py`` covers that mean, and checks
+that its state points are the ones pinned here).
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ T0_C = 7.0
 
 @pytest.fixture
 def hp() -> AirSourceHeatPumpBoiler:
-    return AirSourceHeatPumpBoiler(ref="R32", hp_capacity=CAP)
+    return AirSourceHeatPumpBoiler(ref="R32", hp_capacity=CAP, Cd_cycling=None)
 
 
 def _floor_plr(hp: AirSourceHeatPumpBoiler) -> float:

@@ -243,7 +243,13 @@ running cycle; ``q_loop / Q_cycle`` is the share of the timestep it runs.
   the loop receives, so delivering ``Q_cycle`` would overheat the loop and its
   storage tank. The plugin therefore treats the clamp as on/off cycling: the
   time-averaged heat equals the request and the electricity is scaled by the same
-  duty fraction. No cycling-degradation penalty is applied.
+  duty fraction. ``analyze_steady`` now reports such a point as that cycling mean
+  itself (:ref:`boiler-steady-cycling`): the heat of the row is the request and
+  its electrical input carries the EN 14825 degradation for a unit delivering to
+  water (``Cc = 0.9`` unless the model is built with another ``Cd_cycling``), so
+  the plugin's own scaling leaves the row as it is and the metered electricity
+  includes that degradation. A model built with ``Cd_cycling=None`` returns the
+  continuous point and is scaled by the plugin as before, without a penalty.
 * **Outlet limit.** Heat that would push the outlet above ``TOUT_MAX`` is not
   delivered, and the electricity that would have produced it is not metered.
 

@@ -286,10 +286,16 @@ def test_reported_fluid_temperature_is_the_one_the_cycle_was_solved_with(cold_gr
     saturation = df["T_ref_evap_sat [°C]"] if mode == "heating" else df["T_ref_cond_sat_l [°C]"]
     # Ground-side saturation = fluid entering the heat pump -/+ the solved approach.
     np.testing.assert_allclose(saturation, source + sign * df["ground_approach [K]"], atol=1e-3)
-    # Borehole relation of the same row: wall - q' R_b* = mean fluid.
-    q_unit = df["Q_bhe [W]"] / (model.n_boreholes * model.H_b)
+    # Borehole relation of the same row: wall - q' R_b* = mean fluid. With the dynamic
+    # borehole (the default) that wall is the fluid-referenced one, the model's response to
+    # the reported loads; the T_bhe column is the physical wall (test_borehole_dynamics_models.py).
+    q_unit = (df["Q_bhe [W]"] / (model.n_boreholes * model.H_b)).to_numpy()
     mean = 0.5 * (df["T_bhe_f_in [°C]"] + df["T_bhe_f_out [°C]"])
-    np.testing.assert_allclose(df["T_bhe [°C]"] - q_unit * df["R_b_eff [mK/W]"], mean, atol=1e-3)
+    assert model.borehole_dynamics == "transit"
+    kernel = np.asarray(model._gfunc_interp.step_mean(np.arange(len(q_unit)) * 3600.0, 3600.0))
+    pulses = np.diff(np.concatenate(([0.0], q_unit)))
+    wall = model.Ts - np.array([np.dot(pulses[: n + 1], kernel[n::-1]) for n in range(len(q_unit))])
+    np.testing.assert_allclose(wall - q_unit * df["R_b_eff [mK/W]"], mean, atol=1e-3)
     np.testing.assert_allclose((df["T_bhe_f_out [°C]"] - df["T_bhe_f_in [°C]"]) * m_cp, df["Q_bhe [W]"], rtol=1e-4)
 
 

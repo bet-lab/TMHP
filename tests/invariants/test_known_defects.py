@@ -251,12 +251,10 @@ def test_t1_partial_fill_conserves_mass_and_energy():
     expect(abs(bal["residual_J"]) < 0.01 * (bal["heat_J"] + bal["throughput_J"]), bal)
 
 
+# T1 fixed for GSHPB/WSHPB: the reported level and tank flows are the ones the solved
+# balance carried (tank_step_flows); they were those of the unlimited draw, so a tank
+# drained below its make-up reported level 0, +9.9 kWh (+32 %) in 1 h.
 @pytest.mark.parametrize("family", ["GSHPB", "WSHPB"])
-@defect(
-    "T1",
-    "GSHPB/WSHPB report the level and tank flows of the unlimited draw: a tank drained below its make-up "
-    "reports level 0, +9.9 kWh (+32 %) in 1 h (the shared residual already stops the draw at the floor)",
-)
 def test_t1_ground_and_water_boilers_stop_the_draw_at_the_floor(family):
     dt, n = 600, 6
     cls = tmhp.GroundSourceHeatPumpBoiler if family == "GSHPB" else tmhp.WaterSourceHeatPumpBoiler

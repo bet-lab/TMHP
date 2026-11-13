@@ -6,7 +6,7 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T20:41:09.824511</dc:date>
+    <dc:date>2026-11-13T23:03:31.887711</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -616,62 +616,54 @@ L 230.573509 188.9131
    </g>
    <g id="legend_1">
     <g id="line2d_62">
-     <path d="M 32.8461 25.794004 
-L 39.8461 25.794004 
-L 46.8461 25.794004 
+     <path d="M 32.8461 26.914004 
+L 39.8461 26.914004 
+L 46.8461 26.914004 
 " style="fill: none; stroke: #343a40; stroke-linecap: square"/>
     </g>
     <g id="text_16">
-     <!-- default: $R_b$ + line-source $g$ -->
-     <g transform="translate(48.9461 28.244004)">
+     <!-- steady: $R_b^*$ + FLS $g$ -->
+     <g transform="translate(48.9461 29.364004)">
       <text>
-       <tspan x="0" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">d</tspan>
-       <tspan x="3.889648" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="7.505859" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">f</tspan>
-       <tspan x="9.823242" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">a</tspan>
-       <tspan x="13.572754" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
-       <tspan x="17.417969" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
-       <tspan x="18.986816" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">t</tspan>
-       <tspan x="21.23584" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">:</tspan>
-       <tspan x="22.705566" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="31.962698" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="33.664847" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">+</tspan>
-       <tspan x="37.616019" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="39.318167" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
-       <tspan x="40.887015" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">i</tspan>
-       <tspan x="42.455862" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">n</tspan>
-       <tspan x="46.301077" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="49.917288" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">-</tspan>
-       <tspan x="51.920218" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">s</tspan>
-       <tspan x="55.464651" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">o</tspan>
-       <tspan x="59.385062" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
-       <tspan x="63.230276" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">r</tspan>
-       <tspan x="65.585257" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">c</tspan>
-       <tspan x="69.191214" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="72.807425" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="24.407715" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">R</tspan>
-       <tspan x="74.509573" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">g</tspan>
-       <tspan x="28.761703" y="0.453125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">b</tspan>
+       <tspan x="0" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">s</tspan>
+       <tspan x="3.544434" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">t</tspan>
+       <tspan x="5.793457" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
+       <tspan x="9.409668" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">a</tspan>
+       <tspan x="13.15918" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">d</tspan>
+       <tspan x="17.048828" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">y</tspan>
+       <tspan x="20.374512" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">:</tspan>
+       <tspan x="21.844238" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="33.101621" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="34.80377" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">+</tspan>
+       <tspan x="38.754941" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="40.45709" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">F</tspan>
+       <tspan x="44.39459" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">L</tspan>
+       <tspan x="48.082578" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">S</tspan>
+       <tspan x="52.228574" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="23.546387" y="-0.5625" style="font-size: 7px; font-family: 'Noto Sans Math'">R</tspan>
+       <tspan x="53.930723" y="-0.5625" style="font-size: 7px; font-family: 'Noto Sans Math'">g</tspan>
+       <tspan x="27.900375" y="1.3125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">b</tspan>
+       <tspan x="29.297925" y="-3.28125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">*</tspan>
       </text>
      </g>
     </g>
     <g id="line2d_63">
-     <path d="M 32.8461 35.852129 
-L 39.8461 35.852129 
-L 46.8461 35.852129 
+     <path d="M 32.8461 37.252129 
+L 39.8461 37.252129 
+L 46.8461 37.252129 
 " style="fill: none; stroke-dasharray: 4,2; stroke-dashoffset: 0; stroke: #845ef7"/>
     </g>
     <g id="text_17">
-     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="48.9461" y="38.302129" transform="rotate(-0 48.9461 38.302129)">cylinder source (analytical)</text>
+     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="48.9461" y="39.702129" transform="rotate(-0 48.9461 39.702129)">cylinder source (analytical)</text>
     </g>
     <g id="line2d_64">
-     <path d="M 32.8461 45.508847 
-L 39.8461 45.508847 
-L 46.8461 45.508847 
+     <path d="M 32.8461 46.981035 
+L 39.8461 46.981035 
+L 46.8461 46.981035 
 " style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
     </g>
     <g id="text_18">
-     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="48.9461" y="47.958847" transform="rotate(-0 48.9461 47.958847)">with borehole dynamics</text>
+     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="48.9461" y="49.431035" transform="rotate(-0 48.9461 49.431035)">default: with borehole dynamics</text>
     </g>
    </g>
   </g>
@@ -1190,53 +1182,45 @@ L 472.0464 188.9131
    </g>
    <g id="legend_2">
     <g id="line2d_122">
-     <path d="M 373.6264 171.739037 
-L 380.6264 171.739037 
-L 387.6264 171.739037 
+     <path d="M 355.248119 171.38685 
+L 362.248119 171.38685 
+L 369.248119 171.38685 
 " style="fill: none; stroke: #343a40; stroke-linecap: square"/>
     </g>
     <g id="text_32">
-     <!-- default: $R_b$ + line-source $g$ -->
-     <g transform="translate(389.7264 174.189037)">
+     <!-- steady: $R_b^*$ + FLS $g$ -->
+     <g transform="translate(371.348119 173.83685)">
       <text>
-       <tspan x="0" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">d</tspan>
-       <tspan x="3.889648" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="7.505859" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">f</tspan>
-       <tspan x="9.823242" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">a</tspan>
-       <tspan x="13.572754" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
-       <tspan x="17.417969" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
-       <tspan x="18.986816" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">t</tspan>
-       <tspan x="21.23584" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">:</tspan>
-       <tspan x="22.705566" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="31.962698" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="33.664847" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">+</tspan>
-       <tspan x="37.616019" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="39.318167" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">l</tspan>
-       <tspan x="40.887015" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">i</tspan>
-       <tspan x="42.455862" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">n</tspan>
-       <tspan x="46.301077" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="49.917288" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">-</tspan>
-       <tspan x="51.920218" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">s</tspan>
-       <tspan x="55.464651" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">o</tspan>
-       <tspan x="59.385062" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">u</tspan>
-       <tspan x="63.230276" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">r</tspan>
-       <tspan x="65.585257" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">c</tspan>
-       <tspan x="69.191214" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
-       <tspan x="72.807425" y="-0.671875" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
-       <tspan x="24.407715" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">R</tspan>
-       <tspan x="74.509573" y="-0.671875" style="font-size: 7px; font-family: 'Noto Sans Math'">g</tspan>
-       <tspan x="28.761703" y="0.453125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">b</tspan>
+       <tspan x="0" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">s</tspan>
+       <tspan x="3.544434" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">t</tspan>
+       <tspan x="5.793457" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">e</tspan>
+       <tspan x="9.409668" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">a</tspan>
+       <tspan x="13.15918" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">d</tspan>
+       <tspan x="17.048828" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">y</tspan>
+       <tspan x="20.374512" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">:</tspan>
+       <tspan x="21.844238" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="33.101621" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="34.80377" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">+</tspan>
+       <tspan x="38.754941" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="40.45709" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">F</tspan>
+       <tspan x="44.39459" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">L</tspan>
+       <tspan x="48.082578" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'">S</tspan>
+       <tspan x="52.228574" y="-0.5625" style="font-weight: 300; font-size: 7px; font-family: 'Roboto'"> </tspan>
+       <tspan x="23.546387" y="-0.5625" style="font-size: 7px; font-family: 'Noto Sans Math'">R</tspan>
+       <tspan x="53.930723" y="-0.5625" style="font-size: 7px; font-family: 'Noto Sans Math'">g</tspan>
+       <tspan x="27.900375" y="1.3125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">b</tspan>
+       <tspan x="29.297925" y="-3.28125" style="font-size: 4.9px; font-family: 'Noto Sans Math'">*</tspan>
       </text>
      </g>
     </g>
     <g id="line2d_123">
-     <path d="M 373.6264 181.469037 
-L 380.6264 181.469037 
-L 387.6264 181.469037 
+     <path d="M 355.248119 181.469037 
+L 362.248119 181.469037 
+L 369.248119 181.469037 
 " style="fill: none; stroke: #4c6ef5; stroke-width: 2; stroke-linecap: square"/>
     </g>
     <g id="text_33">
-     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="389.7264" y="183.919037" transform="rotate(-0 389.7264 183.919037)">with borehole dynamics</text>
+     <text style="font-weight: 300; font-size: 7px; font-family: 'Roboto', 'Lato', 'Inter', 'Open Sans', 'Arial', 'Helvetica', 'Paperlogy', 'Noto Sans CJK KR', 'Pretendard', 'Gothic A1', 'Freesentation', 'AppleGothic', 'Malgun Gothic', sans-serif; text-anchor: start" x="371.348119" y="183.919037" transform="rotate(-0 371.348119 183.919037)">default: with borehole dynamics</text>
     </g>
    </g>
   </g>

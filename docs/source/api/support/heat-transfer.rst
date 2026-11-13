@@ -38,6 +38,16 @@ Ground coupling
     :undoc-members:
     :show-inheritance:
 
+Fast temporal superposition for long runs
+=========================================
+
+.. automodule:: tmhp.ground_superposition
+    :members:
+    :show-inheritance:
+
+.. automodule:: tmhp._online_convolution
+    :members:
+
 Borehole resistance and pipe configurations
 ===========================================
 
@@ -61,4 +71,12 @@ See :doc:`/models/ground-response` for the model and its checks.
 
 .. automodule:: tmhp.borehole_capacity
     :members:
+    :show-inheritance:
+
+Ground-side defaults
+====================
+
+.. automodule:: tmhp.ground_defaults
+    :members:
+    :undoc-members:
     :show-inheritance:

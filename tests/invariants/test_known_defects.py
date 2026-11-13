@@ -607,11 +607,9 @@ def _gshpb_cold_ground():
 @pytest.mark.parametrize(
     "run",
     [
-        pytest.param(
-            _gshp_cold_ground,
-            id="GSHP",
-            marks=defect("G1", "evaporator uses last step's fluid: T_evap 0.8 > T_fluid -6.3 °C"),
-        ),
+        # G1 fixed for GSHP: the ground fluid is closed inside the step (was
+        # T_evap 0.8 > T_fluid -8.0 °C in the first row).
+        pytest.param(_gshp_cold_ground, id="GSHP"),
         # G1 fixed for GSHPB: the cycle is closed against the ground fluid of the
         # same step (it was T_evap -4.1 > T_fluid -9.9 °C).
         pytest.param(_gshpb_cold_ground, id="GSHPB"),

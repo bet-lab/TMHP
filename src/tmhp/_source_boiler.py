@@ -46,7 +46,19 @@ from typing import TypeVar
 import CoolProp.CoolProp as CP
 from scipy.optimize import brentq
 
-from .constants import c_w, mu_w, rho_w
+from .constants import mu_w, rho_w
+from .ground_defaults import (
+    BOREHOLE_DESIGN_LINEAR_LOAD,
+    BOREHOLE_MAX_LINEAR_LOAD,
+    GROUND_LOOP_DESIGN_DT_K,
+    LAMINAR_REYNOLDS_LIMIT,
+    RATED_SOURCE_HEAT_FRACTION,
+    calc_borehole_reynolds,
+    calc_rated_source_heat,
+    default_borefield_layout,
+    default_ground_flow_lpm,
+)
+from .pump import ASHRAE_PUMP_GRADE_W_PER_TON, WATT_PER_TON, default_ground_pump_power
 
 _Outcome = TypeVar("_Outcome")
 
@@ -54,20 +66,24 @@ _Outcome = TypeVar("_Outcome")
 TANK_HX_APPROACH_RATED_K = 5.0
 #: Default source-side (evaporator) conductance per watt of capacity [W/K per W].
 SOURCE_HX_UA_PER_CAPACITY = 0.18
+# The source-side sizing rules are those of :mod:`tmhp.ground_defaults` and
+# :func:`tmhp.pump.default_ground_pump_power` (one policy for the
+# space-conditioning and the boiler families); the names below are kept for
+# the boilers' own code and messages.
 #: Source-side heat at the rated point as a fraction of ``hp_capacity`` (COP 4).
-SOURCE_HEAT_FRACTION_RATED = 0.75
+SOURCE_HEAT_FRACTION_RATED = RATED_SOURCE_HEAT_FRACTION
 #: Loop temperature difference the default source flow carries that heat at [K].
-SOURCE_LOOP_DT_RATED_K = 3.0
+SOURCE_LOOP_DT_RATED_K = GROUND_LOOP_DESIGN_DT_K
 #: Default pump input per watt of capacity: ASHRAE grade B upper bound, 75 W per ton.
-PUMP_POWER_PER_CAPACITY = 75.0 / 3516.85
+PUMP_POWER_PER_CAPACITY = ASHRAE_PUMP_GRADE_W_PER_TON["B"] / WATT_PER_TON
 #: Default borehole depth [m] (also the default length of one submerged coil).
 BOREHOLE_DEPTH_DEFAULT_M = 200.0
 #: Rated source-side heat per metre the default borehole field is sized for [W/m].
-BOREHOLE_LOAD_DESIGN_W_PER_M = 50.0
+BOREHOLE_LOAD_DESIGN_W_PER_M = BOREHOLE_DESIGN_LINEAR_LOAD
 #: Rated source-side heat per metre above which a caller's field draws a warning [W/m].
-BOREHOLE_LOAD_WARN_W_PER_M = 80.0
+BOREHOLE_LOAD_WARN_W_PER_M = BOREHOLE_MAX_LINEAR_LOAD
 #: Reynolds number below which pipe flow is laminar.
-RE_LAMINAR = 2300.0
+RE_LAMINAR = LAMINAR_REYNOLDS_LIMIT
 #: Evaporator approach band every operating-point search starts from [K].
 APPROACH_BOUNDS_K = (1.0, 20.0)
 #: Smallest evaporator approach searched when the balance lies below that band [K].
@@ -92,26 +108,23 @@ def default_source_hx_UA(hp_capacity: float) -> float:
 
 def rated_source_heat(hp_capacity: float) -> float:
     """Source-side heat of the rated point the defaults are sized for [W]."""
-    return SOURCE_HEAT_FRACTION_RATED * hp_capacity
+    return calc_rated_source_heat(hp_capacity)
 
 
 def default_source_flow_lpm(hp_capacity: float) -> float:
     """Default total source-loop flow [L/min]: rated source heat at a 3 K loop difference."""
-    return rated_source_heat(hp_capacity) / (rho_w * c_w * SOURCE_LOOP_DT_RATED_K) * 60000.0
+    return default_ground_flow_lpm(hp_capacity)
 
 
 def default_pump_power(hp_capacity: float) -> float:
     """Default source-loop pump input [W]: ASHRAE grade B upper bound (75 W per ton)."""
-    return PUMP_POWER_PER_CAPACITY * hp_capacity
+    return default_ground_pump_power(hp_capacity, "B")
 
 
 def default_borehole_grid(hp_capacity: float, H_b: float = BOREHOLE_DEPTH_DEFAULT_M) -> tuple[int, int]:
     """Smallest near-square ``(N_1, N_2)`` keeping the rated load at or below 50 W/m."""
-    needed = rated_source_heat(hp_capacity) / (BOREHOLE_LOAD_DESIGN_W_PER_M * H_b)
-    n = max(1, math.ceil(needed - 1e-9))
-    n_1 = math.ceil(math.sqrt(n) - 1e-9)
-    n_2 = math.ceil(n / n_1 - 1e-9)
-    return n_1, n_2
+    n_1, n_2 = default_borefield_layout(hp_capacity, H_b)
+    return int(n_1), int(n_2)
 
 
 def rated_linear_load(hp_capacity: float, total_length: float) -> float:
@@ -136,8 +149,7 @@ def warn_if_field_overloaded(hp_capacity: float, n_exchangers: int, length_each:
 
 def pipe_reynolds(volume_flow_m3s: float, n_parallel: int, r_in: float) -> float:
     """Reynolds number of water in one of ``n_parallel`` pipes of inner radius ``r_in``."""
-    m_dot_pipe = volume_flow_m3s * rho_w / max(1, n_parallel)
-    return 4.0 * m_dot_pipe / (math.pi * 2.0 * r_in * mu_w)
+    return float(calc_borehole_reynolds(volume_flow_m3s, max(1, n_parallel), 2.0 * r_in, rho=rho_w, mu=mu_w))
 
 
 def warn_if_laminar(volume_flow_m3s: float, n_parallel: int, r_in: float, what: str) -> None:

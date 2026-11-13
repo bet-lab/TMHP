@@ -60,6 +60,14 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .g_function import g_step_mean, precompute_gfunction
+from .ground_defaults import (
+    BOREHOLE_DEFAULT_DEPTH,
+    calc_rated_linear_load,
+    default_borefield_layout,
+    default_ground_flow_lpm,
+    warn_if_borefield_undersized,
+    warn_if_laminar_ground_flow,
+)
 from .ground_flow_control import (
     close_ground_temperature,
     select_ground_flow,
@@ -82,6 +90,7 @@ from .heat_exchanger import (
     resolve_fan_flow_limits,
 )
 from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .pump import default_ground_pump_power
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -102,6 +111,16 @@ def _require_finite(**values: float | None) -> None:
             raise ValueError(f"{name} must be a finite number, got {value!r}")
 
 
+#: Default rated indoor airflow per watt of capacity [m³/s per W]: 400 cfm per
+#: ton of refrigeration, the usual selection airflow of a water-to-air unit
+#: (0.215 m³/s = 773 m³/h for 4 kW).
+IU_AIRFLOW_PER_W = 5.37e-5
+
+#: Borehole-wall temperature seen by a ground closure [K]: a fixed value, or a
+#: function of the borefield load ``Q_bhe`` [W] of the point being evaluated
+#: (a dynamic step, whose own load moves the wall within the step).
+WallTemperature = float | Callable[[float], float]
+
 #: Signed indoor-coil capacity margins at the fan flow limits (row keys).
 _IU_MARGIN_AT_MAX_FLOW = "iu_hx_max_flow_margin [W]"
 _IU_MARGIN_AT_MIN_FLOW = "iu_hx_min_flow_margin [W]"
@@ -121,7 +140,7 @@ class _IndoorSearch:
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         warm: dict[str, float] | None = None,
     ) -> None:
         self.model = model
@@ -199,6 +218,40 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     ``Q_ref_iu [W]`` below the request; the difference is unmet load, not a
     solver failure. A request below the minimum-speed duty runs at that speed
     and reports ``capacity_clamped == "min"`` with the larger delivery.
+
+    **Defaults that follow the capacity.** With only ``hp_capacity`` (and
+    ``ref``) given, the ground side and the indoor airflow are sized from it,
+    so the rating-point COP is the same at every capacity:
+
+    - loop flow ``ground_flow_ref_lpm``:
+      ``0.75 * hp_capacity / (rho c * 3 K)``
+      (:func:`~tmhp.ground_defaults.default_ground_flow_lpm`; 14.3 L/min for
+      4 kW), shared equally by the parallel boreholes;
+    - pump power ``E_pmp``: ASHRAE pumping grade B, 75 W per ton of capacity
+      (:func:`~tmhp.pump.default_ground_pump_power`; 85 W for 4 kW);
+    - borefield: when none of ``N_1``, ``N_2`` and ``H_b`` is given, the
+      smallest near-square field of 100 m boreholes that keeps the rated
+      source-side heat (``0.75 * hp_capacity``) within 50 W/m
+      (:func:`~tmhp.ground_defaults.default_borefield_layout`; one borehole up to
+      6.67 kW, 3 x 2 for 30 kW). Giving any of the three fixes the field as
+      given (the others default to 1, 1 and 100 m);
+    - rated indoor airflow ``dV_iu_fan_a_rated``: 5.37e-5 m³/s per W
+      (400 cfm per ton; 773 m³/h for 4 kW). With the default coil
+      (``UA_iu_rated = 0.08 * hp_capacity``) the rated duty needs an indoor
+      approach of 21.6 K, which is why ``indoor_approach_max_K`` defaults to
+      25 K.
+
+    A supplied value always replaces its default. Two sizing slips are
+    reported with a ``UserWarning`` instead of being solved silently: a
+    U-tube that is laminar at the reference flow (``Re < 2300``; the model
+    attribute ``Re_bhe_ref``) and a caller-sized borefield above 80 W/m at the
+    rated source-side heat (``q_bhe_rated``).
+
+    **Dynamic steps.** :meth:`analyze_dynamic` closes the ground-fluid
+    temperature inside each step against the borehole wall, including the
+    wall's response to that step's own load. The refrigerant cycle, the
+    fluid temperatures and the wall temperature of one row therefore belong
+    to the same step.
     """
 
     _RATING_FAMILY = "GSHP"
@@ -222,11 +275,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         eta_iu_fan_rated: float | None = None,
         vsd_coeffs_iu: dict | None = None,
         # 4. BHE (Borehole Heat Exchanger) ---------------
-        N_1: int = 1,
-        N_2: int = 1,
+        N_1: int | None = None,
+        N_2: int | None = None,
         B: float = 6.0,
         D_b: float = 0,
-        H_b: float = 100,
+        H_b: float | None = None,
         r_b: float = 0.08,
         R_b: float | None = None,
         k_g: float = 1.5,
@@ -240,7 +293,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         c_s: float = 800,
         rho_s: float = 2000,
         Ts: float = 16.0,
-        E_pmp: float = 100,
+        E_pmp: float | None = None,
         # 5. System capacity / room ----------------------
         hp_capacity: float = 4000.0,
         T_a_room: float = 27.0,
@@ -265,7 +318,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         ground_hx_ua_per_capacity: float = 0.18,
         UA_iu_rated: float | None = None,
         indoor_approach_min_K: float = 1.0,
-        indoor_approach_max_K: float = 20.0,
+        indoor_approach_max_K: float = 25.0,
         eta_cmp_vol: float | Callable | None = None,
         eta_cmp: float | Callable | None = None,
         rps_rated: float | None = None,
@@ -305,8 +358,20 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         x_suction_min: float | None = X_SUCTION_MIN_DEFAULT,
     ):
         validate_ctor("GSHP", locals())
+        # Ground side sized from the capacity when the caller gives none of it
+        # (see tmhp.ground_defaults): flow, pump power and the borefield.
+        borefield_defaulted = N_1 is None and N_2 is None and H_b is None
+        if H_b is None:
+            H_b = BOREHOLE_DEFAULT_DEPTH
+        if borefield_defaulted:
+            N_1, N_2 = default_borefield_layout(hp_capacity, H_b)
+        else:
+            N_1 = 1 if N_1 is None else N_1
+            N_2 = 1 if N_2 is None else N_2
+        if E_pmp is None:
+            E_pmp = default_ground_pump_power(hp_capacity)
         ground_rates = resolve_ground_flow_rates(
-            default_ref_lpm=20.04,
+            default_ref_lpm=default_ground_flow_lpm(hp_capacity),
             legacy_ref_lpm=dV_b_f_lpm,
             min_ratio=ground_flow_min_ratio,
             max_ratio=ground_flow_max_ratio,
@@ -421,7 +486,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
 
         # --- 3. Indoor unit fan ---
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * 0.0002
+            self.dV_iu_fan_a_rated = hp_capacity * IU_AIRFLOW_PER_W
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -466,6 +531,28 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         self.alp_s = k_s / (c_s * rho_s)
         self.E_pmp: float = E_pmp
         self.dV_b_f_m3s: float = dV_b_f_lpm / 60000
+        #: Specific borehole load at the rated source-side heat [W/m]. A field
+        #: the caller sized is reported when it exceeds 80 W/m.
+        self.q_bhe_rated: float = (
+            calc_rated_linear_load(hp_capacity, self.n_boreholes, H_b)
+            if borefield_defaulted
+            else warn_if_borefield_undersized(hp_capacity, self.n_boreholes, H_b, stacklevel=3)
+        )
+        #: U-tube Reynolds number at the reference flow (laminar below 2300: warned).
+        pipe_diameter = pipe_inner_diameter if pipe_inner_diameter is not None else 2 * r_in
+        self.Re_bhe_ref: float = warn_if_laminar_ground_flow(
+            self.dV_b_f_m3s, self.n_boreholes, pipe_diameter, rho=rho_w, mu=mu_w, stacklevel=3
+        )
+        if self.ground_flow_constant_lpm != self.ground_flow_ref_lpm:
+            warn_if_laminar_ground_flow(
+                self.ground_flow_constant_lpm / 60000,
+                self.n_boreholes,
+                pipe_diameter,
+                rho=rho_w,
+                mu=mu_w,
+                label="constant setpoint",
+                stacklevel=3,
+            )
 
         # Effective borehole thermal resistance R_b* [mK/W].
         # Mirrors GroundSourceHeatPumpBoiler: when R_b is not given explicitly,
@@ -1215,7 +1302,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         warm: dict,
     ) -> tuple[str, dict | None, float, float]:
         """Close the ground-side heat balance at one indoor approach.
@@ -1231,8 +1318,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         When ``wall_K`` is given, the fluid temperature leaving the borefield is
         closed at the same time from the borehole relation used by the coupled
         solver, ``T_out = T_wall - q' R_b* + Q_bhe / (2 ṁ c_p)``
-        (:func:`calc_bhe_fluid_temperatures`). Otherwise it is the model state
-        ``T_bhe_f_out_K``.
+        (:func:`calc_bhe_fluid_temperatures`). ``wall_K`` may be a function of
+        the borefield load ``Q_bhe`` [W]: a dynamic step passes the wall
+        response to the step's own load, so the fluid temperature of the row
+        belongs to the same step as its cycle (#96 G1). Otherwise the fluid
+        leaves the borefield at the model state ``T_bhe_f_out_K``.
 
         Returns ``(status, row, ground_approach, T_out_K)``. ``status`` is
         ``"equality"`` (duty balance closed), ``"slack_bound"`` (spare ground HX
@@ -1260,7 +1350,13 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             q_ground = g * conductance
             Q_bhe_guess = q_ground - loop["E_pmp"] if heating else -(q_ground + loop["E_pmp"])
             T_out = calc_bhe_fluid_temperatures(
-                wall_K, Q_bhe_guess, self.n_boreholes, self.H_b, loop["R_b"], loop["dV"] * rho_w, c_w
+                wall_K(Q_bhe_guess) if callable(wall_K) else wall_K,
+                Q_bhe_guess,
+                self.n_boreholes,
+                self.H_b,
+                loop["R_b"],
+                loop["dV"] * rho_w,
+                c_w,
             )[2]
         # The compressor envelope (pressure-ratio ceiling) limits the absolute
         # ground-side saturation temperature, not the approach: as the fluid
@@ -1326,7 +1422,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 T_next = T_out
             else:
                 _, _, T_next = calc_bhe_fluid_temperatures(
-                    wall_K,
+                    wall_K(float(row["Q_bhe [W]"])) if callable(wall_K) else wall_K,
                     float(row["Q_bhe [W]"]),
                     self.n_boreholes,
                     self.H_b,
@@ -1345,14 +1441,22 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     return "slack_floor", row, g, T_out
                 if residual > 0 and (g >= hi - 1e-12 or upper - g < self._ENVELOPE_APPROACH_TOL_K):
                     return "ground_limit", row, g, T_out
+            # At the pressure-ratio floor (cooling) the condensing temperature is
+            # held above the trial approach, so the residual belongs to that
+            # held approach and does not move with ``g``. Stepping from the
+            # trial value would creep by residual / conductance per iteration
+            # and never leave the floor.
+            g_eval = g
+            if not heating and row.get("pr_floor_active", False):
+                g_eval = max(g, approach_at(cu.C2K(float(row["T_ref_cond_sat_l [°C]"])), T_out))
             # dR/dg = dQ/dg - ε·ṁc_p; the duty term is small, so the conductance
             # is a safe first slope and a secant estimate refines it.
             slope = conductance
-            if previous is not None and abs(g - previous[0]) > 1e-9:
-                estimate = (previous[1] - residual) / (g - previous[0])
+            if previous is not None and abs(g_eval - previous[0]) > 1e-9:
+                estimate = (previous[1] - residual) / (g_eval - previous[0])
                 if estimate > 0.05 * conductance:
                     slope = estimate
-            previous, last = (g, residual), (g, residual, row, T_out)
+            previous, last = (g_eval, residual), (g_eval, residual, row, T_out)
             # Fluid closure: plain substitution oscillates when the duty rises
             # steeply with the source temperature (loop gain near -0.5 at the
             # compressor speed ceiling); a secant step on the closure error
@@ -1367,9 +1471,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T_out = T_out + step
             # Never step onto an approach already known to leave the envelope.
             upper = hi if bad_sat is None else min(hi, approach_at(bad_sat, T_out))
-            target = g + residual / slope
+            target = g_eval + residual / slope
             if target >= upper:
-                target = 0.5 * (g + upper) if upper < hi else hi
+                target = 0.5 * (g_eval + upper) if upper < hi else hi
             g = max(target, lo)
         return "not_closed", row, g, T_out
 
@@ -1379,7 +1483,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T0: float,
         T_a_room: float,
         *,
-        wall_K: float | None = None,
+        wall_K: WallTemperature | None = None,
     ) -> dict:
         """Operating point at a fixed ground flow, or an explicit failure.
 
@@ -1576,7 +1680,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         seed: float | None,
         warm: dict[str, float] | None = None,
     ) -> tuple[float | None, dict | None]:
@@ -1610,7 +1714,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         Q_r_iu: float,
         T0: float,
         T_a_room: float,
-        wall_K: float | None,
+        wall_K: WallTemperature | None,
         rel_tol: float = 5e-3,
     ) -> dict | None:
         """Largest deliverable duty below the request, reported as a ceiling.
@@ -1905,7 +2009,21 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room_schedule=None,
         result_save_csv_path: str | None = None,
     ) -> pd.DataFrame:
-        """Time-stepping dynamic simulation with BHE superposition."""
+        """Time-stepping dynamic simulation with BHE superposition.
+
+        Step ``n`` stands for the interval ``[t_n, t_n + dt]``. The borehole
+        wall of the step is the step mean of its response to all loads so
+        far, the step's own included, and the ground fluid is closed against
+        that wall inside the step (``T_out = T_wall - q' R_b* + Q_bhe /
+        (2 m c_p)``), so the evaporating temperature of a heating row is
+        below the ``T_bhe_f_out [°C]`` of the same row (above it for the
+        condensing temperature of a cooling row). Before this closure the
+        cycle used the fluid temperature left by the previous step: the first
+        step after an off period ran on undisturbed ground, which understated
+        the compressor energy of intermittent operation by 4-7 % in heating
+        and 11-21 % in cooling (20 min on / 40 min off and 1 h on / 2 h off
+        at the default sizing; under 0.5 % in continuous operation).
+        """
         validate_dynamic(locals())
         time = np.arange(0, simulation_period_sec, dt_s)
         tN = len(time)
@@ -1959,9 +2077,18 @@ class GroundSourceHeatPump(ReferenceStateMixin):
             T0_n = T0_schedule[n]
             T_a_room_n = T_a_room_arr[n]
 
-            if self._ground_settings["active"]:
-                # Preview the current-time wall for each candidate, without recording pulses.
-                # The history does not depend on the candidate: sum it once per step.
+            hp_result: dict | None
+            if Q_r_iu_n == 0 and not self._ground_settings["active"]:
+                hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
+                if hp_result is not None:
+                    hp_result["failure_reason"] = "none"
+            else:
+                # Borehole wall of this step as a function of the step's own
+                # load: the response to the earlier pulses is fixed, and a
+                # candidate load adds its own step-mean response. Evaluating
+                # it never records a pulse.
+                # The history does not depend on the candidate: one dot
+                # product with the tabulated step-mean response per step.
                 history_rise = self._bhe_history_rise(n, time, Q_bhe_unit_pulse, n)
 
                 def wall_response(q_total, history=history_rise, previous_q=Q_bhe_unit_old):
@@ -1971,14 +2098,14 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                         rise += delta * g_own_step
                     return self.Ts_K - rise
 
-                hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
-            elif Q_r_iu_n == 0:
-                hp_result = self._calc_state(5.0, 5.0, 0.0, T0_n, T_a_room_n)
-                if hp_result is not None:
-                    hp_result["failure_reason"] = "none"
-            else:
-                # A failed step comes back as the off state with its reason.
-                hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n)
+                if self._ground_settings["active"]:
+                    hp_result = self._solve_ground_flow(Q_r_iu_n, T0_n, T_a_room_n, wall_response=wall_response)
+                else:
+                    # The ground fluid is closed against that wall inside the
+                    # step, so the cycle and the fluid temperature of one row
+                    # belong to the same step (#96 G1). A failed step comes
+                    # back as the off state with its reason.
+                    hp_result = self._solve_operating_point(Q_r_iu_n, T0_n, T_a_room_n, wall_K=wall_response)
 
             if hp_result is None:
                 # Off-mode cycle itself failed — fall back to an inert row so

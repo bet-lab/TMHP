@@ -888,7 +888,11 @@ Three things to know:
 Groundwater flow, and responses pygfunction does not compute, come from the
 optional ``geolink`` package through
 :func:`tmhp.integrations.geolink.geolink_gfunction`, which returns a
-g-function for the same chain. tmhp does not depend on it.
+g-function for the same chain. tmhp does not depend on it. geolink's own
+backend, ``geolink.coupling.NetworkGroundCoupler``, can be given to the
+boiler as ``ground_coupler`` instead (geolink main ``5cff1aa1`` or later);
+:mod:`tmhp.integrations.geolink` says when to use which, and that the total
+borehole length must be the same on both sides.
 
 
 References

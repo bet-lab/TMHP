@@ -43,6 +43,38 @@ caller supplies indoor-unit load as ``Q_r_iu``: positive values
 select cooling, negative values select heating, and zero values
 represent off operation. There is no tank energy balance.
 
+Indoor airflow
+==============
+
+The rated indoor airflow defaults to ``5.37e-5 m³/s`` per watt of
+``hp_capacity`` — 400 cfm per ton, 193 m³/h per kW, the airflow at which unitary
+equipment is rated (``tmhp.hx_fan.INDOOR_AIRFLOW_PER_W``). Pass
+``dV_iu_fan_a_rated`` when the unit's own figure is known; wall-mounted split
+units publish 170 to 310 m³/h per kW at their high fan speed.
+
+The airflow decides the supply-air temperature and, through the indoor coil's
+approach, most of the temperature lift. At the default a unit delivering its
+nameplate capacity supplies air about 15 K from the room: 35 °C in heating at a
+20 °C room, 12 °C in cooling at a 27 °C room, with the refrigerant saturated
+17 K from the room air. (The earlier default, 720 m³/h per kW, moved four times
+that air: supply air 5 K from the room, a condensing temperature near 30 °C,
+and a rated COP above what such equipment declares.) The indoor fan draws about
+0.5 % of the nameplate capacity at rated flow, both fans together 1.3 to 2.5 %.
+
+Because the fan power is small against the compressor's, the least-power
+operating point keeps the indoor fan at its largest airflow at every load; the
+supply-air temperature therefore approaches the room temperature at part load.
+A unit that slows its fan for comfort is described with ``dV_iu_fan_a_max``.
+
+.. note::
+
+   The approach-temperature search domain (``dT_approach_bounds``, 1–20 K) is
+   close to the 17 K the indoor coil runs at nameplate capacity, so in mild
+   weather it caps the delivered heat near 120 % of the nameplate
+   (``capacity_clamped == "max"``, ``capacity_binding == "cycle"``). That cap
+   is the search box, not the machine: widen the bounds — the validation
+   harness uses ``(1, 30)`` — when larger duties are to be explored.
+
 Part load: cycling and unmet load
 =================================
 

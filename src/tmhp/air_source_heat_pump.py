@@ -64,7 +64,7 @@ from .enex_functions import (
     calc_HX_perf_for_target_heat,
 )
 from .heat_exchanger import resolve_fan_flow_limits
-from .hx_fan import SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
+from .hx_fan import INDOOR_AIRFLOW_PER_W, SINGLE_ZONE_VAV_COEFFICIENTS, is_generic_fan_curve
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin
 from .refrigerant import (
     calc_ref_state,
@@ -581,8 +581,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
         }
 
         # --- 4. Indoor unit fan ---
+        # The indoor airflow sets the condensing (heating) and evaporating
+        # (cooling) temperatures through the coil's approach, so it decides
+        # the supply-air temperature and most of the lift. 400 cfm/ton is the
+        # airflow unitary equipment is rated at; see ``INDOOR_AIRFLOW_PER_W``.
         if dV_iu_fan_a_rated is None:
-            self.dV_iu_fan_a_rated = hp_capacity * 0.0002
+            self.dV_iu_fan_a_rated = hp_capacity * INDOOR_AIRFLOW_PER_W
         else:
             self.dV_iu_fan_a_rated = dV_iu_fan_a_rated
 
@@ -1371,6 +1375,43 @@ class AirSourceHeatPump(ReferenceStateMixin):
     # Capacity envelope
     # =============================================================
 
+    def _indoor_approach_band_for_duty(self, Q_r_iu: float, T0: float, T_a_room: float) -> tuple[float, float]:
+        """Indoor approaches [K] at which the indoor coil can carry exactly ``|Q_r_iu|``.
+
+        The coil carries a duty at a temperature difference between
+        ``duty / (C eps)`` at its largest airflow and the same at its smallest;
+        outside that band no airflow within the fan limits closes it. The band
+        is widened by 0.1 % so that the coil solver's own tolerance decides at
+        the edges. It only screens candidates for
+        :meth:`_duty_is_deliverable`, where the compressor meets the duty
+        exactly, and never admits a point the full evaluation would refuse.
+
+        In heating the pressure-ratio floor can lift the condensing temperature
+        above ``T_a_room + dT_ref_cond``; when that could bring a smaller
+        approach into the band, the lower edge is dropped to zero.
+        """
+        duty = abs(Q_r_iu)
+
+        def per_kelvin(dV: float) -> float:
+            C_air = c_a * rho_a * dV
+            return C_air * (1.0 - math.exp(-self.UA_iu_rated * (dV / self.dV_iu_fan_a_ref) ** self.n_iu / C_air))
+
+        low = duty / per_kelvin(self.dV_iu_fan_a_max) * (1.0 - 1e-3)
+        high = duty / per_kelvin(self.dV_iu_fan_a_min) * (1.0 + 1e-3)
+        if Q_r_iu < 0:
+            import CoolProp.CoolProp as CP
+
+            try:
+                # Highest evaporating pressure the search can propose, and the
+                # condensing temperature the pressure-ratio floor would force.
+                P_evap = CP.PropsSI("P", "T", cu.C2K(T0) - self.dT_approach_bounds[0], "Q", 1, self.ref)
+                T_cond_floor = CP.PropsSI("T", "P", self.PR_cycle_min * P_evap, "Q", 1, self.ref)
+                if T_cond_floor - cu.C2K(T_a_room) + 0.5 >= low:
+                    low = 0.0
+            except ValueError:
+                low = 0.0
+        return low, high
+
     def _duty_is_deliverable(
         self,
         Q_r_iu: float,
@@ -1425,7 +1466,12 @@ class AirSourceHeatPump(ReferenceStateMixin):
             candidates.append(seed)
         candidates.extend((float(de), float(dc)) for de in grid for dc in grid)
 
+        # Only an indoor approach at which the indoor coil carries exactly this
+        # duty can be the answer, so the rest of the grid is not evaluated.
+        iu_low, iu_high = self._indoor_approach_band_for_duty(Q_r_iu, T0, T_a_room)
         for de, dc in candidates:
+            if not iu_low <= (dc if Q_r_iu < 0 else de) <= iu_high:
+                continue
             perf = self._calc_state(
                 dT_ref_evap=de,
                 dT_ref_cond=dc,

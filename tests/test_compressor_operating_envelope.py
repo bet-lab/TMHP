@@ -222,7 +222,16 @@ def test_boiler_dataframe_return_keeps_the_envelope_keys():
 
 
 def test_air_to_air_ceiling_names_the_discharge_limit():
-    hp = _quiet(tmhp.AirSourceHeatPump, ref="R32", hp_capacity=4000.0, T_dis_max=80.0, x_suction_min=None)
+    # The indoor airflow is pinned: with the 400 cfm/ton default the condensing
+    # temperature is higher and no duty at all stays below this 80 degC limit.
+    hp = _quiet(
+        tmhp.AirSourceHeatPump,
+        ref="R32",
+        hp_capacity=4000.0,
+        T_dis_max=80.0,
+        x_suction_min=None,
+        dV_iu_fan_a_rated=0.8,
+    )
     r = _quiet(hp.analyze_steady, Q_r_iu=-3000.0, T0=-7.0, T_a_room=20.0, verbose=False)
     assert _running(r)
     assert r["capacity_clamped"] == "max"

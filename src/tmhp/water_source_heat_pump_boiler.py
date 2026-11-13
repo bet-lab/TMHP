@@ -64,7 +64,7 @@ from .enex_functions import (
 from .heat_exchanger import calc_phase_change_hx_effectiveness
 from .heat_transfer import calc_simple_tank_UA
 from .reference_state import HXSide, RatingCondition, ReferenceStateMixin, _evaluable_bracket
-from .refrigerant import calc_ref_state, reportable_state
+from .refrigerant import calc_ref_state, props_si, reportable_state
 from .thermodynamics import calc_exergy_flow
 
 if TYPE_CHECKING:
@@ -541,7 +541,7 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
 
         try:
             s_cmp_in = cycle_states["s_ref_cmp_in [J/(kg·K)]"]
-            h_ref_cmp_out_isen = CP.PropsSI("H", "P", P_cond, "S", s_cmp_in, self.ref)
+            h_ref_cmp_out_isen = props_si("H", "P", P_cond, "S", s_cmp_in, self.ref)
         except ValueError:
             h_ref_cmp_out_isen = h_ref_cmp_in
 
@@ -646,10 +646,10 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
                 "eta_cmp_vol [-]": val_eta_vol,
                 "eta_cmp_isen [-]": val_eta_isen,
                 "eta_cmp [-]": val_eta_electro_mech,
-                "h_ref_evap_sat [J/kg]": CP.PropsSI(
+                "h_ref_evap_sat [J/kg]": props_si(
                     "H", "P", cycle_states.get("P_ref_cmp_in [Pa]", 1e5), "Q", 1, self.ref
                 ),
-                "h_ref_cond_sat_v [J/kg]": CP.PropsSI(
+                "h_ref_cond_sat_v [J/kg]": props_si(
                     "H", "P", cycle_states.get("P_ref_cmp_out [Pa]", 1e6), "Q", 1, self.ref
                 ),
                 "h_ref_cond_sat_l [J/kg]": h_ref_exp_in,

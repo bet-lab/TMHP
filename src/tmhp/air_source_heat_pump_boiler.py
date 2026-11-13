@@ -68,9 +68,11 @@ from .compressor_envelope import (
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_a, c_w, rho_a, rho_w
 from .dynamic_context import (
+    TANK_LEVEL_MIN,
     ControlState,
     DynamicState,
     StepContext,
+    TankStepFlows,
     check_hp_schedule_active,
     delivered_tank_heat,
     determine_heat_source_on_off,
@@ -78,6 +80,7 @@ from .dynamic_context import (
     resolve_step_operation,
     step_hp_result,
     tank_mass_energy_residual,
+    tank_step_flows,
     unphysical_cycle_detail,
     warn_if_tank_boiling,
 )
@@ -1787,11 +1790,16 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         T_solved_K: float,
         level_solved: float,
         ier: int,
+        flows: TankStepFlows | None = None,
     ) -> dict:
         """Build HP-core result dict at solved state.
 
         Subsystem results are appended separately by
-        each subsystem's ``assemble_results()``.
+        each subsystem's ``assemble_results()``. ``flows`` are the tank flows
+        the solved balance of a level-varying tank carried
+        (:func:`tmhp.dynamic_context.tank_step_flows`): its draw, make-up and
+        the mixed water it delivered (less than the demand when the draw
+        stopped at the lowest level, ``dV_mix_w_out_unmet [m3/s]``).
         """
         den: float = max(
             1e-6,
@@ -1806,11 +1814,14 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         )
         dV_tank_w_out: float = alp * ctx.dV_mix_w_out
         dV_tank_w_in: float = dV_tank_w_out if ctrl.dV_tank_w_in_ctrl is None else ctrl.dV_tank_w_in_ctrl
+        dV_mix_w_out: float = ctx.dV_mix_w_out
+        if flows is not None:
+            dV_tank_w_out, dV_tank_w_in, dV_mix_w_out = flows.dV_tank_w_out, flows.dV_tank_w_in, flows.dV_mix_w_out
 
         self.dV_tank_w_out = dV_tank_w_out
         self.dV_tank_w_in = dV_tank_w_in
-        self.dV_mix_w_out = ctx.dV_mix_w_out
-        self.dV_mix_sup_w_in = (1 - alp) * ctx.dV_mix_w_out
+        self.dV_mix_w_out = dV_mix_w_out
+        self.dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
 
         T_mix_w_out_val: float = (
             calc_mixing_valve_temp(
@@ -1818,7 +1829,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
                 self.T_sup_w_K,
                 self.T_mix_w_out_K,
             )["T_mix_w_out"]
-            if ctx.dV_mix_w_out > 0
+            if dV_mix_w_out > 0
             else np.nan
         )
 
@@ -1839,23 +1850,24 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         # temperature its cycle was solved at (the run's mean, or the step
         # start on an off step), which T_tank_w and the tank exergy do not use.
         rc = c_w * rho_w
-        T_mix_K = cu.C2K(T_mix_w_out_val) if ctx.dV_mix_w_out > 0 else np.nan
-        dV_mix_sup_w_in = (1 - alp) * ctx.dV_mix_w_out
+        T_mix_K = cu.C2K(T_mix_w_out_val) if dV_mix_w_out > 0 else np.nan
+        dV_mix_sup_w_in = (1 - alp) * dV_mix_w_out
         r.update(
             {
-                "dV_mix_w_out [m3/s]": ctx.dV_mix_w_out if ctx.dV_mix_w_out > 0 else np.nan,
+                "dV_mix_w_out [m3/s]": dV_mix_w_out if dV_mix_w_out > 0 else np.nan,
                 "dV_tank_w_out [m3/s]": dV_tank_w_out if dV_tank_w_out > 0 else np.nan,
                 "dV_tank_w_in [m3/s]": dV_tank_w_in if dV_tank_w_in > 0 else np.nan,
                 "dV_mix_sup_w_in [m3/s]": dV_mix_sup_w_in if dV_mix_sup_w_in > 0 else np.nan,
                 "Q_tank_w_in [W]": calc_energy_flow(G=rc * dV_tank_w_in, T=self.T_tank_w_in_K, T0=ctx.T0_K),
                 "Q_tank_w_out [W]": calc_energy_flow(G=rc * dV_tank_w_out, T=T_solved_K, T0=ctx.T0_K),
                 "Q_mix_sup_w_in [W]": calc_energy_flow(G=rc * dV_mix_sup_w_in, T=self.T_sup_w_K, T0=ctx.T0_K),
-                "Q_mix_w_out [W]": calc_energy_flow(G=rc * ctx.dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
+                "Q_mix_w_out [W]": calc_energy_flow(G=rc * dV_mix_w_out, T=T_mix_K, T0=ctx.T0_K),
             }
         )
 
         if not self.tank_always_full or (self.tank_always_full and self.prevent_simultaneous_flow):
             r["tank_level [-]"] = level_solved
+            r["dV_mix_w_out_unmet [m3/s]"] = flows.dV_mix_w_out_unmet if flows is not None else 0.0
 
         # Diagnostics of the steady solve, not time-series quantities: keep them
         # on the analyze_steady dict and out of the dynamic frame (an object
@@ -2022,8 +2034,20 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
     # =============================================================
 
     def make_initial_state(self, T_tank_w_init_C: float, tank_level_init: float = 1.0) -> DynamicState:
-        """Build the initial carried state for a ``step()``-driven run."""
+        """Build the initial carried state for a ``step()``-driven run.
+
+        A tank whose level varies (``tank_always_full=False`` or
+        ``prevent_simultaneous_flow``) starts with at least
+        :data:`~tmhp.dynamic_context.TANK_LEVEL_MIN` of water: an empty tank
+        has no temperature to start from.
+        """
         validate_initial_state(locals())
+        level_varies = not self.tank_always_full or self.prevent_simultaneous_flow
+        if level_varies and tank_level_init < TANK_LEVEL_MIN:
+            raise ValueError(
+                f"tank_level_init={tank_level_init!r}: a tank whose level varies starts with at least "
+                f"TANK_LEVEL_MIN={TANK_LEVEL_MIN} of water (an empty tank has no temperature)"
+            )
         return DynamicState(
             T_tank_w_K=cu.C2K(T_tank_w_init_C),
             tank_level=tank_level_init,
@@ -2113,10 +2137,17 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
         call_start: bool = self._thermostat_call(ctx, state.hp_is_on_prev)
         T_start_C: float = cu.K2C(ctx.T_tank_w_K)
 
+        # Draw expected over this step (mixing valve at the start temperature):
+        # the refill decision looks at the level this step's draw leaves, not
+        # the previous step's draw (the tank balance then limits both flows).
+        alp_prev: float = min(
+            1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
+        )
+        dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
         dV_tank_w_in_ctrl, is_refilling = determine_tank_refill_flow(
             dt=dt_s,
             tank_level=ctx.tank_level,
-            dV_tank_w_out=state.dV_tank_w_out_prev,
+            dV_tank_w_out=dV_tank_w_out_prev,
             V_tank_full=self.V_tank_full,
             tank_always_full=self.tank_always_full,
             prevent_simultaneous_flow=self.prevent_simultaneous_flow,
@@ -2138,14 +2169,12 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_in_K_n,
         )
 
-        # Mass is explicit: the level the implicit energy solve uses.
-        alp_prev: float = min(
-            1.0, max(0.0, (self.T_mix_w_out_K - T_sup_w_K_n) / max(1e-6, ctx.T_tank_w_K - T_sup_w_K_n))
-        )
-        dV_tank_w_out_prev = alp_prev * ctx.dV_mix_w_out
+        # Level estimate at the start temperature. An always-full tank keeps
+        # its level; a level-varying tank's residual computes the end level
+        # from the flows at T^{n+1} itself, and the step takes it from there.
         dV_tank_w_in_prev = dV_tank_w_out_prev if dV_tank_w_in_ctrl is None else dV_tank_w_in_ctrl
         level_next_approx = ctx.tank_level + (dV_tank_w_in_prev - dV_tank_w_out_prev) * dt_s / self.V_tank_full
-        tank_level = max(0.001, min(1.0, level_next_approx))
+        tank_level = max(TANK_LEVEL_MIN, min(1.0, level_next_approx))
 
         # --- Phase A-3: thermostat events inside the step ---
         # Bounds are reached part-way through a step: the compressor runs
@@ -2161,8 +2190,8 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_lower=self.T_tank_w_lower_bound,
             T_upper=self.T_tank_w_upper_bound,
             dt=dt_s,
-            C_curr=self.C_tank * max(0.001, ctx.tank_level),
-            C_next=self.C_tank * max(0.001, tank_level),
+            C_curr=self.C_tank * max(TANK_LEVEL_MIN, ctx.tank_level),
+            C_next=self.C_tank * max(TANK_LEVEL_MIN, tank_level),
             C_tank=self.C_tank,
             residual_free=self._build_residual_fn(
                 ctx, ctrl_free, dt_s, T_tank_w_in_K_n, T_sup_w_K_n, tank_level, sub_states
@@ -2224,6 +2253,11 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_K = ctx.T_tank_w_K + dt_s * Q_tot / self.C_tank
             ier = 0
         warn_if_tank_boiling(T_tank_w_K)
+        flows = None
+        if dV_tank_w_in_ctrl is not None:
+            # Level-varying tank: the flows and level the solved balance carried.
+            flows = tank_step_flows(T_tank_w_K, ctx, ctrl, dt_s, T_sup_w_K_n, self.T_mix_w_out_K, self.V_tank_full)
+            tank_level = flows.level_next
 
         # --- Phase C: core + subsystem results (via Hook) ---
         r: dict = self._assemble_core_results(
@@ -2232,6 +2266,7 @@ class AirSourceHeatPumpBoiler(ReferenceStateMixin):
             T_tank_w_K,
             tank_level,
             ier,
+            flows=flows,
         )
         r = self._augment_results(r, ctx, ctrl, sub_states, T_tank_w_K)
 

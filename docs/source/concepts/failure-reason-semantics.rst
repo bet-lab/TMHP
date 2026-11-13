@@ -188,7 +188,9 @@ also appear).
     * - ``compressor_min_speed``
       - The requested duty is below what the compressor delivers at
         ``rps_min`` (``capacity_clamped == "min"``), so the exact duty cannot
-        be met.
+        be met. The ground-source heat pump meets such a request by on/off
+        cycling instead (:doc:`../models/gshp`); it reports this reason only
+        with ``Cd_cycling=None``.
     * - ``compressor_max_speed``
       - The requested duty is above what the compressor delivers at
         ``rps_max`` (``capacity_clamped == "max"``).

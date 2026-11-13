@@ -268,9 +268,12 @@ class _IndoorSearch:
         T_a_room: float,
         wall_K: WallTemperature | None,
         warm: dict[str, float] | None = None,
+        ground_flow_ratio: float = 1.0,
     ) -> None:
         self.model = model
         self.Q_r_iu, self.T0, self.T_a_room, self.wall_K = Q_r_iu, T0, T_a_room, wall_K
+        #: Loop flow over the reference flow at which every candidate is closed.
+        self.ground_flow_ratio = float(ground_flow_ratio)
         self.rows: dict[float, tuple[float, str, dict | None]] = {}
         self.warm: dict[str, float] = dict(warm or {})
         self.pr_ceiling_seen = False
@@ -281,7 +284,13 @@ class _IndoorSearch:
         if load_approach not in self.rows:
             model = self.model
             status, row, g, T_out = model._close_ground_side(
-                load_approach, self.Q_r_iu, self.T0, self.T_a_room, self.wall_K, self.warm
+                load_approach,
+                self.Q_r_iu,
+                self.T0,
+                self.T_a_room,
+                self.wall_K,
+                self.warm,
+                ground_flow_ratio=self.ground_flow_ratio,
             )
             if status == "invalid" and model._last_pr_event is not None:
                 self.pr_ceiling_seen = self.pr_ceiling_seen or model._last_pr_event[0] == "pr_above_max"
@@ -364,9 +373,12 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     history, is the mean ground-side heat, while the fluid temperatures of
     the row are those of the running machine. ``Cd_cycling=None`` restores
     continuous operation at the minimum speed (the row then delivers more
-    than the request). The coupled ground-flow solver
-    (``ground_flow_control`` other than ``"constant"``) does not cycle: there
-    a request below the minimum-speed duty is ``compressor_min_speed``.
+    than the request). The coupled ground-flow solver (a prescribed ground
+    flow, or ``ground_flow_control`` other than plain constant flow) cycles
+    the same way: its minimum-speed machine is the one the fixed-flow search
+    finds at that flow, and a variable flow is chosen for the least mean
+    input. Only with ``Cd_cycling=None`` is a request below its
+    minimum-speed duty the failure ``compressor_min_speed``.
 
     **Defaults that follow the capacity.** With only ``hp_capacity`` (and
     ``ref``) given, the ground side and the indoor airflow are sized from it,
@@ -1353,6 +1365,82 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room: float,
         wall_K: float | Callable[[float], float],
     ) -> dict:
+        """Operating point of the coupled solver at one loop flow, cycling included.
+
+        The coupled closure (:meth:`_coupled_flow_point`) solves the request
+        in continuous operation and reports a compressor on its speed floor
+        as a failure. A unit asked for less than it delivers there switches
+        on and off, at any loop flow: when cycling is modelled, the
+        minimum-speed machine at this flow is taken from the fixed-flow
+        search (:meth:`_cycling_flow_point`) and returned as the mean over
+        the cycling period, so the flow selection ranks it on the mean input
+        it draws for the request. Just above the smallest minimum-speed duty
+        both exist -- a continuous point at the one indoor approach that
+        still reaches the request, and cycling at a better one -- and the
+        lower mean input is returned, as the fixed-flow solver ranks them.
+        """
+        row = self._coupled_flow_point(ratio, Q_r_iu, T0, T_a_room, wall_K)
+        if self.cycling is None or Q_r_iu == 0:
+            return row
+        continuous = bool(row.get("converged", False))
+        cycling = self._cycling_flow_point(
+            ratio, Q_r_iu, T0, T_a_room, wall_K, below_speed_floor=row.get("failure_reason") == "compressor_min_speed"
+        )
+        if cycling is None or (continuous and float(row["E_tot [W]"]) <= float(cycling["E_tot [W]"])):
+            return row
+        return cycling
+
+    def _cycling_flow_point(
+        self,
+        ratio: float,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: WallTemperature,
+        *,
+        below_speed_floor: bool,
+    ) -> dict | None:
+        """Mean row of a unit that cycles at the loop flow ``ratio``, or ``None``.
+
+        The same search as the fixed-flow solver (:class:`_IndoorSearch`), at
+        this flow: the minimum-speed candidates are ranked on the mean input
+        they draw for the request and the best one is averaged
+        (:meth:`_report_part_load`). With a prescribed flow equal to the
+        reference flow the row is the one :meth:`_solve_operating_point`
+        returns for the same borehole wall. Only a row on the speed floor is
+        taken; where the coupled closure itself says the request is below its
+        minimum-speed duty (``below_speed_floor``), so is a candidate of this
+        search that meets the request exactly -- the two closures put that
+        duty a fraction of a percent apart.
+        """
+        search = _IndoorSearch(self, Q_r_iu, T0, T_a_room, wall_K, ground_flow_ratio=ratio)
+        self._search_indoor(search)
+        value, _, row = search.best()
+        if row is None or not value < OBJ_CAPACITY_LIMITED:
+            return None
+        if self._cycling_state(row, Q_r_iu) is None and not (below_speed_floor and row.get("capacity_clamped") is None):
+            return None
+        result = dict(row)
+        result.update(
+            {
+                "converged": True,
+                "failure_reason": "none",
+                # Balanced as the fixed-flow solver balances the ground side
+                # (duty equality, or spare capacity it accepts: `_BALANCED`).
+                "hx_feasible": True,
+                "approach_solver_success": True,
+            }
+        )
+        return self._report_part_load(result, Q_r_iu)
+
+    def _coupled_flow_point(
+        self,
+        ratio: float,
+        Q_r_iu: float,
+        T0: float,
+        T_a_room: float,
+        wall_K: float | Callable[[float], float],
+    ) -> dict:
         """At fixed flow, close the ground HX and optimize the indoor approach."""
         from scipy.optimize import brentq, minimize_scalar
 
@@ -1543,9 +1631,9 @@ class GroundSourceHeatPump(ReferenceStateMixin):
     #: the condenser runs partly flooded) instead of following the ground loop.
     _BALANCED = frozenset({"equality", "slack_bound", "slack_floor"})
 
-    def _ground_conductance(self, mode: str) -> tuple[dict, float]:
-        """Loop state and ε·ṁ·c_p of the ground HX at the fixed reference flow [W/K]."""
-        loop = ground_flow_state(self._ground_settings, 1.0)
+    def _ground_conductance(self, mode: str, ground_flow_ratio: float = 1.0) -> tuple[dict, float]:
+        """Loop state and ε·ṁ·c_p of the ground HX at a fixed loop flow [W/K] (the reference flow by default)."""
+        loop = ground_flow_state(self._ground_settings, ground_flow_ratio)
         fluid = self.source_fluid
         m_dot = loop["dV"] * fluid.rho
         UA_ground, _ = self._rated_hx_UAs(mode)
@@ -1559,6 +1647,8 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         T_a_room: float,
         wall_K: WallTemperature | None,
         warm: dict,
+        *,
+        ground_flow_ratio: float = 1.0,
     ) -> tuple[str, dict | None, float, float]:
         """Close the ground-side heat balance at one indoor approach.
 
@@ -1594,7 +1684,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
         heating = Q_r_iu < 0
         fluid = self.source_fluid
         lo, hi = self._GROUND_APPROACH_BOUNDS
-        loop, conductance = self._ground_conductance("heating" if heating else "cooling")
+        loop, conductance = self._ground_conductance("heating" if heating else "cooling", ground_flow_ratio)
         # Ground duty is the indoor duty minus (heating) or plus (cooling) the
         # compressor work; a COP near 4 is a starting guess only.
         g = float(warm.get("g", abs(Q_r_iu) * (0.75 if heating else 1.25) / conductance))
@@ -1647,6 +1737,7 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                     Q_r_iu,
                     T0,
                     T_a_room,
+                    ground_flow_ratio=ground_flow_ratio,
                     source_temperature_K=T_out,
                     speed_clamp_is_failure=False,
                 )
@@ -2431,9 +2522,11 @@ class GroundSourceHeatPump(ReferenceStateMixin):
                 ground_flow_ratio=ground_flow_ratio,
                 T_bhe_wall=T_bhe_wall,
             )
-            # The coupled solver does not cycle (a speed clamp is its
-            # failure); its rows get the part-load keys of continuous operation.
-            self._report_part_load(result, Q_r_iu)
+            # A row the coupled solver met by cycling is already the mean
+            # over the cycling period; every other row gets the part-load
+            # keys of continuous operation.
+            if CAPACITY_RATIO_KEY not in result:
+                self._report_part_load(result, Q_r_iu)
             return result if return_dict else pd.DataFrame([result])
 
         if Q_r_iu == 0:

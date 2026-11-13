@@ -292,9 +292,15 @@ request that is not delivered) are on every row.
 
 What the cycling model does not contain: no standby power is added while the
 compressor is off, and a start is not resolved in time — the degradation is
-the standard's seasonal-average figure. The coupled ground-flow solver
-(:doc:`ground-flow`, ``ground_flow_control`` other than ``"constant"``) does
-not cycle: a request below its minimum-speed duty is reported as the failure
+the standard's seasonal-average figure.
+
+The coupled ground-flow solver (:doc:`ground-flow`: a prescribed ground flow,
+or ``ground_flow_control`` other than plain constant flow) cycles the same
+way. Its minimum-speed machine is the one the fixed-flow search finds at that
+loop flow, averaged as above, so a prescribed flow equal to the reference
+flow returns the fixed-flow row; a variable flow is chosen for the least mean
+input for the request. Only with ``Cd_cycling=None`` does that solver report
+a request below its minimum-speed duty as the failure
 ``compressor_min_speed``.
 
 COP boundary

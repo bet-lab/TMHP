@@ -275,7 +275,11 @@ def test_dynamic_hx_uses_current_wall_and_selected_flow(cls):
 
 @pytest.mark.parametrize("cls", [GroundSourceHeatPump, GroundSourceHeatPumpBoiler])
 def test_speed_limit_is_distinct_from_hx_limit(cls):
-    row = _run(_model(cls, rps_min=100, rps_max=150))
+    # The space-conditioning unit meets a request below its minimum-speed duty
+    # by cycling, in the coupled solver too (tests/test_gshp_coupled_cycling.py);
+    # the solver's own failure is what it reports without the cycling model.
+    extra = {"Cd_cycling": None} if cls is GroundSourceHeatPump else {}
+    row = _run(_model(cls, rps_min=100, rps_max=150, **extra))
     assert not row["converged"]
     assert row["failure_reason"] == "compressor_min_speed"
     assert math.isnan(row["cop_sys [-]"])

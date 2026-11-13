@@ -212,3 +212,34 @@ def test_an_interrupted_csv_write_keeps_the_old_csv_and_drops_its_record(harness
         harness.main(["--unit", "fake_a", "--no-summary", "--results-dir", str(tmp_path)])
     assert (tmp_path / "fake_a.csv").read_bytes() == old_csv, "no half-written CSV"
     assert not _record(tmp_path, "fake_a").exists()
+
+
+def test_committed_parity_figure_states_the_adopted_statistics() -> None:
+    """The numbers written on the figure are those of the adopted catalogues.
+
+    Catalogues on hold are drawn but not scored (``scripts/validation/parity_figure.py``).
+    The committed SVG keeps its text, so the statement on each panel can be checked
+    against ``validation/results`` without rendering anything.
+    """
+    import pandas as pd
+
+    root = Path(__file__).resolve().parents[1]
+    results = root / "validation" / "results"
+    points = pd.concat(
+        [pd.read_csv(p) for p in sorted(results.glob("*.csv")) if p.name != "summary.csv"], ignore_index=True
+    )
+    points = points[points.usable]
+    svg = " ".join((root / "docs" / "source" / "_static" / "validation_parity.svg").read_text(encoding="utf-8").split())
+
+    for model_class in ("ASHPB", "ASHP"):
+        panel = points[points.model_class == model_class]
+        scored = panel[panel.status == "adopted"]
+        assert f"{scored.slug.nunique()} units, {len(scored)} points" in svg, model_class
+        assert f"MAPE {scored.abs_pct_error.mean():.1f} %" in svg, model_class
+        assert f"{(scored.abs_pct_error <= 10.0).mean() * 100.0:.0f} % within" in svg, model_class
+        pooled = f"{panel.slug.nunique()} units, {len(panel)} points"
+        held = panel[panel.status == "hold"]
+        if not held.empty:
+            assert pooled not in svg, f"{model_class}: catalogues on hold are pooled into the statistics"
+            refrigerants = "/".join(sorted(held.refrigerant.unique()))
+            assert f"on hold, not scored ({refrigerants}, {held.slug.nunique()} units)" in svg

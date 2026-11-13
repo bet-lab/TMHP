@@ -59,8 +59,9 @@ the supported set:
 
 - Refrigerants that become supercritical at DHW temperatures, notably R744
   (see below).
-- User-defined ``HEOS::`` mixtures; the constructor does not return for
-  them.
+- User-defined ``HEOS::`` mixtures: the constructor raises ``ValueError``
+  (the default ``T_cond_max`` is not defined for a mixture), and with
+  ``T_cond_max=None`` it does not return.
 
 CoolProp returns REFPROP-grade equation-of-state values, so the same
 first-principles cycle calculation can be rerun with a different

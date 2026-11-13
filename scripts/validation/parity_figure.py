@@ -9,6 +9,12 @@ but "does it keep matching when the working fluid and the size change", so
 refrigerant is the colour and nominal capacity the marker size. A model that
 had been quietly tuned to one unit would show up as one tight cluster on the
 diagonal and the rest scattered.
+
+Only ``adopted`` catalogues are scored: the statistics written on a panel are
+those of the validation set, the numbers the documentation quotes. Catalogues
+on ``hold`` (``validation.parity.spec``) are still drawn, as hollow grey rings
+under the scored points, so the figure shows what is held back and where it
+sits without counting it.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ import dartwork_mpl as dm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.lines import Line2D
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "scripts" / "visualization"))
@@ -43,6 +50,10 @@ REFRIGERANT_COLOR = {
     "R134a": COLORS["load"],
 }
 
+#: Units on hold: drawn, not scored.
+HOLD_COLOR = "#8a8f98"
+HOLD_ALPHA = 0.55
+
 PANELS = (
     ("ASHPB", "a", "Air-to-water (heating)"),
     ("ASHP", "b", "Air-to-air (heating and cooling)"),
@@ -55,6 +66,18 @@ def load_points() -> pd.DataFrame:
         raise SystemExit("no results under validation/results/ -- run\n  uv run python -m validation.parity.run")
     df = pd.concat(frames, ignore_index=True)
     return df[df.usable]
+
+
+def panel_statistics(points: pd.DataFrame) -> dict[str, float]:
+    """What a panel states about its points: adopted catalogues only."""
+    scored = points[points.status == "adopted"]
+    return {
+        "units": int(scored.slug.nunique()),
+        "points": int(len(scored)),
+        "mae": float(scored.abs_error.mean()),
+        "mape": float(scored.abs_pct_error.mean()),
+        "within10": float((scored.abs_pct_error <= 10.0).mean() * 100.0),
+    }
 
 
 def _marker_size(capacity_kw: pd.Series) -> np.ndarray:
@@ -80,7 +103,9 @@ def main() -> None:
         ax.fill_between(line, 0.90 * line, 1.10 * line, color=COLORS["band10"], alpha=0.70, linewidth=0, label="±10 %")
         ax.plot(line, line, linestyle=":", color=COLORS["muted"], linewidth=dm.lw(0))
 
-        for refrigerant, group in sub.groupby("refrigerant"):
+        adopted = sub[sub.status == "adopted"]
+        held = sub[sub.status == "hold"]
+        for refrigerant, group in adopted.groupby("refrigerant"):
             ax.scatter(
                 group.cop_target,
                 group.cop_pred,
@@ -92,6 +117,18 @@ def main() -> None:
                 zorder=4,
                 label=f"{refrigerant} ({group.nominal_kW.nunique()} sizes)",
             )
+        if not held.empty:
+            # On hold: same place and size, hollow, one layer below the scored points.
+            ax.scatter(
+                held.cop_target,
+                held.cop_pred,
+                s=_marker_size(held.nominal_kW),
+                facecolor="none",
+                edgecolor=HOLD_COLOR,
+                alpha=HOLD_ALPHA,
+                linewidth=HAIRLINE,
+                zorder=3,
+            )
 
         # The offset cluster is deliberately left unlabelled here. Which units
         # they are, and why they sit where they do, is a three-cause story that
@@ -102,15 +139,13 @@ def main() -> None:
         # the single-cause version is the one that turned out to be wrong. It
         # belongs in the caption of whatever embeds this, not on the axes.
 
-        mae = float(sub.abs_error.mean())
-        mape = float(sub.abs_pct_error.mean())
-        within10 = float((sub.abs_pct_error <= 10.0).mean() * 100.0)
+        stats = panel_statistics(sub)
         ax.text(
             0.04,
             0.96,
-            f"{sub.slug.nunique()} units, {len(sub)} points\n"
-            f"MAE {mae:.2f}   MAPE {mape:.1f} %\n"
-            f"{within10:.0f} % within ±10 %",
+            f"{stats['units']} units, {stats['points']} points\n"
+            f"MAE {stats['mae']:.2f}   MAPE {stats['mape']:.1f} %\n"
+            f"{stats['within10']:.0f} % within ±10 %",
             transform=ax.transAxes,
             va="top",
             ha="left",
@@ -129,7 +164,23 @@ def main() -> None:
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlabel("Published COP [-]")
         ax.grid(True, alpha=0.25, linewidth=GRIDLINE)
-        ax.legend(loc="lower right", frameon=False, fontsize=dm.fs(-2), handletextpad=0.4)
+        handles, labels = ax.get_legend_handles_labels()
+        if not held.empty:
+            handles.append(
+                Line2D(
+                    [],
+                    [],
+                    linestyle="none",
+                    marker="o",
+                    markerfacecolor="none",
+                    markeredgecolor=HOLD_COLOR,
+                    markeredgewidth=HAIRLINE,
+                    markersize=np.sqrt(dm.fs(2) + dm.fs(1) * 0.8),
+                )
+            )
+            refrigerants = "/".join(sorted(held.refrigerant.unique()))
+            labels.append(f"on hold, not scored ({refrigerants}, {held.slug.nunique()} units)")
+        ax.legend(handles, labels, loc="lower right", frameon=False, fontsize=dm.fs(-2), handletextpad=0.4)
         ax.set_title(title, loc="left", fontsize=dm.fs(0))
         panel_letter(ax, letter)
 
@@ -138,7 +189,10 @@ def main() -> None:
     finalize(fig, out, mt="6%", formats=("svg", "png"))
     plt.close(fig)
     print(f"wrote {out}.svg")
-    print(f"  {df.slug.nunique()} units, {len(df)} points, overall MAPE {df.abs_pct_error.mean():.1f} %")
+    overall = panel_statistics(df)
+    held = df[df.status == "hold"]
+    print(f"  adopted: {overall['units']} units, {overall['points']} points, MAPE {overall['mape']:.1f} %")
+    print(f"  on hold (drawn, not scored): {held.slug.nunique()} units, {len(held)} points")
 
 
 if __name__ == "__main__":

@@ -129,11 +129,94 @@ Two relations hold in every running result (``analyze_steady`` and each
   from the request. ``dT_ref_tank [K]`` is the approach the cycle ran at and
   ``tank_hx_residual [W]`` the remaining imbalance (zero unless the closure
   could not be bracketed, as on the pressure-ratio floor). On the speed floor
-  the result no longer depends on the request.
+  the running machine no longer depends on the request.
 
 The evaporator approach is searched between 1 and 20 K and, when the heat
 exchanger already carries the duty at 1 K (a compressor at low speed against
 an evaporator sized for the full capacity), down to 0.05 K.
+
+.. _boiler-steady-cycling:
+
+Steady state below the minimum capacity
+=======================================
+
+A request below what the compressor delivers at ``rps_min`` is met by
+switching it on and off. ``analyze_steady`` reports such a point
+(``capacity_clamped == "min"``) as the mean over the cycling period, with the
+same keys as :doc:`ashp` and :doc:`gshp` (:mod:`tmhp.cycling`):
+
+- ``Q_ref_tank [W]`` equals the request. ``Q_min [W]`` is the duty of the
+  running machine and ``capacity_ratio [-]`` the request divided by it (the
+  *CR* of EN 14825).
+- ``runtime_fraction [-]``, the share of the time the compressor runs, equals
+  *CR*: heat and refrigerant rates (``Q_ref_tank``, ``Q_ref_ground``,
+  ``m_dot_ref``) are the running values times it. This is how a dynamic step
+  reports a compressor that ran part of the step.
+- The electrical inputs (``E_cmp``, ``E_pmp``, ``E_tot``) carry the EN 14825
+  degradation for a unit delivering to water,
+  ``COP = COP_min · CR / (Cc · CR + 1 − Cc)``. The standard takes the start-up
+  loss of a hydronic unit as negligible and charges the power the unit draws
+  while its compressor is off; ``Cc`` is one minus that power over the
+  running input. The mean input is therefore the running input times
+  ``CR + (1 − Cc)(1 − CR)``, and both COPs are the continuous ones times
+  ``part_load_factor [-]``. ``E_cycling_loss [W]`` is the off-state part.
+- ``Q_bhe [W]`` is the mean ground-side heat less the mean pump power.
+- Temperatures, pressures and speed are those of the running machine; the
+  loop flow keeps its running value, as in a dynamic step.
+
+``Cd_cycling`` is that coefficient ``Cc`` (the constructor argument has the
+same name in every family). The default 0.9 is the value the standard
+prescribes for a unit that has not been tested: an off-state draw of a tenth
+of the running input. For a unit with a measured standby power use
+``Cd_cycling = 1 − P_off / P_on``; ``1.0`` is loss-free cycling; ``None``
+returns the continuous minimum-speed point, which delivers more than the
+request (the behaviour before this report existed).
+
+.. list-table:: EN 14825 degradation with ``Cc = 0.9``
+   :header-rows: 1
+   :widths: 25 25 25 25
+
+   * - ``capacity_ratio``
+     - ``part_load_factor``
+     - Mean input / running input
+     - ``runtime_fraction``
+   * - 0.1
+     - 0.526
+     - 0.190
+     - 0.1
+   * - 0.2
+     - 0.714
+     - 0.280
+     - 0.2
+   * - 0.4
+     - 0.870
+     - 0.460
+     - 0.4
+   * - 0.6
+     - 0.938
+     - 0.640
+     - 0.6
+   * - 0.8
+     - 0.976
+     - 0.820
+     - 0.8
+   * - 1.0
+     - 1.000
+     - 1.000
+     - 1.0
+
+The default machine (8 kW, R410A) at a 0 °C source and a 35 °C tank delivers
+3.05 kW at its minimum speed. A 400 W request used to return those 3.05 kW at
+896 W of input; it now returns 400 W at 195 W (system COP 2.05 against 3.40
+for the running machine), and a 2 kW request 2 kW at 619 W (COP 3.23).
+
+A dynamic run is not affected. There the tank thermostat switches the
+compressor, which runs at ``hp_capacity`` — not at its minimum speed — for
+``runtime_fraction [-]`` of a step, and the row already is the step mean
+(next section). No standby power is added to the off time of a dynamic run:
+the 10 % default belongs to the standard's part-load points, and applied to
+a storage heater whose compressor runs a fifth of the day it would add more
+than 40 % to the daily electricity.
 
 Dynamic operation
 =================

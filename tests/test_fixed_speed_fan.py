@@ -173,7 +173,7 @@ EPS = 5e-4  # +/- 0.05 % around the fixed flow
 
 
 def _ashpb(**fan):
-    return AirSourceHeatPumpBoiler(**fan)
+    return AirSourceHeatPumpBoiler(Cd_cycling=None, **fan)
 
 
 def _gshp(**fan):

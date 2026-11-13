@@ -64,6 +64,48 @@ power averaged over the step; ``min_on_time_s`` / ``min_off_time_s``
 (default 0) hold the compressor to a minimum run and rest time. See
 :ref:`time-step-and-thermostat`.
 
+Steady state below the minimum capacity
+=======================================
+
+A request below what the compressor delivers at ``rps_min`` is met by
+switching it on and off, and ``analyze_steady`` reports that point
+(``capacity_clamped == "min"``) as the mean over the cycling period — the
+convention of :doc:`ashp`, with the EN 14825 form for a unit delivering to
+water (:ref:`boiler-steady-cycling` has the formula and a table):
+
+- ``Q_ref_tank [W]`` equals the request and ``PLR_delivered [-]`` follows it;
+  ``Q_min [W]`` is the duty of the running machine and ``capacity_ratio [-]``
+  the request divided by it.
+- ``runtime_fraction [-]`` equals the capacity ratio. Heat and flow rates
+  (``Q_ref_tank``, ``Q_ref_ou``, ``Q_ou_a``, ``m_dot_ref``, ``dV_ou_a``) are
+  the running values times it, as in a dynamic step.
+- ``E_cmp``, ``E_ou_fan`` and ``E_tot`` are the running values times
+  ``CR + (1 − Cc)(1 − CR)``: the unit keeps drawing ``1 − Cc`` of its running
+  input while the compressor is off. Both COPs are the continuous ones times
+  ``part_load_factor [-]``; ``E_cycling_loss [W]`` is the off-state part.
+- Temperatures, pressures and speed are those of the running machine.
+
+``Cd_cycling`` is the coefficient ``Cc``: 0.9 by default (the standard's value
+for an untested unit), ``1 − P_off / P_on`` for a unit with a measured standby
+power, ``1.0`` for loss-free cycling, and ``None`` for the continuous
+minimum-speed point, which delivers more than the request. An 8 kW R32 unit
+at 7 °C air and a 35 °C tank delivers 3.7 kW at its minimum speed: a 400 W
+request used to return those 3.7 kW at 822 W of input and now returns 400 W
+at 162 W (system COP 2.47 against 4.49 for the running machine).
+
+.. note::
+
+   The declared COP of an EN 14825 part-load condition belongs to the
+   declared capacity at that condition — the unit running at its lowest step
+   when the load is below it — and the standard applies the degradation
+   afterwards, in the bin calculation. Compare a certified part-load COP with
+   the running machine: build the model with ``Cd_cycling=None``, or divide
+   ``cop_sys [-]`` by ``part_load_factor [-]``.
+
+A dynamic run is not affected: the tank thermostat already switches the
+compressor, which runs at ``hp_capacity`` for ``runtime_fraction [-]`` of a
+step.
+
 Default compressor efficiencies
 ===============================
 

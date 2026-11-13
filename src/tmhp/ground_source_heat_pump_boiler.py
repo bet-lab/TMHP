@@ -83,6 +83,7 @@ from .compressor_envelope import (
 )
 from .compressor_speed import default_displacement, solve_compressor_speed
 from .constants import c_w, k_w, mu_w, rho_w
+from .cycling import CC_WATER_DEFAULT, CyclingDegradation, report_boiler_cycling, resolve_cycling, steady_cycling
 from .dynamic_context import (
     ControlState,
     CycleSolveOutcome,
@@ -184,6 +185,19 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     exchanger is closed on the heat actually delivered (``dT_ref_tank [K]``,
     ``tank_hx_residual [W]``); and each dynamic step's cycle is solved against
     the ground fluid of that same step.
+
+    **Below the minimum capacity.** ``analyze_steady`` reports a request below
+    what the compressor delivers at ``rps_min`` as the mean of on/off cycling
+    (``capacity_clamped == "min"``, :mod:`tmhp.cycling`): ``Q_ref_tank [W]``
+    equals the request, ``runtime_fraction [-]`` is the share of the time the
+    compressor runs, and the electrical input carries the EN 14825 degradation
+    of a unit delivering to water -- ``Cd_cycling`` is its coefficient ``Cc``
+    (0.9: while the compressor is off the unit draws a tenth of its running
+    input; 1.0: nothing; a tested unit has ``Cc = 1 - P_off / P_on``).
+    ``Cd_cycling=None`` returns the continuous minimum-speed point, which
+    delivers more than the request. Dynamic runs are not affected: there the
+    tank thermostat switches the compressor, which runs at ``hp_capacity`` for
+    ``runtime_fraction [-]`` of a step.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -201,6 +215,13 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         "Q_tank_load [W]",
         "m_dot_ref [kg/s]",
     )
+    #: The same rates as ``analyze_steady`` averages them when the unit cycles
+    #: (:meth:`_report_part_load`): heat and refrigerant rates with the
+    #: capacity ratio, electrical inputs with the power fraction. ``Q_bhe`` and
+    #: ``E_cmp_plus_pmp`` follow from the averaged terms.
+    _CYCLING_RATE_KEYS: tuple[str, ...] = ("Q_ref_ground [W]", "Q_ref_tank [W]", "m_dot_ref [kg/s]")
+    _CYCLING_POWER_KEYS: tuple[str, ...] = ("E_cmp [W]", "E_pmp [W]")
+    _CYCLING_SOURCE_HEAT_KEY: str | None = "Q_ref_ground [W]"
     _RATING_FAMILY = "GSHPB"
     _RATING_DEFAULT_MODE = "heating"
 
@@ -326,8 +347,14 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
         ground_hx_constant_fraction: float = 0.2,
         ground_hx_fluid_exponent: float = 0.8,
         ground_hx_refrigerant_exponent: float = 0.8,
+        # On/off cycling below the minimum continuous capacity in analyze_steady:
+        # EN 14825 degradation coefficient Cc of a unit delivering to water
+        # (None: no cycling, the row over-delivers at the minimum speed).
+        Cd_cycling: CyclingDegradation | float | None = CC_WATER_DEFAULT,
     ) -> None:
         validate_ctor("GSHPB", locals())
+        #: EN 14825 cycling degradation of ``analyze_steady`` (None: continuous at minimum speed).
+        self.cycling: CyclingDegradation | None = resolve_cycling(Cd_cycling, "water")
         # Capacity-scaled defaults (tmhp._source_boiler): a machine given only
         # hp_capacity and a refrigerant keeps the same rated performance at any
         # capacity. Every value the caller supplies is used as given.
@@ -2161,6 +2188,26 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
 
         return results_df
 
+    def _report_part_load(self, result: dict, Q_ref_tank: float) -> None:
+        """Write the cycling keys of an ``analyze_steady`` row; average it if the unit cycles.
+
+        A row on the compressor's speed floor that delivers more than the
+        request becomes the mean over the on/off cycling period
+        (:func:`tmhp.cycling.report_boiler_cycling`): the rates a dynamic step
+        averages with its run time are multiplied by ``capacity_ratio [-]``,
+        the electrical inputs by ``capacity_ratio / part_load_factor``.
+        """
+        report_boiler_cycling(
+            result,
+            self.cycling,
+            Q_ref_tank,
+            rate_keys=self._CYCLING_RATE_KEYS,
+            power_keys=self._CYCLING_POWER_KEYS,
+            source_heat_key=self._CYCLING_SOURCE_HEAT_KEY,
+            hp_capacity=self.hp_capacity,
+        )
+
+    @steady_cycling(duty_arg="Q_ref_tank")
     @steady_envelope(duty_arg="Q_ref_tank")
     def analyze_steady(
         self,
@@ -2216,6 +2263,24 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
               :mod:`tmhp.ground_flow_control` apply.
             - ``"failure_detail"`` (str, failures only) — which check
               rejected a ``"cycle_invalid"`` point.
+            - ``"runtime_fraction [-]"``, ``"capacity_ratio [-]"``,
+              ``"part_load_factor [-]"``, ``"Q_min [W]"`` and
+              ``"E_cycling_loss [W]"`` — on every row. A request below the
+              duty at ``rps_min`` (``capacity_clamped == "min"``) is reported
+              as the mean of on/off cycling: ``Q_ref_tank [W]`` equals the
+              request (``Q_min [W]`` is the continuous duty), heat and
+              refrigerant rates are the running machine's times
+              ``capacity_ratio [-]`` -- the compressor runs that share of the
+              time, ``runtime_fraction [-]`` -- and the electrical inputs
+              carry the EN 14825 degradation for a unit delivering to water
+              (``Cd_cycling``: the running values times
+              ``capacity_ratio / part_load_factor``), so both COPs are the
+              continuous ones times the part-load factor. Temperatures,
+              pressures and speed are those of the running machine. With
+              ``Cd_cycling=None`` the row is the continuous minimum-speed
+              point and ``Q_ref_tank [W]`` exceeds the request.
+              The loop pump is averaged like the compressor, and
+              ``Q_bhe [W]`` is the mean ground-side heat less that pump power.
 
             Every reason other than ``"none"`` comes with an off-mode state:
             ``hp_is_on=False``, ``Q_ref_tank [W] = E_cmp [W] = 0`` and NaN

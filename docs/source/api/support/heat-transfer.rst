@@ -73,6 +73,15 @@ See :doc:`/models/ground-response` for the model and its checks.
     :members:
     :show-inheritance:
 
+Source-loop fluid and freezing limit
+====================================
+
+See :ref:`source-fluid` for the rule and its basis.
+
+.. automodule:: tmhp.source_fluid
+    :members:
+    :show-inheritance:
+
 Ground-side defaults
 ====================
 

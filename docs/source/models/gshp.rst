@@ -113,6 +113,29 @@ Source-side mechanics
 Same g-function-based borehole as :doc:`gshpb`. See that page for the
 detailed mechanic and the g-function figure.
 
+``source_fluid`` names the ground-loop liquid: ``"water"`` (default) or an
+antifreeze mixture such as ``"MPG-25%"`` (:ref:`source-fluid`). The loop liquid
+is never colder than its freezing point plus 3 K -- 3 °C for water. A heating
+duty that would chill it further is reduced to the largest one that does not
+(``capacity_clamped == "max"``, ``capacity_binding ==
+"source_fluid_freezing"``), and when none does the unit is off with
+``failure_reason == "source_fluid_freezing"``. Cooling warms the loop and is
+not affected unless the ground itself is below the limit. The ISO 13256-1
+ground-loop heating point (liquid entering at 0 °C, leaving near -3 °C) and a
+0 °C borehole wall are antifreeze conditions:
+
+.. code-block:: python
+
+   gshp = GroundSourceHeatPump(source_fluid="MPG-30%")   # freezes at -12.8 °C, limit -9.8 °C
+   gshp.analyze_steady(Q_r_iu=-4000, T0=0, T_a_room=20, T_bhe_wall=0)
+
+With a mixture the default flow keeps the 3 K loop difference (it grows by
+the ratio of the heat capacities) and the borehole resistance is evaluated
+with the mixture's viscosity. In the default 26 mm U-tube 25-30 % propylene
+glycol at the default flow is at the laminar limit for a borehole serving
+about 4 kW or less; the constructor then warns and ``R_b`` is about half as
+large again, so give a larger ``ground_flow_ref_lpm`` for such a loop.
+
 In ``analyze_dynamic`` the ground fluid is closed inside each step: the
 borehole wall of step ``n`` is the step mean of its response to every load
 so far, the step's own included, and the fluid temperature follows from it

@@ -66,7 +66,9 @@ Default sizing
 machine: every other size follows the capacity, so the rated cycle is the same
 at 1 kW and at 100 kW (B0/W35: condensing 5 K above the tank, evaporating about
 6 K below the entering fluid, COP of the cycle 4.2 with R410A and the default
-efficiency map).
+efficiency map). B0 is a brine point: the loop liquid leaves the heat pump at
+-3 °C, so it is run with an antifreeze mixture (``source_fluid="MPG-25%"``);
+with the default water the point is refused (see :ref:`source-fluid`).
 
 .. list-table::
     :header-rows: 1
@@ -86,6 +88,8 @@ efficiency map).
       - ``0.75 × hp_capacity / (ρ c · 3 K)``
       - Rated source-side heat at a 3 K loop temperature difference:
         3.58 L/min per kW (28.7 L/min at 8 kW), shared evenly by the boreholes.
+        ``ρ c`` is that of ``source_fluid``: 3.77 L/min per kW with 25 %
+        propylene glycol.
     * - ``E_pmp``
       - ``75 W/ton × hp_capacity``
       - Upper bound of ASHRAE ground-loop pumping grade B, 21.3 W per kW
@@ -105,7 +109,7 @@ precedence). The constructor warns (``UserWarning``) when
 
 - a field you describe carries more than 80 W/m at the rated point;
 - the default flow is laminar in the U-tubes (``Re < 2300``, e.g. many
-  boreholes on a small machine);
+  boreholes on a small machine, or a viscous antifreeze mixture);
 - ``T_tank_w_upper_bound`` plus the tank heat-exchanger approach
   (``hp_capacity / UA_tank_hx``) is at or above the refrigerant's critical
   temperature: no cycle exists there, so the tank could not reach the set
@@ -134,6 +138,163 @@ Two relations hold in every running result (``analyze_steady`` and each
 The evaporator approach is searched between 1 and 20 K and, when the heat
 exchanger already carries the duty at 1 K (a compressor at low speed against
 an evaporator sized for the full capacity), down to 0.05 K.
+
+.. _source-fluid:
+
+Ground-loop liquid and its freezing limit
+=========================================
+
+``source_fluid`` says what circulates between the borefield and the
+evaporator (:mod:`tmhp.source_fluid`). The same argument and the same rule
+apply to :class:`tmhp.GroundSourceHeatPump` and
+:class:`tmhp.WaterSourceHeatPumpBoiler`.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 22 16 18 14 16 14
+
+    * - ``source_fluid``
+      - Freezing point
+      - Operating limit
+      - ``ρ c`` vs water
+      - Viscosity
+      - Conductivity
+    * - ``"water"`` (default)
+      - 0.0 °C
+      - 3.0 °C
+      - 1.00
+      - 1.0 mPa s
+      - 0.606 W/(m K)
+    * - ``"MPG-20%"``
+      - -7.2 °C
+      - -4.2 °C
+      - 0.96
+      - 4.3 mPa s
+      - 0.471 W/(m K)
+    * - ``"MPG-25%"``
+      - -9.8 °C
+      - -6.8 °C
+      - 0.95
+      - 5.5 mPa s
+      - 0.450 W/(m K)
+    * - ``"MPG-30%"``
+      - -12.8 °C
+      - -9.8 °C
+      - 0.94
+      - 7.1 mPa s
+      - 0.428 W/(m K)
+    * - ``"MEG-25%"``
+      - -11.0 °C
+      - -8.0 °C
+      - 0.93
+      - 3.7 mPa s
+      - 0.465 W/(m K)
+    * - ``"MEG-30%"``
+      - -14.6 °C
+      - -11.6 °C
+      - 0.91
+      - 4.3 mPa s
+      - 0.446 W/(m K)
+    * - ``"ethanol-20%"``
+      - -11.1 °C
+      - -8.1 °C
+      - 1.02
+      - 5.2 mPa s
+      - 0.448 W/(m K)
+
+``MPG`` is propylene glycol, ``MEG`` ethylene glycol; the number is the
+concentration by mass, anything from 5 to 60 % (``"MPG-33%"``). Freezing point
+and properties of a mixture are read from CoolProp's incompressible mixtures
+(``INCOMP::MPG``, ``MEG``, ``MEA``) at 0 °C, the liquid inlet of the brine
+rating points, and are constants during a run; water keeps the constants the
+models have always used (1000 kg/m³, 4186 J/(kg K), 1.0 mPa s, 0.606 W/(m K)).
+A :class:`tmhp.source_fluid.SourceFluid` built by hand stands for any other
+liquid or any other limit.
+
+**The limit.** The loop liquid is never colder than its freezing point plus
+3 K. In heating the coldest liquid is the one leaving the evaporator
+(``T_bhe_f_in [°C]``). The 3 K is the distance between that liquid and the
+evaporator surface: with the default source heat exchanger and flow the
+refrigerant evaporates 2.9 K below the leaving liquid at the rated duty, so
+the margin keeps the refrigerant, and the plate it boils on, at or above the
+freezing point. It is also inside the range of manufacturers' installation
+rules, which ask for a freezing point 10-15 °F below the lowest *entering*
+loop temperature (2.6-5.3 K below the leaving liquid at a 3 K loop
+difference) and for antifreeze whenever the loop may enter below 40-45 °F.
+
+**At the limit** a variable-speed unit lowers its compressor speed, and so does
+the model. A duty that would chill the liquid below the limit is reduced to the
+largest one that does not: the result runs with ``capacity_clamped == "max"``
+and ``capacity_binding == "source_fluid_freezing"``, ``Q_max [W]`` being what it
+delivers. When no duty helps -- the liquid already arrives below the limit, or
+it leaves below it even at the compressor's lowest speed -- the compressor does
+not run: the off state with ``failure_reason == "source_fluid_freezing"`` (heat
+and power 0, COP NaN) and a ``RuntimeWarning``. In ``analyze_dynamic`` the
+limit is applied to the liquid while the compressor runs
+(``T_bhe_f_in_running [°C]``); reduced steps carry ``capacity_binding``, off
+steps the ``failure_reason``, and one ``RuntimeWarning`` per run says that it
+happened.
+
+.. code-block:: python
+
+   water = GroundSourceHeatPumpBoiler()                        # 8 kW, water
+   water.analyze_steady(T_tank_w=45, T_source=10, Q_ref_tank=8000)   # 8.0 kW, leaves at 7.1 °C
+   water.analyze_steady(T_tank_w=45, T_source=5, Q_ref_tank=8000)    # 5.7 kW, leaves at 3.0 °C
+   water.analyze_steady(T_tank_w=45, T_source=0, Q_ref_tank=8000)    # off: source_fluid_freezing
+
+   brine = GroundSourceHeatPumpBoiler(source_fluid="MPG-25%")
+   brine.analyze_steady(T_tank_w=35, T_source=0, Q_ref_tank=8000)    # 8.0 kW, leaves at -3.0 °C
+   brine.analyze_steady(T_tank_w=35, T_source=-5, Q_ref_tank=8000)   # 5.0 kW, leaves at -6.8 °C
+   brine.analyze_steady(T_tank_w=35, T_source=-10, Q_ref_tank=8000)  # off: source_fluid_freezing
+
+**What the mixture changes.** Its ``ρ c`` enters the loop temperature
+difference, the evaporator effectiveness and the default flow (which keeps the
+3 K); its viscosity and conductivity enter the borehole resistance ``R_b`` (the
+film inside the U-tube) and the laminar-flow warning. Three things do not
+follow it:
+
+- ``UA_ground`` is the conductance you give or ``0.18 × hp_capacity``; it is not
+  derated for the mixture's poorer film coefficient. Pass a smaller value when
+  you know it.
+- The default pump power is the ASHRAE grade B allowance for the capacity,
+  whatever the liquid. A grade is a property of the whole installation, pipe
+  sizes included, so a glycol loop designed to grade B has it too.
+- The pipe loss of the hydraulic pump model (``hydraulic_pump``, ``pump_map``,
+  ``ground_flow_control="optimal_power"``), the flow-dependent borehole
+  resistance (``variable_Rb``) and the fluid-temperature closure of the
+  coupled ground-flow solver are evaluated with the properties of water
+  (:mod:`tmhp.ground_loop`, :mod:`tmhp.ground_flow_control`). With a mixture
+  the constructor says so in a ``UserWarning``; the pump power of the
+  hydraulic model is then understated.
+
+The flow optimiser of ``ground_flow_control="optimal_power"`` does not know
+the limit either: it picks the flow of least total power, which near the limit
+can be a low flow with a large loop temperature difference. The duty is then
+reduced, or the point refused, where a larger flow would have run. Prescribe
+the flow (constant control, ``ground_flow_lpm``) for a loop that runs near its
+limit.
+
+At 0 °C a glycol mixture is four to seven times as viscous as water. In the
+default 26 mm U-tube the default flow then sits near the laminar limit for a
+borehole serving less than about 4 kW (``Re`` 2300 at 15 L/min of 25 %
+propylene glycol), the borehole resistance rises by half and the constructor
+warns: give a larger ``ground_flow_ref_lpm`` or a smaller pipe.
+
+.. note::
+
+   Until November 2026 the loop liquid was water with no freezing point: a
+   cold source returned a running cycle with "water" at -3 °C (B0) or -12 °C.
+   Those points are now reduced or refused for the default water. To run
+   them, name the antifreeze the loop is filled with. To reproduce the
+   earlier numbers exactly -- the properties of water and no limit to speak
+   of -- pass a hand-built fluid:
+
+   .. code-block:: python
+
+      from tmhp.source_fluid import SourceFluid
+
+      legacy = SourceFluid("water without a freezing point", -60.0, rho=1000.0, cp=4186.0, mu=0.001, k=0.606)
+      gshpb = GroundSourceHeatPumpBoiler(source_fluid=legacy)
 
 Dynamic operation
 =================

@@ -491,20 +491,21 @@ What changes in a run
 
 .. figure:: ../_static/ground_cycling_outlet.svg
     :alt: Borehole outlet temperature over two hours of 10 minutes on, 20
-        minutes off. The steady model jumps between 11.4 and 14.6 degrees
-        Celsius at every switch; the dynamic model stays between 13.0 and
-        14.0.
+        minutes off. The steady model jumps between 10.9 and 14.4 degrees
+        Celsius at every switch; the dynamic model stays between 12.7 and
+        13.7.
     :align: center
     :width: 80%
 
-    ``GroundSourceHeatPumpBoiler`` with 60 s steps, 10 min on / 20 min off,
-    second day of operation. The steady model puts the outlet 3 K lower the
-    moment the compressor starts. In the dynamic model the outlet holds for
+    ``GroundSourceHeatPumpBoiler`` (8 kW defaults, 24 L/min through the
+    borehole) with 60 s steps, 10 min on / 20 min off, second day of
+    operation. The steady model puts the outlet 3.5 K lower the moment the
+    compressor starts. In the dynamic model the outlet holds for
     one transit and then falls by under 1 K. While the compressor is off the
     reported outlet is that of a loop that keeps circulating (the cold fluid
     of the last run is still on its way out); the model does not use it.
 
-.. list-table:: Default GSHPB, steady against dynamic response
+.. list-table:: 8 kW GSHPB (defaults, 24 L/min through the borehole), steady against dynamic response
     :header-rows: 1
     :widths: 34 12 18 18 18
 
@@ -515,45 +516,39 @@ What changes in a run
       - COP (heat / compressor + pump)
     * - 10 min on / 20 min off, 60 s steps, day 2
       - steady
-      - 11.28
-      - 11.09
-      - 3.93
+      - 10.76
+      - 10.61
+      - 5.81
     * -
       - dynamic
-      - 13.69
-      - 13.27
-      - 4.06
+      - 13.43
+      - 12.96
+      - 6.21
     * - 1 h on / 2 h off, 60 s steps, day 2
       - steady
-      - 11.55
-      - 11.33
-      - 3.34
+      - 10.97
+      - 10.64
+      - 4.82
     * -
       - dynamic
-      - 13.10
-      - 12.17
-      - 3.43
+      - 12.73
+      - 11.66
+      - 4.99
     * - DHW draws morning and evening, 600 s steps, 48 h
       - steady
       - 12.32
-      - 11.23
+      - 11.22
       - 3.46
     * -
       - dynamic
       - 13.76
-      - 12.18
+      - 12.17
       - 3.54
 
-The compressor sees a source 1.4 to 2.4 K warmer while it runs, and the COP
-is 2 to 3 % higher. The difference shrinks with longer runs: the first hours
-of any run are warmer than the steady model says, the days after are the same.
-
-The dynamic response also removes most of the *source lag* of a time-stepping
-model. The cycle of step :math:`n` reads the outlet of step :math:`n-1`; with
-the steady model that outlet is up to 3 K above what the same step then
-produces at start-up (600 s steps). With the dynamic response the largest gap
-is 1.6 K and the first running step is right for a physical reason: for one
-transit the outlet *is* the fluid that was in the pipe before.
+The compressor sees a source 1.4 to 2.7 K warmer while it runs, and the COP
+is 2 to 7 % higher, most for the shortest runs. The difference shrinks with
+longer runs: the first hours of any run are warmer than the steady model
+says, the days after are the same.
 
 
 Limits

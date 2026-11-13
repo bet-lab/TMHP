@@ -9,6 +9,7 @@ import pytest
 
 from tmhp import GroundSourceHeatPump, GroundSourceHeatPumpBoiler
 from tmhp.borehole_capacity import DynamicGFunction, enable_borehole_dynamics
+from tmhp.constants import c_w, rho_w
 from tmhp.ground_coupling import AggregateGFunctionCoupler
 
 
@@ -35,8 +36,10 @@ def test_derives_everything_from_the_model():
     assert dynamic.section.r_b == 0.07
     assert dynamic.section.rhoc_s == model.rho_s * model.c_s
     assert isinstance(model._ground_coupler, AggregateGFunctionCoupler) and model._ground_coupler._g is dynamic
-    # 150 m of DN32 at 24 L/min: 6.6 min through the U-tube.
-    assert dynamic.transit_time == pytest.approx(150.0 / 200.0 * 531.0, abs=1.0)
+    # Transit through 150 m of U-tube at the model's own loop flow (a few minutes).
+    m_cp = model.dV_b_f_m3s * rho_w * c_w
+    assert dynamic.transit_time == pytest.approx(dynamic.section.C_f * 150.0 / m_cp, rel=1e-9)
+    assert 200.0 < dynamic.transit_time < 600.0
     # Calling it again replaces the response instead of nesting it.
     again = enable_borehole_dynamics(model, transit=False)
     assert again.field is steady_g and again.transit_time is None

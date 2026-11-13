@@ -14,7 +14,7 @@ Two figures for ``docs/source/models/ground-response.rst``:
     10 minutes on / 20 minutes off, with and without
     ``enable_borehole_dynamics``.
 
-Default GSHPB borehole: 200 m, r_b 80 mm, DN32 single U-tube, 24 L/min.
+Default 8 kW GSHPB borehole (200 m, r_b 80 mm, DN32 single U-tube) at 24 L/min.
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ from _dmpl_common import COLORS, GRIDLINE, HAIRLINE, apply_style, finalize, stat
 Q_LINE = 27.0  # W/m, extraction per metre of borehole
 # "Steady" is the inside of the borehole (a resistance, no heat capacity); the
 # ground is transient in both models.
+FLOW_LPM = 24.0  # L/min through the borehole (the 8 kW default is 28.7)
 LABEL_STEADY = r"default: $R_b$ + line-source $g$"
 LABEL_DYNAMIC = "with borehole dynamics"
 ON_MIN, OFF_MIN = 10, 20
@@ -45,8 +46,8 @@ ON_MIN, OFF_MIN = 10, 20
 def _models(**kwargs) -> tuple[GroundSourceHeatPumpBoiler, GroundSourceHeatPumpBoiler]:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        steady = GroundSourceHeatPumpBoiler(**kwargs)
-        dynamic = GroundSourceHeatPumpBoiler(**kwargs)
+        steady = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, **kwargs)
+        dynamic = GroundSourceHeatPumpBoiler(ground_flow_ref_lpm=FLOW_LPM, **kwargs)
     enable_borehole_dynamics(dynamic)
     return steady, dynamic
 

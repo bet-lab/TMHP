@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Source side is a water loop with a prescribed inlet temperature; sink side is the shared DHW tank demand model used by the boiler families. Overview: The class is tmhp.WaterSourceHeatPumpBoiler. Un..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -275,6 +275,20 @@ heat from (0.4 K below it for the default 8 kW machine, <code class="docutils li
 <section id="sink-side-mechanics">
 <h2>Sink-side mechanics<a class="headerlink" href="#sink-side-mechanics" title="Link to this heading">¶</a></h2>
 <p>Shared DHW tank sink with an implicit per-step energy balance.</p>
+<p>Every step reports the hot-water service: <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> is the
+scheduled draw at the set point <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code> counted from the mains
+temperature, <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> warns once
+(<code class="docutils literal notranslate"><span class="pre">tmhp.dhw.DHWUnmetWarning</span></code>) when a run leaves demand unmet; see
+<a class="reference internal" href="../getting-started/first-dynamic-simulation.html#hot-water-service"><span class="std std-ref">Was the hot water delivered?</span></a> for the run totals.</p>
+<p>A tank whose level varies (<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code> or
+<code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>) follows the rules of the air-source boiler
+(<a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>, Sink-side mechanics): the draw stops at <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>,
+the make-up at full, the reported level and tank flows are the ones the
+step’s energy balance was solved with, and the demand the tank could not
+supply is <code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>. Such a run starts with
+<code class="docutils literal notranslate"><span class="pre">tank_level_init</span></code> of at least <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>.</p>
 </section>
 <section id="module-tmhp.water_source_heat_pump_boiler">
 <span id="api-reference"></span><h2>API reference<a class="headerlink" href="#module-tmhp.water_source_heat_pump_boiler" title="Link to this heading">¶</a></h2>

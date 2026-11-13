@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Plotting facade and Mollier-style refrigerant diagrams (T-h, P-h, T-s). Plotting facade: Visualization and summary output functions (Facade for backward compatibility). Mollier diagrams: Mollier di..." />
 
-    <meta property="article:modified_time" content="2026-11-13T06:34:29+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -207,6 +207,9 @@ data-aria-dark="Switch to auto color mode">
 <dt class="sig sig-object py" id="tmhp.visualization.print_simulation_summary">
 <span class="sig-prename descclassname"><span class="pre">tmhp.visualization.</span></span><span class="sig-name descname"><span class="pre">print_simulation_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_a_design</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/simulation_summary.html#print_simulation_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.visualization.print_simulation_summary" title="Link to this definition">¶</a></dt>
 <dd><p>Print a comprehensive summary of simulation results.</p>
+<p>A boiler result also gets the hot-water service section
+(<code class="xref py py-func docutils literal notranslate"><span class="pre">print_dhw_service_summary()</span></code>): requested, delivered and unmet heat
+and the number of draw steps left short.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

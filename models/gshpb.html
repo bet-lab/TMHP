@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="The GSHPB family pairs the shared refrigerant cycle with a ground-loop source side (vertical borehole field) and a DHW tank sink. Overview: solves the closed refrigerant cycle against a borehole he..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:24:16+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -484,6 +484,22 @@ taken explicitly with the whole heat rate (heat pump, draw-off, loss,
 subsystems) and a <code class="docutils literal notranslate"><span class="pre">tmhp._tank_solve.TankSolveWarning</span></code> names it. The tank
 temperature is not held at the mains temperature: a tank in a cold room cools
 below it.</p>
+<p>Every step reports the hot-water service: <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> is the
+scheduled draw at the set point <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code> counted from the mains
+temperature, <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> the part not delivered because the water
+left the mixing valve below the set point (the tank was colder than it) or
+a level-varying tank cut the draw. <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> warns once
+(<code class="docutils literal notranslate"><span class="pre">tmhp.dhw.DHWUnmetWarning</span></code>) when a run leaves demand unmet; see
+<a class="reference internal" href="../getting-started/first-dynamic-simulation.html#hot-water-service"><span class="std std-ref">Was the hot water delivered?</span></a> for the run totals.</p>
+<p>A tank whose level varies (<code class="docutils literal notranslate"><span class="pre">tank_always_full=False</span></code> or
+<code class="docutils literal notranslate"><span class="pre">prevent_simultaneous_flow</span></code>) follows the rules of the air-source boiler
+(<a class="reference internal" href="ashpb.html"><span class="doc">Air-source heat pump boiler (ASHPB)</span></a>, Sink-side mechanics): the draw stops at <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>
+(0.1 % of the volume), the make-up at full, and the reported
+<code class="docutils literal notranslate"><span class="pre">tank_level</span> <span class="pre">[-]</span></code>, <code class="docutils literal notranslate"><span class="pre">dV_tank_w_out</span> <span class="pre">[m3/s]</span></code> and <code class="docutils literal notranslate"><span class="pre">dV_tank_w_in</span> <span class="pre">[m3/s]</span></code>
+are the ones the step’s energy balance was solved with.
+<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span> <span class="pre">[m3/s]</span></code> is then the mixed water delivered and
+<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code> the demand the tank could not supply. Such a
+run starts with <code class="docutils literal notranslate"><span class="pre">tank_level_init</span></code> of at least <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>.</p>
 <section id="tank-backends">
 <h3>Tank backends<a class="headerlink" href="#tank-backends" title="Link to this heading">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">tank_model</span></code> selects how the tank itself is resolved (always-full tank,

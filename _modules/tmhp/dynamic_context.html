@@ -1548,176 +1548,194 @@ data-aria-dark="Switch to auto color mode">
 </span><span data-line="1300">    <span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span>
 </span><span data-line="1301">    <span class="n">level_next</span><span class="p">:</span> <span class="nb">float</span>
 </span><span data-line="1302">    <span class="n">dV_mix_w_out</span><span class="p">:</span> <span class="nb">float</span>
-</span><span data-line="1303">    <span class="n">dV_mix_w_out_unmet</span><span class="p">:</span> <span class="nb">float</span></div>
-
+</span><span data-line="1303">    <span class="n">dV_mix_w_out_unmet</span><span class="p">:</span> <span class="nb">float</span>
 </span><span data-line="1304">
-</span><span data-line="1305">
+<div class="viewcode-block" id="TankStepFlows.as_flow_state">
+<a class="viewcode-back" href="../../api/support/simulation.html#tmhp.dynamic_context.TankStepFlows.as_flow_state">[docs]</a>
+</span><span data-line="1305">    <span class="k">def</span><span class="w"> </span><span class="nf">as_flow_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="1306"><span class="w">        </span><span class="sd">&quot;&quot;&quot;The flows as the ``flow_state`` dict the source boilers report from.</span>
+</span><span data-line="1307">
+</span><span data-line="1308"><span class="sd">        ``dV_mix_w_out`` is the delivered mixed water and ``dV_mix_sup_w_in``</span>
+</span><span data-line="1309"><span class="sd">        the mains water the valve added to it.</span>
+</span><span data-line="1310"><span class="sd">        &quot;&quot;&quot;</span>
+</span><span data-line="1311">        <span class="k">return</span> <span class="p">{</span>
+</span><span data-line="1312">            <span class="s2">&quot;alp&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">alp</span><span class="p">,</span>
+</span><span data-line="1313">            <span class="s2">&quot;dV_mix_w_out&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">,</span>
+</span><span data-line="1314">            <span class="s2">&quot;dV_tank_w_out&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_out</span><span class="p">,</span>
+</span><span data-line="1315">            <span class="s2">&quot;dV_tank_w_in&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_tank_w_in</span><span class="p">,</span>
+</span><span data-line="1316">            <span class="s2">&quot;dV_mix_sup_w_in&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">alp</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">,</span>
+</span><span data-line="1317">            <span class="s2">&quot;dV_mix_w_out_unmet&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dV_mix_w_out_unmet</span><span class="p">,</span>
+</span><span data-line="1318">        <span class="p">}</span></div>
+</div>
+
+</span><span data-line="1319">
+</span><span data-line="1320">
 <div class="viewcode-block" id="tank_step_flows">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.dynamic_context.tank_step_flows">[docs]</a>
-</span><span data-line="1306"><span class="k">def</span><span class="w"> </span><span class="nf">tank_step_flows</span><span class="p">(</span>
-</span><span data-line="1307">    <span class="n">T_next_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1308">    <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="1309">    <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="1310">    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1311">    <span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1312">    <span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1313">    <span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1314"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TankStepFlows</span><span class="p">:</span>
-</span><span data-line="1315"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tank flows and end level of a step whose tank ends at ``T_next_K``.</span>
-</span><span data-line="1316">
-</span><span data-line="1317"><span class="sd">    The mixing valve takes the hot share ``alp`` of the demand</span>
-</span><span data-line="1318"><span class="sd">    ``ctx.dV_mix_w_out`` from the tank at the end-of-step temperature</span>
-</span><span data-line="1319"><span class="sd">    (implicit, as :func:`tank_mass_energy_residual`). An always-full tank</span>
-</span><span data-line="1320"><span class="sd">    (``ctrl.dV_tank_w_in_ctrl is None``) takes in what it gives and keeps its</span>
-</span><span data-line="1321"><span class="sd">    level. A level-varying tank takes in ``ctrl.dV_tank_w_in_ctrl`` and both</span>
-</span><span data-line="1322"><span class="sd">    flows pass :func:`limit_tank_flows`; a draw it cuts delivers</span>
-</span><span data-line="1323"><span class="sd">    proportionally less mixed water, at the same set point.</span>
-</span><span data-line="1324"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="1325">    <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_next_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span>
-</span><span data-line="1326">    <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
-</span><span data-line="1327">    <span class="n">dV_out_request</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
-</span><span data-line="1328">    <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="1329">        <span class="k">return</span> <span class="n">TankStepFlows</span><span class="p">(</span><span class="n">alp</span><span class="p">,</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="1330">    <span class="n">dV_in</span><span class="p">,</span> <span class="n">dV_out</span><span class="p">,</span> <span class="n">level_next</span> <span class="o">=</span> <span class="n">limit_tank_flows</span><span class="p">(</span>
-</span><span data-line="1331">        <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span><span class="p">),</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">V_tank_full</span>
-</span><span data-line="1332">    <span class="p">)</span>
-</span><span data-line="1333">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
-</span><span data-line="1334">    <span class="k">if</span> <span class="n">dV_out</span> <span class="o">&lt;</span> <span class="n">dV_out_request</span><span class="p">:</span>
-</span><span data-line="1335">        <span class="n">delivered</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span> <span class="o">*</span> <span class="n">dV_out</span> <span class="o">/</span> <span class="n">dV_out_request</span>
-</span><span data-line="1336">    <span class="k">return</span> <span class="n">TankStepFlows</span><span class="p">(</span><span class="n">alp</span><span class="p">,</span> <span class="n">dV_out</span><span class="p">,</span> <span class="n">dV_in</span><span class="p">,</span> <span class="n">level_next</span><span class="p">,</span> <span class="n">delivered</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span> <span class="o">-</span> <span class="n">delivered</span><span class="p">)</span></div>
+</span><span data-line="1321"><span class="k">def</span><span class="w"> </span><span class="nf">tank_step_flows</span><span class="p">(</span>
+</span><span data-line="1322">    <span class="n">T_next_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1323">    <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="1324">    <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="1325">    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1326">    <span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1327">    <span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1328">    <span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1329"><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TankStepFlows</span><span class="p">:</span>
+</span><span data-line="1330"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tank flows and end level of a step whose tank ends at ``T_next_K``.</span>
+</span><span data-line="1331">
+</span><span data-line="1332"><span class="sd">    The mixing valve takes the hot share ``alp`` of the demand</span>
+</span><span data-line="1333"><span class="sd">    ``ctx.dV_mix_w_out`` from the tank at the end-of-step temperature</span>
+</span><span data-line="1334"><span class="sd">    (implicit, as :func:`tank_mass_energy_residual`). An always-full tank</span>
+</span><span data-line="1335"><span class="sd">    (``ctrl.dV_tank_w_in_ctrl is None``) takes in what it gives and keeps its</span>
+</span><span data-line="1336"><span class="sd">    level. A level-varying tank takes in ``ctrl.dV_tank_w_in_ctrl`` and both</span>
+</span><span data-line="1337"><span class="sd">    flows pass :func:`limit_tank_flows`; a draw it cuts delivers</span>
+</span><span data-line="1338"><span class="sd">    proportionally less mixed water, at the same set point.</span>
+</span><span data-line="1339"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="1340">    <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_next_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span>
+</span><span data-line="1341">    <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">))</span>
+</span><span data-line="1342">    <span class="n">dV_out_request</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
+</span><span data-line="1343">    <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="1344">        <span class="k">return</span> <span class="n">TankStepFlows</span><span class="p">(</span><span class="n">alp</span><span class="p">,</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="1345">    <span class="n">dV_in</span><span class="p">,</span> <span class="n">dV_out</span><span class="p">,</span> <span class="n">level_next</span> <span class="o">=</span> <span class="n">limit_tank_flows</span><span class="p">(</span>
+</span><span data-line="1346">        <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span><span class="p">),</span> <span class="n">dV_out_request</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">V_tank_full</span>
+</span><span data-line="1347">    <span class="p">)</span>
+</span><span data-line="1348">    <span class="n">delivered</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
+</span><span data-line="1349">    <span class="k">if</span> <span class="n">dV_out</span> <span class="o">&lt;</span> <span class="n">dV_out_request</span><span class="p">:</span>
+</span><span data-line="1350">        <span class="n">delivered</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span> <span class="o">*</span> <span class="n">dV_out</span> <span class="o">/</span> <span class="n">dV_out_request</span>
+</span><span data-line="1351">    <span class="k">return</span> <span class="n">TankStepFlows</span><span class="p">(</span><span class="n">alp</span><span class="p">,</span> <span class="n">dV_out</span><span class="p">,</span> <span class="n">dV_in</span><span class="p">,</span> <span class="n">level_next</span><span class="p">,</span> <span class="n">delivered</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span> <span class="o">-</span> <span class="n">delivered</span><span class="p">)</span></div>
 
-</span><span data-line="1337">
-</span><span data-line="1338">
+</span><span data-line="1352">
+</span><span data-line="1353">
 <div class="viewcode-block" id="tank_mass_energy_residual">
 <a class="viewcode-back" href="../../api/support/simulation.html#tmhp.dynamic_context.tank_mass_energy_residual">[docs]</a>
-</span><span data-line="1339"><span class="k">def</span><span class="w"> </span><span class="nf">tank_mass_energy_residual</span><span class="p">(</span>
-</span><span data-line="1340">    <span class="n">x</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
-</span><span data-line="1341">    <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
-</span><span data-line="1342">    <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
-</span><span data-line="1343">    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1344">    <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1345">    <span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1346">    <span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1347">    <span class="n">C_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1348">    <span class="n">UA_tank_wall</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1349">    <span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-</span><span data-line="1350">    <span class="n">subsystems</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Subsystem</span><span class="p">],</span>
-</span><span data-line="1351">    <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
-</span><span data-line="1352">    <span class="n">T_sur_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span data-line="1353"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
-</span><span data-line="1354"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Energy and mass balance residuals at T^{n+1}.</span>
-</span><span data-line="1355">
-</span><span data-line="1356"><span class="sd">    The 3-way mixing valve ratio α(T) makes the outflow a</span>
-</span><span data-line="1357"><span class="sd">    nonlinear function of T^{n+1}, requiring ``fsolve``.</span>
-</span><span data-line="1358">
-</span><span data-line="1359"><span class="sd">    The energy residual is the conservative implicit balance</span>
-</span><span data-line="1360"><span class="sd">    ``C_tank·(L1·T1 - L0·T0) = dt·(Q + ρc·(V̇_in·T_in - V̇_out·T1) - UA·(T1 - T_sur))``</span>
-</span><span data-line="1361"><span class="sd">    with ``L1 = L0 + (V̇_in - V̇_out)·dt/V``. An always-full tank keeps</span>
-</span><span data-line="1362"><span class="sd">    ``L1 = L0``. A level-varying tank (``ctrl.dV_tank_w_in_ctrl`` set) takes</span>
-</span><span data-line="1363"><span class="sd">    ``L1`` and both flows from :func:`tank_step_flows` at ``T1``, so the</span>
-</span><span data-line="1364"><span class="sd">    water the balance adds or removes is the water that flows; the draw</span>
-</span><span data-line="1365"><span class="sd">    stops at :data:`TANK_LEVEL_MIN` and the make-up at full. The envelope</span>
-</span><span data-line="1366"><span class="sd">    loss ``UA·(T1 - T_sur)`` does not depend on the level.</span>
-</span><span data-line="1367">
-</span><span data-line="1368"><span class="sd">    Subsystem energy contributions and tank-inlet temperature</span>
-</span><span data-line="1369"><span class="sd">    overrides are read from ``sub_states``.</span>
+</span><span data-line="1354"><span class="k">def</span><span class="w"> </span><span class="nf">tank_mass_energy_residual</span><span class="p">(</span>
+</span><span data-line="1355">    <span class="n">x</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
+</span><span data-line="1356">    <span class="n">ctx</span><span class="p">:</span> <span class="n">StepContext</span><span class="p">,</span>
+</span><span data-line="1357">    <span class="n">ctrl</span><span class="p">:</span> <span class="n">ControlState</span><span class="p">,</span>
+</span><span data-line="1358">    <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1359">    <span class="n">T_tank_w_in_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1360">    <span class="n">T_sup_w_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1361">    <span class="n">T_mix_w_out_K</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1362">    <span class="n">C_tank</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1363">    <span class="n">UA_tank_wall</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1364">    <span class="n">V_tank_full</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span data-line="1365">    <span class="n">subsystems</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Subsystem</span><span class="p">],</span>
+</span><span data-line="1366">    <span class="n">sub_states</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+</span><span data-line="1367">    <span class="n">T_sur_K</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span data-line="1368"><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+</span><span data-line="1369"><span class="w">    </span><span class="sd">&quot;&quot;&quot;Energy and mass balance residuals at T^{n+1}.</span>
 </span><span data-line="1370">
-</span><span data-line="1371"><span class="sd">    Parameters</span>
-</span><span data-line="1372"><span class="sd">    ----------</span>
-</span><span data-line="1373"><span class="sd">    x : list[float]</span>
-</span><span data-line="1374"><span class="sd">        ``[T_next_K, level_next]``. For a level-varying tank ``level_next``</span>
-</span><span data-line="1375"><span class="sd">        enters only the mass residual (the energy residual uses the level its</span>
-</span><span data-line="1376"><span class="sd">        flows give).</span>
-</span><span data-line="1377"><span class="sd">    ctx : StepContext</span>
-</span><span data-line="1378"><span class="sd">        Current-step immutable context.</span>
-</span><span data-line="1379"><span class="sd">    ctrl : ControlState</span>
-</span><span data-line="1380"><span class="sd">        Current-step HP control decisions.</span>
-</span><span data-line="1381"><span class="sd">    dt : float</span>
-</span><span data-line="1382"><span class="sd">        Time-step size [s].</span>
-</span><span data-line="1383"><span class="sd">    T_tank_w_in_K : float</span>
-</span><span data-line="1384"><span class="sd">        Mains water inlet temperature [K].</span>
-</span><span data-line="1385"><span class="sd">    T_sup_w_K : float</span>
-</span><span data-line="1386"><span class="sd">        Mains water supply temperature [K] (for mixing valve).</span>
-</span><span data-line="1387"><span class="sd">    T_mix_w_out_K : float</span>
-</span><span data-line="1388"><span class="sd">        Target mixing-valve outlet temperature [K].</span>
-</span><span data-line="1389"><span class="sd">    C_tank : float</span>
-</span><span data-line="1390"><span class="sd">        Tank thermal capacitance [J/K].</span>
-</span><span data-line="1391"><span class="sd">    UA_tank_wall : float</span>
-</span><span data-line="1392"><span class="sd">        Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</span>
-</span><span data-line="1393"><span class="sd">    V_tank_full : float</span>
-</span><span data-line="1394"><span class="sd">        Tank full volume [m³].</span>
-</span><span data-line="1395"><span class="sd">    subsystems : dict[str, Subsystem]</span>
-</span><span data-line="1396"><span class="sd">        Registered subsystem instances.</span>
-</span><span data-line="1397"><span class="sd">    sub_states : dict[str, dict]</span>
-</span><span data-line="1398"><span class="sd">        Per-subsystem state dicts from ``step()``.</span>
-</span><span data-line="1399"><span class="sd">    T_sur_K : float | None</span>
-</span><span data-line="1400"><span class="sd">        Surrounding temperature [K]. If None, defaults to ctx.T0_K.</span>
-</span><span data-line="1401">
-</span><span data-line="1402"><span class="sd">    Returns</span>
-</span><span data-line="1403"><span class="sd">    -------</span>
-</span><span data-line="1404"><span class="sd">    list[float]</span>
-</span><span data-line="1405"><span class="sd">        ``[r_energy, r_mass]``.</span>
-</span><span data-line="1406"><span class="sd">    &quot;&quot;&quot;</span>
-</span><span data-line="1407">    <span class="n">T_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span data-line="1408">    <span class="n">level_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-</span><span data-line="1409">
-</span><span data-line="1410">    <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="1411">        <span class="c1"># Always full: the make-up equals the draw and the level holds.</span>
-</span><span data-line="1412">        <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span>
-</span><span data-line="1413">        <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
-</span><span data-line="1414">            <span class="mf">1.0</span><span class="p">,</span>
-</span><span data-line="1415">            <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">),</span>
-</span><span data-line="1416">        <span class="p">)</span>
-</span><span data-line="1417">        <span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
-</span><span data-line="1418">        <span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_tank_w_out</span>
-</span><span data-line="1419">
-</span><span data-line="1420">        <span class="n">r_mass</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">level_next</span> <span class="o">-</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span> <span class="o">-</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="o">-</span> <span class="n">dV_tank_w_out</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">V_tank_full</span>
-</span><span data-line="1421">
-</span><span data-line="1422">        <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
-</span><span data-line="1423">        <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">level_next</span><span class="p">)</span>
-</span><span data-line="1424">    <span class="k">else</span><span class="p">:</span>
-</span><span data-line="1425">        <span class="c1"># Level varies: the mass the energy balance carries comes from the</span>
-</span><span data-line="1426">        <span class="c1"># same flows it uses (the draw at T^{n+1}, limited to what the tank</span>
-</span><span data-line="1427">        <span class="c1"># holds), so the end level is computed here and ``x[1]`` only enters</span>
-</span><span data-line="1428">        <span class="c1"># the mass residual. ``max`` guards a start below TANK_LEVEL_MIN only.</span>
-</span><span data-line="1429">        <span class="n">flows</span> <span class="o">=</span> <span class="n">tank_step_flows</span><span class="p">(</span><span class="n">T_next</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T_sup_w_K</span><span class="p">,</span> <span class="n">T_mix_w_out_K</span><span class="p">,</span> <span class="n">V_tank_full</span><span class="p">)</span>
-</span><span data-line="1430">        <span class="n">dV_tank_w_out</span> <span class="o">=</span> <span class="n">flows</span><span class="o">.</span><span class="n">dV_tank_w_out</span>
-</span><span data-line="1431">        <span class="n">dV_tank_w_in</span> <span class="o">=</span> <span class="n">flows</span><span class="o">.</span><span class="n">dV_tank_w_in</span>
-</span><span data-line="1432">        <span class="n">r_mass</span> <span class="o">=</span> <span class="n">level_next</span> <span class="o">-</span> <span class="n">flows</span><span class="o">.</span><span class="n">level_next</span>
-</span><span data-line="1433">        <span class="n">C_curr</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
-</span><span data-line="1434">        <span class="n">C_next</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">flows</span><span class="o">.</span><span class="n">level_next</span><span class="p">)</span>
-</span><span data-line="1435">    <span class="n">T_sur_K</span> <span class="o">=</span> <span class="n">T_sur_K</span> <span class="k">if</span> <span class="n">T_sur_K</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span>
-</span><span data-line="1436">    <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sur_K</span><span class="p">)</span>
-</span><span data-line="1437">
-</span><span data-line="1438">    <span class="c1"># Effective tank inlet temperature</span>
-</span><span data-line="1439">    <span class="c1"># (subsystems may override, e.g. mains preheat)</span>
-</span><span data-line="1440">    <span class="n">T_in_eff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_in_K</span>
-</span><span data-line="1441">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-</span><span data-line="1442">        <span class="n">override</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-</span><span data-line="1443">            <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">,</span>
-</span><span data-line="1444">        <span class="p">)</span>
-</span><span data-line="1445">        <span class="k">if</span> <span class="n">override</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span data-line="1446">            <span class="n">T_in_eff</span> <span class="o">=</span> <span class="n">override</span>
-</span><span data-line="1447">            <span class="k">break</span>
-</span><span data-line="1448">
-</span><span data-line="1449">    <span class="n">Q_flow_net</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="o">*</span> <span class="n">T_in_eff</span> <span class="o">-</span> <span class="n">dV_tank_w_out</span> <span class="o">*</span> <span class="n">T_next</span><span class="p">)</span>
-</span><span data-line="1450">
-</span><span data-line="1451">    <span class="c1"># Subsystem energy contributions</span>
-</span><span data-line="1452">    <span class="c1"># (e.g. STC tank-circuit heat gain, pump heat)</span>
-</span><span data-line="1453">    <span class="n">Q_sub_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="1454">    <span class="n">E_sub_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span data-line="1455">    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subsystems</span><span class="p">:</span>
-</span><span data-line="1456">        <span class="n">ss</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
-</span><span data-line="1457">        <span class="n">Q_sub_total</span> <span class="o">+=</span> <span class="n">ss</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_contribution&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="1458">        <span class="n">E_sub_total</span> <span class="o">+=</span> <span class="n">ss</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-</span><span data-line="1459">
-</span><span data-line="1460">    <span class="n">Q_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">Q_heat_source</span> <span class="o">+</span> <span class="n">E_sub_total</span> <span class="o">+</span> <span class="n">Q_sub_total</span> <span class="o">+</span> <span class="n">Q_flow_net</span>
-</span><span data-line="1461">    <span class="n">r_energy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_next</span> <span class="o">*</span> <span class="n">T_next</span> <span class="o">-</span> <span class="n">C_curr</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span> <span class="o">-</span> <span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="n">Q_total</span> <span class="o">-</span> <span class="n">Q_loss</span><span class="p">)</span>
-</span><span data-line="1462">
-</span><span data-line="1463">    <span class="c1"># Scale to prevent fsolve Jacobian singularity (r_energy is O(1e5) while r_mass is O(1))</span>
-</span><span data-line="1464">    <span class="n">r_energy_scaled</span> <span class="o">=</span> <span class="n">r_energy</span> <span class="o">/</span> <span class="n">C_tank</span>
+</span><span data-line="1371"><span class="sd">    The 3-way mixing valve ratio α(T) makes the outflow a</span>
+</span><span data-line="1372"><span class="sd">    nonlinear function of T^{n+1}, requiring ``fsolve``.</span>
+</span><span data-line="1373">
+</span><span data-line="1374"><span class="sd">    The energy residual is the conservative implicit balance</span>
+</span><span data-line="1375"><span class="sd">    ``C_tank·(L1·T1 - L0·T0) = dt·(Q + ρc·(V̇_in·T_in - V̇_out·T1) - UA·(T1 - T_sur))``</span>
+</span><span data-line="1376"><span class="sd">    with ``L1 = L0 + (V̇_in - V̇_out)·dt/V``. An always-full tank keeps</span>
+</span><span data-line="1377"><span class="sd">    ``L1 = L0``. A level-varying tank (``ctrl.dV_tank_w_in_ctrl`` set) takes</span>
+</span><span data-line="1378"><span class="sd">    ``L1`` and both flows from :func:`tank_step_flows` at ``T1``, so the</span>
+</span><span data-line="1379"><span class="sd">    water the balance adds or removes is the water that flows; the draw</span>
+</span><span data-line="1380"><span class="sd">    stops at :data:`TANK_LEVEL_MIN` and the make-up at full. The envelope</span>
+</span><span data-line="1381"><span class="sd">    loss ``UA·(T1 - T_sur)`` does not depend on the level.</span>
+</span><span data-line="1382">
+</span><span data-line="1383"><span class="sd">    Subsystem energy contributions and tank-inlet temperature</span>
+</span><span data-line="1384"><span class="sd">    overrides are read from ``sub_states``.</span>
+</span><span data-line="1385">
+</span><span data-line="1386"><span class="sd">    Parameters</span>
+</span><span data-line="1387"><span class="sd">    ----------</span>
+</span><span data-line="1388"><span class="sd">    x : list[float]</span>
+</span><span data-line="1389"><span class="sd">        ``[T_next_K, level_next]``. For a level-varying tank ``level_next``</span>
+</span><span data-line="1390"><span class="sd">        enters only the mass residual (the energy residual uses the level its</span>
+</span><span data-line="1391"><span class="sd">        flows give).</span>
+</span><span data-line="1392"><span class="sd">    ctx : StepContext</span>
+</span><span data-line="1393"><span class="sd">        Current-step immutable context.</span>
+</span><span data-line="1394"><span class="sd">    ctrl : ControlState</span>
+</span><span data-line="1395"><span class="sd">        Current-step HP control decisions.</span>
+</span><span data-line="1396"><span class="sd">    dt : float</span>
+</span><span data-line="1397"><span class="sd">        Time-step size [s].</span>
+</span><span data-line="1398"><span class="sd">    T_tank_w_in_K : float</span>
+</span><span data-line="1399"><span class="sd">        Mains water inlet temperature [K].</span>
+</span><span data-line="1400"><span class="sd">    T_sup_w_K : float</span>
+</span><span data-line="1401"><span class="sd">        Mains water supply temperature [K] (for mixing valve).</span>
+</span><span data-line="1402"><span class="sd">    T_mix_w_out_K : float</span>
+</span><span data-line="1403"><span class="sd">        Target mixing-valve outlet temperature [K].</span>
+</span><span data-line="1404"><span class="sd">    C_tank : float</span>
+</span><span data-line="1405"><span class="sd">        Tank thermal capacitance [J/K].</span>
+</span><span data-line="1406"><span class="sd">    UA_tank_wall : float</span>
+</span><span data-line="1407"><span class="sd">        Tank overall heat-loss coefficient [W/K] (shell/insulation envelope).</span>
+</span><span data-line="1408"><span class="sd">    V_tank_full : float</span>
+</span><span data-line="1409"><span class="sd">        Tank full volume [m³].</span>
+</span><span data-line="1410"><span class="sd">    subsystems : dict[str, Subsystem]</span>
+</span><span data-line="1411"><span class="sd">        Registered subsystem instances.</span>
+</span><span data-line="1412"><span class="sd">    sub_states : dict[str, dict]</span>
+</span><span data-line="1413"><span class="sd">        Per-subsystem state dicts from ``step()``.</span>
+</span><span data-line="1414"><span class="sd">    T_sur_K : float | None</span>
+</span><span data-line="1415"><span class="sd">        Surrounding temperature [K]. If None, defaults to ctx.T0_K.</span>
+</span><span data-line="1416">
+</span><span data-line="1417"><span class="sd">    Returns</span>
+</span><span data-line="1418"><span class="sd">    -------</span>
+</span><span data-line="1419"><span class="sd">    list[float]</span>
+</span><span data-line="1420"><span class="sd">        ``[r_energy, r_mass]``.</span>
+</span><span data-line="1421"><span class="sd">    &quot;&quot;&quot;</span>
+</span><span data-line="1422">    <span class="n">T_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span data-line="1423">    <span class="n">level_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</span><span data-line="1424">
+</span><span data-line="1425">    <span class="k">if</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">dV_tank_w_in_ctrl</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="1426">        <span class="c1"># Always full: the make-up equals the draw and the level holds.</span>
+</span><span data-line="1427">        <span class="n">den</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span>
+</span><span data-line="1428">        <span class="n">alp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+</span><span data-line="1429">            <span class="mf">1.0</span><span class="p">,</span>
+</span><span data-line="1430">            <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="p">(</span><span class="n">T_mix_w_out_K</span> <span class="o">-</span> <span class="n">T_sup_w_K</span><span class="p">)</span> <span class="o">/</span> <span class="n">den</span><span class="p">),</span>
+</span><span data-line="1431">        <span class="p">)</span>
+</span><span data-line="1432">        <span class="n">dV_tank_w_out</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">alp</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">dV_mix_w_out</span>
+</span><span data-line="1433">        <span class="n">dV_tank_w_in</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">dV_tank_w_out</span>
+</span><span data-line="1434">
+</span><span data-line="1435">        <span class="n">r_mass</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">level_next</span> <span class="o">-</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span> <span class="o">-</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="o">-</span> <span class="n">dV_tank_w_out</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">V_tank_full</span>
+</span><span data-line="1436">
+</span><span data-line="1437">        <span class="n">C_curr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="1438">        <span class="n">C_next</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">level_next</span><span class="p">)</span>
+</span><span data-line="1439">    <span class="k">else</span><span class="p">:</span>
+</span><span data-line="1440">        <span class="c1"># Level varies: the mass the energy balance carries comes from the</span>
+</span><span data-line="1441">        <span class="c1"># same flows it uses (the draw at T^{n+1}, limited to what the tank</span>
+</span><span data-line="1442">        <span class="c1"># holds), so the end level is computed here and ``x[1]`` only enters</span>
+</span><span data-line="1443">        <span class="c1"># the mass residual. ``max`` guards a start below TANK_LEVEL_MIN only.</span>
+</span><span data-line="1444">        <span class="n">flows</span> <span class="o">=</span> <span class="n">tank_step_flows</span><span class="p">(</span><span class="n">T_next</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">ctrl</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">T_sup_w_K</span><span class="p">,</span> <span class="n">T_mix_w_out_K</span><span class="p">,</span> <span class="n">V_tank_full</span><span class="p">)</span>
+</span><span data-line="1445">        <span class="n">dV_tank_w_out</span> <span class="o">=</span> <span class="n">flows</span><span class="o">.</span><span class="n">dV_tank_w_out</span>
+</span><span data-line="1446">        <span class="n">dV_tank_w_in</span> <span class="o">=</span> <span class="n">flows</span><span class="o">.</span><span class="n">dV_tank_w_in</span>
+</span><span data-line="1447">        <span class="n">r_mass</span> <span class="o">=</span> <span class="n">level_next</span> <span class="o">-</span> <span class="n">flows</span><span class="o">.</span><span class="n">level_next</span>
+</span><span data-line="1448">        <span class="n">C_curr</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">tank_level</span><span class="p">)</span>
+</span><span data-line="1449">        <span class="n">C_next</span> <span class="o">=</span> <span class="n">C_tank</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">TANK_LEVEL_MIN</span><span class="p">,</span> <span class="n">flows</span><span class="o">.</span><span class="n">level_next</span><span class="p">)</span>
+</span><span data-line="1450">    <span class="n">T_sur_K</span> <span class="o">=</span> <span class="n">T_sur_K</span> <span class="k">if</span> <span class="n">T_sur_K</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T0_K</span>
+</span><span data-line="1451">    <span class="n">Q_loss</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">UA_tank_wall</span> <span class="o">*</span> <span class="p">(</span><span class="n">T_next</span> <span class="o">-</span> <span class="n">T_sur_K</span><span class="p">)</span>
+</span><span data-line="1452">
+</span><span data-line="1453">    <span class="c1"># Effective tank inlet temperature</span>
+</span><span data-line="1454">    <span class="c1"># (subsystems may override, e.g. mains preheat)</span>
+</span><span data-line="1455">    <span class="n">T_in_eff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">T_tank_w_in_K</span>
+</span><span data-line="1456">    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+</span><span data-line="1457">        <span class="n">override</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+</span><span data-line="1458">            <span class="s2">&quot;T_tank_w_in_override_K&quot;</span><span class="p">,</span>
+</span><span data-line="1459">        <span class="p">)</span>
+</span><span data-line="1460">        <span class="k">if</span> <span class="n">override</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span data-line="1461">            <span class="n">T_in_eff</span> <span class="o">=</span> <span class="n">override</span>
+</span><span data-line="1462">            <span class="k">break</span>
+</span><span data-line="1463">
+</span><span data-line="1464">    <span class="n">Q_flow_net</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">c_w</span> <span class="o">*</span> <span class="n">rho_w</span> <span class="o">*</span> <span class="p">(</span><span class="n">dV_tank_w_in</span> <span class="o">*</span> <span class="n">T_in_eff</span> <span class="o">-</span> <span class="n">dV_tank_w_out</span> <span class="o">*</span> <span class="n">T_next</span><span class="p">)</span>
 </span><span data-line="1465">
-</span><span data-line="1466">    <span class="k">return</span> <span class="p">[</span><span class="n">r_energy_scaled</span><span class="p">,</span> <span class="n">r_mass</span><span class="p">]</span></div>
+</span><span data-line="1466">    <span class="c1"># Subsystem energy contributions</span>
+</span><span data-line="1467">    <span class="c1"># (e.g. STC tank-circuit heat gain, pump heat)</span>
+</span><span data-line="1468">    <span class="n">Q_sub_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="1469">    <span class="n">E_sub_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span data-line="1470">    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subsystems</span><span class="p">:</span>
+</span><span data-line="1471">        <span class="n">ss</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">sub_states</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+</span><span data-line="1472">        <span class="n">Q_sub_total</span> <span class="o">+=</span> <span class="n">ss</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Q_contribution&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="1473">        <span class="n">E_sub_total</span> <span class="o">+=</span> <span class="n">ss</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;E_subsystem&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+</span><span data-line="1474">
+</span><span data-line="1475">    <span class="n">Q_total</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">ctrl</span><span class="o">.</span><span class="n">Q_heat_source</span> <span class="o">+</span> <span class="n">E_sub_total</span> <span class="o">+</span> <span class="n">Q_sub_total</span> <span class="o">+</span> <span class="n">Q_flow_net</span>
+</span><span data-line="1476">    <span class="n">r_energy</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">C_next</span> <span class="o">*</span> <span class="n">T_next</span> <span class="o">-</span> <span class="n">C_curr</span> <span class="o">*</span> <span class="n">ctx</span><span class="o">.</span><span class="n">T_tank_w_K</span> <span class="o">-</span> <span class="n">dt</span> <span class="o">*</span> <span class="p">(</span><span class="n">Q_total</span> <span class="o">-</span> <span class="n">Q_loss</span><span class="p">)</span>
+</span><span data-line="1477">
+</span><span data-line="1478">    <span class="c1"># Scale to prevent fsolve Jacobian singularity (r_energy is O(1e5) while r_mass is O(1))</span>
+</span><span data-line="1479">    <span class="n">r_energy_scaled</span> <span class="o">=</span> <span class="n">r_energy</span> <span class="o">/</span> <span class="n">C_tank</span>
+</span><span data-line="1480">
+</span><span data-line="1481">    <span class="k">return</span> <span class="p">[</span><span class="n">r_energy_scaled</span><span class="p">,</span> <span class="n">r_mass</span><span class="p">]</span></div>
 
 </span></pre></div>
         </article><button class="back-to-top" type="button">

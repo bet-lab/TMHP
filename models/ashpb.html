@@ -34,7 +34,7 @@
 refrigerant loop, hot-water tank, and mixing valve." />
 <meta name="description" content="The ASHPB family pairs the shared refrigerant cycle with an outdoor-coil source side and a DHW tank sink side. This is the validated reference example used by the Getting Started flow. Overview: so..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -396,6 +396,13 @@ below <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MI
 holds plus its make-up is cut, and the cut is reported as
 <code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>. A run of a level-varying tank starts with
 <code class="docutils literal notranslate"><span class="pre">tank_level_init</span></code> of at least <code class="docutils literal notranslate"><span class="pre">TANK_LEVEL_MIN</span></code>.</p>
+<p>Every step reports the hot-water service: <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> is the
+scheduled draw at the set point <code class="docutils literal notranslate"><span class="pre">T_mix_w_out</span></code> counted from the mains
+temperature, <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> the part not delivered — the tank was
+colder than the set point, so the water arrived cold, or a level-varying
+tank cut the draw. <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> warns once
+(<code class="docutils literal notranslate"><span class="pre">tmhp.dhw.DHWUnmetWarning</span></code>) when a run leaves demand unmet; see
+<a class="reference internal" href="../getting-started/first-dynamic-simulation.html#hot-water-service"><span class="std std-ref">Was the hot water delivered?</span></a> for the run totals.</p>
 </section>
 <section id="composed-variants">
 <h2>Composed variants<a class="headerlink" href="#composed-variants" title="Link to this heading">¶</a></h2>

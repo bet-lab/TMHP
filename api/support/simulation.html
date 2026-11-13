@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Per-step state, energy / exergy helpers, and the stdout summary tables emitted at the end of a dynamic run. Per-step dynamic context: Shared dynamic simulation context and control helpers. Provides..." />
 
-    <meta property="article:modified_time" content="2026-11-13T22:00:54+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -250,6 +250,7 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.simulation_summary">Simulation summary tables</a><ul>
+<li><a class="reference internal" href="#tmhp.simulation_summary.print_dhw_service_summary"><code class="docutils literal notranslate"><span class="pre">print_dhw_service_summary()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.simulation_summary.print_simulation_summary"><code class="docutils literal notranslate"><span class="pre">print_simulation_summary()</span></code></a></li>
 </ul>
 </li>
@@ -1794,6 +1795,11 @@ tank at <code class="xref py py-data docutils literal notranslate"><span class="
 <span class="sig-name descname"><span class="pre">level_next</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_tank_w_in</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_next</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_mix_w_out_unmet</span></span></em><span class="sig-paren">)</span></dt>
@@ -1813,13 +1819,21 @@ tank at <code class="xref py py-data docutils literal notranslate"><span class="
 
 <dl class="py attribute">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">dV_mix_w_out</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">dV_mix_w_out_unmet</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">as_flow_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dynamic_context.html#TankStepFlows.as_flow_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>The flows as the <code class="docutils literal notranslate"><span class="pre">flow_state</span></code> dict the source boilers report from.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dV_mix_w_out</span></code> is the delivered mixed water and <code class="docutils literal notranslate"><span class="pre">dV_mix_sup_w_in</span></code>
+the mains water the valve added to it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -3506,9 +3520,34 @@ powers lost. Adds the frost keys. COP columns are left to the caller.</p>
 <span id="simulation-summary-tables"></span><h2>Simulation summary tables<a class="headerlink" href="#module-tmhp.simulation_summary" title="Link to this heading">¶</a></h2>
 <p>Simulation summary output functions.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="tmhp.simulation_summary.print_dhw_service_summary">
+<span class="sig-prename descclassname"><span class="pre">tmhp.simulation_summary.</span></span><span class="sig-name descname"><span class="pre">print_dhw_service_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/simulation_summary.html#print_dhw_service_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.simulation_summary.print_dhw_service_summary" title="Link to this definition">¶</a></dt>
+<dd><p>Print the hot-water service of a boiler dynamic result.</p>
+<p>Requested, delivered and unmet hot-water heat [kWh], the number of draw
+steps left short and the coldest delivery
+(<a class="reference internal" href="demand-weather.html#tmhp.dhw.summarize_dhw_service" title="tmhp.dhw.summarize_dhw_service"><code class="xref py py-func docutils literal notranslate"><span class="pre">tmhp.dhw.summarize_dhw_service()</span></code></a>). Works on the result of any
+boiler model or combination; prints nothing for a frame without
+<code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> / <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Simulation result DataFrame.</p></li>
+<li><p><strong>simulation_time_step</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time step [s].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmhp.simulation_summary.print_simulation_summary">
 <span class="sig-prename descclassname"><span class="pre">tmhp.simulation_summary.</span></span><span class="sig-name descname"><span class="pre">print_simulation_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_ou_a_design</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/simulation_summary.html#print_simulation_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.simulation_summary.print_simulation_summary" title="Link to this definition">¶</a></dt>
 <dd><p>Print a comprehensive summary of simulation results.</p>
+<p>A boiler result also gets the hot-water service section
+(<a class="reference internal" href="#tmhp.simulation_summary.print_dhw_service_summary" title="tmhp.simulation_summary.print_dhw_service_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">print_dhw_service_summary()</span></code></a>): requested, delivered and unmet heat
+and the number of draw steps left short.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

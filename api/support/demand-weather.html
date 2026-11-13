@@ -33,7 +33,7 @@
 <meta property="og:image:alt" content="TMHP source and sink family matrix" />
 <meta name="description" content="Outdoor-air temperature utilities and domestic hot water demand profiles consumed by the dynamic simulation entry points. Weather: Weather data processing and irradiance calculations. Irradiance co..." />
 
-    <meta property="article:modified_time" content="2026-11-13T08:21:56+09:00" />
+    <meta property="article:modified_time" content="2026-11-13T22:57:17+09:00" />
   </head>
 <body><div class="sy-head">
   <div class="sy-head-blur"></div>
@@ -156,10 +156,17 @@ data-aria-dark="Switch to auto color mode">
 </ul>
 </li>
 <li><a class="reference internal" href="#module-tmhp.dhw">Domestic hot water demand</a><ul>
+<li><a class="reference internal" href="#tmhp.dhw.DHW_REQUEST_KEY"><code class="docutils literal notranslate"><span class="pre">DHW_REQUEST_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.DHW_SETPOINT_TOL_K"><code class="docutils literal notranslate"><span class="pre">DHW_SETPOINT_TOL_K</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.DHW_UNMET_KEY"><code class="docutils literal notranslate"><span class="pre">DHW_UNMET_KEY</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.DHWUnmetWarning"><code class="docutils literal notranslate"><span class="pre">DHWUnmetWarning</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.dhw.build_dhw_usage_ratio"><code class="docutils literal notranslate"><span class="pre">build_dhw_usage_ratio()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.dhw.calc_cold_water_temp"><code class="docutils literal notranslate"><span class="pre">calc_cold_water_temp()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.dhw.calc_total_water_use_from_schedule"><code class="docutils literal notranslate"><span class="pre">calc_total_water_use_from_schedule()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.dhw_service_columns"><code class="docutils literal notranslate"><span class="pre">dhw_service_columns()</span></code></a></li>
 <li><a class="reference internal" href="#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile"><code class="docutils literal notranslate"><span class="pre">make_dhw_schedule_from_Annex_42_profile()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.summarize_dhw_service"><code class="docutils literal notranslate"><span class="pre">summarize_dhw_service()</span></code></a></li>
+<li><a class="reference internal" href="#tmhp.dhw.warn_if_dhw_unmet"><code class="docutils literal notranslate"><span class="pre">warn_if_dhw_unmet()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -354,6 +361,51 @@ NREL SPA over a year at Seoul, without atmospheric refraction. Azimuth is clockw
 <section id="module-tmhp.dhw">
 <span id="domestic-hot-water-demand"></span><h2>Domestic hot water demand<a class="headerlink" href="#module-tmhp.dhw" title="Link to this heading">¶</a></h2>
 <p>Domestic Hot Water (DHW) load modeling.</p>
+<p>Besides the draw-schedule helpers, this module holds the hot-water service
+accounting the boiler models share: what a step was asked to deliver, what it
+did not deliver (<a class="reference internal" href="#tmhp.dhw.dhw_service_columns" title="tmhp.dhw.dhw_service_columns"><code class="xref py py-func docutils literal notranslate"><span class="pre">dhw_service_columns()</span></code></a>), the totals of a run
+(<a class="reference internal" href="#tmhp.dhw.summarize_dhw_service" title="tmhp.dhw.summarize_dhw_service"><code class="xref py py-func docutils literal notranslate"><span class="pre">summarize_dhw_service()</span></code></a>) and the end-of-run warning
+(<a class="reference internal" href="#tmhp.dhw.warn_if_dhw_unmet" title="tmhp.dhw.warn_if_dhw_unmet"><code class="xref py py-func docutils literal notranslate"><span class="pre">warn_if_dhw_unmet()</span></code></a>).</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.dhw.DHW_REQUEST_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_REQUEST_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_request</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.dhw.DHW_REQUEST_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>hot-water heat a step was asked to deliver [W].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Result key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.dhw.DHW_SETPOINT_TOL_K">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_SETPOINT_TOL_K</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.01</span></span><a class="headerlink" href="#tmhp.dhw.DHW_SETPOINT_TOL_K" title="Link to this definition">¶</a></dt>
+<dd><p>Width of the service set point [K].</p>
+<p>A delivery whose shortfall is no more than the requested flow cooled by this
+much counts as met (<code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code> is 0). The mixing valve of a
+multi-node tank is set on the outlet temperature by iteration (to 1e-3 K),
+and a lumped tank sitting on the set point differs between platforms in the
+last digits; neither is a hot-water shortfall. 0.01 K is 0.04 % of a 25 K lift.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="tmhp.dhw.DHW_UNMET_KEY">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHW_UNMET_KEY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Q_dhw_unmet</span> <span class="pre">[W]'</span></span><a class="headerlink" href="#tmhp.dhw.DHW_UNMET_KEY" title="Link to this definition">¶</a></dt>
+<dd><p>part of <code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> a step did not deliver [W].</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Result key</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="tmhp.dhw.DHWUnmetWarning">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">DHWUnmetWarning</span></span><a class="reference internal" href="../../_modules/tmhp/dhw.html#DHWUnmetWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.DHWUnmetWarning" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">UserWarning</span></code></p>
+<p>A dynamic run delivered less hot water than its draw schedule asked for.</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="tmhp.dhw.build_dhw_usage_ratio">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">build_dhw_usage_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">entries</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#build_dhw_usage_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.build_dhw_usage_ratio" title="Link to this definition">¶</a></dt>
@@ -437,6 +489,49 @@ name contains <code class="docutils literal notranslate"><span class="pre">T_avg
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="tmhp.dhw.dhw_service_columns">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">dhw_service_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dV_request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dV_delivered</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_delivered_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_set_K</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_sup_w_K</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#dhw_service_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.dhw_service_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Hot-water heat a step was asked for and the part it did not deliver.</p>
+<p>The request is the scheduled mixed-water flow at the service set point,
+counted from the mains temperature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span data-line="1">Q_dhw_request = rho·c · dV_request · (T_set − T_sup_w)
+</span></pre></div>
+</div>
+<p>The delivery is the mixed water that actually left the valve at the
+temperature it left at, <code class="docutils literal notranslate"><span class="pre">rho·c</span> <span class="pre">·</span> <span class="pre">dV_delivered</span> <span class="pre">·</span> <span class="pre">(T_delivered</span> <span class="pre">−</span> <span class="pre">T_sup_w)</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">=</span> <span class="pre">Q_dhw_request</span> <span class="pre">−</span> <span class="pre">delivery</span></code> (never negative). Two things
+make it positive:</p>
+<ul class="simple">
+<li><p>the tank is colder than the set point, so the mixing valve passes tank
+water unmixed and the water arrives below the set point;</p></li>
+<li><p>a tank whose level varies stopped the draw at its lowest level, so less
+water was delivered (<code class="docutils literal notranslate"><span class="pre">dV_mix_w_out_unmet</span> <span class="pre">[m3/s]</span></code>).</p></li>
+</ul>
+<p>Both are step averages like every other rate in a dynamic result:
+<code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet·dt</span></code> is the step’s shortfall in joules. A shortfall within
+<a class="reference internal" href="#tmhp.dhw.DHW_SETPOINT_TOL_K" title="tmhp.dhw.DHW_SETPOINT_TOL_K"><code class="xref py py-data docutils literal notranslate"><span class="pre">DHW_SETPOINT_TOL_K</span></code></a> of the set point is reported as 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dV_request</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mixed-water flow the draw schedule asks for [m³/s].</p></li>
+<li><p><strong>dV_delivered</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mixed-water flow that left the mixing valve [m³/s].</p></li>
+<li><p><strong>T_delivered_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Temperature of the delivered water [K]; unused when nothing was delivered.</p></li>
+<li><p><strong>T_set_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Service set point of the mixing valve [K].</p></li>
+<li><p><strong>T_sup_w_K</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mains water temperature [K].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">{&quot;Q_dhw_request</span> <span class="pre">[W]&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;Q_dhw_unmet</span> <span class="pre">[W]&quot;:</span> <span class="pre">...}</span></code>. Both are 0 on a
+step without a draw, and when the mains water is already at the set
+point (nothing to heat).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="tmhp.dhw.make_dhw_schedule_from_Annex_42_profile">
 <span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">make_dhw_schedule_from_Annex_42_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flow_rate_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#make_dhw_schedule_from_Annex_42_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.make_dhw_schedule_from_Annex_42_profile" title="Link to this definition">¶</a></dt>
 <dd><p>Generate DHW schedule list from flow profile data.</p>
@@ -455,6 +550,62 @@ into a schedule list with specified time step.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.dhw.summarize_dhw_service">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">summarize_dhw_service</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#summarize_dhw_service"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.summarize_dhw_service" title="Link to this definition">¶</a></dt>
+<dd><p>Hot-water service totals of a dynamic result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>) – Result of a boiler <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code> (or rows of <code class="docutils literal notranslate"><span class="pre">step</span></code>) carrying
+<code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[W]</span></code> and <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span></code>.</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Time step of the result [s].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_request</span> <span class="pre">[kWh]</span></code>: heat the draw schedule asked for;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_delivered</span> <span class="pre">[kWh]</span></code>: heat delivered (request less unmet);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[kWh]</span></code>: heat not delivered;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dhw_unmet_fraction</span> <span class="pre">[-]</span></code>: unmet / request (0 without a request);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dhw_draw_steps</span> <span class="pre">[-]</span></code>: steps with a draw request;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dhw_unmet_steps</span> <span class="pre">[-]</span></code>: steps with <code class="docutils literal notranslate"><span class="pre">Q_dhw_unmet</span> <span class="pre">[W]</span> <span class="pre">&gt;</span> <span class="pre">0</span></code>;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">T_mix_w_out_min</span> <span class="pre">[°C]</span></code>: lowest delivered temperature on a step
+with a draw (NaN without a draw or without the column).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – If <code class="docutils literal notranslate"><span class="pre">df</span></code> does not carry the two hot-water columns.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tmhp.dhw.warn_if_dhw_unmet">
+<span class="sig-prename descclassname"><span class="pre">tmhp.dhw.</span></span><span class="sig-name descname"><span class="pre">warn_if_dhw_unmet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt_s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">who</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_set_C</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/tmhp/dhw.html#warn_if_dhw_unmet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tmhp.dhw.warn_if_dhw_unmet" title="Link to this definition">¶</a></dt>
+<dd><p>Warn once (<a class="reference internal" href="#tmhp.dhw.DHWUnmetWarning" title="tmhp.dhw.DHWUnmetWarning"><code class="xref py py-class docutils literal notranslate"><span class="pre">DHWUnmetWarning</span></code></a>) if a run left hot-water demand unmet.</p>
+<p>Called at the end of each boiler <code class="docutils literal notranslate"><span class="pre">analyze_dynamic</span></code>. Silent when every
+draw was delivered at the set point, and on frames without the hot-water
+columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span>)</p></li>
+<li><p><strong>dt_s</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+<li><p><strong>who</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>T_set_C</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
 </dd>
 </dl>
 </dd></dl>

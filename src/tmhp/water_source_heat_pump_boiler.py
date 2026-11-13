@@ -87,6 +87,20 @@ if TYPE_CHECKING:
     from .subsystems import SolarThermalCollector
 
 
+#: Saturation states an off-mode row reports as NaN next to the cycle state points.
+_OFF_STATE_NAN_KEYS: tuple[str, ...] = (
+    "T_ref_evap_sat [°C]",
+    "T_ref_cond_sat_v [°C]",
+    "T_ref_cond_sat_l [°C]",
+    "P_ref_evap_sat [Pa]",
+    "P_ref_cond_sat_v [Pa]",
+    "P_ref_cond_sat_l [Pa]",
+    "h_ref_evap_sat [J/kg]",
+    "h_ref_cond_sat_v [J/kg]",
+    "h_ref_cond_sat_l [J/kg]",
+)
+
+
 class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     """Water source heat pump boiler with surface-water source and lumped-tank model.
 
@@ -94,6 +108,25 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
     superheat / subcool margins. An optimizer minimises total cycle
     electrical input subject to NTU-based evaporator constraints against the
     source-water temperature and analytical condenser temperature relations.
+
+    ``hp_capacity`` and ``ref`` are enough to build a machine; the sizes left
+    as ``None`` follow the capacity (:mod:`tmhp._source_boiler`), so the rated
+    cycle is the same at every capacity: ``UA_tank_hx = hp_capacity / 5``,
+    ``UA_water = 0.18 * hp_capacity``, source-loop flow ``dV_b_f_lpm =
+    0.75 * hp_capacity / (rho c * 3 K)`` (3.58 L/min per kW), ``E_pmp =
+    75 W/ton * hp_capacity`` (21.3 W per kW), and a submerged coil ``H_b`` of
+    200 m or as long as the rated source-side heat needs at 50 W/m. A value
+    the caller gives is used as given. ``UserWarning`` is raised for a
+    caller's coil above 80 W/m, for a laminar default flow, and for an upper
+    tank set point whose condensing temperature is at or above the
+    refrigerant's critical temperature.
+
+    In every running result the suction superheat is at most the evaporator
+    approach less ``dT_hx_min``; on a compressor speed bound the tank heat
+    exchanger is closed on the heat actually delivered (``dT_ref_tank [K]``,
+    ``tank_hx_residual [W]``). In ``analyze_dynamic`` the cycle of a step is
+    solved against the fluid the coil returns from that step's source water
+    (``T_source_w_schedule``) while it carries that step's own extraction.
     """
 
     # Heat and power rates of the running cycle; a step reports them
@@ -417,83 +450,62 @@ class WaterSourceHeatPumpBoiler(ReferenceStateMixin):
         }
 
     def _calc_off_state(self, T_tank_w: float, T0: float, flow_state: dict) -> dict:
+        """Off-mode row: no heat, no power, and no refrigerant state.
+
+        The compressor is stopped, so the cycle state points do not exist:
+        they are NaN, as in the other boilers (they used to carry the source
+        and tank temperatures as placeholders, which read like a cycle).
+        """
         T_tank_w_K = cu.C2K(T_tank_w)
         mix = calc_mixing_valve_temp(T_tank_w_K, self.T_tank_w_in_K, self.T_mix_w_out_K)
 
-        # Bound temperatures for PropsSI to prevent crashes when tank overheats
-        # R410A critical temp is ~344.49K (71.3 °C)
-        T_tank_K_calc = min(max(T_tank_w_K, 250.0), 340.0)
-        T_water_K_calc = min(max(self.T_bhe_f_in_K, 250.0), 340.0)
-
-        P_ref_evap_sat = CP.PropsSI("P", "T", T_water_K_calc, "Q", 1, self.ref)
-        h_ref_evap_sat = CP.PropsSI("H", "P", P_ref_evap_sat, "Q", 1, self.ref)
-        s_ref_evap_sat = CP.PropsSI("S", "P", P_ref_evap_sat, "Q", 1, self.ref)
-
-        P_ref_cond_sat = CP.PropsSI("P", "T", T_tank_K_calc, "Q", 0, self.ref)
-        h_ref_cond_sat_l = CP.PropsSI("H", "P", P_ref_cond_sat, "Q", 0, self.ref)
-        s_ref_cond_sat_l = CP.PropsSI("S", "P", P_ref_cond_sat, "Q", 0, self.ref)
-
-        return {
-            "hp_is_on": False,
-            "converged": True,
-            "converged_rps": True,
-            "capacity_clamped": None,
-            "T_tank_w [°C]": T_tank_w,
-            "T0 [°C]": T0,
-            "T_mix_w_out [°C]": cu.K2C(mix["T_mix_w_out_K"]),
-            "T_tank_w_in [°C]": self.T_tank_w_in,
-            "Ts [°C]": self.Ts,
-            "T_bhe [°C]": getattr(self, "T_bhe", self.Ts),
-            "T_bhe_f [°C]": getattr(self, "T_bhe_f", self.Ts),
-            "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
-            "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
-            "T_ref_evap_sat [°C]": cu.K2C(self.T_bhe_f_in_K),
-            "T_ref_cond_sat_v [°C]": T_tank_w,
-            "T_ref_cond_sat_l [°C]": T_tank_w,
-            "T_ref_cmp_in [°C]": cu.K2C(self.T_bhe_f_in_K),
-            "T_ref_cmp_out [°C]": T_tank_w,
-            "T_ref_exp_in [°C]": T_tank_w,
-            "T_ref_exp_out [°C]": cu.K2C(self.T_bhe_f_in_K),
-            "T_cond [°C]": T_tank_w,
-            "dV_mix_w_out [m3/s]": flow_state.get("dV_mix_w_out", 0.0),
-            "dV_tank_w_in [m3/s]": flow_state.get("dV_tank_w_in", 0.0),
-            "dV_tank_w_out [m3/s]": flow_state.get("dV_tank_w_out", 0.0),
-            "dV_mix_sup_w_in [m3/s]": flow_state.get("dV_mix_sup_w_in", 0.0),
-            "dV_bhe_f [m3/s]": self.dV_b_f_m3s,
-            "P_ref_cmp_in [Pa]": P_ref_evap_sat,
-            "P_ref_cmp_out [Pa]": P_ref_cond_sat,
-            "P_ref_exp_in [Pa]": P_ref_cond_sat,
-            "P_ref_exp_out [Pa]": P_ref_evap_sat,
-            "P_ref_evap_sat [Pa]": P_ref_evap_sat,
-            "P_ref_cond_sat_v [Pa]": P_ref_cond_sat,
-            "P_ref_cond_sat_l [Pa]": P_ref_cond_sat,
-            "h_ref_cmp_in [J/kg]": h_ref_evap_sat,
-            "h_ref_cmp_out [J/kg]": h_ref_evap_sat,
-            "h_ref_exp_in [J/kg]": h_ref_cond_sat_l,
-            "h_ref_exp_out [J/kg]": h_ref_cond_sat_l,
-            "h_ref_evap_sat [J/kg]": h_ref_evap_sat,
-            "h_ref_cond_sat_v [J/kg]": h_ref_evap_sat,
-            "h_ref_cond_sat_l [J/kg]": h_ref_cond_sat_l,
-            "s_ref_cmp_in [J/(kg·K)]": s_ref_evap_sat,
-            "s_ref_cmp_out [J/(kg·K)]": s_ref_evap_sat,
-            "s_ref_exp_in [J/(kg·K)]": s_ref_cond_sat_l,
-            "s_ref_exp_out [J/(kg·K)]": s_ref_cond_sat_l,
-            "x_ref_cmp_in [J/kg]": 0.0,
-            "x_ref_cmp_out [J/kg]": 0.0,
-            "x_ref_exp_in [J/kg]": 0.0,
-            "x_ref_exp_out [J/kg]": 0.0,
-            "Q_bhe [W]": 0.0,
-            "Q_ref_tank [W]": 0.0,
-            "Q_ref_water [W]": 0.0,
-            "Q_tank_load [W]": 0.0,
-            "E_cmp [W]": 0.0,
-            "E_pmp [W]": 0.0,
-            "E_tot [W]": 0.0,
-            "m_dot_ref [kg/s]": 0.0,
-            "cmp_rpm [rpm]": 0.0,
-            "cop_ref [-]": np.nan,
-            "cop_sys [-]": np.nan,
-        }
+        result: dict = reportable_state(
+            calc_ref_state(
+                T_evap_K=self.T_bhe_f_in_K,
+                T_cond_K=T_tank_w_K,
+                refrigerant=self.ref,
+                eta_cmp_isen=1.0,
+                dT_superheat=self.dT_superheat,
+                dT_subcool=self.dT_subcool,
+                is_active=False,
+            )
+        )
+        result.update(dict.fromkeys(_OFF_STATE_NAN_KEYS, np.nan))
+        result.update(
+            {
+                "hp_is_on": False,
+                "converged": True,
+                "converged_rps": True,
+                "capacity_clamped": None,
+                "T_tank_w [°C]": T_tank_w,
+                "T0 [°C]": T0,
+                "T_mix_w_out [°C]": cu.K2C(mix["T_mix_w_out_K"]),
+                "T_tank_w_in [°C]": self.T_tank_w_in,
+                "Ts [°C]": self.Ts,
+                "T_bhe [°C]": getattr(self, "T_bhe", self.Ts),
+                "T_bhe_f [°C]": getattr(self, "T_bhe_f", self.Ts),
+                "T_bhe_f_in [°C]": cu.K2C(getattr(self, "T_bhe_f_in_K", self.Ts_K)),
+                "T_bhe_f_out [°C]": cu.K2C(getattr(self, "T_bhe_f_out_K", self.Ts_K)),
+                "T_cond [°C]": T_tank_w,
+                "dV_mix_w_out [m3/s]": flow_state.get("dV_mix_w_out", 0.0),
+                "dV_tank_w_in [m3/s]": flow_state.get("dV_tank_w_in", 0.0),
+                "dV_tank_w_out [m3/s]": flow_state.get("dV_tank_w_out", 0.0),
+                "dV_mix_sup_w_in [m3/s]": flow_state.get("dV_mix_sup_w_in", 0.0),
+                "dV_bhe_f [m3/s]": self.dV_b_f_m3s,
+                "Q_bhe [W]": 0.0,
+                "Q_ref_tank [W]": 0.0,
+                "Q_ref_water [W]": 0.0,
+                "Q_tank_load [W]": 0.0,
+                "E_cmp [W]": 0.0,
+                "E_pmp [W]": 0.0,
+                "E_tot [W]": 0.0,
+                "m_dot_ref [kg/s]": 0.0,
+                "cmp_rpm [rpm]": 0.0,
+                "cop_ref [-]": np.nan,
+                "cop_sys [-]": np.nan,
+            }
+        )
+        return result
 
     def _rating_side(self, role: str, mode: str, T_in_C: float) -> HXSide:
         """Source-water evaporator (source) and tank-immersed condenser (load)."""

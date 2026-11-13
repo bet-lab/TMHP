@@ -133,6 +133,32 @@ class GroundSourceHeatPumpBoiler(ReferenceStateMixin):
     superheat / subcool margins. An optimizer minimises total cycle
     electrical input subject to NTU-based evaporator constraints and
     analytical condenser temperature relations.
+
+    ``hp_capacity`` and ``ref`` are enough to build a machine; the sizes left
+    as ``None`` follow the capacity (:mod:`tmhp._source_boiler`), so the rated
+    cycle is the same at every capacity:
+
+    - ``UA_tank_hx = hp_capacity / 5`` [W/K] (5 K condensing approach);
+    - ``UA_ground = 0.18 * hp_capacity`` [W/K];
+    - source-loop flow ``ground_flow_ref_lpm = 0.75 * hp_capacity / (rho c * 3 K)``
+      (3.58 L/min per kW);
+    - ``E_pmp = 75 W/ton * hp_capacity`` (21.3 W per kW, ASHRAE pumping grade B
+      upper bound; used when ``hydraulic_pump`` is off);
+    - ``N_1``, ``N_2``, ``H_b``: with none given, 200 m boreholes on a
+      near-square grid, as many as keep the rated source-side heat
+      (``0.75 * hp_capacity``) at or below 50 W/m (one borehole at 8 kW).
+
+    A value the caller gives is used as given. ``UserWarning`` is raised for a
+    caller's field above 80 W/m, for a laminar default flow in the U-tubes, and
+    for an upper tank set point whose condensing temperature
+    (``T_tank_w_upper_bound + hp_capacity / UA_tank_hx``) is at or above the
+    refrigerant's critical temperature.
+
+    In every running result the suction superheat is at most the evaporator
+    approach less ``dT_hx_min``; on a compressor speed bound the tank heat
+    exchanger is closed on the heat actually delivered (``dT_ref_tank [K]``,
+    ``tank_hx_residual [W]``); and each dynamic step's cycle is solved against
+    the ground fluid of that same step.
     """
 
     # Heat and power rates of the running cycle; a step reports them
